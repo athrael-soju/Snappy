@@ -1,0 +1,9 @@
+colpali-engine
+pdf2image
+GPUtil
+accelerate
+openai
+gradio[mcp]
+tqdm
+Pillow
+gradio-pdf

@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  vision-rag-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: vision-rag-app:latest
+    container_name: vision-rag-container
+    ports:
+      - "7860:7860"
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      - ./data:/home/user/app/data
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
