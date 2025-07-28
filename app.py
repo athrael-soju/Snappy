@@ -11,17 +11,21 @@ from PIL import Image
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from colpali_engine.models import ColIdefics3, ColIdefics3Processor
+from colpali_engine.models import ColQwen2_5, ColQwen2_5_Processor
+from qdrant_manager import QdrantManager
+
+# Initialize Qdrant manager with environment variable support
+qdrant_url = os.getenv('QDRANT_URL', 'http://localhost:6333')
+qdrant_manager = QdrantManager(url=qdrant_url)
 
 
-
-model = ColIdefics3.from_pretrained(
-        "vidore/colSmol-500M",
+model = ColQwen2_5.from_pretrained(
+        "nomic-ai/colnomic-embed-multimodal-3b",
         torch_dtype=torch.bfloat16,
         device_map="cuda:0",  # or "mps" if on Apple Silicon
         attn_implementation=None
     ).eval()
-processor = ColIdefics3Processor.from_pretrained("vidore/colSmol-500M")
+processor = ColQwen2_5_Processor.from_pretrained("nomic-ai/colnomic-embed-multimodal-3b")
 
 
 def encode_image_to_base64(image):
@@ -79,36 +83,42 @@ def query_gpt4_1_mini(query, images, api_key):
 
 
 def search(query: str, ds, images, k, api_key):
-    k = min(k, len(ds))
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    if device != model.device:
-        model.to(device)
+    """Search using Qdrant with reranking strategy."""
+    try:
+        # Use Qdrant manager for search with reranking
+        search_results = qdrant_manager.search_with_reranking(query, processor, model, k=k)
         
-    qs = []
-    with torch.no_grad():
-        batch_query = processor.process_queries([query]).to(model.device)
-        embeddings_query = model(**batch_query)
-        qs.extend(list(torch.unbind(embeddings_query.to("cpu"))))
-
-    scores = processor.score(qs, ds, device=device)
-
-    top_k_indices = scores[0].topk(k).indices.tolist()
-
-    results = []
-    for idx in top_k_indices:
-        results.append((images[idx], f"Page {idx}"))
-
-    # Generate response from GPT-4.1-mini
-    ai_response = query_gpt4_1_mini(query, results, api_key)
-
-    return results, ai_response
+        if not search_results:
+            return [], "No results found. Make sure documents are indexed first."
+        
+        # Convert search results to expected format
+        results = []
+        for result in search_results:
+            page_idx = result['page_index']
+            if page_idx < len(images):
+                results.append((images[page_idx], f"Page {page_idx} (Score: {result['score']:.3f})"))
+        
+        # Generate response from GPT-4.1-mini
+        ai_response = query_gpt4_1_mini(query, results, api_key)
+        
+        return results, ai_response
+        
+    except Exception as e:
+        error_msg = f"Search error: {str(e)}. Make sure Qdrant is running and documents are indexed."
+        return [], error_msg
 
 
 def index(files, ds):
-    print("Converting files")
-    images = convert_files(files)
-    print(f"Files converted with {len(images)} images.")
-    return index_gpu(images, ds)
+    """Index files using QdrantManager."""
+    try:
+        print("Converting files")
+        images = convert_files(files)
+        print(f"Files converted with {len(images)} images.")
+        return index_qdrant(images, ds)
+    except Exception as e:
+        error_msg = f"Indexing error: {str(e)}"
+        print(error_msg)
+        return error_msg, ds, []
     
 
 
@@ -124,28 +134,34 @@ def convert_files(files):
     return images
 
 
-def index_gpu(images, ds):
-    """Example script to run inference with ColPali (ColSmol)"""
-
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    if device != model.device:
-        model.to(device)
+def index_qdrant(images, ds):
+    """Index images using QdrantManager with mean pooling strategy."""
+    try:
+        device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        if device != model.device:
+            model.to(device)
         
-    # run inference - docs
-    dataloader = DataLoader(
-        images,
-        batch_size=4,
-        # num_workers=4,
-        shuffle=False,
-        collate_fn=lambda x: processor.process_images(x).to(model.device),
-    )
-
-    for batch_doc in tqdm(dataloader):
-        with torch.no_grad():
-            batch_doc = {k: v.to(device) for k, v in batch_doc.items()}
-            embeddings_doc = model(**batch_doc)
-        ds.extend(list(torch.unbind(embeddings_doc.to("cpu"))))
-    return f"Uploaded and converted {len(images)} pages", ds, images
+        # Index images using QdrantManager
+        success = qdrant_manager.index_images(images, processor, model, batch_size=4)
+        
+        if success:
+            # Get collection info for status
+            info = qdrant_manager.get_collection_info()
+            status_msg = f"Successfully indexed {len(images)} pages into Qdrant"
+            if info:
+                status_msg += f" (Total points: {info.get('points_count', 'unknown')})"
+            
+            print(status_msg)
+            return status_msg, ds, images
+        else:
+            error_msg = "Failed to index images into Qdrant"
+            print(error_msg)
+            return error_msg, ds, []
+            
+    except Exception as e:
+        error_msg = f"Qdrant indexing error: {str(e)}"
+        print(error_msg)
+        return error_msg, ds, []
 
 
 

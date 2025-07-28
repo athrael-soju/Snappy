@@ -7,3 +7,5 @@ gradio[mcp]
 tqdm
 Pillow
 gradio-pdf
+qdrant-client
+numpy

@@ -1,25 +1,47 @@
-version: '3.8'
-
 services:
-  vision-rag-app:
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
+    ports:
+      - 6333:6333 # HTTP API
+      - 6334:6334 # gRPC API
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      - QDRANT__STORAGE__PATH=/qdrant/storage
+      - QDRANT__SERVICE__GRPC_PORT=6334
+      - QDRANT__SERVICE__HTTP_PORT=6333
+
+  vision-rag:
     build:
       context: .
       dockerfile: Dockerfile
     image: vision-rag-app:latest
-    container_name: vision-rag-container
+    container_name: vision-rag
     ports:
       - "7860:7860"
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
+      - QDRANT_URL=http://qdrant:6333
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [gpu]
+              capabilities: [ gpu ]
     volumes:
-      - ./data:/home/user/app/data
+      - vision_rag_data:/home/user/app/data
     stdin_open: true
     tty: true
     restart: unless-stopped
+    depends_on:
+      - qdrant
+
+networks:
+  vision-rag-network:
+    driver: bridge
+
+volumes:
+  qdrant_data:
+  vision_rag_data:
