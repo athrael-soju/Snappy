@@ -9,4 +9,5 @@ Pillow
 gradio-pdf
 qdrant-client
 numpy
+python-dotenv
 # uv pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu129

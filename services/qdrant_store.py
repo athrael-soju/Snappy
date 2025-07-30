@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 import uuid
 import numpy as np
 import torch
@@ -6,22 +7,26 @@ from qdrant_client import QdrantClient, models
 from colpali_engine.models import ColQwen2_5, ColQwen2_5_Processor
 from tqdm import tqdm
 
+# Load environment variables from .env file
+load_dotenv()
+
+from config import QDRANT_URL, QDRANT_COLLECTION_NAME, MODEL_NAME, MODEL_DEVICE
+
 
 class QdrantService:
     def __init__(self):
         # Initialize Qdrant client
-        qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
-        self.client = QdrantClient(url=qdrant_url)
-        self.collection_name = "documents"
+        self.client = QdrantClient(url=QDRANT_URL)
+        self.collection_name = QDRANT_COLLECTION_NAME
         
         # Initialize ColQwen model and processor
         self.model = ColQwen2_5.from_pretrained(
-            "nomic-ai/colnomic-embed-multimodal-3b",
+            MODEL_NAME,
             torch_dtype=torch.bfloat16,
-            device_map="cuda:0" if torch.cuda.is_available() else "cpu",
+            device_map=MODEL_DEVICE,
             attn_implementation=None
         ).eval()
-        self.processor = ColQwen2_5_Processor.from_pretrained("nomic-ai/colnomic-embed-multimodal-3b")
+        self.processor = ColQwen2_5_Processor.from_pretrained(MODEL_NAME)
         
         # Create collection if it doesn't exist
         self._create_collection_if_not_exists()
