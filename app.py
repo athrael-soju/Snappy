@@ -13,6 +13,8 @@ from tqdm import tqdm
 
 from colpali_engine.models import ColQwen2_5, ColQwen2_5_Processor
 
+from services.openai import query_gpt4_1_mini
+
 
 
 model = ColQwen2_5.from_pretrained(
@@ -22,60 +24,6 @@ model = ColQwen2_5.from_pretrained(
         attn_implementation=None
     ).eval()
 processor = ColQwen2_5_Processor.from_pretrained("nomic-ai/colnomic-embed-multimodal-3b")
-
-
-def encode_image_to_base64(image):
-    """Encodes a PIL image to a base64 string."""
-    buffered = BytesIO()
-    image.save(buffered, format="JPEG")
-    return base64.b64encode(buffered.getvalue()).decode("utf-8")
-    
-
-def query_gpt4_1_mini(query, images, api_key):
-    """Calls OpenAI's GPT-4.1-mini with the query and image data."""
-
-    if api_key and api_key.startswith("sk"):
-        try:
-            from openai import OpenAI
-        
-            base64_images = [encode_image_to_base64(image[0]) for image in images]
-            client = OpenAI(api_key=api_key.strip())
-            PROMPT = """
-            You are a smart assistant designed to answer questions about a PDF document.
-            You are given relevant information in the form of PDF pages. Use them to construct a short response to the question, and cite your sources (page numbers, etc).
-            If it is not possible to answer using the provided pages, do not attempt to provide an answer and simply say the answer is not present within the documents.
-            Give detailed and extensive answers, only containing info in the pages you are given.
-            You can answer using information contained in plots and figures if necessary.
-            Answer in the same language as the query.
-            
-            Query: {query}
-            PDF pages:
-            """
-        
-            response = client.chat.completions.create(
-            model="gpt-4.1-mini",
-            messages=[
-                {
-                  "role": "user",
-                  "content": [
-                    {
-                      "type": "text",
-                      "text": PROMPT.format(query=query)
-                    }] + [{
-                      "type": "image_url",
-                      "image_url": {
-                        "url": f"data:image/jpeg;base64,{im}"
-                        },
-                    } for im in base64_images]
-                }
-              ],
-              max_tokens=500,
-            )
-            return response.choices[0].message.content
-        except Exception as e:
-            return "OpenAI API connection failure. Verify the provided key is correct (sk-***)."
-        
-    return "Enter your OpenAI API key to get a custom response"
 
 
 def search(query: str, ds, images, k, api_key):
