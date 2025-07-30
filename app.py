@@ -3,9 +3,15 @@ import torch
 import gradio as gr
 from gradio_pdf import PDF
 
+from services.openai import query_openai
+from pdf2image import convert_from_path
+
 # Import the appropriate service based on environment variable
-from config import STORAGE_TYPE, MODEL_NAME, MODEL_DEVICE
+from config import STORAGE_TYPE, MODEL_NAME, MODEL_DEVICE, IN_MEMORY_THREADS, IN_MEMORY_NUM_IMAGES
 from colpali_engine.models import ColQwen2_5, ColQwen2_5_Processor
+
+memory_store_service = None
+qdrant_service = None
 
 # Initialize model and processor
 model = ColQwen2_5.from_pretrained(
@@ -41,20 +47,24 @@ def search_wrapper(query: str, ds, images, k, api_key):
 
 def index_wrapper(files, ds):
     """Wrapper function to select between in-memory and Qdrant indexing"""
-    print("Converting files")
-    images = memory_store_service.convert_files(files)
-    print(f"Files converted with {len(images)} images.")
-    
+    images = convert_files(files)
     if STORAGE_TYPE == "memory":
         message = memory_store_service.index_gpu(images, ds)
         return message, ds, images
     elif STORAGE_TYPE == "qdrant":
         message = qdrant_service.index_documents(images)
-        # For Qdrant, we don't need to return embeddings as they're stored in Qdrant
         return message, ds, images
 
-from services.openai import query_openai
 
+def convert_files(files):
+    images = []
+    files = [files] if not isinstance(files, list) else files
+    for f in files:
+        images.extend(convert_from_path(f, thread_count=int(IN_MEMORY_THREADS)))
+
+    if len(images) >= int(IN_MEMORY_NUM_IMAGES):
+        raise ValueError(f"The number of images in the dataset should be less than {IN_MEMORY_NUM_IMAGES}.")
+    return images
 
 
 with gr.Blocks(theme=gr.themes.Soft()) as demo:
@@ -71,7 +81,6 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     with gr.Row():
         with gr.Column(scale=2):
             gr.Markdown("## 1️⃣ Upload PDFs")
-            # file = gr.File(file_types=["pdf"], file_count="multiple", label="Upload PDFs")
             file = PDF(label="PDF Document")
             print(file)
 
@@ -98,4 +107,4 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
 if __name__ == "__main__":
     # Print which storage type is being used
     print(f"Using {STORAGE_TYPE} storage")
-    demo.queue(max_size=5).launch(debug=True, mcp_server=True)
+    demo.queue(max_size=5).launch(debug=True, mcp_server=False)

@@ -12,11 +12,12 @@ OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 # Qdrant Configuration
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 QDRANT_COLLECTION_NAME = os.getenv("QDRANT_COLLECTION_NAME", "documents")
+QDRANT_SEARCH_LIMIT = os.getenv("QDRANT_SEARCH_LIMIT", "20")
+QDRANT_PREFETCH_LIMIT = os.getenv("QDRANT_PREFETCH_LIMIT", "200")
 
 # In Memory Configuration
 IN_MEMORY_URL = os.getenv("IN_MEMORY_URL", "http://localhost:6333")
 IN_MEMORY_NUM_IMAGES = os.getenv("IN_MEMORY_NUM_IMAGES", "500")
-IN_MEMORY_BATCH_SIZE = os.getenv("IN_MEMORY_BATCH_SIZE", "4")
 IN_MEMORY_THREADS = os.getenv("IN_MEMORY_THREADS", "4")
 
 # Model Configuration
@@ -31,7 +32,7 @@ DEFAULT_TOP_K = int(os.getenv("DEFAULT_TOP_K", "5"))
 MAX_TOKENS = int(os.getenv("MAX_TOKENS", "500"))
 
 # Batch Configuration
-BATCH_SIZE = int(os.getenv("BATCH_SIZE", "1"))
+BATCH_SIZE = int(os.getenv("BATCH_SIZE", "4"))
 
 # Logging Configuration
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
