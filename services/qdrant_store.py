@@ -1,32 +1,21 @@
-import os
-from dotenv import load_dotenv
 import uuid
 import numpy as np
 import torch
 from qdrant_client import QdrantClient, models
-from colpali_engine.models import ColQwen2_5, ColQwen2_5_Processor
 from tqdm import tqdm
 
-# Load environment variables from .env file
-load_dotenv()
-
-from config import QDRANT_URL, QDRANT_COLLECTION_NAME, MODEL_NAME, MODEL_DEVICE
+from config import QDRANT_URL, QDRANT_COLLECTION_NAME, BATCH_SIZE, QDRANT_SEARCH_LIMIT, QDRANT_PREFETCH_LIMIT
 
 
 class QdrantService:
-    def __init__(self):
+    def __init__(self, model, processor):
         # Initialize Qdrant client
         self.client = QdrantClient(url=QDRANT_URL)
         self.collection_name = QDRANT_COLLECTION_NAME
         
-        # Initialize ColQwen model and processor
-        self.model = ColQwen2_5.from_pretrained(
-            MODEL_NAME,
-            torch_dtype=torch.bfloat16,
-            device_map=MODEL_DEVICE,
-            attn_implementation=None
-        ).eval()
-        self.processor = ColQwen2_5_Processor.from_pretrained(MODEL_NAME)
+        # Use provided model and processor
+        self.model = model
+        self.processor = processor
         
         # Create collection if it doesn't exist
         self._create_collection_if_not_exists()
@@ -71,9 +60,7 @@ class QdrantService:
     
     def _embed_and_mean_pool_batch(self, image_batch):
         """Embed images and create mean pooled representations"""
-        device = "cuda:0" if torch.cuda.is_available() else "cpu"
-        if device != self.model.device:
-            self.model.to(device)
+        device = next(self.model.parameters()).device
             
         # Embed
         with torch.no_grad():
@@ -114,7 +101,7 @@ class QdrantService:
     
     def index_documents(self, images):
         """Index documents in Qdrant"""
-        batch_size = 1  # Based on available compute
+        batch_size = int(BATCH_SIZE)
         
         with tqdm(total=len(images), desc="Uploading progress") as pbar:
             for i in range(0, len(images), batch_size):
@@ -126,45 +113,42 @@ class QdrantService:
                 except Exception as e:
                     print(f"Error during embed: {e}")
                     continue
+                
+                # Upload each document individually to handle variable-length embeddings
+                for j, (orig, rows, cols) in enumerate(zip(original_batch, pooled_by_rows_batch, pooled_by_columns_batch)):
+                    try:
+                        self.client.upload_collection(
+                            collection_name=self.collection_name,
+                            vectors={
+                                "mean_pooling_columns": np.asarray([cols], dtype=np.float32),
+                                "original": np.asarray([orig], dtype=np.float32),
+                                "mean_pooling_rows": np.asarray([rows], dtype=np.float32)
+                            },
+                            payload=[
+                                {
+                                    "index": i + j,
+                                    "page": f"Page {i + j}"
+                                }
+                            ],
+                            ids=[str(uuid.uuid4())]
+                        )
+                    except Exception as e:
+                        print(f"Error during upsert for image {i + j}: {e}")
+                        continue
                     
-                try:
-                    self.client.upload_collection(
-                        collection_name=self.collection_name,
-                        vectors={
-                            "mean_pooling_columns": np.asarray(pooled_by_columns_batch, dtype=np.float32),
-                            "original": np.asarray(original_batch, dtype=np.float32),
-                            "mean_pooling_rows": np.asarray(pooled_by_rows_batch, dtype=np.float32)
-                        },
-                        payload=[
-                            {
-                                "index": j,
-                                "page": f"Page {j}"
-                            }
-                            for j in range(i, i + current_batch_size)
-                        ],
-                        ids=[str(uuid.uuid4()) for _ in range(len(original_batch))]
-                    )
-                except Exception as e:
-                    print(f"Error during upsert: {e}")
-                    continue
-                    
-                # Update the progress bar
                 pbar.update(current_batch_size)
         
         return f"Uploaded and converted {len(images)} pages"
-    
     def _batch_embed_query(self, query_batch):
         """Embed query batch"""
-        device = "cuda:0" if torch.cuda.is_available() else "cpu"
-        if device != self.model.device:
-            self.model.to(device)
+        device = next(self.model.parameters()).device
             
         with torch.no_grad():
-            processed_queries = self.processor.process_queries(query_batch).to(self.model.device)
+            processed_queries = self.processor.process_queries(query_batch).to(device)
             query_embeddings_batch = self.model(**processed_queries)
         return query_embeddings_batch.cpu().float().numpy()
     
-    def _reranking_search_batch(self, query_batch, search_limit=20, prefetch_limit=200):
+    def _reranking_search_batch(self, query_batch, search_limit=QDRANT_SEARCH_LIMIT, prefetch_limit=QDRANT_PREFETCH_LIMIT):
         """Perform two-stage retrieval with multivectors"""
         search_queries = [
             models.QueryRequest(

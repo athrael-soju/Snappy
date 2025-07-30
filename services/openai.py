@@ -1,14 +1,8 @@
 import base64
 from io import BytesIO
-from dotenv import load_dotenv
-
 from openai import OpenAI
 
-# Load environment variables from .env file
-load_dotenv()
-
 from config import OPENAI_MODEL, MAX_TOKENS
-
 
 def encode_image_to_base64(image):
     """Encodes a PIL image to a base64 string."""
@@ -16,13 +10,13 @@ def encode_image_to_base64(image):
     image.save(buffered, format="JPEG")
     return base64.b64encode(buffered.getvalue()).decode("utf-8")
 
-def query_openai(query, images, api_key, model=OPENAI_MODEL):
+def query_openai(query, images, api_key):
     """Calls OpenAI's GPT model with the query and image data."""
 
     if api_key and api_key.startswith("sk"):
         try:
             base64_images = [encode_image_to_base64(image[0]) for image in images]
-            client = OpenAI(api_key=api_key.strip(), model=model)
+            client = OpenAI(api_key=api_key.strip())
             PROMPT = """
             You are a smart assistant designed to answer questions about a PDF document.
             You are given relevant information in the form of PDF pages. Use them to construct a short response to the question, and cite your sources (page numbers, etc).
@@ -36,7 +30,7 @@ def query_openai(query, images, api_key, model=OPENAI_MODEL):
             """
         
             response = client.chat.completions.create(
-            model=model,
+            model=OPENAI_MODEL,
             messages=[
                 {
                   "role": "user",
