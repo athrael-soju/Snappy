@@ -11,12 +11,12 @@ from pdf2image import convert_from_path
 storage_type = os.getenv("STORAGE_TYPE", "qdrant")  # "memory" or "qdrant"
 
 if storage_type == "memory":
-    from services.in_memory import convert_files, index_gpu, search
+    from services.memory_store import convert_files, index_gpu, search
     # We'll initialize the model in the service functions for memory approach
     model = None
     processor = None
 else:
-    from services.qdrant import QdrantService
+    from services.qdrant_store import QdrantService
     # Initialize Qdrant service
     qdrant_service = QdrantService()
     model = None
@@ -31,7 +31,7 @@ def search_wrapper(query: str, ds, images, k, api_key):
         results = qdrant_service.search(query, images, k)
     
     # Generate response from GPT-4.1-mini
-    ai_response = query_gpt4_1_mini(query, results, api_key)
+    ai_response = query_openai(query, results, api_key)
     
     return results, ai_response
 
@@ -64,7 +64,7 @@ def convert_files(files):
     return images
 
 
-from services.openai import query_gpt4_1_mini
+from services.openai import query_openai
 
 
 

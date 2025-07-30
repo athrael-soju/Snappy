@@ -10,7 +10,7 @@ def encode_image_to_base64(image):
     image.save(buffered, format="JPEG")
     return base64.b64encode(buffered.getvalue()).decode("utf-8")
 
-def query_gpt4_1_mini(query, images, api_key):
+def query_openai(query, images, api_key):
     """Calls OpenAI's GPT-4.1-mini with the query and image data."""
 
     if api_key and api_key.startswith("sk"):
