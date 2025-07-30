@@ -2,12 +2,8 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from pdf2image import convert_from_path
-from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
-
-from config import IN_MEMORY_BATCH_SIZE, IN_MEMORY_THREADS
+from config import IN_MEMORY_BATCH_SIZE, IN_MEMORY_THREADS, IN_MEMORY_NUM_IMAGES
 
 class MemoryStoreService:
     def __init__(self, model, processor):
@@ -20,8 +16,8 @@ class MemoryStoreService:
         for f in files:
             images.extend(convert_from_path(f, thread_count=int(IN_MEMORY_THREADS)))
 
-        if len(images) >= 500:
-            raise ValueError("The number of images in the dataset should be less than 500.")
+        if len(images) >= int(IN_MEMORY_NUM_IMAGES):
+            raise ValueError(f"The number of images in the dataset should be less than {IN_MEMORY_NUM_IMAGES}.")
         return images
 
     def index_gpu(self, images, ds):
