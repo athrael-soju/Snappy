@@ -48,7 +48,6 @@ def index_wrapper(files, ds):
     else:
         message = qdrant_service.index_documents(images)
         # For Qdrant, we don't need to return embeddings as they're stored in Qdrant
-        # But we still need to return images for the search functionality
         return message, ds, images
 
 

@@ -126,9 +126,9 @@ class QdrantService:
                     self.client.upload_collection(
                         collection_name=self.collection_name,
                         vectors={
-                            "mean_pooling_columns": pooled_by_columns_batch,
-                            "original": original_batch,
-                            "mean_pooling_rows": pooled_by_rows_batch
+                            "mean_pooling_columns": np.asarray(pooled_by_columns_batch, dtype=np.float32),
+                            "original": np.asarray(original_batch, dtype=np.float32),
+                            "mean_pooling_rows": np.asarray(pooled_by_rows_batch, dtype=np.float32)
                         },
                         payload=[
                             {
