@@ -2,13 +2,42 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from pdf2image import convert_from_path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+from config import MODEL_NAME, MODEL_DEVICE, IN_MEMORY_BATCH_SIZE, IN_MEMORY_THREADS
+
+# Initialize model and processor once
+model = None
+processor = None
+
+def _initialize_model():
+    """Initialize the model and processor once"""
+    global model, processor
+    if model is None or processor is None:
+        from colpali_engine.models import ColQwen2_5, ColQwen2_5_Processor
+        
+        model = ColQwen2_5.from_pretrained(
+            MODEL_NAME,
+            torch_dtype=torch.bfloat16,
+            device_map=MODEL_DEVICE,
+            attn_implementation=None
+        ).eval()
+        processor = ColQwen2_5_Processor.from_pretrained(MODEL_NAME)
+        
+        # Move model to device if needed
+        device = MODEL_DEVICE
+        if device != model.device:
+            model.to(device)
 
 
 def convert_files(files):
     images = []
     files = [files] if not isinstance(files, list) else files
     for f in files:
-        images.extend(convert_from_path(f, thread_count=4))
+        images.extend(convert_from_path(f, thread_count=int(IN_MEMORY_THREADS)))
 
     if len(images) >= 500:
         raise ValueError("The number of images in the dataset should be less than 500.")
@@ -17,24 +46,17 @@ def convert_files(files):
 
 def index_gpu(images, ds):
     """Index documents using in-memory approach"""
-    from colpali_engine.models import ColQwen2_5, ColQwen2_5_Processor
+    # Initialize model and processor if not already done
+    _initialize_model()
     
-    model = ColQwen2_5.from_pretrained(
-        "nomic-ai/colnomic-embed-multimodal-3b",
-        torch_dtype=torch.bfloat16,
-        device_map="cuda:0" if torch.cuda.is_available() else "cpu",
-        attn_implementation=None
-    ).eval()
-    processor = ColQwen2_5_Processor.from_pretrained("nomic-ai/colnomic-embed-multimodal-3b")
-    
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    device = MODEL_DEVICE
     if device != model.device:
         model.to(device)
         
     # run inference - docs
     dataloader = DataLoader(
         images,
-        batch_size=4,
+        batch_size=int(IN_MEMORY_BATCH_SIZE),
         shuffle=False,
         collate_fn=lambda x: processor.process_images(x).to(model.device),
     )
@@ -51,17 +73,10 @@ def search(query, ds, images, k):
     """Search using in-memory approach"""
     k = min(k, len(ds))
     
-    from colpali_engine.models import ColQwen2_5, ColQwen2_5_Processor
+    # Initialize model and processor if not already done
+    _initialize_model()
     
-    model = ColQwen2_5.from_pretrained(
-        "nomic-ai/colnomic-embed-multimodal-3b",
-        torch_dtype=torch.bfloat16,
-        device_map="cuda:0" if torch.cuda.is_available() else "cpu",
-        attn_implementation=None
-    ).eval()
-    processor = ColQwen2_5_Processor.from_pretrained("nomic-ai/colnomic-embed-multimodal-3b")
-    
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    device = MODEL_DEVICE
     if device != model.device:
         model.to(device)
         

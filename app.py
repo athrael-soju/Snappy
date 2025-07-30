@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 import base64
 from io import BytesIO
 
@@ -7,8 +8,12 @@ from gradio_pdf import PDF
 
 from pdf2image import convert_from_path
 
+# Load environment variables from .env file
+load_dotenv()
+
 # Import the appropriate service based on environment variable
-storage_type = os.getenv("STORAGE_TYPE", "qdrant")  # "memory" or "qdrant"
+from config import STORAGE_TYPE
+storage_type = STORAGE_TYPE  # "memory" or "qdrant"
 
 if storage_type == "memory":
     from services.memory_store import convert_files, index_gpu, search
