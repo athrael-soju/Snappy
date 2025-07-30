@@ -4,66 +4,58 @@ from io import BytesIO
 
 import gradio as gr
 from gradio_pdf import PDF
-import torch
 
 from pdf2image import convert_from_path
-from PIL import Image
-from torch.utils.data import DataLoader
-from tqdm import tqdm
 
-from colpali_engine.models import ColQwen2_5, ColQwen2_5_Processor
+# Import the appropriate service based on environment variable
+storage_type = os.getenv("STORAGE_TYPE", "qdrant")  # "memory" or "qdrant"
 
-from services.openai import query_gpt4_1_mini
-
-
-
-model = ColQwen2_5.from_pretrained(
-        "nomic-ai/colnomic-embed-multimodal-3b",
-        torch_dtype=torch.bfloat16,
-        device_map="cuda:0",  # or "mps" if on Apple Silicon
-        attn_implementation=None
-    ).eval()
-processor = ColQwen2_5_Processor.from_pretrained("nomic-ai/colnomic-embed-multimodal-3b")
+if storage_type == "memory":
+    from services.memory_store import convert_files, index_gpu, search
+    # We'll initialize the model in the service functions for memory approach
+    model = None
+    processor = None
+else:
+    from services.qdrant_store import QdrantService
+    # Initialize Qdrant service
+    qdrant_service = QdrantService()
+    model = None
+    processor = None
 
 
-def search(query: str, ds, images, k, api_key):
-    k = min(k, len(ds))
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    if device != model.device:
-        model.to(device)
-        
-    qs = []
-    with torch.no_grad():
-        batch_query = processor.process_queries([query]).to(model.device)
-        embeddings_query = model(**batch_query)
-        qs.extend(list(torch.unbind(embeddings_query.to("cpu"))))
-
-    scores = processor.score(qs, ds, device=device)
-
-    top_k_indices = scores[0].topk(k).indices.tolist()
-
-    results = []
-    for idx in top_k_indices:
-        results.append((images[idx], f"Page {idx}"))
-
+def search_wrapper(query: str, ds, images, k, api_key):
+    """Wrapper function to select between in-memory and Qdrant search"""
+    if storage_type == "memory":
+        results = search(query, ds, images, k)
+    else:
+        results = qdrant_service.search(query, images, k)
+    
     # Generate response from GPT-4.1-mini
-    ai_response = query_gpt4_1_mini(query, results, api_key)
-
+    ai_response = query_openai(query, results, api_key)
+    
     return results, ai_response
 
 
-def index(files, ds):
+def index_wrapper(files, ds):
+    """Wrapper function to select between in-memory and Qdrant indexing"""
     print("Converting files")
     images = convert_files(files)
     print(f"Files converted with {len(images)} images.")
-    return index_gpu(images, ds)
     
+    if storage_type == "memory":
+        message = index_gpu(images, ds)
+        return message, ds, images
+    else:
+        message = qdrant_service.index_documents(images)
+        # For Qdrant, we don't need to return embeddings as they're stored in Qdrant
+        return message, ds, images
 
 
 def convert_files(files):
+    """Convert PDF files to images"""
     images = []
     print(files)
-    files = [files]
+    files = [files] if not isinstance(files, list) else files
     for f in files:
         images.extend(convert_from_path(f, thread_count=4))
 
@@ -72,28 +64,7 @@ def convert_files(files):
     return images
 
 
-def index_gpu(images, ds):
-    """Example script to run inference with ColPali (ColQwen2)"""
-
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    if device != model.device:
-        model.to(device)
-        
-    # run inference - docs
-    dataloader = DataLoader(
-        images,
-        batch_size=4,
-        # num_workers=4,
-        shuffle=False,
-        collate_fn=lambda x: processor.process_images(x).to(model.device),
-    )
-
-    for batch_doc in tqdm(dataloader):
-        with torch.no_grad():
-            batch_doc = {k: v.to(device) for k, v in batch_doc.items()}
-            embeddings_doc = model(**batch_doc)
-        ds.extend(list(torch.unbind(embeddings_doc.to("cpu"))))
-    return f"Uploaded and converted {len(images)} pages", ds, images
+from services.openai import query_openai
 
 
 
@@ -132,8 +103,10 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     output_gallery = gr.Gallery(label="Retrieved Documents", height=600, show_label=True)
     output_text = gr.Textbox(label="AI Response", placeholder="Generated response based on retrieved documents")
 
-    convert_button.click(index, inputs=[file, embeds], outputs=[message, embeds, imgs])
-    search_button.click(search, inputs=[query, embeds, imgs, k, api_key], outputs=[output_gallery, output_text])
+    convert_button.click(index_wrapper, inputs=[file, embeds], outputs=[message, embeds, imgs])
+    search_button.click(search_wrapper, inputs=[query, embeds, imgs, k, api_key], outputs=[output_gallery, output_text])
 
 if __name__ == "__main__":
+    # Print which storage type is being used
+    print(f"Using {storage_type} storage")
     demo.queue(max_size=5).launch(debug=True, mcp_server=True)
