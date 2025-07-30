@@ -7,7 +7,7 @@ from services.openai import query_openai
 from pdf2image import convert_from_path
 
 # Import the appropriate service based on environment variable
-from config import STORAGE_TYPE, MODEL_NAME, MODEL_DEVICE, IN_MEMORY_THREADS, IN_MEMORY_NUM_IMAGES
+from config import STORAGE_TYPE, MODEL_NAME, MODEL_DEVICE, WORKER_THREADS, IN_MEMORY_NUM_IMAGES
 from colpali_engine.models import ColQwen2_5, ColQwen2_5_Processor
 
 memory_store_service = None
@@ -37,9 +37,8 @@ def search_wrapper(query: str, ds, images, k, api_key):
     if STORAGE_TYPE == "memory":
         results = memory_store_service.search(query, ds, images, k)
     elif STORAGE_TYPE == "qdrant":
-        results = qdrant_service.search(query, images, k)
+        results = qdrant_service.search(query, k=k)
     
-    # Generate response from GPT-4.1-mini
     ai_response = query_openai(query, results, api_key)
     
     return results, ai_response
@@ -60,10 +59,11 @@ def convert_files(files):
     images = []
     files = [files] if not isinstance(files, list) else files
     for f in files:
-        images.extend(convert_from_path(f, thread_count=int(IN_MEMORY_THREADS)))
+        images.extend(convert_from_path(f, thread_count=int(WORKER_THREADS)))
 
-    if len(images) >= int(IN_MEMORY_NUM_IMAGES):
-        raise ValueError(f"The number of images in the dataset should be less than {IN_MEMORY_NUM_IMAGES}.")
+    if STORAGE_TYPE == "memory":
+        if len(images) >= int(IN_MEMORY_NUM_IMAGES):
+            raise ValueError(f"The number of images in the dataset should be less than {IN_MEMORY_NUM_IMAGES}.")
     return images
 
 
@@ -95,8 +95,6 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             query = gr.Textbox(placeholder="Enter your query here", label="Query")
             k = gr.Slider(minimum=1, maximum=10, step=1, label="Number of results", value=5)
 
-
-    # Define the actions
     search_button = gr.Button("🔍 Search", variant="primary")
     output_gallery = gr.Gallery(label="Retrieved Documents", height=600, show_label=True)
     output_text = gr.Textbox(label="AI Response", placeholder="Generated response based on retrieved documents")
@@ -105,6 +103,5 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     search_button.click(search_wrapper, inputs=[query, embeds, imgs, k, api_key], outputs=[output_gallery, output_text])
 
 if __name__ == "__main__":
-    # Print which storage type is being used
     print(f"Using {STORAGE_TYPE} storage")
     demo.queue(max_size=5).launch(debug=True, mcp_server=False)

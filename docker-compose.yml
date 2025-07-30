@@ -11,6 +11,27 @@ services:
       - QDRANT__STORAGE__PATH=/qdrant/storage
       - QDRANT__SERVICE__GRPC_PORT=6334
       - QDRANT__SERVICE__HTTP_PORT=6333
+    depends_on:
+      - minio
+    networks:
+      - vision-rag-network
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    ports:
+      - 9000:9000
+      - 9001:9001
+    volumes:
+      - minio_data:/data
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data --console-address ":9001"
+    networks:
+      - vision-rag-network
+    restart: unless-stopped
 
   vision-rag:
     build:
@@ -23,6 +44,9 @@ services:
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - QDRANT_URL=http://qdrant:6333
+      - MINIO_URL=http://minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
     deploy:
       resources:
         reservations:
@@ -37,6 +61,9 @@ services:
     restart: unless-stopped
     depends_on:
       - qdrant
+      - minio
+    networks:
+      - vision-rag-network
 
 networks:
   vision-rag-network:
@@ -44,4 +71,5 @@ networks:
 
 volumes:
   qdrant_data:
+  minio_data:
   vision_rag_data:

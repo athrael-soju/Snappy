@@ -5,6 +5,7 @@ from qdrant_client import QdrantClient, models
 from tqdm import tqdm
 
 from config import QDRANT_URL, QDRANT_COLLECTION_NAME, BATCH_SIZE, QDRANT_SEARCH_LIMIT, QDRANT_PREFETCH_LIMIT
+from .minio_service import MinioService
 
 
 class QdrantService:
@@ -16,6 +17,14 @@ class QdrantService:
         # Use provided model and processor
         self.model = model
         self.processor = processor
+        
+        # Initialize MinIO service for image storage
+        try:
+            self.minio_service = MinioService()
+            if not self.minio_service.health_check():
+                raise Exception("MinIO service health check failed")
+        except Exception as e:
+            raise Exception(f"Failed to initialize MinIO service: {e}")
         
         # Create collection if it doesn't exist
         self._create_collection_if_not_exists()
@@ -51,7 +60,7 @@ class QdrantService:
                 }
             )
         except Exception as e:
-            # Collection likely already exists
+            print(f"Collection already exists: {e}")
             pass
     
     def _get_patches(self, image_size):
@@ -111,12 +120,31 @@ class QdrantService:
                 try:
                     original_batch, pooled_by_rows_batch, pooled_by_columns_batch = self._embed_and_mean_pool_batch(batch)
                 except Exception as e:
-                    print(f"Error during embed: {e}")
-                    continue
+                    raise Exception(f"Error during embed: {e}")
                 
-                # Upload each document individually to handle variable-length embeddings
-                for j, (orig, rows, cols) in enumerate(zip(original_batch, pooled_by_rows_batch, pooled_by_columns_batch)):
+                # Store images in MinIO (if available) and upload each document individually
+                image_urls = []
+                if self.minio_service:
                     try:
+                        image_urls = self.minio_service.store_images_batch(batch)
+                    except Exception as e:
+                        raise Exception(f"Error storing images in MinIO for batch starting at {i}: {e}")
+                else:
+                    raise Exception("MinIO service not available")
+                
+                for j, (orig, rows, cols, image_url) in enumerate(zip(original_batch, pooled_by_rows_batch, pooled_by_columns_batch, image_urls)):
+                    try:
+                        # Create document ID
+                        doc_id = str(uuid.uuid4())
+                        
+                        # Prepare payload with MinIO URL
+                        payload = {
+                            "index": i + j,
+                            "page": f"Page {i + j}",
+                            "image_url": image_url,  # Store MinIO URL in metadata
+                            "document_id": doc_id
+                        }
+                        
                         self.client.upload_collection(
                             collection_name=self.collection_name,
                             vectors={
@@ -124,17 +152,11 @@ class QdrantService:
                                 "original": np.asarray([orig], dtype=np.float32),
                                 "mean_pooling_rows": np.asarray([rows], dtype=np.float32)
                             },
-                            payload=[
-                                {
-                                    "index": i + j,
-                                    "page": f"Page {i + j}"
-                                }
-                            ],
-                            ids=[str(uuid.uuid4())]
+                            payload=[payload],
+                            ids=[doc_id]
                         )
                     except Exception as e:
-                        print(f"Error during upsert for image {i + j}: {e}")
-                        continue
+                        raise Exception(f"Error during upsert for image {i + j}: {e}")
                     
                 pbar.update(current_batch_size)
         
@@ -176,8 +198,8 @@ class QdrantService:
             requests=search_queries
         )
     
-    def search(self, query, images, k):
-        """Search for relevant documents using Qdrant"""
+    def search(self, query, images=None, k=5):
+        """Search for relevant documents using Qdrant and retrieve images from MinIO"""
         query_embedding = self._batch_embed_query([query])
         search_results = self._reranking_search_batch(query_embedding)
         
@@ -185,8 +207,19 @@ class QdrantService:
         results = []
         if search_results and search_results[0].points:
             for i, point in enumerate(search_results[0].points[:k]):
-                idx = point.payload.get('index', 0)
-                if idx < len(images):
-                    results.append((images[idx], f"Page {idx}"))
+                try:
+                    # Get image URL from metadata
+                    image_url = point.payload.get('image_url')
+                    page_info = point.payload.get('page', f"Page {point.payload.get('index', i)}")
+                    
+                    if image_url and self.minio_service:
+                        # Retrieve image from MinIO
+                        image = self.minio_service.get_image(image_url)
+                        results.append((image, page_info))
+                    else:
+                        raise Exception(f"Cannot retrieve image for point {i}. Image URL: {image_url}, MinIO available: {self.minio_service is not None}")
+                        
+                except Exception as e:
+                    raise Exception(f"Error retrieving image from MinIO for point {i}: {e}")
         
         return results
