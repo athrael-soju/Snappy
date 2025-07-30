@@ -1,14 +1,8 @@
 import base64
 from io import BytesIO
-from dotenv import load_dotenv
-
 from openai import OpenAI
 
-# Load environment variables from .env file
-load_dotenv()
-
 from config import OPENAI_MODEL, MAX_TOKENS
-
 
 def encode_image_to_base64(image):
     """Encodes a PIL image to a base64 string."""

@@ -1,38 +1,36 @@
-import os
-from dotenv import load_dotenv
-import base64
-from io import BytesIO
+import torch
 
 import gradio as gr
 from gradio_pdf import PDF
 
-from pdf2image import convert_from_path
-
-# Load environment variables from .env file
-load_dotenv()
-
 # Import the appropriate service based on environment variable
-from config import STORAGE_TYPE
-storage_type = STORAGE_TYPE  # "memory" or "qdrant"
+from config import STORAGE_TYPE, MODEL_NAME, MODEL_DEVICE
+from colpali_engine.models import ColQwen2_5, ColQwen2_5_Processor
 
-if storage_type == "memory":
-    from services.memory_store import convert_files, index_gpu, search
-    # We'll initialize the model in the service functions for memory approach
-    model = None
-    processor = None
-else:
+# Initialize model and processor
+model = ColQwen2_5.from_pretrained(
+    MODEL_NAME,
+    torch_dtype=torch.bfloat16,
+    device_map=MODEL_DEVICE,
+    attn_implementation=None
+).eval()
+processor = ColQwen2_5_Processor.from_pretrained(MODEL_NAME)
+
+if STORAGE_TYPE == "memory":
+    from services.memory_store import MemoryStoreService
+    memory_store_service = MemoryStoreService(model, processor)
+elif STORAGE_TYPE == "qdrant":
     from services.qdrant_store import QdrantService
-    # Initialize Qdrant service
-    qdrant_service = QdrantService()
-    model = None
-    processor = None
+    qdrant_service = QdrantService(model, processor)
+else:
+    raise ValueError("Invalid storage type")
 
 
 def search_wrapper(query: str, ds, images, k, api_key):
     """Wrapper function to select between in-memory and Qdrant search"""
-    if storage_type == "memory":
-        results = search(query, ds, images, k)
-    else:
+    if STORAGE_TYPE == "memory":
+        results = memory_store_service.search(query, ds, images, k)
+    elif STORAGE_TYPE == "qdrant":
         results = qdrant_service.search(query, images, k)
     
     # Generate response from GPT-4.1-mini
@@ -44,30 +42,16 @@ def search_wrapper(query: str, ds, images, k, api_key):
 def index_wrapper(files, ds):
     """Wrapper function to select between in-memory and Qdrant indexing"""
     print("Converting files")
-    images = convert_files(files)
+    images = memory_store_service.convert_files(files)
     print(f"Files converted with {len(images)} images.")
     
-    if storage_type == "memory":
-        message = index_gpu(images, ds)
+    if STORAGE_TYPE == "memory":
+        message = memory_store_service.index_gpu(images, ds)
         return message, ds, images
-    else:
+    elif STORAGE_TYPE == "qdrant":
         message = qdrant_service.index_documents(images)
         # For Qdrant, we don't need to return embeddings as they're stored in Qdrant
         return message, ds, images
-
-
-def convert_files(files):
-    """Convert PDF files to images"""
-    images = []
-    print(files)
-    files = [files] if not isinstance(files, list) else files
-    for f in files:
-        images.extend(convert_from_path(f, thread_count=4))
-
-    if len(images) >= 500:
-        raise gr.Error("The number of images in the dataset should be less than 500.")
-    return images
-
 
 from services.openai import query_openai
 
@@ -113,5 +97,5 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
 
 if __name__ == "__main__":
     # Print which storage type is being used
-    print(f"Using {storage_type} storage")
+    print(f"Using {STORAGE_TYPE} storage")
     demo.queue(max_size=5).launch(debug=True, mcp_server=True)

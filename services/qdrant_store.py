@@ -1,32 +1,21 @@
-import os
-from dotenv import load_dotenv
 import uuid
 import numpy as np
 import torch
 from qdrant_client import QdrantClient, models
-from colpali_engine.models import ColQwen2_5, ColQwen2_5_Processor
 from tqdm import tqdm
 
-# Load environment variables from .env file
-load_dotenv()
-
-from config import QDRANT_URL, QDRANT_COLLECTION_NAME, MODEL_NAME, MODEL_DEVICE
+from config import QDRANT_URL, QDRANT_COLLECTION_NAME
 
 
 class QdrantService:
-    def __init__(self):
+    def __init__(self, model, processor):
         # Initialize Qdrant client
         self.client = QdrantClient(url=QDRANT_URL)
         self.collection_name = QDRANT_COLLECTION_NAME
         
-        # Initialize ColQwen model and processor
-        self.model = ColQwen2_5.from_pretrained(
-            MODEL_NAME,
-            torch_dtype=torch.bfloat16,
-            device_map=MODEL_DEVICE,
-            attn_implementation=None
-        ).eval()
-        self.processor = ColQwen2_5_Processor.from_pretrained(MODEL_NAME)
+        # Use provided model and processor
+        self.model = model
+        self.processor = processor
         
         # Create collection if it doesn't exist
         self._create_collection_if_not_exists()
@@ -71,9 +60,7 @@ class QdrantService:
     
     def _embed_and_mean_pool_batch(self, image_batch):
         """Embed images and create mean pooled representations"""
-        device = "cuda:0" if torch.cuda.is_available() else "cpu"
-        if device != self.model.device:
-            self.model.to(device)
+        device = next(self.model.parameters()).device
             
         # Embed
         with torch.no_grad():
@@ -155,12 +142,10 @@ class QdrantService:
     
     def _batch_embed_query(self, query_batch):
         """Embed query batch"""
-        device = "cuda:0" if torch.cuda.is_available() else "cpu"
-        if device != self.model.device:
-            self.model.to(device)
+        device = next(self.model.parameters()).device
             
         with torch.no_grad():
-            processed_queries = self.processor.process_queries(query_batch).to(self.model.device)
+            processed_queries = self.processor.process_queries(query_batch).to(device)
             query_embeddings_batch = self.model(**processed_queries)
         return query_embeddings_batch.cpu().float().numpy()
     
