@@ -101,10 +101,9 @@ class ColPaliCore:
                     # Get embeddings
                     image_embeddings = self.model(**processed_images)
                     
-                    # Convert to lists for this batch - flatten each individual embedding
-                    image_embeddings_numpy = image_embeddings.cpu().float().numpy()
-                    for embedding in image_embeddings_numpy:
-                        original_batch.append(embedding.flatten().tolist())
+                    # Convert to lists for this batch - preserve multivector structure
+                    image_embeddings_list = image_embeddings.cpu().float().numpy().tolist()
+                    original_batch.extend(image_embeddings_list)
 
                     # Mean pooling for each image in batch
                     for j, (image_embedding, tokenized_image, image) in enumerate(zip(
@@ -127,12 +126,11 @@ class ColPaliCore:
                         postfix_tokens = image_embedding[last_image_token_idx + 1:]
 
                         # Adding back prefix and postfix special tokens
-                        pooled_by_rows = torch.cat((prefix_tokens, pooled_by_rows, postfix_tokens), dim=0).cpu().float().numpy()
-                        pooled_by_columns = torch.cat((prefix_tokens, pooled_by_columns, postfix_tokens), dim=0).cpu().float().numpy()
+                        pooled_by_rows = torch.cat((prefix_tokens, pooled_by_rows, postfix_tokens), dim=0).cpu().float().numpy().tolist()
+                        pooled_by_columns = torch.cat((prefix_tokens, pooled_by_columns, postfix_tokens), dim=0).cpu().float().numpy().tolist()
 
-                        # Flatten each individual embedding to 1D list for Pydantic compatibility
-                        pooled_by_rows_batch.append(pooled_by_rows.flatten().tolist())
-                        pooled_by_columns_batch.append(pooled_by_columns.flatten().tolist())
+                        pooled_by_rows_batch.append(pooled_by_rows)
+                        pooled_by_columns_batch.append(pooled_by_columns)
                 
                 logger.info(f"Encoded {len(images)} images with mean pooling")
                 

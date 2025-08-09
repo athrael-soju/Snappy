@@ -60,9 +60,9 @@ class EncodeResponse(BaseModel):
 
 
 class EncodeWithPoolingResponse(BaseModel):
-    original: List[List[float]]
-    mean_pooling_rows: List[List[float]]
-    mean_pooling_columns: List[List[float]]
+    original: List[List[List[float]]]  # Batch of images, each with multiple vectors
+    mean_pooling_rows: List[List[List[float]]]  # Batch of pooled embeddings, multivector structure
+    mean_pooling_columns: List[List[List[float]]]  # Batch of pooled embeddings, multivector structure
     shapes: Dict[str, List[int]]
 
 
