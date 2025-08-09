@@ -3,31 +3,26 @@ import torch
 import gradio as gr
 from gradio_pdf import PDF
 
-from services.openai import query_openai
+from services.openai import OpenAIService
+from services.colpali_service import ColPaliService
 from pdf2image import convert_from_path
 
 # Import the appropriate service based on environment variable
-from config import STORAGE_TYPE, MODEL_NAME, MODEL_DEVICE, WORKER_THREADS, IN_MEMORY_NUM_IMAGES
-from colpali_engine.models import ColQwen2_5, ColQwen2_5_Processor
+from config import STORAGE_TYPE, WORKER_THREADS, IN_MEMORY_NUM_IMAGES
+
+# Initialize services
+colpali_service = ColPaliService()
+openai_service = OpenAIService()
 
 memory_store_service = None
 qdrant_service = None
 
-# Initialize model and processor
-model = ColQwen2_5.from_pretrained(
-    MODEL_NAME,
-    torch_dtype=torch.bfloat16,
-    device_map=MODEL_DEVICE,
-    attn_implementation=None
-).eval()
-processor = ColQwen2_5_Processor.from_pretrained(MODEL_NAME)
-
 if STORAGE_TYPE == "memory":
     from services.memory_store import MemoryStoreService
-    memory_store_service = MemoryStoreService(model, processor)
+    memory_store_service = MemoryStoreService(colpali_service)
 elif STORAGE_TYPE == "qdrant":
     from services.qdrant_store import QdrantService
-    qdrant_service = QdrantService(model, processor)
+    qdrant_service = QdrantService(colpali_service)
 else:
     raise ValueError("Invalid storage type")
 
@@ -39,7 +34,7 @@ def search_wrapper(query: str, ds, images, k, api_key):
     elif STORAGE_TYPE == "qdrant":
         results = qdrant_service.search(query, k=k)
     
-    ai_response = query_openai(query, results, api_key)
+    ai_response = openai_service.query(query, results, api_key)
     
     return results, ai_response
 
@@ -104,4 +99,14 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
 
 if __name__ == "__main__":
     print(f"Using {STORAGE_TYPE} storage")
+    print("ColPali Model Info:")
+    model_info = colpali_service.get_model_info()
+    for key, value in model_info.items():
+        print(f"  {key}: {value}")
+    
+    print("OpenAI Service Info:")
+    openai_info = openai_service.get_model_info()
+    for key, value in openai_info.items():
+        print(f"  {key}: {value}")
+    
     demo.queue(max_size=5).launch(debug=True, mcp_server=False)

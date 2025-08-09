@@ -51,7 +51,7 @@ RUN pyenv install ${PYTHON_VERSION} && \
 COPY --chown=1000 ./requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir --upgrade -r /tmp/requirements.txt
 
-RUN pip install --no-cache-dir --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu129
+RUN pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
 
 COPY --chown=1000 . ${HOME}/app
 ENV PYTHONPATH=${HOME}/app \

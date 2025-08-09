@@ -3,11 +3,22 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from config import BATCH_SIZE
+from .colpali_service import ColPaliService
 
 class MemoryStoreService:
-    def __init__(self, model, processor):
-        self.model = model
-        self.processor = processor
+    def __init__(self, colpali_service: ColPaliService = None):
+        """
+        Initialize MemoryStoreService with ColPali service.
+        
+        Args:
+            colpali_service: Instance of ColPaliService. If None, will create a new one.
+        """
+        if colpali_service is None:
+            colpali_service = ColPaliService()
+        
+        self.colpali_service = colpali_service
+        self.model = colpali_service.get_model()
+        self.processor = colpali_service.get_processor()
     
     def index_gpu(self, images, ds):
         """Index documents using in-memory approach"""

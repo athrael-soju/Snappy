@@ -6,17 +6,28 @@ from tqdm import tqdm
 
 from config import QDRANT_URL, QDRANT_COLLECTION_NAME, BATCH_SIZE, QDRANT_SEARCH_LIMIT, QDRANT_PREFETCH_LIMIT
 from .minio_service import MinioService
+from .colpali_service import ColPaliService
 
 
 class QdrantService:
-    def __init__(self, model, processor):
+    def __init__(self, colpali_service: ColPaliService = None):
+        """
+        Initialize QdrantService with ColPali service.
+        
+        Args:
+            colpali_service: Instance of ColPaliService. If None, will create a new one.
+        """
         # Initialize Qdrant client
         self.client = QdrantClient(url=QDRANT_URL)
         self.collection_name = QDRANT_COLLECTION_NAME
         
-        # Use provided model and processor
-        self.model = model
-        self.processor = processor
+        # Initialize ColPali service
+        if colpali_service is None:
+            colpali_service = ColPaliService()
+        
+        self.colpali_service = colpali_service
+        self.model = colpali_service.get_model()
+        self.processor = colpali_service.get_processor()
         
         # Initialize MinIO service for image storage
         try:
