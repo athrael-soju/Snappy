@@ -1,4 +1,8 @@
-FROM python:3.10-slim
+FROM nvidia/cuda:12.9.1-cudnn-devel-ubuntu24.04
+
+WORKDIR /app
+
+ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && \
     apt-get upgrade -y && \
@@ -21,9 +25,6 @@ RUN apt-get update && \
     libxmlsec1-dev \
     libffi-dev \
     liblzma-dev \
-    # gradio dependencies \
-    ffmpeg \
-    poppler-utils \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -48,15 +49,26 @@ RUN pyenv install ${PYTHON_VERSION} && \
     pip install --no-cache-dir -U pip setuptools wheel && \
     pip install packaging ninja
 
-COPY --chown=1000 ./requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir --upgrade -r /tmp/requirements.txt
+# Upgrade pip and install PyTorch with CUDA 12.9 support
+RUN pip install --no-cache-dir --upgrade pip
 
-COPY --chown=1000 . ${HOME}/app
-ENV PYTHONPATH=${HOME}/app \
-    PYTHONUNBUFFERED=1 \
-    GRADIO_ALLOW_FLAGGING=never \
-    GRADIO_NUM_PORTS=1 \
-    GRADIO_SERVER_NAME=0.0.0.0 \
-    GRADIO_THEME=huggingface \
-    SYSTEM=spaces
-CMD ["python", "app.py"]
+# Install other requirements
+COPY --chown=1000 ./requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt && \
+    pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu129
+# Copy the application code
+COPY --chown=1000 . .
+
+# Set the working directory to the service directory
+WORKDIR ${HOME}/app/services/colpali_service
+
+# Set environment variables
+ENV PYTHONPATH=${HOME}/app
+ENV MODEL_NAME=nomic-ai/colnomic-embed-multimodal-3b
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=120s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Run the service
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

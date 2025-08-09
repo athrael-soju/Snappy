@@ -1,4 +1,28 @@
 services:
+  colpali:
+    build:
+      context: ./services/colpali_service
+      dockerfile: Dockerfile
+    image: colpali:latest
+    container_name: colpali
+    ports:
+      - "8000:8000"
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - MODEL_NAME=nomic-ai/colnomic-embed-multimodal-3b
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+    volumes:
+      - colpali_model_cache:/root/.cache/huggingface
+    restart: unless-stopped
+    networks:
+      - vision-rag-network
+
   qdrant:
     image: qdrant/qdrant:latest
     container_name: qdrant
@@ -42,18 +66,11 @@ services:
     ports:
       - "7860:7860"
     environment:
-      - NVIDIA_VISIBLE_DEVICES=all
       - QDRANT_URL=http://qdrant:6333
       - MINIO_URL=http://minio:9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [ gpu ]
+      - COLPALI_SERVICE_URL=http://colpali-service:8000
     volumes:
       - vision_rag_data:/home/user/app/data
     stdin_open: true
@@ -62,6 +79,7 @@ services:
     depends_on:
       - qdrant
       - minio
+      - colpali
     networks:
       - vision-rag-network
 
@@ -70,6 +88,7 @@ networks:
     driver: bridge
 
 volumes:
+  colpali_model_cache:
   qdrant_data:
   minio_data:
   vision_rag_data:

@@ -1,6 +1,5 @@
 import os
 from typing import Final
-import torch
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -9,7 +8,6 @@ load_dotenv()
 # ===== Application Settings =====
 # Core Application
 LOG_LEVEL: Final[str] = os.getenv("LOG_LEVEL", "INFO")
-STORAGE_TYPE: Final[str] = os.getenv("STORAGE_TYPE", "qdrant")  # "memory" or "qdrant"
 
 # Processing
 DEFAULT_TOP_K: Final[int] = int(os.getenv("DEFAULT_TOP_K", "5"))
@@ -22,12 +20,9 @@ WORKER_THREADS: Final[int] = int(os.getenv("WORKER_THREADS", "4"))
 OPENAI_API_KEY: Final[str] = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL: Final[str] = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 
-# Embedding Model
+# Embedding Model (for reference - actual model runs in separate service)
 MODEL_NAME: Final[str] = os.getenv("MODEL_NAME", "nomic-ai/colnomic-embed-multimodal-3b")
-MODEL_DEVICE: Final[str] = os.getenv(
-    "MODEL_DEVICE", 
-    "cuda:0" if torch.cuda.is_available() else "cpu"
-)
+COLPALI_SERVICE_URL: Final[str] = os.getenv("COLPALI_SERVICE_URL", "http://localhost:8000")
 
 # ===== Storage Configurations =====
 # Qdrant
@@ -41,8 +36,4 @@ MINIO_URL: Final[str] = os.getenv("MINIO_URL", "http://localhost:9000")
 MINIO_ACCESS_KEY: Final[str] = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
 MINIO_SECRET_KEY: Final[str] = os.getenv("MINIO_SECRET_KEY", "minioadmin")
 MINIO_BUCKET_NAME: Final[str] = os.getenv("MINIO_BUCKET_NAME", "documents")
-
-# In-Memory Storage
-IN_MEMORY_URL: Final[str] = os.getenv("IN_MEMORY_URL", "http://localhost:6333")
-IN_MEMORY_NUM_IMAGES: Final[int] = int(os.getenv("IN_MEMORY_NUM_IMAGES", "500"))
 

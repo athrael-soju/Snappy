@@ -1,53 +1,32 @@
-import torch
-
 import gradio as gr
 from gradio_pdf import PDF
 
 from services.openai import OpenAIService
-from services.colpali_service import ColPaliService
+from services.colpali_service import ColPaliClient
+from services.qdrant_store import QdrantService
 from pdf2image import convert_from_path
 
-# Import the appropriate service based on environment variable
-from config import STORAGE_TYPE, WORKER_THREADS, IN_MEMORY_NUM_IMAGES
+# Import configuration
+from config import WORKER_THREADS, COLPALI_SERVICE_URL
 
 # Initialize services
-colpali_service = ColPaliService()
+colpali_client = ColPaliClient(base_url=COLPALI_SERVICE_URL)
 openai_service = OpenAIService()
-
-memory_store_service = None
-qdrant_service = None
-
-if STORAGE_TYPE == "memory":
-    from services.memory_store import MemoryStoreService
-    memory_store_service = MemoryStoreService(colpali_service)
-elif STORAGE_TYPE == "qdrant":
-    from services.qdrant_store import QdrantService
-    qdrant_service = QdrantService(colpali_service)
-else:
-    raise ValueError("Invalid storage type")
+qdrant_service = QdrantService(colpali_client)
 
 
 def search_wrapper(query: str, ds, images, k, api_key):
-    """Wrapper function to select between in-memory and Qdrant search"""
-    if STORAGE_TYPE == "memory":
-        results = memory_store_service.search(query, ds, images, k)
-    elif STORAGE_TYPE == "qdrant":
-        results = qdrant_service.search(query, k=k)
-    
+    """Search for relevant documents using Qdrant"""
+    results = qdrant_service.search(query, k=k)
     ai_response = openai_service.query(query, results, api_key)
-    
     return results, ai_response
 
 
 def index_wrapper(files, ds):
-    """Wrapper function to select between in-memory and Qdrant indexing"""
+    """Index documents using Qdrant"""
     images = convert_files(files)
-    if STORAGE_TYPE == "memory":
-        message = memory_store_service.index_gpu(images, ds)
-        return message, ds, images
-    elif STORAGE_TYPE == "qdrant":
-        message = qdrant_service.index_documents(images)
-        return message, ds, images
+    message = qdrant_service.index_documents(images)
+    return message, ds, images
 
 
 def convert_files(files):
@@ -55,10 +34,6 @@ def convert_files(files):
     files = [files] if not isinstance(files, list) else files
     for f in files:
         images.extend(convert_from_path(f, thread_count=int(WORKER_THREADS)))
-
-    if STORAGE_TYPE == "memory":
-        if len(images) >= int(IN_MEMORY_NUM_IMAGES):
-            raise ValueError(f"The number of images in the dataset should be less than {IN_MEMORY_NUM_IMAGES}.")
     return images
 
 
@@ -98,15 +73,11 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     search_button.click(search_wrapper, inputs=[query, embeds, imgs, k, api_key], outputs=[output_gallery, output_text])
 
 if __name__ == "__main__":
-    print(f"Using {STORAGE_TYPE} storage")
-    print("ColPali Model Info:")
-    model_info = colpali_service.get_model_info()
-    for key, value in model_info.items():
-        print(f"  {key}: {value}")
+    print("Using Qdrant storage with distributed ColPali service")
     
     print("OpenAI Service Info:")
     openai_info = openai_service.get_model_info()
     for key, value in openai_info.items():
         print(f"  {key}: {value}")
     
-    demo.queue(max_size=5).launch(debug=True, mcp_server=False)
+    demo.queue(max_size=5).launch(debug=True, mcp_server=False, server_name="127.0.0.1", server_port=7860)

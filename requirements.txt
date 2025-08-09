@@ -1,16 +1,20 @@
-colpali-engine
-pdf2image
-GPUtil
-accelerate
-openai
+# UI and Web Framework
 gradio[mcp]
-tqdm
-Pillow
 gradio-pdf
+
+# PDF Processing
+pdf2image
+Pillow
+
+# HTTP Client and API
+requests
+openai
+
+# Storage and Database
 qdrant-client
-numpy
-python-dotenv
 minio
-torch
-torchvision
-torchaudio
+numpy
+
+# Configuration and Utilities
+python-dotenv
+tqdm

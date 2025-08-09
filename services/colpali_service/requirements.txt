@@ -1,0 +1,8 @@
+colpali-engine
+fastapi
+uvicorn[standard]
+pillow
+numpy
+pydantic
+requests
+hf_xet
