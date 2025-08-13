@@ -64,11 +64,11 @@ def _encode_pil_to_data_url(img):
 def on_chat_submit(message, chat_history, ds, images, k, ai_enabled):
     """Stream a reply from OpenAI using retrieved page images as multimodal context.
 
-    Yields tuples: (cleared_input, updated_chat, gallery_images)
+    Yields tuples: (cleared_input, updated_chat, gallery_images, thinking_indicator)
     """
     # No-op on empty input
     if not message or not str(message).strip():
-        yield gr.update(), chat_history, gr.update()
+        yield gr.update(), chat_history, gr.update(), gr.update(visible=False)
         return
 
     # If AI responses are disabled, only retrieve and show pages
@@ -80,7 +80,7 @@ def on_chat_submit(message, chat_history, ds, images, k, ai_enabled):
                 "AI responses are disabled. Enable them in the sidebar to get answers. Showing retrieved pages only.",
             )
         ]
-        yield "", updated_chat, results
+        yield "", updated_chat, results, gr.update(visible=False)
         return
 
     # Resolve API key from environment only
@@ -92,17 +92,15 @@ def on_chat_submit(message, chat_history, ds, images, k, ai_enabled):
             "Please install the 'openai' package and set OPENAI_API_KEY in your environment."
         )
         updated_chat = (chat_history or []) + [(message, err)]
-        yield "", updated_chat, gr.update()
+        yield "", updated_chat, gr.update(), gr.update(visible=False)
         return
 
     # Retrieve images (top-k)
     results = _retrieve_results(message, ds, images, k)
 
-    # Prepend an empty assistant message to stream into
-    updated_chat = (chat_history or []) + [(message, "")]  # assistant will stream here
-
-    # Show retrieved images immediately
-    yield "", updated_chat, results
+    # Do not append an empty assistant bubble yet; show gallery + spinner only
+    updated_chat = (chat_history or [])
+    yield "", updated_chat, results, gr.update(visible=True)
 
     # Build multimodal user content: text + top-k images
     image_parts = []
@@ -141,6 +139,7 @@ def on_chat_submit(message, chat_history, ds, images, k, ai_enabled):
 
     # Stream tokens
     assistant_text = ""
+    streamed_any = False
     try:
         for chunk in client.chat.completions.create(
             model=model,
@@ -154,14 +153,26 @@ def on_chat_submit(message, chat_history, ds, images, k, ai_enabled):
                 else delta.get("content")
             )
             if content:
-                assistant_text += content
-                updated_chat[-1] = (message, assistant_text)
-                # Stream updated chat; gallery unchanged
-                yield "", updated_chat, gr.update()
+                if not streamed_any:
+                    assistant_text = content
+                    updated_chat = (updated_chat or []) + [(message, assistant_text)]
+                    streamed_any = True
+                else:
+                    assistant_text += content
+                    updated_chat[-1] = (message, assistant_text)
+                # Stream updated chat; gallery unchanged; keep spinner visible
+                yield "", updated_chat, gr.update(), gr.update(visible=True)
     except Exception as e:
-        assistant_text = assistant_text or f"[Streaming error: {e}]"
-        updated_chat[-1] = (message, assistant_text)
-        yield "", updated_chat, gr.update()
+        if streamed_any:
+            assistant_text = assistant_text or f"[Streaming error: {e}]"
+            updated_chat[-1] = (message, assistant_text)
+        else:
+            # No content streamed yet; append a single error message
+            updated_chat = (updated_chat or []) + [(message, f"[Streaming error: {e}]")]
+        yield "", updated_chat, gr.update(), gr.update(visible=False)
+    else:
+        # Ensure spinner hidden after successful completion (even if no content streamed)
+        yield "", updated_chat, gr.update(), gr.update(visible=False)
 
 
 def index_wrapper(files, ds):
@@ -242,6 +253,45 @@ with gr.Blocks(
 #examples .gr-button:active {
   transform: translateY(1px);
 }
+
+/* Thinking indicator */
+#thinking {
+  align-items: center;
+  gap: 8px;
+  color: var(--body-text-color-subdued);
+  padding: 4px 0;
+}
+#thinking .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  animation: thinking-bounce 1.2s infinite ease-in-out;
+}
+#thinking .dot:nth-child(2) { animation-delay: .2s }
+#thinking .dot:nth-child(3) { animation-delay: .4s }
+@keyframes thinking-bounce {
+  0%, 80%, 100% { transform: scale(0); opacity: .4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* Retrieved gallery container: enforce vertical scroll */
+#retrieved_gallery {
+  height: 480px !important;
+  max-height: 480px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+#retrieved_gallery > div {
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow-y: auto !important;
+}
+#retrieved_gallery .grid,
+#retrieved_gallery .gallery {
+  height: 100% !important;
+  overflow-y: auto !important;
+}
 """,
 ) as demo:
     # Title bar
@@ -307,6 +357,19 @@ Alpha demo for efficient page-level retrieval and LLM-generated answers.
             send_btn = gr.Button("Send", variant="primary")
             clear_btn = gr.Button("Clear", variant="secondary")
 
+        # Thinking indicator (shown while assistant streams)
+        spinner = gr.HTML(
+            value='''
+<div id="thinking">
+  <span class="dot"></span>
+  <span class="dot"></span>
+  <span class="dot"></span>
+  <span>Thinking…</span>
+</div>
+''',
+            visible=False,
+        )
+
         # Helpful examples (positioned right under chat, matching width)
         gr.Examples(
             examples=[
@@ -324,10 +387,11 @@ Alpha demo for efficient page-level retrieval and LLM-generated answers.
         with gr.Accordion("Retrieved Pages", open=False):
             output_gallery = gr.Gallery(
                 label=None,
-                height=600,
+                height=480,
                 show_label=False,
-                columns=2,
+                columns=4,
                 object_fit="contain",
+                elem_id="retrieved_gallery",
             )
 
 
@@ -340,21 +404,21 @@ Alpha demo for efficient page-level retrieval and LLM-generated answers.
     msg.submit(
         on_chat_submit,
         inputs=[msg, chat, embeds, imgs, k, ai_enabled],
-        outputs=[msg, chat, output_gallery],
+        outputs=[msg, chat, output_gallery, spinner],
     )
 
     # Chat submit (Send button)
     send_btn.click(
         on_chat_submit,
         inputs=[msg, chat, embeds, imgs, k, ai_enabled],
-        outputs=[msg, chat, output_gallery],
+        outputs=[msg, chat, output_gallery, spinner],
     )
 
     # Clear chat and gallery
     def _clear_chat():
-        return [], []
+        return [], [], gr.update(visible=False)
 
-    clear_btn.click(_clear_chat, outputs=[chat, output_gallery])
+    clear_btn.click(_clear_chat, outputs=[chat, output_gallery, spinner])
 
 if __name__ == "__main__":
     print(f"Using {STORAGE_TYPE} storage")
