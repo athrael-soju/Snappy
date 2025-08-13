@@ -11,9 +11,13 @@ try:
 except Exception:  # fallback for environments with old SDK
     OpenAI = None
 
+# Client wrapper for OpenAI (preferred)
+from clients.openai import OpenAIClient as OpenAI
+
 # Your clients / config
 from clients.colqwen import ColQwenAPIClient
 from config import WORKER_THREADS
+from ui import build_ui
 
 # Initialize storage backend (Qdrant only)
 from clients.qdrant import QdrantService
@@ -52,20 +56,13 @@ def _build_openai_messages(
     user_message: str,
     image_parts: List[dict],
 ):
-    """Construct OpenAI messages with multi-turn text history and latest images only.
+    """Construct OpenAI messages for a single turn (history ignored).
 
-    - Includes prior user/assistant turns as plain text.
-    - Appends the current user turn with optional image parts from the most recent search.
+    - Intentionally ignores prior user/assistant turns.
+    - Sends only the system prompt and the current user turn with optional image parts.
     """
-    messages = [{"role": "system", "content": system_prompt}]
+    messages = [{"role": "system", "content": str(system_prompt)}]
 
-    for m in chat_history or []:
-        role = m.get("role") if isinstance(m, dict) else None
-        content = m.get("content") if isinstance(m, dict) else None
-        if role in ("user", "assistant") and content:
-            messages.append({"role": role, "content": str(content)})
-
-    # Current user message + latest images
     messages.append(
         {
             "role": "user",
@@ -107,17 +104,14 @@ def on_chat_submit(
         yield "", updated_chat, results
         return
 
-    # Resolve API key from environment only
+    # Initialize OpenAI client (wrapper handles SDK/key validation)
     api_key = (os.getenv("OPENAI_API_KEY") or "").strip()
-    if not api_key or OpenAI is None:
-        # Inform user about missing dependency or key
-        err = (
-            "OpenAI SDK not available or API key missing. "
-            "Please install the 'openai' package and set OPENAI_API_KEY in your environment."
-        )
+    try:
+        client = OpenAI(api_key=api_key)
+    except Exception as e:
         updated_chat = list(chat_history or [])
         updated_chat.append({"role": "user", "content": str(message)})
-        updated_chat.append({"role": "assistant", "content": err})
+        updated_chat.append({"role": "assistant", "content": str(e)})
         yield "", updated_chat, gr.update()
         return
 
@@ -158,12 +152,10 @@ def on_chat_submit(
         else default_system_prompt
     )
 
-    messages = _build_openai_messages(
-        chat_history, system_prompt, str(message), image_parts
-    )
+    messages = OpenAI.build_messages(chat_history, system_prompt, str(message), image_parts)
 
     model = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
-    client = OpenAI(api_key=api_key)
+    # client already initialized above
 
     # Coerce temperature
     try:
@@ -171,22 +163,11 @@ def on_chat_submit(
     except Exception:
         temp = 0.7
 
-    # Stream tokens
+    # Stream tokens via wrapper
     assistant_text = ""
     streamed_any = False
     try:
-        for chunk in client.chat.completions.create(
-            model=model,
-            messages=messages,
-            temperature=temp,
-            stream=True,
-        ):
-            delta = chunk.choices[0].delta
-            content = (
-                getattr(delta, "content", None)
-                if hasattr(delta, "content")
-                else delta.get("content")
-            )
+        for content in client.stream_chat(messages=messages, temperature=temp, model=model):
             if content:
                 if not streamed_any:
                     assistant_text = content
@@ -260,188 +241,7 @@ def convert_files(files):
 # -----------------------
 # UI
 # -----------------------
-with gr.Blocks(
-    theme=gr.themes.Soft(),
-    fill_height=True,
-    css="""
-/* Examples container directly under chat, full width */
-#examples {
-  width: 100%;
-  margin-top: 8px;
-  padding: 8px;
-  border: 1px solid var(--border-color-primary);
-  border-radius: 12px;
-}
-
-/* Make inner layout responsive regardless of Gradio version markup */
-#examples .grid,
-#examples .examples,
-#examples .gr-examples,
-#examples > div {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 8px;
-}
-
-/* Pill styling for each example item */
-#examples .example,
-#examples button,
-#examples .gr-button,
-#examples .sample,
-#examples .border {
-  border-radius: 999px;
-  border: 1px solid var(--border-color-primary);
-  background: var(--background-fill-primary);
-  padding: 8px 12px;
-  transition: border-color .2s ease, background .2s ease, transform .05s ease;
-  cursor: pointer;
-}
-
-#examples .example:hover,
-#examples button:hover,
-#examples .gr-button:hover {
-  border-color: var(--color-accent);
-  background: var(--background-fill-secondary);
-}
-
-#examples .example:active,
-#examples button:active,
-#examples .gr-button:active {
-  transform: translateY(1px);
-}
-""",
-) as demo:
-    # Title bar
-    gr.Markdown(
-        """
-# ColPali (ColQwen2) Knowledgebase Retrieval Agent
-Proof of concept of efficient page-level retrieval with a 'Special' Generative touch.
-        """.strip()
-    )
-
-    # Collapsible sidebar (upload + indexing)
-    with gr.Sidebar(open=True):
-        gr.Markdown("### 📂 Upload & Index")
-        files = gr.File(
-            label="PDF documents",
-            file_types=[".pdf"],
-            file_count="multiple",
-            type="filepath",
-        )
-        convert_button = gr.Button("🔄 Index documents", variant="secondary")
-        message = gr.Textbox(
-            value="Files not yet uploaded",
-            label="Status",
-            interactive=False,
-            lines=2,
-        )
-        gr.Markdown("---")
-        gr.Markdown("### 🤖 AI Settings")
-        ai_enabled = gr.Checkbox(value=True, label="Enable AI responses")
-        temperature = gr.Slider(
-            minimum=0.0,
-            maximum=2.0,
-            step=0.1,
-            value=0.7,
-            label="Temperature",
-            interactive=True,
-        )
-        system_prompt_input = gr.Textbox(
-            label="Custom system prompt",
-            lines=4,
-            placeholder="Optional. Overrides default system behavior.",
-        )
-        gr.Markdown("---")
-        gr.Markdown("### 🔎 Retrieval Settings")
-        # Move Top-k to sidebar
-        k = gr.Dropdown(
-            choices=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-            value=5,
-            label="Top-k results",
-            interactive=True,
-        )
-
-    # Main content
-    with gr.Column():
-        # Chatbot UI per Gradio guides (messages format)
-        chat = gr.Chatbot(
-            label="Chat",
-            height=400,
-            show_label=False,
-            type="messages",
-        )
-
-        # Full-width input to match chat width
-        msg = gr.Textbox(
-            placeholder="Ask a question regarding your uploaded PDFs",
-            lines=1,
-            autofocus=True,
-        )
-
-        # Action buttons on their own row
-        with gr.Row():
-            send_btn = gr.Button("Send", variant="primary")
-            clear_btn = gr.Button("Clear", variant="secondary")
-
-        # Chat status now shown inline within the Chatbot as a temporary "Thinking…" bubble
-
-        # Helpful examples (positioned right under chat, matching width)
-        gr.Examples(
-            examples=[
-                ["Summarize the key points of this document."],
-                ["Find the section discussing GDPR compliance."],
-                ["Locate any references to revenue recognition policies."],
-                ["Extract the main conclusions from the study."],
-            ],
-            inputs=[msg],
-            elem_id="examples",
-        )
-
-        # Retrieved images for the LAST assistant answer
-        with gr.Accordion("Retrieved Pages", open=False):
-            output_gallery = gr.Gallery(
-                label="Retrieved Pages",
-                show_label=False,
-                columns=4,
-            )
-
-    # Wiring
-    convert_button.click(index_wrapper, inputs=[files], outputs=[message])
-
-    # Chat submit (Enter in textbox)
-    msg.submit(
-        on_chat_submit,
-        inputs=[
-            msg,
-            chat,
-            k,
-            ai_enabled,
-            temperature,
-            system_prompt_input,
-        ],
-        outputs=[msg, chat, output_gallery],
-    )
-
-    # Chat submit (Send button)
-    send_btn.click(
-        on_chat_submit,
-        inputs=[
-            msg,
-            chat,
-            k,
-            ai_enabled,
-            temperature,
-            system_prompt_input,
-        ],
-        outputs=[msg, chat, output_gallery],
-    )
-
-    # Clear chat and gallery
-    def _clear_chat():
-        return [], []
-
-    # Wire clear button to reset chat and gallery
-    clear_btn.click(_clear_chat, outputs=[chat, output_gallery])
+demo = build_ui(on_chat_submit, index_wrapper)
 
 # Entrypoint to run the Gradio app directly
 if __name__ == "__main__":
