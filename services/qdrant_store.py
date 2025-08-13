@@ -226,7 +226,9 @@ class QdrantService:
                 image_urls = []
                 if self.minio_service:
                     try:
-                        image_urls = self.minio_service.store_images_batch(batch)
+                        image_url_dict = self.minio_service.store_images_batch(batch)
+                        # Extract URLs from the dict (store_images_batch returns Dict[str, str])
+                        image_urls = list(image_url_dict.values())
                     except Exception as e:
                         raise Exception(
                             f"Error storing images in MinIO for batch starting at {i}: {e}"
