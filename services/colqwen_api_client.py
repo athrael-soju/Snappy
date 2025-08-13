@@ -49,9 +49,7 @@ class ColQwenAPIClient:
             result = response.json()
             return result["n_patches_x"], result["n_patches_y"]
         except Exception as e:
-            print(f"Failed to get patches: {e}")
-            # Fallback calculation if API fails
-            return (width // 14, height // 14)
+            raise Exception(f"Failed to get patches: {e}")
     
     def embed_queries(self, queries: Union[str, List[str]]) -> List[List[List[float]]]:
         """
