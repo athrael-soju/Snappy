@@ -267,8 +267,8 @@ with gr.Blocks(
     # Title bar
     gr.Markdown(
         """
-# ColPali (ColQwen2) — PDF Retrieval with VLMs
-Alpha demo for efficient page-level retrieval and LLM-generated answers.
+# ColPali (ColQwen2) Knowledgebase Retrieval Agent
+Proof of concept of efficient page-level retrieval with a 'Special' Generative touch.
         """.strip()
     )
 
