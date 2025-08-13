@@ -61,9 +61,12 @@ def _encode_pil_to_data_url(img):
     return f"data:image/png;base64,{b64}"
 
 
-def on_chat_submit(message, chat_history, ds, images, k, ai_enabled):
+def on_chat_submit(
+    message, chat_history, ds, images, k, ai_enabled, temperature, system_prompt_input
+):
     """Stream a reply from OpenAI using retrieved page images as multimodal context.
 
+    Accepts user-configurable AI settings: `temperature` and `system_prompt_input`.
     Yields tuples: (cleared_input, updated_chat, gallery_images)
     """
     # No-op on empty input
@@ -99,7 +102,7 @@ def on_chat_submit(message, chat_history, ds, images, k, ai_enabled):
     results = _retrieve_results(message, ds, images, k)
 
     # Show gallery and insert a temporary thinking bubble at the exact reply location
-    updated_chat = (chat_history or []) + [(message, "⏳ Thinking…")]
+    updated_chat = (chat_history or []) + [(message, None)]
     yield "", updated_chat, results
 
     # Build multimodal user content: text + top-k images
@@ -116,10 +119,16 @@ def on_chat_submit(message, chat_history, ds, images, k, ai_enabled):
             # Skip any image that fails to encode
             continue
 
-    system_prompt = (
+    default_system_prompt = (
         "You are a helpful PDF assistant. Use only the provided page images "
         "to answer the user's question. If the answer isn't contained in the pages, "
-        "say you cannot find it. Be concise."
+        "say you cannot find it. Be concise and always mention from which pages the answer is taken."
+    )
+
+    system_prompt = (
+        str(system_prompt_input).strip()
+        if system_prompt_input and str(system_prompt_input).strip()
+        else default_system_prompt
     )
 
     messages = [
@@ -137,6 +146,12 @@ def on_chat_submit(message, chat_history, ds, images, k, ai_enabled):
     model = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
     client = OpenAI(api_key=api_key)
 
+    # Coerce temperature
+    try:
+        temp = float(temperature)
+    except Exception:
+        temp = 0.7
+
     # Stream tokens
     assistant_text = ""
     streamed_any = False
@@ -144,6 +159,7 @@ def on_chat_submit(message, chat_history, ds, images, k, ai_enabled):
         for chunk in client.chat.completions.create(
             model=model,
             messages=messages,
+            temperature=temp,
             stream=True,
         ):
             delta = chunk.choices[0].delta
@@ -208,7 +224,6 @@ with gr.Blocks(
   padding: 8px;
   border: 1px solid var(--border-color-primary);
   border-radius: 12px;
-  background: var(--block-background-fill);  
 }
 
 /* Make inner layout responsive regardless of Gradio version markup */
@@ -260,9 +275,6 @@ Alpha demo for efficient page-level retrieval and LLM-generated answers.
     # Collapsible sidebar (upload + indexing)
     with gr.Sidebar(open=True):
         gr.Markdown("### 📂 Upload & Index")
-        gr.Markdown(
-            "Upload one or more PDF files, then click **Index documents** to prep them for retrieval."
-        )
         file = PDF(label="PDF documents", height=280)
         convert_button = gr.Button("🔄 Index documents", variant="secondary")
         message = gr.Textbox(
@@ -272,12 +284,25 @@ Alpha demo for efficient page-level retrieval and LLM-generated answers.
             lines=2,
         )
 
-        # Toggle AI responses (uses environment variable for key)
-        ai_enabled = gr.Checkbox(value=True, label="Enable AI responses")
-
         # App states
         embeds = gr.State(value=[])
         imgs = gr.State(value=[])
+        gr.Markdown("---")
+        gr.Markdown("### 🤖 AI Settings")
+        ai_enabled = gr.Checkbox(value=True, label="Enable AI responses")
+        temperature = gr.Slider(
+            minimum=0.0,
+            maximum=2.0,
+            step=0.1,
+            value=0.7,
+            label="Temperature",
+            interactive=True,
+        )
+        system_prompt_input = gr.Textbox(
+            label="Custom system prompt",
+            lines=4,
+            placeholder="Optional. Overrides default system behavior.",
+        )
         gr.Markdown("---")
         gr.Markdown("### 🔎 Retrieval Settings")
         # Move Top-k to sidebar
@@ -329,10 +354,9 @@ Alpha demo for efficient page-level retrieval and LLM-generated answers.
         with gr.Accordion("Retrieved Pages", open=False):
             output_gallery = gr.Gallery(
                 label="Retrieved Pages",
-                show_label=True,
+                show_label=False,
                 columns=4,
             )
-
 
     # Wiring
     convert_button.click(
@@ -342,14 +366,32 @@ Alpha demo for efficient page-level retrieval and LLM-generated answers.
     # Chat submit (Enter in textbox)
     msg.submit(
         on_chat_submit,
-        inputs=[msg, chat, embeds, imgs, k, ai_enabled],
+        inputs=[
+            msg,
+            chat,
+            embeds,
+            imgs,
+            k,
+            ai_enabled,
+            temperature,
+            system_prompt_input,
+        ],
         outputs=[msg, chat, output_gallery],
     )
 
     # Chat submit (Send button)
     send_btn.click(
         on_chat_submit,
-        inputs=[msg, chat, embeds, imgs, k, ai_enabled],
+        inputs=[
+            msg,
+            chat,
+            embeds,
+            imgs,
+            k,
+            ai_enabled,
+            temperature,
+            system_prompt_input,
+        ],
         outputs=[msg, chat, output_gallery],
     )
 
