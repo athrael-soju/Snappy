@@ -1,13 +1,14 @@
+import os
 import gradio as gr
 from gradio_pdf import PDF
-
-from services.openai import query_openai
-from services.colqwen_api_client import ColQwenAPIClient
 from pdf2image import convert_from_path
 
-# Import the appropriate service based on environment variable
+# Your services / config
+from services.openai import query_openai
+from services.colqwen_api_client import ColQwenAPIClient
 from config import STORAGE_TYPE, WORKER_THREADS, IN_MEMORY_NUM_IMAGES
 
+# Storage backends (lazy-imported below based on STORAGE_TYPE)
 memory_store_service = None
 qdrant_service = None
 
@@ -24,16 +25,25 @@ else:
     raise ValueError("Invalid storage type")
 
 
+# -----------------------
+# Core functions (unchanged behavior)
+# -----------------------
 def search_wrapper(query: str, ds, images, k, api_key):
     """Wrapper function to select between in-memory and Qdrant search"""
+    # k may come from a Dropdown; ensure int
+    try:
+        k = int(k)
+    except Exception:
+        k = 5
+
     if STORAGE_TYPE == "memory":
         results = memory_store_service.search(query, ds, images, k)
     elif STORAGE_TYPE == "qdrant":
         results = qdrant_service.search(query, k=k)
-    
+
+    # api_key is a password input; never print/log it
     ai_response = query_openai(query, results, api_key)
-    
-    return results, ai_response
+    return ai_response, results
 
 
 def index_wrapper(files, ds):
@@ -55,44 +65,116 @@ def convert_files(files):
 
     if STORAGE_TYPE == "memory":
         if len(images) >= int(IN_MEMORY_NUM_IMAGES):
-            raise ValueError(f"The number of images in the dataset should be less than {IN_MEMORY_NUM_IMAGES}.")
+            raise ValueError(
+                f"The number of images in the dataset should be less than {IN_MEMORY_NUM_IMAGES}."
+            )
     return images
 
 
-with gr.Blocks(theme=gr.themes.Soft()) as demo:
-    gr.Markdown("# ColPali: Efficient Document Retrieval with Vision Language Models (ColQwen2) 📚")
-    gr.Markdown("""Demo to test ColQwen2 (ColPali) on PDF documents. 
-    ColPali is model implemented from the [ColPali paper](https://arxiv.org/abs/2407.01449).
+# -----------------------
+# UI
+# -----------------------
+with gr.Blocks(theme=gr.themes.Soft(), fill_height=True) as demo:
+    # Title bar
+    gr.Markdown(
+        """
+# ColPali (ColQwen2) — PDF Retrieval with VLMs
+Alpha demo for efficient page-level retrieval and LLM-generated answers.
+        """.strip()
+    )
 
-    This demo allows you to upload PDF files and search for the most relevant pages based on your query.
-    Refresh the page if you change documents !
+    # Collapsible sidebar (upload + indexing)
+    with gr.Sidebar(open=True):
+        gr.Markdown("### 📂 Upload & Index")
+        gr.Markdown(
+            "Upload one or more PDF files, then click **Index documents** to prep them for retrieval."
+        )
+        file = PDF(label="PDF documents", height=280)
+        convert_button = gr.Button("🔄 Index documents", variant="secondary")
+        message = gr.Textbox(
+            value="Files not yet uploaded",
+            label="Status",
+            interactive=False,
+            lines=2,
+        )
 
-    ⚠️ This demo uses a model trained exclusively on A4 PDFs in portrait mode, containing english text. Performance is expected to drop for other page formats and languages.
-    Other models will be released with better robustness towards different languages and document formats !
-    """)
-    with gr.Row():
-        with gr.Column(scale=2):
-            gr.Markdown("## 1️⃣ Upload PDFs")
-            file = PDF(label="PDF Document")
-            print(file)
+        # Obfuscated API key (never shown or echoed)
+        api_key = gr.Textbox(
+            placeholder="Enter your OpenAI API key (optional)",
+            label="API key",
+            type="password",
+        )
 
-            convert_button = gr.Button("🔄 Index documents")
-            message = gr.Textbox("Files not yet uploaded", label="Status")
-            api_key = gr.Textbox(placeholder="Enter your OpenAI KEY here (optional)", label="API key")
-            embeds = gr.State(value=[])
-            imgs = gr.State(value=[])
+        # App states
+        embeds = gr.State(value=[])
+        imgs = gr.State(value=[])
 
-        with gr.Column(scale=3):
-            gr.Markdown("## 2️⃣ Search")
-            query = gr.Textbox(placeholder="Enter your query here", label="Query")
-            k = gr.Slider(minimum=1, maximum=10, step=1, label="Number of results", value=5)
+        gr.Markdown("---")
+        gr.Markdown(
+            f"**Storage:** `{STORAGE_TYPE}`  \n"
+            "Works best on A4 portrait, English PDFs."
+        )
 
-    search_button = gr.Button("🔍 Search", variant="primary")
-    output_gallery = gr.Gallery(label="Retrieved Documents", height=600, show_label=True)
-    output_text = gr.Textbox(label="AI Response", placeholder="Generated response based on retrieved documents")
+    # Main content
+    with gr.Column():
+        # Search input row
+        query = gr.Textbox(
+            placeholder="Ask a question about your PDFs…",
+            label="Query",
+            lines=2,
+        )
 
-    convert_button.click(index_wrapper, inputs=[file, embeds], outputs=[message, embeds, imgs])
-    search_button.click(search_wrapper, inputs=[query, embeds, imgs, k, api_key], outputs=[output_gallery, output_text])
+        with gr.Row():
+            # Simple dropdown for number of results
+            k = gr.Dropdown(
+                choices=[1,2,3,4,5,6,7,8,9,10],
+                value=5,
+                label="Number of results",
+                interactive=True,
+            )
+            search_button = gr.Button("🔍 Search", variant="primary")
+
+        # AI response ABOVE image results
+        output_text = gr.Textbox(
+            label="AI Response",
+            placeholder="Answer synthesized from retrieved pages will appear here.",
+            lines=10,
+        )
+
+        # Image results inside a retractable container (initially closed)
+        with gr.Accordion("Retrieved Pages", open=False):
+            output_gallery = gr.Gallery(
+                label=None,
+                height=600,
+                show_label=False,
+                columns=2,
+                object_fit="contain",
+            )
+
+        # Helpful examples
+        gr.Markdown("**Try an example:**")
+        gr.Examples(
+            examples=[
+                ["Summarize the key points of this document."],
+                ["Find the section discussing GDPR compliance."],
+                ["What are the payment terms stated in the contract?"],
+                ["Locate any references to revenue recognition policies."],
+                ["Extract the main conclusions from the study."],
+            ],
+            inputs=[query],
+        )
+
+    # Wiring
+    convert_button.click(
+        index_wrapper, inputs=[file, embeds], outputs=[message, embeds, imgs]
+    )
+
+    # Note: output order changed to (AI response, results) per requirement
+    search_button.click(
+        search_wrapper,
+        inputs=[query, embeds, imgs, k, api_key],
+        outputs=[output_text, output_gallery],
+    )
 
 if __name__ == "__main__":
     print(f"Using {STORAGE_TYPE} storage")
