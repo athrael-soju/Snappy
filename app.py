@@ -1,11 +1,12 @@
 import os
 import io
 import base64
+import random
 import gradio as gr
 from pdf2image import convert_from_path
-from typing import Any, List, Optional, Sequence, Union
+from typing import Any, List, Union
+from thinking_messages import BRAIN_PLACEHOLDERS
 
-# OpenAI SDK (streaming)
 try:
     from openai import OpenAI
 except Exception:  # fallback for environments with old SDK
@@ -48,32 +49,6 @@ def _encode_pil_to_data_url(img) -> str:
     img.save(buf, format="PNG")
     b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
     return f"data:image/png;base64,{b64}"
-
-
-def _build_openai_messages(
-    chat_history: List[dict],
-    system_prompt: str,
-    user_message: str,
-    image_parts: List[dict],
-):
-    """Construct OpenAI messages for a single turn (history ignored).
-
-    - Intentionally ignores prior user/assistant turns.
-    - Sends only the system prompt and the current user turn with optional image parts.
-    """
-    messages = [{"role": "system", "content": str(system_prompt)}]
-
-    messages.append(
-        {
-            "role": "user",
-            "content": (
-                ([{"type": "text", "text": str(user_message)}] + image_parts)
-                if image_parts
-                else str(user_message)
-            ),
-        }
-    )
-    return messages
 
 
 def on_chat_submit(
@@ -121,7 +96,8 @@ def on_chat_submit(
     # Show gallery and insert a temporary thinking bubble at the exact reply location
     updated_chat = list(chat_history or [])
     updated_chat.append({"role": "user", "content": str(message)})
-    updated_chat.append({"role": "assistant", "content": "⏳ Generating…"})
+    placeholder = random.choice(BRAIN_PLACEHOLDERS)
+    updated_chat.append({"role": "assistant", "content": placeholder})
     yield "", updated_chat, results
 
     # Build multimodal user content: text + top-k images
@@ -152,7 +128,9 @@ def on_chat_submit(
         else default_system_prompt
     )
 
-    messages = OpenAI.build_messages(chat_history, system_prompt, str(message), image_parts)
+    messages = OpenAI.build_messages(
+        chat_history, system_prompt, str(message), image_parts
+    )
 
     model = os.getenv("OPENAI_MODEL", "gpt-5-mini")
     # client already initialized above
@@ -167,7 +145,9 @@ def on_chat_submit(
     assistant_text = ""
     streamed_any = False
     try:
-        for content in client.stream_chat(messages=messages, temperature=temp, model=model):
+        for content in client.stream_chat(
+            messages=messages, temperature=temp, model=model
+        ):
             if content:
                 if not streamed_any:
                     assistant_text = content
