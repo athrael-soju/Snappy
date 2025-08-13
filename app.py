@@ -4,6 +4,7 @@ import base64
 import gradio as gr
 from gradio_pdf import PDF
 from pdf2image import convert_from_path
+from typing import Any, List, Optional, Sequence, Union
 
 # OpenAI SDK (streaming)
 try:
@@ -37,10 +38,12 @@ else:
 # -----------------------
 # Core functions (unchanged behavior)
 # -----------------------
-def _retrieve_results(query: str, ds, images, k):
+def _retrieve_results(query: str, ds: Any, images: Optional[Sequence[Any]], k: Union[int, str]) -> List[Any]:
     """Retrieve top-k page images for the query from the selected store."""
     try:
         k = int(k)
+        if k <= 0:
+            k = 5
     except Exception:
         k = 5
 
@@ -53,7 +56,7 @@ def _retrieve_results(query: str, ds, images, k):
     return results
 
 
-def _encode_pil_to_data_url(img):
+def _encode_pil_to_data_url(img) -> str:
     """Encode a PIL.Image to a data URL suitable for OpenAI vision input."""
     buf = io.BytesIO()
     img.save(buf, format="PNG")
@@ -107,7 +110,9 @@ def on_chat_submit(
 
     # Build multimodal user content: text + top-k images
     image_parts = []
-    for img in (results or [])[: int(k) if str(k).isdigit() else 5]:
+    for item in (results or [])[: int(k) if str(k).isdigit() else 5]:
+        # Support either raw PIL images or (image, caption) tuples
+        img = item[0] if isinstance(item, (tuple, list)) and item else item
         try:
             image_parts.append(
                 {
@@ -399,8 +404,14 @@ Proof of concept of efficient page-level retrieval with a 'Special' Generative t
     def _clear_chat():
         return [], []
 
+    # Wire clear button to reset chat and gallery
     clear_btn.click(_clear_chat, outputs=[chat, output_gallery])
 
+# Entrypoint to run the Gradio app directly
 if __name__ == "__main__":
-    print(f"Using {STORAGE_TYPE} storage")
-    demo.queue(max_size=5).launch(debug=True, mcp_server=False)
+    host = os.getenv("HOST", "0.0.0.0")
+    try:
+        port = int(os.getenv("PORT", "7860"))
+    except Exception:
+        raise ValueError("Invalid port")
+    demo.queue().launch(server_name=host, server_port=port)

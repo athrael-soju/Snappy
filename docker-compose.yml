@@ -41,19 +41,13 @@ services:
     container_name: vision-rag
     ports:
       - "7860:7860"
+    env_file:
+      - .env
     environment:
-      - NVIDIA_VISIBLE_DEVICES=all
       - QDRANT_URL=http://qdrant:6333
       - MINIO_URL=http://minio:9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [ gpu ]
     volumes:
       - vision_rag_data:/home/user/app/data
     stdin_open: true
