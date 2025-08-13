@@ -2,7 +2,6 @@ import os
 import io
 import base64
 import gradio as gr
-from gradio_pdf import PDF
 from pdf2image import convert_from_path
 from typing import Any, List, Optional, Sequence, Union
 
@@ -60,7 +59,7 @@ def _build_openai_messages(
     """
     messages = [{"role": "system", "content": system_prompt}]
 
-    for m in (chat_history or []):
+    for m in chat_history or []:
         role = m.get("role") if isinstance(m, dict) else None
         content = m.get("content") if isinstance(m, dict) else None
         if role in ("user", "assistant") and content:
@@ -99,10 +98,12 @@ def on_chat_submit(
         results = _retrieve_results(message, k)
         updated_chat = list(chat_history or [])
         updated_chat.append({"role": "user", "content": str(message)})
-        updated_chat.append({
-            "role": "assistant",
-            "content": "AI responses are disabled. Enable them in the sidebar to get answers. Showing retrieved pages only.",
-        })
+        updated_chat.append(
+            {
+                "role": "assistant",
+                "content": "AI responses are disabled. Enable them in the sidebar to get answers. Showing retrieved pages only.",
+            }
+        )
         yield "", updated_chat, results
         return
 
@@ -157,7 +158,9 @@ def on_chat_submit(
         else default_system_prompt
     )
 
-    messages = _build_openai_messages(chat_history, system_prompt, str(message), image_parts)
+    messages = _build_openai_messages(
+        chat_history, system_prompt, str(message), image_parts
+    )
 
     model = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
     client = OpenAI(api_key=api_key)
@@ -201,19 +204,57 @@ def on_chat_submit(
         yield "", updated_chat, gr.update()
 
 
-def index_wrapper(files):
-    """Index documents in Qdrant"""
-    images = convert_files(files)
-    message = qdrant_service.index_documents(images)
-    return message
+def index_wrapper(files, progress=gr.Progress(track_tqdm=True)):
+    """Index documents in Qdrant with a progress bar.
+
+    Gradio will track the internal tqdm in QdrantService.index_documents().
+    """
+    images_with_meta = convert_files(files)
+    total = len(images_with_meta)
+    # Optional initial progress message (tqdm will take over)
+    try:
+        progress(0, total=total, desc="Indexing pages…")
+    except Exception:
+        pass
+    message = qdrant_service.index_documents(images_with_meta)
+    return f"{message} (total: {total} pages)"
 
 
 def convert_files(files):
-    images = []
-    files = [files] if not isinstance(files, list) else files
-    for f in files:
-        images.extend(convert_from_path(f, thread_count=int(WORKER_THREADS)))
-    return images
+    """Convert uploaded PDFs to page images and attach per-page metadata.
+
+    Returns a list of dicts: { 'image': PIL.Image, 'filename': str,
+    'file_size_bytes': int, 'pdf_page_index': int, 'total_pages': int,
+    'page_width_px': int, 'page_height_px': int }
+    """
+    items: List[dict] = []
+    file_list = [files] if not isinstance(files, list) else files
+    for f in file_list:
+        try:
+            pages = convert_from_path(f, thread_count=int(WORKER_THREADS))
+        except Exception:
+            # Skip non-PDFs or conversion failures silently for now
+            continue
+        total = len(pages)
+        try:
+            size_bytes = os.path.getsize(f)
+        except Exception:
+            size_bytes = None
+        filename = os.path.basename(str(f))
+        for idx, img in enumerate(pages):
+            w, h = (img.size[0], img.size[1]) if hasattr(img, "size") else (None, None)
+            items.append(
+                {
+                    "image": img,
+                    "filename": filename,
+                    "file_size_bytes": size_bytes,
+                    "pdf_page_index": idx + 1,  # 1-based
+                    "total_pages": total,
+                    "page_width_px": w,
+                    "page_height_px": h,
+                }
+            )
+    return items
 
 
 # -----------------------
@@ -281,7 +322,12 @@ Proof of concept of efficient page-level retrieval with a 'Special' Generative t
     # Collapsible sidebar (upload + indexing)
     with gr.Sidebar(open=True):
         gr.Markdown("### 📂 Upload & Index")
-        file = PDF(label="PDF documents", height=280)
+        files = gr.File(
+            label="PDF documents",
+            file_types=[".pdf"],
+            file_count="multiple",
+            type="filepath",
+        )
         convert_button = gr.Button("🔄 Index documents", variant="secondary")
         message = gr.Textbox(
             value="Files not yet uploaded",
@@ -360,7 +406,7 @@ Proof of concept of efficient page-level retrieval with a 'Special' Generative t
             )
 
     # Wiring
-    convert_button.click(index_wrapper, inputs=[file], outputs=[message])
+    convert_button.click(index_wrapper, inputs=[files], outputs=[message])
 
     # Chat submit (Enter in textbox)
     msg.submit(
