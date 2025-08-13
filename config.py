@@ -1,6 +1,5 @@
 import os
 from typing import Final
-import torch
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -22,12 +21,9 @@ WORKER_THREADS: Final[int] = int(os.getenv("WORKER_THREADS", "4"))
 OPENAI_API_KEY: Final[str] = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL: Final[str] = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 
-# Embedding Model
-MODEL_NAME: Final[str] = os.getenv("MODEL_NAME", "nomic-ai/colnomic-embed-multimodal-3b")
-MODEL_DEVICE: Final[str] = os.getenv(
-    "MODEL_DEVICE", 
-    "cuda:0" if torch.cuda.is_available() else "cpu"
-)
+# ColQwen API
+COLQWEN_API_BASE_URL: Final[str] = os.getenv("COLQWEN_API_BASE_URL", "http://localhost:8000")
+COLQWEN_API_TIMEOUT: Final[int] = int(os.getenv("COLQWEN_API_TIMEOUT", "300"))
 
 # ===== Storage Configurations =====
 # Qdrant
