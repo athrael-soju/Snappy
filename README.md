@@ -69,7 +69,7 @@ MINIO_IMAGE_FMT=JPEG
 
 # OpenAI (optional for AI answers)
 OPENAI_API_KEY=
-OPENAI_MODEL=gpt-4.1-mini
+OPENAI_MODEL=gpt-5-mini
 ```
 
 2) Start the stack:

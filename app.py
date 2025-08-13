@@ -121,7 +121,7 @@ def on_chat_submit(
     # Show gallery and insert a temporary thinking bubble at the exact reply location
     updated_chat = list(chat_history or [])
     updated_chat.append({"role": "user", "content": str(message)})
-    updated_chat.append({"role": "assistant", "content": ""})
+    updated_chat.append({"role": "assistant", "content": "⏳ Generating…"})
     yield "", updated_chat, results
 
     # Build multimodal user content: text + top-k images
@@ -154,7 +154,7 @@ def on_chat_submit(
 
     messages = OpenAI.build_messages(chat_history, system_prompt, str(message), image_parts)
 
-    model = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+    model = os.getenv("OPENAI_MODEL", "gpt-5-mini")
     # client already initialized above
 
     # Coerce temperature

@@ -18,7 +18,7 @@ WORKER_THREADS: Final[int] = int(os.getenv("WORKER_THREADS", "4"))
 # ===== AI/ML Configuration =====
 # OpenAI
 OPENAI_API_KEY: Final[str] = os.getenv("OPENAI_API_KEY", "")
-OPENAI_MODEL: Final[str] = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+OPENAI_MODEL: Final[str] = os.getenv("OPENAI_MODEL", "gpt-5-mini")
 
 # ColQwen API
 COLQWEN_API_BASE_URL: Final[str] = os.getenv(

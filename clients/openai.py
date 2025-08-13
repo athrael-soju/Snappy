@@ -33,7 +33,7 @@ class OpenAIClient:
                 "OPENAI_API_KEY not set. Please configure it in your environment or .env file."
             )
 
-        self.model = (default_model or OPENAI_MODEL or "gpt-4.1-mini").strip()
+        self.model = (default_model or OPENAI_MODEL or "gpt-5-mini").strip()
         self.client = _OpenAISDK(api_key=key)
 
     @staticmethod
