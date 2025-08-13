@@ -1,6 +1,6 @@
 import requests
 import io
-from typing import List, Union, Tuple, Optional
+from typing import List, Union
 from PIL import Image
 import numpy as np
 

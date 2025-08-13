@@ -1,107 +1,125 @@
 # ColPali (ColQwen2) Knowledgebase Retrieval Agent
 
-A lightweight Gradio app for page-level retrieval over PDFs using an external ColQwen embeddings API, with optional vector storage in Qdrant and image storage in MinIO. No local GPU or PyTorch is required.
+A minimal PDF RAG prototype that:
 
-## Features
-- API-first: uses an external ColQwen API for embeddings (`services/colqwen_api_client.py`).
-- Two storage modes:
-  - In-memory (quick demos)
-  - Qdrant + MinIO (persistent, scalable)
-- Gradio UI with streaming OpenAI chat for answer generation.
+- Uses a ColQwen2.5-compatible Embeddings API for image/text embeddings
+- Stores vectors in Qdrant (multi-vector schema)
+- Stores page images in MinIO
+- Provides a Gradio chat UI with OpenAI streaming for answers
 
-## Repository Structure
-- `app.py` – Gradio UI and app wiring
-- `config.py` – Centralized configuration via environment variables
-- `services/` – Integration layers
-  - `colqwen_api_client.py` – Client for the external ColQwen API
-  - `qdrant_store.py` – Qdrant-backed store using the API for embeddings
-  - `minio_service.py` – MinIO image storage utilities
-  - `memory_store.py` – In-memory store using the API
-- `docker-compose.yml` – Qdrant, MinIO, and the app container
-- `Dockerfile` – Slim Python base (no CUDA/PyTorch)
-- `requirements.txt` – Python dependencies
-- `.env.example` – Example environment variables
+This template now uses a single storage backend (Qdrant + MinIO). The old in-memory store has been removed.
 
-## Prerequisites
-- Docker and Docker Compose
-- An accessible ColQwen embeddings API endpoint
-  - Example base URL: `http://localhost:8000` (host machine) or `http://host.docker.internal:8000` (from inside Docker on Mac/Windows)
-- Optional: OpenAI API key for chat completion
+## Architecture
 
-## Quick Start (Docker Compose)
-1. Copy the environment template:
-   ```bash
-   cp .env.example .env
-   ```
-2. Edit `.env` as needed. Key settings:
-   - `COLQWEN_API_BASE_URL=http://host.docker.internal:8000` (Mac/Windows)
-     - On Linux, use your host IP or add to compose: `extra_hosts: ["host.docker.internal:host-gateway"]` under the `vision-rag` service.
-   - `STORAGE_TYPE=qdrant` (default) or `memory`
-   - `OPENAI_API_KEY` if you want AI answers (otherwise you can disable AI responses in the UI or leave the key empty)
-3. Start services:
-   ```bash
-   docker compose up -d --build
-   ```
-4. Open the app: http://localhost:7860
+- `clients/`
+  - `colqwen.py`: HTTP client for the ColQwen Embeddings API
+  - `minio.py`: MinIO client wrapper for storing/retrieving images
+  - `qdrant.py`: Qdrant client wrapper handling collection schema, indexing, and search
+- `app.py`: Gradio UI, retrieval-augmented chat, and wiring
+- `config.py`: Centralized configuration sourced from environment variables
+- `docker-compose.yml`: Local stack with Qdrant, MinIO, and the app container
 
-Services started by Compose:
+Data flow:
+
+1) Upload PDFs in the sidebar
+2) `pdf2image` converts to page images
+3) `clients.qdrant.QdrantService` embeds pages via ColQwen, stores vectors in Qdrant and images in MinIO
+4) Query -> embed query -> two-stage multi-vector search in Qdrant -> fetch top-k page images from MinIO
+5) Optionally send text + images to OpenAI for a streamed answer in the chat
+
+## Requirements
+
+- Python 3.10+
+- Docker (for local stack)
+- External services:
+  - ColQwen Embeddings API endpoint
+  - Qdrant (local via docker-compose)
+  - MinIO (local via docker-compose)
+  - Optional: OpenAI API key for AI answers (otherwise retrieval-only)
+
+## Quickstart (Docker Compose)
+
+1) Create a `.env` file in the project root with at least:
+
+```
+# App
+LOG_LEVEL=INFO
+WORKER_THREADS=4
+BATCH_SIZE=4
+
+# ColQwen API
+COLQWEN_API_BASE_URL=http://localhost:8000
+COLQWEN_API_TIMEOUT=300
+
+# Qdrant
+QDRANT_URL=http://localhost:6333
+QDRANT_COLLECTION_NAME=documents
+QDRANT_SEARCH_LIMIT=20
+QDRANT_PREFETCH_LIMIT=200
+
+# MinIO
+MINIO_URL=http://localhost:9000
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin
+MINIO_BUCKET_NAME=documents
+MINIO_WORKERS=4
+MINIO_RETRIES=2
+MINIO_FAIL_FAST=False
+MINIO_IMAGE_FMT=JPEG
+
+# OpenAI (optional for AI answers)
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-4.1-mini
+```
+
+2) Start the stack:
+
+```
+docker compose up --build
+```
+
+- App UI: http://localhost:7860
 - Qdrant: http://localhost:6333
-- MinIO: http://localhost:9001 (console), S3 API at http://localhost:9000 (user: `minioadmin`, pass: `minioadmin`)
+- MinIO Console: http://localhost:9001 (user: minioadmin / pass: minioadmin)
 
-## Local (No Docker)
-1. Install system dependencies:
-   - Poppler (for `pdf2image`). On macOS: `brew install poppler`. On Linux: your package manager. On Windows: install Poppler and set `POPPLER_PATH` in `.env`.
-2. Python deps:
-   ```bash
-   python -m venv .venv
-   . .venv/bin/activate  # Windows: .venv\Scripts\activate
-   pip install -U pip
-   pip install -r requirements.txt
-   ```
-3. Configure environment:
-   ```bash
-   cp .env.example .env
-   # edit .env to point COLQWEN_API_BASE_URL to your API
-   ```
-4. Run the app:
-   ```bash
-   python app.py
-   ```
-   Visit http://localhost:7860.
+The app container preconfigures service URLs to `qdrant` and `minio` hostnames internally; from your host browser, use `localhost`.
 
-## Configuration
-All settings come from environment variables (see `.env.example` and `config.py`). Notable keys:
-- Core
-  - `HOST`, `PORT`
-  - `LOG_LEVEL`
-- ColQwen API
-  - `COLQWEN_API_BASE_URL` – Base URL of the external embeddings API
-  - `COLQWEN_API_TIMEOUT` – Request timeout (seconds)
-- OpenAI
-  - `OPENAI_API_KEY`, `OPENAI_MODEL`
-- Storage
-  - `STORAGE_TYPE` – `memory` or `qdrant`
-  - Qdrant: `QDRANT_URL`, `QDRANT_COLLECTION_NAME`, `QDRANT_SEARCH_LIMIT`, `QDRANT_PREFETCH_LIMIT`
-  - MinIO: `MINIO_URL`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET_NAME`, `MINIO_WORKERS`, `MINIO_RETRIES`, `MINIO_FAIL_FAST`, `MINIO_IMAGE_FMT`
-  - In-memory: `IN_MEMORY_NUM_IMAGES`
-- Windows:
-  - `POPPLER_PATH` – Path to Poppler binaries for `pdf2image`
+## Running without Docker
 
-## Notes on the API Migration
-- The Dockerfile no longer installs CUDA/PyTorch; embeddings are obtained from the external API.
-- `services/colqwen_api_client.py` handles all embeddings operations:
-  - `embed_queries`, `embed_images`, and `get_patches`
-- `services/qdrant_store.py` and `services/memory_store.py` are updated to rely on the API client.
+Install dependencies and run the app directly:
+
+```
+python -m venv .venv
+. .venv/Scripts/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python app.py
+```
+
+Make sure Qdrant, MinIO, and the ColQwen API are reachable at the URLs in your `.env`.
+
+## Usage
+
+1) Open the app in your browser
+2) Upload one or more PDFs in the sidebar and click "Index documents"
+3) Ask questions in the chat
+4) Toggle AI responses on/off in the sidebar
+   - Off: retrieval-only, you see the top-k pages
+   - On: the app streams an answer from OpenAI using the retrieved images as context
+
+## Notes
+
+- Chat UI uses Gradio's messages format (`type="messages"`) to avoid deprecation warnings.
+- The app depends on a running ColQwen embeddings service; adjust `COLQWEN_API_BASE_URL` accordingly.
+- Qdrant is configured with a multi-vector schema: "original", "mean_pooling_rows", and "mean_pooling_columns".
+- MinIO bucket policy is set to public read by default for simplicity.
 
 ## Troubleshooting
-- App shows "API not available" errors:
-  - Verify `COLQWEN_API_BASE_URL` is reachable from inside the container.
-  - On Mac/Windows Docker, prefer `http://host.docker.internal:8000`.
-  - On Linux, add `extra_hosts: ["host.docker.internal:host-gateway"]` to `vision-rag` in `docker-compose.yml` or use your host IP.
-- PDFs fail to convert:
-  - Ensure Poppler is installed. On Windows, set `POPPLER_PATH` in `.env`.
-- MinIO access issues:
-  - Check the console at http://localhost:9001. The app auto-creates the bucket and a public-read policy.
 
-## License
-Apache-2.0. See `LICENSE`.
+- Cannot connect to Qdrant/MinIO: ensure docker containers are running and URLs are correct in `.env`.
+- ColQwen API health check fails: verify the API server is up and reachable.
+- OpenAI streaming error: set `OPENAI_API_KEY` or disable AI responses in the sidebar.
+
+## Project Status
+
+- Storage backend is Qdrant-only. The legacy in-memory store has been removed.
+- Services layer was renamed to `clients/` to reflect the fact they call external APIs.

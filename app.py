@@ -12,34 +12,22 @@ try:
 except Exception:  # fallback for environments with old SDK
     OpenAI = None
 
-# Your services / config
-from services.colqwen_api_client import ColQwenAPIClient
-from config import STORAGE_TYPE, WORKER_THREADS, IN_MEMORY_NUM_IMAGES
+# Your clients / config
+from clients.colqwen import ColQwenAPIClient
+from config import WORKER_THREADS
 
-# Storage backends (lazy-imported below based on STORAGE_TYPE)
-memory_store_service = None
-qdrant_service = None
+# Initialize storage backend (Qdrant only)
+from clients.qdrant import QdrantService
 
-# Initialize API client
 api_client = ColQwenAPIClient()
-
-if STORAGE_TYPE == "memory":
-    from services.memory_store import MemoryStoreService
-
-    memory_store_service = MemoryStoreService(api_client)
-elif STORAGE_TYPE == "qdrant":
-    from services.qdrant_store import QdrantService
-
-    qdrant_service = QdrantService(api_client)
-else:
-    raise ValueError("Invalid storage type")
+qdrant_service = QdrantService(api_client)
 
 
 # -----------------------
 # Core functions (unchanged behavior)
 # -----------------------
-def _retrieve_results(query: str, ds: Any, images: Optional[Sequence[Any]], k: Union[int, str]) -> List[Any]:
-    """Retrieve top-k page images for the query from the selected store."""
+def _retrieve_results(query: str, k: Union[int, str]) -> List[Any]:
+    """Retrieve top-k page images for the query from Qdrant."""
     try:
         k = int(k)
         if k <= 0:
@@ -47,12 +35,7 @@ def _retrieve_results(query: str, ds: Any, images: Optional[Sequence[Any]], k: U
     except Exception:
         k = 5
 
-    if STORAGE_TYPE == "memory":
-        results = memory_store_service.search(query, ds, images, k)
-    elif STORAGE_TYPE == "qdrant":
-        results = qdrant_service.search(query, k=k)
-    else:
-        results = []
+    results = qdrant_service.search(query, k=k)
     return results
 
 
@@ -64,11 +47,45 @@ def _encode_pil_to_data_url(img) -> str:
     return f"data:image/png;base64,{b64}"
 
 
+def _build_openai_messages(
+    chat_history: List[dict],
+    system_prompt: str,
+    user_message: str,
+    image_parts: List[dict],
+):
+    """Construct OpenAI messages with multi-turn text history and latest images only.
+
+    - Includes prior user/assistant turns as plain text.
+    - Appends the current user turn with optional image parts from the most recent search.
+    """
+    messages = [{"role": "system", "content": system_prompt}]
+
+    for m in (chat_history or []):
+        role = m.get("role") if isinstance(m, dict) else None
+        content = m.get("content") if isinstance(m, dict) else None
+        if role in ("user", "assistant") and content:
+            messages.append({"role": role, "content": str(content)})
+
+    # Current user message + latest images
+    messages.append(
+        {
+            "role": "user",
+            "content": (
+                ([{"type": "text", "text": str(user_message)}] + image_parts)
+                if image_parts
+                else str(user_message)
+            ),
+        }
+    )
+    return messages
+
+
 def on_chat_submit(
-    message, chat_history, ds, images, k, ai_enabled, temperature, system_prompt_input
+    message, chat_history, k, ai_enabled, temperature, system_prompt_input
 ):
     """Stream a reply from OpenAI using retrieved page images as multimodal context.
 
+    Chat uses messages-format (list of dicts with 'role' and 'content').
     Accepts user-configurable AI settings: `temperature` and `system_prompt_input`.
     Yields tuples: (cleared_input, updated_chat, gallery_images)
     """
@@ -79,13 +96,13 @@ def on_chat_submit(
 
     # If AI responses are disabled, only retrieve and show pages
     if not ai_enabled:
-        results = _retrieve_results(message, ds, images, k)
-        updated_chat = (chat_history or []) + [
-            (
-                message,
-                "AI responses are disabled. Enable them in the sidebar to get answers. Showing retrieved pages only.",
-            )
-        ]
+        results = _retrieve_results(message, k)
+        updated_chat = list(chat_history or [])
+        updated_chat.append({"role": "user", "content": str(message)})
+        updated_chat.append({
+            "role": "assistant",
+            "content": "AI responses are disabled. Enable them in the sidebar to get answers. Showing retrieved pages only.",
+        })
         yield "", updated_chat, results
         return
 
@@ -97,15 +114,19 @@ def on_chat_submit(
             "OpenAI SDK not available or API key missing. "
             "Please install the 'openai' package and set OPENAI_API_KEY in your environment."
         )
-        updated_chat = (chat_history or []) + [(message, err)]
+        updated_chat = list(chat_history or [])
+        updated_chat.append({"role": "user", "content": str(message)})
+        updated_chat.append({"role": "assistant", "content": err})
         yield "", updated_chat, gr.update()
         return
 
     # Retrieve images (top-k)
-    results = _retrieve_results(message, ds, images, k)
+    results = _retrieve_results(message, k)
 
     # Show gallery and insert a temporary thinking bubble at the exact reply location
-    updated_chat = (chat_history or []) + [(message, None)]
+    updated_chat = list(chat_history or [])
+    updated_chat.append({"role": "user", "content": str(message)})
+    updated_chat.append({"role": "assistant", "content": ""})
     yield "", updated_chat, results
 
     # Build multimodal user content: text + top-k images
@@ -136,17 +157,7 @@ def on_chat_submit(
         else default_system_prompt
     )
 
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {
-            "role": "user",
-            "content": (
-                ([{"type": "text", "text": str(message)}] + image_parts)
-                if image_parts
-                else str(message)
-            ),
-        },
-    ]
+    messages = _build_openai_messages(chat_history, system_prompt, str(message), image_parts)
 
     model = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
     client = OpenAI(api_key=api_key)
@@ -176,29 +187,25 @@ def on_chat_submit(
             if content:
                 if not streamed_any:
                     assistant_text = content
-                    updated_chat[-1] = (message, assistant_text)
+                    updated_chat[-1] = {"role": "assistant", "content": assistant_text}
                     streamed_any = True
                 else:
                     assistant_text += content
-                    updated_chat[-1] = (message, assistant_text)
+                    updated_chat[-1] = {"role": "assistant", "content": assistant_text}
                 # Stream updated chat; gallery unchanged
                 yield "", updated_chat, gr.update()
     except Exception as e:
         # Replace the thinking bubble with a single error message
         err_text = assistant_text or f"[Streaming error: {e}]"
-        updated_chat[-1] = (message, err_text)
+        updated_chat[-1] = {"role": "assistant", "content": err_text}
         yield "", updated_chat, gr.update()
 
 
-def index_wrapper(files, ds):
-    """Wrapper function to select between in-memory and Qdrant indexing"""
+def index_wrapper(files):
+    """Index documents in Qdrant"""
     images = convert_files(files)
-    if STORAGE_TYPE == "memory":
-        message = memory_store_service.index_gpu(images, ds)
-        return message, ds, images
-    elif STORAGE_TYPE == "qdrant":
-        message = qdrant_service.index_documents(images)
-        return message, ds, images
+    message = qdrant_service.index_documents(images)
+    return message
 
 
 def convert_files(files):
@@ -206,12 +213,6 @@ def convert_files(files):
     files = [files] if not isinstance(files, list) else files
     for f in files:
         images.extend(convert_from_path(f, thread_count=int(WORKER_THREADS)))
-
-    if STORAGE_TYPE == "memory":
-        if len(images) >= int(IN_MEMORY_NUM_IMAGES):
-            raise ValueError(
-                f"The number of images in the dataset should be less than {IN_MEMORY_NUM_IMAGES}."
-            )
     return images
 
 
@@ -288,10 +289,6 @@ Proof of concept of efficient page-level retrieval with a 'Special' Generative t
             interactive=False,
             lines=2,
         )
-
-        # App states
-        embeds = gr.State(value=[])
-        imgs = gr.State(value=[])
         gr.Markdown("---")
         gr.Markdown("### 🤖 AI Settings")
         ai_enabled = gr.Checkbox(value=True, label="Enable AI responses")
@@ -317,16 +314,15 @@ Proof of concept of efficient page-level retrieval with a 'Special' Generative t
             label="Top-k results",
             interactive=True,
         )
-        gr.Markdown("---")
-        gr.Markdown(f"**Storage:** `{STORAGE_TYPE}`")
 
     # Main content
     with gr.Column():
-        # Chatbot UI per Gradio guides
+        # Chatbot UI per Gradio guides (messages format)
         chat = gr.Chatbot(
             label="Chat",
             height=400,
             show_label=False,
+            type="messages",
         )
 
         # Full-width input to match chat width
@@ -364,9 +360,7 @@ Proof of concept of efficient page-level retrieval with a 'Special' Generative t
             )
 
     # Wiring
-    convert_button.click(
-        index_wrapper, inputs=[file, embeds], outputs=[message, embeds, imgs]
-    )
+    convert_button.click(index_wrapper, inputs=[file], outputs=[message])
 
     # Chat submit (Enter in textbox)
     msg.submit(
@@ -374,8 +368,6 @@ Proof of concept of efficient page-level retrieval with a 'Special' Generative t
         inputs=[
             msg,
             chat,
-            embeds,
-            imgs,
             k,
             ai_enabled,
             temperature,
@@ -390,8 +382,6 @@ Proof of concept of efficient page-level retrieval with a 'Special' Generative t
         inputs=[
             msg,
             chat,
-            embeds,
-            imgs,
             k,
             ai_enabled,
             temperature,

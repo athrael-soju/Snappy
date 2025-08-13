@@ -1,7 +1,7 @@
 import uuid
 import warnings
 import numpy as np
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple
 from PIL import Image
 from qdrant_client import QdrantClient, models
 from tqdm import tqdm
@@ -13,8 +13,8 @@ from config import (
     QDRANT_SEARCH_LIMIT,
     QDRANT_PREFETCH_LIMIT,
 )
-from .minio_service import MinioService
-from .colqwen_api_client import ColQwenAPIClient
+from .minio import MinioService
+from .colqwen import ColQwenAPIClient
 
 
 class QdrantService:
@@ -44,7 +44,7 @@ class QdrantService:
         self._create_collection_if_not_exists()
 
     def _get_model_dimension(self) -> int:
-        """Get the embedding dimension from the API info"""
+        """Get the embedding dimension from the API"""
         info = self.api_client.get_info()
         if not info or "dim" not in info:
             raise ValueError(
