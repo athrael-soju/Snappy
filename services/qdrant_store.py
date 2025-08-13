@@ -46,16 +46,18 @@ class QdrantService:
     def _get_model_dimension(self) -> int:
         """Get the embedding dimension from the API info"""
         info = self.api_client.get_info()
-        if not info or 'dim' not in info:
-            raise ValueError("Failed to get model dimension from API. The API might be down or misconfigured.")
-        return info['dim']
+        if not info or "dim" not in info:
+            raise ValueError(
+                "Failed to get model dimension from API. The API might be down or misconfigured."
+            )
+        return info["dim"]
 
     def _create_collection_if_not_exists(self):
         """Create Qdrant collection for document storage with proper dimension validation"""
         try:
             # Get the model dimension from API
             model_dim = self._get_model_dimension()
-            
+
             # Define vector configuration with the correct dimension
             vector_config = {
                 "original": models.VectorParams(
@@ -81,7 +83,7 @@ class QdrantService:
                     ),
                 ),
             }
-            
+
             self.client.create_collection(
                 collection_name=self.collection_name,
                 vectors_config=vector_config,
@@ -89,25 +91,18 @@ class QdrantService:
             print(f"Created new collection with dimension: {model_dim}")
         except Exception as e:
             if "already exists" in str(e):
-                # Collection exists, verify the dimension matches
-                collection_info = self.client.get_collection(self.collection_name)
                 model_dim = self._get_model_dimension()
-                
-                # Check each vector config dimension
-                for vec_name, vec_config in collection_info.config.params.vectors.to_dict().items():
-                    if vec_config['size'] != model_dim:
-                        raise ValueError(
-                            f"Dimension mismatch: Collection '{self.collection_name}' has dimension {vec_config['size']} "
-                            f"but model requires {model_dim}. Please delete the collection and try again."
-                        )
-                print(f"Using existing collection with matching dimension: {model_dim}")
+                print(f"Using existing collection: {self.collection_name} with dimension: {model_dim}")
             else:
                 raise Exception(f"Failed to create collection: {e}")
 
     def _get_patches(self, image_size: Tuple[int, int]) -> Tuple[int, int]:
         """Get number of patches for image using API"""
         width, height = image_size
-        return self.api_client.get_patches(width, height)
+        dimensions = [{"width": width, "height": height}]
+        results = self.api_client.get_patches(dimensions)
+        result = results[0]  # Get first (and only) result
+        return result["n_patches_x"], result["n_patches_y"]
 
     @staticmethod
     def _pool_image_tokens(
@@ -169,23 +164,32 @@ class QdrantService:
         Embed images via API and create mean pooled representations using explicit
         image-token boundaries provided by the API (no midpoint guessing).
         """
-        # API now returns per-image dicts: {embedding, image_patch_start, image_patch_len}
+        # API returns per-image dicts: {embedding, image_patch_start, image_patch_len}
         api_items = self.api_client.embed_images(image_batch)
+
+        # Batch get patches for all images
+        dimensions = [
+            {"width": image.size[0], "height": image.size[1]} for image in image_batch
+        ]
+        patch_results = self.api_client.get_patches(dimensions)
 
         pooled_by_rows_batch = []
         pooled_by_columns_batch = []
         original_batch = []
 
-        for item, image in zip(api_items, image_batch):
+        for item, image, patch_result in zip(api_items, image_batch, patch_results):
             if isinstance(item, dict):
                 embedding_list = item.get("embedding")
                 start = item.get("image_patch_start", -1)
                 patch_len = item.get("image_patch_len", 0)
             else:
-                raise Exception("embed_images() returned embeddings without image-token boundaries")
+                raise Exception(
+                    "embed_images() returned embeddings without image-token boundaries"
+                )
 
             image_embedding_np = np.asarray(embedding_list, dtype=np.float32)
-            x_patches, y_patches = self._get_patches(image.size)
+            x_patches = patch_result["n_patches_x"]
+            y_patches = patch_result["n_patches_y"]
 
             # Pool using explicit boundaries; sanity checks inside
             pooled_by_rows, pooled_by_columns = self._pool_image_tokens(

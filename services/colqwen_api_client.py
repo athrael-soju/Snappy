@@ -36,10 +36,17 @@ class ColQwenAPIClient:
             print(f"Failed to get API info: {e}")
             return {}
     
-    def get_patches(self, width: int, height: int) -> Tuple[int, int]:
-        """Get number of patches for given image dimensions"""
+    def get_patches(self, dimensions: List[dict[str, int]]) -> List[dict[str, Union[int, str]]]:
+        """Get number of patches for given image dimensions (batch request)
+        
+        Args:
+            dimensions: List of dictionaries containing 'width' and 'height' keys
+            
+        Returns:
+            List of dictionaries containing patch information for each dimension
+        """
         try:
-            payload = {"width": width, "height": height}
+            payload = {"dimensions": dimensions}
             response = requests.post(
                 f"{self.base_url}/patches",
                 json=payload,
@@ -47,7 +54,7 @@ class ColQwenAPIClient:
             )
             response.raise_for_status()
             result = response.json()
-            return result["n_patches_x"], result["n_patches_y"]
+            return result["results"]
         except Exception as e:
             raise Exception(f"Failed to get patches: {e}")
     
