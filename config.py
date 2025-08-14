@@ -22,7 +22,9 @@ OPENAI_API_KEY: Final[str] = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL: Final[str] = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 
 # ColQwen API
-COLQWEN_API_BASE_URL: Final[str] = os.getenv("COLQWEN_API_BASE_URL", "http://localhost:8000")
+COLQWEN_API_BASE_URL: Final[str] = os.getenv(
+    "COLQWEN_API_BASE_URL", "http://localhost:8000"
+)
 COLQWEN_API_TIMEOUT: Final[int] = int(os.getenv("COLQWEN_API_TIMEOUT", "300"))
 
 # ===== Storage Configurations =====
@@ -37,8 +39,11 @@ MINIO_URL: Final[str] = os.getenv("MINIO_URL", "http://localhost:9000")
 MINIO_ACCESS_KEY: Final[str] = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
 MINIO_SECRET_KEY: Final[str] = os.getenv("MINIO_SECRET_KEY", "minioadmin")
 MINIO_BUCKET_NAME: Final[str] = os.getenv("MINIO_BUCKET_NAME", "documents")
+MINIO_WORKERS: Final[int] = int(os.getenv("MINIO_WORKERS", "4"))
+MINIO_RETRIES: Final[int] = int(os.getenv("MINIO_RETRIES", "2"))
+MINIO_FAIL_FAST: Final[bool] = os.getenv("MINIO_FAIL_FAST", "False")
+MINIO_IMAGE_FMT: Final[str] = os.getenv("MINIO_IMAGE_FMT", "JPEG")
 
 # In-Memory Storage
 IN_MEMORY_URL: Final[str] = os.getenv("IN_MEMORY_URL", "http://localhost:6333")
 IN_MEMORY_NUM_IMAGES: Final[int] = int(os.getenv("IN_MEMORY_NUM_IMAGES", "500"))
-
