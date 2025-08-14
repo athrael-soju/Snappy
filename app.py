@@ -6,6 +6,7 @@ import gradio as gr
 from pdf2image import convert_from_path
 from typing import Any, List, Union
 from util.thinking_messages import BRAIN_PLACEHOLDERS
+from util.labeling import compute_page_label
 
 try:
     from openai import OpenAI
@@ -76,25 +77,8 @@ def on_chat_submit(
             k_int = 5
         items = qdrant_service.search_with_metadata(str(message), k=k_int)
 
-        def _label(payload: dict) -> str:
-            try:
-                fname = payload.get("filename")
-                page_num = payload.get("pdf_page_index")
-                total = payload.get("total_pages")
-                if fname and page_num and total:
-                    return f"{fname} — {page_num}/{total}"
-                if fname and page_num:
-                    return f"{fname} — {page_num}"
-                if page_num and total:
-                    return f"Page {page_num}/{total}"
-                if page_num:
-                    return f"Page {page_num}"
-                return fname or f"Index {payload.get('index', '')}"
-            except Exception:
-                return f"Index {payload.get('index', '')}"
-
         results_gallery = [
-            (it.get("image"), _label(it.get("payload", {}))) for it in items
+            (it.get("image"), compute_page_label(it.get("payload", {}))) for it in items
         ]
 
         updated_chat = list(chat_history or [])
@@ -128,25 +112,8 @@ def on_chat_submit(
         k_int = 5
     items = qdrant_service.search_with_metadata(str(message), k=k_int)
 
-    def _label(payload: dict) -> str:
-        try:
-            fname = payload.get("filename")
-            page_num = payload.get("pdf_page_index")
-            total = payload.get("total_pages")
-            if fname and page_num and total:
-                return f"{fname} — {page_num}/{total}"
-            if fname and page_num:
-                return f"{fname} — {page_num}"
-            if page_num and total:
-                return f"Page {page_num}/{total}"
-            if page_num:
-                return f"Page {page_num}"
-            return fname or f"Index {payload.get('index', '')}"
-        except Exception:
-            return f"Index {payload.get('index', '')}"
-
     results_gallery = [
-        (it.get("image"), _label(it.get("payload", {}))) for it in items
+        (it.get("image"), compute_page_label(it.get("payload", {}))) for it in items
     ]
 
     # Show gallery and insert a temporary thinking bubble at the exact reply location
@@ -186,7 +153,7 @@ def on_chat_submit(
     try:
         labels_text = "\n".join(
             [
-                f"{idx+1}) {_label(it.get('payload', {}))}"
+                f"{idx+1}) {compute_page_label(it.get('payload', {}))}"
                 for idx, it in enumerate(items[:k_int])
             ]
         )

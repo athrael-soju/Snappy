@@ -128,18 +128,19 @@ See `.env.example` for a minimal starting point. When using Compose, some storag
 6) __Danger Zone__: clear Qdrant, clear MinIO images, or clear both (requires checkbox confirmation).
 
 
+## The UI
+
 ### Main Screen
-![1755185133202](image/README/1755185133202.png)
+![1755187073028](image/README/1755187073028.png)
 
 ### Sidebar (File upload & Config)
-![1755185252318](image/README/1755185252318.png)
+![1755187099935](image/README/1755187099935.png)
 
-### Q/A (LLM powered option)
-![1755186226741](image/README/1755186226741.png)
+### LLM Powered Q/A
+![1755187152628](image/README/1755187152628.png)
 
-### Validate results
-![1755186274507](image/README/1755186274507.png)
-
+### Validate Results
+![1755187185850](image/README/1755187185850.png)
 
 ## ColPali API contract (expected)
 

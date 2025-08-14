@@ -16,7 +16,7 @@ from config import (
 )
 from .minio import MinioService
 from .colpali import ColPaliClient
-
+from util.labeling import compute_page_label
 
 class QdrantService:
     def __init__(self, api_client: ColPaliClient = None):
@@ -432,23 +432,8 @@ class QdrantService:
         results = []
         for item in items:
             payload = item.get("payload", {})
-            # Compute label from available metadata (filename + pdf_page_index/total_pages)
-            try:
-                fname = payload.get("filename")
-                page_num = payload.get("pdf_page_index")
-                total = payload.get("total_pages")
-                if fname and page_num and total:
-                    page_info = f"{fname} — {page_num}/{total}"
-                elif fname and page_num:
-                    page_info = f"{fname} — {page_num}"
-                elif page_num and total:
-                    page_info = f"Page {page_num}/{total}"
-                elif page_num:
-                    page_info = f"Page {page_num}"
-                else:
-                    page_info = fname or f"Index {payload.get('index', '')}"
-            except Exception:
-                page_info = f"Index {payload.get('index', '')}"
+            # Compute label via shared utility
+            page_info = compute_page_label(payload)
             results.append((item.get("image"), page_info))
         return results
 
