@@ -165,7 +165,7 @@ def on_chat_submit(
         yield "", updated_chat, gr.update()
 
 
-def index_wrapper(files, progress=gr.Progress(track_tqdm=True)):
+def index_files(files, progress=gr.Progress(track_tqdm=True)):
     """Index documents in Qdrant with a progress bar.
 
     Gradio will track the internal tqdm in QdrantService.index_documents().
@@ -221,7 +221,35 @@ def convert_files(files):
 # -----------------------
 # UI
 # -----------------------
-demo = build_ui(on_chat_submit, index_wrapper)
+def on_clear_qdrant(confirmed: bool) -> str:
+    if not confirmed:
+        return "Please check the confirmation box to proceed."
+    try:
+        return qdrant_service.clear_collection()
+    except Exception as e:
+        return f"Error clearing Qdrant: {e}"
+
+
+def on_clear_minio(confirmed: bool) -> str:
+    if not confirmed:
+        return "Please check the confirmation box to proceed."
+    try:
+        res = qdrant_service.minio_service.clear_images()
+        return f"Cleared MinIO images: deleted={res.get('deleted')}, failed={res.get('failed')}"
+    except Exception as e:
+        return f"Error clearing MinIO: {e}"
+
+
+def on_clear_all(confirmed: bool) -> str:
+    if not confirmed:
+        return "Please check the confirmation box to proceed."
+    try:
+        return qdrant_service.clear_all()
+    except Exception as e:
+        return f"Error clearing both: {e}"
+
+
+demo = build_ui(on_chat_submit, index_files, on_clear_qdrant, on_clear_minio, on_clear_all)
 
 # Entrypoint to run the Gradio app directly
 if __name__ == "__main__":

@@ -401,3 +401,40 @@ class MinioService:
             raise Exception(
                 f"Error setting public policy for bucket '{self.bucket_name}': {e}"
             ) from e
+ 
+    # -------------------------------------------------------------------
+    # Bulk Maintenance Helpers
+    # -------------------------------------------------------------------
+    def list_object_names(self, prefix: str = "", recursive: bool = True) -> List[str]:
+        """List object names in the bucket under an optional prefix."""
+        try:
+            objs = self.client.list_objects(
+                self.bucket_name, prefix=prefix or None, recursive=recursive
+            )
+            return [o.object_name for o in objs]
+        except Exception as e:
+            raise Exception(f"Error listing objects with prefix='{prefix}': {e}") from e
+
+    def clear_prefix(self, prefix: str = "") -> dict:
+        """Delete all objects under the given prefix. Returns summary dict."""
+        names = self.list_object_names(prefix=prefix, recursive=True)
+        if not names:
+            return {"deleted": 0, "failed": 0}
+
+        objects = [DeleteObject(n) for n in names]
+        errors = list(self.client.remove_objects(self.bucket_name, objects))
+        failed = len(errors)
+        deleted = max(0, len(names) - failed)
+
+        if failed:
+            for err in errors:
+                logger.error(f"Failed to delete {err.object_name}: {err}")
+
+        logger.info(
+            f"Cleared prefix '{prefix}' in bucket '{self.bucket_name}': deleted={deleted}, failed={failed}"
+        )
+        return {"deleted": deleted, "failed": failed}
+
+    def clear_images(self) -> dict:
+        """Convenience helper: delete all stored images under 'images/'."""
+        return self.clear_prefix("images/")
