@@ -15,31 +15,33 @@ from config import (
     QDRANT_PREFETCH_LIMIT,
 )
 from .minio import MinioService
-from .colqwen import ColQwenAPIClient
+from .colpali import ColPaliClient
 
 
 class QdrantService:
-    def __init__(self, api_client: ColQwenAPIClient = None):
-        # Initialize Qdrant client
-        self.client = QdrantClient(url=QDRANT_URL)
-        self.collection_name = QDRANT_COLLECTION_NAME
-
-        # Use API client for embeddings
-        self.api_client = api_client or ColQwenAPIClient()
-
-        # Check API health on initialization
-        if not self.api_client.health_check():
-            raise Exception(
-                "ColQwen API is not available. Please ensure the API server is running."
-            )
-
-        # Initialize MinIO service for image storage
+    def __init__(self, api_client: ColPaliClient = None):
         try:
+            # Initialize Qdrant client
+            self.client = QdrantClient(url=QDRANT_URL)
+            self.collection_name = QDRANT_COLLECTION_NAME
+
+            # Use API client for embeddings
+            self.api_client = api_client or ColPaliClient()
+
+            # Check API health on initialization
+            if not self.api_client.health_check():
+                raise Exception(
+                    "ColPali API health check failed. Please ensure the API server is running."
+                )
+
+            # Initialize MinIO service for image storage
             self.minio_service = MinioService()
             if not self.minio_service.health_check():
-                raise Exception("MinIO service health check failed")
+                raise Exception(
+                    "MinIO service health check failed. Please ensure MinIO server is running."
+                )
         except Exception as e:
-            raise Exception(f"Failed to initialize MinIO service: {e}")
+            raise Exception(f"Failed to initialize Qdrant service: {e}")
 
         # Create collection if it doesn't exist
         self._create_collection_if_not_exists()
@@ -93,7 +95,9 @@ class QdrantService:
         except Exception as e:
             if "already exists" in str(e):
                 model_dim = self._get_model_dimension()
-                print(f"Using existing collection: {self.collection_name} with dimension: {model_dim}")
+                print(
+                    f"Using existing collection: {self.collection_name} with dimension: {model_dim}"
+                )
             else:
                 raise Exception(f"Failed to create collection: {e}")
 
@@ -227,11 +231,15 @@ class QdrantService:
                     (b if isinstance(b, Image.Image) else b.get("image")) for b in batch
                 ]
                 meta_batch: List[dict] = [
-                    ({
-                        k: v
-                        for k, v in ({} if isinstance(b, Image.Image) else dict(b)).items()
-                        if k != "image"
-                    })
+                    (
+                        {
+                            k: v
+                            for k, v in (
+                                {} if isinstance(b, Image.Image) else dict(b)
+                            ).items()
+                            if k != "image"
+                        }
+                    )
                     for b in batch
                 ]
 
@@ -247,13 +255,17 @@ class QdrantService:
                 if self.minio_service:
                     try:
                         # Generate deterministic image IDs aligned with the batch
-                        image_ids = [str(uuid.uuid4()) for _ in range(current_batch_size)]
+                        image_ids = [
+                            str(uuid.uuid4()) for _ in range(current_batch_size)
+                        ]
                         image_url_dict = self.minio_service.store_images_batch(
                             image_batch,
                             image_ids=image_ids,
                         )
                         # Keep alignment by resolving URL per ID
-                        image_urls = [image_url_dict.get(img_id) for img_id in image_ids]
+                        image_urls = [
+                            image_url_dict.get(img_id) for img_id in image_ids
+                        ]
                     except Exception as e:
                         raise Exception(
                             f"Error storing images in MinIO for batch starting at {i}: {e}"
@@ -365,7 +377,9 @@ class QdrantService:
             collection_name=self.collection_name, requests=search_queries
         )
 
-    def search_with_metadata(self, query: str, k: int = 5, payload_filter: Optional[dict] = None):
+    def search_with_metadata(
+        self, query: str, k: int = 5, payload_filter: Optional[dict] = None
+    ):
         """Search and return images alongside full Qdrant payload metadata.
 
         payload_filter: optional dict of equality filters, e.g.
@@ -385,13 +399,17 @@ class QdrantService:
                 q_filter = models.Filter(must=conditions) if conditions else None
             except Exception:
                 q_filter = None
-        search_results = self._reranking_search_batch([query_embedding], qdrant_filter=q_filter)
+        search_results = self._reranking_search_batch(
+            [query_embedding], qdrant_filter=q_filter
+        )
 
         items = []
         if search_results and search_results[0].points:
             for i, point in enumerate(search_results[0].points[:k]):
                 try:
-                    image_url = point.payload.get("image_url") if point.payload else None
+                    image_url = (
+                        point.payload.get("image_url") if point.payload else None
+                    )
                     if image_url and self.minio_service:
                         image = self.minio_service.get_image(image_url)
                         items.append(

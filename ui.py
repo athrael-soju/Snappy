@@ -1,59 +1,5 @@
 import gradio as gr
 
-BRAIN_PLACEHOLDERS = [
-    "🙂 Consulting the hippocampus…",
-    "🧩 Rewiring a few synapses…",
-    "🧮 Counting neurons (still a lot)…",
-    "📚 Indexing mental PDFs…",
-    "📟 Paging working memory…",
-    "📑 Cross-referencing footnotes in my head…",
-    "🧠 Spinning up the prefrontal cortex…",
-    "✏️ Sharpening imaginary pencils…",
-    "🤔 Goog... I mean, thinking really hard…",
-    "🏃‍♂️ Chasing a thought that just ran by…",
-    "🔭 Polishing cognitive lenses…",
-    "🏰 Defragmenting the memory palace…",
-    "🧬 Tickling the basal ganglia for hints…",
-    "⏳ Buffering stray ideas…",
-    "🎛️ Warming up the cerebellum…",
-    "🧶 Untangling a thought knot…",
-    "🗂️ Dusting off mental index cards…",
-    "✅ Running a quick sanity check…",
-    "🍊 Squeezing a bit more brain juice…",
-    "📐 Aligning mental vectors…",
-    "🧑‍🏫 Asking my inner librarian…",
-    "💻 Compiling neural code…",
-    "🔓 Decrypting a vague hunch…",
-    "🗃️ Sorting concepts by relevance…",
-    "🧲 Fetching semantic embeddings…",
-    "☕ Brewing a fresh insight…",
-    "🐑 Herding stray neurons…",
-    "🔮 Consulting the oracle of memory…",
-    "📥 Caching the gist…",
-    "🗺️ Mapping the idea space…",
-    "🔀 Rerouting around confusion…",
-    "🎚️ Calibrating intuition…",
-    "💧 Rehydrating context…",
-    "🔎 Zooming in on the crux…",
-    "🗜️ Zipping up stray thoughts…",
-    "📡 Pinging associative networks…",
-    "📏 Lining up evidence…",
-    "⚗️ Fusing facts with logic…",
-    "🧰 Refactoring the mental model…",
-    "🧐 Cross checking assumptions…",
-    "🎭 Peeking behind the abstraction curtain…",
-    "👉 Nudging attention back on track…",
-    "🪜 Filling in missing steps…",
-    "🗣️ Translating gut feeling into words…",
-    "✂️ Pruning irrelevant branches…",
-    "⬆️ Upgrading the working hypothesis…",
-    "🧊 Crunching the edge cases…",
-    "🔁 Double checking the premises…",
-    "🔄 Looping through possibilities…",
-    "📘 Finalizing the answer blueprint…",
-]
-
-
 def build_ui(
     on_chat_submit, index_files, on_clear_qdrant, on_clear_minio, on_clear_all
 ):
@@ -127,7 +73,7 @@ def build_ui(
         # Title bar
         gr.Markdown(
             (
-                "# Knowledgebase Retrieval Agent\n"
+                "# Vision RAG Template\n"
                 "Proof of concept of efficient page-level retrieval with a 'Special' Generative touch."
             )
         )
@@ -237,7 +183,7 @@ def build_ui(
                 send_btn = gr.Button("Send", variant="primary")
                 clear_btn = gr.Button("Clear", variant="secondary")
 
-            with gr.Accordion("Retrieved Pages", open=False):
+            with gr.Accordion("Retrieved Pages", open=True):
                 output_gallery = gr.Gallery(
                     label="Retrieved Pages",
                     show_label=False,

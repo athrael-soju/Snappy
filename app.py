@@ -5,7 +5,7 @@ import random
 import gradio as gr
 from pdf2image import convert_from_path
 from typing import Any, List, Union
-from thinking_messages import BRAIN_PLACEHOLDERS
+from util.thinking_messages import BRAIN_PLACEHOLDERS
 
 try:
     from openai import OpenAI
@@ -16,14 +16,14 @@ except Exception:  # fallback for environments with old SDK
 from clients.openai import OpenAIClient as OpenAI
 
 # Your clients / config
-from clients.colqwen import ColQwenAPIClient
+from clients.colpali import ColPaliClient
 from config import WORKER_THREADS
 from ui import build_ui
 
 # Initialize storage backend (Qdrant only)
 from clients.qdrant import QdrantService
 
-api_client = ColQwenAPIClient()
+api_client = ColPaliClient()
 qdrant_service = QdrantService(api_client)
 
 

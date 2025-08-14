@@ -22,8 +22,8 @@ This document analyzes the current system implemented in this repository and com
   - Qdrant multivector collection with fields: `original`, `mean_pooling_rows`, `mean_pooling_columns` and comparator `MAX_SIM`.
   - Two-stage search via `query_batch_points` with `prefetch` on pooled vectors and final ranking `using="original"`.
   - Images stored/fetched via `MinioService`.
-- __Embeddings__: `clients/colqwen.py`
-  - Talks to an external ColQwen Embedding API: `/health`, `/info` (to get dim), `/patches`, `/embed/queries`, `/embed/images`.
+- __Embeddings__: `clients/colpali.py`
+  - Talks to an external ColPali Embedding API: `/health`, `/info` (to get dim), `/patches`, `/embed/queries`, `/embed/images`.
 - __Image storage__: `clients/minio.py`
   - Batch uploads with retries and public-read policy. URLs derived from `MINIO_URL` and bucket.
 - __LLM wrapper__: `clients/openai.py`
@@ -35,8 +35,8 @@ This document analyzes the current system implemented in this repository and com
 
 - __PDF to images__: `app.py::convert_files()` uses `pdf2image.convert_from_path(...)` with `WORKER_THREADS`. Each page becomes one PIL image with payload metadata: `filename`, `pdf_page_index`, `page_width_px`, `page_height_px`, etc.
 - __Embeddings__: `QdrantService._embed_and_mean_pool_batch(...)`
-  - Calls `ColQwenAPIClient.embed_images(...)` to get image patch embeddings.
-  - Calls `ColQwenAPIClient.get_patches(...)` to obtain the patch grid (`n_patches_x`, `n_patches_y`).
+  - Calls `ColPaliClient.embed_images(...)` to get image patch embeddings.
+  - Calls `ColPaliClient.get_patches(...)` to obtain the patch grid (`n_patches_x`, `n_patches_y`).
   - Mean-pools the image patch tokens into two variants: by rows and by columns, preserving prefix/postfix tokens: `QdrantService._pool_image_tokens(...)`.
   - Produces three multivectors per page: `original`, `mean_pooling_rows`, `mean_pooling_columns`.
 - __Image persistence__: `MinioService.store_images_batch(...)` uploads images and returns public URLs.
@@ -142,5 +142,5 @@ Notes:
 
 ## Caveats Noted from Code
 
-- The ColQwen image embedding path in `QdrantService._embed_and_mean_pool_batch()` expects per-image token boundaries (`image_patch_start`, `image_patch_len`), while `ColQwenAPIClient.embed_images(...)` currently returns only `{"embeddings": ...}`. Ensure the API contract includes token boundary metadata or adjust the pooling logic accordingly.
+- The ColPali image embedding path in `QdrantService._embed_and_mean_pool_batch()` expects per-image token boundaries (`image_patch_start`, `image_patch_len`), while `ColPaliClient.embed_images(...)` currently returns only `{"embeddings": ...}`. Ensure the API contract includes token boundary metadata or adjust the pooling logic accordingly.
 - The default OpenAI model is read from the environment in `app.py` (`OPENAI_MODEL`, default `gpt-5-mini`).

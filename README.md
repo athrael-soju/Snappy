@@ -1,4 +1,4 @@
-# Knowledgebase Retrieval Agent (Vision RAG Template)
+# Vision RAG Template
 
 A lightweight, end-to-end template for page-level retrieval over PDFs using a ColPali-like approach:
 
@@ -19,19 +19,19 @@ See the architecture diagram in [docs/architecture.md](docs/architecture.md). It
 - __`clients/qdrant.py`__: `QdrantService` manages collection, indexing, multivector retrieval, and MinIO integration.
 - __`clients/minio.py`__: `MinioService` for image storage/retrieval with batch operations and public-read policy.
 - __`clients/openai.py`__: Thin wrapper for OpenAI SDK (streaming completions, message construction).
-- __`clients/colqwen.py`__: HTTP client for a ColQwen-style embedding API (queries, images, patch metadata).
+- __`clients/colpali.py`__: HTTP client for a ColPali-style embedding API (queries, images, patch metadata).
 - __`config.py`__: Centralized configuration via environment variables.
 
 __Indexing flow__:
 
 1) PDF -> images via `pdf2image.convert_from_path`
-2) Images -> embeddings via external ColQwen API
+2) Images -> embeddings via external ColPali API
 3) Images saved to MinIO (public URL)
 4) Embeddings (original + mean-pooled rows/cols) upserted to Qdrant with payload metadata
 
 __Retrieval flow__:
 
-1) Query -> embedding (ColQwen API)
+1) Query -> embedding (ColPali API)
 2) Qdrant multivector prefetch (rows/cols) + re-ranking using `using="original"`
 3) Fetch images from MinIO for top-k pages
 4) Stream OpenAI answer conditioned on user text + page images
@@ -58,7 +58,7 @@ __Retrieval flow__:
 
 ```bash
 cp .env.example .env
-# Set OPENAI_API_KEY and OPENAI_MODEL, adjust COLQWEN_API_BASE_URL, etc.
+# Set OPENAI_API_KEY and OPENAI_MODEL, adjust COLPALI_API_BASE_URL, etc.
 ```
 
 2) Start services:
@@ -111,7 +111,7 @@ Most defaults are in `config.py`. Key variables:
 - __Core__: `LOG_LEVEL` (INFO), `HOST` (0.0.0.0), `PORT` (7860)
 - __OpenAI__: `OPENAI_API_KEY`, `OPENAI_MODEL`
   - Note: `clients/openai.py` defaults to `gpt-4.1-mini` if unset; `app.py` reads `OPENAI_MODEL` (default `gpt-5-mini`). Set this explicitly to a valid model in your environment.
-- __ColQwen API__: `COLQWEN_API_BASE_URL` (default http://localhost:8000), `COLQWEN_API_TIMEOUT`
+- __ColPali API__: `COLPALI_API_BASE_URL` (default http://localhost:8000), `COLPALI_API_TIMEOUT`
 - __Qdrant__: `QDRANT_URL` (default http://localhost:6333), `QDRANT_COLLECTION_NAME` (documents), `QDRANT_SEARCH_LIMIT`, `QDRANT_PREFETCH_LIMIT`
 - __MinIO__: `MINIO_URL` (default http://localhost:9000), `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET_NAME` (documents), `MINIO_WORKERS`, `MINIO_RETRIES`, `MINIO_FAIL_FAST`, `MINIO_IMAGE_FMT`
 - __Processing__: `DEFAULT_TOP_K`, `BATCH_SIZE`, `WORKER_THREADS`, `MAX_TOKENS`
@@ -127,7 +127,21 @@ See `.env.example` for a minimal starting point. When using Compose, some storag
 5) __Retrieval Settings__: adjust `Top-k`.
 6) __Danger Zone__: clear Qdrant, clear MinIO images, or clear both (requires checkbox confirmation).
 
-## ColQwen API contract (expected)
+
+### Main Screen
+![1755185133202](image/README/1755185133202.png)
+
+### Sidebar (File upload & Config)
+![1755185252318](image/README/1755185252318.png)
+
+### Q/A (LLM powered option)
+![1755185471992](image/README/1755185471992.png)
+
+### Validate results
+![1755185543072](image/README/1755185543072.png)
+
+
+## ColPali API contract (expected)
 
 `clients/qdrant.py` expects the embedding server to expose endpoints:
 
@@ -145,7 +159,7 @@ See `.env.example` for a minimal starting point. When using Compose, some storag
   }
   ```
 
-Note: the example `clients/colqwen.py` is a thin starting client. Ensure it matches your server’s response shape (including `image_patch_start`/`image_patch_len`) to avoid runtime errors in `QdrantService._embed_and_mean_pool_batch(...)`.
+Note: the example `clients/colpali.py` is a thin starting client. Ensure it matches your server’s response shape (including `image_patch_start`/`image_patch_len`) to avoid runtime errors in `QdrantService._embed_and_mean_pool_batch(...)`.
 
 ## Data model in Qdrant
 
@@ -176,7 +190,7 @@ Each point has payload metadata like:
 ## Troubleshooting
 
 - __OpenAI key/model__: If AI responses show an error, verify `OPENAI_API_KEY` and `OPENAI_MODEL`.
-- __ColQwen API health__: On start, `QdrantService` checks `GET /health`. Ensure your server is reachable at `COLQWEN_API_BASE_URL`.
+- __ColPali API health__: On start, `QdrantService` checks `GET /health`. Ensure your server is reachable at `COLPALI_API_BASE_URL`.
 - __Patch metadata mismatch__: If you see an error like "embed_images() returned embeddings without image-token boundaries", update your embedding server/client to include `image_patch_start` and `image_patch_len` per image.
 - __MinIO access__: The app sets a public-read bucket policy. For production, lock this down. If images fail to upload, check MinIO logs and credentials.
 - __Poppler on Windows__: Install Poppler (e.g., download a release, extract, add `poppler-*/bin` to PATH). `pdf2image` must find `pdftoppm`.

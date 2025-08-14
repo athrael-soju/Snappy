@@ -20,11 +20,11 @@ WORKER_THREADS: Final[int] = int(os.getenv("WORKER_THREADS", "4"))
 OPENAI_API_KEY: Final[str] = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL: Final[str] = os.getenv("OPENAI_MODEL", "gpt-5-mini")
 
-# ColQwen API
-COLQWEN_API_BASE_URL: Final[str] = os.getenv(
-    "COLQWEN_API_BASE_URL", "http://localhost:8000"
+# ColPali API
+COLPALI_API_BASE_URL: Final[str] = os.getenv(
+    "COLPALI_API_BASE_URL", "http://localhost:8000"
 )
-COLQWEN_API_TIMEOUT: Final[int] = int(os.getenv("COLQWEN_API_TIMEOUT", "300"))
+COLPALI_API_TIMEOUT: Final[int] = int(os.getenv("COLPALI_API_TIMEOUT", "300"))
 
 # ===== Storage Configurations =====
 # Qdrant

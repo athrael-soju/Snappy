@@ -4,15 +4,15 @@ from typing import List, Union
 from PIL import Image
 import numpy as np
 
-from config import COLQWEN_API_BASE_URL, COLQWEN_API_TIMEOUT
+from config import COLPALI_API_BASE_URL, COLPALI_API_TIMEOUT
 
 
-class ColQwenAPIClient:
-    """Client for ColQwen2.5 Embedding API"""
+class ColPaliClient:
+    """Client for ColPali Embedding API"""
     
     def __init__(self, base_url: str = None, timeout: int = None):
-        self.base_url = base_url or COLQWEN_API_BASE_URL
-        self.timeout = timeout or COLQWEN_API_TIMEOUT
+        self.base_url = base_url or COLPALI_API_BASE_URL
+        self.timeout = timeout or COLPALI_API_TIMEOUT
         
         # Remove trailing slash
         self.base_url = self.base_url.rstrip('/')
