@@ -27,7 +27,7 @@ This document analyzes the current system implemented in this repository and com
 - __Image storage__: `clients/minio.py`
   - Batch uploads with retries and public-read policy. URLs derived from `MINIO_URL` and bucket.
 - __LLM wrapper__: `clients/openai.py`
-  - Streams chat completions and constructs multimodal messages. Model is configurable via `OPENAI_MODEL` (defaults to `gpt-5-mini` in `app.py`).
+  - Streams chat completions and constructs multimodal messages. Model is configurable via `OPENAI_MODEL` (defaults to `gpt-5-nano` in `app.py`).
 
 ---
 
@@ -143,4 +143,4 @@ Notes:
 ## Caveats Noted from Code
 
 - The ColPali image embedding path in `QdrantService._embed_and_mean_pool_batch()` expects per-image token boundaries (`image_patch_start`, `image_patch_len`), while `ColPaliClient.embed_images(...)` currently returns only `{"embeddings": ...}`. Ensure the API contract includes token boundary metadata or adjust the pooling logic accordingly.
-- The default OpenAI model is read from the environment in `app.py` (`OPENAI_MODEL`, default `gpt-5-mini`).
+- The default OpenAI model is read from the environment in `app.py` (`OPENAI_MODEL`, default `gpt-5-nano`).

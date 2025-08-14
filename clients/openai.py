@@ -1,7 +1,7 @@
 import os
 from typing import Generator, List, Dict, Any, Optional
 
-from config import OPENAI_API_KEY, OPENAI_MODEL
+from config import OPENAI_API_KEY, OPENAI_MODEL, OPENAI_TEMPERATURE
 
 try:
     # OpenAI Python SDK v1+
@@ -22,7 +22,10 @@ class OpenAIClient:
     """
 
     def __init__(
-        self, api_key: Optional[str] = None, default_model: Optional[str] = None
+        self,
+        api_key: Optional[str] = None,
+        default_model: Optional[str] = None,
+        default_temperature: Optional[float] = None,
     ):
         if _OpenAISDK is None:
             raise RuntimeError(
@@ -35,7 +38,16 @@ class OpenAIClient:
                 "OPENAI_API_KEY not set. Please configure it in your environment or .env file."
             )
 
-        self.model = (default_model or OPENAI_MODEL or "gpt-4.1-mini").strip()
+        self.model = (default_model or OPENAI_MODEL or "gpt-5-nano").strip()
+        # Default temperature (can be overridden per-call)
+        try:
+            self.temperature = (
+                float(default_temperature)
+                if default_temperature is not None
+                else float(OPENAI_TEMPERATURE)
+            )
+        except Exception:
+            self.temperature = float(OPENAI_TEMPERATURE)
         self.client = _OpenAISDK(api_key=key)
 
     @staticmethod
@@ -75,15 +87,33 @@ class OpenAIClient:
         self,
         messages: List[Dict[str, Any]],
         *,
-        temperature: float = 0.7,
+        temperature: Optional[float] = None,
         model: Optional[str] = None,
     ) -> Generator[str, None, None]:
-        """Yield incremental content tokens from a chat completion stream."""
+        """Yield incremental content tokens from a chat completion stream.
+
+        Parameters
+        ----------
+        messages: list
+            OpenAI chat messages.
+        temperature: float | None
+            Optional per-call temperature override.
+        model: str | None
+            Optional per-call model override.
+        """
+
         target_model = (model or self.model).strip()
+        try:
+            target_temp = (
+                float(temperature) if temperature is not None else float(self.temperature)
+            )
+        except Exception:
+            target_temp = float(self.temperature)
+
         stream = self.client.chat.completions.create(
             model=target_model,
             messages=messages,
-            temperature=temperature,
+            temperature=target_temp,
             stream=True,
         )
         for chunk in stream:

@@ -110,7 +110,7 @@ Most defaults are in `config.py`. Key variables:
 
 - __Core__: `LOG_LEVEL` (INFO), `HOST` (0.0.0.0), `PORT` (7860)
 - __OpenAI__: `OPENAI_API_KEY`, `OPENAI_MODEL`
-  - Note: `clients/openai.py` defaults to `gpt-4.1-mini` if unset; `app.py` reads `OPENAI_MODEL` (default `gpt-5-mini`). Set this explicitly to a valid model in your environment.
+  - Note: `clients/openai.py` defaults to `gpt-5-nano` if unset; `app.py` reads `OPENAI_MODEL` (default `gpt-5-nano`). Set this explicitly to a valid model in your environment.
 - __ColPali API__: `COLPALI_API_BASE_URL` (default http://localhost:8000), `COLPALI_API_TIMEOUT`
 - __Qdrant__: `QDRANT_URL` (default http://localhost:6333), `QDRANT_COLLECTION_NAME` (documents), `QDRANT_SEARCH_LIMIT`, `QDRANT_PREFETCH_LIMIT`
 - __MinIO__: `MINIO_URL` (default http://localhost:9000), `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET_NAME` (documents), `MINIO_WORKERS`, `MINIO_RETRIES`, `MINIO_FAIL_FAST`, `MINIO_IMAGE_FMT`

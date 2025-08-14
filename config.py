@@ -18,7 +18,14 @@ WORKER_THREADS: Final[int] = int(os.getenv("WORKER_THREADS", "4"))
 # ===== AI/ML Configuration =====
 # OpenAI
 OPENAI_API_KEY: Final[str] = os.getenv("OPENAI_API_KEY", "")
-OPENAI_MODEL: Final[str] = os.getenv("OPENAI_MODEL", "gpt-5-mini")
+OPENAI_MODEL: Final[str] = os.getenv("OPENAI_MODEL", "gpt-5-nano")
+OPENAI_TEMPERATURE: Final[float] = float(os.getenv("OPENAI_TEMPERATURE", "1.0"))
+OPENAI_SYSTEM_PROMPT: Final[str] = os.getenv(
+    "OPENAI_SYSTEM_PROMPT",
+    "You are a helpful PDF assistant. Use only the provided page images "
+    "to answer the user's question. If the answer isn't contained in the pages, "
+    "say you cannot find it. Be concise and always mention from which pages the answer is taken.",
+)
 
 # ColPali API
 COLPALI_API_BASE_URL: Final[str] = os.getenv(
@@ -42,4 +49,3 @@ MINIO_WORKERS: Final[int] = int(os.getenv("MINIO_WORKERS", "4"))
 MINIO_RETRIES: Final[int] = int(os.getenv("MINIO_RETRIES", "2"))
 MINIO_FAIL_FAST: Final[bool] = os.getenv("MINIO_FAIL_FAST", "False")
 MINIO_IMAGE_FMT: Final[str] = os.getenv("MINIO_IMAGE_FMT", "JPEG")
-

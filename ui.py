@@ -1,4 +1,10 @@
 import gradio as gr
+from config import (
+    OPENAI_MODEL,
+    OPENAI_TEMPERATURE,
+    OPENAI_SYSTEM_PROMPT,
+    DEFAULT_TOP_K,
+)
 
 
 def build_ui(
@@ -10,7 +16,7 @@ def build_ui(
     ----------
     on_chat_submit: callable
         The function that handles chat submissions. Must have signature
-        (message, chat_history, k, ai_enabled, temperature, system_prompt_input) -> generator/tuple
+        (message, chat_history, k, ai_enabled, temperature, model, system_prompt_input) -> generator/tuple
     index_files: callable
         The function that handles indexing uploaded files. Must accept (files) and return status text.
     on_clear_qdrant: callable
@@ -102,20 +108,27 @@ def build_ui(
                 minimum=0.0,
                 maximum=2.0,
                 step=0.1,
-                value=0.7,
+                value=OPENAI_TEMPERATURE,
                 label="Temperature",
                 interactive=True,
+            )
+            model_input = gr.Textbox(
+                label="OpenAI model",
+                value=OPENAI_MODEL,
+                lines=1,
+                placeholder="e.g., gpt-4o-mini",
             )
             system_prompt_input = gr.Textbox(
                 label="Custom system prompt",
                 lines=4,
+                value=OPENAI_SYSTEM_PROMPT,
                 placeholder="Optional. Overrides default system behavior.",
             )
             gr.Markdown("---")
             gr.Markdown("### 🔎 Retrieval Settings")
             k = gr.Dropdown(
                 choices=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-                value=5,
+                value=DEFAULT_TOP_K if DEFAULT_TOP_K in [1,2,3,4,5,6,7,8,9,10] else 5,
                 label="Top-k results",
                 interactive=True,
             )
@@ -214,6 +227,7 @@ def build_ui(
                 k,
                 ai_enabled,
                 temperature,
+                model_input,
                 system_prompt_input,
             ],
             outputs=[msg, chat, output_gallery],
@@ -228,6 +242,7 @@ def build_ui(
                 k,
                 ai_enabled,
                 temperature,
+                model_input,
                 system_prompt_input,
             ],
             outputs=[msg, chat, output_gallery],

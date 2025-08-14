@@ -18,7 +18,13 @@ from clients.openai import OpenAIClient as OpenAI
 
 # Your clients / config
 from clients.colpali import ColPaliClient
-from config import WORKER_THREADS
+from config import (
+    WORKER_THREADS,
+    DEFAULT_TOP_K,
+    OPENAI_MODEL,
+    OPENAI_TEMPERATURE,
+    OPENAI_SYSTEM_PROMPT,
+)
 from ui import build_ui
 
 # Initialize storage backend (Qdrant only)
@@ -36,9 +42,9 @@ def _retrieve_results(query: str, k: Union[int, str]) -> List[Any]:
     try:
         k = int(k)
         if k <= 0:
-            k = 5
+            k = int(DEFAULT_TOP_K)
     except Exception:
-        k = 5
+        k = int(DEFAULT_TOP_K)
 
     results = qdrant_service.search(query, k=k)
     return results
@@ -53,12 +59,12 @@ def _encode_pil_to_data_url(img) -> str:
 
 
 def on_chat_submit(
-    message, chat_history, k, ai_enabled, temperature, system_prompt_input
+    message, chat_history, k, ai_enabled, temperature, model, system_prompt_input
 ):
     """Stream a reply from OpenAI using retrieved page images as multimodal context.
 
     Chat uses messages-format (list of dicts with 'role' and 'content').
-    Accepts user-configurable AI settings: `temperature` and `system_prompt_input`.
+    Accepts user-configurable AI settings: `temperature`, `model`, and `system_prompt_input`.
     Yields tuples: (cleared_input, updated_chat, gallery_images)
     """
     # No-op on empty input
@@ -72,9 +78,9 @@ def on_chat_submit(
         try:
             k_int = int(k)
             if k_int <= 0:
-                k_int = 5
+                k_int = int(DEFAULT_TOP_K)
         except Exception:
-            k_int = 5
+            k_int = int(DEFAULT_TOP_K)
         items = qdrant_service.search_with_metadata(str(message), k=k_int)
 
         results_gallery = [
@@ -107,9 +113,9 @@ def on_chat_submit(
     try:
         k_int = int(k)
         if k_int <= 0:
-            k_int = 5
+            k_int = int(DEFAULT_TOP_K)
     except Exception:
-        k_int = 5
+        k_int = int(DEFAULT_TOP_K)
     items = qdrant_service.search_with_metadata(str(message), k=k_int)
 
     results_gallery = [
@@ -137,11 +143,7 @@ def on_chat_submit(
         except Exception:
             continue
 
-    default_system_prompt = (
-        "You are a helpful PDF assistant. Use only the provided page images "
-        "to answer the user's question. If the answer isn't contained in the pages, "
-        "say you cannot find it. Be concise and always mention from which pages the answer is taken."
-    )
+    default_system_prompt = OPENAI_SYSTEM_PROMPT
 
     system_prompt = (
         str(system_prompt_input).strip()
@@ -169,21 +171,24 @@ def on_chat_submit(
         chat_history, system_prompt, user_message_with_labels, image_parts
     )
 
-    model = os.getenv("OPENAI_MODEL", "gpt-5-mini")
-    # client already initialized above
 
     # Coerce temperature
     try:
         temp = float(temperature)
     except Exception:
-        temp = 0.7
+        temp = float(OPENAI_TEMPERATURE)
+
+    # Determine model to use (UI override or config default)
+    chosen_model = (
+        str(model).strip() if model and str(model).strip() else OPENAI_MODEL
+    )
 
     # Stream tokens via wrapper
     assistant_text = ""
     streamed_any = False
     try:
         for content in client.stream_chat(
-            messages=messages, temperature=temp, model=model
+            messages=messages, temperature=temp, model=chosen_model
         ):
             if content:
                 if not streamed_any:
@@ -286,7 +291,9 @@ def on_clear_all(confirmed: bool) -> str:
         return f"Error clearing both: {e}"
 
 
-demo = build_ui(on_chat_submit, index_files, on_clear_qdrant, on_clear_minio, on_clear_all)
+demo = build_ui(
+    on_chat_submit, index_files, on_clear_qdrant, on_clear_minio, on_clear_all
+)
 
 # Entrypoint to run the Gradio app directly
 if __name__ == "__main__":
