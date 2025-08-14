@@ -301,7 +301,10 @@ class QdrantService:
 
                         payload = {
                             "index": i + j,  # global index in this session
-                            "page": f"Page {meta.get('pdf_page_index', i + j)}",
+                            # Human-friendly page label; prefer explicit metadata
+                            # e.g. "Page 3/12 — report.pdf"
+                            "page": None,  # kept for backwards compatibility (will be set below)
+                            "page_label": None,
                             "image_url": image_url,
                             "document_id": doc_id,
                             # Rich metadata
@@ -313,6 +316,27 @@ class QdrantService:
                             "page_height_px": h,
                             "indexed_at": now_iso,
                         }
+
+                        # Compute and set human-friendly page labels
+                        try:
+                            _page_num = meta.get("pdf_page_index")
+                            _total = meta.get("total_pages")
+                            _fname = meta.get("filename")
+                            if _page_num and _total:
+                                _label = f"Page {_page_num}/{_total}"
+                            elif _page_num:
+                                _label = f"Page {_page_num}"
+                            else:
+                                _label = f"Page {i + j}"
+                            if _fname:
+                                _label = f"{_label} — {_fname}"
+                            payload["page_label"] = _label
+                            # Preserve legacy 'page' key but make it informative
+                            payload["page"] = _label
+                        except Exception:
+                            # As a last resort, keep a minimal label
+                            payload["page_label"] = f"Page {i + j}"
+                            payload["page"] = payload["page_label"]
 
                         self.client.upload_collection(
                             collection_name=self.collection_name,
@@ -440,7 +464,16 @@ class QdrantService:
         results = []
         for item in items:
             payload = item.get("payload", {})
-            page_info = payload.get("page") or f"Page {payload.get('index', '')}"
+            # Prefer the richer label when available
+            page_info = (
+                payload.get("page_label")
+                or payload.get("page")
+                or (
+                    f"Page {payload.get('pdf_page_index')}"
+                    if payload.get("pdf_page_index")
+                    else f"Page {payload.get('index', '')}"
+                )
+            )
             results.append((item.get("image"), page_info))
         return results
 

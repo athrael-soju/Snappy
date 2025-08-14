@@ -65,9 +65,32 @@ def on_chat_submit(
         yield gr.update(), chat_history, gr.update()
         return
 
-    # If AI responses are disabled, only retrieve and show pages
+    # If AI responses are disabled, only retrieve and show pages (with labels)
     if not ai_enabled:
-        results = _retrieve_results(message, k)
+        # Use metadata-aware retrieval to produce informative captions
+        try:
+            k_int = int(k)
+            if k_int <= 0:
+                k_int = 5
+        except Exception:
+            k_int = 5
+        items = qdrant_service.search_with_metadata(str(message), k=k_int)
+
+        def _label(payload: dict) -> str:
+            return (
+                payload.get("page_label")
+                or payload.get("page")
+                or (
+                    f"Page {payload.get('pdf_page_index')}"
+                    if payload.get("pdf_page_index")
+                    else f"Page {payload.get('index', '')}"
+                )
+            )
+
+        results_gallery = [
+            (it.get("image"), _label(it.get("payload", {}))) for it in items
+        ]
+
         updated_chat = list(chat_history or [])
         updated_chat.append({"role": "user", "content": str(message)})
         updated_chat.append(
@@ -76,7 +99,7 @@ def on_chat_submit(
                 "content": "AI responses are disabled. Enable them in the sidebar to get answers. Showing retrieved pages only.",
             }
         )
-        yield "", updated_chat, results
+        yield "", updated_chat, results_gallery
         return
 
     # Initialize OpenAI client (wrapper handles SDK/key validation)
@@ -90,21 +113,41 @@ def on_chat_submit(
         yield "", updated_chat, gr.update()
         return
 
-    # Retrieve images (top-k)
-    results = _retrieve_results(message, k)
+    # Retrieve images with full metadata (top-k)
+    try:
+        k_int = int(k)
+        if k_int <= 0:
+            k_int = 5
+    except Exception:
+        k_int = 5
+    items = qdrant_service.search_with_metadata(str(message), k=k_int)
+
+    def _label(payload: dict) -> str:
+        return (
+            payload.get("page_label")
+            or payload.get("page")
+            or (
+                f"Page {payload.get('pdf_page_index')}"
+                if payload.get("pdf_page_index")
+                else f"Page {payload.get('index', '')}"
+            )
+        )
+
+    results_gallery = [
+        (it.get("image"), _label(it.get("payload", {}))) for it in items
+    ]
 
     # Show gallery and insert a temporary thinking bubble at the exact reply location
     updated_chat = list(chat_history or [])
     updated_chat.append({"role": "user", "content": str(message)})
     placeholder = random.choice(BRAIN_PLACEHOLDERS)
     updated_chat.append({"role": "assistant", "content": placeholder})
-    yield "", updated_chat, results
+    yield "", updated_chat, results_gallery
 
     # Build multimodal user content: text + top-k images
     image_parts = []
-    for item in (results or [])[: int(k) if str(k).isdigit() else 5]:
-        # Support either raw PIL images or (image, caption) tuples
-        img = item[0] if isinstance(item, (tuple, list)) and item else item
+    for it in items[:k_int]:
+        img = it.get("image")
         try:
             image_parts.append(
                 {
@@ -113,7 +156,6 @@ def on_chat_submit(
                 }
             )
         except Exception:
-            # Skip any image that fails to encode
             continue
 
     default_system_prompt = (
@@ -128,8 +170,24 @@ def on_chat_submit(
         else default_system_prompt
     )
 
+    # Provide explicit page labels alongside the user's question to guide citations
+    try:
+        labels_text = "\n".join(
+            [
+                f"{idx+1}) {_label(it.get('payload', {}))}"
+                for idx, it in enumerate(items[:k_int])
+            ]
+        )
+    except Exception:
+        labels_text = ""
+
+    user_message_with_labels = (
+        f"{str(message)}\n\n[Retrieved pages]\n{labels_text}\n\n"
+        "Cite pages using the labels above (do not infer by result order)."
+    )
+
     messages = OpenAI.build_messages(
-        chat_history, system_prompt, str(message), image_parts
+        chat_history, system_prompt, user_message_with_labels, image_parts
     )
 
     model = os.getenv("OPENAI_MODEL", "gpt-5-mini")

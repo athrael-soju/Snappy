@@ -135,10 +135,10 @@ See `.env.example` for a minimal starting point. When using Compose, some storag
 ![1755185252318](image/README/1755185252318.png)
 
 ### Q/A (LLM powered option)
-![1755185471992](image/README/1755185471992.png)
+![1755186226741](image/README/1755186226741.png)
 
 ### Validate results
-![1755185543072](image/README/1755185543072.png)
+![1755186274507](image/README/1755186274507.png)
 
 
 ## ColPali API contract (expected)
