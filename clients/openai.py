@@ -1,3 +1,4 @@
+import os
 from typing import Generator, List, Dict, Any, Optional
 
 from config import OPENAI_API_KEY, OPENAI_MODEL
@@ -5,7 +6,7 @@ from config import OPENAI_API_KEY, OPENAI_MODEL
 try:
     # OpenAI Python SDK v1+
     from openai import OpenAI as _OpenAISDK
-except Exception as e:  # pragma: no cover - environment dependent
+except Exception as e:
     _OpenAISDK = None
     _IMPORT_ERROR = e
 else:
@@ -20,7 +21,9 @@ class OpenAIClient:
     - Exposes `stream_chat(...)` generator yielding incremental text chunks.
     """
 
-    def __init__(self, api_key: Optional[str] = None, default_model: Optional[str] = None):
+    def __init__(
+        self, api_key: Optional[str] = None, default_model: Optional[str] = None
+    ):
         if _OpenAISDK is None:
             raise RuntimeError(
                 f"OpenAI SDK not available: {_IMPORT_ERROR}. Install `openai` package."
@@ -32,30 +35,35 @@ class OpenAIClient:
                 "OPENAI_API_KEY not set. Please configure it in your environment or .env file."
             )
 
-        self.model = (default_model or OPENAI_MODEL or "gpt-5-mini").strip()
+        self.model = (default_model or OPENAI_MODEL or "gpt-4.1-mini").strip()
         self.client = _OpenAISDK(api_key=key)
 
     @staticmethod
     def build_messages(
-        chat_history: List[Dict[str, Any]] |
-        None,
+        chat_history: List[Dict[str, Any]] | None,
         system_prompt: str,
         user_message: str,
         image_parts: List[Dict[str, Any]] | None,
     ) -> List[Dict[str, Any]]:
-        """Construct OpenAI messages for a single-turn request with optional images.
-
-        Note: chat_history is intentionally ignored to avoid sending prior turns.
-        """
+        """Construct OpenAI messages including prior turns and optional images."""
         messages: List[Dict[str, Any]] = [
             {"role": "system", "content": str(system_prompt)},
         ]
 
-        # History intentionally not included
+        # Add previous turns as plain text
+        for m in chat_history or []:
+            if not isinstance(m, dict):
+                continue
+            role = m.get("role")
+            content = m.get("content")
+            if role in ("user", "assistant") and content is not None:
+                messages.append({"role": role, "content": str(content)})
 
         # Current user message (with optional images)
         if image_parts:
-            user_content: List[Dict[str, Any]] = [{"type": "text", "text": str(user_message)}]
+            user_content: List[Dict[str, Any]] = [
+                {"type": "text", "text": str(user_message)}
+            ]
             user_content.extend(image_parts)
             messages.append({"role": "user", "content": user_content})
         else:
