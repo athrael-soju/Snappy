@@ -1,7 +1,9 @@
 import gradio as gr
 
 
-def build_ui(on_chat_submit, index_wrapper):
+def build_ui(
+    on_chat_submit, index_files, on_clear_qdrant, on_clear_minio, on_clear_all
+):
     """Build and return the Gradio Blocks UI.
 
     Parameters
@@ -9,11 +11,17 @@ def build_ui(on_chat_submit, index_wrapper):
     on_chat_submit: callable
         The function that handles chat submissions. Must have signature
         (message, chat_history, k, ai_enabled, temperature, system_prompt_input) -> generator/tuple
-    index_wrapper: callable
+    index_files: callable
         The function that handles indexing uploaded files. Must accept (files) and return status text.
+    on_clear_qdrant: callable
+        Function to clear the Qdrant collection. Accepts (confirmed: bool) -> str
+    on_clear_minio: callable
+        Function to clear MinIO images. Accepts (confirmed: bool) -> str
+    on_clear_all: callable
+        Function to clear both storages. Accepts (confirmed: bool) -> str
     """
     with gr.Blocks(
-        theme=gr.themes.Soft(),
+        theme=gr.themes.Citrus(),
         fill_height=True,
         css="""
 /* Examples container directly under chat, full width */
@@ -66,13 +74,13 @@ def build_ui(on_chat_submit, index_wrapper):
         # Title bar
         gr.Markdown(
             (
-                "# ColPali (ColQwen2) Knowledgebase Retrieval Agent\n"
+                "# Knowledgebase Retrieval Agent\n"
                 "Proof of concept of efficient page-level retrieval with a 'Special' Generative touch."
             )
         )
 
         # Collapsible sidebar (upload + indexing)
-        with gr.Sidebar(open=True):
+        with gr.Sidebar(open=True, elem_id="app-sidebar", width=420):
             gr.Markdown("### 📂 Upload & Index")
             files = gr.File(
                 label="PDF documents",
@@ -112,13 +120,47 @@ def build_ui(on_chat_submit, index_wrapper):
                 interactive=True,
             )
 
+            # Danger Zone
+            gr.Markdown("---")
+            gr.Markdown("### ⚠️ Danger Zone")
+            danger_confirm = gr.Checkbox(
+                value=False,
+                label="I understand this action will delete all data.",
+            )
+            with gr.Row():
+                clear_qdrant_btn = gr.Button(
+                    "🗑️ Clear Qdrant Collection", variant="secondary"
+                )
+                clear_minio_btn = gr.Button("🗑️ Clear MinIO Images", variant="secondary")
+            clear_all_btn = gr.Button(
+                "🧨 Clear Both (Qdrant + MinIO)", variant="secondary"
+            )
+            danger_status = gr.Textbox(
+                value="",
+                label="Danger Zone Status",
+                interactive=False,
+                lines=2,
+            )
+
         # Main content
         with gr.Column():
             chat = gr.Chatbot(
                 label="Chat",
-                height=400,
                 show_label=False,
                 type="messages",
+                layout="bubble",
+                height=425,
+                min_height=300,
+                resizable=False,
+                autoscroll=False,
+                render_markdown=True,
+                sanitize_html=True,
+                group_consecutive_messages=True,
+                line_breaks=True,
+                show_copy_button=True,
+                show_copy_all_button=True,
+                show_share_button=True,
+                placeholder="What would you like to know today?",
             )
 
             msg = gr.Textbox(
@@ -126,11 +168,6 @@ def build_ui(on_chat_submit, index_wrapper):
                 lines=1,
                 autofocus=True,
             )
-
-            with gr.Row():
-                send_btn = gr.Button("Send", variant="primary")
-                clear_btn = gr.Button("Clear", variant="secondary")
-
             gr.Examples(
                 examples=[
                     ["Summarize the key points of this document."],
@@ -140,7 +177,12 @@ def build_ui(on_chat_submit, index_wrapper):
                 ],
                 inputs=[msg],
                 elem_id="examples",
+                label="",
             )
+
+            with gr.Row():
+                send_btn = gr.Button("Send", variant="primary")
+                clear_btn = gr.Button("Clear", variant="secondary")
 
             with gr.Accordion("Retrieved Pages", open=False):
                 output_gallery = gr.Gallery(
@@ -150,7 +192,18 @@ def build_ui(on_chat_submit, index_wrapper):
                 )
 
         # Wiring
-        convert_button.click(index_wrapper, inputs=[files], outputs=[status])
+        convert_button.click(index_files, inputs=[files], outputs=[status])
+
+        # Danger Zone wiring
+        clear_qdrant_btn.click(
+            on_clear_qdrant, inputs=[danger_confirm], outputs=[danger_status]
+        )
+        clear_minio_btn.click(
+            on_clear_minio, inputs=[danger_confirm], outputs=[danger_status]
+        )
+        clear_all_btn.click(
+            on_clear_all, inputs=[danger_confirm], outputs=[danger_status]
+        )
 
         # Chat submit (Enter in textbox)
         msg.submit(

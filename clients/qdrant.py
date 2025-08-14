@@ -425,3 +425,29 @@ class QdrantService:
             page_info = payload.get("page") or f"Page {payload.get('index', '')}"
             results.append((item.get("image"), page_info))
         return results
+
+    # -----------------------
+    # Maintenance helpers
+    # -----------------------
+    def clear_collection(self) -> str:
+        """Delete and recreate the configured collection to remove all points."""
+        try:
+            self.client.delete_collection(collection_name=self.collection_name)
+        except Exception as e:
+            # If not exists, ignore and proceed to (re)create
+            if "not found" not in str(e).lower():
+                raise Exception(f"Failed to delete collection: {e}")
+
+        # Recreate with correct vectors config
+        self._create_collection_if_not_exists()
+        return f"Cleared Qdrant collection '{self.collection_name}'."
+
+    def clear_all(self) -> str:
+        """Clear Qdrant collection and all MinIO images. Returns a summary string."""
+        q_msg = self.clear_collection()
+        try:
+            res = self.minio_service.clear_images()
+            m_msg = f"Cleared MinIO images: deleted={res.get('deleted')}, failed={res.get('failed')}"
+        except Exception as e:
+            m_msg = f"MinIO clear failed: {e}"
+        return f"{q_msg} {m_msg}"
