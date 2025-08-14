@@ -1,99 +1,233 @@
+import os
+import io
+import base64
+import random
 import gradio as gr
-from gradio_pdf import PDF
-
-from services.openai import query_openai
-from services.colqwen_api_client import ColQwenAPIClient
 from pdf2image import convert_from_path
+from typing import Any, List, Union
+from thinking_messages import BRAIN_PLACEHOLDERS
 
-# Import the appropriate service based on environment variable
-from config import STORAGE_TYPE, WORKER_THREADS, IN_MEMORY_NUM_IMAGES
+try:
+    from openai import OpenAI
+except Exception:  # fallback for environments with old SDK
+    OpenAI = None
 
-memory_store_service = None
-qdrant_service = None
+# Client wrapper for OpenAI (preferred)
+from clients.openai import OpenAIClient as OpenAI
 
-# Initialize API client
+# Your clients / config
+from clients.colqwen import ColQwenAPIClient
+from config import WORKER_THREADS
+from ui import build_ui
+
+# Initialize storage backend (Qdrant only)
+from clients.qdrant import QdrantService
+
 api_client = ColQwenAPIClient()
-
-if STORAGE_TYPE == "memory":
-    from services.memory_store import MemoryStoreService
-    memory_store_service = MemoryStoreService(api_client)
-elif STORAGE_TYPE == "qdrant":
-    from services.qdrant_store import QdrantService
-    qdrant_service = QdrantService(api_client)
-else:
-    raise ValueError("Invalid storage type")
+qdrant_service = QdrantService(api_client)
 
 
-def search_wrapper(query: str, ds, images, k, api_key):
-    """Wrapper function to select between in-memory and Qdrant search"""
-    if STORAGE_TYPE == "memory":
-        results = memory_store_service.search(query, ds, images, k)
-    elif STORAGE_TYPE == "qdrant":
-        results = qdrant_service.search(query, k=k)
-    
-    ai_response = query_openai(query, results, api_key)
-    
-    return results, ai_response
+# -----------------------
+# Core functions (unchanged behavior)
+# -----------------------
+def _retrieve_results(query: str, k: Union[int, str]) -> List[Any]:
+    """Retrieve top-k page images for the query from Qdrant."""
+    try:
+        k = int(k)
+        if k <= 0:
+            k = 5
+    except Exception:
+        k = 5
+
+    results = qdrant_service.search(query, k=k)
+    return results
 
 
-def index_wrapper(files, ds):
-    """Wrapper function to select between in-memory and Qdrant indexing"""
-    images = convert_files(files)
-    if STORAGE_TYPE == "memory":
-        message = memory_store_service.index_gpu(images, ds)
-        return message, ds, images
-    elif STORAGE_TYPE == "qdrant":
-        message = qdrant_service.index_documents(images)
-        return message, ds, images
+def _encode_pil_to_data_url(img) -> str:
+    """Encode a PIL.Image to a data URL suitable for OpenAI vision input."""
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+    return f"data:image/png;base64,{b64}"
+
+
+def on_chat_submit(
+    message, chat_history, k, ai_enabled, temperature, system_prompt_input
+):
+    """Stream a reply from OpenAI using retrieved page images as multimodal context.
+
+    Chat uses messages-format (list of dicts with 'role' and 'content').
+    Accepts user-configurable AI settings: `temperature` and `system_prompt_input`.
+    Yields tuples: (cleared_input, updated_chat, gallery_images)
+    """
+    # No-op on empty input
+    if not message or not str(message).strip():
+        yield gr.update(), chat_history, gr.update()
+        return
+
+    # If AI responses are disabled, only retrieve and show pages
+    if not ai_enabled:
+        results = _retrieve_results(message, k)
+        updated_chat = list(chat_history or [])
+        updated_chat.append({"role": "user", "content": str(message)})
+        updated_chat.append(
+            {
+                "role": "assistant",
+                "content": "AI responses are disabled. Enable them in the sidebar to get answers. Showing retrieved pages only.",
+            }
+        )
+        yield "", updated_chat, results
+        return
+
+    # Initialize OpenAI client (wrapper handles SDK/key validation)
+    api_key = (os.getenv("OPENAI_API_KEY") or "").strip()
+    try:
+        client = OpenAI(api_key=api_key)
+    except Exception as e:
+        updated_chat = list(chat_history or [])
+        updated_chat.append({"role": "user", "content": str(message)})
+        updated_chat.append({"role": "assistant", "content": str(e)})
+        yield "", updated_chat, gr.update()
+        return
+
+    # Retrieve images (top-k)
+    results = _retrieve_results(message, k)
+
+    # Show gallery and insert a temporary thinking bubble at the exact reply location
+    updated_chat = list(chat_history or [])
+    updated_chat.append({"role": "user", "content": str(message)})
+    placeholder = random.choice(BRAIN_PLACEHOLDERS)
+    updated_chat.append({"role": "assistant", "content": placeholder})
+    yield "", updated_chat, results
+
+    # Build multimodal user content: text + top-k images
+    image_parts = []
+    for item in (results or [])[: int(k) if str(k).isdigit() else 5]:
+        # Support either raw PIL images or (image, caption) tuples
+        img = item[0] if isinstance(item, (tuple, list)) and item else item
+        try:
+            image_parts.append(
+                {
+                    "type": "image_url",
+                    "image_url": {"url": _encode_pil_to_data_url(img), "detail": "low"},
+                }
+            )
+        except Exception:
+            # Skip any image that fails to encode
+            continue
+
+    default_system_prompt = (
+        "You are a helpful PDF assistant. Use only the provided page images "
+        "to answer the user's question. If the answer isn't contained in the pages, "
+        "say you cannot find it. Be concise and always mention from which pages the answer is taken."
+    )
+
+    system_prompt = (
+        str(system_prompt_input).strip()
+        if system_prompt_input and str(system_prompt_input).strip()
+        else default_system_prompt
+    )
+
+    messages = OpenAI.build_messages(
+        chat_history, system_prompt, str(message), image_parts
+    )
+
+    model = os.getenv("OPENAI_MODEL", "gpt-5-mini")
+    # client already initialized above
+
+    # Coerce temperature
+    try:
+        temp = float(temperature)
+    except Exception:
+        temp = 0.7
+
+    # Stream tokens via wrapper
+    assistant_text = ""
+    streamed_any = False
+    try:
+        for content in client.stream_chat(
+            messages=messages, temperature=temp, model=model
+        ):
+            if content:
+                if not streamed_any:
+                    assistant_text = content
+                    updated_chat[-1] = {"role": "assistant", "content": assistant_text}
+                    streamed_any = True
+                else:
+                    assistant_text += content
+                    updated_chat[-1] = {"role": "assistant", "content": assistant_text}
+                # Stream updated chat; gallery unchanged
+                yield "", updated_chat, gr.update()
+    except Exception as e:
+        # Replace the thinking bubble with a single error message
+        err_text = assistant_text or f"[Streaming error: {e}]"
+        updated_chat[-1] = {"role": "assistant", "content": err_text}
+        yield "", updated_chat, gr.update()
+
+
+def index_wrapper(files, progress=gr.Progress(track_tqdm=True)):
+    """Index documents in Qdrant with a progress bar.
+
+    Gradio will track the internal tqdm in QdrantService.index_documents().
+    """
+    images_with_meta = convert_files(files)
+    total = len(images_with_meta)
+    # Optional initial progress message (tqdm will take over)
+    try:
+        progress(0, total=total, desc="Indexing pages…")
+    except Exception:
+        pass
+    message = qdrant_service.index_documents(images_with_meta)
+    return f"{message} (total: {total} pages)"
 
 
 def convert_files(files):
-    images = []
-    files = [files] if not isinstance(files, list) else files
-    for f in files:
-        images.extend(convert_from_path(f, thread_count=int(WORKER_THREADS)))
+    """Convert uploaded PDFs to page images and attach per-page metadata.
 
-    if STORAGE_TYPE == "memory":
-        if len(images) >= int(IN_MEMORY_NUM_IMAGES):
-            raise ValueError(f"The number of images in the dataset should be less than {IN_MEMORY_NUM_IMAGES}.")
-    return images
+    Returns a list of dicts: { 'image': PIL.Image, 'filename': str,
+    'file_size_bytes': int, 'pdf_page_index': int, 'total_pages': int,
+    'page_width_px': int, 'page_height_px': int }
+    """
+    items: List[dict] = []
+    file_list = [files] if not isinstance(files, list) else files
+    for f in file_list:
+        try:
+            pages = convert_from_path(f, thread_count=int(WORKER_THREADS))
+        except Exception:
+            # Skip non-PDFs or conversion failures silently for now
+            continue
+        total = len(pages)
+        try:
+            size_bytes = os.path.getsize(f)
+        except Exception:
+            size_bytes = None
+        filename = os.path.basename(str(f))
+        for idx, img in enumerate(pages):
+            w, h = (img.size[0], img.size[1]) if hasattr(img, "size") else (None, None)
+            items.append(
+                {
+                    "image": img,
+                    "filename": filename,
+                    "file_size_bytes": size_bytes,
+                    "pdf_page_index": idx + 1,  # 1-based
+                    "total_pages": total,
+                    "page_width_px": w,
+                    "page_height_px": h,
+                }
+            )
+    return items
 
 
-with gr.Blocks(theme=gr.themes.Soft()) as demo:
-    gr.Markdown("# ColPali: Efficient Document Retrieval with Vision Language Models (ColQwen2) 📚")
-    gr.Markdown("""Demo to test ColQwen2 (ColPali) on PDF documents. 
-    ColPali is model implemented from the [ColPali paper](https://arxiv.org/abs/2407.01449).
+# -----------------------
+# UI
+# -----------------------
+demo = build_ui(on_chat_submit, index_wrapper)
 
-    This demo allows you to upload PDF files and search for the most relevant pages based on your query.
-    Refresh the page if you change documents !
-
-    ⚠️ This demo uses a model trained exclusively on A4 PDFs in portrait mode, containing english text. Performance is expected to drop for other page formats and languages.
-    Other models will be released with better robustness towards different languages and document formats !
-    """)
-    with gr.Row():
-        with gr.Column(scale=2):
-            gr.Markdown("## 1️⃣ Upload PDFs")
-            file = PDF(label="PDF Document")
-            print(file)
-
-            convert_button = gr.Button("🔄 Index documents")
-            message = gr.Textbox("Files not yet uploaded", label="Status")
-            api_key = gr.Textbox(placeholder="Enter your OpenAI KEY here (optional)", label="API key")
-            embeds = gr.State(value=[])
-            imgs = gr.State(value=[])
-
-        with gr.Column(scale=3):
-            gr.Markdown("## 2️⃣ Search")
-            query = gr.Textbox(placeholder="Enter your query here", label="Query")
-            k = gr.Slider(minimum=1, maximum=10, step=1, label="Number of results", value=5)
-
-    search_button = gr.Button("🔍 Search", variant="primary")
-    output_gallery = gr.Gallery(label="Retrieved Documents", height=600, show_label=True)
-    output_text = gr.Textbox(label="AI Response", placeholder="Generated response based on retrieved documents")
-
-    convert_button.click(index_wrapper, inputs=[file, embeds], outputs=[message, embeds, imgs])
-    search_button.click(search_wrapper, inputs=[query, embeds, imgs, k, api_key], outputs=[output_gallery, output_text])
-
+# Entrypoint to run the Gradio app directly
 if __name__ == "__main__":
-    print(f"Using {STORAGE_TYPE} storage")
-    demo.queue(max_size=5).launch(debug=True, mcp_server=False)
+    host = os.getenv("HOST", "0.0.0.0")
+    try:
+        port = int(os.getenv("PORT", "7860"))
+    except Exception:
+        raise ValueError("Invalid port")
+    demo.queue().launch(server_name=host, server_port=port)

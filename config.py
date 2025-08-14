@@ -8,7 +8,6 @@ load_dotenv()
 # ===== Application Settings =====
 # Core Application
 LOG_LEVEL: Final[str] = os.getenv("LOG_LEVEL", "INFO")
-STORAGE_TYPE: Final[str] = os.getenv("STORAGE_TYPE", "qdrant")  # "memory" or "qdrant"
 
 # Processing
 DEFAULT_TOP_K: Final[int] = int(os.getenv("DEFAULT_TOP_K", "5"))
@@ -19,7 +18,7 @@ WORKER_THREADS: Final[int] = int(os.getenv("WORKER_THREADS", "4"))
 # ===== AI/ML Configuration =====
 # OpenAI
 OPENAI_API_KEY: Final[str] = os.getenv("OPENAI_API_KEY", "")
-OPENAI_MODEL: Final[str] = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+OPENAI_MODEL: Final[str] = os.getenv("OPENAI_MODEL", "gpt-5-mini")
 
 # ColQwen API
 COLQWEN_API_BASE_URL: Final[str] = os.getenv(
@@ -44,6 +43,3 @@ MINIO_RETRIES: Final[int] = int(os.getenv("MINIO_RETRIES", "2"))
 MINIO_FAIL_FAST: Final[bool] = os.getenv("MINIO_FAIL_FAST", "False")
 MINIO_IMAGE_FMT: Final[str] = os.getenv("MINIO_IMAGE_FMT", "JPEG")
 
-# In-Memory Storage
-IN_MEMORY_URL: Final[str] = os.getenv("IN_MEMORY_URL", "http://localhost:6333")
-IN_MEMORY_NUM_IMAGES: Final[int] = int(os.getenv("IN_MEMORY_NUM_IMAGES", "500"))

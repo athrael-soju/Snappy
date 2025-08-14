@@ -1,8 +1,9 @@
 import uuid
 import warnings
 import numpy as np
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple, Optional
 from PIL import Image
+from datetime import datetime
 from qdrant_client import QdrantClient, models
 from tqdm import tqdm
 
@@ -13,8 +14,8 @@ from config import (
     QDRANT_SEARCH_LIMIT,
     QDRANT_PREFETCH_LIMIT,
 )
-from .minio_service import MinioService
-from .colqwen_api_client import ColQwenAPIClient
+from .minio import MinioService
+from .colqwen import ColQwenAPIClient
 
 
 class QdrantService:
@@ -44,7 +45,7 @@ class QdrantService:
         self._create_collection_if_not_exists()
 
     def _get_model_dimension(self) -> int:
-        """Get the embedding dimension from the API info"""
+        """Get the embedding dimension from the API"""
         info = self.api_client.get_info()
         if not info or "dim" not in info:
             raise ValueError(
@@ -207,7 +208,13 @@ class QdrantService:
         return original_batch, pooled_by_rows_batch, pooled_by_columns_batch
 
     def index_documents(self, images: List[Image.Image]):
-        """Index documents in Qdrant"""
+        """Index documents in Qdrant with rich payload metadata.
+
+        Accepts either a list of PIL Images or a list of dicts, where each dict
+        contains at least the key 'image': PIL.Image plus optional metadata
+        keys, e.g. 'filename', 'file_size_bytes', 'pdf_page_index',
+        'total_pages', 'page_width_px', 'page_height_px'.
+        """
         batch_size = int(BATCH_SIZE)
 
         with tqdm(total=len(images), desc="Uploading progress") as pbar:
@@ -215,9 +222,22 @@ class QdrantService:
                 batch = images[i : i + batch_size]
                 current_batch_size = len(batch)
 
+                # Split into image and metadata batches, preserving order
+                image_batch: List[Image.Image] = [
+                    (b if isinstance(b, Image.Image) else b.get("image")) for b in batch
+                ]
+                meta_batch: List[dict] = [
+                    ({
+                        k: v
+                        for k, v in ({} if isinstance(b, Image.Image) else dict(b)).items()
+                        if k != "image"
+                    })
+                    for b in batch
+                ]
+
                 try:
                     original_batch, pooled_by_rows_batch, pooled_by_columns_batch = (
-                        self._embed_and_mean_pool_batch(batch)
+                        self._embed_and_mean_pool_batch(image_batch)
                     )
                 except Exception as e:
                     raise Exception(f"Error during embed: {e}")
@@ -226,7 +246,14 @@ class QdrantService:
                 image_urls = []
                 if self.minio_service:
                     try:
-                        image_urls = self.minio_service.store_images_batch(batch)
+                        # Generate deterministic image IDs aligned with the batch
+                        image_ids = [str(uuid.uuid4()) for _ in range(current_batch_size)]
+                        image_url_dict = self.minio_service.store_images_batch(
+                            image_batch,
+                            image_ids=image_ids,
+                        )
+                        # Keep alignment by resolving URL per ID
+                        image_urls = [image_url_dict.get(img_id) for img_id in image_ids]
                     except Exception as e:
                         raise Exception(
                             f"Error storing images in MinIO for batch starting at {i}: {e}"
@@ -234,24 +261,45 @@ class QdrantService:
                 else:
                     raise Exception("MinIO service not available")
 
-                for j, (orig, rows, cols, image_url) in enumerate(
-                    zip(
-                        original_batch,
-                        pooled_by_rows_batch,
-                        pooled_by_columns_batch,
-                        image_urls,
-                    )
-                ):
+                for j in range(current_batch_size):
                     try:
-                        # Create document ID
-                        doc_id = str(uuid.uuid4())
+                        orig = original_batch[j]
+                        rows = pooled_by_rows_batch[j]
+                        cols = pooled_by_columns_batch[j]
+                        image_url = image_urls[j]
+                        meta = meta_batch[j] if j < len(meta_batch) else {}
+
+                        # Skip if image failed to upload
+                        if not image_url:
+                            raise Exception(
+                                f"Image failed to upload for batch starting at {i}: {image_url}"
+                            )
+
+                        # Create document ID (use the same as image id for 1:1 mapping)
+                        doc_id = image_url.rsplit("/", 1)[-1].split(".", 1)[0]
 
                         # Prepare payload with MinIO URL
+                        now_iso = datetime.now().isoformat() + "Z"
+                        # Derive page dimensions from metadata or actual image
+                        try:
+                            w = int(meta.get("page_width_px", image_batch[j].size[0]))
+                            h = int(meta.get("page_height_px", image_batch[j].size[1]))
+                        except Exception:
+                            w, h = None, None
+
                         payload = {
-                            "index": i + j,
-                            "page": f"Page {i + j}",
-                            "image_url": image_url,  # Store MinIO URL in metadata
+                            "index": i + j,  # global index in this session
+                            "page": f"Page {meta.get('pdf_page_index', i + j)}",
+                            "image_url": image_url,
                             "document_id": doc_id,
+                            # Rich metadata
+                            "filename": meta.get("filename"),
+                            "file_size_bytes": meta.get("file_size_bytes"),
+                            "pdf_page_index": meta.get("pdf_page_index"),
+                            "total_pages": meta.get("total_pages"),
+                            "page_width_px": w,
+                            "page_height_px": h,
+                            "indexed_at": now_iso,
                         }
 
                         self.client.upload_collection(
@@ -287,6 +335,7 @@ class QdrantService:
         query_embeddings_batch: List[np.ndarray],
         search_limit: int = QDRANT_SEARCH_LIMIT,
         prefetch_limit: int = QDRANT_PREFETCH_LIMIT,
+        qdrant_filter: Optional[models.Filter] = None,
     ):
         """Perform two-stage retrieval with multivectors"""
         search_queries = [
@@ -308,6 +357,7 @@ class QdrantService:
                 with_payload=True,
                 with_vector=False,
                 using="original",
+                filter=qdrant_filter,
             )
             for query_embedding in query_embeddings_batch
         ]
@@ -315,35 +365,63 @@ class QdrantService:
             collection_name=self.collection_name, requests=search_queries
         )
 
-    def search(self, query: str, k: int = 5):
-        """Search for relevant documents using Qdrant and retrieve images from MinIO"""
-        query_embedding = self._batch_embed_query([query])
-        search_results = self._reranking_search_batch([query_embedding])
+    def search_with_metadata(self, query: str, k: int = 5, payload_filter: Optional[dict] = None):
+        """Search and return images alongside full Qdrant payload metadata.
 
-        # Extract relevant results
-        results = []
+        payload_filter: optional dict of equality filters, e.g.
+          {"filename": "doc.pdf", "pdf_page_index": 3}
+        """
+        query_embedding = self._batch_embed_query([query])
+        q_filter = None
+        if payload_filter:
+            try:
+                conditions = []
+                for kf, vf in payload_filter.items():
+                    conditions.append(
+                        models.FieldCondition(
+                            key=str(kf), match=models.MatchValue(value=vf)
+                        )
+                    )
+                q_filter = models.Filter(must=conditions) if conditions else None
+            except Exception:
+                q_filter = None
+        search_results = self._reranking_search_batch([query_embedding], qdrant_filter=q_filter)
+
+        items = []
         if search_results and search_results[0].points:
             for i, point in enumerate(search_results[0].points[:k]):
                 try:
-                    # Get image URL from metadata
-                    image_url = point.payload.get("image_url")
-                    page_info = point.payload.get(
-                        "page", f"Page {point.payload.get('index', i)}"
-                    )
-
+                    image_url = point.payload.get("image_url") if point.payload else None
                     if image_url and self.minio_service:
-                        # Retrieve image from MinIO
                         image = self.minio_service.get_image(image_url)
-                        results.append((image, page_info))
+                        items.append(
+                            {
+                                "image": image,
+                                "payload": point.payload or {},
+                                "score": getattr(point, "score", None),
+                            }
+                        )
                     else:
                         raise Exception(
                             f"Cannot retrieve image for point {i}. "
                             f"Image URL: {image_url}, MinIO available: {self.minio_service is not None}"
                         )
-
                 except Exception as e:
                     raise Exception(
                         f"Error retrieving image from MinIO for point {i}: {e}"
                     )
+        return items
 
+    def search(self, query: str, k: int = 5):
+        """Search for relevant documents using Qdrant and retrieve images from MinIO.
+
+        Returns a list suitable for Gradio Gallery: (image, caption), while
+        internally enabling richer metadata retrieval via `search_with_metadata`.
+        """
+        items = self.search_with_metadata(query, k)
+        results = []
+        for item in items:
+            payload = item.get("payload", {})
+            page_info = payload.get("page") or f"Page {payload.get('index', '')}"
+            results.append((item.get("image"), page_info))
         return results
