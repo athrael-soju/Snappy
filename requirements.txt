@@ -1,7 +1,4 @@
-colpali-engine
 pdf2image
-GPUtil
-accelerate
 openai
 gradio[mcp]
 tqdm
@@ -11,4 +8,4 @@ qdrant-client
 numpy
 python-dotenv
 minio
-# uv pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu129
+requests

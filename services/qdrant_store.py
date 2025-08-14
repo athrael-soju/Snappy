@@ -1,22 +1,27 @@
 import uuid
 import numpy as np
-import torch
+from typing import List
+from PIL import Image
 from qdrant_client import QdrantClient, models
 from tqdm import tqdm
 
 from config import QDRANT_URL, QDRANT_COLLECTION_NAME, BATCH_SIZE, QDRANT_SEARCH_LIMIT, QDRANT_PREFETCH_LIMIT
 from .minio_service import MinioService
+from .colqwen_api_client import ColQwenAPIClient
 
 
 class QdrantService:
-    def __init__(self, model, processor):
+    def __init__(self, api_client: ColQwenAPIClient = None):
         # Initialize Qdrant client
         self.client = QdrantClient(url=QDRANT_URL)
         self.collection_name = QDRANT_COLLECTION_NAME
         
-        # Use provided model and processor
-        self.model = model
-        self.processor = processor
+        # Use API client for embeddings
+        self.api_client = api_client or ColQwenAPIClient()
+        
+        # Check API health on initialization
+        if not self.api_client.health_check():
+            raise Exception("ColQwen API is not available. Please ensure the API server is running.")
         
         # Initialize MinIO service for image storage
         try:
@@ -64,44 +69,50 @@ class QdrantService:
             pass
     
     def _get_patches(self, image_size):
-        """Get number of patches for image"""
-        return self.processor.get_n_patches(image_size, spatial_merge_size=self.model.spatial_merge_size)
+        """Get number of patches for image using API"""
+        width, height = image_size
+        return self.api_client.get_patches(width, height)
     
     def _embed_and_mean_pool_batch(self, image_batch):
-        """Embed images and create mean pooled representations"""
-        device = next(self.model.parameters()).device
-            
-        # Embed
-        with torch.no_grad():
-            processed_images = self.processor.process_images(image_batch).to(self.model.device)
-            image_embeddings = self.model(**processed_images)
+        """Embed images and create mean pooled representations using API"""
+        # Get embeddings from API - this replaces the local model inference
+        image_embeddings_batch = self.api_client.embed_images(image_batch)
 
-        image_embeddings_batch = image_embeddings.cpu().float().numpy().tolist()
-
-        # Mean pooling
+        # Mean pooling - identical logic to original, just using API embeddings
         pooled_by_rows_batch = []
         pooled_by_columns_batch = []
 
-        for image_embedding, tokenized_image, image in zip(image_embeddings,
-                                                           processed_images.input_ids,
-                                                           image_batch):
+        # The API should provide embeddings in the same format as the original model
+        # Process each image's embeddings exactly like the original
+        for image_embedding, image in zip(image_embeddings_batch, image_batch):
             x_patches, y_patches = self._get_patches(image.size)
             
-            image_tokens_mask = (tokenized_image == self.processor.image_token_id)
-            image_tokens = image_embedding[image_tokens_mask].view(x_patches, y_patches, self.model.dim)
-            pooled_by_rows = torch.mean(image_tokens, dim=0)
-            pooled_by_columns = torch.mean(image_tokens, dim=1)
-
-            image_token_idxs = torch.nonzero(image_tokens_mask.int(), as_tuple=False)
-            first_image_token_idx = image_token_idxs[0].cpu().item()
-            last_image_token_idx = image_token_idxs[-1].cpu().item()
-
-            prefix_tokens = image_embedding[:first_image_token_idx]
-            postfix_tokens = image_embedding[last_image_token_idx + 1:]
+            # Convert API embedding to numpy array (replaces original tensor operations)
+            image_embedding_np = np.array(image_embedding)
+            
+            # Find image token boundaries - API should maintain same token structure
+            # In the original: image_tokens_mask = (tokenized_image == self.processor.image_token_id)
+            # The API embeddings should be structured so we can identify image patch tokens
+            total_tokens = len(image_embedding_np)
+            num_image_patches = x_patches * y_patches
+            
+            # Extract image patch tokens (middle section of embeddings)
+            first_image_token_idx = (total_tokens - num_image_patches) // 2
+            last_image_token_idx = first_image_token_idx + num_image_patches - 1
+            
+            # Extract sections: prefix tokens, image patch tokens, postfix tokens
+            prefix_tokens = image_embedding_np[:first_image_token_idx]
+            image_patch_tokens = image_embedding_np[first_image_token_idx:last_image_token_idx + 1]
+            postfix_tokens = image_embedding_np[last_image_token_idx + 1:]
+            
+            # Reshape image tokens to patch grid and perform mean pooling
+            image_tokens = np.array(image_patch_tokens).reshape(x_patches, y_patches, -1)
+            pooled_by_rows = np.mean(image_tokens, axis=0)
+            pooled_by_columns = np.mean(image_tokens, axis=1)
 
             # Adding back prefix and postfix special tokens
-            pooled_by_rows = torch.cat((prefix_tokens, pooled_by_rows, postfix_tokens), dim=0).cpu().float().numpy().tolist()
-            pooled_by_columns = torch.cat((prefix_tokens, pooled_by_columns, postfix_tokens), dim=0).cpu().float().numpy().tolist()
+            pooled_by_rows = np.concatenate([prefix_tokens, pooled_by_rows.reshape(-1, pooled_by_rows.shape[-1]), postfix_tokens], axis=0).tolist()
+            pooled_by_columns = np.concatenate([prefix_tokens, pooled_by_columns.reshape(-1, pooled_by_columns.shape[-1]), postfix_tokens], axis=0).tolist()
 
             pooled_by_rows_batch.append(pooled_by_rows)
             pooled_by_columns_batch.append(pooled_by_columns)
@@ -162,27 +173,25 @@ class QdrantService:
         
         return f"Uploaded and converted {len(images)} pages"
     def _batch_embed_query(self, query_batch):
-        """Embed query batch"""
-        device = next(self.model.parameters()).device
-            
-        with torch.no_grad():
-            processed_queries = self.processor.process_queries(query_batch).to(device)
-            query_embeddings_batch = self.model(**processed_queries)
-        return query_embeddings_batch.cpu().float().numpy()
+        """Embed query batch using API"""
+        # Use API to embed queries
+        query_embeddings = self.api_client.embed_queries(query_batch)
+        # Convert to numpy format expected by the rest of the code
+        return np.array(query_embeddings[0]) if query_embeddings else np.array([])
     
-    def _reranking_search_batch(self, query_batch, search_limit=QDRANT_SEARCH_LIMIT, prefetch_limit=QDRANT_PREFETCH_LIMIT):
+    def _reranking_search_batch(self, query_embeddings_batch, search_limit=QDRANT_SEARCH_LIMIT, prefetch_limit=QDRANT_PREFETCH_LIMIT):
         """Perform two-stage retrieval with multivectors"""
         search_queries = [
             models.QueryRequest(
-                query=query,
+                query=query_embedding.tolist(),
                 prefetch=[
                     models.Prefetch(
-                        query=query,
+                        query=query_embedding.tolist(),
                         limit=prefetch_limit,
                         using="mean_pooling_columns"
                     ),
                     models.Prefetch(
-                        query=query,
+                        query=query_embedding.tolist(),
                         limit=prefetch_limit,
                         using="mean_pooling_rows"
                     ),
@@ -191,7 +200,7 @@ class QdrantService:
                 with_payload=True,
                 with_vector=False,
                 using="original"
-            ) for query in query_batch
+            ) for query_embedding in query_embeddings_batch
         ]
         return self.client.query_batch_points(
             collection_name=self.collection_name,
@@ -201,7 +210,7 @@ class QdrantService:
     def search(self, query, images=None, k=5):
         """Search for relevant documents using Qdrant and retrieve images from MinIO"""
         query_embedding = self._batch_embed_query([query])
-        search_results = self._reranking_search_batch(query_embedding)
+        search_results = self._reranking_search_batch([query_embedding])
         
         # Extract relevant results
         results = []

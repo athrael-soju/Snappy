@@ -1,33 +1,25 @@
-import torch
-
 import gradio as gr
 from gradio_pdf import PDF
 
 from services.openai import query_openai
+from services.colqwen_api_client import ColQwenAPIClient
 from pdf2image import convert_from_path
 
 # Import the appropriate service based on environment variable
-from config import STORAGE_TYPE, MODEL_NAME, MODEL_DEVICE, WORKER_THREADS, IN_MEMORY_NUM_IMAGES
-from colpali_engine.models import ColQwen2_5, ColQwen2_5_Processor
+from config import STORAGE_TYPE, WORKER_THREADS, IN_MEMORY_NUM_IMAGES
 
 memory_store_service = None
 qdrant_service = None
 
-# Initialize model and processor
-model = ColQwen2_5.from_pretrained(
-    MODEL_NAME,
-    torch_dtype=torch.bfloat16,
-    device_map=MODEL_DEVICE,
-    attn_implementation=None
-).eval()
-processor = ColQwen2_5_Processor.from_pretrained(MODEL_NAME)
+# Initialize API client
+api_client = ColQwenAPIClient()
 
 if STORAGE_TYPE == "memory":
     from services.memory_store import MemoryStoreService
-    memory_store_service = MemoryStoreService(model, processor)
+    memory_store_service = MemoryStoreService(api_client)
 elif STORAGE_TYPE == "qdrant":
     from services.qdrant_store import QdrantService
-    qdrant_service = QdrantService(model, processor)
+    qdrant_service = QdrantService(api_client)
 else:
     raise ValueError("Invalid storage type")
 
