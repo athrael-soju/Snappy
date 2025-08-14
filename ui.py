@@ -1,5 +1,6 @@
 import gradio as gr
 
+
 def build_ui(
     on_chat_submit, index_files, on_clear_qdrant, on_clear_minio, on_clear_all
 ):
@@ -169,10 +170,10 @@ def build_ui(
             )
             gr.Examples(
                 examples=[
-                    ["Summarize the key points of this document."],
-                    ["Find the section discussing GDPR compliance."],
-                    ["Locate any references to revenue recognition policies."],
-                    ["Extract the main conclusions from the study."],
+                    ["What is the booking reference for case 002?"],
+                    ["What is the claimant’s desired outcome for case 006?"],
+                    ["Has any payment been received for case 001?"],
+                    ["What is the claimant’s desired outcome for case 0015?"],
                 ],
                 inputs=[msg],
                 elem_id="examples",

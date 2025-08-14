@@ -292,51 +292,19 @@ class QdrantService:
 
                         # Prepare payload with MinIO URL
                         now_iso = datetime.now().isoformat() + "Z"
-                        # Derive page dimensions from metadata or actual image
-                        try:
-                            w = int(meta.get("page_width_px", image_batch[j].size[0]))
-                            h = int(meta.get("page_height_px", image_batch[j].size[1]))
-                        except Exception:
-                            w, h = None, None
 
+                        # Minimal payload: drop UI-specific label/size fields; compute labels at query time
                         payload = {
                             "index": i + j,  # global index in this session
-                            # Human-friendly page label; prefer explicit metadata
-                            # e.g. "Page 3/12 — report.pdf"
-                            "page": None,  # kept for backwards compatibility (will be set below)
-                            "page_label": None,
                             "image_url": image_url,
                             "document_id": doc_id,
-                            # Rich metadata
+                            # Core metadata used to compute labels client-side
                             "filename": meta.get("filename"),
                             "file_size_bytes": meta.get("file_size_bytes"),
                             "pdf_page_index": meta.get("pdf_page_index"),
                             "total_pages": meta.get("total_pages"),
-                            "page_width_px": w,
-                            "page_height_px": h,
                             "indexed_at": now_iso,
                         }
-
-                        # Compute and set human-friendly page labels
-                        try:
-                            _page_num = meta.get("pdf_page_index")
-                            _total = meta.get("total_pages")
-                            _fname = meta.get("filename")
-                            if _page_num and _total:
-                                _label = f"Page {_page_num}/{_total}"
-                            elif _page_num:
-                                _label = f"Page {_page_num}"
-                            else:
-                                _label = f"Page {i + j}"
-                            if _fname:
-                                _label = f"{_label} — {_fname}"
-                            payload["page_label"] = _label
-                            # Preserve legacy 'page' key but make it informative
-                            payload["page"] = _label
-                        except Exception:
-                            # As a last resort, keep a minimal label
-                            payload["page_label"] = f"Page {i + j}"
-                            payload["page"] = payload["page_label"]
 
                         self.client.upload_collection(
                             collection_name=self.collection_name,
@@ -464,16 +432,23 @@ class QdrantService:
         results = []
         for item in items:
             payload = item.get("payload", {})
-            # Prefer the richer label when available
-            page_info = (
-                payload.get("page_label")
-                or payload.get("page")
-                or (
-                    f"Page {payload.get('pdf_page_index')}"
-                    if payload.get("pdf_page_index")
-                    else f"Page {payload.get('index', '')}"
-                )
-            )
+            # Compute label from available metadata (filename + pdf_page_index/total_pages)
+            try:
+                fname = payload.get("filename")
+                page_num = payload.get("pdf_page_index")
+                total = payload.get("total_pages")
+                if fname and page_num and total:
+                    page_info = f"{fname} — {page_num}/{total}"
+                elif fname and page_num:
+                    page_info = f"{fname} — {page_num}"
+                elif page_num and total:
+                    page_info = f"Page {page_num}/{total}"
+                elif page_num:
+                    page_info = f"Page {page_num}"
+                else:
+                    page_info = fname or f"Index {payload.get('index', '')}"
+            except Exception:
+                page_info = f"Index {payload.get('index', '')}"
             results.append((item.get("image"), page_info))
         return results
 

@@ -77,15 +77,21 @@ def on_chat_submit(
         items = qdrant_service.search_with_metadata(str(message), k=k_int)
 
         def _label(payload: dict) -> str:
-            return (
-                payload.get("page_label")
-                or payload.get("page")
-                or (
-                    f"Page {payload.get('pdf_page_index')}"
-                    if payload.get("pdf_page_index")
-                    else f"Page {payload.get('index', '')}"
-                )
-            )
+            try:
+                fname = payload.get("filename")
+                page_num = payload.get("pdf_page_index")
+                total = payload.get("total_pages")
+                if fname and page_num and total:
+                    return f"{fname} — {page_num}/{total}"
+                if fname and page_num:
+                    return f"{fname} — {page_num}"
+                if page_num and total:
+                    return f"Page {page_num}/{total}"
+                if page_num:
+                    return f"Page {page_num}"
+                return fname or f"Index {payload.get('index', '')}"
+            except Exception:
+                return f"Index {payload.get('index', '')}"
 
         results_gallery = [
             (it.get("image"), _label(it.get("payload", {}))) for it in items
@@ -123,15 +129,21 @@ def on_chat_submit(
     items = qdrant_service.search_with_metadata(str(message), k=k_int)
 
     def _label(payload: dict) -> str:
-        return (
-            payload.get("page_label")
-            or payload.get("page")
-            or (
-                f"Page {payload.get('pdf_page_index')}"
-                if payload.get("pdf_page_index")
-                else f"Page {payload.get('index', '')}"
-            )
-        )
+        try:
+            fname = payload.get("filename")
+            page_num = payload.get("pdf_page_index")
+            total = payload.get("total_pages")
+            if fname and page_num and total:
+                return f"{fname} — {page_num}/{total}"
+            if fname and page_num:
+                return f"{fname} — {page_num}"
+            if page_num and total:
+                return f"Page {page_num}/{total}"
+            if page_num:
+                return f"Page {page_num}"
+            return fname or f"Index {payload.get('index', '')}"
+        except Exception:
+            return f"Index {payload.get('index', '')}"
 
     results_gallery = [
         (it.get("image"), _label(it.get("payload", {}))) for it in items
