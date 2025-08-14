@@ -12,53 +12,7 @@ This repo is intended as a developer-friendly starting point for vision RAG syst
 ## Architecture
 
 Below is the high-level component architecture of the Vision RAG template.
-
-```mermaid
----
-config:
-  layout: elk
-  look: neo
-  theme: base
----
-flowchart TB
- subgraph A["Application Layer app.py"]
-        AP["Event Handlers on_index & on_chat_submit"]
-        G["Gradio UI ui.py"]
-  end
- subgraph S["Internal Services"]
-        Q["QdrantService clients/qdrant.py"]
-        M["MinioService clients/minio.py"]
-        O["OpenAIClient clients/openai.py"]
-        C["ColQwenClient clients/colqwen.py"]
-  end
- subgraph X["External Systems"]
-        QD[("Qdrant collections: original, mean_pooling_rows, mean_pooling_columns")]
-        MN[("MinIO bucket: documents/images")]
-        OA[("OpenAI API")]
-        CQ[("ColQwen Embedding API")]
-  end
-    U["User Browser"] --> G
-    G --> AP
-    IMG[("Page Images")] -- upload --> M
-    M --> MN & MN
-    IMG -- embed_images --> C
-    C -- embeddings + patch meta --> Q
-    Q -- upsert multivectors + payload --> QD
-    AP -- query text --> C
-    C -- embed_queries --> Q
-    Q -- prefetch multivectors --> QD
-    QD -- "top-k with re-rank" --> Q
-    Q -- page metadata + image_url --> AP
-    AP -- fetch images --> M
-    AP -- "messages - text + images" --> O
-    O -- streamed tokens --> AP
-    AP --> G
-    G -- danger zone --> AP
-    AP -- clear vectors --> QD
-    AP -- clear images --> MN
-    U -- pdf2image --> IMG
-
-```
+See the architecture diagram in [docs/architecture.md](docs/architecture.md). It focuses on the core indexing and retrieval flows for clarity.
 
 - __`ui.py`__: Gradio Blocks UI built by `build_ui(...)`.
 - __`app.py`__: App wiring. Converts PDFs to page images, indexes to Qdrant/MinIO, retrieves, and streams LLM replies.

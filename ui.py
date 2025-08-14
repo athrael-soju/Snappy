@@ -80,7 +80,7 @@ def build_ui(
         )
 
         # Collapsible sidebar (upload + indexing)
-        with gr.Sidebar(open=True, elem_id="app-sidebar", width=420):
+        with gr.Sidebar(open=True, elem_id="app-sidebar", width=425):
             gr.Markdown("### 📂 Upload & Index")
             files = gr.File(
                 label="PDF documents",
@@ -93,7 +93,7 @@ def build_ui(
                 value="Files not yet uploaded",
                 label="Status",
                 interactive=False,
-                lines=2,
+                lines=1,
             )
             gr.Markdown("---")
             gr.Markdown("### 🤖 AI Settings")
