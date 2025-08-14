@@ -165,7 +165,7 @@ def build_ui(
                 height=425,
                 min_height=300,
                 resizable=False,
-                autoscroll=False,
+                autoscroll=True,
                 render_markdown=True,
                 sanitize_html=True,
                 group_consecutive_messages=True,
