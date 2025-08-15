@@ -18,14 +18,18 @@ This repo is intended as a developer-friendly starting point for vision RAG syst
 Below is the high-level component architecture of the Vision RAG template.
 See the architecture diagram in [docs/architecture.md](docs/architecture.md). It focuses on the core indexing and retrieval flows for clarity.
 
-- __`fastapi_app.py`__: FastAPI app exposing endpoints for indexing, search, chat (streaming), and maintenance. Also performs PDF->image conversion when indexing.
-- __`app.py`__ (legacy): Original Gradio-driven wiring retained for reference; superseded by `fastapi_app.py`.
-- __`ui.py`__ (legacy): Gradio UI retained for reference; not used by the FastAPI server.
+- __`api/app.py`__ and `api/routers/*`__: Modular FastAPI application (routers: `meta`, `retrieval`, `chat`, `indexing`, `maintenance`).
+- __`fastapi_app.py`__: Thin entrypoint that boots `api.app.create_app()`.
+- __`local_app.py`__ + `ui.py`__: Optional local Gradio UI (upload/index PDFs, chat, maintenance actions) separate from the FastAPI server.
 - __`clients/qdrant.py`__: `QdrantService` manages collection, indexing, multivector retrieval, and MinIO integration.
 - __`clients/minio.py`__: `MinioService` for image storage/retrieval with batch operations and public-read policy.
 - __`clients/openai.py`__: Thin wrapper for OpenAI SDK (streaming completions, message construction).
 - __`clients/colpali.py`__: HTTP client for a ColPali-style embedding API (queries, images, patch metadata).
 - __`config.py`__: Centralized configuration via environment variables.
+
+Additionally:
+
+- __`api/utils.py`__: Shared helpers for the API (e.g., PDF→image conversion used by the indexing route).
 
 __Indexing flow__:
 
@@ -109,13 +113,23 @@ cp .env.example .env
 uvicorn fastapi_app:app --host 0.0.0.0 --port 8000 --reload
 ```
 
+## Optional local Gradio UI
+
+For a local, interactive UI (separate from the FastAPI server):
+
+```bash
+python local_app.py
+```
+
+Defaults to `HOST=0.0.0.0` and `PORT=7860` unless overridden via environment variables.
+
 ## Environment variables
 
 Most defaults are in `config.py`. Key variables:
 
 - __Core__: `LOG_LEVEL` (INFO), `HOST` (0.0.0.0), `PORT` (8000)
 - __OpenAI__: `OPENAI_API_KEY`, `OPENAI_MODEL`
-  - Note: `clients/openai.py` defaults to `gpt-5-nano` if unset; `fastapi_app.py` reads `OPENAI_MODEL` (default `gpt-5-nano`). Set this explicitly to a valid model in your environment.
+  - Note: `clients/openai.py` uses `config.OPENAI_MODEL` (default `gpt-5-nano`). Both the API and local UI respect this unless overridden per request.
 - __ColPali API__: `COLPALI_API_BASE_URL` (default http://localhost:7000), `COLPALI_API_TIMEOUT`
 - __Qdrant__: `QDRANT_URL` (default http://localhost:6333), `QDRANT_COLLECTION_NAME` (documents), `QDRANT_SEARCH_LIMIT`, `QDRANT_PREFETCH_LIMIT`
 - __MinIO__: `MINIO_URL` (default http://localhost:9000), `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET_NAME` (documents), `MINIO_WORKERS`, `MINIO_RETRIES`, `MINIO_FAIL_FAST`, `MINIO_IMAGE_FMT`
@@ -217,9 +231,9 @@ Each point has payload metadata like:
 
 ## Development notes
 
-- FastAPI app in `fastapi_app.py` exposes `/health`, `/search`, `/index`, `/chat`, `/chat/stream`.
-- Legacy Gradio UI remains (`ui.py`/`app.py`) for reference but is not used by the default Docker flow.
-- Replace OpenAI with another LLM by adapting `clients/openai.py` and the chat routes in `fastapi_app.py`.
+- FastAPI app is assembled by `api/app.py` (routers: meta, retrieval, chat, indexing, maintenance) and booted by `fastapi_app.py`.
+- Local Gradio UI lives in `local_app.py` and `ui.py` (separate from the API).
+- Replace OpenAI with another LLM by adapting `clients/openai.py` and the chat router in `api/routers/chat.py`.
 - To filter search by metadata, see `QdrantService.search_with_metadata(...)`.
 
 ## License

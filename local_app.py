@@ -4,17 +4,12 @@ import base64
 import random
 import gradio as gr
 from pdf2image import convert_from_path
-from typing import Any, List, Union
+from typing import List
 from util.thinking_messages import BRAIN_PLACEHOLDERS
 from util.labeling import compute_page_label
 
-try:
-    from openai import OpenAI
-except Exception:  # fallback for environments with old SDK
-    OpenAI = None
-
-# Client wrapper for OpenAI (preferred)
-from clients.openai import OpenAIClient as OpenAI
+# Client wrapper for OpenAI
+from clients.openai import OpenAIClient
 
 # Your clients / config
 from clients.colpali import ColPaliClient
@@ -90,7 +85,7 @@ def on_chat_submit(
     # Initialize OpenAI client (wrapper handles SDK/key validation)
     api_key = (os.getenv("OPENAI_API_KEY") or "").strip()
     try:
-        client = OpenAI(api_key=api_key)
+        client = OpenAIClient(api_key=api_key)
     except Exception as e:
         updated_chat = list(chat_history or [])
         updated_chat.append({"role": "user", "content": str(message)})
@@ -156,10 +151,9 @@ def on_chat_submit(
         "Cite pages using the labels above (do not infer by result order)."
     )
 
-    messages = OpenAI.build_messages(
+    messages = OpenAIClient.build_messages(
         chat_history, system_prompt, user_message_with_labels, image_parts
     )
-
 
     # Coerce temperature
     try:
@@ -168,9 +162,7 @@ def on_chat_submit(
         temp = float(OPENAI_TEMPERATURE)
 
     # Determine model to use (UI override or config default)
-    chosen_model = (
-        str(model).strip() if model and str(model).strip() else OPENAI_MODEL
-    )
+    chosen_model = str(model).strip() if model and str(model).strip() else OPENAI_MODEL
 
     # Stream tokens via wrapper
     assistant_text = ""
