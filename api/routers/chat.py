@@ -8,7 +8,7 @@ from api.dependencies import get_qdrant_service, qdrant_init_error
 from api.models import ChatRequest, ChatResponse
 from api.utils import encode_pil_to_data_url, format_page_labels
 from clients.openai import OpenAIClient as OpenAI
-from config import OPENAI_MODEL, OPENAI_SYSTEM_PROMPT
+from config import OPENAI_SYSTEM_PROMPT
 
 router = APIRouter(prefix="", tags=["chat"])
 
@@ -55,7 +55,7 @@ async def chat(req: ChatRequest):
         return ChatResponse(text="AI responses are disabled.", images=images)
 
     # Build chat
-    chat_history = [m.dict() for m in (req.chat_history or [])]
+    chat_history = [m.model_dump() for m in (req.chat_history or [])]
     user_message_with_labels = "\n".join(
         [
             str(req.message),
@@ -84,9 +84,7 @@ async def chat(req: ChatRequest):
     text = ""
     try:
         for content in client.stream_chat(
-            messages=messages,
-            temperature=req.temperature,
-            model=(req.model or OPENAI_MODEL),
+            messages=messages, temperature=req.temperature
         ):
             if content:
                 text += content
@@ -176,7 +174,6 @@ async def chat_stream(req: ChatRequest):
             for content in client.stream_chat(
                 messages=messages,
                 temperature=req.temperature,
-                model=(req.model or OPENAI_MODEL),
             ):
                 if content:
                     yield content

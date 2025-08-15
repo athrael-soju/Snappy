@@ -16,7 +16,6 @@ from clients.colpali import ColPaliClient
 from config import (
     WORKER_THREADS,
     DEFAULT_TOP_K,
-    OPENAI_MODEL,
     OPENAI_TEMPERATURE,
     OPENAI_SYSTEM_PROMPT,
 )
@@ -43,7 +42,7 @@ def _encode_pil_to_data_url(img) -> str:
 
 
 def on_chat_submit(
-    message, chat_history, k, ai_enabled, temperature, model, system_prompt_input
+    message, chat_history, k, ai_enabled, temperature, system_prompt_input
 ):
     """Stream a reply from OpenAI using retrieved page images as multimodal context.
 
@@ -164,16 +163,11 @@ def on_chat_submit(
     except Exception:
         temp = float(OPENAI_TEMPERATURE)
 
-    # Determine model to use (UI override or config default)
-    chosen_model = str(model).strip() if model and str(model).strip() else OPENAI_MODEL
-
     # Stream tokens via wrapper
     assistant_text = ""
     streamed_any = False
     try:
-        for content in client.stream_chat(
-            messages=messages, temperature=temp, model=chosen_model
-        ):
+        for content in client.stream_chat(messages=messages, temperature=temp):
             if content:
                 if not streamed_any:
                     assistant_text = content
@@ -220,8 +214,7 @@ def convert_files(files):
         try:
             pages = convert_from_path(f, thread_count=int(WORKER_THREADS))
         except Exception:
-            # Skip non-PDFs or conversion failures silently for now
-            continue
+            raise HTTPException(status_code=500, detail="Failed to convert PDF")
         total = len(pages)
         try:
             size_bytes = os.path.getsize(f)

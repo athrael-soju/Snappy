@@ -122,7 +122,11 @@ def build_ui(
             gr.Markdown("### 🔎 Retrieval Settings")
             k = gr.Dropdown(
                 choices=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-                value=DEFAULT_TOP_K if DEFAULT_TOP_K in [1,2,3,4,5,6,7,8,9,10] else 5,
+                value=(
+                    DEFAULT_TOP_K
+                    if DEFAULT_TOP_K in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    else 5
+                ),
                 label="Top-k results",
                 interactive=True,
             )
@@ -166,7 +170,6 @@ def build_ui(
                 line_breaks=True,
                 show_copy_button=True,
                 show_copy_all_button=True,
-                show_share_button=True,
                 placeholder="What would you like to know today?",
             )
 
