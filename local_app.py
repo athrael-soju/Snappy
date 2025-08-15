@@ -29,27 +29,16 @@ from ui import build_ui
 
 # Initialize storage backend (Qdrant only)
 from clients.qdrant import QdrantService
+from clients.minio import MinioService
 
 api_client = ColPaliClient()
-qdrant_service = QdrantService(api_client)
+minio_service = MinioService()
+qdrant_service = QdrantService(api_client, minio_service)
 
 
 # -----------------------
-# Core functions (unchanged behavior)
+# Core functions
 # -----------------------
-def _retrieve_results(query: str, k: Union[int, str]) -> List[Any]:
-    """Retrieve top-k page images for the query from Qdrant."""
-    try:
-        k = int(k)
-        if k <= 0:
-            k = int(DEFAULT_TOP_K)
-    except Exception:
-        k = int(DEFAULT_TOP_K)
-
-    results = qdrant_service.search(query, k=k)
-    return results
-
-
 def _encode_pil_to_data_url(img) -> str:
     """Encode a PIL.Image to a data URL suitable for OpenAI vision input."""
     buf = io.BytesIO()
