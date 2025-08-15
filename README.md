@@ -1,6 +1,11 @@
 
 
-![1755283030138](image/README/1755283030138.png)
+
+
+
+<div align="center">
+<img src="image/README/1755283030138.png" alt="1755283030138" width="80%">
+</div>
 
 A lightweight, end-to-end template for page-level retrieval over PDFs using a ColPali-like approach:
 
