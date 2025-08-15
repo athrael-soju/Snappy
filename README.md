@@ -1,8 +1,6 @@
 
 
-![1755195454795](image/README/1755195454795.png)
-
-# Vision RAG Template
+![1755283030138](image/README/1755283030138.png)
 
 A lightweight, end-to-end template for page-level retrieval over PDFs using a ColPali-like approach:
 
