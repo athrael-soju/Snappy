@@ -16,7 +16,7 @@ from config import (
 )
 from .minio import MinioService
 from .colpali import ColPaliClient
-from util.labeling import compute_page_label
+from api.utils import compute_page_label
 import logging
 logger = logging.getLogger(__name__)
 

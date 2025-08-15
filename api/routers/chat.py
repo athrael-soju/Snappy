@@ -6,10 +6,9 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 from api.dependencies import get_qdrant_service, qdrant_init_error
 from api.models import ChatRequest, ChatResponse
-from api.utils import encode_pil_to_data_url
+from api.utils import encode_pil_to_data_url, compute_page_label
 from clients.openai import OpenAIClient as OpenAI
 from config import OPENAI_MODEL, OPENAI_SYSTEM_PROMPT
-from util.labeling import compute_page_label
 
 router = APIRouter(prefix="", tags=["chat"])
 

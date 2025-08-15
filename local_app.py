@@ -5,8 +5,8 @@ import random
 import gradio as gr
 from pdf2image import convert_from_path
 from typing import List
-from util.thinking_messages import BRAIN_PLACEHOLDERS
-from util.labeling import compute_page_label
+from api.utils import BRAIN_PLACEHOLDERS
+from api.utils import compute_page_label
 
 # Client wrapper for OpenAI
 from clients.openai import OpenAIClient

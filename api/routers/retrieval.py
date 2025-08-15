@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from api.dependencies import get_qdrant_service, qdrant_init_error
 from api.models import SearchItem
-from util.labeling import compute_page_label
+from api.utils import compute_page_label
 from config import DEFAULT_TOP_K
 
 router = APIRouter(prefix="", tags=["retrieval"])
