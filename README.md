@@ -1,10 +1,5 @@
-
-
-
-
-
 <div align="center">
-<img src="image/README/1755283030138.png" alt="1755283030138" width="80%">
+  <img width="1024" height="1536" alt="image" src="https://github.com/user-attachments/assets/58b1ad03-b5da-48a2-9db0-381e7865a8ab"  width="80%/>
 </div>
 
 # Vision Rag Template
