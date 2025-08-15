@@ -1,4 +1,4 @@
-<img width="1024" height="1536" alt="image" src="https://github.com/user-attachments/assets/c1e3c300-93dd-401d-81f0-69772d8acc39" />
+<img width="80%" alt="image" src="https://github.com/user-attachments/assets/c1e3c300-93dd-401d-81f0-69772d8acc39" />
 
 
 # Vision Rag Template
