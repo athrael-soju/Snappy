@@ -18,9 +18,16 @@ class ChatRequest(BaseModel):
     system_prompt: Optional[str] = None
 
 
+class RetrievedPage(BaseModel):
+    image_url: Optional[str]
+    label: Optional[str]
+    payload: Dict[str, Any]
+    score: Optional[float] = None
+
+
 class ChatResponse(BaseModel):
     text: str
-    images: List[Dict[str, Any]]
+    images: List[RetrievedPage]
 
 
 class SearchItem(BaseModel):

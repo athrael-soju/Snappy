@@ -102,29 +102,28 @@ def convert_pdf_paths_to_images(paths: List[str]) -> List[dict]:
     return items
 
 
-def compute_page_label(payload: Optional[Dict]) -> str:
-    """Compute a human-friendly label for a retrieved page based on payload metadata.
+def compute_page_label(payload: Dict) -> str:
+    """Compute a human-friendly label for a retrieved page.
 
-    Expected payload keys (if available):
+    Required payload keys:
       - filename: str
       - pdf_page_index: int (1-based)
       - total_pages: int
-      - index: int (fallback)
     """
-    try:
-        payload = payload or {}
-        fname = payload.get("filename")
-        page_num = payload.get("pdf_page_index")
-        total = payload.get("total_pages")
+    fname = payload["filename"]
+    page_num = payload["pdf_page_index"]
+    total = payload["total_pages"]
+    return f"{fname} — {page_num}/{total}"
 
-        if fname and page_num and total:
-            return f"{fname} — {page_num}/{total}"
-        if fname and page_num:
-            return f"{fname} — {page_num}"
-        if page_num and total:
-            return f"Page {page_num}/{total}"
-        if page_num:
-            return f"Page {page_num}"
-        return fname or f"Index {payload.get('index', '')}"
-    except Exception:
-        return f"Index {payload.get('index', '')}"
+
+def format_page_labels(items: List[Dict], k: Optional[int] = None) -> str:
+    """Format an enumerated labels block for a list of retrieved items.
+
+    Assumes each item has a precomputed `label`.
+
+    Example output:
+      1) file.pdf — 1/10
+      2) file.pdf — 2/10
+    """
+    subset = items if (k is None) else items[: int(k)]
+    return "\n".join(f"{idx+1}) {it['label']}" for idx, it in enumerate(subset))

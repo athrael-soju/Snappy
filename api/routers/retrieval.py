@@ -4,7 +4,6 @@ from fastapi import APIRouter, HTTPException, Query
 
 from api.dependencies import get_qdrant_service, qdrant_init_error
 from api.models import SearchItem
-from api.utils import compute_page_label
 from config import DEFAULT_TOP_K
 
 router = APIRouter(prefix="", tags=["retrieval"])
@@ -25,7 +24,7 @@ async def search(
     results: List[SearchItem] = []
     for it in items:
         payload = it.get("payload", {})
-        label = compute_page_label(payload)
+        label = it["label"]
         image_url = payload.get("image_url")
         results.append(
             SearchItem(

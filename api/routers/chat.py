@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 from api.dependencies import get_qdrant_service, qdrant_init_error
 from api.models import ChatRequest, ChatResponse
-from api.utils import encode_pil_to_data_url, compute_page_label
+from api.utils import encode_pil_to_data_url, format_page_labels
 from clients.openai import OpenAIClient as OpenAI
 from config import OPENAI_MODEL, OPENAI_SYSTEM_PROMPT
 
@@ -46,7 +46,7 @@ async def chat(req: ChatRequest):
         images = [
             {
                 "image_url": it.get("payload", {}).get("image_url"),
-                "label": compute_page_label(it.get("payload", {})),
+                "label": it.get("label"),
                 "payload": it.get("payload", {}),
                 "score": it.get("score"),
             }
@@ -61,12 +61,7 @@ async def chat(req: ChatRequest):
             str(req.message),
             "",
             "[Retrieved pages]",
-            "\n".join(
-                [
-                    f"{idx+1}) {compute_page_label(it.get('payload', {}))}"
-                    for idx, it in enumerate(items[:k])
-                ]
-            ),
+            format_page_labels(items, k),
             "",
             "Cite pages using the labels above (do not infer by result order).",
         ]
@@ -102,7 +97,7 @@ async def chat(req: ChatRequest):
     images = [
         {
             "image_url": it.get("payload", {}).get("image_url"),
-            "label": compute_page_label(it.get("payload", {})),
+            "label": it.get("label"),
             "payload": it.get("payload", {}),
             "score": it.get("score"),
         }
@@ -143,7 +138,7 @@ async def chat_stream(req: ChatRequest):
         images = [
             {
                 "image_url": it.get("payload", {}).get("image_url"),
-                "label": compute_page_label(it.get("payload", {})),
+                "label": it.get("label"),
                 "payload": it.get("payload", {}),
                 "score": it.get("score"),
             }
@@ -157,12 +152,7 @@ async def chat_stream(req: ChatRequest):
             str(req.message),
             "",
             "[Retrieved pages]",
-            "\n".join(
-                [
-                    f"{idx+1}) {compute_page_label(it.get('payload', {}))}"
-                    for idx, it in enumerate(items[:k])
-                ]
-            ),
+            format_page_labels(items, k),
             "",
             "Cite pages using the labels above (do not infer by result order).",
         ]

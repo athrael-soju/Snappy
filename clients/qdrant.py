@@ -397,7 +397,8 @@ class QdrantService:
                         items.append(
                             {
                                 "image": image,
-                                "payload": point.payload or {},
+                                "payload": point.payload,
+                                "label": compute_page_label(point.payload),
                                 "score": getattr(point, "score", None),
                             }
                         )
@@ -421,10 +422,7 @@ class QdrantService:
         items = self.search_with_metadata(query, k)
         results = []
         for item in items:
-            payload = item.get("payload", {})
-            # Compute label via shared utility
-            page_info = compute_page_label(payload)
-            results.append((item.get("image"), page_info))
+            results.append((item.get("image"), item["label"]))
         return results
 
     # -----------------------

@@ -6,7 +6,7 @@ import gradio as gr
 from pdf2image import convert_from_path
 from typing import List
 from api.utils import BRAIN_PLACEHOLDERS
-from api.utils import compute_page_label
+from api.utils import format_page_labels
 
 # Client wrapper for OpenAI
 from clients.openai import OpenAIClient
@@ -68,7 +68,11 @@ def on_chat_submit(
         items = qdrant_service.search_with_metadata(str(message), k=k_int)
 
         results_gallery = [
-            (it.get("image"), compute_page_label(it.get("payload", {}))) for it in items
+            (
+                it["image"],
+                it["label"],
+            )
+            for it in items
         ]
 
         updated_chat = list(chat_history or [])
@@ -103,7 +107,11 @@ def on_chat_submit(
     items = qdrant_service.search_with_metadata(str(message), k=k_int)
 
     results_gallery = [
-        (it.get("image"), compute_page_label(it.get("payload", {}))) for it in items
+        (
+            it["image"],
+            it["label"],
+        )
+        for it in items
     ]
 
     # Show gallery and insert a temporary thinking bubble at the exact reply location
@@ -137,12 +145,7 @@ def on_chat_submit(
 
     # Provide explicit page labels alongside the user's question to guide citations
     try:
-        labels_text = "\n".join(
-            [
-                f"{idx+1}) {compute_page_label(it.get('payload', {}))}"
-                for idx, it in enumerate(items[:k_int])
-            ]
-        )
+        labels_text = format_page_labels(items, k_int)
     except Exception:
         labels_text = ""
 
