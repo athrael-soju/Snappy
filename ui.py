@@ -112,12 +112,6 @@ def build_ui(
                 label="Temperature",
                 interactive=True,
             )
-            model_input = gr.Textbox(
-                label="OpenAI model",
-                value=OPENAI_MODEL,
-                lines=1,
-                placeholder="e.g., gpt-4o-mini",
-            )
             system_prompt_input = gr.Textbox(
                 label="Custom system prompt",
                 lines=4,
@@ -128,7 +122,11 @@ def build_ui(
             gr.Markdown("### 🔎 Retrieval Settings")
             k = gr.Dropdown(
                 choices=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-                value=DEFAULT_TOP_K if DEFAULT_TOP_K in [1,2,3,4,5,6,7,8,9,10] else 5,
+                value=(
+                    DEFAULT_TOP_K
+                    if DEFAULT_TOP_K in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                    else 5
+                ),
                 label="Top-k results",
                 interactive=True,
             )
@@ -172,7 +170,6 @@ def build_ui(
                 line_breaks=True,
                 show_copy_button=True,
                 show_copy_all_button=True,
-                show_share_button=True,
                 placeholder="What would you like to know today?",
             )
 
@@ -218,35 +215,19 @@ def build_ui(
             on_clear_all, inputs=[danger_confirm], outputs=[danger_status]
         )
 
-        # Chat submit (Enter in textbox)
-        msg.submit(
-            on_chat_submit,
-            inputs=[
-                msg,
-                chat,
-                k,
-                ai_enabled,
-                temperature,
-                model_input,
-                system_prompt_input,
-            ],
-            outputs=[msg, chat, output_gallery],
-        )
+        # Chat submit (Enter key and Send button) — shared wiring
+        chat_inputs = [
+            msg,
+            chat,
+            k,
+            ai_enabled,
+            temperature,
+            system_prompt_input,
+        ]
+        chat_outputs = [msg, chat, output_gallery]
 
-        # Chat submit (Send button)
-        send_btn.click(
-            on_chat_submit,
-            inputs=[
-                msg,
-                chat,
-                k,
-                ai_enabled,
-                temperature,
-                model_input,
-                system_prompt_input,
-            ],
-            outputs=[msg, chat, output_gallery],
-        )
+        msg.submit(on_chat_submit, inputs=chat_inputs, outputs=chat_outputs)
+        send_btn.click(on_chat_submit, inputs=chat_inputs, outputs=chat_outputs)
 
         # Clear chat and gallery
         def _clear_chat():

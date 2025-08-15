@@ -14,7 +14,6 @@ class ChatRequest(BaseModel):
     k: Optional[int] = DEFAULT_TOP_K
     ai_enabled: Optional[bool] = True
     temperature: Optional[float] = OPENAI_TEMPERATURE
-    model: Optional[str] = OPENAI_MODEL
     system_prompt: Optional[str] = None
 
 
