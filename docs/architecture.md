@@ -5,30 +5,25 @@ A concise view of the Vision RAG template and its main data flows.
 ```mermaid
 ---
 config:
-  theme: mc
+  theme: neutral
   layout: elk
   look: neo
 ---
 flowchart TB
-  %% Define high-contrast arrow style
-  linkStyle default stroke:#888,stroke-width:2.5px;
-
-  subgraph Services["🛠 Services"]
-        QS[["🗂 QdrantService\nclients/qdrant.py"]]
-        MINIO[["📦 MinioService\nclients/minio.py"]]
-        COL[["🧠 ColQwen Client\nclients/colqwen.py"]]
-        OAI[["🤖 OpenAI Client\nclients/openai.py"]]
+ subgraph Services["🛠 Services"]
+        QS[["🗂 QdrantService - clients/qdrant.py"]]
+        MINIO[["📦 MinioService - clients/minio.py"]]
+        COL[["🧠 ColQwen Client - clients/colqwen.py"]]
+        OAI[["🤖 OpenAI Client - clients/openai.py"]]
   end
-
-  subgraph External["🌐 External"]
-        QD[(💾 Qdrant)]
-        MN[(🗄 MinIO Bucket)]
-        CQ([☁️ ColQwen Embedding API])
-        OA([☁️ OpenAI API])
+ subgraph External["🌐 External"]
+        QD[("💾 Qdrant")]
+        MN[("🗄 MinIO")]
+        CQ(["☁️ ColQwen"])
+        OA(["☁️ OpenAI"])
   end
-
-    U[🖥 User Browser] <--> UI[🎨 Gradio UI\nui.py]
-    UI --> APP[⚙️ App\napp.py]
+    U["🖥 User Browser"] <--> UI["🎨 Gradio UI - ui.py"]
+    UI --> APP["⚙️ App - app.py"]
     UI -- 📤 Upload PDFs --> APP
     APP -- 📝 PDF ➡ page images --> QS
     QS -- 📥 store images --> MINIO
@@ -37,8 +32,7 @@ flowchart TB
     COL --> CQ
     QS -- 📊 upsert vectors --> QD
     UI -- 💬 Ask --> APP
-    APP --> QS
-    APP --> UI
+    APP --> QS & UI
     QS -- 🔍 embed query --> COL
     QS <-- 🔎 multivector search --> QD
     QS -- 📥 fetch images --> MINIO
@@ -46,7 +40,6 @@ flowchart TB
     APP -- 📝 text + images --> OAI
     OAI --> OA
     OAI -- 📡 stream reply --> APP
-
 ```
 
 Notes
