@@ -29,7 +29,7 @@ OPENAI_SYSTEM_PROMPT: Final[str] = os.getenv(
 
 # ColPali API
 COLPALI_API_BASE_URL: Final[str] = os.getenv(
-    "COLPALI_API_BASE_URL", "http://localhost:8000"
+    "COLPALI_API_BASE_URL", "http://localhost:7000"
 )
 COLPALI_API_TIMEOUT: Final[int] = int(os.getenv("COLPALI_API_TIMEOUT", "300"))
 

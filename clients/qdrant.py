@@ -17,29 +17,19 @@ from config import (
 from .minio import MinioService
 from .colpali import ColPaliClient
 from util.labeling import compute_page_label
+import logging
+logger = logging.getLogger(__name__)
 
 class QdrantService:
-    def __init__(self, api_client: ColPaliClient = None):
+    def __init__(self, api_client: ColPaliClient = None, minio_service: MinioService = None):
         try:
             # Initialize Qdrant client
             self.client = QdrantClient(url=QDRANT_URL)
             self.collection_name = QDRANT_COLLECTION_NAME
 
-            # Use API client for embeddings
-            self.api_client = api_client or ColPaliClient()
-
-            # Check API health on initialization
-            if not self.api_client.health_check():
-                raise Exception(
-                    "ColPali API health check failed. Please ensure the API server is running."
-                )
-
-            # Initialize MinIO service for image storage
-            self.minio_service = MinioService()
-            if not self.minio_service.health_check():
-                raise Exception(
-                    "MinIO service health check failed. Please ensure MinIO server is running."
-                )
+            # Use injected dependencies (do not initialize here)
+            self.api_client = api_client
+            self.minio_service = minio_service
         except Exception as e:
             raise Exception(f"Failed to initialize Qdrant service: {e}")
 
@@ -462,3 +452,12 @@ class QdrantService:
         except Exception as e:
             m_msg = f"MinIO clear failed: {e}"
         return f"{q_msg} {m_msg}"
+
+    def health_check(self) -> bool:
+        """Check if Qdrant service is healthy and accessible."""
+        try:
+            _ = self.client.get_collection(self.collection_name)
+            return True
+        except Exception as e:
+            logger.error(f"Qdrant health check failed: {e}")
+            return False

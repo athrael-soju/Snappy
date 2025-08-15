@@ -9,7 +9,7 @@ A lightweight, end-to-end template for page-level retrieval over PDFs using a Co
 - __Storage__: page images in MinIO, multivector embeddings in Qdrant
 - __Retrieval__: two-stage reranking with pooled image-token vectors
 - __Generation__: OpenAI chat completions with multimodal context (retrieved page images)
-- __UI__: Gradio app to upload/index PDFs and chat with the knowledgebase
+- __API__: FastAPI service exposing endpoints for indexing, search, chat, and maintenance
 
 This repo is intended as a developer-friendly starting point for vision RAG systems.
 
@@ -18,8 +18,9 @@ This repo is intended as a developer-friendly starting point for vision RAG syst
 Below is the high-level component architecture of the Vision RAG template.
 See the architecture diagram in [docs/architecture.md](docs/architecture.md). It focuses on the core indexing and retrieval flows for clarity.
 
-- __`ui.py`__: Gradio Blocks UI built by `build_ui(...)`.
-- __`app.py`__: App wiring. Converts PDFs to page images, indexes to Qdrant/MinIO, retrieves, and streams LLM replies.
+- __`fastapi_app.py`__: FastAPI app exposing endpoints for indexing, search, chat (streaming), and maintenance. Also performs PDF->image conversion when indexing.
+- __`app.py`__ (legacy): Original Gradio-driven wiring retained for reference; superseded by `fastapi_app.py`.
+- __`ui.py`__ (legacy): Gradio UI retained for reference; not used by the FastAPI server.
 - __`clients/qdrant.py`__: `QdrantService` manages collection, indexing, multivector retrieval, and MinIO integration.
 - __`clients/minio.py`__: `MinioService` for image storage/retrieval with batch operations and public-read policy.
 - __`clients/openai.py`__: Thin wrapper for OpenAI SDK (streaming completions, message construction).
@@ -43,8 +44,8 @@ __Retrieval flow__:
 ## Features
 
 - __Page-level, multimodal RAG__: stores per-page images, uses image-token pooling for robust retrieval
-- __Modern Gradio UI__: upload/index, chat, adjustable top-k and AI params, and a danger zone to clear stores
-- __Dockerized__: one `docker-compose up -d` brings up Qdrant, MinIO and the app
+- __FastAPI endpoints__: OpenAPI docs at `/docs`; endpoints for indexing, search, chat (streaming), and maintenance
+- __Dockerized__: one `docker-compose up -d` brings up Qdrant, MinIO and the API
 - __Configurable__: all knobs in `.env`/`config.py`
 
 ## Prerequisites
@@ -75,9 +76,9 @@ This launches:
 
 - Qdrant on http://localhost:6333
 - MinIO on http://localhost:9000 (console: http://localhost:9001, user/pass: `minioadmin`/`minioadmin`)
-- App on http://localhost:7860
+- API on http://localhost:8000 (OpenAPI docs at http://localhost:8000/docs)
 
-3) Open the app at http://localhost:7860
+3) Open the API docs at http://localhost:8000/docs
 
 ## Local development (without Compose)
 
@@ -100,51 +101,58 @@ docker run -p 6333:6333 -p 6334:6334 -v qdrant_data:/qdrant/storage --name qdran
 docker run -p 9000:9000 -p 9001:9001 -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin -v minio_data:/data --name minio minio/minio:latest server /data --console-address ":9001"
 ```
 
-4) Configure `.env` (or export vars) and run the app:
+4) Configure `.env` (or export vars) and run the API:
 
 ```bash
 cp .env.example .env
 # set OPENAI_API_KEY, OPENAI_MODEL, and ensure QDRANT_URL/MINIO_URL point to your services
-python app.py
+uvicorn fastapi_app:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 ## Environment variables
 
 Most defaults are in `config.py`. Key variables:
 
-- __Core__: `LOG_LEVEL` (INFO), `HOST` (0.0.0.0), `PORT` (7860)
+- __Core__: `LOG_LEVEL` (INFO), `HOST` (0.0.0.0), `PORT` (8000)
 - __OpenAI__: `OPENAI_API_KEY`, `OPENAI_MODEL`
-  - Note: `clients/openai.py` defaults to `gpt-5-nano` if unset; `app.py` reads `OPENAI_MODEL` (default `gpt-5-nano`). Set this explicitly to a valid model in your environment.
-- __ColPali API__: `COLPALI_API_BASE_URL` (default http://localhost:8000), `COLPALI_API_TIMEOUT`
+  - Note: `clients/openai.py` defaults to `gpt-5-nano` if unset; `fastapi_app.py` reads `OPENAI_MODEL` (default `gpt-5-nano`). Set this explicitly to a valid model in your environment.
+- __ColPali API__: `COLPALI_API_BASE_URL` (default http://localhost:7000), `COLPALI_API_TIMEOUT`
 - __Qdrant__: `QDRANT_URL` (default http://localhost:6333), `QDRANT_COLLECTION_NAME` (documents), `QDRANT_SEARCH_LIMIT`, `QDRANT_PREFETCH_LIMIT`
 - __MinIO__: `MINIO_URL` (default http://localhost:9000), `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET_NAME` (documents), `MINIO_WORKERS`, `MINIO_RETRIES`, `MINIO_FAIL_FAST`, `MINIO_IMAGE_FMT`
 - __Processing__: `DEFAULT_TOP_K`, `BATCH_SIZE`, `WORKER_THREADS`, `MAX_TOKENS`
 
 See `.env.example` for a minimal starting point. When using Compose, some storage vars are injected in `docker-compose.yml`.
 
-## Using the app
+## Using the API
 
-1) Open the UI.
-2) __Upload & Index__: drop one or more PDFs, click “Index documents”. A status message shows total pages indexed.
-3) __Ask__: type your question. The app retrieves top-k pages and, if AI is enabled, streams an answer from OpenAI using those page images as context.
-4) __AI Settings__: toggle AI on/off, set `temperature`, provide a custom system prompt.
-5) __Retrieval Settings__: adjust `Top-k`.
-6) __Danger Zone__: clear Qdrant, clear MinIO images, or clear both (requires checkbox confirmation).
+You can interact via the OpenAPI UI at `/docs` or with HTTP clients:
 
+- `GET /health` — check dependencies status.
+- `GET /search?q=...&k=5` — retrieve top-k results with payload metadata.
+- `POST /index` (multipart files[]) — upload and index PDFs.
+- `POST /chat` — JSON body with query and options; returns full text and retrieved pages.
+- `POST /chat/stream` — same body; streams text/plain tokens.
+- `POST /clear/qdrant` | `/clear/minio` | `/clear/all` — maintenance.
 
-## The UI
+## API Examples
 
-### Main Screen
-![1755187073028](image/README/1755187073028.png)
+Example search:
 
-### Sidebar (File upload & Config)
-![1755187099935](image/README/1755187099935.png)
+```bash
+curl "http://localhost:8000/search?q=What%20is%20the%20booking%20reference%3F&k=5"
+```
 
-### LLM Powered Q/A
-![1755187152628](image/README/1755187152628.png)
+Example chat:
 
-### Validate Results
-![1755187185850](image/README/1755187185850.png)
+```bash
+curl -X POST http://localhost:8000/chat \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "message": "What is the booking reference for case 002?",
+    "k": 5,
+    "ai_enabled": true
+  }'
+```
 
 ## ColPali API contract (expected)
 
@@ -203,14 +211,15 @@ Each point has payload metadata like:
 
 ## Scripts and containers
 
-- `Dockerfile`: Python 3.10-slim, installs system deps (`poppler-utils`, etc.), installs requirements, and runs `python app.py`.
-- `docker-compose.yml`: brings up `qdrant`, `minio`, and the app (`vision-rag`).
+- `Dockerfile`: Python 3.10-slim, installs system deps (`poppler-utils`, etc.), installs requirements, and runs `uvicorn fastapi_app:app` on port 8000.
+- `docker-compose.yml`: brings up `qdrant`, `minio`, and the API (`vision-rag`) on 8000.
 - `packages.txt`: system package hint for environments like Codespaces.
 
 ## Development notes
 
-- UI built via `build_ui(...)` in `ui.py`. Chat uses Gradio `Chatbot` with multimodal messages.
-- Replace OpenAI with another LLM by adapting `clients/openai.py` and `app.py:on_chat_submit`.
+- FastAPI app in `fastapi_app.py` exposes `/health`, `/search`, `/index`, `/chat`, `/chat/stream`.
+- Legacy Gradio UI remains (`ui.py`/`app.py`) for reference but is not used by the default Docker flow.
+- Replace OpenAI with another LLM by adapting `clients/openai.py` and the chat routes in `fastapi_app.py`.
 - To filter search by metadata, see `QdrantService.search_with_metadata(...)`.
 
 ## License
