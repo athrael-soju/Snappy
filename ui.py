@@ -112,12 +112,6 @@ def build_ui(
                 label="Temperature",
                 interactive=True,
             )
-            model_input = gr.Textbox(
-                label="OpenAI model",
-                value=OPENAI_MODEL,
-                lines=1,
-                placeholder="e.g., gpt-4o-mini",
-            )
             system_prompt_input = gr.Textbox(
                 label="Custom system prompt",
                 lines=4,
@@ -218,35 +212,19 @@ def build_ui(
             on_clear_all, inputs=[danger_confirm], outputs=[danger_status]
         )
 
-        # Chat submit (Enter in textbox)
-        msg.submit(
-            on_chat_submit,
-            inputs=[
-                msg,
-                chat,
-                k,
-                ai_enabled,
-                temperature,
-                model_input,
-                system_prompt_input,
-            ],
-            outputs=[msg, chat, output_gallery],
-        )
+        # Chat submit (Enter key and Send button) — shared wiring
+        chat_inputs = [
+            msg,
+            chat,
+            k,
+            ai_enabled,
+            temperature,
+            system_prompt_input,
+        ]
+        chat_outputs = [msg, chat, output_gallery]
 
-        # Chat submit (Send button)
-        send_btn.click(
-            on_chat_submit,
-            inputs=[
-                msg,
-                chat,
-                k,
-                ai_enabled,
-                temperature,
-                model_input,
-                system_prompt_input,
-            ],
-            outputs=[msg, chat, output_gallery],
-        )
+        msg.submit(on_chat_submit, inputs=chat_inputs, outputs=chat_outputs)
+        send_btn.click(on_chat_submit, inputs=chat_inputs, outputs=chat_outputs)
 
         # Clear chat and gallery
         def _clear_chat():

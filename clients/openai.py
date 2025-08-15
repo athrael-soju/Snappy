@@ -24,7 +24,6 @@ class OpenAIClient:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        default_model: Optional[str] = None,
         default_temperature: Optional[float] = None,
     ):
         if _OpenAISDK is None:
@@ -38,8 +37,7 @@ class OpenAIClient:
                 "OPENAI_API_KEY not set. Please configure it in your environment or .env file."
             )
 
-        self.model = (default_model or OPENAI_MODEL or "gpt-5-nano").strip()
-        # Default temperature (can be overridden per-call)
+        self.model = (OPENAI_MODEL or "gpt-5-nano").strip()
         try:
             self.temperature = (
                 float(default_temperature)
@@ -88,7 +86,6 @@ class OpenAIClient:
         messages: List[Dict[str, Any]],
         *,
         temperature: Optional[float] = None,
-        model: Optional[str] = None,
     ) -> Generator[str, None, None]:
         """Yield incremental content tokens from a chat completion stream.
 
@@ -98,20 +95,19 @@ class OpenAIClient:
             OpenAI chat messages.
         temperature: float | None
             Optional per-call temperature override.
-        model: str | None
-            Optional per-call model override.
         """
 
-        target_model = (model or self.model).strip()
         try:
             target_temp = (
-                float(temperature) if temperature is not None else float(self.temperature)
+                float(temperature)
+                if temperature is not None
+                else float(self.temperature)
             )
         except Exception:
             target_temp = float(self.temperature)
 
         stream = self.client.chat.completions.create(
-            model=target_model,
+            model=self.model,
             messages=messages,
             temperature=target_temp,
             stream=True,
