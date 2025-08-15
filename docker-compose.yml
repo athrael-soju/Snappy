@@ -40,7 +40,7 @@ services:
     image: vision-rag-app:latest
     container_name: vision-rag
     ports:
-      - "7860:7860"
+      - "8000:8000"
     env_file:
       - .env
     environment:

@@ -9,3 +9,6 @@ numpy
 python-dotenv
 minio
 requests
+fastapi
+uvicorn[standard]
+python-multipart

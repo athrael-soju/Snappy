@@ -4,17 +4,12 @@ import base64
 import random
 import gradio as gr
 from pdf2image import convert_from_path
-from typing import Any, List, Union
-from util.thinking_messages import BRAIN_PLACEHOLDERS
-from util.labeling import compute_page_label
+from typing import List
+from api.utils import BRAIN_PLACEHOLDERS
+from api.utils import format_page_labels
 
-try:
-    from openai import OpenAI
-except Exception:  # fallback for environments with old SDK
-    OpenAI = None
-
-# Client wrapper for OpenAI (preferred)
-from clients.openai import OpenAIClient as OpenAI
+# Client wrapper for OpenAI
+from clients.openai import OpenAIClient
 
 # Your clients / config
 from clients.colpali import ColPaliClient
@@ -29,27 +24,16 @@ from ui import build_ui
 
 # Initialize storage backend (Qdrant only)
 from clients.qdrant import QdrantService
+from clients.minio import MinioService
 
 api_client = ColPaliClient()
-qdrant_service = QdrantService(api_client)
+minio_service = MinioService()
+qdrant_service = QdrantService(api_client, minio_service)
 
 
 # -----------------------
-# Core functions (unchanged behavior)
+# Core functions
 # -----------------------
-def _retrieve_results(query: str, k: Union[int, str]) -> List[Any]:
-    """Retrieve top-k page images for the query from Qdrant."""
-    try:
-        k = int(k)
-        if k <= 0:
-            k = int(DEFAULT_TOP_K)
-    except Exception:
-        k = int(DEFAULT_TOP_K)
-
-    results = qdrant_service.search(query, k=k)
-    return results
-
-
 def _encode_pil_to_data_url(img) -> str:
     """Encode a PIL.Image to a data URL suitable for OpenAI vision input."""
     buf = io.BytesIO()
@@ -84,7 +68,11 @@ def on_chat_submit(
         items = qdrant_service.search_with_metadata(str(message), k=k_int)
 
         results_gallery = [
-            (it.get("image"), compute_page_label(it.get("payload", {}))) for it in items
+            (
+                it["image"],
+                it["label"],
+            )
+            for it in items
         ]
 
         updated_chat = list(chat_history or [])
@@ -101,7 +89,7 @@ def on_chat_submit(
     # Initialize OpenAI client (wrapper handles SDK/key validation)
     api_key = (os.getenv("OPENAI_API_KEY") or "").strip()
     try:
-        client = OpenAI(api_key=api_key)
+        client = OpenAIClient(api_key=api_key)
     except Exception as e:
         updated_chat = list(chat_history or [])
         updated_chat.append({"role": "user", "content": str(message)})
@@ -119,7 +107,11 @@ def on_chat_submit(
     items = qdrant_service.search_with_metadata(str(message), k=k_int)
 
     results_gallery = [
-        (it.get("image"), compute_page_label(it.get("payload", {}))) for it in items
+        (
+            it["image"],
+            it["label"],
+        )
+        for it in items
     ]
 
     # Show gallery and insert a temporary thinking bubble at the exact reply location
@@ -153,12 +145,7 @@ def on_chat_submit(
 
     # Provide explicit page labels alongside the user's question to guide citations
     try:
-        labels_text = "\n".join(
-            [
-                f"{idx+1}) {compute_page_label(it.get('payload', {}))}"
-                for idx, it in enumerate(items[:k_int])
-            ]
-        )
+        labels_text = format_page_labels(items, k_int)
     except Exception:
         labels_text = ""
 
@@ -167,10 +154,9 @@ def on_chat_submit(
         "Cite pages using the labels above (do not infer by result order)."
     )
 
-    messages = OpenAI.build_messages(
+    messages = OpenAIClient.build_messages(
         chat_history, system_prompt, user_message_with_labels, image_parts
     )
-
 
     # Coerce temperature
     try:
@@ -179,9 +165,7 @@ def on_chat_submit(
         temp = float(OPENAI_TEMPERATURE)
 
     # Determine model to use (UI override or config default)
-    chosen_model = (
-        str(model).strip() if model and str(model).strip() else OPENAI_MODEL
-    )
+    chosen_model = str(model).strip() if model and str(model).strip() else OPENAI_MODEL
 
     # Stream tokens via wrapper
     assistant_text = ""

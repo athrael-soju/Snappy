@@ -13,11 +13,10 @@ This document analyzes the current system implemented in this repository and com
 
 ## Current System Overview
 
-- __User entrypoint__: `app.py`
+- __API server__: `fastapi_app.py` boots `api.app.create_app()` which includes routers: `meta`, `retrieval`, `chat`, `indexing`, `maintenance`.
+- __Local UI (optional)__: `local_app.py` + `ui.py` (Gradio Blocks)
   - Chat handler: `on_chat_submit()` streams an LLM answer with retrieved page images.
   - Indexing: `index_files()` calls `QdrantService.index_documents()` with images and metadata from `convert_files()` (uses `pdf2image`).
-- __UI__: `ui.py` built with Gradio Blocks
-  - File indexing, AI settings (temperature, system prompt), retrieval `k`, and danger-zone clear actions.
 - __Storage and retrieval__: `clients/qdrant.py`
   - Qdrant multivector collection with fields: `original`, `mean_pooling_rows`, `mean_pooling_columns` and comparator `MAX_SIM`.
   - Two-stage search via `query_batch_points` with `prefetch` on pooled vectors and final ranking `using="original"`.
@@ -27,13 +26,13 @@ This document analyzes the current system implemented in this repository and com
 - __Image storage__: `clients/minio.py`
   - Batch uploads with retries and public-read policy. URLs derived from `MINIO_URL` and bucket.
 - __LLM wrapper__: `clients/openai.py`
-  - Streams chat completions and constructs multimodal messages. Model is configurable via `OPENAI_MODEL` (defaults to `gpt-5-nano` in `app.py`).
+  - Streams chat completions and constructs multimodal messages. Model is configurable via `OPENAI_MODEL` in `config.py` (default `gpt-5-nano`).
 
 ---
 
 ## Indexing Pipeline (What Happens on Upload)
 
-- __PDF to images__: `app.py::convert_files()` uses `pdf2image.convert_from_path(...)` with `WORKER_THREADS`. Each page becomes one PIL image with payload metadata: `filename`, `pdf_page_index`, `page_width_px`, `page_height_px`, etc.
+- __PDF to images__: The API route uses `api/utils.py::convert_pdf_paths_to_images(...)`. The local UI uses `local_app.py::convert_files()` which calls `pdf2image.convert_from_path(...)` with `WORKER_THREADS`. Each page becomes one PIL image with payload metadata: `filename`, `pdf_page_index`, `page_width_px`, `page_height_px`, etc.
 - __Embeddings__: `QdrantService._embed_and_mean_pool_batch(...)`
   - Calls `ColPaliClient.embed_images(...)` to get image patch embeddings.
   - Calls `ColPaliClient.get_patches(...)` to obtain the patch grid (`n_patches_x`, `n_patches_y`).
@@ -55,10 +54,10 @@ Notes:
   - Prefetch against `mean_pooling_columns` and `mean_pooling_rows` with `prefetch_limit`.
   - Final rank against `original` with `search_limit`, `with_payload=True`.
 - __Result assembly__:
-  - `search_with_metadata(...)` fetches images back from MinIO by `image_url` and returns `[{'image': PIL.Image, 'payload': {...}}]`.
-  - `app.py::_retrieve_results()` calls `qdrant_service.search(...)` to get top-k images for display.
-- __Multimodal answer__: `app.py::on_chat_submit()`
-  - Encodes top-k images as data URLs and sends them alongside the user text to OpenAI via `OpenAIClient.stream_chat(...)` for a streamed answer.
+  - `search_with_metadata(...)` fetches images back from MinIO by `image_url` and returns `[{"image": PIL.Image, 'payload': {...}}]`.
+  - The API `/search` route (`api/routers/retrieval.py`) formats and returns structured results.
+- __Multimodal answer__: 
+  - The API chat router (`api/routers/chat.py`) encodes top-k images as data URLs and sends them with the user text to OpenAI via `OpenAIClient.stream_chat(...)` for a streamed answer. The local UI uses `local_app.py::on_chat_submit()` for equivalent behavior.
 
 ---
 
@@ -131,16 +130,16 @@ Notes:
 
 ## Implementation Pointers (for this repo)
 
-- __Indexing paths__: `app.py::convert_files()`, `QdrantService.index_documents()`
+- __Indexing paths__: `api/utils.py::convert_pdf_paths_to_images()`, `local_app.py::convert_files()`, `QdrantService.index_documents()`
 - __Collection schema__: `QdrantService._create_collection_if_not_exists()`
 - __Pooling logic__: `QdrantService._pool_image_tokens()`
-- __Two-stage query__: `QdrantService._reranking_search_batch()`
-- __MinIO URLs__: `MinioService._get_image_url()` and `_extract_object_name_from_url()`
-- __Multimodal messages__: `OpenAIClient.build_messages()` and `app.py::on_chat_submit()`
+ - __Two-stage query__: `QdrantService._reranking_search_batch()`
+ - __MinIO URLs__: `MinioService._get_image_url()` and `_extract_object_name_from_url()`
+ - __Multimodal messages__: `OpenAIClient.build_messages()`, `api/routers/chat.py` (and `local_app.py::on_chat_submit()` for the UI)
 
 ---
 
 ## Caveats Noted from Code
 
-- The ColPali image embedding path in `QdrantService._embed_and_mean_pool_batch()` expects per-image token boundaries (`image_patch_start`, `image_patch_len`), while `ColPaliClient.embed_images(...)` currently returns only `{"embeddings": ...}`. Ensure the API contract includes token boundary metadata or adjust the pooling logic accordingly.
-- The default OpenAI model is read from the environment in `app.py` (`OPENAI_MODEL`, default `gpt-5-nano`).
+ - The ColPali image embedding path in `QdrantService._embed_and_mean_pool_batch()` expects per-image token boundaries (`image_patch_start`, `image_patch_len`), while `ColPaliClient.embed_images(...)` currently returns only `{"embeddings": ...}`. Ensure the API contract includes token boundary metadata or adjust the pooling logic accordingly.
+ - The default OpenAI model is configured in `config.py` (`OPENAI_MODEL`, default `gpt-5-nano`) and used by `clients/openai.py`. Both the API and local UI respect this unless overridden per request.
