@@ -7,6 +7,8 @@
 <img src="image/README/1755283030138.png" alt="1755283030138" width="80%">
 </div>
 
+# Vision Rag Template
+
 A lightweight, end-to-end template for page-level retrieval over PDFs using a ColPali-like approach:
 
 - __Storage__: page images in MinIO, multivector embeddings in Qdrant
