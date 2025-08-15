@@ -5,41 +5,48 @@ A concise view of the Vision RAG template and its main data flows.
 ```mermaid
 ---
 config:
-  theme: default
+  theme: mc
   layout: elk
   look: neo
 ---
 flowchart TB
- subgraph Services["Services"]
-        QS["QdrantService - clients/qdrant.py"]
-        MINIO["MinioService - clients/minio.py"]
-        COL["ColPali Client - clients/colpali.py"]
-        OAI["OpenAI Client - clients/openai.py"]
+  %% Define high-contrast arrow style
+  linkStyle default stroke:#888,stroke-width:2.5px;
+
+  subgraph Services["🛠 Services"]
+        QS[["🗂 QdrantService\nclients/qdrant.py"]]
+        MINIO[["📦 MinioService\nclients/minio.py"]]
+        COL[["🧠 ColQwen Client\nclients/colqwen.py"]]
+        OAI[["🤖 OpenAI Client\nclients/openai.py"]]
   end
- subgraph External["External"]
-        QD[("Qdrant")]
-        MN[("MinIO")]
-        CQ[("ColPali")]
-        OA[("OpenAI")]
+
+  subgraph External["🌐 External"]
+        QD[(💾 Qdrant)]
+        MN[(🗄 MinIO Bucket)]
+        CQ([☁️ ColQwen Embedding API])
+        OA([☁️ OpenAI API])
   end
-    U["User Browser"] <--> UI["Gradio UI - local_app.py/ui.py"]
-    UI --> API["FastAPI - api/app.py (routers)"]
-    UI -- Upload PDFs --> API
-    API -- "PDF -> page images" --> QS
-    QS -- store images --> MINIO
+
+    U[🖥 User Browser] <--> UI[🎨 Gradio UI\nui.py]
+    UI --> APP[⚙️ App\napp.py]
+    UI -- 📤 Upload PDFs --> APP
+    APP -- 📝 PDF ➡ page images --> QS
+    QS -- 📥 store images --> MINIO
     MINIO --> MN
-    QS -- embed images --> COL
-    COL --> CQ & CQ
-    QS -- upsert vectors --> QD
-    UI -- Ask --> API
-    API --> QS & UI
-    QS -- embed query --> COL
-    QS <-- multivector search --> QD
-    QS -- fetch images --> MINIO
-    QS -- page images + metadata --> API
-    API -- text + images --> OAI
+    QS -- 🧩 embed images --> COL
+    COL --> CQ
+    QS -- 📊 upsert vectors --> QD
+    UI -- 💬 Ask --> APP
+    APP --> QS
+    APP --> UI
+    QS -- 🔍 embed query --> COL
+    QS <-- 🔎 multivector search --> QD
+    QS -- 📥 fetch images --> MINIO
+    QS -- 🖼 page images + metadata --> APP
+    APP -- 📝 text + images --> OAI
     OAI --> OA
-    OAI -- stream reply --> API
+    OAI -- 📡 stream reply --> APP
+
 ```
 
 Notes
