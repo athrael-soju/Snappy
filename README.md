@@ -1,6 +1,5 @@
-<div align="center">
-  <img width="1024" height="1536" alt="image" src="https://github.com/user-attachments/assets/58b1ad03-b5da-48a2-9db0-381e7865a8ab"  width="80%/>
-</div>
+<img width="1024" height="1536" alt="image" src="https://github.com/user-attachments/assets/c1e3c300-93dd-401d-81f0-69772d8acc39" />
+
 
 # Vision Rag Template
 
