@@ -37,12 +37,12 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    image: vision-rag-app:latest
+    image: backend:latest
     container_name: backend
     ports:
       - "8000:8000"
     env_file:
-      - ./backend/.env
+      - ./.env
     environment:
       - COLPALI_MODE=${COLPALI_MODE:-cpu}
       - COLPALI_CPU_URL=${COLPALI_CPU_URL:-http://host.docker.internal:7001}
