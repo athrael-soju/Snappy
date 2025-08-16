@@ -1,4 +1,4 @@
-from typing import List, Any, Dict
+from typing import List
 
 from fastapi import APIRouter, HTTPException, Query
 

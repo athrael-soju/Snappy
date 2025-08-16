@@ -1,6 +1,5 @@
 import gradio as gr
 from config import (
-    OPENAI_MODEL,
     OPENAI_TEMPERATURE,
     OPENAI_SYSTEM_PROMPT,
     DEFAULT_TOP_K,

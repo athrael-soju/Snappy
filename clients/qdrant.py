@@ -1,5 +1,4 @@
 import uuid
-import warnings
 import numpy as np
 from typing import List, Tuple, Optional
 from PIL import Image

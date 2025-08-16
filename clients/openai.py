@@ -1,4 +1,3 @@
-import os
 from typing import Generator, List, Dict, Any, Optional
 
 from config import OPENAI_API_KEY, OPENAI_MODEL, OPENAI_TEMPERATURE

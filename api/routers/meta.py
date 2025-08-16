@@ -1,4 +1,3 @@
-from typing import Optional
 from fastapi import APIRouter
 
 from api.dependencies import (
