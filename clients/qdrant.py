@@ -18,10 +18,14 @@ from .minio import MinioService
 from .colpali import ColPaliClient
 from api.utils import compute_page_label
 import logging
+
 logger = logging.getLogger(__name__)
 
+
 class QdrantService:
-    def __init__(self, api_client: ColPaliClient = None, minio_service: MinioService = None):
+    def __init__(
+        self, api_client: ColPaliClient = None, minio_service: MinioService = None
+    ):
         try:
             # Initialize Qdrant client
             self.client = QdrantClient(url=QDRANT_URL)
@@ -32,9 +36,6 @@ class QdrantService:
             self.minio_service = minio_service
         except Exception as e:
             raise Exception(f"Failed to initialize Qdrant service: {e}")
-
-        # Create collection if it doesn't exist
-        self._create_collection_if_not_exists()
 
     def _get_model_dimension(self) -> int:
         """Get the embedding dimension from the API"""
@@ -209,6 +210,8 @@ class QdrantService:
         keys, e.g. 'filename', 'file_size_bytes', 'pdf_page_index',
         'total_pages', 'page_width_px', 'page_height_px'.
         """
+        self._create_collection_if_not_exists()
+
         batch_size = int(BATCH_SIZE)
 
         with tqdm(total=len(images), desc="Uploading progress") as pbar:
