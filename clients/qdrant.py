@@ -48,6 +48,13 @@ class QdrantService:
 
     def _create_collection_if_not_exists(self):
         """Create Qdrant collection for document storage with proper dimension validation"""
+        # Return early if the collection already exists
+        try:
+            _ = self.client.get_collection(self.collection_name)
+            return
+        except Exception:
+            pass
+
         try:
             # Get the model dimension from API
             model_dim = self._get_model_dimension()
@@ -84,7 +91,7 @@ class QdrantService:
             )
             print(f"Created new collection with dimension: {model_dim}")
         except Exception as e:
-            if "already exists" in str(e):
+            if "already exists" in str(e).lower():
                 model_dim = self._get_model_dimension()
                 print(
                     f"Using existing collection: {self.collection_name} with dimension: {model_dim}"
@@ -173,7 +180,7 @@ class QdrantService:
         pooled_by_columns_batch = []
         original_batch = []
 
-        for item, image, patch_result in zip(api_items, image_batch, patch_results):
+        for item, patch_result in zip(api_items, image_batch, patch_results):
             if isinstance(item, dict):
                 embedding_list = item.get("embedding")
                 start = item.get("image_patch_start", -1)
@@ -266,8 +273,10 @@ class QdrantService:
                 else:
                     raise Exception("MinIO service not available")
 
-                for j in range(current_batch_size):
-                    try:
+                # Build a batch of points and upsert in one request
+                try:
+                    points = []
+                    for j in range(current_batch_size):
                         orig = original_batch[j]
                         rows = pooled_by_rows_batch[j]
                         cols = pooled_by_columns_batch[j]
@@ -280,18 +289,14 @@ class QdrantService:
                                 f"Image failed to upload for batch starting at {i}: {image_url}"
                             )
 
-                        # Create document ID (use the same as image id for 1:1 mapping)
-                        doc_id = image_url.rsplit("/", 1)[-1].split(".", 1)[0]
+                        doc_id = image_ids[j]
 
                         # Prepare payload with MinIO URL
                         now_iso = datetime.now().isoformat() + "Z"
-
-                        # Minimal payload: drop UI-specific label/size fields; compute labels at query time
                         payload = {
-                            "index": i + j,  # global index in this session
+                            "index": i + j,
                             "image_url": image_url,
                             "document_id": doc_id,
-                            # Core metadata used to compute labels client-side
                             "filename": meta.get("filename"),
                             "file_size_bytes": meta.get("file_size_bytes"),
                             "pdf_page_index": meta.get("pdf_page_index"),
@@ -299,22 +304,28 @@ class QdrantService:
                             "indexed_at": now_iso,
                         }
 
-                        self.client.upload_collection(
-                            collection_name=self.collection_name,
-                            vectors={
-                                "mean_pooling_columns": np.asarray(
-                                    [cols], dtype=np.float32
-                                ),
-                                "original": np.asarray([orig], dtype=np.float32),
-                                "mean_pooling_rows": np.asarray(
-                                    [rows], dtype=np.float32
-                                ),
-                            },
-                            payload=[payload],
-                            ids=[doc_id],
+                        vectors = {
+                            "mean_pooling_columns": cols,
+                            "original": orig,
+                            "mean_pooling_rows": rows,
+                        }
+
+                        points.append(
+                            models.PointStruct(
+                                id=doc_id,
+                                vector=vectors,
+                                payload=payload,
+                            )
                         )
-                    except Exception as e:
-                        raise Exception(f"Error during upsert for image {i + j}: {e}")
+
+                    self.client.upsert(
+                        collection_name=self.collection_name,
+                        points=points,
+                    )
+                except Exception as e:
+                    raise Exception(
+                        f"Error during upsert for batch starting at {i}: {e}"
+                    )
 
                 pbar.update(current_batch_size)
 
@@ -443,16 +454,6 @@ class QdrantService:
         # Recreate with correct vectors config
         self._create_collection_if_not_exists()
         return f"Cleared Qdrant collection '{self.collection_name}'."
-
-    def clear_all(self) -> str:
-        """Clear Qdrant collection and all MinIO images. Returns a summary string."""
-        q_msg = self.clear_collection()
-        try:
-            res = self.minio_service.clear_images()
-            m_msg = f"Cleared MinIO images: deleted={res.get('deleted')}, failed={res.get('failed')}"
-        except Exception as e:
-            m_msg = f"MinIO clear failed: {e}"
-        return f"{q_msg} {m_msg}"
 
     def health_check(self) -> bool:
         """Check if Qdrant service is healthy and accessible."""

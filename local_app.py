@@ -253,7 +253,7 @@ def on_clear_minio(confirmed: bool) -> str:
     if not confirmed:
         return "Please check the confirmation box to proceed."
     try:
-        res = qdrant_service.minio_service.clear_images()
+        res = minio_service.clear_images()
         return f"Cleared MinIO images: deleted={res.get('deleted')}, failed={res.get('failed')}"
     except Exception as e:
         return f"Error clearing MinIO: {e}"
@@ -263,7 +263,7 @@ def on_clear_all(confirmed: bool) -> str:
     if not confirmed:
         return "Please check the confirmation box to proceed."
     try:
-        return qdrant_service.clear_all()
+        return qdrant_service.clear_collection() and minio_service.clear_images()
     except Exception as e:
         return f"Error clearing both: {e}"
 
