@@ -7,14 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "gen:api": "openapi-typescript ../openapi.json -o lib/api/schema.d.ts",
-    "predev": "npm run gen:api",
-    "prebuild": "npm run gen:api"
-
+    "predev": "yarn gen:sdk",
+    "prebuild": "yarn gen:sdk",
+    "gen:sdk": "openapi --input ../openapi.json --output lib/api/generated --client fetch --useUnionTypes"
   },
   "dependencies": {
     "next": "15.4.6",
-    "openapi-fetch": "^0.14.0",
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },
@@ -23,7 +21,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "openapi-typescript": "^7.9.1",
+    "openapi-typescript-codegen": "^0.29.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
