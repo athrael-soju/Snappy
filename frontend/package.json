@@ -7,14 +7,16 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "predev": "yarn gen:sdk",
-    "prebuild": "yarn gen:sdk",
-    "gen:sdk": "openapi --input ../openapi.json --output lib/api/generated --client fetch --useUnionTypes"
+    "predev": "yarn gen:sdk && yarn gen:zod",
+    "prebuild": "yarn gen:sdk && yarn gen:zod",
+    "gen:sdk": "openapi --input ../openapi.json --output lib/api/generated --client fetch --useUnionTypes",
+    "gen:zod": "openapi-zod-client ../openapi.json -o lib/api/zod"
   },
   "dependencies": {
     "next": "15.4.6",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "zod": "^4.0.17"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -22,6 +24,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "openapi-typescript-codegen": "^0.29.0",
+    "openapi-zod-client": "^1.18.3",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
