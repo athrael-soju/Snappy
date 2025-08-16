@@ -142,7 +142,7 @@ class QdrantService:
         # Reshape to [x_patches, y_patches, dim]
         if patch_len != x_patches * y_patches:
             raise ValueError(
-                f"image_patch_len ({patch_len}) != x_patches*y_patches ({x_patches*y_patches})"
+                f"image_patch_len ({patch_len}) != x_patches*y_patches ({x_patches * y_patches})"
             )
 
         dim = image_patch_tokens.shape[-1]

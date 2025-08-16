@@ -126,4 +126,4 @@ def format_page_labels(items: List[Dict], k: Optional[int] = None) -> str:
       2) file.pdf — 2/10
     """
     subset = items if (k is None) else items[: int(k)]
-    return "\n".join(f"{idx+1}) {it['label']}" for idx, it in enumerate(subset))
+    return "\n".join(f"{idx + 1}) {it['label']}" for idx, it in enumerate(subset))

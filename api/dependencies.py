@@ -30,7 +30,9 @@ def get_qdrant_service() -> Optional[QdrantService]:
     global qdrant_service, qdrant_init_error
     if qdrant_service is None:
         try:
-            qdrant_service = QdrantService(api_client=api_client, minio_service=get_minio_service())
+            qdrant_service = QdrantService(
+                api_client=api_client, minio_service=get_minio_service()
+            )
             qdrant_init_error = None
         except Exception as e:
             qdrant_service = None

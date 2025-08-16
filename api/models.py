@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel
-from config import DEFAULT_TOP_K, OPENAI_MODEL, OPENAI_TEMPERATURE
+from config import DEFAULT_TOP_K, OPENAI_TEMPERATURE
 
 
 class ChatMessage(BaseModel):

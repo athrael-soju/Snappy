@@ -68,7 +68,9 @@ async def clear_all():
             except Exception as me:
                 m_msg = f"MinIO clear failed: {me}"
         else:
-            m_msg = f"MinIO unavailable: {minio_init_error or 'Dependency service is down'}"
+            m_msg = (
+                f"MinIO unavailable: {minio_init_error or 'Dependency service is down'}"
+            )
 
         return {"status": "ok", "message": f"{q_msg} {m_msg}".strip()}
     except Exception as e:

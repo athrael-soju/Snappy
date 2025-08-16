@@ -11,4 +11,6 @@ if __name__ == "__main__":
     except Exception:
         raise ValueError("Invalid PORT")
     log_level = os.getenv("LOG_LEVEL", "info").lower()
-    uvicorn.run("fastapi_app:app", host=host, port=port, log_level=log_level, reload=True)
+    uvicorn.run(
+        "fastapi_app:app", host=host, port=port, log_level=log_level, reload=True
+    )
