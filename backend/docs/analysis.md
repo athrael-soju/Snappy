@@ -13,8 +13,8 @@ This document analyzes the current system implemented in this repository and com
 
 ## Current System Overview
 
-- __API server__: `fastapi_app.py` boots `api.app.create_app()` which includes routers: `meta`, `retrieval`, `chat`, `indexing`, `maintenance`.
-- __Local UI (optional)__: `local_app.py` + `ui.py` (Gradio Blocks)
+- __API server__: `main.py` boots `api.app.create_app()` which includes routers: `meta`, `retrieval`, `chat`, `indexing`, `maintenance`.
+- __Local UI (optional)__: `local.py` + `ui.py` (Gradio Blocks)
   - Chat handler: `on_chat_submit()` streams an LLM answer with retrieved page images.
   - Indexing: `index_files()` calls `QdrantService.index_documents()` with images and metadata from `convert_files()` (uses `pdf2image`).
 - __Storage and retrieval__: `clients/qdrant.py`
@@ -32,7 +32,7 @@ This document analyzes the current system implemented in this repository and com
 
 ## Indexing Pipeline (What Happens on Upload)
 
-- __PDF to images__: The API route uses `api/utils.py::convert_pdf_paths_to_images(...)`. The local UI uses `local_app.py::convert_files()` which calls `pdf2image.convert_from_path(...)` with `WORKER_THREADS`. Each page becomes one PIL image with payload metadata: `filename`, `pdf_page_index`, `page_width_px`, `page_height_px`, etc.
+- __PDF to images__: The API route uses `api/utils.py::convert_pdf_paths_to_images(...)`. The local UI uses `local.py::convert_files()` which calls `pdf2image.convert_from_path(...)` with `WORKER_THREADS`. Each page becomes one PIL image with payload metadata: `filename`, `pdf_page_index`, `page_width_px`, `page_height_px`, etc.
 - __Embeddings__: `QdrantService._embed_and_mean_pool_batch(...)`
   - Calls `ColPaliClient.embed_images(...)` to get image patch embeddings.
   - Calls `ColPaliClient.get_patches(...)` to obtain the patch grid (`n_patches_x`, `n_patches_y`).
@@ -57,7 +57,7 @@ Notes:
   - `search_with_metadata(...)` fetches images back from MinIO by `image_url` and returns `[{"image": PIL.Image, 'payload': {...}}]`.
   - The API `/search` route (`api/routers/retrieval.py`) formats and returns structured results.
 - __Multimodal answer__: 
-  - The API chat router (`api/routers/chat.py`) encodes top-k images as data URLs and sends them with the user text to OpenAI via `OpenAIClient.stream_chat(...)` for a streamed answer. The local UI uses `local_app.py::on_chat_submit()` for equivalent behavior.
+  - The API chat router (`api/routers/chat.py`) encodes top-k images as data URLs and sends them with the user text to OpenAI via `OpenAIClient.stream_chat(...)` for a streamed answer. The local UI uses `local.py::on_chat_submit()` for equivalent behavior.
 
 ---
 
@@ -130,12 +130,12 @@ Notes:
 
 ## Implementation Pointers (for this repo)
 
-- __Indexing paths__: `api/utils.py::convert_pdf_paths_to_images()`, `local_app.py::convert_files()`, `QdrantService.index_documents()`
+- __Indexing paths__: `api/utils.py::convert_pdf_paths_to_images()`, `local.py::convert_files()`, `QdrantService.index_documents()`
 - __Collection schema__: `QdrantService._create_collection_if_not_exists()`
 - __Pooling logic__: `QdrantService._pool_image_tokens()`
  - __Two-stage query__: `QdrantService._reranking_search_batch()`
  - __MinIO URLs__: `MinioService._get_image_url()` and `_extract_object_name_from_url()`
- - __Multimodal messages__: `OpenAIClient.build_messages()`, `api/routers/chat.py` (and `local_app.py::on_chat_submit()` for the UI)
+ - __Multimodal messages__: `OpenAIClient.build_messages()`, `api/routers/chat.py` (and `local.py::on_chat_submit()` for the UI)
 
 ---
 

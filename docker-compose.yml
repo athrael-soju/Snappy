@@ -33,16 +33,16 @@ services:
       - vision-rag-network
     restart: unless-stopped
 
-  vision-rag:
+  backend:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     image: vision-rag-app:latest
-    container_name: vision-rag
+    container_name: backend
     ports:
       - "8000:8000"
     env_file:
-      - .env
+      - ./backend/.env
     environment:
       - COLPALI_MODE=${COLPALI_MODE:-cpu}
       - COLPALI_CPU_URL=${COLPALI_CPU_URL:-http://host.docker.internal:7001}

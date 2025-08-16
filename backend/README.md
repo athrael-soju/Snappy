@@ -18,8 +18,8 @@ Below is the high-level component architecture of the Vision RAG template.
 See the architecture diagram in [docs/architecture.md](docs/architecture.md). It focuses on the core indexing and retrieval flows for clarity.
 
 - __`api/app.py`__ and `api/routers/*`__: Modular FastAPI application (routers: `meta`, `retrieval`, `chat`, `indexing`, `maintenance`).
-- __`fastapi_app.py`__: Thin entrypoint that boots `api.app.create_app()`.
-- __`local_app.py`__ + `ui.py`__: Optional local Gradio UI (upload/index PDFs, chat, maintenance actions) separate from the FastAPI server.
+- __`backend.py`__: Thin entrypoint that boots `api.app.create_app()`.
+- __`local.py`__ + `ui.py`__: Optional local Gradio UI (upload/index PDFs, chat, maintenance actions) separate from the FastAPI server.
 - __`clients/qdrant.py`__: `QdrantService` manages collection, indexing, multivector retrieval, and MinIO integration.
 - __`clients/minio.py`__: `MinioService` for image storage/retrieval with batch operations and public-read policy.
 - __`clients/openai.py`__: Thin wrapper for OpenAI SDK (streaming completions, message construction).
@@ -82,6 +82,7 @@ This launches:
 - Qdrant on http://localhost:6333
 - MinIO on http://localhost:9000 (console: http://localhost:9001, user/pass: `minioadmin`/`minioadmin`)
 - API on http://localhost:8000 (OpenAPI docs at http://localhost:8000/docs)
+- Frontend on http://localhost:3000 (if `frontend` service is enabled)
 
 3) Open the API docs at http://localhost:8000/docs
 
@@ -111,7 +112,7 @@ docker run -p 9000:9000 -p 9001:9001 -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT
 ```bash
 cp .env.example .env
 # set OPENAI_API_KEY, OPENAI_MODEL, and ensure QDRANT_URL/MINIO_URL point to your services
-uvicorn fastapi_app:app --host 0.0.0.0 --port 8000 --reload
+uvicorn backend:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 ## Optional local Gradio UI
@@ -119,7 +120,7 @@ uvicorn fastapi_app:app --host 0.0.0.0 --port 8000 --reload
 For a local, interactive UI (separate from the FastAPI server):
 
 ```bash
-python local_app.py
+python local.py
 ```
 
 Defaults to `HOST=0.0.0.0` and `PORT=7860` unless overridden via environment variables.
@@ -233,14 +234,14 @@ Each point has payload metadata like:
 
 ## Scripts and containers
 
-- `Dockerfile`: Python 3.10-slim, installs system deps (`poppler-utils`, etc.), installs requirements, and runs `uvicorn fastapi_app:app` on port 8000.
+- `Dockerfile`: Python 3.10-slim, installs system deps (`poppler-utils`, etc.), installs requirements, and runs `uvicorn backend:app` on port 8000.
 - `docker-compose.yml`: brings up `qdrant`, `minio`, and the API (`vision-rag`) on 8000.
 - `packages.txt`: system package hint for environments like Codespaces.
 
 ## Development notes
 
-- FastAPI app is assembled by `api/app.py` (routers: meta, retrieval, chat, indexing, maintenance) and booted by `fastapi_app.py`.
-- Local Gradio UI lives in `local_app.py` and `ui.py` (separate from the API).
+- FastAPI app is assembled by `api/app.py` (routers: meta, retrieval, chat, indexing, maintenance) and booted by `main.py`.
+- Local Gradio UI lives in `local.py` and `ui.py` (separate from the API).
 - Replace OpenAI with another LLM by adapting `clients/openai.py` and the chat router in `api/routers/chat.py`.
 - To filter search by metadata, see `QdrantService.search_with_metadata(...)`.
 

@@ -12,5 +12,5 @@ if __name__ == "__main__":
         raise ValueError("Invalid PORT")
     log_level = os.getenv("LOG_LEVEL", "info").lower()
     uvicorn.run(
-        "fastapi_app:app", host=host, port=port, log_level=log_level, reload=True
+        "backend:app", host=host, port=port, log_level=log_level, reload=True
     )
