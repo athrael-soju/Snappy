@@ -58,6 +58,7 @@ QDRANT_PREFETCH_LIMIT: Final[int] = int(os.getenv("QDRANT_PREFETCH_LIMIT", "200"
 
 # MinIO Object Storage
 MINIO_URL: Final[str] = os.getenv("MINIO_URL", "http://localhost:9000")
+MINIO_PUBLIC_URL: Final[str] = os.getenv("MINIO_PUBLIC_URL", MINIO_URL)
 MINIO_ACCESS_KEY: Final[str] = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
 MINIO_SECRET_KEY: Final[str] = os.getenv("MINIO_SECRET_KEY", "minioadmin")
 MINIO_BUCKET_NAME: Final[str] = os.getenv("MINIO_BUCKET_NAME", "documents")

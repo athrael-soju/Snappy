@@ -16,6 +16,7 @@ from PIL import Image
 
 from config import (
     MINIO_URL,
+    MINIO_PUBLIC_URL,
     MINIO_ACCESS_KEY,
     MINIO_SECRET_KEY,
     MINIO_BUCKET_NAME,
@@ -58,11 +59,13 @@ class MinioService:
 
             self.endpoint = endpoint
             self.secure = parsed.scheme == "https"
-            # Save the full base URL (scheme + host + optional path) for public links
-            base_path = parsed.path.rstrip("/")
+
+            # Public base URL can differ from SDK endpoint (e.g., localhost vs container name)
+            public_parsed = urlparse(MINIO_PUBLIC_URL)
+            public_base_path = public_parsed.path.rstrip("/")
             self._public_base_url = (
-                f"{parsed.scheme}://{parsed.netloc}{base_path}"
-                if parsed.scheme and parsed.netloc
+                f"{public_parsed.scheme}://{public_parsed.netloc}{public_base_path}"
+                if public_parsed.scheme and public_parsed.netloc
                 else f"http://{endpoint}"
             )
 
