@@ -13,17 +13,17 @@ flowchart TB
  subgraph Services["🛠 Services"]
         QS[["🗂 QdrantService - clients/qdrant.py"]]
         MINIO[["📦 MinioService - clients/minio.py"]]
-        COL[["🧠 ColQwen Client - clients/colqwen.py"]]
+        COL[["🧠 ColPali Client - clients/colpali.py"]]
         OAI[["🤖 OpenAI Client - clients/openai.py"]]
   end
  subgraph External["🌐 External"]
         QD[("💾 Qdrant")]
         MN[("🗄 MinIO")]
-        CQ(["☁️ ColQwen"])
+        CQ(["☁️ ColPali API"])
         OA(["☁️ OpenAI"])
   end
     U["🖥 User Browser"] <--> UI["🎨 Gradio UI - ui.py"]
-    UI --> APP["⚙️ App - app.py"]
+    UI --> APP["⚙️ App - api/app.py"]
     UI -- 📤 Upload PDFs --> APP
     APP -- 📝 PDF ➡ page images --> QS
     QS -- 📥 store images --> MINIO

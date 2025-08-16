@@ -66,7 +66,9 @@ __Retrieval flow__:
 
 ```bash
 cp .env.example .env
-# Set OPENAI_API_KEY and OPENAI_MODEL, adjust COLPALI_API_BASE_URL, etc.
+# Set OPENAI_API_KEY and OPENAI_MODEL.
+# Choose COLPALI_MODE (cpu|gpu) and optionally adjust COLPALI_CPU_URL/COLPALI_GPU_URL.
+# To force a single endpoint, set COLPALI_API_BASE_URL (takes precedence over mode URLs).
 ```
 
 2) Start services:
@@ -129,12 +131,19 @@ Most defaults are in `config.py`. Key variables:
 - __Core__: `LOG_LEVEL` (INFO), `HOST` (0.0.0.0), `PORT` (8000)
 - __OpenAI__: `OPENAI_API_KEY`, `OPENAI_MODEL`
   - Note: `clients/openai.py` uses `config.OPENAI_MODEL` (default `gpt-5-nano`). Both the API and local UI respect this unless overridden per request.
-- __ColPali API__: `COLPALI_API_BASE_URL` (default http://localhost:7000), `COLPALI_API_TIMEOUT`
+- __ColPali API__: Mode-based selection with optional explicit override:
+  - `COLPALI_MODE` (cpu|gpu; default `cpu`)
+  - `COLPALI_CPU_URL` (default `http://localhost:7001`)
+  - `COLPALI_GPU_URL` (default `http://localhost:7002`)
+  - `COLPALI_API_BASE_URL` (if set, overrides the above and is used as-is)
+  - `COLPALI_API_TIMEOUT`
 - __Qdrant__: `QDRANT_URL` (default http://localhost:6333), `QDRANT_COLLECTION_NAME` (documents), `QDRANT_SEARCH_LIMIT`, `QDRANT_PREFETCH_LIMIT`
 - __MinIO__: `MINIO_URL` (default http://localhost:9000), `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET_NAME` (documents), `MINIO_WORKERS`, `MINIO_RETRIES`, `MINIO_FAIL_FAST`, `MINIO_IMAGE_FMT`
 - __Processing__: `DEFAULT_TOP_K`, `BATCH_SIZE`, `WORKER_THREADS`, `MAX_TOKENS`
 
-See `.env.example` for a minimal starting point. When using Compose, some storage vars are injected in `docker-compose.yml`.
+See `.env.example` for a minimal starting point. When using Compose, note:
+- `vision-rag` service sets defaults `COLPALI_CPU_URL=http://host.docker.internal:7001` and `COLPALI_GPU_URL=http://host.docker.internal:7002`.
+- `QDRANT_URL` and `MINIO_URL` are set to internal service addresses (`http://qdrant:6333`, `http://minio:9000`).
 
 ## Using the API
 
