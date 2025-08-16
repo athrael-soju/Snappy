@@ -74,6 +74,8 @@ services:
     networks:
       - vision-rag-network
     restart: unless-stopped
+    depends_on:
+      - backend
 
 networks:
   vision-rag-network:

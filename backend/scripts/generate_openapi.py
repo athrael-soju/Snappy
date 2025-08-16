@@ -22,8 +22,10 @@ def main() -> int:
     backend_path = script_path.parent.parent
     # repo root (parent of backend/)
     project_root = backend_path.parent
+    # frontend/docs directory
+    docs_dir = project_root / "frontend" / "docs"
     # Default output at repo root
-    docs_default = project_root / "openapi.json"
+    docs_default = docs_dir / "openapi.json"
 
     # Ensure backend is importable so `from api.app import create_app` works
     sys.path.insert(0, str(backend_path))

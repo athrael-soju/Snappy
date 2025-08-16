@@ -10,6 +10,9 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imageGroups, setImageGroups] = useState<
+    Array<{ url: string | null; label: string | null; score: number | null }[]>
+  >([]);
 
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault();
@@ -33,11 +36,13 @@ export default function ChatPage() {
         { role: "assistant", content: res.text },
       ];
       setMessages(withAssistant);
-      // Store images on window for now (simple preview under the transcript)
-      (window as any).__chat_images__ = [
-        ...(((window as any).__chat_images__) || []),
-        res.images,
-      ];
+      // Append images to local state for preview
+      const group = (res.images || []).map((img: any) => ({
+        url: img.image_url ?? null,
+        label: img.label ?? null,
+        score: typeof img.score === "number" ? img.score : null,
+      }));
+      setImageGroups((prev) => [...prev, group]);
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         setError(`${err.status}: ${err.message}`);
@@ -48,17 +53,6 @@ export default function ChatPage() {
       setLoading(false);
     }
   }
-
-  // Helper to read accumulated image groups
-  const imageGroups: Array<
-    { url: string | null; label: string | null; score: number | null }[]
-  > = (((window as any).__chat_images__) || []).map((group: any[]) =>
-    group.map((img) => ({
-      url: img.image_url ?? null,
-      label: img.label ?? null,
-      score: typeof img.score === "number" ? img.score : null,
-    }))
-  );
 
   return (
     <div className="space-y-6">
