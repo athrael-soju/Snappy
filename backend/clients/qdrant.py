@@ -179,7 +179,7 @@ class QdrantService:
         pooled_by_columns_batch = []
         original_batch = []
 
-        for item, patch_result in zip(api_items, image_batch, patch_results):
+        for item, image, patch_result in zip(api_items, image_batch, patch_results):
             if isinstance(item, dict):
                 embedding_list = item.get("embedding")
                 start = item.get("image_patch_start", -1)
