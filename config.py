@@ -27,10 +27,26 @@ OPENAI_SYSTEM_PROMPT: Final[str] = os.getenv(
     "say you cannot find it. Be concise and always mention from which pages the answer is taken.",
 )
 
-# ColPali API
-COLPALI_API_BASE_URL: Final[str] = os.getenv(
-    "COLPALI_API_BASE_URL", "http://localhost:7000"
-)
+"""
+ColPali API configuration
+
+Priority:
+1) If COLPALI_API_BASE_URL is explicitly set, use it as-is.
+2) Otherwise, select based on COLPALI_MODE (cpu|gpu) between COLPALI_CPU_URL and COLPALI_GPU_URL.
+"""
+
+COLPALI_MODE: Final[str] = os.getenv("COLPALI_MODE", "cpu").lower()
+COLPALI_CPU_URL: Final[str] = os.getenv("COLPALI_CPU_URL", "http://localhost:7001")
+COLPALI_GPU_URL: Final[str] = os.getenv("COLPALI_GPU_URL", "http://localhost:7002")
+
+_explicit_base = os.getenv("COLPALI_API_BASE_URL", "").strip()
+if _explicit_base:
+    COLPALI_API_BASE_URL: Final[str] = _explicit_base
+else:
+    COLPALI_API_BASE_URL: Final[str] = (
+        COLPALI_GPU_URL if COLPALI_MODE == "gpu" else COLPALI_CPU_URL
+    )
+
 COLPALI_API_TIMEOUT: Final[int] = int(os.getenv("COLPALI_API_TIMEOUT", "300"))
 
 # ===== Storage Configurations =====
