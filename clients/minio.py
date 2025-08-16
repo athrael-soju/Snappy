@@ -123,51 +123,6 @@ class MinioService:
         }.get(used_fmt, "application/octet-stream")
         return buf, size, used_fmt, content_type
 
-    # -------------------------------------------------------------------
-    # Single-object Operations
-    # -------------------------------------------------------------------
-    def store_image(
-        self,
-        image: Image.Image,
-        image_id: Optional[str] = None,
-        fmt: str = "PNG",
-        **save_kwargs,
-    ) -> str:
-        """
-        Store a PIL Image in MinIO and return the public object URL.
-
-        Parameters
-        ----------
-        image : PIL.Image.Image
-            Image to upload.
-        image_id : Optional[str]
-            Object basename (without extension). UUID if omitted.
-        fmt : str
-            Output format (PNG/JPEG/WEBP). Defaults to PNG.
-        save_kwargs : dict
-            Extra PIL save parameters (e.g., quality=90 for JPEG/WEBP).
-        """
-        if image_id is None:
-            image_id = str(uuid.uuid4())
-
-        try:
-            buf, size, used_fmt, content_type = self._encode_image_to_bytes(
-                image, fmt=fmt, **save_kwargs
-            )
-            object_name = f"images/{image_id}.{used_fmt.lower()}"
-            self.client.put_object(
-                bucket_name=self.bucket_name,
-                object_name=object_name,
-                data=buf,
-                length=size,
-                content_type=content_type,
-            )
-            url = self._get_image_url(object_name)
-            logger.info(f"Stored image {image_id} at {url}")
-            return url
-        except Exception as e:
-            raise Exception(f"Error storing image {image_id}: {e}") from e
-
     def get_image(self, image_url: str) -> Image.Image:
         """
         Retrieve an image from MinIO by its public URL and return a PIL Image.
@@ -183,16 +138,6 @@ class MinioService:
             return Image.open(io.BytesIO(data))
         except Exception as e:
             raise Exception(f"Error retrieving image from {image_url}: {e}") from e
-
-    def delete_image(self, image_url: str) -> bool:
-        """Delete a single image by its public URL."""
-        try:
-            object_name = self._extract_object_name_from_url(image_url)
-            self.client.remove_object(self.bucket_name, object_name)
-            logger.info(f"Deleted image: {image_url}")
-            return True
-        except Exception as e:
-            raise Exception(f"Error deleting image {image_url}: {e}") from e
 
     # -------------------------------------------------------------------
     # Batch Operations
@@ -404,7 +349,7 @@ class MinioService:
             raise Exception(
                 f"Error setting public policy for bucket '{self.bucket_name}': {e}"
             ) from e
- 
+
     # -------------------------------------------------------------------
     # Bulk Maintenance Helpers
     # -------------------------------------------------------------------
