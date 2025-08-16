@@ -63,6 +63,18 @@ services:
     networks:
       - vision-rag-network
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: frontend:latest
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    networks:
+      - vision-rag-network
+    restart: unless-stopped
+
 networks:
   vision-rag-network:
     driver: bridge
