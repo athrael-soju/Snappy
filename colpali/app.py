@@ -1,8 +1,8 @@
 from io import BytesIO
-from typing import List, Union
+from typing import List, Union, Optional
 
 import torch
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Body
 from pydantic import BaseModel
 from PIL import Image
 
@@ -40,17 +40,25 @@ class QueryEmbeddingResponse(BaseModel):
     embeddings: List[List[List[float]]]
 
 
-class PatchResponse(BaseModel):
-    n_patches_x: int
-    n_patches_y: int
+class Dimension(BaseModel):
+    width: int
+    height: int
+
+
+class PatchResult(BaseModel):
+    width: int
+    height: int
+    n_patches_x: Optional[int] = None
+    n_patches_y: Optional[int] = None
+    error: Optional[str] = None
 
 
 class PatchRequest(BaseModel):
-    dimensions: List[dict[str, int]]
+    dimensions: List[Dimension]
 
 
 class PatchBatchResponse(BaseModel):
-    results: List[dict[str, Union[int, str]]]
+    results: List[PatchResult]
 
 
 class ImageEmbeddingItem(BaseModel):
@@ -171,8 +179,16 @@ async def version():
     }
 
 
-@app.post("/patches", response_model=PatchBatchResponse)
-async def get_n_patches(request: PatchRequest):
+@app.post(
+    "/patches",
+    response_model=PatchBatchResponse,
+    response_model_exclude_none=True,
+)
+async def get_n_patches(
+    request: PatchRequest = Body(
+        ..., example={"dimensions": [{"width": 1024, "height": 768}]}
+    )
+):
     """Calculate number of patches for given image dimensions and spatial merge size
 
     Args:
@@ -182,25 +198,25 @@ async def get_n_patches(request: PatchRequest):
         results = []
         for dim in request.dimensions:
             try:
-                image_size = (dim["width"], dim["height"])
+                image_size = (dim.width, dim.height)
                 n_patches_x, n_patches_y = processor.get_n_patches(
                     image_size, spatial_merge_size=model.spatial_merge_size
                 )
                 results.append(
-                    {
-                        "width": dim["width"],
-                        "height": dim["height"],
-                        "n_patches_x": n_patches_x,
-                        "n_patches_y": n_patches_y,
-                    }
+                    PatchResult(
+                        width=dim.width,
+                        height=dim.height,
+                        n_patches_x=n_patches_x,
+                        n_patches_y=n_patches_y,
+                    )
                 )
             except Exception as e:
                 results.append(
-                    {
-                        "width": dim.get("width"),
-                        "height": dim.get("height"),
-                        "error": str(e),
-                    }
+                    PatchResult(
+                        width=dim.width,
+                        height=dim.height,
+                        error=str(e),
+                    )
                 )
         return {"results": results}
     except Exception as e:

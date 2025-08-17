@@ -12,6 +12,12 @@ A lightweight, end-to-end template for page-level retrieval over PDFs using a Co
 
 This repo is intended as a developer-friendly starting point for vision RAG systems.
 
+## Component READMEs
+
+- [backend/README.md](backend/README.md) — FastAPI backend
+- [frontend/README.md](frontend/README.md) — Next.js frontend
+- [colpali/README.md](colpali/README.md) — ColPali embedding API
+
 ## Architecture
 
 Below is the high-level component architecture of the Vision RAG template.
