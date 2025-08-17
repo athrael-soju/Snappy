@@ -1,0 +1,15 @@
+.venv
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+.env
+.git/
+.gitignore
+.gitattributes
+.qdrant/
+minio_data/
+qdrant_data/
+vision_rag_data/
+data/

@@ -1,0 +1,31 @@
+{
+  "name": "frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "predev": "yarn gen:sdk && yarn gen:zod",
+    "prebuild": "yarn gen:sdk && yarn gen:zod",
+    "gen:sdk": "openapi --input ./docs/openapi.json --output lib/api/generated --client fetch --useUnionTypes",
+    "gen:zod": "openapi-zod-client ./docs/openapi.json -o lib/api/zod"
+  },
+  "dependencies": {
+    "next": "15.4.6",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "zod": "^4.0.17"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "openapi-typescript-codegen": "^0.29.0",
+    "openapi-zod-client": "^1.18.3",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

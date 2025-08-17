@@ -1,7 +1,10 @@
-<img width="80%" alt="image" src="https://github.com/user-attachments/assets/c1e3c300-93dd-401d-81f0-69772d8acc39" />
+<center>
+<img width="100%" alt="image" src="image/README/1755459651164.png" />
+</center>
 
+# The Most Beautiful Rag - Vision Rag Template
 
-# Vision Rag Template
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688)](https://fastapi.tiangolo.com/) [![Qdrant](https://img.shields.io/badge/VectorDB-Qdrant-ff6b6b)](https://qdrant.tech/) [![MinIO](https://img.shields.io/badge/Storage-MinIO-f79533)](https://min.io/) [![Next.js](https://img.shields.io/badge/Frontend-Next.js-000000)](https://nextjs.org/) [![Docker Compose](https://img.shields.io/badge/Orchestration-Docker%20Compose-2496ed)](https://docs.docker.com/compose/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A lightweight, end-to-end template for page-level retrieval over PDFs using a ColPali-like approach:
 
@@ -12,14 +15,45 @@ A lightweight, end-to-end template for page-level retrieval over PDFs using a Co
 
 This repo is intended as a developer-friendly starting point for vision RAG systems.
 
+## Component READMEs
+
+- [backend/README.md](backend/README.md) — FastAPI backend
+- [frontend/README.md](frontend/README.md) — Next.js frontend
+- [colpali/README.md](colpali/README.md) — ColPali embedding API
+
+## Table of Contents
+
+- [The Most Beautiful Rag - Vision Rag Template](#the-most-beautiful-rag---vision-rag-template)
+  - [Component READMEs](#component-readmes)
+  - [Table of Contents](#table-of-contents)
+  - [Architecture](#architecture)
+  - [Features](#features)
+  - [What this project is not](#what-this-project-is-not)
+  - [Prerequisites](#prerequisites)
+  - [Quickstart (Docker Compose)](#quickstart-docker-compose)
+  - [Local development (without Compose)](#local-development-without-compose)
+  - [Optional local Gradio UI](#optional-local-gradio-ui)
+  - [Environment variables](#environment-variables)
+  - [Using the API](#using-the-api)
+  - [API Examples](#api-examples)
+  - [ColPali API contract (expected)](#colpali-api-contract-expected)
+  - [Data model in Qdrant](#data-model-in-qdrant)
+  - [Binary quantization (optional)](#binary-quantization-optional)
+  - [Troubleshooting](#troubleshooting)
+  - [Scripts and containers](#scripts-and-containers)
+  - [Development notes](#development-notes)
+  - [License](#license)
+  - [Acknowledgements](#acknowledgements)
+  - [Citations](#citations)
+
 ## Architecture
 
 Below is the high-level component architecture of the Vision RAG template.
-See the architecture diagram in [docs/architecture.md](docs/architecture.md). It focuses on the core indexing and retrieval flows for clarity.
+See the architecture diagram in [backend/docs/architecture.md](backend/docs/architecture.md). It focuses on the core indexing and retrieval flows for clarity.
 
 - __`api/app.py`__ and `api/routers/*`__: Modular FastAPI application (routers: `meta`, `retrieval`, `chat`, `indexing`, `maintenance`).
-- __`fastapi_app.py`__: Thin entrypoint that boots `api.app.create_app()`.
-- __`local_app.py`__ + `ui.py`__: Optional local Gradio UI (upload/index PDFs, chat, maintenance actions) separate from the FastAPI server.
+- __`backend.py`__: Thin entrypoint that boots `api.app.create_app()`.
+- __`local.py`__ + `ui.py`__: Optional local Gradio UI (upload/index PDFs, chat, maintenance actions) separate from the FastAPI server.
 - __`clients/qdrant.py`__: `QdrantService` manages collection, indexing, multivector retrieval, and MinIO integration.
 - __`clients/minio.py`__: `MinioService` for image storage/retrieval with batch operations and public-read policy.
 - __`clients/openai.py`__: Thin wrapper for OpenAI SDK (streaming completions, message construction).
@@ -50,6 +84,33 @@ __Retrieval flow__:
 - __FastAPI endpoints__: OpenAPI docs at `/docs`; endpoints for indexing, search, chat (streaming), and maintenance
 - __Dockerized__: one `docker-compose up -d` brings up Qdrant, MinIO and the API
 - __Configurable__: all knobs in `.env`/`config.py`
+- __Optional binary quantization__: enable Qdrant binary quantization with env flags; supports rescore/oversampling.
+
+## What this project is not
+
+- __NOT an opinionated framework__: this is a minimal template/starter to hack and extend.
+- __No authentication/authorization__: no login, sessions, RBAC, or multitenancy by default.
+- __Not production-hardened out-of-the-box__: permissive CORS, public-read MinIO option, no secrets manager, no TLS.
+- __Frontend is basic by design__: the Next.js app is intentionally simple (no auth, i18n, SSR caching, or advanced routing). It’s a scaffold for you to extend.
+- __Image-first RAG only__: no OCR or text chunking; retrieval operates on page images. No hybrid BM25 + vector by default.
+- __PDFs only__: indexing assumes PDFs via `pdf2image`; other formats (images, Office docs) are not supported yet.
+- __Limited maintenance APIs__: provided endpoints clear stores (`/clear/*`), but there are no per-document delete/update endpoints.
+- __Single-tenant shape__: one Qdrant collection and one MinIO bucket; no namespace isolation per tenant.
+- __No background job system__: indexing runs in-request; there is no queue/worker for long tasks.
+- __No rate limiting or abuse protection__.
+- __No observability stack__: no Prometheus/Grafana, OpenTelemetry, or tracing; logs only.
+- __No automated tests/benchmarks__: no unit/integration tests in this template.
+- __No CI/CD or deploy recipes beyond Compose__: no GitHub Actions, no CD pipelines, no Helm/Kubernetes manifests.
+- __No backup/migration tooling__: no Qdrant snapshot management or schema versioning scripts.
+- __No application-level caching__: search/chat responses are not cached.
+- __No content moderation/safety filters__: LLM responses are not filtered; configure in your provider as needed.
+- __Security hardening left to you__: add reverse proxy, TLS termination, JWT/OIDC, WAF as required.
+- __Static device selection__: CPU/GPU selection via env; no scheduler or auto-placement across nodes.
+
+Designed for extension:
+
+- __Model-agnostic ColPali service__: you can swap to any ColPali-like model on Hugging Face by adapting `colpali/app.py` to the same API contract and pointing the backend via `COLPALI_API_BASE_URL` (or `COLPALI_MODE` URLs).
+- __Storage/DB pluggable__: `MinioService` speaks S3 API; `QdrantService` can be adapted to other vector DBs with multivector support.
 
 ## Prerequisites
 
@@ -71,6 +132,15 @@ cp .env.example .env
 # To force a single endpoint, set COLPALI_API_BASE_URL (takes precedence over mode URLs).
 ```
 
+Note: Start the ColPali Embedding API (separate compose) in another terminal before the backend tries to call it:
+
+```bash
+# From colpali/
+docker compose up -d api-cpu   # CPU at http://localhost:7001
+# or
+docker compose up -d api-gpu   # GPU at http://localhost:7002
+```
+
 2) Start services:
 
 ```bash
@@ -82,15 +152,22 @@ This launches:
 - Qdrant on http://localhost:6333
 - MinIO on http://localhost:9000 (console: http://localhost:9001, user/pass: `minioadmin`/`minioadmin`)
 - API on http://localhost:8000 (OpenAPI docs at http://localhost:8000/docs)
+- Frontend on http://localhost:3000 (if `frontend` service is enabled)
+
+Health checks:
+
+- Backend: `GET /health`.
+- Qdrant/MinIO: no healthchecks are defined in `docker-compose.yml` by default. You can add simple HTTP/TCP healthchecks if desired.
 
 3) Open the API docs at http://localhost:8000/docs
 
 ## Local development (without Compose)
 
 1) Install system deps (Poppler). Ensure `pdftoppm`/`pdftocairo` are in PATH.
-2) Create venv and install Python deps:
+2) Create venv and install Python deps (from `backend/`):
 
 ```bash
+# From backend/
 python -m venv .venv
 . .venv/Scripts/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
 pip install -U pip setuptools wheel
@@ -106,20 +183,22 @@ docker run -p 6333:6333 -p 6334:6334 -v qdrant_data:/qdrant/storage --name qdran
 docker run -p 9000:9000 -p 9001:9001 -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin -v minio_data:/data --name minio minio/minio:latest server /data --console-address ":9001"
 ```
 
-4) Configure `.env` (or export vars) and run the API:
+4) Configure `.env` (or export vars) and run the API (from `backend/`):
 
 ```bash
-cp .env.example .env
+# From backend/
+cp ../.env.example ../.env
 # set OPENAI_API_KEY, OPENAI_MODEL, and ensure QDRANT_URL/MINIO_URL point to your services
-uvicorn fastapi_app:app --host 0.0.0.0 --port 8000 --reload
+uvicorn backend:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 ## Optional local Gradio UI
 
-For a local, interactive UI (separate from the FastAPI server):
+For a local, interactive UI (separate from the FastAPI server, run from `backend/`):
 
 ```bash
-python local_app.py
+# From backend/
+python local.py
 ```
 
 Defaults to `HOST=0.0.0.0` and `PORT=7860` unless overridden via environment variables.
@@ -129,6 +208,7 @@ Defaults to `HOST=0.0.0.0` and `PORT=7860` unless overridden via environment var
 Most defaults are in `config.py`. Key variables:
 
 - __Core__: `LOG_LEVEL` (INFO), `HOST` (0.0.0.0), `PORT` (8000)
+- __CORS__: `ALLOWED_ORIGINS` (comma-separated or `*` for all; use explicit origins in production)
 - __OpenAI__: `OPENAI_API_KEY`, `OPENAI_MODEL`
   - Note: `clients/openai.py` uses `config.OPENAI_MODEL` (default `gpt-5-nano`). Both the API and local UI respect this unless overridden per request.
 - __ColPali API__: Mode-based selection with optional explicit override:
@@ -138,12 +218,15 @@ Most defaults are in `config.py`. Key variables:
   - `COLPALI_API_BASE_URL` (if set, overrides the above and is used as-is)
   - `COLPALI_API_TIMEOUT`
 - __Qdrant__: `QDRANT_URL` (default http://localhost:6333), `QDRANT_COLLECTION_NAME` (documents), `QDRANT_SEARCH_LIMIT`, `QDRANT_PREFETCH_LIMIT`
-- __MinIO__: `MINIO_URL` (default http://localhost:9000), `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET_NAME` (documents), `MINIO_WORKERS`, `MINIO_RETRIES`, `MINIO_FAIL_FAST`, `MINIO_IMAGE_FMT`
+  - Storage: `QDRANT_ON_DISK` (store vectors on disk), `QDRANT_ON_DISK_PAYLOAD` (store payloads on disk)
+  - Binary quantization (optional): `QDRANT_USE_BINARY` (enable), `QDRANT_BINARY_ALWAYS_RAM` (keep quantized codes in RAM)
+  - Search tuning (when binary is enabled): `QDRANT_SEARCH_RESCORE`, `QDRANT_SEARCH_OVERSAMPLING`, `QDRANT_SEARCH_IGNORE_QUANT`
+- __MinIO__: `MINIO_URL` (default http://localhost:9000), `MINIO_PUBLIC_URL` (public base for links), `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET_NAME` (documents), `MINIO_WORKERS`, `MINIO_RETRIES`, `MINIO_FAIL_FAST`, `MINIO_PUBLIC_READ` (apply public-read policy automatically), `MINIO_IMAGE_FMT`
 - __Processing__: `DEFAULT_TOP_K`, `BATCH_SIZE`, `WORKER_THREADS`, `MAX_TOKENS`
 
 See `.env.example` for a minimal starting point. When using Compose, note:
-- `vision-rag` service sets defaults `COLPALI_CPU_URL=http://host.docker.internal:7001` and `COLPALI_GPU_URL=http://host.docker.internal:7002`.
-- `QDRANT_URL` and `MINIO_URL` are set to internal service addresses (`http://qdrant:6333`, `http://minio:9000`).
+- `backend` service sets defaults `COLPALI_CPU_URL=http://host.docker.internal:7001` and `COLPALI_GPU_URL=http://host.docker.internal:7002`.
+- `QDRANT_URL` and `MINIO_URL` are set to internal service addresses (`http://qdrant:6333`, `http://minio:9000`). `MINIO_PUBLIC_URL` is set to `http://localhost:9000` for browser access.
 
 ## Using the API
 
@@ -222,6 +305,21 @@ Each point has payload metadata like:
 }
 ```
 
+## Binary quantization (optional)
+
+This template supports binary quantization for Qdrant to reduce memory usage and speed up search while keeping retrieval quality via rescore/oversampling.
+
+- Enable via `.env`:
+  - `QDRANT_USE_BINARY=True`
+  - `QDRANT_BINARY_ALWAYS_RAM=True` (quantized codes in RAM; originals on disk)
+  - Optionally set `QDRANT_ON_DISK=True` and `QDRANT_ON_DISK_PAYLOAD=True`
+  - Tune search with `QDRANT_SEARCH_RESCORE=True`, `QDRANT_SEARCH_OVERSAMPLING=2.0`, `QDRANT_SEARCH_IGNORE_QUANT=False`
+- Apply changes: clear and recreate the collection (e.g., call `POST /clear/qdrant`) and re-index.
+- Notes:
+  - Multivector layout is preserved (`original`, `mean_pooling_rows`, `mean_pooling_columns`) with `MAX_SIM` comparator.
+  - Embedding dimension is auto-detected from the ColPali service (`GET /info`).
+  - See citations for Qdrant’s binary quantization details.
+
 ## Troubleshooting
 
 - __OpenAI key/model__: If AI responses show an error, verify `OPENAI_API_KEY` and `OPENAI_MODEL`.
@@ -233,14 +331,15 @@ Each point has payload metadata like:
 
 ## Scripts and containers
 
-- `Dockerfile`: Python 3.10-slim, installs system deps (`poppler-utils`, etc.), installs requirements, and runs `uvicorn fastapi_app:app` on port 8000.
-- `docker-compose.yml`: brings up `qdrant`, `minio`, and the API (`vision-rag`) on 8000.
-- `packages.txt`: system package hint for environments like Codespaces.
+- `backend/Dockerfile`: Python 3.10-slim, installs system deps (`poppler-utils`, etc.), installs requirements, and runs `uvicorn backend:app` on port 8000.
+- `docker-compose.yml` (repo root): brings up `qdrant`, `minio`, `backend` (API on 8000), and `frontend` (Next.js on 3000).
+- `colpali/docker-compose.yml`: brings up the ColPali embedding API (`api-cpu` on 7001, `api-gpu` on 7002) used by the backend.
+- `backend/packages.txt`: system package hint for environments like Codespaces.
 
 ## Development notes
 
-- FastAPI app is assembled by `api/app.py` (routers: meta, retrieval, chat, indexing, maintenance) and booted by `fastapi_app.py`.
-- Local Gradio UI lives in `local_app.py` and `ui.py` (separate from the API).
+- FastAPI app is assembled by `api/app.py` (routers: meta, retrieval, chat, indexing, maintenance) and booted by `backend.py` in containers (alternatively, run `python main.py` locally from `backend/`).
+- Local Gradio UI lives in `local.py` and `ui.py` (separate from the API).
 - Replace OpenAI with another LLM by adapting `clients/openai.py` and the chat router in `api/routers/chat.py`.
 - To filter search by metadata, see `QdrantService.search_with_metadata(...)`.
 
