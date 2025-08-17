@@ -1,0 +1,36 @@
+volumes:
+  hf-cache: {}
+
+services:
+  api-cpu:
+    build:
+      context: .
+      dockerfile: Dockerfile.cpu
+    container_name: colqwen-api-cpu
+    environment:
+      - HUGGINGFACE_HUB_CACHE=/data/hf-cache
+      - HF_HOME=/data/hf-cache
+      - PUBLIC_HOST=localhost
+      - PUBLIC_PORT=7001
+    volumes:
+      - hf-cache:/data/hf-cache
+    ports:
+      - "7001:7000"
+    restart: unless-stopped
+
+  api-gpu:
+    build:
+      context: .
+      dockerfile: Dockerfile.gpu
+    container_name: colqwen-api-gpu
+    environment:
+      - HUGGINGFACE_HUB_CACHE=/data/hf-cache
+      - HF_HOME=/data/hf-cache
+      - PUBLIC_HOST=localhost
+      - PUBLIC_PORT=7002
+    volumes:
+      - hf-cache:/data/hf-cache
+    ports:
+      - "7002:7000"
+    gpus: all
+    restart: unless-stopped

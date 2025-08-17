@@ -1,0 +1,7 @@
+# torch and torchvision are installed in Dockerfile.gpu with the matching CUDA build
+transformers
+git+https://github.com/illuin-tech/colpali.git
+fastapi
+uvicorn
+Pillow
+python-multipart

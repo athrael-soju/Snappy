@@ -1,0 +1,29 @@
+# GPU-enabled Dockerfile for ColQwen FastAPI
+FROM python:3.12-slim
+
+# Environment
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    HUGGINGFACE_HUB_CACHE=/data/hf-cache \
+    HF_HOME=/data/hf-cache
+
+# Create workdir
+WORKDIR /app
+
+# System deps (git needed for installing from GitHub)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python deps
+COPY requirements.txt ./
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
+
+# Copy app
+COPY . /app
+
+EXPOSE 7000
+
+# Start API
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7000"]
