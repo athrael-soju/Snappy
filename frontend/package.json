@@ -9,8 +9,8 @@
     "lint": "next lint",
     "predev": "yarn gen:sdk && yarn gen:zod",
     "prebuild": "yarn gen:sdk && yarn gen:zod",
-    "gen:sdk": "openapi --input ../openapi.json --output lib/api/generated --client fetch --useUnionTypes",
-    "gen:zod": "openapi-zod-client ../openapi.json -o lib/api/zod"
+    "gen:sdk": "openapi --input ./docs/openapi.json --output lib/api/generated --client fetch --useUnionTypes",
+    "gen:zod": "openapi-zod-client ./docs/openapi.json -o lib/api/zod"
   },
   "dependencies": {
     "next": "15.4.6",

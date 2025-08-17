@@ -84,6 +84,11 @@ This launches:
 - API on http://localhost:8000 (OpenAPI docs at http://localhost:8000/docs)
 - Frontend on http://localhost:3000 (if `frontend` service is enabled)
 
+Healthchecks:
+
+- Backend uses `GET /health`.
+- MinIO and Qdrant services have HTTP healthchecks configured. If their images lack `curl`, the healthcheck may fail; replace with a TCP check or ensure `curl`/`wget` is available.
+
 3) Open the API docs at http://localhost:8000/docs
 
 ## Local development (without Compose)
@@ -130,6 +135,7 @@ Defaults to `HOST=0.0.0.0` and `PORT=7860` unless overridden via environment var
 Most defaults are in `config.py`. Key variables:
 
 - __Core__: `LOG_LEVEL` (INFO), `HOST` (0.0.0.0), `PORT` (8000)
+- __CORS__: `ALLOWED_ORIGINS` (comma-separated or `*` for all; use explicit origins in production)
 - __OpenAI__: `OPENAI_API_KEY`, `OPENAI_MODEL`
   - Note: `clients/openai.py` uses `config.OPENAI_MODEL` (default `gpt-5-nano`). Both the API and local UI respect this unless overridden per request.
 - __ColPali API__: Mode-based selection with optional explicit override:
@@ -139,7 +145,7 @@ Most defaults are in `config.py`. Key variables:
   - `COLPALI_API_BASE_URL` (if set, overrides the above and is used as-is)
   - `COLPALI_API_TIMEOUT`
 - __Qdrant__: `QDRANT_URL` (default http://localhost:6333), `QDRANT_COLLECTION_NAME` (documents), `QDRANT_SEARCH_LIMIT`, `QDRANT_PREFETCH_LIMIT`
-- __MinIO__: `MINIO_URL` (default http://localhost:9000), `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET_NAME` (documents), `MINIO_WORKERS`, `MINIO_RETRIES`, `MINIO_FAIL_FAST`, `MINIO_IMAGE_FMT`
+- __MinIO__: `MINIO_URL` (default http://localhost:9000), `MINIO_PUBLIC_URL` (public base for links), `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET_NAME` (documents), `MINIO_WORKERS`, `MINIO_RETRIES`, `MINIO_FAIL_FAST`, `MINIO_PUBLIC_READ` (apply public-read policy automatically), `MINIO_IMAGE_FMT`
 - __Processing__: `DEFAULT_TOP_K`, `BATCH_SIZE`, `WORKER_THREADS`, `MAX_TOKENS`
 
 See `.env.example` for a minimal starting point. When using Compose, note:

@@ -1,10 +1,13 @@
 import requests
 import io
+import logging
 from typing import List, Union
 from PIL import Image
 import numpy as np
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
-from config import COLPALI_API_BASE_URL, COLPALI_API_TIMEOUT
+from config import COLPALI_API_BASE_URL, COLPALI_API_TIMEOUT, LOG_LEVEL
 
 
 class ColPaliClient:
@@ -17,23 +20,43 @@ class ColPaliClient:
         # Remove trailing slash
         self.base_url = self.base_url.rstrip("/")
 
+        # Logger
+        logging.basicConfig(level=getattr(logging, LOG_LEVEL, logging.INFO))
+        self._logger = logging.getLogger(__name__)
+
+        # Session with retries/backoff
+        retry = Retry(
+            total=3,
+            connect=3,
+            read=3,
+            status=3,
+            backoff_factor=0.5,
+            status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods={"GET", "POST"},
+            raise_on_status=False,
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        self.session = requests.Session()
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
+
     def health_check(self) -> bool:
         """Check if the API is healthy"""
         try:
-            response = requests.get(f"{self.base_url}/health", timeout=self.timeout)
+            response = self.session.get(f"{self.base_url}/health", timeout=self.timeout)
             return response.status_code == 200
         except Exception as e:
-            print(f"Health check failed: {e}")
+            self._logger.warning(f"ColPali health check failed: {e}")
             return False
 
     def get_info(self) -> dict:
         """Get API version information"""
         try:
-            response = requests.get(f"{self.base_url}/info", timeout=self.timeout)
+            response = self.session.get(f"{self.base_url}/info", timeout=self.timeout)
             response.raise_for_status()
             return response.json()
         except Exception as e:
-            print(f"Failed to get API info: {e}")
+            self._logger.error(f"Failed to get API info: {e}")
             return {}
 
     def get_patches(
@@ -49,11 +72,13 @@ class ColPaliClient:
         """
         try:
             payload = {"dimensions": dimensions}
-            response = requests.post(
+            response = self.session.post(
                 f"{self.base_url}/patches", json=payload, timeout=self.timeout
             )
             response.raise_for_status()
             result = response.json()
+            if "results" not in result:
+                raise KeyError("Missing 'results' in ColPali /patches response")
             return result["results"]
         except Exception as e:
             raise Exception(f"Failed to get patches: {e}")
@@ -70,14 +95,16 @@ class ColPaliClient:
         """
         try:
             payload = {"queries": queries}
-            response = requests.post(
+            response = self.session.post(
                 f"{self.base_url}/embed/queries", json=payload, timeout=self.timeout
             )
             response.raise_for_status()
             result = response.json()
+            if "embeddings" not in result:
+                raise KeyError("Missing 'embeddings' in ColPali /embed/queries response")
             return result["embeddings"]
         except Exception as e:
-            print(f"Failed to embed queries: {e}")
+            self._logger.error(f"Failed to embed queries: {e}")
             raise
 
     def embed_images(self, images: List[Image.Image]) -> List[List[List[float]]]:
@@ -99,14 +126,16 @@ class ColPaliClient:
                 img_byte_arr.seek(0)
                 files.append(("files", (f"image_{i}.png", img_byte_arr, "image/png")))
 
-            response = requests.post(
+            response = self.session.post(
                 f"{self.base_url}/embed/images", files=files, timeout=self.timeout
             )
             response.raise_for_status()
             result = response.json()
+            if "embeddings" not in result:
+                raise KeyError("Missing 'embeddings' in ColPali /embed/images response")
             return result["embeddings"]
         except Exception as e:
-            print(f"Failed to embed images: {e}")
+            self._logger.error(f"Failed to embed images: {e}")
             raise
 
     def embed_images_batch(
@@ -130,7 +159,9 @@ class ColPaliClient:
                 batch_embeddings = self.embed_images(batch)
                 all_embeddings.extend(batch_embeddings)
             except Exception as e:
-                print(f"Failed to process batch {i // batch_size + 1}: {e}")
+                self._logger.error(
+                    f"Failed to process batch {i // batch_size + 1}: {e}"
+                )
                 raise
 
         return all_embeddings

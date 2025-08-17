@@ -24,6 +24,7 @@ from config import (
     MINIO_WORKERS,
     MINIO_RETRIES,
     MINIO_FAIL_FAST,
+    MINIO_PUBLIC_READ,
     MINIO_IMAGE_FMT,
 )
 
@@ -91,7 +92,12 @@ class MinioService:
                 logger.info(f"Created bucket: {self.bucket_name}")
             else:
                 logger.info(f"Bucket already exists: {self.bucket_name}")
-            self.set_public_policy()
+            if MINIO_PUBLIC_READ:
+                self.set_public_policy()
+            else:
+                logger.info(
+                    "Skipping public read policy per MINIO_PUBLIC_READ env setting."
+                )
         except S3Error as e:
             raise Exception(f"Error creating bucket {self.bucket_name}: {e}") from e
 

@@ -1,5 +1,5 @@
 # GPU-enabled Dockerfile for ColQwen FastAPI
-FROM python:3.12-slim
+FROM python:3.10-slim
 
 # Environment
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -18,7 +18,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install Python deps
 COPY requirements.txt ./
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt
+    && pip install --no-cache-dir -r requirements.txt \
+    && pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
 
 # Copy app
 COPY . /app

@@ -5,9 +5,20 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
+# Helpers
+def _env_bool(name: str, default: str = "False") -> bool:
+    """Parse environment boolean flags robustly."""
+    return os.getenv(name, default).strip().lower() in ("1", "true", "yes", "on")
+
 # ===== Application Settings =====
 # Core Application
 LOG_LEVEL: Final[str] = os.getenv("LOG_LEVEL", "INFO")
+ALLOWED_ORIGINS_RAW: Final[str] = os.getenv("ALLOWED_ORIGINS", "*")
+ALLOWED_ORIGINS: Final[list[str]] = (
+    ["*"]
+    if ALLOWED_ORIGINS_RAW.strip() == "*"
+    else [o.strip() for o in ALLOWED_ORIGINS_RAW.split(",") if o.strip()]
+)
 
 # Processing
 DEFAULT_TOP_K: Final[int] = int(os.getenv("DEFAULT_TOP_K", "5"))
@@ -64,5 +75,6 @@ MINIO_SECRET_KEY: Final[str] = os.getenv("MINIO_SECRET_KEY", "minioadmin")
 MINIO_BUCKET_NAME: Final[str] = os.getenv("MINIO_BUCKET_NAME", "documents")
 MINIO_WORKERS: Final[int] = int(os.getenv("MINIO_WORKERS", "4"))
 MINIO_RETRIES: Final[int] = int(os.getenv("MINIO_RETRIES", "2"))
-MINIO_FAIL_FAST: Final[bool] = os.getenv("MINIO_FAIL_FAST", "False")
+MINIO_FAIL_FAST: Final[bool] = _env_bool("MINIO_FAIL_FAST", "False")
+MINIO_PUBLIC_READ: Final[bool] = _env_bool("MINIO_PUBLIC_READ", "True")
 MINIO_IMAGE_FMT: Final[str] = os.getenv("MINIO_IMAGE_FMT", "JPEG")
