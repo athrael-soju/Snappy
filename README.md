@@ -143,8 +143,8 @@ Most defaults are in `config.py`. Key variables:
 - __Processing__: `DEFAULT_TOP_K`, `BATCH_SIZE`, `WORKER_THREADS`, `MAX_TOKENS`
 
 See `.env.example` for a minimal starting point. When using Compose, note:
-- `vision-rag` service sets defaults `COLPALI_CPU_URL=http://host.docker.internal:7001` and `COLPALI_GPU_URL=http://host.docker.internal:7002`.
-- `QDRANT_URL` and `MINIO_URL` are set to internal service addresses (`http://qdrant:6333`, `http://minio:9000`).
+- `backend` service sets defaults `COLPALI_CPU_URL=http://host.docker.internal:7001` and `COLPALI_GPU_URL=http://host.docker.internal:7002`.
+- `QDRANT_URL` and `MINIO_URL` are set to internal service addresses (`http://qdrant:6333`, `http://minio:9000`). `MINIO_PUBLIC_URL` is set to `http://localhost:9000` for browser access.
 
 ## Using the API
 
@@ -235,7 +235,7 @@ Each point has payload metadata like:
 ## Scripts and containers
 
 - `Dockerfile`: Python 3.10-slim, installs system deps (`poppler-utils`, etc.), installs requirements, and runs `uvicorn backend:app` on port 8000.
-- `docker-compose.yml`: brings up `qdrant`, `minio`, and the API (`vision-rag`) on 8000.
+- `docker-compose.yml`: brings up `qdrant`, `minio`, `backend` (API on 8000), and `frontend` (Next.js on 3000).
 - `packages.txt`: system package hint for environments like Codespaces.
 
 ## Development notes

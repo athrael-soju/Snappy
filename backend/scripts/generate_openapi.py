@@ -5,7 +5,7 @@ Generate OpenAPI JSON spec for the FastAPI backend.
 Usage:
   python scripts/generate_openapi.py [--out <path>]
 
-By default, writes to openapi.json at the repository root
+By default, writes to frontend/docs/openapi.json
 """
 from __future__ import annotations
 
