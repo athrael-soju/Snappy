@@ -38,6 +38,7 @@ This repo is intended as a developer-friendly starting point for vision RAG syst
   - [API Examples](#api-examples)
   - [ColPali API contract (expected)](#colpali-api-contract-expected)
   - [Data model in Qdrant](#data-model-in-qdrant)
+  - [Binary quantization (optional)](#binary-quantization-optional)
   - [Troubleshooting](#troubleshooting)
   - [Scripts and containers](#scripts-and-containers)
   - [Development notes](#development-notes)
@@ -83,6 +84,7 @@ __Retrieval flow__:
 - __FastAPI endpoints__: OpenAPI docs at `/docs`; endpoints for indexing, search, chat (streaming), and maintenance
 - __Dockerized__: one `docker-compose up -d` brings up Qdrant, MinIO and the API
 - __Configurable__: all knobs in `.env`/`config.py`
+- __Optional binary quantization__: enable Qdrant binary quantization with env flags; supports rescore/oversampling.
 
 ## What this project is not
 
@@ -216,6 +218,9 @@ Most defaults are in `config.py`. Key variables:
   - `COLPALI_API_BASE_URL` (if set, overrides the above and is used as-is)
   - `COLPALI_API_TIMEOUT`
 - __Qdrant__: `QDRANT_URL` (default http://localhost:6333), `QDRANT_COLLECTION_NAME` (documents), `QDRANT_SEARCH_LIMIT`, `QDRANT_PREFETCH_LIMIT`
+  - Storage: `QDRANT_ON_DISK` (store vectors on disk), `QDRANT_ON_DISK_PAYLOAD` (store payloads on disk)
+  - Binary quantization (optional): `QDRANT_USE_BINARY` (enable), `QDRANT_BINARY_ALWAYS_RAM` (keep quantized codes in RAM)
+  - Search tuning (when binary is enabled): `QDRANT_SEARCH_RESCORE`, `QDRANT_SEARCH_OVERSAMPLING`, `QDRANT_SEARCH_IGNORE_QUANT`
 - __MinIO__: `MINIO_URL` (default http://localhost:9000), `MINIO_PUBLIC_URL` (public base for links), `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET_NAME` (documents), `MINIO_WORKERS`, `MINIO_RETRIES`, `MINIO_FAIL_FAST`, `MINIO_PUBLIC_READ` (apply public-read policy automatically), `MINIO_IMAGE_FMT`
 - __Processing__: `DEFAULT_TOP_K`, `BATCH_SIZE`, `WORKER_THREADS`, `MAX_TOKENS`
 
@@ -299,6 +304,21 @@ Each point has payload metadata like:
   "indexed_at": "2025-01-01T00:00:00Z"
 }
 ```
+
+## Binary quantization (optional)
+
+This template supports binary quantization for Qdrant to reduce memory usage and speed up search while keeping retrieval quality via rescore/oversampling.
+
+- Enable via `.env`:
+  - `QDRANT_USE_BINARY=True`
+  - `QDRANT_BINARY_ALWAYS_RAM=True` (quantized codes in RAM; originals on disk)
+  - Optionally set `QDRANT_ON_DISK=True` and `QDRANT_ON_DISK_PAYLOAD=True`
+  - Tune search with `QDRANT_SEARCH_RESCORE=True`, `QDRANT_SEARCH_OVERSAMPLING=2.0`, `QDRANT_SEARCH_IGNORE_QUANT=False`
+- Apply changes: clear and recreate the collection (e.g., call `POST /clear/qdrant`) and re-index.
+- Notes:
+  - Multivector layout is preserved (`original`, `mean_pooling_rows`, `mean_pooling_columns`) with `MAX_SIM` comparator.
+  - Embedding dimension is auto-detected from the ColPali service (`GET /info`).
+  - See citations for Qdrant’s binary quantization details.
 
 ## Troubleshooting
 

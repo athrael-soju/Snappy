@@ -12,6 +12,13 @@ from config import (
     BATCH_SIZE,
     QDRANT_SEARCH_LIMIT,
     QDRANT_PREFETCH_LIMIT,
+    QDRANT_ON_DISK,
+    QDRANT_ON_DISK_PAYLOAD,
+    QDRANT_USE_BINARY,
+    QDRANT_BINARY_ALWAYS_RAM,
+    QDRANT_SEARCH_IGNORE_QUANT,
+    QDRANT_SEARCH_RESCORE,
+    QDRANT_SEARCH_OVERSAMPLING,
 )
 from .minio import MinioService
 from .colpali import ColPaliClient
@@ -59,34 +66,37 @@ class QdrantService:
             model_dim = self._get_model_dimension()
 
             # Define vector configuration with the correct dimension
+            def _vp(include_hnsw: bool = False) -> models.VectorParams:
+                quant = (
+                    models.BinaryQuantization(
+                        binary=models.BinaryQuantizationConfig(
+                            always_ram=QDRANT_BINARY_ALWAYS_RAM
+                        )
+                    )
+                    if QDRANT_USE_BINARY
+                    else None
+                )
+                return models.VectorParams(
+                    size=model_dim,
+                    distance=models.Distance.COSINE,
+                    multivector_config=models.MultiVectorConfig(
+                        comparator=models.MultiVectorComparator.MAX_SIM
+                    ),
+                    hnsw_config=(models.HnswConfigDiff(m=0) if include_hnsw else None),
+                    on_disk=QDRANT_ON_DISK,
+                    quantization_config=quant,
+                )
+
             vector_config = {
-                "original": models.VectorParams(
-                    size=model_dim,
-                    distance=models.Distance.COSINE,
-                    multivector_config=models.MultiVectorConfig(
-                        comparator=models.MultiVectorComparator.MAX_SIM
-                    ),
-                    hnsw_config=models.HnswConfigDiff(m=0),
-                ),
-                "mean_pooling_columns": models.VectorParams(
-                    size=model_dim,
-                    distance=models.Distance.COSINE,
-                    multivector_config=models.MultiVectorConfig(
-                        comparator=models.MultiVectorComparator.MAX_SIM
-                    ),
-                ),
-                "mean_pooling_rows": models.VectorParams(
-                    size=model_dim,
-                    distance=models.Distance.COSINE,
-                    multivector_config=models.MultiVectorConfig(
-                        comparator=models.MultiVectorComparator.MAX_SIM
-                    ),
-                ),
+                "original": _vp(include_hnsw=True),
+                "mean_pooling_columns": _vp(),
+                "mean_pooling_rows": _vp(),
             }
 
             self.client.create_collection(
                 collection_name=self.collection_name,
                 vectors_config=vector_config,
+                on_disk_payload=QDRANT_ON_DISK_PAYLOAD,
             )
             print(f"Created new collection with dimension: {model_dim}")
         except Exception as e:
@@ -345,6 +355,16 @@ class QdrantService:
         qdrant_filter: Optional[models.Filter] = None,
     ):
         """Perform two-stage retrieval with multivectors"""
+        # Optional quantization-aware search params
+        search_params = None
+        if QDRANT_USE_BINARY:
+            search_params = models.SearchParams(
+                quantization=models.QuantizationSearchParams(
+                    ignore=QDRANT_SEARCH_IGNORE_QUANT,
+                    rescore=QDRANT_SEARCH_RESCORE,
+                    oversampling=QDRANT_SEARCH_OVERSAMPLING,
+                )
+            )
         search_queries = [
             models.QueryRequest(
                 query=query_embedding.tolist(),
@@ -365,6 +385,7 @@ class QdrantService:
                 with_vector=False,
                 using="original",
                 filter=qdrant_filter,
+                search_params=search_params,
             )
             for query_embedding in query_embeddings_batch
         ]

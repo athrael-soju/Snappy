@@ -66,6 +66,13 @@ QDRANT_URL: Final[str] = os.getenv("QDRANT_URL", "http://localhost:6333")
 QDRANT_COLLECTION_NAME: Final[str] = os.getenv("QDRANT_COLLECTION_NAME", "documents")
 QDRANT_SEARCH_LIMIT: Final[int] = int(os.getenv("QDRANT_SEARCH_LIMIT", "20"))
 QDRANT_PREFETCH_LIMIT: Final[int] = int(os.getenv("QDRANT_PREFETCH_LIMIT", "200"))
+QDRANT_ON_DISK: Final[bool] = _env_bool("QDRANT_ON_DISK", "True")
+QDRANT_ON_DISK_PAYLOAD: Final[bool] = _env_bool("QDRANT_ON_DISK_PAYLOAD", "True")
+QDRANT_USE_BINARY: Final[bool] = _env_bool("QDRANT_USE_BINARY", "True")
+QDRANT_BINARY_ALWAYS_RAM: Final[bool] = _env_bool("QDRANT_BINARY_ALWAYS_RAM", "True")
+QDRANT_SEARCH_IGNORE_QUANT: Final[bool] = _env_bool("QDRANT_SEARCH_IGNORE_QUANT", "False")
+QDRANT_SEARCH_RESCORE: Final[bool] = _env_bool("QDRANT_SEARCH_RESCORE", "True")
+QDRANT_SEARCH_OVERSAMPLING: Final[float] = float(os.getenv("QDRANT_SEARCH_OVERSAMPLING", "2.0"))
 
 # MinIO Object Storage
 MINIO_URL: Final[str] = os.getenv("MINIO_URL", "http://localhost:9000")
