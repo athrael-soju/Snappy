@@ -20,6 +20,7 @@ This repo is intended as a developer-friendly starting point for vision RAG syst
 - [backend/README.md](backend/README.md) — FastAPI backend
 - [frontend/README.md](frontend/README.md) — Next.js frontend
 - [colpali/README.md](colpali/README.md) — ColPali embedding API
+- [feature-list.md](feature-list.md) — Production hardening and roadmap checklist
 
 ## Table of Contents
 
