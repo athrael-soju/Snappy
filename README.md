@@ -43,6 +43,7 @@ This repo is intended as a developer-friendly starting point for vision RAG syst
   - [Troubleshooting](#troubleshooting)
   - [Scripts and containers](#scripts-and-containers)
   - [Development notes](#development-notes)
+  - [For collaborators](#for-collaborators)
   - [License](#license)
   - [Acknowledgements](#acknowledgements)
   - [Citations](#citations)
@@ -343,6 +344,17 @@ This template supports binary quantization for Qdrant to reduce memory usage and
 - Local Gradio UI lives in `local.py` and `ui.py` (separate from the API).
 - Replace OpenAI with another LLM by adapting `clients/openai.py` and the chat router in `api/routers/chat.py`.
 - To filter search by metadata, see `QdrantService.search_with_metadata(...)`.
+
+## For collaborators
+
+- __Start here__: Read `backend/README.md`, `frontend/README.md`, and the production checklist in `feature-list.md`.
+- __Local dev__: Use the Quickstart (Compose) or Local development sections above. Ensure Poppler is installed and services (Qdrant/MinIO/ColPali) are running.
+- __Branching__: Create small, focused branches like `feat/<short-desc>`, `fix/<short-desc>`, or `chore/<short-desc>`. Open PRs against `main`.
+- __PR guidelines__: Describe the problem, approach, and tradeoffs. Update docs when behavior or config changes. Link related items in `feature-list.md`.
+- __Code style__: Keep Python and TypeScript/React code consistent with existing patterns. Prefer clear naming, type hints where applicable, and small functions.
+- __Security & data__: Do not commit secrets. Use `.env.example` for new vars. Avoid exposing private MinIO objects; use presigned URLs in code.
+- __Issues__: When filing an issue, include context, steps to reproduce, expected vs. actual results, and logs if relevant.
+- __Roadmap__: Use `feature-list.md` to propose or pick up items. Convert unchecked items into issues if you plan to work on them.
 
 ## License
 
