@@ -2,7 +2,7 @@
 <img width="100%" alt="image" src="image/README/1755459651164.png" />
 </center>
 
-# FastApi / Next.js / ColPali Template
+# The Most Beautiful Rag - FastAPI / Next.js / MinIO Template
 
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688)](https://fastapi.tiangolo.com/) [![Qdrant](https://img.shields.io/badge/VectorDB-Qdrant-ff6b6b)](https://qdrant.tech/) [![MinIO](https://img.shields.io/badge/Storage-MinIO-f79533)](https://min.io/) [![Next.js](https://img.shields.io/badge/Frontend-Next.js-000000)](https://nextjs.org/) [![Docker Compose](https://img.shields.io/badge/Orchestration-Docker%20Compose-2496ed)](https://docs.docker.com/compose/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -23,7 +23,7 @@ This repo is intended as a developer-friendly starting point for vision RAG syst
 
 ## Table of Contents
 
-- [The Most Beautiful Rag - Vision Rag Template](#the-most-beautiful-rag---vision-rag-template)
+- [The Most Beautiful Rag - FastAPI / Next.js / MinIO Template](#the-most-beautiful-rag---fastapi--nextjs--minio-template)
   - [Component READMEs](#component-readmes)
   - [Table of Contents](#table-of-contents)
   - [Architecture](#architecture)
