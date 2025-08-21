@@ -159,7 +159,7 @@ export default function MaintenancePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
             >
-              <Card className={`h-full group hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-2 ${action.borderColor}`}>
+              <Card className={`h-full flex flex-col group hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-2 ${action.borderColor}`}>
                 <CardHeader className="pb-6">
                   <div className="flex items-center justify-between mb-4">
                     <div className={`inline-flex w-12 h-12 items-center justify-center rounded-xl ${action.color} ${action.bgColor} border ${action.borderColor} group-hover:scale-110 transition-transform`}>
@@ -179,7 +179,7 @@ export default function MaintenancePage() {
                     {action.description}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="pt-0 space-y-4">
+                <CardContent className="pt-0 flex-1 grid grid-rows-[1fr_auto] gap-4">
                   <div className="p-3 bg-muted/30 rounded-lg">
                     <p className="text-sm text-muted-foreground">
                       {action.detailedDescription}

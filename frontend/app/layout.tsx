@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Vision RAG UI",
+  title: "Nextjs Fastapi ColPali Template",
   description: "Search, upload and chat with your visual documents",
 };
 

@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Home, Search, Upload, MessageSquare, Settings, Eye, CloudUpload, Brain, Shield } from "lucide-react";
+import { Home, Search, Upload, MessageSquare, Settings, Eye, CloudUpload, Brain, Shield, Info } from "lucide-react";
 
 const links = [
   { href: "/", label: "Home", icon: Home, color: "text-blue-600" },
+  { href: "/about", label: "About", icon: Info, color: "text-sky-500" },
   { href: "/search", label: "Search", icon: Eye, color: "text-blue-500" },
   { href: "/upload", label: "Upload", icon: CloudUpload, color: "text-green-500" },
   { href: "/chat", label: "Chat", icon: Brain, color: "text-purple-500" },
@@ -26,7 +27,7 @@ export function Nav() {
             <div className="w-5 h-5 bg-white rounded-md opacity-90"></div>
           </div>
           <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">
-            ColPali UI
+            Nextjs Fastapi ColPali Template
           </span>
         </Link>
         <div className="flex items-center gap-2">

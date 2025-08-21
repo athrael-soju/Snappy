@@ -29,6 +29,7 @@ This repo is intended as a developer-friendly starting point for vision RAG syst
   - [Table of Contents](#table-of-contents)
   - [Architecture](#architecture)
   - [Features](#features)
+  - [New Frontend](#new-frontend)
   - [What this project is not](#what-this-project-is-not)
   - [Prerequisites](#prerequisites)
   - [Quickstart (Docker Compose)](#quickstart-docker-compose)
@@ -88,11 +89,52 @@ __Retrieval flow__:
 - __Configurable__: all knobs in `.env`/`config.py`
 - __Optional binary quantization__: enable Qdrant binary quantization with env flags; supports rescore/oversampling.
 
+## New Frontend
+
+Screenshots of the current UI. Pages: Home, Upload, Search, AI Chat, Maintenance, and About.
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <strong>Home</strong><br/>
+        <img src="image/README/1755806444093.png" alt="Home screen" width="520" />
+      </td>
+      <td align="center">
+        <strong>Upload</strong><br/>
+        <img src="image/README/1755806476927.png" alt="Upload screen" width="520" />
+      </td>
+    </tr>
+    <tr>
+      <td align="center">
+        <strong>Search</strong><br/>
+        <img src="image/README/1755806515086.png" alt="Search screen" width="520" />
+      </td>
+      <td align="center">
+        <strong>AI Chat</strong><br/>
+        <img src="image/README/1755806533836.png" alt="Chat screen" width="520" />
+      </td>
+    </tr>
+    <tr>
+      <td align="center">
+        <strong>Maintenance</strong><br/>
+        <img src="image/README/1755806675644.png" alt="Maintenance screen" width="520" />
+      </td>
+      <td align="center">
+        <strong>About</strong><br/>
+        <img src="image/README/1755806995816.png" alt="About screen" width="520" />
+      </td>
+    </tr>
+  </table>
+</div>
+
+> Frontend is basic by design (no auth, i18n, SSR caching, or advanced routing) and off-course subject to change. It’s a scaffold for you to extend.
+
 ## What this project is not
 
 - __NOT an opinionated framework__: this is a minimal template/starter to hack and extend.
 - __No authentication/authorization__: no login, sessions, RBAC, or multitenancy by default.
-- __Not production-hardened out-of-the-box__: permissive CORS, public-read MinIO option, no secrets manager, no TLS.
+- __No production-hardened out-of-the-box__: permissive CORS, public-read MinIO option, no secrets manager, no TLS.
 - __Frontend is basic by design__: the Next.js app is intentionally simple (no auth, i18n, SSR caching, or advanced routing). It’s a scaffold for you to extend.
 - __Image-first RAG only__: no OCR or text chunking; retrieval operates on page images. No hybrid BM25 + vector by default.
 - __PDFs only__: indexing assumes PDFs via `pdf2image`; other formats (images, Office docs) are not supported yet.
