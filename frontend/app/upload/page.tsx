@@ -318,7 +318,7 @@ export default function UploadPage() {
                   Documents
                 </div>
                 <div className="text-sm text-muted-foreground pl-4">
-                  PDF, DOC, DOCX, TXT
+                  PDF
                 </div>
               </div>
               <div className="space-y-2">

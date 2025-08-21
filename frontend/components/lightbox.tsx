@@ -18,7 +18,7 @@ export type ImageLightboxProps = {
 export default function ImageLightbox({ open, src, alt, onOpenChange }: ImageLightboxProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 overflow-hidden">
+      <DialogContent className="w-fit max-w-[min(80vw,900px)] max-h-[95vh] p-0 overflow-hidden">
         <DialogHeader className="sr-only">
           <DialogTitle>{alt || "Image"}</DialogTitle>
           <DialogDescription>Full size image view</DialogDescription>
@@ -28,7 +28,7 @@ export default function ImageLightbox({ open, src, alt, onOpenChange }: ImageLig
           <img
             src={src}
             alt={alt || "Full image"}
-            className="max-h-[90vh] max-w-[95vw] object-contain rounded-md shadow-2xl"
+            className="h-auto max-h-[85vh] w-auto max-w-full object-contain rounded-md shadow-2xl"
           />
         </div>
         
