@@ -188,24 +188,21 @@ export default function Home() {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="grid grid-cols-1 lg:grid-cols-3 gap-8"
+          className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch"
         >
           {features.map((feature, index) => {
             const Icon = feature.icon;
             return (
               <motion.div key={index} variants={itemVariants}>
-                <Card className={`h-full group hover:shadow-2xl transition-all duration-500 hover:-translate-y-3 border-2 ${feature.borderColor} bg-gradient-to-br ${feature.bgColor} relative overflow-hidden`}>
+                <Card className={`h-full group hover:shadow-2xl transition-all duration-500 hover:-translate-y-3 border-2 ${feature.borderColor} bg-gradient-to-br ${feature.bgColor} relative overflow-hidden flex flex-col`}>
                   {/* Background pattern */}
                   <div className="absolute inset-0 bg-grid-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   
-                  <CardHeader className="pb-6 relative z-10">
+                  <CardHeader className="pb-6 relative z-10 flex flex-col min-h-[160px]">
                     <div className="flex items-center justify-between mb-4">
                       <div className={`inline-flex w-14 h-14 items-center justify-center rounded-2xl ${feature.color} bg-white/80 border-2 ${feature.borderColor} mb-4 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg`}>
                         <Icon className="w-7 h-7" />
                       </div>
-                      <Badge variant="outline" className="text-xs">
-                        #{index + 1}
-                      </Badge>
                     </div>
                     <CardTitle className={`text-xl font-bold ${feature.color} group-hover:scale-105 transition-transform duration-300 origin-left`}>
                       {feature.title}
@@ -214,14 +211,14 @@ export default function Home() {
                       {feature.description}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="relative z-10">
-                    <div className="space-y-4">
+                  <CardContent className="relative z-10 mt-auto">
+                    <div className="space-y-2">
                       <p className="text-sm text-muted-foreground leading-relaxed">
                         {feature.detail}
                       </p>
                       
                       {/* Feature preview mockup */}
-                      <div className="mt-4 p-3 bg-white/60 rounded-lg border border-white/40 group-hover:bg-white/80 transition-colors duration-300">
+                      <div className="mt-4 p-3 bg-white/60 rounded-lg border border-white/40 group-hover:bg-white/80 transition-colors duration-300 min-h-[96px]">
                         {feature.preview === 'search-preview' && (
                           <div className="space-y-2">
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -241,7 +238,7 @@ export default function Home() {
                               <CloudUpload className="w-3 h-3" />
                               <span>3 files processing...</span>
                             </div>
-                            <div className="h-2 bg-gradient-to-r from-green-200 to-green-400 rounded-full" />
+                            <div className="h-8 bg-gradient-to-r from-green-200 to-green-400 rounded-full" />
                           </div>
                         )}
                         {feature.preview === 'chat-preview' && (
@@ -251,8 +248,8 @@ export default function Home() {
                               <span>AI analyzing documents...</span>
                             </div>
                             <div className="flex gap-1">
-                              {[1,2,3,4].map(i => (
-                                <div key={i} className="w-4 h-4 bg-gradient-to-r from-purple-100 to-purple-200 rounded border" />
+                              {[1,2,3,4,5,6].map(i => (
+                                <div key={i} className="w-8 h-8 bg-gradient-to-r from-purple-100 to-purple-200 rounded border" />
                               ))}
                             </div>
                           </div>
