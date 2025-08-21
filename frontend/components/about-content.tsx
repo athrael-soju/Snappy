@@ -12,7 +12,7 @@ export default function AboutContent() {
             <Info className="w-6 h-6 text-blue-600" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-cyan-700 bg-clip-text text-transparent">About this Project</h1>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-cyan-700 bg-clip-text text-transparent">About this Template</h1>
             <p className="text-muted-foreground text-lg">What this template does, what ColPali is, and how it differs from traditional RAG</p>
           </div>
         </div>

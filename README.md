@@ -98,31 +98,31 @@ Screenshots of the current UI. Pages: Home, Upload, Search, AI Chat, Maintenance
     <tr>
       <td align="center">
         <strong>Home</strong><br/>
-        <img src="image/README/1755818352576.png" alt="Home screen" width="520" />
+        <img src="image/README/1755819874527.png" alt="Home screen" width="520" />
       </td>
       <td align="center">
         <strong>Upload</strong><br/>
-        <img src="image/README/1755818406694.png" alt="Upload screen" width="520" />
+        <img src="image/README/1755819906049.png" alt="Upload screen" width="520" />
       </td>
     </tr>
     <tr>
       <td align="center">
         <strong>Search</strong><br/>
-        <img src="image/README/1755818385889.png" alt="Search screen" width="520" />
+        <img src="image/README/1755819889262.png" alt="Search screen" width="520" />
       </td>
       <td align="center">
-        <strong>AI Chat</strong><br/>
-        <img src="image/README/1755818429116.png" alt="Chat screen" width="520" />
+        <strong>Chat</strong><br/>
+        <img src="image/README/1755819922170.png" alt="Chat screen" width="520" />
       </td>
     </tr>
     <tr>
       <td align="center">
         <strong>Maintenance</strong><br/>
-        <img src="image/README/1755818441579.png" alt="Maintenance screen" width="520" />
+        <img src="image/README/1755819936077.png" alt="Maintenance screen" width="520" />
       </td>
       <td align="center">
         <strong>About</strong><br/>
-        <img src="image/README/1755818456752.png" alt="About screen" width="520" />
+        <img src="image/README/1755819989515.png" alt="About screen" width="520" />
       </td>
     </tr>
   </table>

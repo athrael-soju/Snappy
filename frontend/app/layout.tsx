@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Fastapi / Nextjs / ColPali Template",
+  title: "FastAPI / Next.js / ColPali Template",
   description: "Search, upload and chat with your visual documents",
   icons: {
     icon: "/favicon.png",

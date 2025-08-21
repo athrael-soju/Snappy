@@ -37,7 +37,7 @@ export function Nav() {
               priority
             />
             <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">
-              Fastapi / Nextjs / ColPali Template
+              FastAPI / Next.js / ColPali Template
             </span>
           </Link>
         </div>
