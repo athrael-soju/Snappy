@@ -1,11 +1,9 @@
-import { Spinner } from "@/components/ui/spinner";
-
 export default function Loading() {
   return (
-    <div className="min-h-svh grid place-items-center">
-      <div className="flex items-center gap-3 text-sm text-muted-foreground">
-        <Spinner size={24} />
-        <span>Loading...</span>
+    <div className="flex items-center justify-center min-h-96">
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <span className="text-muted-foreground">Loading...</span>
       </div>
     </div>
   );

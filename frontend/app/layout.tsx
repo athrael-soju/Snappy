@@ -4,6 +4,7 @@ import "./globals.css";
 import "@/lib/api/client";
 import { Nav } from "@/components/nav";
 import NextTopLoader from "nextjs-toploader";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,6 +32,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <NextTopLoader showSpinner={false} />
+        <Toaster richColors closeButton position="top-right" />
         <Nav />
         <main className="mx-auto max-w-6xl p-4 sm:p-6">
           {children}
