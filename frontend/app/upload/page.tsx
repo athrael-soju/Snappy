@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { IndexingService, ApiError } from "@/lib/api/generated";
 import type { Body_index_index_post } from "@/lib/api/generated";
 import "@/lib/api/client";
@@ -8,29 +8,73 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Upload, FileText, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
-import { motion } from "framer-motion";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Upload, FileText, CheckCircle, AlertCircle, Loader2, CloudUpload, FolderOpen, ArrowUpFromLine } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
 export default function UploadPage() {
   const [files, setFiles] = useState<FileList | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Drag and drop handlers
+  const onDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  }, []);
+
+  const onDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  }, []);
+
+  const onDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const droppedFiles = e.dataTransfer.files;
+    if (droppedFiles.length > 0) {
+      setFiles(droppedFiles);
+    }
+  }, []);
+
+  const handleFileSelect = (selectedFiles: FileList | null) => {
+    if (selectedFiles) {
+      setFiles(selectedFiles);
+    }
+  };
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!files || files.length === 0) return;
     setUploading(true);
+    setUploadProgress(0);
     setMessage(null);
     setError(null);
+    
+    // Simulate progress for better UX
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev >= 90) return prev;
+        return prev + Math.random() * 10;
+      });
+    }, 300);
     
     try {
       const payload: Body_index_index_post = {
         files: Array.from(files) as Blob[],
       };
       await IndexingService.indexIndexPost(payload);
+      
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+      
       const successMsg = `Successfully uploaded ${files.length} file(s)`;
       setMessage(successMsg);
       setFiles(null);
@@ -43,6 +87,9 @@ export default function UploadPage() {
         fileInputRef.current.value = "";
       }
     } catch (err: unknown) {
+      clearInterval(progressInterval);
+      setUploadProgress(0);
+      
       let errorMsg = "Upload failed";
       if (err instanceof ApiError) {
         errorMsg = `${err.status}: ${err.message}`;
@@ -55,6 +102,7 @@ export default function UploadPage() {
       });
     } finally {
       setUploading(false);
+      setTimeout(() => setUploadProgress(0), 2000);
     }
   }
 
@@ -71,109 +119,246 @@ export default function UploadPage() {
       {/* Header */}
       <div className="space-y-2">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <Upload className="w-6 h-6 text-primary" />
+          <div className="p-2 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-lg border border-blue-500/20">
+            <CloudUpload className="w-6 h-6 text-blue-500" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold">Upload Documents</h1>
-            <p className="text-muted-foreground">Add documents to your visual search index</p>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Upload Documents</h1>
+            <p className="text-muted-foreground">Drag & drop or select files to add to your visual search index</p>
           </div>
         </div>
       </div>
 
-      {/* Upload Card */}
-      <Card className="h-full border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 transition-colors group">
-        <CardHeader className="text-center">
-          <div className="mx-auto w-16 h-16 bg-accent rounded-full flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
-            <Upload className="w-8 h-8 text-muted-foreground group-hover:text-accent-foreground transition-colors" />
-          </div>
-          <CardTitle>Upload Documents</CardTitle>
-          <CardDescription>
-            Select PDF files to upload to your document collection
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <form onSubmit={onSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="file-input" className="text-sm font-medium">
-                Files {hasFiles && `(${fileCount} selected)`}
-              </Label>
-              <Input
-                ref={fileInputRef}
-                id="file-input"
-                type="file"
-                multiple
-                onChange={(e) => setFiles(e.target.files)}
-                className="file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer"
-                disabled={uploading}
-              />
-            </div>
+      {/* Upload Card with Drag & Drop */}
+      <Card className={`relative border-2 border-dashed transition-all duration-300 group ${
+        isDragOver 
+          ? 'border-blue-500 bg-blue-500/5 shadow-lg scale-[1.02]' 
+          : 'border-muted-foreground/25 hover:border-blue-400/50 hover:shadow-md'
+      }`}>
+        <div 
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
+          onDrop={onDrop}
+          className="relative"
+        >
+          <CardHeader className="text-center pb-6">
+            <motion.div 
+              animate={{ 
+                scale: isDragOver ? 1.1 : 1,
+                rotate: isDragOver ? 5 : 0
+              }}
+              className={`mx-auto w-20 h-20 rounded-full flex items-center justify-center mb-4 transition-all ${
+                isDragOver ? 'bg-blue-500/20 border-2 border-blue-500/30' : 'bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20'
+              }`}
+            >
+              <CloudUpload className={`w-10 h-10 transition-colors ${
+                isDragOver ? 'text-blue-600' : 'text-blue-500'
+              }`} />
+            </motion.div>
             
-            <Button 
-              type="submit" 
-              disabled={uploading || !hasFiles}
-              className="w-full sm:w-auto"
-              size="lg"
-            >
-              {uploading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Uploading {fileCount} file{fileCount !== 1 ? 's' : ''}...
-                </>
-              ) : (
-                <>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload {hasFiles ? `${fileCount} file${fileCount !== 1 ? 's' : ''}` : 'Files'}
-                </>
-              )}
-            </Button>
-          </form>
-
-          {/* Status Messages */}
-          {message && (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg text-green-800 dark:text-green-200"
-              role="status"
-            >
-              <CheckCircle className="w-4 h-4" />
-              <span className="text-sm font-medium">{message}</span>
-            </motion.div>
-          )}
+            <CardTitle className="text-2xl mb-2">
+              {isDragOver ? 'Drop your files here!' : 'Upload Documents'}
+            </CardTitle>
+            
+            <CardDescription className="text-base leading-relaxed max-w-md mx-auto">
+              {isDragOver 
+                ? 'Release to upload your documents' 
+                : 'Drag & drop your files here, or click to browse. Upload reports, contracts, or images for instant visual search.'
+              }
+            </CardDescription>
+          </CardHeader>
           
-          {error && (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200"
-              role="alert"
-            >
-              <AlertCircle className="w-4 h-4" />
-              <span className="text-sm font-medium">{error}</span>
-            </motion.div>
-          )}
-        </CardContent>
+          <CardContent className="space-y-6">
+            <form onSubmit={onSubmit} className="space-y-6">
+              {/* File Selection */}
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="h-12 border-dashed hover:border-blue-400 hover:bg-blue-50/50"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                  >
+                    <FolderOpen className="w-5 h-5 mr-2" />
+                    Browse Files
+                  </Button>
+                  
+                  {hasFiles && (
+                    <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-lg">
+                      <FileText className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">{fileCount} file{fileCount !== 1 ? 's' : ''} selected</span>
+                    </div>
+                  )}
+                </div>
+                
+                <Input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  onChange={(e) => handleFileSelect(e.target.files)}
+                  className="hidden"
+                  disabled={uploading}
+                  accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.gif"
+                />
+              </div>
+              
+              {/* Selected Files Display */}
+              <AnimatePresence>
+                {hasFiles && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-2"
+                  >
+                    <Label className="text-sm font-medium">Selected Files:</Label>
+                    <div className="max-h-32 overflow-y-auto space-y-2 p-3 bg-muted/30 rounded-lg">
+                      {Array.from(files!).map((file, idx) => (
+                        <div key={idx} className="flex items-center gap-2 text-sm">
+                          <FileText className="w-4 h-4 text-muted-foreground" />
+                          <span className="truncate flex-1">{file.name}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {(file.size / 1024 / 1024).toFixed(1)}MB
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              
+              {/* Upload Progress */}
+              <AnimatePresence>
+                {uploading && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="space-y-2"
+                  >
+                    <div className="flex items-center justify-between text-sm">
+                      <span>Uploading...</span>
+                      <span>{Math.round(uploadProgress)}%</span>
+                    </div>
+                    <Progress value={uploadProgress} className="h-2" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              
+              {/* Upload Button */}
+              <Button 
+                type="submit" 
+                disabled={uploading || !hasFiles}
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 h-12"
+                size="lg"
+              >
+                {uploading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Processing {fileCount} file{fileCount !== 1 ? 's' : ''}...
+                  </>
+                ) : (
+                  <>
+                    <ArrowUpFromLine className="w-5 h-5 mr-2" />
+                    Upload {hasFiles ? `${fileCount} File${fileCount !== 1 ? 's' : ''}` : 'Documents'}
+                  </>
+                )}
+              </Button>
+            </form>
+
+            {/* Status Messages */}
+            <AnimatePresence>
+              {message && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                >
+                  <Alert variant="default" className="border-green-200 bg-green-50/50">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <AlertTitle className="text-green-800">Upload Successful</AlertTitle>
+                    <AlertDescription className="text-green-700">{message}</AlertDescription>
+                  </Alert>
+                </motion.div>
+              )}
+              
+              {error && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                >
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Upload Failed</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </CardContent>
+        </div>
       </Card>
 
-      {/* Info Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Supported Formats</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-            <div className="space-y-1">
-              <div className="font-medium text-foreground">Documents</div>
-              <div className="text-muted-foreground">PDF, DOC, DOCX, TXT</div>
+      {/* Info Section - Moved closer and more prominent */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="border-blue-200/50">
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-blue-500" />
+              <CardTitle className="text-lg">Supported Formats</CardTitle>
             </div>
-            <div className="space-y-1">
-              <div className="font-medium text-foreground">Images</div>
-              <div className="text-muted-foreground">PNG, JPG, JPEG, GIF</div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="font-medium text-foreground flex items-center gap-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  Documents
+                </div>
+                <div className="text-sm text-muted-foreground pl-4">
+                  PDF, DOC, DOCX, TXT
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="font-medium text-foreground flex items-center gap-2">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                  Images
+                </div>
+                <div className="text-sm text-muted-foreground pl-4">
+                  PNG, JPG, JPEG, GIF
+                </div>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+        
+        <Card className="border-purple-200/50">
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-2">
+              <ArrowUpFromLine className="w-5 h-5 text-purple-500" />
+              <CardTitle className="text-lg">Quick Tips</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3 text-sm">
+              <div className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+                <span className="text-muted-foreground">Drag files directly from your computer</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+                <span className="text-muted-foreground">Upload multiple files at once</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+                <span className="text-muted-foreground">Files are processed automatically for search</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </motion.div>
   );
 }

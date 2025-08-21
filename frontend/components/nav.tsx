@@ -3,31 +3,33 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Home, Search, Upload, MessageSquare, Settings } from "lucide-react";
+import { Home, Search, Upload, MessageSquare, Settings, Eye, CloudUpload, Brain, Shield } from "lucide-react";
 
 const links = [
-  { href: "/", label: "Home", icon: Home },
-  { href: "/search", label: "Search", icon: Search },
-  { href: "/upload", label: "Upload", icon: Upload },
-  { href: "/chat", label: "Chat", icon: MessageSquare },
-  { href: "/maintenance", label: "Maintenance", icon: Settings },
+  { href: "/", label: "Home", icon: Home, color: "text-blue-600" },
+  { href: "/search", label: "Search", icon: Eye, color: "text-blue-500" },
+  { href: "/upload", label: "Upload", icon: CloudUpload, color: "text-green-500" },
+  { href: "/chat", label: "Chat", icon: Brain, color: "text-purple-500" },
+  { href: "/maintenance", label: "Maintenance", icon: Shield, color: "text-red-500" },
 ];
 
 export function Nav() {
   const pathname = usePathname();
   return (
-    <header className="w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 sticky top-0 z-50 shadow-sm">
+    <header className="w-full border-b bg-gradient-to-r from-blue-50/80 via-purple-50/60 to-cyan-50/80 backdrop-blur-xl supports-[backdrop-filter]:bg-gradient-to-r supports-[backdrop-filter]:from-blue-50/60 supports-[backdrop-filter]:via-purple-50/40 supports-[backdrop-filter]:to-cyan-50/60 sticky top-0 z-50 shadow-lg border-blue-200/20">
       <nav className="mx-auto max-w-7xl flex items-center justify-between gap-4 px-6 py-4">
         <Link 
           href="/" 
-          className="flex items-center gap-2 font-bold text-lg tracking-tight hover:opacity-80 transition-opacity"
+          className="flex items-center gap-3 font-bold text-xl tracking-tight hover:opacity-80 transition-all duration-300 hover:scale-105 group"
         >
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <div className="w-4 h-4 bg-primary-foreground rounded-sm"></div>
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:rotate-3">
+            <div className="w-5 h-5 bg-white rounded-md opacity-90"></div>
           </div>
-          ColPali UI
+          <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">
+            ColPali UI
+          </span>
         </Link>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           {links.map((link) => {
             const active = pathname === link.href;
             const Icon = link.icon;
@@ -36,14 +38,22 @@ export function Nav() {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105",
+                  "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 hover:scale-105 relative overflow-hidden group",
                   active
-                    ? "bg-primary text-primary-foreground shadow-md"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                    ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg hover:shadow-xl"
+                    : "text-muted-foreground hover:text-foreground hover:bg-white/60 hover:shadow-md border border-transparent hover:border-blue-200/50"
                 )}
               >
-                <Icon className="w-4 h-4" />
-                <span className="hidden sm:inline">{link.label}</span>
+                {active && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20 animate-pulse" />
+                )}
+                <Icon className={cn("w-4 h-4 relative z-10 transition-colors duration-300", active ? "text-white" : link.color)} />
+                <span className={cn("hidden sm:inline relative z-10 transition-colors duration-300", active ? "text-white font-semibold" : "")}>
+                  {link.label}
+                </span>
+                {active && (
+                  <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-white rounded-full animate-bounce" />
+                )}
               </Link>
             );
           })}

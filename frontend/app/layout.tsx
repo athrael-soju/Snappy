@@ -5,6 +5,7 @@ import "@/lib/api/client";
 import { Nav } from "@/components/nav";
 import NextTopLoader from "nextjs-toploader";
 import { Toaster } from "sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,10 +34,12 @@ export default function RootLayout({
       >
         <NextTopLoader showSpinner={false} />
         <Toaster richColors closeButton position="top-right" />
-        <Nav />
-        <main className="mx-auto max-w-6xl p-4 sm:p-6">
-          {children}
-        </main>
+        <TooltipProvider>
+          <Nav />
+          <main className="mx-auto max-w-6xl p-4 sm:p-6">
+            {children}
+          </main>
+        </TooltipProvider>
       </body>
     </html>
   );
