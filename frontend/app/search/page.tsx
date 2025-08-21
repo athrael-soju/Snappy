@@ -12,6 +12,7 @@ import { Search, Loader2, AlertCircle, ImageIcon, Hash } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import Image from "next/image";
+import ImageLightbox from "@/components/lightbox";
 
 export default function SearchPage() {
   const [q, setQ] = useState("");
@@ -20,6 +21,9 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState("");
+  const [lightboxAlt, setLightboxAlt] = useState<string | undefined>(undefined);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -202,7 +206,14 @@ export default function SearchPage() {
                   <motion.div key={idx} variants={itemVariants}>
                     <Card key={idx} className="h-full group overflow-hidden hover:shadow-md transition-all duration-300 hover:-translate-y-1">
                       {item.image_url && (
-                        <div className="relative aspect-video overflow-hidden bg-muted">
+                        <div
+                          className="relative aspect-video overflow-hidden bg-muted cursor-zoom-in"
+                          onClick={() => {
+                            setLightboxSrc(item.image_url!);
+                            setLightboxAlt(item.label ?? `Result ${idx + 1}`);
+                            setLightboxOpen(true);
+                          }}
+                        >
                           <Image
                             src={item.image_url}
                             alt={item.label ?? `Result ${idx + 1}`}
@@ -238,6 +249,12 @@ export default function SearchPage() {
           </motion.div>
         )}
       </AnimatePresence>
+      <ImageLightbox
+        open={lightboxOpen}
+        src={lightboxSrc}
+        alt={lightboxAlt}
+        onOpenChange={setLightboxOpen}
+      />
     </motion.div>
   );
 }

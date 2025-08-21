@@ -13,6 +13,7 @@ import { MessageSquare, Send, Bot, User, Image as ImageIcon, Loader2, Zap, Hash 
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import Image from "next/image";
+import ImageLightbox from "@/components/lightbox";
 
 export default function ChatPage() {
   const [input, setInput] = useState("");
@@ -26,6 +27,9 @@ export default function ChatPage() {
   >([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState("");
+  const [lightboxAlt, setLightboxAlt] = useState<string | undefined>(undefined);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -340,10 +344,15 @@ export default function ChatPage() {
                     <img
                       src={img.url}
                       alt={img.label || `Image ${idx + 1}`}
-                      className="w-full h-12 object-cover rounded border"
+                      className="w-full h-12 object-cover rounded border cursor-zoom-in"
+                      onClick={() => {
+                        setLightboxSrc(img.url!);
+                        setLightboxAlt(img.label || `Image ${idx + 1}`);
+                        setLightboxOpen(true);
+                      }}
                     />
                   )}
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center">
+                  <div className="pointer-events-none absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center">
                     <div className="text-white text-center p-1">
                       {img.label && (
                         <p className="text-xs font-medium truncate">{img.label}</p>
@@ -361,6 +370,12 @@ export default function ChatPage() {
           </motion.div>
         )}
       </AnimatePresence>
+      <ImageLightbox
+        open={lightboxOpen}
+        src={lightboxSrc}
+        alt={lightboxAlt}
+        onOpenChange={setLightboxOpen}
+      />
     </motion.div>
   );
 }
