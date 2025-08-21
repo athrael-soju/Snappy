@@ -356,9 +356,9 @@ class QdrantService:
     ):
         """Perform two-stage retrieval with multivectors"""
         # Optional quantization-aware search params
-        search_params = None
+        params = None
         if QDRANT_USE_BINARY:
-            search_params = models.SearchParams(
+            params = models.SearchParams(
                 quantization=models.QuantizationSearchParams(
                     ignore=QDRANT_SEARCH_IGNORE_QUANT,
                     rescore=QDRANT_SEARCH_RESCORE,
@@ -385,7 +385,7 @@ class QdrantService:
                 with_vector=False,
                 using="original",
                 filter=qdrant_filter,
-                search_params=search_params,
+                params=params,
             )
             for query_embedding in query_embeddings_batch
         ]
