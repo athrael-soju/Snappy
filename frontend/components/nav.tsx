@@ -76,7 +76,7 @@ export function Nav() {
                     aria-label="About this template"
                     className="group bg-transparent hover:bg-transparent transition-all duration-300 hover:scale-105 hover:opacity-80"
                   >
-                    <HelpCircle className="w-8 h-8 text-cyan-600 transition-all duration-300 group-hover:rotate-3 group-hover:text-cyan-600" />
+                    <HelpCircle className="w-8 h-8 text-blue-600 transition-all duration-300 group-hover:rotate-3 group-hover:text-cyan-600" />
                   </button>
                 </DialogTrigger>
               </TooltipTrigger>
