@@ -5,6 +5,19 @@ Next.js App Router UI for upload/indexing, search, and chat.
 - Codegen: `openapi-typescript-codegen` + `openapi-zod-client`
 - Generated SDK wired via `frontend/lib/api/client.ts`
 
+## Pages & Routes
+
+The app is intentionally simple and unauthenticated. Current pages:
+
+- `/` — Home: landing with quick links and overview.
+- `/about` — About: what this project does, what ColPali is, and comparison to traditional text-only RAG.
+- `/upload` — Upload PDFs for indexing (sent to FastAPI `/index`).
+- `/search` — Visual search over indexed pages; returns top-k pages and metadata.
+- `/chat` — AI chat grounded on retrieved page images.
+- `/maintenance` — Destructive admin actions (clear Qdrant, clear MinIO, clear all) with confirmations.
+
+Screenshots live in `image/README/` and are referenced from the repo root `README.md`.
+
 ## Requirements
 - Node.js 22 (matches Dockerfile)
 - Yarn Classic (v1) — auto-enabled by `corepack` in Docker. Locally you can use Yarn or npm.
