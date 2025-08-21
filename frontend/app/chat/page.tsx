@@ -4,6 +4,11 @@ import { useState } from "react";
 import type { ChatMessage } from "@/lib/api/generated";
 import { ChatService, ApiError } from "@/lib/api/generated";
 import "@/lib/api/client";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Spinner } from "@/components/ui/spinner";
+import Image from "next/image";
 
 export default function ChatPage() {
   const [input, setInput] = useState("");
@@ -65,19 +70,14 @@ export default function ChatPage() {
           </div>
         )}
         {messages.map((m, idx) => (
-          <div
-            key={idx}
-            className={`rounded p-3 text-sm ${
-              m.role === "user"
-                ? "bg-black/5 dark:bg-white/10"
-                : "bg-transparent border-l-2 border-black/10 dark:border-white/10 pl-3"
-            }`}
-          >
-            <div className="font-medium mb-1">
-              {m.role === "user" ? "You" : "Assistant"}
-            </div>
-            <div className="whitespace-pre-wrap">{m.content}</div>
-          </div>
+          <Card key={idx}>
+            <CardContent className={`p-3 text-sm ${m.role === "user" ? "bg-black/5 dark:bg-white/10" : ""}`}>
+              <div className="font-medium mb-1">
+                {m.role === "user" ? "You" : "Assistant"}
+              </div>
+              <div className="whitespace-pre-wrap">{m.content}</div>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
@@ -87,15 +87,24 @@ export default function ChatPage() {
           {imageGroups.map((group, gIdx) => (
             <div key={gIdx} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {group.map((img, iIdx) => (
-                <div key={iIdx} className="border rounded p-2 space-y-2">
-                  {img.url && (
-                    <img src={img.url} alt={img.label ?? `Image ${iIdx + 1}`} className="w-full h-auto rounded" />
-                  )}
-                  <div className="text-xs">{img.label}</div>
-                  {typeof img.score === "number" && (
-                    <div className="text-[10px] text-black/60 dark:text-white/60">Score: {img.score.toFixed(3)}</div>
-                  )}
-                </div>
+                <Card key={iIdx}>
+                  <CardContent className="p-2 space-y-2">
+                    {img.url && (
+                      <Image
+                        src={img.url}
+                        alt={img.label ?? `Image ${iIdx + 1}`}
+                        width={1200}
+                        height={800}
+                        sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
+                        className="w-full h-auto rounded"
+                      />
+                    )}
+                    <div className="text-xs">{img.label}</div>
+                    {typeof img.score === "number" && (
+                      <div className="text-[10px] text-black/60 dark:text-white/60">Score: {img.score.toFixed(3)}</div>
+                    )}
+                  </CardContent>
+                </Card>
               ))}
             </div>
           ))}
@@ -103,20 +112,19 @@ export default function ChatPage() {
       )}
 
       <form onSubmit={sendMessage} className="flex gap-2 items-start">
-        <input
-          className="border rounded px-3 py-2 w-full text-sm"
+        <Input
           placeholder="Ask something about your indexed documents..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
           disabled={loading}
         />
-        <button
-          type="submit"
-          className="bg-black text-white dark:bg-white dark:text-black rounded px-4 py-2 text-sm"
-          disabled={loading}
-        >
-          {loading ? "Sending..." : "Send"}
-        </button>
+        <Button type="submit" disabled={loading}>
+          {loading ? (
+            <span className="inline-flex items-center gap-2"><Spinner size={16} /> Sending...</span>
+          ) : (
+            "Send"
+          )}
+        </Button>
       </form>
 
       {error && <div className="text-red-600 text-sm" role="alert">{error}</div>}

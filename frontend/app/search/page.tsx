@@ -4,6 +4,11 @@ import { useState } from "react";
 import type { SearchItem } from "@/lib/api/generated";
 import { RetrievalService, ApiError } from "@/lib/api/generated";
 import "@/lib/api/client";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Spinner } from "@/components/ui/spinner";
+import Image from "next/image";
 
 export default function SearchPage() {
   const [q, setQ] = useState("");
@@ -34,29 +39,29 @@ export default function SearchPage() {
     <div className="space-y-6">
       <h1 className="text-xl font-semibold">Search</h1>
       <form onSubmit={onSubmit} className="flex flex-col sm:flex-row gap-3 items-start">
-        <input
-          className="border rounded px-3 py-2 w-full sm:w-96 text-sm"
+        <Input
           placeholder="Enter your query..."
           value={q}
           onChange={(e) => setQ(e.target.value)}
           required
+          className="w-full sm:w-96"
         />
-        <input
+        <Input
           type="number"
           min={1}
           max={50}
-          className="border rounded px-3 py-2 w-24 text-sm"
           value={k}
           onChange={(e) => setK(parseInt(e.target.value || "5", 10))}
           title="Top K"
+          className="w-24"
         />
-        <button
-          type="submit"
-          className="bg-black text-white dark:bg-white dark:text-black rounded px-4 py-2 text-sm"
-          disabled={loading}
-        >
-          {loading ? "Searching..." : "Search"}
-        </button>
+        <Button type="submit" disabled={loading}>
+          {loading ? (
+            <span className="inline-flex items-center gap-2"><Spinner size={16} /> Searching...</span>
+          ) : (
+            "Search"
+          )}
+        </Button>
       </form>
 
       {error && (
@@ -65,22 +70,26 @@ export default function SearchPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {results.map((item, idx) => (
-          <div key={idx} className="border rounded p-3 space-y-2">
-            {item.image_url && (
-              // Using native img for simplicity; Next/Image can be used as well
-              <img
-                src={item.image_url}
-                alt={item.label ?? `Result ${idx + 1}`}
-                className="w-full h-auto rounded"
-              />
-            )}
-            {item.label && (
-              <div className="text-sm font-medium">{item.label}</div>
-            )}
-            {typeof item.score === "number" && (
-              <div className="text-xs text-black/60 dark:text-white/60">Score: {item.score.toFixed(3)}</div>
-            )}
-          </div>
+          <Card key={idx}>
+            <CardContent className="p-3 space-y-2">
+              {item.image_url && (
+                <Image
+                  src={item.image_url}
+                  alt={item.label ?? `Result ${idx + 1}`}
+                  width={1200}
+                  height={800}
+                  sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
+                  className="w-full h-auto rounded"
+                />
+              )}
+              {item.label && (
+                <div className="text-sm font-medium">{item.label}</div>
+              )}
+              {typeof item.score === "number" && (
+                <div className="text-xs text-black/60 dark:text-white/60">Score: {item.score.toFixed(3)}</div>
+              )}
+            </CardContent>
+          </Card>
         ))}
       </div>
     </div>
