@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Info, Image as ImageIcon, Layers, Search, GitCompare, Sparkles, Database, Server } from "lucide-react";
 
-export default function AboutPage() {
+export default function AboutContent() {
   return (
     <div className="space-y-8">
       {/* Header */}

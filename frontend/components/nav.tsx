@@ -1,13 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Home, Search, Upload, MessageSquare, Settings, Eye, CloudUpload, Brain, Shield, Info } from "lucide-react";
+import { Home, Search, Upload, MessageSquare, Settings, Eye, CloudUpload, Brain, Shield, HelpCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import AboutContent from "@/components/about-content";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 const links = [
   { href: "/", label: "Home", icon: Home, color: "text-blue-600" },
-  { href: "/about", label: "About", icon: Info, color: "text-sky-500" },
   { href: "/search", label: "Search", icon: Eye, color: "text-blue-500" },
   { href: "/upload", label: "Upload", icon: CloudUpload, color: "text-green-500" },
   { href: "/chat", label: "Chat", icon: Brain, color: "text-purple-500" },
@@ -19,17 +22,24 @@ export function Nav() {
   return (
     <header className="w-full border-b bg-gradient-to-r from-blue-50/80 via-purple-50/60 to-cyan-50/80 backdrop-blur-xl supports-[backdrop-filter]:bg-gradient-to-r supports-[backdrop-filter]:from-blue-50/60 supports-[backdrop-filter]:via-purple-50/40 supports-[backdrop-filter]:to-cyan-50/60 sticky top-0 z-50 shadow-lg border-blue-200/20">
       <nav className="mx-auto max-w-7xl flex items-center justify-between gap-4 px-6 py-4">
-        <Link 
-          href="/" 
-          className="flex items-center gap-3 font-bold text-xl tracking-tight hover:opacity-80 transition-all duration-300 hover:scale-105 group"
-        >
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:rotate-3">
-            <div className="w-5 h-5 bg-white rounded-md opacity-90"></div>
-          </div>
-          <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">
-            Nextjs Fastapi ColPali Template
-          </span>
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/"
+            className="flex items-center gap-3 font-bold text-xl tracking-tight hover:opacity-80 transition-all duration-300 hover:scale-105 group"
+          >
+            <Image
+              src="/favicon.png"
+              alt="App icon"
+              width={40}
+              height={40}
+              className="transition-all duration-300 group-hover:rotate-3"
+              priority
+            />
+            <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">
+              Fastapi / Nextjs / ColPali Template
+            </span>
+          </Link>
+        </div>
         <div className="flex items-center gap-2">
           {links.map((link) => {
             const active = pathname === link.href;
@@ -58,6 +68,25 @@ export function Nav() {
               </Link>
             );
           })}
+          <Dialog>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DialogTrigger asChild>
+                  <button
+                    aria-label="About this template"
+                    className="group bg-transparent hover:bg-transparent transition-all duration-300 hover:scale-105 hover:opacity-80"
+                  >
+                    <HelpCircle className="w-8 h-8 text-cyan-600 transition-all duration-300 group-hover:rotate-3 group-hover:text-cyan-600" />
+                  </button>
+                </DialogTrigger>
+              </TooltipTrigger>
+              <TooltipContent >About this template</TooltipContent>
+            </Tooltip>
+            <DialogContent className="max-h-[80vh] overflow-y-auto sm:max-w-3xl">
+              <DialogTitle className="flex items-center gap-2 text-lg" />
+              <AboutContent />
+            </DialogContent>
+          </Dialog>
         </div>
       </nav>
     </header>
