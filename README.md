@@ -2,7 +2,7 @@
 <img width="100%" alt="image" src="image/README/1755459651164.png" />
 </center>
 
-# The Most Beautiful Rag - FastAPI / Next.js / MinIO Template
+# The Most Beautiful Rag - FastAPI / Next.js / ColPali Template
 
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688)](https://fastapi.tiangolo.com/) [![Qdrant](https://img.shields.io/badge/VectorDB-Qdrant-ff6b6b)](https://qdrant.tech/) [![MinIO](https://img.shields.io/badge/Storage-MinIO-f79533)](https://min.io/) [![Next.js](https://img.shields.io/badge/Frontend-Next.js-000000)](https://nextjs.org/) [![Docker Compose](https://img.shields.io/badge/Orchestration-Docker%20Compose-2496ed)](https://docs.docker.com/compose/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
