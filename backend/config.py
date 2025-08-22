@@ -38,6 +38,14 @@ OPENAI_SYSTEM_PROMPT: Final[str] = os.getenv(
     "say you cannot find it. Be concise and always mention from which pages the answer is taken.",
 )
 
+# Image encoding for chat data URLs
+DATA_URL_IMAGE_FORMAT: Final[str] = (
+    os.getenv("DATA_URL_IMAGE_FORMAT", os.getenv("MINIO_IMAGE_FMT", "JPEG"))
+    .strip()
+    .upper()
+)
+DATA_URL_IMAGE_QUALITY: Final[int] = int(os.getenv("DATA_URL_IMAGE_QUALITY", "90"))
+
 """
 ColPali API configuration
 

@@ -7,7 +7,7 @@ from typing import List, Optional, Dict
 from fastapi import HTTPException
 from pdf2image import convert_from_path
 
-from config import WORKER_THREADS
+from config import WORKER_THREADS, DATA_URL_IMAGE_FORMAT, DATA_URL_IMAGE_QUALITY
 
 
 BRAIN_PLACEHOLDERS = [
@@ -64,11 +64,50 @@ BRAIN_PLACEHOLDERS = [
 ]
 
 
-def encode_pil_to_data_url(img) -> str:
+def encode_pil_to_data_url(
+    img,
+    fmt: str | None = None,
+    quality: int | None = None,
+) -> str:
+    """Convert a PIL image to a base64 data URL using env-configured format/quality.
+
+    Args:
+        img: PIL Image object
+        fmt: Optional override for format (e.g., 'JPEG', 'PNG', 'WEBP'). Defaults to DATA_URL_IMAGE_FORMAT.
+        quality: Optional quality (1-100) where applicable (e.g., JPEG/WEBP). Defaults to DATA_URL_IMAGE_QUALITY.
+    """
+    # Resolve target format and quality from env defaults if not provided
+    target_fmt = (fmt or DATA_URL_IMAGE_FORMAT or "JPEG").upper()
+    target_quality = int(DATA_URL_IMAGE_QUALITY if quality is None else quality)
+
     buf = io.BytesIO()
-    img.save(buf, format="PNG")
+    save_kwargs = {}
+
+    # Determine proper MIME type and per-format save kwargs
+    if target_fmt in ("JPG", "JPEG"):
+        mime = "image/jpeg"
+        target_fmt = "JPEG"
+        if img.mode in ("RGBA", "LA", "P"):
+            img = img.convert("RGB")
+        save_kwargs.update({"quality": target_quality, "optimize": True})
+    elif target_fmt == "PNG":
+        mime = "image/png"
+        # PNG doesn't use 'quality'; optimize flag can help reduce size
+        save_kwargs.update({"optimize": True})
+    elif target_fmt == "WEBP":
+        mime = "image/webp"
+        save_kwargs.update({"quality": target_quality, "method": 6})
+    else:
+        # Fallback to JPEG
+        mime = "image/jpeg"
+        target_fmt = "JPEG"
+        if img.mode in ("RGBA", "LA", "P"):
+            img = img.convert("RGB")
+        save_kwargs.update({"quality": target_quality, "optimize": True})
+
+    img.save(buf, format=target_fmt, **save_kwargs)
     b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
-    return f"data:image/png;base64,{b64}"
+    return f"data:{mime};base64,{b64}"
 
 
 def convert_pdf_paths_to_images(paths: List[str]) -> List[dict]:
