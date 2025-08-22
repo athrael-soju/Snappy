@@ -51,6 +51,9 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/next.config.ts ./next.config.ts
 
+# Ensure runtime user can write Next.js image cache
+RUN mkdir -p .next/cache/images && chown -R node:node /app
+
 # Drop privileges
 USER node
 
