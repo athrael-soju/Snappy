@@ -9,6 +9,7 @@ import {
   streamAssistant,
   type RetrievedImage,
 } from '@/lib/api/chat'
+import { kSchema, messageSchema } from '@/lib/validation/chat'
 
 export type ChatMessage = {
   role: 'user' | 'assistant'
@@ -29,11 +30,20 @@ export function useChat() {
     if (typeof window === 'undefined') return 5
     const saved = localStorage.getItem('k')
     const parsed = saved ? parseInt(saved, 10) : NaN
-    return Number.isFinite(parsed) ? parsed : 5
+    // Validate persisted value using schema bounds; fallback to default 5
+    return Number.isFinite(parsed) && kSchema.safeParse(parsed).success ? parsed : 5
   })
   const [imageGroups, setImageGroups] = useState<
     Array<{ url: string | null; label: string | null; score: number | null }[]>
   >([])
+
+  // Validation schemas are imported from shared module
+
+  // Derived validity for UI to disable send when settings are invalid
+  const isSettingsValid = (() => {
+    if (kMode === 'auto') return true
+    return kSchema.safeParse(k).success
+  })()
 
   // persist preferences
   useEffect(() => {
@@ -55,18 +65,37 @@ export function useChat() {
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault()
     const text = input.trim()
-    if (!text) return
+
+    // Validate message
+    const msgParse = messageSchema.safeParse(text)
+    if (!msgParse.success) {
+      const msg = msgParse.error.issues[0]?.message ?? 'Invalid input'
+      setError(msg)
+      toast.error('Invalid question', { description: msg })
+      return
+    }
 
     const userMsg: ChatMessage = { role: 'user', content: text }
     const nextHistory: ChatMessage[] = [...messages, userMsg]
     setInput('')
-    setLoading(true)
     setError(null)
 
-    // Retrieve images
+    // Validate settings first
     let retrievedImages: RetrievedImage[] = []
     try {
       const effectiveK = kMode === 'auto' ? autoHeuristic(text) : k
+      // Validate k (align with SourcesControl upper bound 25)
+      const kParse = kSchema.safeParse(effectiveK)
+      if (!kParse.success) {
+        const msg = 'Number of sources must be between 1 and 25'
+        setError(msg)
+        toast.error('Invalid sources selection', { description: msg })
+        return
+      }
+
+      // Only set loading after validation passes
+      setLoading(true)
+
       const searchData = await searchDocuments(text, effectiveK)
       retrievedImages = searchData || []
       const group = retrievedImages.map((img) => ({
@@ -131,6 +160,7 @@ Cite pages using the labels above (do not infer by result order).`
     k,
     kMode,
     imageGroups,
+    isSettingsValid,
     // setters
     setInput,
     setK,

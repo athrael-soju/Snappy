@@ -50,6 +50,7 @@ export default function ChatPage() {
     setK,
     setKMode,
     imageGroups,
+    isSettingsValid,
     sendMessage,
   } = useChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -57,6 +58,7 @@ export default function ChatPage() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState("");
   const [lightboxAlt, setLightboxAlt] = useState<string | undefined>(undefined);
+  const [uiSettingsValid, setUiSettingsValid] = useState(true);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -67,6 +69,11 @@ export default function ChatPage() {
   }, [messages]);
 
   // sendMessage now provided by useChat
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isSettingsValid || !uiSettingsValid) return;
+    sendMessage(e);
+  };
 
   const messageVariants = {
     initial: { opacity: 0, y: 10 },
@@ -207,7 +214,7 @@ export default function ChatPage() {
         
         {/* Input Form */}
         <div className="border-t border-purple-100/50 p-4 bg-gradient-to-r from-purple-50/30 to-pink-50/30">
-          <form onSubmit={sendMessage} className="flex gap-3 items-center">
+          <form onSubmit={handleSubmit} className="flex gap-3 items-center">
             <div className="flex-1 relative">
               <MessageSquare className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
@@ -224,7 +231,9 @@ export default function ChatPage() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
-                    sendMessage(e);
+                    if (isSettingsValid && uiSettingsValid) {
+                      sendMessage(e);
+                    }
                   }
                 }}
               />
@@ -235,10 +244,11 @@ export default function ChatPage() {
               setK={setK} 
               setKMode={setKMode} 
               loading={loading}
+              onValidityChange={setUiSettingsValid}
             />
             <Button 
               type="submit" 
-              disabled={loading || !input.trim()}
+              disabled={loading || !input.trim() || !isSettingsValid || !uiSettingsValid}
               size="lg"
               className="px-6 h-12 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg"
             >

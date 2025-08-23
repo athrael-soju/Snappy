@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { SlidersHorizontal, Check } from "lucide-react";
-import { z } from "zod";
+import { kSchema } from "@/lib/validation/chat";
 
 export type KMode = "auto" | "manual";
 
@@ -20,6 +20,7 @@ export interface SourcesControlProps {
   setKMode: (mode: KMode) => void;
   loading?: boolean;
   className?: string;
+  onValidityChange?: (valid: boolean) => void;
 }
 
 const PRESETS = [
@@ -29,18 +30,25 @@ const PRESETS = [
   { label: "Max", value: 20 },
 ] as const;
 
-export function SourcesControl({ k, kMode, setK, setKMode, loading, className }: SourcesControlProps) {
+export function SourcesControl({ k, kMode, setK, setKMode, loading, className, onValidityChange }: SourcesControlProps) {
   const isPreset = PRESETS.some(p => p.value === k);
   const selectedKey = kMode === "auto" ? "auto" : (isPreset ? String(k) : "custom");
   const [customVal, setCustomVal] = React.useState<string>(String(k));
   const [customError, setCustomError] = React.useState<string>("");
+  const [open, setOpen] = React.useState(false);
 
-  const kSchema = React.useMemo(() => z.number().int().min(1, "Minimum is 1").max(25, "Maximum is 25"), []);
+  const isCurrentValid = React.useMemo(() => {
+    if (kMode === "auto") return true;
+    if (selectedKey !== "custom") return true;
+    const n = Number(customVal);
+    return kSchema.safeParse(n).success && !customError;
+  }, [kMode, selectedKey, customVal, customError, kSchema]);
 
   const handleChange = (val: string) => {
     if (val === "auto") {
       setKMode("auto");
       setCustomError("");
+      onValidityChange?.(true);
       return;
     }
     if (val === "custom") {
@@ -50,8 +58,10 @@ export function SourcesControl({ k, kMode, setK, setKMode, loading, className }:
       if (parsed.success) {
         setK(parsed.data);
         setCustomError("");
+        onValidityChange?.(true);
       } else {
         setCustomError(parsed.error.issues[0]?.message ?? "Invalid value");
+        onValidityChange?.(false);
       }
       return;
     }
@@ -60,19 +70,37 @@ export function SourcesControl({ k, kMode, setK, setKMode, loading, className }:
       setKMode("manual");
       setK(num);
       setCustomError("");
+      onValidityChange?.(true);
     }
   };
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Dialog>
+        <Dialog
+          open={open}
+          onOpenChange={(v) => {
+            if (!v && !isCurrentValid) {
+              // Block closing when invalid
+              return;
+            }
+            setOpen(v);
+          }}
+        >
           <DialogTrigger asChild>
             <Button type="button" variant="outline" size="icon" className={className ?? "h-12 w-12"} aria-label="Chat settings">
               <SlidersHorizontal className="w-5 h-5" />
             </Button>
           </DialogTrigger>
-          <DialogContent aria-label="Chat settings">
+          <DialogContent
+            aria-label="Chat settings"
+            onInteractOutside={(e) => {
+              if (!isCurrentValid) e.preventDefault();
+            }}
+            onEscapeKeyDown={(e) => {
+              if (!isCurrentValid) e.preventDefault();
+            }}
+          >
             <div className="flex items-start justify-between gap-2">
               <DialogHeader className="space-y-1">
                 <DialogTitle className="text-lg font-semibold">Chat settings</DialogTitle>
@@ -80,11 +108,6 @@ export function SourcesControl({ k, kMode, setK, setKMode, loading, className }:
                   Choose how many sources are used to answer your question. Fewer sources = faster responses. More sources = broader context.
                 </DialogDescription>
               </DialogHeader>
-              <DialogClose asChild>
-                <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="Close settings">
-                  <span aria-hidden>×</span>
-                </Button>
-              </DialogClose>
             </div>
 
             <Separator className="my-2" />
@@ -180,7 +203,20 @@ export function SourcesControl({ k, kMode, setK, setKMode, loading, className }:
                         min={1}
                         max={25}
                         value={customVal}
-                        onChange={(e) => setCustomVal(e.target.value)}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setCustomVal(v);
+                          // live-validate without requiring blur
+                          const n = Number(v);
+                          const parsed = kSchema.safeParse(n);
+                          if (parsed.success) {
+                            setCustomError("");
+                            onValidityChange?.(true);
+                          } else {
+                            setCustomError(parsed.error.issues[0]?.message ?? "Invalid value");
+                            onValidityChange?.(false);
+                          }
+                        }}
                         onBlur={() => {
                           const n = Number(customVal);
                           const parsed = kSchema.safeParse(n);
@@ -189,8 +225,10 @@ export function SourcesControl({ k, kMode, setK, setKMode, loading, className }:
                             setKMode("manual");
                             setK(parsed.data);
                             setCustomError("");
+                            onValidityChange?.(true);
                           } else {
                             setCustomError(parsed.error.issues[0]?.message ?? "Invalid value");
+                            onValidityChange?.(false);
                           }
                         }}
                         aria-invalid={!!customError}
@@ -202,7 +240,6 @@ export function SourcesControl({ k, kMode, setK, setKMode, loading, className }:
                     <p className="col-span-2 text-xs text-destructive mt-1" role="alert">{customError}</p>
                   )}
                 </div>
-                <p className="mt-2 text-xs text-muted-foreground">Auto chooses the best number of sources based on your question.</p>
               </div>
             </div>
           </DialogContent>
