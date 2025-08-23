@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { SlidersHorizontal, Check } from "lucide-react";
+import { z } from "zod";
 
 export type KMode = "auto" | "manual";
 
@@ -32,21 +33,33 @@ export function SourcesControl({ k, kMode, setK, setKMode, loading, className }:
   const isPreset = PRESETS.some(p => p.value === k);
   const selectedKey = kMode === "auto" ? "auto" : (isPreset ? String(k) : "custom");
   const [customVal, setCustomVal] = React.useState<string>(String(k));
+  const [customError, setCustomError] = React.useState<string>("");
+
+  const kSchema = React.useMemo(() => z.number().int().min(1, "Minimum is 1").max(25, "Maximum is 25"), []);
+
   const handleChange = (val: string) => {
     if (val === "auto") {
       setKMode("auto");
+      setCustomError("");
       return;
     }
     if (val === "custom") {
       setKMode("manual");
       const n = Number(customVal);
-      if (Number.isFinite(n) && n >= 1 && n <= 50) setK(Math.round(n));
+      const parsed = kSchema.safeParse(n);
+      if (parsed.success) {
+        setK(parsed.data);
+        setCustomError("");
+      } else {
+        setCustomError(parsed.error.issues[0]?.message ?? "Invalid value");
+      }
       return;
     }
     const num = parseInt(val, 10);
     if (!Number.isNaN(num)) {
       setKMode("manual");
       setK(num);
+      setCustomError("");
     }
   };
 
@@ -165,23 +178,31 @@ export function SourcesControl({ k, kMode, setK, setKMode, loading, className }:
                       <Input
                         type="number"
                         min={1}
-                        max={50}
+                        max={25}
                         value={customVal}
                         onChange={(e) => setCustomVal(e.target.value)}
                         onBlur={() => {
                           const n = Number(customVal);
-                          if (Number.isFinite(n)) {
-                            const clamped = Math.min(50, Math.max(1, Math.round(n)));
-                            setCustomVal(String(clamped));
+                          const parsed = kSchema.safeParse(n);
+                          if (parsed.success) {
+                            setCustomVal(String(parsed.data));
                             setKMode("manual");
-                            setK(clamped);
+                            setK(parsed.data);
+                            setCustomError("");
+                          } else {
+                            setCustomError(parsed.error.issues[0]?.message ?? "Invalid value");
                           }
                         }}
+                        aria-invalid={!!customError}
                         className="h-8 w-20"
                       />
                     </div>
                   </button>
+                  {selectedKey === "custom" && customError && (
+                    <p className="col-span-2 text-xs text-destructive mt-1" role="alert">{customError}</p>
+                  )}
                 </div>
+                <p className="mt-2 text-xs text-muted-foreground">Auto chooses the best number of sources based on your question.</p>
               </div>
             </div>
           </DialogContent>
