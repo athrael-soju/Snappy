@@ -1,26 +1,16 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-// Define ChatMessage type locally since we no longer use OpenAI API
-type ChatMessage = {
-  role: "user" | "assistant";
-  content: string;
-};
-import { baseUrl } from "@/lib/api/client";
+import { useChat } from "@/lib/hooks/use-chat";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Separator } from "@/components/ui/separator";
-import { MessageSquare, Send, Bot, User, Image as ImageIcon, Loader2, Zap, Hash, Sparkles, Brain, HelpCircle, FileText, BarChart3 } from "lucide-react";
+import { MessageSquare, Send, User, Image as ImageIcon, Loader2, Hash, Sparkles, Brain, HelpCircle, FileText, BarChart3 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
-import Image from "next/image";
 import ImageLightbox from "@/components/lightbox";
 
 // Starter questions to help users get started
@@ -48,15 +38,17 @@ const starterQuestions = [
 ];
 
 export default function ChatPage() {
-  const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [stream, setStream] = useState<boolean>(true);
-  const [k, setK] = useState<number>(5);
-  const [imageGroups, setImageGroups] = useState<
-    Array<{ url: string | null; label: string | null; score: number | null }[]>
-  >([]);
+  const {
+    input,
+    setInput,
+    messages,
+    loading,
+    error,
+    k,
+    setK,
+    imageGroups,
+    sendMessage,
+  } = useChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -71,194 +63,7 @@ export default function ChatPage() {
     scrollToBottom();
   }, [messages]);
 
-  async function sendMessage(e: React.FormEvent) {
-    e.preventDefault();
-    const text = input.trim();
-    if (!text) return;
-
-    const userMsg: ChatMessage = { role: "user", content: text };
-    const nextHistory: ChatMessage[] = [...messages, userMsg];
-    setInput("");
-    setLoading(true);
-    setError(null);
-
-    if (stream) {
-      // Show placeholder assistant message for live updates
-      setMessages([...nextHistory, { role: "assistant", content: "" }]);
-      try {
-        // First, get retrieved images from backend search
-        let retrievedImages: any[] = [];
-        try {
-          const searchRes = await fetch(`${baseUrl}/search?q=${encodeURIComponent(text)}&k=${k}`);
-          if (searchRes.ok) {
-            const searchData = await searchRes.json();
-            retrievedImages = searchData || [];
-            const group = retrievedImages.map((img: any) => ({
-              url: img.image_url ?? null,
-              label: img.label ?? null,
-              score: typeof img.score === "number" ? img.score : null,
-            }));
-            setImageGroups([group]);
-          }
-        } catch (e) {
-          console.warn('Image retrieval failed:', e);
-        }
-
-        // Prepare system prompt with retrieved pages context
-        const systemPrompt = `You are a helpful PDF assistant. Use only the provided page images to answer the user's question. If the answer isn't contained in the pages, say you cannot find it. Be concise and always mention from which pages the answer is taken.
-
-[Retrieved pages]
-${retrievedImages.map((img, idx) => `Page ${idx + 1}: ${img.label || 'Unlabeled'}`).join('\n')}
-
-Cite pages using the labels above (do not infer by result order).`;
-
-        // Stream chat response from OpenAI
-        const res = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: text,
-            images: retrievedImages,
-            systemPrompt,
-            stream: true,
-          }),
-        });
-
-        if (!res.ok || !res.body) {
-          throw new Error(`Failed to stream chat: ${res.status}`);
-        }
-
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let assistantText = '';
-        
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n').filter(line => line.trim());
-          
-          for (const line of lines) {
-            try {
-              const parsed = JSON.parse(line);
-              if (parsed.content) {
-                assistantText += parsed.content;
-                setMessages((curr) => {
-                  if (curr.length === 0) return curr;
-                  const updated = [...curr];
-                  updated[updated.length - 1] = { role: 'assistant', content: assistantText };
-                  return updated;
-                });
-              }
-            } catch (e) {
-              // Skip invalid JSON lines
-            }
-          }
-        }
-        
-        toast.success('Response received');
-      } catch (err: unknown) {
-        let errorMsg = 'Streaming failed';
-        if (err instanceof Error) {
-          errorMsg = err.message;
-        }
-        setError(errorMsg);
-        toast.error('Chat Failed', { description: errorMsg });
-      } finally {
-        setLoading(false);
-      }
-      return;
-    }
-
-    // Non-streaming fallback
-    setMessages(nextHistory);
-    try {
-      // Get retrieved images from backend search
-      let retrievedImages: any[] = [];
-      try {
-        const searchRes = await fetch(`${baseUrl}/search?q=${encodeURIComponent(text)}&k=${k}`);
-        if (searchRes.ok) {
-          const searchData = await searchRes.json();
-          retrievedImages = searchData || [];
-          const group = retrievedImages.map((img: any) => ({
-            url: img.image_url ?? null,
-            label: img.label ?? null,
-            score: typeof img.score === "number" ? img.score : null,
-          }));
-          setImageGroups([group]);
-        }
-      } catch (e) {
-        console.warn('Image retrieval failed:', e);
-      }
-
-      // Prepare system prompt
-      const systemPrompt = `You are a helpful PDF assistant. Use only the provided page images to answer the user's question. If the answer isn't contained in the pages, say you cannot find it. Be concise and always mention from which pages the answer is taken.
-
-[Retrieved pages]
-${retrievedImages.map((img, idx) => `Page ${idx + 1}: ${img.label || 'Unlabeled'}`).join('\n')}
-
-Cite pages using the labels above (do not infer by result order).`;
-
-      // Get non-streaming response from OpenAI
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: text,
-          images: retrievedImages,
-          systemPrompt,
-          stream: false,
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error(`Chat failed: ${res.status}`);
-      }
-
-      // For non-streaming, we need to collect the full response
-      const reader = res.body?.getReader();
-      if (!reader) throw new Error('No response body');
-      
-      const decoder = new TextDecoder();
-      let fullResponse = '';
-      
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n').filter(line => line.trim());
-        
-        for (const line of lines) {
-          try {
-            const parsed = JSON.parse(line);
-            if (parsed.content) {
-              fullResponse += parsed.content;
-            }
-          } catch (e) {
-            // Skip invalid JSON lines
-          }
-        }
-      }
-
-      const withAssistant: ChatMessage[] = [
-        ...nextHistory,
-        { role: 'assistant', content: fullResponse },
-      ];
-      setMessages(withAssistant);
-      toast.success('Response received');
-    } catch (err: unknown) {
-      let errorMsg = 'Chat failed';
-      if (err instanceof Error) {
-        errorMsg = err.message;
-      }
-      setError(errorMsg);
-      toast.error('Chat Failed', { description: errorMsg });
-    } finally {
-      setLoading(false);
-    }
-  }
+  // sendMessage now provided by useChat
 
   const messageVariants = {
     initial: { opacity: 0, y: 10 },
@@ -306,25 +111,7 @@ Cite pages using the labels above (do not infer by result order).`;
               <p>Number of search results to retrieve</p>
             </TooltipContent>
           </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="stream-toggle"
-                  checked={stream}
-                  onCheckedChange={setStream}
-                  disabled={loading}
-                />
-                <Label htmlFor="stream-toggle" className="text-sm font-medium cursor-pointer flex items-center gap-1">
-                  <Zap className="w-4 h-4" />
-                  Stream responses
-                </Label>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Enable real-time streaming of AI responses</p>
-            </TooltipContent>
-          </Tooltip>
+          {/* Streaming always on */}
         </div>
       </div>
 
@@ -426,7 +213,7 @@ Cite pages using the labels above (do not infer by result order).`;
                       <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2 ml-2">
                         <Brain className="w-3 h-3 text-purple-500" />
                         <span>AI Assistant</span>
-                        {stream && <Badge variant="outline" className="text-xs">Streaming</Badge>}
+                        <Badge variant="outline" className="text-xs">Streaming</Badge>
                       </div>
                     )}
                   </div>

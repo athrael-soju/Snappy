@@ -15,9 +15,7 @@ from clients.openai import OpenAIClient
 from clients.colpali import ColPaliClient
 from config import (
     WORKER_THREADS,
-    DEFAULT_TOP_K,
-    OPENAI_TEMPERATURE,
-    OPENAI_SYSTEM_PROMPT,
+    DEFAULT_TOP_K
 )
 from ui import build_ui
 
