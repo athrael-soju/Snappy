@@ -1,7 +1,7 @@
 // frontend/lib/hooks/use-chat.ts
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import {
   chatRequest,
@@ -20,10 +20,37 @@ export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [k, setK] = useState<number>(5)
+  const [kMode, setKMode] = useState<'auto' | 'manual'>(() => {
+    if (typeof window === 'undefined') return 'manual'
+    const saved = localStorage.getItem('kMode')
+    return (saved === 'auto' || saved === 'manual') ? saved : 'manual'
+  })
+  const [k, setK] = useState<number>(() => {
+    if (typeof window === 'undefined') return 5
+    const saved = localStorage.getItem('k')
+    const parsed = saved ? parseInt(saved, 10) : NaN
+    return Number.isFinite(parsed) ? parsed : 5
+  })
   const [imageGroups, setImageGroups] = useState<
     Array<{ url: string | null; label: string | null; score: number | null }[]>
   >([])
+
+  // persist preferences
+  useEffect(() => {
+    try {
+      localStorage.setItem('kMode', kMode)
+      localStorage.setItem('k', String(k))
+    } catch {}
+  }, [kMode, k])
+
+  function autoHeuristic(text: string): number {
+    const t = text.toLowerCase()
+    const long = text.length > 120
+    const keywords = /(compare|summari|overview|differences|all|list|aggregate|trend|across|multiple|many)/
+    if (long || keywords.test(t)) return 10
+    if (text.length < 60) return 3
+    return 5
+  }
 
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault()
@@ -39,7 +66,8 @@ export function useChat() {
     // Retrieve images
     let retrievedImages: RetrievedImage[] = []
     try {
-      const searchData = await searchDocuments(text, k)
+      const effectiveK = kMode === 'auto' ? autoHeuristic(text) : k
+      const searchData = await searchDocuments(text, effectiveK)
       retrievedImages = searchData || []
       const group = retrievedImages.map((img) => ({
         url: img.image_url ?? null,
@@ -101,10 +129,12 @@ Cite pages using the labels above (do not infer by result order).`
     loading,
     error,
     k,
+    kMode,
     imageGroups,
     // setters
     setInput,
     setK,
+    setKMode,
     // actions
     sendMessage,
   }

@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+// Removed Select in favor of a clearer segmented control
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { MessageSquare, Send, User, Image as ImageIcon, Loader2, Hash, Sparkles, Brain, HelpCircle, FileText, BarChart3 } from "lucide-react";
+import { MessageSquare, Send, User, Image as ImageIcon, Loader2, Sparkles, Brain, HelpCircle, FileText, BarChart3 } from "lucide-react";
+import SourcesControl from "@/components/sources-control";
 import { motion, AnimatePresence } from "framer-motion";
 import ImageLightbox from "@/components/lightbox";
 
@@ -45,7 +46,9 @@ export default function ChatPage() {
     loading,
     error,
     k,
+    kMode,
     setK,
+    setKMode,
     imageGroups,
     sendMessage,
   } = useChat();
@@ -90,29 +93,7 @@ export default function ChatPage() {
           </div>
         </div>
         
-        <div className="flex items-center gap-4">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex items-center gap-2">
-                <Hash className="w-4 h-4 text-muted-foreground" />
-                <Select value={k.toString()} onValueChange={(value) => setK(parseInt(value, 10))} disabled={loading}>
-                  <SelectTrigger className="w-20">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[1, 3, 5, 10, 15, 20].map((num) => (
-                      <SelectItem key={num} value={num.toString()}>{num}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Number of search results to retrieve</p>
-            </TooltipContent>
-          </Tooltip>
-          {/* Streaming always on */}
-        </div>
+        <div className="flex items-center gap-4" />
       </div>
 
       {/* Chat Messages */}
@@ -226,7 +207,7 @@ export default function ChatPage() {
         
         {/* Input Form */}
         <div className="border-t border-purple-100/50 p-4 bg-gradient-to-r from-purple-50/30 to-pink-50/30">
-          <form onSubmit={sendMessage} className="flex gap-3">
+          <form onSubmit={sendMessage} className="flex gap-3 items-center">
             <div className="flex-1 relative">
               <MessageSquare className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
@@ -248,6 +229,13 @@ export default function ChatPage() {
                 }}
               />
             </div>
+            <SourcesControl 
+              k={k} 
+              kMode={kMode} 
+              setK={setK} 
+              setKMode={setKMode} 
+              loading={loading}
+            />
             <Button 
               type="submit" 
               disabled={loading || !input.trim()}
@@ -301,12 +289,15 @@ export default function ChatPage() {
             exit={{ opacity: 0, y: -20 }}
             className="bg-muted/50 rounded-lg p-3 max-h-64 overflow-y-auto"
           >
-            <div className="flex items-center gap-2 mb-3">
-              <div className="p-1 bg-purple-100 rounded">
-                <ImageIcon className="h-4 w-4 text-purple-600" />
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-1 bg-purple-100 rounded">
+                  <ImageIcon className="h-4 w-4 text-purple-600" />
+                </div>
+                <span className="text-sm font-medium">Visual Citations</span>
+                <Badge variant="secondary" className="bg-purple-100 text-purple-800">{imageGroups.flat().length} sources</Badge>
               </div>
-              <span className="text-sm font-medium">Visual Citations</span>
-              <Badge variant="secondary" className="bg-purple-100 text-purple-800">{imageGroups.flat().length} sources</Badge>
+              {/* Sources presets are now in the header for global visibility */}
             </div>
             <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1.5">
               {imageGroups.flat().map((img, idx) => (
