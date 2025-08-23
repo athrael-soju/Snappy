@@ -131,7 +131,7 @@ export default function ChatPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="flex flex-col h-[calc(100vh-12rem)] max-h-[800px]"
+      className="flex flex-col h-[calc(100vh-12rem)] max-h-[825px]"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
