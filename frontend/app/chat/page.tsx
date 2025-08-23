@@ -2,17 +2,17 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useChat } from "@/lib/hooks/use-chat";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 // Removed Select in favor of a clearer segmented control
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { MessageSquare, Send, User, Image as ImageIcon, Loader2, Sparkles, Brain, HelpCircle, FileText, BarChart3 } from "lucide-react";
-import SourcesControl from "@/components/sources-control";
+import { User, Image as ImageIcon, Loader2, Sparkles, Brain, FileText, BarChart3, MessageSquare } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ImageLightbox from "@/components/lightbox";
+import ChatInputBar from "@/components/chat/ChatInputBar";
+import StarterQuestions from "@/components/chat/StarterQuestions";
+import RecentSearchesChips from "@/components/search/RecentSearchesChips";
 
 // Starter questions to help users get started
 const starterQuestions = [
@@ -54,11 +54,20 @@ export default function ChatPage() {
     sendMessage,
   } = useChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState("");
   const [lightboxAlt, setLightboxAlt] = useState<string | undefined>(undefined);
   const [uiSettingsValid, setUiSettingsValid] = useState(true);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [requestStart, setRequestStart] = useState<number | null>(null);
+  const [lastResponseDurationMs, setLastResponseDurationMs] = useState<number | null>(null);
+  const examples = [
+    "Summarize my last report",
+    "What are the key risks?",
+    "Find diagrams about AI architecture",
+    "Which contracts mention payment terms?"
+  ];
+  const [placeholderIdx, setPlaceholderIdx] = useState(0);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -68,10 +77,25 @@ export default function ChatPage() {
     scrollToBottom();
   }, [messages]);
 
+  useEffect(() => {
+    const id = setInterval(() => setPlaceholderIdx((i) => (i + 1) % examples.length), 5000);
+    return () => clearInterval(id);
+  }, []);
+
   // sendMessage now provided by useChat
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isSettingsValid || !uiSettingsValid) return;
+    const q = input.trim();
+    if (!q) return;
+    // track start and recent searches
+    setRequestStart(performance.now());
+    setLastResponseDurationMs(null);
+    setRecentSearches((prev) => {
+      const updated = [q, ...prev.filter((s) => s !== q)].slice(0, 8);
+      localStorage.setItem("colpali-chat-recent", JSON.stringify(updated));
+      return updated;
+    });
     sendMessage(e);
   };
 
@@ -80,6 +104,27 @@ export default function ChatPage() {
     animate: { opacity: 1, y: 0 },
     exit: { opacity: 0, y: -10 }
   };
+
+  // Load recent searches from localStorage once
+  useEffect(() => {
+    const saved = localStorage.getItem("colpali-chat-recent");
+    if (saved) {
+      try {
+        setRecentSearches(JSON.parse(saved));
+      } catch {}
+    }
+  }, []);
+
+  // When an assistant message appears after a started request, compute duration
+  useEffect(() => {
+    if (requestStart && messages.length > 0) {
+      const last = messages[messages.length - 1];
+      if (last.role === "assistant") {
+        setLastResponseDurationMs(performance.now() - requestStart);
+        setRequestStart(null);
+      }
+    }
+  }, [messages, requestStart]);
 
   return (
     <motion.div 
@@ -99,13 +144,14 @@ export default function ChatPage() {
             <p className="text-muted-foreground text-lg">Ask questions about your documents and get AI-powered responses with visual citations</p>
           </div>
         </div>
-        
-        <div className="flex items-center gap-4" />
       </div>
 
       {/* Chat Messages */}
       <Card className="flex-1 flex flex-col overflow-hidden border-2 border-purple-100/50 shadow-lg">
         <div className="flex-1 overflow-y-auto p-4">
+          {messages.length > 0 && lastResponseDurationMs !== null && !loading && (
+            <div className="flex justify-end mb-2 text-xs text-muted-foreground">Responded in {(lastResponseDurationMs / 1000).toFixed(2)}s</div>
+          )}
           <AnimatePresence mode="popLayout">
             {messages.length === 0 ? (
               <motion.div 
@@ -122,39 +168,18 @@ export default function ChatPage() {
                 </p>
                 
                 {/* Starter Questions */}
-                <div className="w-full max-w-2xl space-y-4">
-                  <div className="flex items-center gap-2 mb-4">
-                    <HelpCircle className="w-5 h-5 text-purple-500" />
-                    <span className="text-sm font-medium text-muted-foreground">Try asking:</span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {starterQuestions.map((question, idx) => {
-                      const Icon = question.icon;
-                      return (
-                        <motion.button
-                          key={idx}
-                          whileHover={{ scale: 1.02, y: -2 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => setInput(question.text)}
-                          className="p-4 text-left rounded-xl border-2 border-dashed border-purple-200 hover:border-purple-400 hover:bg-purple-50/30 transition-all group"
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="p-2 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
-                              <Icon className="w-4 h-4 text-purple-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-foreground group-hover:text-purple-700 transition-colors">
-                                {question.text}
-                              </p>
-                              <Badge variant="outline" className="text-xs mt-2 group-hover:border-purple-300">
-                                {question.category}
-                              </Badge>
-                            </div>
-                          </div>
-                        </motion.button>
-                      );
-                    })}
-                  </div>
+                <StarterQuestions questions={starterQuestions} onSelect={(t) => setInput(t)} />
+                <div className="mt-6 w-full max-w-2xl">
+                  <RecentSearchesChips
+                    recentSearches={recentSearches}
+                    visible
+                    onSelect={(q) => setInput(q)}
+                    onRemove={(q) => {
+                      const updated = recentSearches.filter((s) => s !== q);
+                      setRecentSearches(updated);
+                      localStorage.setItem("colpali-chat-recent", JSON.stringify(updated));
+                    }}
+                  />
                 </div>
               </motion.div>
             ) : (
@@ -165,12 +190,12 @@ export default function ChatPage() {
                   initial="initial"
                   animate="animate"
                   exit="exit"
-                  className={`flex gap-3 ${message.role === "assistant" ? "" : "flex-row-reverse"}`}
+                  className={`flex gap-3 mb-4 md:mb-5 last:mb-0 ${message.role === "assistant" ? "" : "flex-row-reverse"}`}
                 >
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                     message.role === "assistant" 
                       ? "bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-lg" 
-                      : "bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-lg"
+                      : "bg-gradient-to-br from-blue-100 to-cyan-100 text-foreground shadow-lg"
                   }`}>
                     {message.role === "assistant" ? (
                       <Brain className="w-4 h-4" />
@@ -185,23 +210,50 @@ export default function ChatPage() {
                     <div className={`inline-block p-4 rounded-2xl shadow-sm border ${
                       message.role === "assistant"
                         ? "bg-gradient-to-br from-purple-50 to-pink-50 text-foreground border-purple-200/50"
-                        : "bg-gradient-to-br from-blue-500 to-cyan-500 text-white border-blue-300"
+                        : "bg-gradient-to-br from-blue-100 to-cyan-100 text-foreground border-blue-200"
                     }`}>
-                      <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                        {message.content || (loading && message.role === "assistant" ? (
+                      {message.content ? (
+                        message.role === "assistant" ? (
+                          <div className="whitespace-pre-wrap text-[15px] leading-7">
+                            {message.content.split("\n\n").map((para, i) => (
+                              <p key={i} className="mb-3 last:mb-0">{para}</p>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="whitespace-pre-wrap text-[15px] leading-7">{message.content}</div>
+                        )
+                      ) : (
+                        loading && message.role === "assistant" ? (
                           <div className="flex items-center gap-2 text-muted-foreground">
                             <Loader2 className="w-4 h-4 animate-spin" />
                             <span>Thinking...</span>
                           </div>
-                        ) : "")}
-                      </div>
+                        ) : null
+                      )}
                     </div>
                     
                     {message.role === "assistant" && (
                       <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2 ml-2">
                         <Brain className="w-3 h-3 text-purple-500" />
                         <span>AI Assistant</span>
-                        <Badge variant="outline" className="text-xs">Streaming</Badge>
+                        {loading ? (
+                          <span className="inline-flex items-center gap-1 text-xs">
+                            <Loader2 className="w-3 h-3 animate-spin text-purple-500" />
+                            Generating…
+                          </span>
+                        ) : (
+                          <Badge variant="outline" className="text-xs">Ready</Badge>
+                        )}
+                        <div className="ml-3 flex gap-1">
+                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { /* TODO: thumbs up handler */ }}>
+                            <span aria-hidden>👍</span>
+                            <span className="sr-only">Mark helpful</span>
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { /* TODO: thumbs down handler */ }}>
+                            <span aria-hidden>👎</span>
+                            <span className="sr-only">Mark unhelpful</span>
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -214,55 +266,20 @@ export default function ChatPage() {
         
         {/* Input Form */}
         <div className="border-t border-purple-100/50 p-4 bg-gradient-to-r from-purple-50/30 to-pink-50/30">
-          <form onSubmit={handleSubmit} className="flex gap-3 items-center">
-            <div className="flex-1 relative">
-              <MessageSquare className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <Input
-                ref={inputRef}
-                placeholder="Ask anything about your documents... Try: 'What are the key points in my reports?'"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                disabled={loading}
-                className={`flex-1 text-base pl-11 h-12 border-2 transition-all ${
-                  input.trim() 
-                    ? 'border-purple-400 bg-white shadow-md focus:border-purple-500' 
-                    : 'border-muted-foreground/20 focus:border-purple-400'
-                }`}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    if (isSettingsValid && uiSettingsValid) {
-                      sendMessage(e);
-                    }
-                  }
-                }}
-              />
-            </div>
-            <SourcesControl 
-              k={k} 
-              kMode={kMode} 
-              setK={setK} 
-              setKMode={setKMode} 
-              loading={loading}
-              onValidityChange={setUiSettingsValid}
-            />
-            <Button 
-              type="submit" 
-              disabled={loading || !input.trim() || !isSettingsValid || !uiSettingsValid}
-              size="lg"
-              className="px-6 h-12 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                </>
-              ) : (
-                <>
-                  <Send className="w-5 h-5" />
-                </>
-              )}
-            </Button>
-          </form>
+          <ChatInputBar
+            input={input}
+            setInput={setInput}
+            placeholder={`Ask anything about your documents... e.g., “${examples[placeholderIdx]}”`}
+            loading={loading}
+            isSettingsValid={isSettingsValid}
+            uiSettingsValid={uiSettingsValid}
+            setUiSettingsValid={setUiSettingsValid}
+            onSubmit={handleSubmit}
+            k={k}
+            kMode={kMode}
+            setK={setK}
+            setKMode={setKMode}
+          />
           
           {/* Tips below input */}
           <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">

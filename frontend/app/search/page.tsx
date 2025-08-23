@@ -8,15 +8,16 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Separator } from "@/components/ui/separator";
-import { Search, Loader2, AlertCircle, ImageIcon, Hash, Lightbulb, Clock, Sparkles, Eye } from "lucide-react";
+import { Search, AlertCircle, ImageIcon, Sparkles, Eye } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import Image from "next/image";
 import ImageLightbox from "@/components/lightbox";
+import SearchBar from "@/components/search/SearchBar";
+import ExampleQueries from "@/components/search/ExampleQueries";
+import RecentSearchesChips from "@/components/search/RecentSearchesChips";
+import type { KMode } from "@/components/sources-control";
 
 // Example search prompts to help users
 const exampleQueries = [
@@ -39,6 +40,8 @@ export default function SearchPage() {
   const [lightboxSrc, setLightboxSrc] = useState("");
   const [lightboxAlt, setLightboxAlt] = useState<string | undefined>(undefined);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [kMode, setKMode] = useState<KMode>("manual");
+  const [searchDurationMs, setSearchDurationMs] = useState<number | null>(null);
 
   // Load recent searches from localStorage
   useEffect(() => {
@@ -58,6 +61,12 @@ export default function SearchPage() {
     localStorage.setItem('colpali-recent-searches', JSON.stringify(updated));
   };
 
+  const removeFromRecentSearches = (query: string) => {
+    const updated = recentSearches.filter(s => s !== query);
+    setRecentSearches(updated);
+    localStorage.setItem('colpali-recent-searches', JSON.stringify(updated));
+  };
+
   const handleExampleClick = (example: string) => {
     setQ(example);
   };
@@ -70,12 +79,16 @@ export default function SearchPage() {
     setLoading(true);
     setError(null);
     setHasSearched(true);
+    setSearchDurationMs(null);
     
     // Add to recent searches
     addToRecentSearches(query);
     
     try {
+      const start = performance.now();
       const data = await RetrievalService.searchSearchGet(query, k);
+      const end = performance.now();
+      setSearchDurationMs(end - start);
       setResults(data);
       toast.success(`Found ${data.length} results for "${query}"`);
     } catch (err: unknown) {
@@ -155,122 +168,31 @@ export default function SearchPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6 space-y-6">
-          <form onSubmit={onSubmit} className="space-y-4">
-            <div className="space-y-3">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input
-                    placeholder="Try: 'Find invoices with company logo' or 'Show charts with sales data'"
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                    required
-                    disabled={loading}
-                    className="text-base pl-11 h-12 border-2 focus:border-blue-400 bg-white"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex items-center gap-1">
-                        <Hash className="w-4 h-4 text-muted-foreground" />
-                        <Select value={k.toString()} onValueChange={(value) => setK(parseInt(value, 10))} disabled={loading}>
-                          <SelectTrigger className="w-20 h-12">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {[1, 3, 5, 10, 15, 20].map((num) => (
-                              <SelectItem key={num} value={num.toString()}>{num}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Number of results to show</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <Button 
-                    type="submit" 
-                    disabled={loading || !q.trim()} 
-                    size="lg" 
-                    className="h-12 px-6 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        Searching...
-                      </>
-                    ) : (
-                      <>
-                        <Search className="w-5 h-5 mr-2" />
-                        Search
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </form>
+          <SearchBar
+            q={q}
+            setQ={setQ}
+            loading={loading}
+            onSubmit={onSubmit}
+            k={k}
+            kMode={kMode}
+            setK={setK}
+            setKMode={setKMode}
+          />
           
-          {/* Example Queries */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Lightbulb className="w-4 h-4 text-yellow-500" />
-              <span className="text-sm font-medium text-muted-foreground">Try these examples:</span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-              {exampleQueries.map((example, idx) => (
-                <motion.button
-                  key={idx}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => handleExampleClick(example.text)}
-                  disabled={loading}
-                  className="text-left p-3 rounded-lg border border-muted-foreground/20 hover:border-blue-300 hover:bg-blue-50/30 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <div className="text-sm font-medium text-foreground group-hover:text-blue-700 transition-colors">
-                    "{example.text}"
-                  </div>
-                  <Badge variant="outline" className="text-xs mt-1">{example.category}</Badge>
-                </motion.button>
-              ))}
-            </div>
-          </div>
+          <ExampleQueries examples={exampleQueries} onSelect={handleExampleClick} loading={loading} />
           
-          {/* Recent Searches */}
-          <AnimatePresence>
-            {recentSearches.length > 0 && !hasSearched && (
-              <motion.div 
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="space-y-3"
-              >
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium text-muted-foreground">Recent searches:</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {recentSearches.map((search, idx) => (
-                    <motion.button
-                      key={idx}
-                      whileHover={{ scale: 1.05 }}
-                      onClick={() => setQ(search)}
-                      disabled={loading}
-                      className="px-3 py-1 text-sm bg-muted/50 hover:bg-blue-100 rounded-full transition-colors disabled:opacity-50"
-                    >
-                      {search}
-                    </motion.button>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <RecentSearchesChips
+            recentSearches={recentSearches}
+            loading={loading}
+            visible={!hasSearched}
+            onSelect={(s) => setQ(s)}
+            onRemove={removeFromRecentSearches}
+          />
         </CardContent>
       </Card>
 
-      {/* Error State */}
+      {/* Error State */
+      }
       <AnimatePresence>
         {error && (
           <motion.div
@@ -286,7 +208,24 @@ export default function SearchPage() {
         )}
       </AnimatePresence>
 
-      {/* Results */}
+      {/* Pre-search Placeholder / Results */
+      }
+      {!hasSearched && !loading && !error && (
+        <Card className="border-2 border-dashed border-muted-foreground/25">
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="w-20 h-20 bg-gradient-to-br from-muted/50 to-muted/30 rounded-full flex items-center justify-center mb-6">
+              <Search className="w-10 h-10 text-muted-foreground" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">Search across your content</h3>
+            <p className="text-muted-foreground max-w-md">
+              Use natural language to find documents and images instantly. Your results will appear here.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Results */
+      }
       <AnimatePresence>
         {hasSearched && !loading && !error && (
           <motion.div
@@ -298,7 +237,18 @@ export default function SearchPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
                 <h2 className="text-2xl font-bold">
-                  {results.length > 0 ? `Found ${results.length} result${results.length !== 1 ? 's' : ''}` : "No results found"}
+                  {results.length > 0 ? (
+                    <>
+                      {`Found ${results.length} result${results.length !== 1 ? 's' : ''}`}
+                      {typeof searchDurationMs === 'number' && (
+                        <span className="text-base font-normal text-muted-foreground ml-2">
+                          in {(searchDurationMs / 1000).toFixed(2)}s
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    "No results found"
+                  )}
                 </h2>
                 {results.length > 0 && (
                   <p className="text-muted-foreground">
