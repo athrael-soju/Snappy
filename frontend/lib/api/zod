@@ -20,33 +20,6 @@ const HTTPValidationError = z
   .object({ detail: z.array(ValidationError) })
   .partial()
   .passthrough();
-const ChatMessage = z
-  .object({ role: z.string(), content: z.string() })
-  .passthrough();
-const ChatRequest = z
-  .object({
-    message: z.string(),
-    chat_history: z
-      .union([z.array(ChatMessage), z.null()])
-      .optional()
-      .default([]),
-    k: z.union([z.number(), z.null()]).optional().default(5),
-    ai_enabled: z.union([z.boolean(), z.null()]).optional().default(true),
-    temperature: z.union([z.number(), z.null()]).optional().default(1),
-    system_prompt: z.union([z.string(), z.null()]).optional(),
-  })
-  .passthrough();
-const RetrievedPage = z
-  .object({
-    image_url: z.union([z.string(), z.null()]),
-    label: z.union([z.string(), z.null()]),
-    payload: z.object({}).partial().passthrough(),
-    score: z.union([z.number(), z.null()]).optional(),
-  })
-  .passthrough();
-const ChatResponse = z
-  .object({ text: z.string(), images: z.array(RetrievedPage) })
-  .passthrough();
 const Body_index_index_post = z
   .object({ files: z.array(z.instanceof(File)) })
   .passthrough();
@@ -55,10 +28,6 @@ export const schemas = {
   SearchItem,
   ValidationError,
   HTTPValidationError,
-  ChatMessage,
-  ChatRequest,
-  RetrievedPage,
-  ChatResponse,
   Body_index_index_post,
 };
 
@@ -69,48 +38,6 @@ const endpoints = makeApi([
     alias: "root__get",
     requestFormat: "json",
     response: z.unknown(),
-  },
-  {
-    method: "post",
-    path: "/chat",
-    alias: "chat_chat_post",
-    requestFormat: "json",
-    parameters: [
-      {
-        name: "body",
-        type: "Body",
-        schema: ChatRequest,
-      },
-    ],
-    response: ChatResponse,
-    errors: [
-      {
-        status: 422,
-        description: `Validation Error`,
-        schema: HTTPValidationError,
-      },
-    ],
-  },
-  {
-    method: "post",
-    path: "/chat/stream",
-    alias: "chat_stream_chat_stream_post",
-    requestFormat: "json",
-    parameters: [
-      {
-        name: "body",
-        type: "Body",
-        schema: ChatRequest,
-      },
-    ],
-    response: z.unknown(),
-    errors: [
-      {
-        status: 422,
-        description: `Validation Error`,
-        schema: HTTPValidationError,
-      },
-    ],
   },
   {
     method: "post",

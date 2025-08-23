@@ -1554,6 +1554,11 @@ object-assign@^4.1.1:
   resolved "https://registry.npmjs.org/object-assign/-/object-assign-4.1.1.tgz"
   integrity sha512-rJgTQnkUnH1sFw8yT6VSU3zD3sWmu6sZhIseY8VX+GRu3P6F7Fu+JNDoXfklElbLJSnc3FUQHVe4cU5hj+BcUg==
 
+openai@^5.15.0:
+  version "5.15.0"
+  resolved "https://registry.yarnpkg.com/openai/-/openai-5.15.0.tgz#de3ae6d0914f7a0fcc12d0faa21a2289f9d5cc5d"
+  integrity sha512-kcUdws8K/A8m02I+IqFBwO51gS+87GP89yWEufGbzEi8anBz4FB/bti2QxaJdGwwY4mwJGzx85XO7TuL/Tpu1w==
+
 openapi-types@^12.0.2:
   version "12.1.3"
   resolved "https://registry.npmjs.org/openapi-types/-/openapi-types-12.1.3.tgz"

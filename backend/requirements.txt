@@ -1,5 +1,4 @@
 pdf2image
-openai
 gradio[mcp]
 tqdm
 Pillow

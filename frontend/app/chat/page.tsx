@@ -1,8 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import type { ChatMessage } from "@/lib/api/generated";
-import { ChatService, ApiError } from "@/lib/api/generated";
+// Define ChatMessage type locally since we no longer use OpenAI API
+type ChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
 import { baseUrl } from "@/lib/api/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -83,40 +86,14 @@ export default function ChatPage() {
       // Show placeholder assistant message for live updates
       setMessages([...nextHistory, { role: "assistant", content: "" }]);
       try {
-        const res = await fetch(`${baseUrl}/chat/stream`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text, chat_history: nextHistory, k }),
-        });
-        if (!res.body) {
-          throw new Error("No response body for streaming");
-        }
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let assistantText = "";
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          assistantText += decoder.decode(value, { stream: true });
-          setMessages((curr) => {
-            if (curr.length === 0) return curr;
-            const updated = [...curr];
-            updated[updated.length - 1] = { role: "assistant", content: assistantText };
-            return updated;
-          });
-        }
-        // finalize decoder flush
-        assistantText += new TextDecoder().decode();
-        // Fetch retrieved images (non-AI path)
+        // First, get retrieved images from backend search
+        let retrievedImages: any[] = [];
         try {
-          const resImages = await fetch(`${baseUrl}/chat/stream`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message: text, chat_history: messages, ai_enabled: false, k }),
-          });
-          if (resImages.ok) {
-            const data = await resImages.json();
-            const group = (data.images || []).map((img: any) => ({
+          const searchRes = await fetch(`${baseUrl}/search?q=${encodeURIComponent(text)}&k=${k}`);
+          if (searchRes.ok) {
+            const searchData = await searchRes.json();
+            retrievedImages = searchData || [];
+            const group = retrievedImages.map((img: any) => ({
               url: img.image_url ?? null,
               label: img.label ?? null,
               score: typeof img.score === "number" ? img.score : null,
@@ -124,52 +101,160 @@ export default function ChatPage() {
             setImageGroups([group]);
           }
         } catch (e) {
-          // Swallow image retrieval errors; streaming already succeeded
+          console.warn('Image retrieval failed:', e);
         }
+
+        // Prepare system prompt with retrieved pages context
+        const systemPrompt = `You are a helpful PDF assistant. Use only the provided page images to answer the user's question. If the answer isn't contained in the pages, say you cannot find it. Be concise and always mention from which pages the answer is taken.
+
+[Retrieved pages]
+${retrievedImages.map((img, idx) => `Page ${idx + 1}: ${img.label || 'Unlabeled'}`).join('\n')}
+
+Cite pages using the labels above (do not infer by result order).`;
+
+        // Stream chat response from OpenAI
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: text,
+            images: retrievedImages,
+            systemPrompt,
+            stream: true,
+          }),
+        });
+
+        if (!res.ok || !res.body) {
+          throw new Error(`Failed to stream chat: ${res.status}`);
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let assistantText = '';
+        
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n').filter(line => line.trim());
+          
+          for (const line of lines) {
+            try {
+              const parsed = JSON.parse(line);
+              if (parsed.content) {
+                assistantText += parsed.content;
+                setMessages((curr) => {
+                  if (curr.length === 0) return curr;
+                  const updated = [...curr];
+                  updated[updated.length - 1] = { role: 'assistant', content: assistantText };
+                  return updated;
+                });
+              }
+            } catch (e) {
+              // Skip invalid JSON lines
+            }
+          }
+        }
+        
+        toast.success('Response received');
       } catch (err: unknown) {
-        let errorMsg = "Streaming failed";
-        if (err instanceof ApiError) {
-          errorMsg = `${err.status}: ${err.message}`;
-        } else if (err instanceof Error) {
+        let errorMsg = 'Streaming failed';
+        if (err instanceof Error) {
           errorMsg = err.message;
         }
         setError(errorMsg);
-        toast.error("Chat Failed", { description: errorMsg });
+        toast.error('Chat Failed', { description: errorMsg });
       } finally {
         setLoading(false);
       }
       return;
     }
 
-    // Non-streaming fallback using generated client
+    // Non-streaming fallback
     setMessages(nextHistory);
     try {
-      const res = await ChatService.chatChatPost({
-        message: text,
-        chat_history: messages,
-        k,
+      // Get retrieved images from backend search
+      let retrievedImages: any[] = [];
+      try {
+        const searchRes = await fetch(`${baseUrl}/search?q=${encodeURIComponent(text)}&k=${k}`);
+        if (searchRes.ok) {
+          const searchData = await searchRes.json();
+          retrievedImages = searchData || [];
+          const group = retrievedImages.map((img: any) => ({
+            url: img.image_url ?? null,
+            label: img.label ?? null,
+            score: typeof img.score === "number" ? img.score : null,
+          }));
+          setImageGroups([group]);
+        }
+      } catch (e) {
+        console.warn('Image retrieval failed:', e);
+      }
+
+      // Prepare system prompt
+      const systemPrompt = `You are a helpful PDF assistant. Use only the provided page images to answer the user's question. If the answer isn't contained in the pages, say you cannot find it. Be concise and always mention from which pages the answer is taken.
+
+[Retrieved pages]
+${retrievedImages.map((img, idx) => `Page ${idx + 1}: ${img.label || 'Unlabeled'}`).join('\n')}
+
+Cite pages using the labels above (do not infer by result order).`;
+
+      // Get non-streaming response from OpenAI
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: text,
+          images: retrievedImages,
+          systemPrompt,
+          stream: false,
+        }),
       });
+
+      if (!res.ok) {
+        throw new Error(`Chat failed: ${res.status}`);
+      }
+
+      // For non-streaming, we need to collect the full response
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error('No response body');
+      
+      const decoder = new TextDecoder();
+      let fullResponse = '';
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n').filter(line => line.trim());
+        
+        for (const line of lines) {
+          try {
+            const parsed = JSON.parse(line);
+            if (parsed.content) {
+              fullResponse += parsed.content;
+            }
+          } catch (e) {
+            // Skip invalid JSON lines
+          }
+        }
+      }
+
       const withAssistant: ChatMessage[] = [
         ...nextHistory,
-        { role: "assistant", content: res.text },
+        { role: 'assistant', content: fullResponse },
       ];
       setMessages(withAssistant);
-      const group = (res.images || []).map((img: any) => ({
-        url: img.image_url ?? null,
-        label: img.label ?? null,
-        score: typeof img.score === "number" ? img.score : null,
-      }));
-      setImageGroups([group]);
-      toast.success("Response received");
+      toast.success('Response received');
     } catch (err: unknown) {
-      let errorMsg = "Chat failed";
-      if (err instanceof ApiError) {
-        errorMsg = `${err.status}: ${err.message}`;
-      } else if (err instanceof Error) {
+      let errorMsg = 'Chat failed';
+      if (err instanceof Error) {
         errorMsg = err.message;
       }
       setError(errorMsg);
-      toast.error("Chat Failed", { description: errorMsg });
+      toast.error('Chat Failed', { description: errorMsg });
     } finally {
       setLoading(false);
     }
