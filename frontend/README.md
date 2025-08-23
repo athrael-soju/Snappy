@@ -37,6 +37,17 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ```
 `frontend/lib/api/client.ts` falls back to `http://localhost:8000` if the env var is not set.
 
+OpenAI for chat (SSE) — set on the frontend (server runtime):
+```bash
+# frontend/.env.local
+OPENAI_API_KEY=sk-your-key
+OPENAI_MODEL=gpt-5-mini   # optional override
+# optional
+OPENAI_TEMPERATURE=1
+OPENAI_MAX_TOKENS=1500
+```
+The chat endpoint `frontend/app/api/chat/route.ts` uses these to call OpenAI Responses API and stream tokens via Server‑Sent Events (SSE) to the browser.
+
 ## Develop
 ```bash
 yarn dev
@@ -58,9 +69,35 @@ yarn start
 yarn gen:sdk && yarn gen:zod
 ```
 
+## Chat API (SSE)
+- Route: `POST /api/chat`
+- Body:
+  ```json
+  {
+    "message": "Explain this",
+    "images": [{ "image_url": "http://localhost:9000/documents/images/...png" }],
+    "systemPrompt": "You are a helpful assistant"
+  }
+  ```
+- Response: `text/event-stream` of OpenAI Responses events. The UI consumes this stream to render the assistant message progressively.
+
 ## Docker/Compose
 - The repo root `docker-compose.yml` includes a `frontend` service (Next.js on 3000).
 - Start all services from the repo root:
-```bash
-docker compose up -d --build
-```
+  ```bash
+  docker compose up -d --build
+  ```
+- OPENAI_* for chat must be provided to the frontend container at runtime (the backend does not use them):
+  ```yaml
+  services:
+    frontend:
+      environment:
+        - OPENAI_API_KEY=sk-your-key
+        - OPENAI_MODEL=gpt-4o-mini # optional
+        - OPENAI_TEMPERATURE=1     # optional
+        - OPENAI_MAX_TOKENS=1500   # optional
+        - NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+  ```
+  Notes:
+  - `NEXT_PUBLIC_API_BASE_URL` is embedded at build time; the app defaults to `http://localhost:8000` if unset.
+  - The chat API route reads `OPENAI_*` at server runtime, so setting them on the running container is sufficient.

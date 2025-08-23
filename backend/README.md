@@ -1,8 +1,8 @@
 # Vision RAG Backend (FastAPI)
 
-A modular FastAPI service that exposes endpoints for indexing PDFs, searching, chatting, and maintenance.
+A modular FastAPI service that exposes endpoints for indexing PDFs, search, and maintenance.
 
-- Routers in `backend/api/routers/`: `meta`, `retrieval`, `chat`, `indexing`, `maintenance`
+- Routers in `backend/api/routers/`: `meta`, `retrieval`, `indexing`, `maintenance`
 - App factory: `backend/api/app.py:create_app()`
 - Entrypoints: `backend/backend.py` (used by Docker) and `backend/main.py` (alt local entry)
 
@@ -64,6 +64,4 @@ docker compose up -d --build
 - `GET /health`
 - `GET /search?q=...&k=5`
 - `POST /index` (multipart files[])
-- `POST /chat`
-- `POST /chat/stream`
 - `POST /clear/qdrant`, `/clear/minio`, `/clear/all`
