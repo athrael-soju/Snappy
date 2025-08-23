@@ -11,35 +11,22 @@ config:
 ---
 flowchart TB
  subgraph Services["🛠 Services"]
-        QS[["🗂 QdrantService - clients/qdrant.py"]]
-        MINIO[["📦 MinioService - clients/minio.py"]]
-        COL[["🧠 ColPali Client - clients/colpali.py"]]
-        NXCHAT[["💬 Next Chat API - frontend/app/api/chat/route.ts"]]
+        BACKEND[["⚙️ Backend API"]]
+        NXCHAT[["💬 Chat Service API"]]
   end
- subgraph External["🌐 External"]
-        QD[("💾 Qdrant")]
-        MN[("🗄 MinIO")]
-        CQ(["☁️ ColPali API"])
-        OA(["☁️ OpenAI"])
+ subgraph External["🌐 External Integrations"]
+        QD[("💾 Qdrant Vector DB")]
+        MN[("🗄 MinIO Storage")]
+        CQ(["☁️ ColPali Embedding API"])
+        OA(["☁️ OpenAI API"])
   end
-    U["🖥 User Browser"] <--> NEXT["🎨 Next.js Frontend - frontend/app/*"]
-    NEXT --> APP["⚙️ App - api/app.py"]
-    NEXT -- 📤 Upload PDFs --> APP
-    APP -- 📝 PDF ➡ page images --> QS
-    QS -- 📥 store images --> MINIO
-    MINIO --> MN
-    QS -- 🧩 embed images --> COL
-    COL --> CQ
-    QS -- 📊 upsert vectors --> QD
-    NEXT -- 🔎 Search (/search) --> APP
-    APP --> QS & NEXT
-    QS -- 🔍 embed query --> COL
-    QS <-- 🔎 multivector search --> QD
-    QS -- 📥 fetch images --> MINIO
-    QS -- 🖼 page images + metadata --> APP
-    NEXT -- 💬 Ask --> NXCHAT
-    NXCHAT -- 📝 text + images --> OA
-    NXCHAT -- 📡 stream reply --> U
+    U["🖥 User Browser"] <--> NEXT["🎨 Next.js Frontend"]
+    NEXT -- 📤 Upload PDF(s) --> BACKEND
+    NEXT -- 🔎 Search Query --> BACKEND
+    BACKEND --> MN & CQ & QD
+    NEXT -- 💬 Ask Question --> NXCHAT
+    NXCHAT --> OA
+    NXCHAT -- 📡 Streamed Reply --> U
 ```
 
 Notes
