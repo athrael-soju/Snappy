@@ -18,27 +18,32 @@ export async function POST(request: NextRequest) {
       { type: 'input_text', text: message },
     ]
 
-    // Convert images to base64 data URLs since OpenAI can't access localhost
+    // Prefer sending public HTTPS image URLs directly. Fallback to data URL for localhost/private URLs.
     if (images && images.length > 0) {
       for (const image of images) {
-        if (image.image_url) {
+        const url = image.image_url?.toString() || ''
+        if (!url) continue
+        const isHttp = url.startsWith('http://') || url.startsWith('https://')
+        const isLocal = /(^http:\/\/localhost)|(^http:\/\/127\.0\.0\.1)|(^https:\/\/localhost)|(^https:\/\/127\.0\.0\.1)/.test(url)
+
+        if (isHttp && !isLocal) {
+          // Publicly reachable URL – send as-is
+          userContent.push({ type: 'input_image', image_url: url })
+        } else {
+          // Private/localhost – inline as data URL
           try {
-            const imageResponse = await fetch(image.image_url)
+            const imageResponse = await fetch(url)
             if (imageResponse.ok) {
               const imageBuffer = await imageResponse.arrayBuffer()
               const base64 = Buffer.from(imageBuffer).toString('base64')
               const mimeType = imageResponse.headers.get('content-type') || 'image/jpeg'
               const dataUrl = `data:${mimeType};base64,${base64}`
-
-              userContent.push({
-                type: 'input_image',
-                image_url: dataUrl,
-              })
+              userContent.push({ type: 'input_image', image_url: dataUrl })
             } else {
-              console.warn(`Failed to fetch image: ${image.image_url} - ${imageResponse.status}`)
+              console.warn(`Failed to fetch image: ${url} - ${imageResponse.status}`)
             }
           } catch (error) {
-            console.warn(`Error fetching image: ${image.image_url}`, error)
+            console.warn(`Error fetching image: ${url}`, error)
           }
         }
       }
