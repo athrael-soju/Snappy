@@ -41,19 +41,36 @@ export async function streamAssistant(
   if (!res.ok || !res.body) {
     throw new Error(`Failed to stream chat: ${res.status}`)
   }
+  // Parse Server-Sent Events from the response body
   const reader = res.body.getReader()
   const decoder = new TextDecoder()
+  let buffer = ''
   while (true) {
     const { done, value } = await reader.read()
     if (done) break
-    const chunk = decoder.decode(value, { stream: true })
-    const lines = chunk.split('\n').filter((l) => l.trim())
-    for (const line of lines) {
-      try {
-        const parsed = JSON.parse(line)
-        if (parsed.content) onDelta(parsed.content as string)
-      } catch (_) {
-        // ignore
+    buffer += decoder.decode(value, { stream: true })
+
+    // SSE events are separated by a blank line \n\n
+    let idx: number
+    while ((idx = buffer.indexOf('\n\n')) !== -1) {
+      const rawEvent = buffer.slice(0, idx)
+      buffer = buffer.slice(idx + 2)
+
+      // We only care about lines starting with "data: "
+      const lines = rawEvent.split('\n')
+      for (const l of lines) {
+        if (!l.startsWith('data: ')) continue
+        const payloadStr = l.slice(6)
+        try {
+          const payload = JSON.parse(payloadStr)
+          const eventType = payload?.event
+          const data = payload?.data
+          if (eventType === 'response.output_text.delta' && data?.delta) {
+            onDelta(String(data.delta))
+          }
+        } catch {
+          // ignore malformed event
+        }
       }
     }
   }
