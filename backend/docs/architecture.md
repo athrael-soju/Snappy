@@ -33,7 +33,7 @@ Notes
 
 - __Server entrypoint__: `main.py` (or `backend.py`) boots `api.app.create_app()` and serves the modular routers.
 - __Frontends__: Next.js app under `frontend/app/*` is the primary and only UI.
-- __Indexing__: The API `/index` route (`api/routers/indexing.py`) converts PDFs to page images (see `api/utils.py::convert_pdf_paths_to_images()`), then `QdrantService` stores images in MinIO, gets embeddings from the ColPali API (including patch metadata), mean-pools rows/cols, and upserts multivectors to Qdrant.
+- __Indexing__: The API `/index` route (`api/routers/indexing.py`) converts PDFs to page images (see `api/utils.py::convert_pdf_paths_to_images()`), then `QdrantService` stores images in MinIO, gets embeddings from the ColPali API (expected to include patch metadata: `image_patch_start`/`image_patch_len`), mean-pools rows/cols, and upserts multivectors to Qdrant. Ensure your ColPali server and `clients/colpali.py` align on this contract.
 - __Retrieval__: `QdrantService` embeds the query via ColPali, runs multivector search on Qdrant, fetches page images from MinIO, and returns them to the API. The frontend Chat API route (`frontend/app/api/chat/route.ts`) calls OpenAI with the user text + images and streams the answer to the browser. The `/search` route (`api/routers/retrieval.py`) returns structured results.
 - The diagram intentionally omits lower-level details (e.g., prefetch limits, comparator settings) to stay readable.
 
@@ -45,7 +45,7 @@ Notes
   - `frontend/app/upload/page.tsx` → calls `/index` via `IndexingService` to upload PDFs.
   - `frontend/app/page.tsx` → landing page.
 - __API client base URL__: `frontend/lib/api/client.ts` sets `OpenAPI.BASE` from `NEXT_PUBLIC_API_BASE_URL` (defaults to `http://localhost:8000`).
-- __Images__: `frontend/next.config.ts` allows remote images from MinIO at `http://localhost:9000/**` for Next/Image compatibility.
+- __Images__: `frontend/next.config.ts` allows remote images from MinIO at `http://localhost:9000/**` and (inside Docker) `http://minio:9000/**` for Next/Image compatibility.
 
 ## Backend API surface used by the frontend
 
@@ -61,9 +61,7 @@ Chat streaming is not proxied by the backend. It is implemented in the Next.js A
 
 - __Spec location__: `frontend/docs/openapi.json` (current file in repo).
 - __Codegen scripts__: see `frontend/package.json` `gen:sdk` and `gen:zod`.
-  - They currently point to `../openapi.json`. Either:
-    - Move/copy the spec to repository root as `openapi.json`, or
-    - Update the scripts to use `./docs/openapi.json` when running from `frontend/`.
+  - They already point to `./docs/openapi.json` (when run from `frontend/`). If you relocate the spec, update these paths accordingly.
 - __Generated clients__: emitted to `frontend/lib/api/generated` and `frontend/lib/api/zod` and consumed by pages via `ChatService`, `RetrievalService`, `IndexingService`.
 
 ## CORS and connectivity
