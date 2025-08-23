@@ -13,6 +13,7 @@ import ImageLightbox from "@/components/lightbox";
 import ChatInputBar from "@/components/chat/ChatInputBar";
 import StarterQuestions from "@/components/chat/StarterQuestions";
 import RecentSearchesChips from "@/components/search/RecentSearchesChips";
+import { BRAIN_PLACEHOLDERS } from "@/lib/utils";
 
 // Starter questions to help users get started
 const starterQuestions = [
@@ -61,6 +62,7 @@ export default function ChatPage() {
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [requestStart, setRequestStart] = useState<number | null>(null);
   const [lastResponseDurationMs, setLastResponseDurationMs] = useState<number | null>(null);
+  const [brainIdx, setBrainIdx] = useState<number>(0);
   const examples = [
     "Summarize my last report",
     "What are the key risks?",
@@ -81,6 +83,18 @@ export default function ChatPage() {
     const id = setInterval(() => setPlaceholderIdx((i) => (i + 1) % examples.length), 5000);
     return () => clearInterval(id);
   }, []);
+
+  // Rotate "thinking" placeholders while loading
+  useEffect(() => {
+    if (loading) {
+      // randomize start for variety
+      setBrainIdx((prev) => (prev + Math.floor(Math.random() * BRAIN_PLACEHOLDERS.length)) % BRAIN_PLACEHOLDERS.length);
+      const id = setInterval(() => {
+        setBrainIdx((i) => (i + 1) % BRAIN_PLACEHOLDERS.length);
+      }, 1200);
+      return () => clearInterval(id);
+    }
+  }, [loading]);
 
   // sendMessage now provided by useChat
   const handleSubmit = (e: React.FormEvent) => {
@@ -111,7 +125,7 @@ export default function ChatPage() {
     if (saved) {
       try {
         setRecentSearches(JSON.parse(saved));
-      } catch {}
+      } catch { }
     }
   }, []);
 
@@ -127,7 +141,7 @@ export default function ChatPage() {
   }, [messages, requestStart]);
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -154,7 +168,7 @@ export default function ChatPage() {
           )}
           <AnimatePresence mode="popLayout">
             {messages.length === 0 ? (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="flex flex-col items-center justify-center h-full text-center py-12"
@@ -166,7 +180,7 @@ export default function ChatPage() {
                 <p className="text-muted-foreground max-w-lg mb-8 text-lg leading-relaxed">
                   Ask questions about your uploaded documents and get intelligent responses with visual proof from your content.
                 </p>
-                
+
                 {/* Starter Questions */}
                 <StarterQuestions questions={starterQuestions} onSelect={(t) => setInput(t)} />
                 <div className="mt-6 w-full max-w-2xl">
@@ -192,26 +206,23 @@ export default function ChatPage() {
                   exit="exit"
                   className={`flex gap-3 mb-4 md:mb-5 last:mb-0 ${message.role === "assistant" ? "" : "flex-row-reverse"}`}
                 >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    message.role === "assistant" 
-                      ? "bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-lg" 
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${message.role === "assistant"
+                      ? "bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-lg"
                       : "bg-gradient-to-br from-blue-100 to-cyan-100 text-foreground shadow-lg"
-                  }`}>
+                    }`}>
                     {message.role === "assistant" ? (
                       <Brain className="w-4 h-4" />
                     ) : (
                       <User className="w-4 h-4" />
                     )}
                   </div>
-                  
-                  <div className={`flex-1 max-w-[85%] ${
-                    message.role === "user" ? "text-right" : ""
-                  }`}>
-                    <div className={`inline-block p-4 rounded-2xl shadow-sm border ${
-                      message.role === "assistant"
+
+                  <div className={`flex-1 max-w-[85%] ${message.role === "user" ? "text-right" : ""
+                    }`}>
+                    <div className={`inline-block p-4 rounded-2xl shadow-sm border ${message.role === "assistant"
                         ? "bg-gradient-to-br from-purple-50 to-pink-50 text-foreground border-purple-200/50"
                         : "bg-gradient-to-br from-blue-100 to-cyan-100 text-foreground border-blue-200"
-                    }`}>
+                      }`}>
                       {message.content ? (
                         message.role === "assistant" ? (
                           <div className="whitespace-pre-wrap text-[15px] leading-7">
@@ -225,26 +236,29 @@ export default function ChatPage() {
                       ) : (
                         loading && message.role === "assistant" ? (
                           <div className="flex items-center gap-2 text-muted-foreground">
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            <span>Thinking...</span>
+                            <Loader2 className="w-4 h-4 animate-spin text-purple-500" />
+                            <AnimatePresence mode="wait" initial={false}>
+                              <motion.span
+                                key={brainIdx}
+                                initial={{ opacity: 0, y: 4 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -4 }}
+                                transition={{ duration: 0.2 }}
+                                className="text-sm"
+                              >
+                                {BRAIN_PLACEHOLDERS[brainIdx]}
+                              </motion.span>
+                            </AnimatePresence>
                           </div>
                         ) : null
                       )}
                     </div>
-                    
+
                     {message.role === "assistant" && (
                       <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2 ml-2">
                         <Brain className="w-3 h-3 text-purple-500" />
                         <span>AI Assistant</span>
-                        {loading ? (
-                          <span className="inline-flex items-center gap-1 text-xs">
-                            <Loader2 className="w-3 h-3 animate-spin text-purple-500" />
-                            Generating…
-                          </span>
-                        ) : (
-                          <Badge variant="outline" className="text-xs">Ready</Badge>
-                        )}
-                        <div className="ml-3 flex gap-1">
+                        <div className="flex">
                           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { /* TODO: thumbs up handler */ }}>
                             <span aria-hidden>👍</span>
                             <span className="sr-only">Mark helpful</span>
@@ -263,7 +277,7 @@ export default function ChatPage() {
           </AnimatePresence>
           <div ref={messagesEndRef} />
         </div>
-        
+
         {/* Input Form */}
         <div className="border-t border-purple-100/50 p-4 bg-gradient-to-r from-purple-50/30 to-pink-50/30">
           <ChatInputBar
@@ -280,7 +294,7 @@ export default function ChatPage() {
             setK={setK}
             setKMode={setKMode}
           />
-          
+
           {/* Tips below input */}
           <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
@@ -292,9 +306,9 @@ export default function ChatPage() {
               <span>Visual citations included</span>
             </div>
           </div>
-          
+
           {error && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               className="mt-3"
