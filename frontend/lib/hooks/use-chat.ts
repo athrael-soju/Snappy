@@ -10,6 +10,7 @@ import {
   type RetrievedImage,
 } from '@/lib/api/chat'
 import { kSchema, messageSchema } from '@/lib/validation/chat'
+import { chooseTopK } from '@/lib/auto-topk'
 
 export type ChatMessage = {
   role: 'user' | 'assistant'
@@ -53,15 +54,6 @@ export function useChat() {
     } catch {}
   }, [kMode, k])
 
-  function autoHeuristic(text: string): number {
-    const t = text.toLowerCase()
-    const long = text.length > 120
-    const keywords = /(compare|summari|overview|differences|all|list|aggregate|trend|across|multiple|many)/
-    if (long || keywords.test(t)) return 10
-    if (text.length < 60) return 3
-    return 5
-  }
-
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault()
     const text = input.trim()
@@ -80,10 +72,21 @@ export function useChat() {
     setInput('')
     setError(null)
 
-    // Validate settings first
+    // Determine effective K (auto via model or manual), then validate
+    // Compute effectiveK separately to handle failures distinctly
     let retrievedImages: RetrievedImage[] = []
     try {
-      const effectiveK = kMode === 'auto' ? autoHeuristic(text) : k
+      let effectiveK = k
+      if (kMode === 'auto') {
+        try {
+          effectiveK = await chooseTopK(text)
+        } catch (err) {
+          const msg = 'Failed to choose sources automatically'
+          setError(msg)
+          toast.error('Auto sources selection failed', { description: msg })
+          return
+        }
+      }
       // Validate k (align with SourcesControl upper bound 25)
       const kParse = kSchema.safeParse(effectiveK)
       if (!kParse.success) {
@@ -96,7 +99,7 @@ export function useChat() {
       // Only set loading after validation passes
       setLoading(true)
 
-      const searchData = await searchDocuments(text, effectiveK)
+      const searchData = await searchDocuments(text, kParse.data)
       retrievedImages = searchData || []
       const group = retrievedImages.map((img) => ({
         url: img.image_url ?? null,
