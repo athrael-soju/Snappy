@@ -49,6 +49,33 @@ This repo is intended as a developer-friendly starting point for vision RAG syst
   - [Citations](#citations)
 
 ## Architecture
+```mermaid
+---
+config:
+  theme: neutral
+  layout: elk
+  look: neo
+---
+flowchart TB
+ subgraph Services["🛠 Services"]
+        BACKEND[["⚙️ Backend API"]]
+        NXCHAT[["💬 Chat Service API"]]
+  end
+ subgraph External["🌐 External Integrations"]
+        QD[("💾 Qdrant Vector DB")]
+        MN[("🗄 MinIO Storage")]
+        CQ(["☁️ ColPali Embedding API"])
+        OA(["☁️ OpenAI API"])
+  end
+    U["🖥 User Browser"] <--> NEXT["🎨 Next.js Frontend"]
+    NEXT -- 📤 Upload PDF(s) --> BACKEND
+    NEXT -- 🔎 Search Query --> BACKEND
+    BACKEND --> MN & CQ & QD
+    NEXT -- 💬 Ask Question --> NXCHAT
+    NXCHAT --> OA
+    NXCHAT -- 📡 Streamed Reply --> U
+
+```
 
 Below is the high-level component architecture of the Vision RAG template.
 See the architecture diagram in [backend/docs/architecture.md](backend/docs/architecture.md). It focuses on the core indexing and retrieval flows for clarity.
