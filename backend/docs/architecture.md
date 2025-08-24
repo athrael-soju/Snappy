@@ -25,7 +25,7 @@ flowchart TB
     NEXT -- 🔎 Search Query --> BACKEND
     BACKEND --> MN & CQ & QD
     NEXT -- 💬 Ask Question --> NXCHAT
-    NXCHAT --> OA
+    NXCHAT <--> OA
     NXCHAT -- 📡 Streamed Reply --> U
 ```
 
