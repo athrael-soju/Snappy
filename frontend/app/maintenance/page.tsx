@@ -132,7 +132,7 @@ export default function MaintenancePage() {
           </div>
           <div className="flex items-center gap-2">
             <Shield className="w-4 h-4 text-green-500" />
-            <span>Protected by confirmation dialogs</span>
+            <span>Confirm before proceeding</span>
           </div>
         </div>
       </div>
@@ -140,9 +140,9 @@ export default function MaintenancePage() {
       {/* Warning Banner */}
       <Alert className="border-2 border-amber-200 bg-gradient-to-r from-amber-50/50 to-orange-50/50">
         <AlertTriangle className="h-5 w-5 text-amber-600" />
-        <AlertTitle className="text-amber-800 font-semibold">⚠️ Destructive Operations Zone</AlertTitle>
+        <AlertTitle className="text-amber-800 font-semibold">⚠️ Destructive Operations</AlertTitle>
         <AlertDescription className="text-amber-700">
-          The actions below permanently delete data and <strong>cannot be undone</strong>. Each operation is protected by confirmation dialogs with detailed warnings. Always ensure you have backups before proceeding.
+          The actions below permanently delete data and <strong>cannot be undone</strong>
         </AlertDescription>
       </Alert>
 

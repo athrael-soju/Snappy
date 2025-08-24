@@ -99,10 +99,10 @@ export default function Home() {
           </h1>
 
           <p className="text-xl sm:text-2xl text-muted-foreground mb-4 max-w-3xl mx-auto leading-relaxed">
-            Revolutionary document intelligence platform that understands your visual content
+            A lightweight, end-to-end template for knowledge retrieval, using ColPali
           </p>
           <p className="text-lg text-muted-foreground mb-12 max-w-2xl mx-auto">
-            Upload documents, search using natural language, and chat with AI - all grounded by intelligent visual understanding
+            Upload documents, search using natural language, and chat with an AI assistant
           </p>
 
           {/* Single primary CTA */}

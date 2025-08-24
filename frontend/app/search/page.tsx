@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import Image from "next/image";
 import ImageLightbox from "@/components/lightbox";
 import SearchBar from "@/components/search/SearchBar";
-import ExampleQueries from "@/components/search/ExampleQueries";
+// import ExampleQueries from "@/components/search/ExampleQueries";
 import RecentSearchesChips from "@/components/search/RecentSearchesChips";
 import type { KMode } from "@/components/sources-control";
 
@@ -75,15 +75,15 @@ export default function SearchPage() {
     e.preventDefault();
     const query = q.trim();
     if (!query) return;
-    
+
     setLoading(true);
     setError(null);
     setHasSearched(true);
     setSearchDurationMs(null);
-    
+
     // Add to recent searches
     addToRecentSearches(query);
-    
+
     try {
       const start = performance.now();
       const data = await RetrievalService.searchSearchGet(query, k);
@@ -125,7 +125,7 @@ export default function SearchPage() {
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -142,7 +142,7 @@ export default function SearchPage() {
             <p className="text-muted-foreground text-lg">Find documents and images using natural language powered by AI vision</p>
           </div>
         </div>
-        
+
         {/* Quick Stats */}
         <div className="flex items-center gap-6 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
@@ -164,7 +164,7 @@ export default function SearchPage() {
             Search Your Documents
           </CardTitle>
           <CardDescription className="text-base">
-            Describe what you're looking for using natural language. Our AI will find relevant visual content.
+            Describe what you're looking for using natural language.
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6 space-y-6">
@@ -178,9 +178,7 @@ export default function SearchPage() {
             setK={setK}
             setKMode={setKMode}
           />
-          
-          <ExampleQueries examples={exampleQueries} onSelect={handleExampleClick} loading={loading} />
-          
+
           <RecentSearchesChips
             recentSearches={recentSearches}
             loading={loading}
@@ -216,9 +214,9 @@ export default function SearchPage() {
             <div className="w-20 h-20 bg-gradient-to-br from-muted/50 to-muted/30 rounded-full flex items-center justify-center mb-6">
               <Search className="w-10 h-10 text-muted-foreground" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">Search across your content</h3>
+            <h3 className="text-xl font-semibold mb-2">Your results will appear here</h3>
             <p className="text-muted-foreground max-w-md">
-              Use natural language to find documents and images instantly. Your results will appear here.
+              Use natural language to find documents and images instantly.
             </p>
           </CardContent>
         </Card>
@@ -302,7 +300,7 @@ export default function SearchPage() {
                 </CardContent>
               </Card>
             ) : (
-              <motion.div 
+              <motion.div
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
@@ -351,9 +349,8 @@ export default function SearchPage() {
                             </Badge>
                             {typeof item.score === "number" && (
                               <div className="flex items-center gap-1">
-                                <div className={`w-2 h-2 rounded-full ${
-                                  item.score > 0.8 ? 'bg-green-500' : item.score > 0.6 ? 'bg-yellow-500' : 'bg-red-500'
-                                }`} />
+                                <div className={`w-2 h-2 rounded-full ${item.score > 0.8 ? 'bg-green-500' : item.score > 0.6 ? 'bg-yellow-500' : 'bg-red-500'
+                                  }`} />
                                 <span className="text-xs text-muted-foreground font-mono">
                                   {(item.score * 100).toFixed(1)}%
                                 </span>
