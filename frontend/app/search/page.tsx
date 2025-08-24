@@ -17,7 +17,7 @@ import ImageLightbox from "@/components/lightbox";
 import SearchBar from "@/components/search/SearchBar";
 // import ExampleQueries from "@/components/search/ExampleQueries";
 import RecentSearchesChips from "@/components/search/RecentSearchesChips";
-import type { KMode } from "@/components/sources-control";
+import type { KMode } from "@/components/chat-settings";
 
 // Example search prompts to help users
 const exampleQueries = [

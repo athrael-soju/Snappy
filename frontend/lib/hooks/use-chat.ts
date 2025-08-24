@@ -115,7 +115,7 @@ export function useChat() {
             return
           }
         }
-        // Validate k (align with SourcesControl upper bound 25)
+        // Validate k (align with ChatSettings upper bound 25)
         const kParse = kSchema.safeParse(effectiveK)
         if (!kParse.success) {
           const msg = 'Number of sources must be between 1 and 25'
@@ -160,6 +160,8 @@ Cite pages using the labels above (do not infer by result order).`
 
     try {
       // Always stream responses
+      // Make sure loading indicator is visible even when no tools are used
+      setLoading(true)
       setMessages([...nextHistory, { role: 'assistant', content: '' }])
       const res = await chatRequest({
         message: text,

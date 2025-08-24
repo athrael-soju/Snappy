@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Search, Loader2 } from "lucide-react";
-import { SourcesControl } from "@/components/sources-control";
-import type { KMode } from "@/components/sources-control";
+import { ChatSettings } from "@/components/chat-settings";
+import type { KMode } from "@/components/chat-settings";
 
 export interface SearchBarProps {
   q: string;
@@ -40,7 +40,7 @@ export default function SearchBar({ q, setQ, loading, onSubmit, k, kMode, setK, 
             <Tooltip>
               <TooltipTrigger asChild>
                 <div>
-                  <SourcesControl
+                  <ChatSettings
                     k={k}
                     kMode={kMode}
                     setK={setK}

@@ -15,7 +15,7 @@ import { kSchema } from "@/lib/validation/chat";
 
 export type KMode = "auto" | "manual";
 
-export interface SourcesControlProps {
+export interface ChatSettingsProps {
   k: number;
   kMode: KMode;
   setK: (k: number) => void;
@@ -36,7 +36,7 @@ const PRESETS = [
   { label: "Max", value: 20 },
 ] as const;
 
-export function SourcesControl({ k, kMode, setK, setKMode, loading, className, onValidityChange, toolsEnabled = true, setToolsEnabled, model = 'gpt-5-mini', setModel }: SourcesControlProps) {
+export function ChatSettings({ k, kMode, setK, setKMode, loading, className, onValidityChange, toolsEnabled = true, setToolsEnabled, model = 'gpt-5-mini', setModel }: ChatSettingsProps) {
   const isPreset = PRESETS.some(p => p.value === k);
   const selectedKey = kMode === "auto" ? "auto" : (isPreset ? String(k) : "custom");
   const [customVal, setCustomVal] = React.useState<string>(String(k));
@@ -134,7 +134,7 @@ export function SourcesControl({ k, kMode, setK, setKMode, loading, className, o
               <div className="flex items-center justify-between">
                 <div className="flex flex-col">
                   <Label className="text-sm font-medium">OpenAI model</Label>
-                  <span className="text-xs text-muted-foreground">Choose gpt-5 (default), gpt-5-mini (smaller), or gpt-5-nano (smallest)</span>
+                  <span className="text-xs text-muted-foreground">Choose model to use</span>
                 </div>
                 <div className="w-40">
                   <Select
@@ -142,7 +142,7 @@ export function SourcesControl({ k, kMode, setK, setKMode, loading, className, o
                     onValueChange={(v) => setModel?.(v as 'gpt-5' | 'gpt-5-mini' | 'gpt-5-nano')}
                     disabled={!!loading}
                   >
-                    <SelectTrigger aria-label="OpenAI model">
+                    <SelectTrigger aria-label="OpenAI model" className="h-8 w-full text-sm">
                       <SelectValue placeholder="Select model" />
                     </SelectTrigger>
                     <SelectContent>
@@ -295,4 +295,4 @@ export function SourcesControl({ k, kMode, setK, setKMode, loading, className, o
   );
 }
 
-export default SourcesControl;
+export default ChatSettings;
