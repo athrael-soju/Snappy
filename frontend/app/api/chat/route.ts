@@ -7,7 +7,7 @@ const openai = new OpenAI({
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, images, systemPrompt } = await request.json();
+    const { message, images, systemPrompt, model } = await request.json();
 
     if (!message) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
 
     // Always stream using the Responses API
     const events = await openai.responses.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      model: model || 'gpt-5-nano',
       // Responses API input is an array of turns
       input: [
         {
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
         },
       ] as any,
       temperature: parseFloat(process.env.OPENAI_TEMPERATURE || '1'),
-      max_output_tokens: parseInt(process.env.OPENAI_MAX_TOKENS || '1500'),
+      // max_output_tokens: parseInt(process.env.OPENAI_MAX_TOKENS || '1500'),
       stream: true,
       parallel_tool_calls: false,
       instructions: systemPrompt || undefined,

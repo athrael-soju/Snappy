@@ -24,7 +24,7 @@ This repo is intended as a developer-friendly starting point for vision RAG syst
 
 ## Table of Contents
 
-- [The Most Beautiful Rag - FastAPI / Next.js / MinIO Template](#the-most-beautiful-rag---fastapi--nextjs--minio-template)
+- [The Most Beautiful Rag - FastAPI / Next.js / ColPali Template](#the-most-beautiful-rag---fastapi--nextjs--colpali-template)
   - [Component READMEs](#component-readmes)
   - [Table of Contents](#table-of-contents)
   - [Architecture](#architecture)
@@ -202,7 +202,6 @@ cp .env.example .env
 # (these are read by Next.js API route at frontend/app/api/chat/route.ts)
 cat > frontend/.env.local << 'EOF'
 OPENAI_API_KEY=sk-your-key
-OPENAI_MODEL=gpt-4o-mini
 # Optional
 OPENAI_TEMPERATURE=1
 OPENAI_MAX_TOKENS=1500
@@ -269,7 +268,7 @@ cp ../.env.example ../.env
 uvicorn backend:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-For chat streaming, configure `frontend/.env.local` with `OPENAI_API_KEY`, `OPENAI_MODEL` (and optionally `OPENAI_TEMPERATURE`, `OPENAI_MAX_TOKENS`).
+For chat streaming, configure `frontend/.env.local` with `OPENAI_API_KEY`, (and optionally `OPENAI_TEMPERATURE`, `OPENAI_MAX_TOKENS`).
 
 ## Environment variables
 
@@ -279,7 +278,6 @@ Most defaults are in `config.py`. Key variables:
 - __CORS__: `ALLOWED_ORIGINS` (comma-separated or `*` for all; use explicit origins in production)
 - __Frontend chat (Next.js)__ — set in `frontend/.env.local`:
   - `OPENAI_API_KEY` (required)
-  - `OPENAI_MODEL` (default `gpt-4o-mini`)
   - `OPENAI_TEMPERATURE` (optional)
   - `OPENAI_MAX_TOKENS` (optional)
 - __ColPali API__: Mode-based selection with optional explicit override:
@@ -379,7 +377,7 @@ This template supports binary quantization for Qdrant to reduce memory usage and
 
 ## Troubleshooting
 
-- __OpenAI key/model (frontend)__: If AI responses show an error, verify `frontend/.env.local` has `OPENAI_API_KEY` and `OPENAI_MODEL` (and that the Next.js API route has access to them in its environment).
+- __OpenAI key/model (frontend)__: If AI responses show an error, verify `frontend/.env.local` has `OPENAI_API_KEY` (and that the Next.js API route has access to them in its environment).
 - __ColPali API health__: On start, `QdrantService` checks `GET /health`. Ensure your server is reachable at `COLPALI_API_BASE_URL`.
 - __Patch metadata mismatch__: If you see an error like "embed_images() returned embeddings without image-token boundaries", update your embedding server/client to include `image_patch_start` and `image_patch_len` per image.
 - __MinIO access__: The app sets a public-read bucket policy. For production, lock this down. If images fail to upload, check MinIO logs and credentials.

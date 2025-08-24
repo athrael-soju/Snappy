@@ -6,8 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SlidersHorizontal, Check } from "lucide-react";
 import { kSchema } from "@/lib/validation/chat";
 
@@ -21,6 +23,10 @@ export interface SourcesControlProps {
   loading?: boolean;
   className?: string;
   onValidityChange?: (valid: boolean) => void;
+  toolsEnabled?: boolean;
+  setToolsEnabled?: (v: boolean) => void;
+  model?: 'gpt-5' | 'gpt-5-mini' | 'gpt-5-nano';
+  setModel?: (m: 'gpt-5' | 'gpt-5-mini' | 'gpt-5-nano') => void;
 }
 
 const PRESETS = [
@@ -30,7 +36,7 @@ const PRESETS = [
   { label: "Max", value: 20 },
 ] as const;
 
-export function SourcesControl({ k, kMode, setK, setKMode, loading, className, onValidityChange }: SourcesControlProps) {
+export function SourcesControl({ k, kMode, setK, setKMode, loading, className, onValidityChange, toolsEnabled = true, setToolsEnabled, model = 'gpt-5-mini', setModel }: SourcesControlProps) {
   const isPreset = PRESETS.some(p => p.value === k);
   const selectedKey = kMode === "auto" ? "auto" : (isPreset ? String(k) : "custom");
   const [customVal, setCustomVal] = React.useState<string>(String(k));
@@ -113,6 +119,43 @@ export function SourcesControl({ k, kMode, setK, setKMode, loading, className, o
             <Separator className="my-2" />
 
             <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col">
+                  <Label className="text-sm font-medium">Enable tools</Label>
+                  <span className="text-xs text-muted-foreground">Use image_search on knowledgebase questions only</span>
+                </div>
+                <Switch
+                  checked={!!toolsEnabled}
+                  onCheckedChange={(v) => setToolsEnabled?.(Boolean(v))}
+                  aria-label="Enable tools"
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col">
+                  <Label className="text-sm font-medium">OpenAI model</Label>
+                  <span className="text-xs text-muted-foreground">Choose gpt-5 (default), gpt-5-mini (smaller), or gpt-5-nano (smallest)</span>
+                </div>
+                <div className="w-40">
+                  <Select
+                    value={model}
+                    onValueChange={(v) => setModel?.(v as 'gpt-5' | 'gpt-5-mini' | 'gpt-5-nano')}
+                    disabled={!!loading}
+                  >
+                    <SelectTrigger aria-label="OpenAI model">
+                      <SelectValue placeholder="Select model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="gpt-5">gpt-5</SelectItem>
+                        <SelectItem value="gpt-5-mini">gpt-5-mini</SelectItem>
+                        <SelectItem value="gpt-5-nano">gpt-5-nano</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <div>
                 <Label className="text-sm font-medium">Sources</Label>
                 <div className="mt-2 grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Sources selection">

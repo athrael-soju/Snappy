@@ -21,6 +21,10 @@ export interface ChatInputBarProps {
   kMode: KMode;
   setK: (k: number) => void;
   setKMode: (m: KMode) => void;
+  toolsEnabled: boolean;
+  setToolsEnabled: (v: boolean) => void;
+  model: 'gpt-5' | 'gpt-5-mini' | 'gpt-5-nano';
+  setModel: (m: 'gpt-5' | 'gpt-5-mini' | 'gpt-5-nano') => void;
 }
 
 export default function ChatInputBar({
@@ -36,6 +40,10 @@ export default function ChatInputBar({
   kMode,
   setK,
   setKMode,
+  toolsEnabled,
+  setToolsEnabled,
+  model,
+  setModel,
 }: ChatInputBarProps) {
   return (
     <form onSubmit={onSubmit} className="flex gap-3 items-center">
@@ -63,6 +71,10 @@ export default function ChatInputBar({
               setKMode={setKMode}
               loading={loading}
               onValidityChange={setUiSettingsValid}
+              toolsEnabled={toolsEnabled}
+              setToolsEnabled={setToolsEnabled}
+              model={model}
+              setModel={setModel}
             />
           </div>
         </TooltipTrigger>

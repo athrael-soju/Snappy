@@ -50,6 +50,10 @@ export default function ChatPage() {
     kMode,
     setK,
     setKMode,
+    toolsEnabled,
+    setToolsEnabled,
+    model,
+    setModel,
     imageGroups,
     isSettingsValid,
     sendMessage,
@@ -293,6 +297,10 @@ export default function ChatPage() {
             kMode={kMode}
             setK={setK}
             setKMode={setKMode}
+            toolsEnabled={toolsEnabled}
+            setToolsEnabled={setToolsEnabled}
+            model={model}
+            setModel={setModel}
           />
 
           {/* Tips below input */}

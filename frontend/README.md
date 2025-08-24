@@ -41,7 +41,6 @@ OpenAI for chat (SSE) — set on the frontend (server runtime):
 ```bash
 # frontend/.env.local
 OPENAI_API_KEY=sk-your-key
-OPENAI_MODEL=gpt-5-mini   # optional override
 # optional
 OPENAI_TEMPERATURE=1
 OPENAI_MAX_TOKENS=1500
@@ -93,7 +92,6 @@ yarn gen:sdk && yarn gen:zod
     frontend:
       environment:
         - OPENAI_API_KEY=sk-your-key
-        - OPENAI_MODEL=gpt-4o-mini # optional
         - OPENAI_TEMPERATURE=1     # optional
         - OPENAI_MAX_TOKENS=1500   # optional
         - NEXT_PUBLIC_API_BASE_URL=http://localhost:8000

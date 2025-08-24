@@ -24,6 +24,7 @@ export type ChatRequest = {
   images: RetrievedImage[]
   systemPrompt: string
   stream: boolean
+  model?: string
 }
 
 export async function chatRequest(req: ChatRequest): Promise<Response> {
