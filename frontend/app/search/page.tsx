@@ -17,7 +17,6 @@ import ImageLightbox from "@/components/lightbox";
 import SearchBar from "@/components/search/SearchBar";
 // import ExampleQueries from "@/components/search/ExampleQueries";
 import RecentSearchesChips from "@/components/search/RecentSearchesChips";
-import type { KMode } from "@/components/sources-control";
 
 // Example search prompts to help users
 const exampleQueries = [
@@ -40,7 +39,6 @@ export default function SearchPage() {
   const [lightboxSrc, setLightboxSrc] = useState("");
   const [lightboxAlt, setLightboxAlt] = useState<string | undefined>(undefined);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  const [kMode, setKMode] = useState<KMode>("manual");
   const [searchDurationMs, setSearchDurationMs] = useState<number | null>(null);
 
   // Load recent searches from localStorage
@@ -174,9 +172,7 @@ export default function SearchPage() {
             loading={loading}
             onSubmit={onSubmit}
             k={k}
-            kMode={kMode}
             setK={setK}
-            setKMode={setKMode}
           />
 
           <RecentSearchesChips
