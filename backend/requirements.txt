@@ -1,9 +1,6 @@
 pdf2image
-openai
-gradio[mcp]
 tqdm
 Pillow
-gradio-pdf
 qdrant-client
 numpy
 python-dotenv

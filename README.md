@@ -10,8 +10,8 @@ A lightweight, end-to-end template for page-level retrieval over PDFs using a Co
 
 - __Storage__: page images in MinIO, multivector embeddings in Qdrant
 - __Retrieval__: two-stage reranking with pooled image-token vectors
-- __Generation__: OpenAI chat completions with multimodal context (retrieved page images)
-- __API__: FastAPI service exposing endpoints for indexing, search, chat, and maintenance
+- __Generation__: Next.js chat API streams OpenAI Responses with multimodal context (retrieved page images)
+- __API__: FastAPI service exposing endpoints for indexing, search, and maintenance
 
 This repo is intended as a developer-friendly starting point for vision RAG systems.
 
@@ -34,7 +34,6 @@ This repo is intended as a developer-friendly starting point for vision RAG syst
   - [Prerequisites](#prerequisites)
   - [Quickstart (Docker Compose)](#quickstart-docker-compose)
   - [Local development (without Compose)](#local-development-without-compose)
-  - [Optional local Gradio UI](#optional-local-gradio-ui)
   - [Environment variables](#environment-variables)
   - [Using the API](#using-the-api)
   - [API Examples](#api-examples)
@@ -54,12 +53,10 @@ This repo is intended as a developer-friendly starting point for vision RAG syst
 Below is the high-level component architecture of the Vision RAG template.
 See the architecture diagram in [backend/docs/architecture.md](backend/docs/architecture.md). It focuses on the core indexing and retrieval flows for clarity.
 
-- __`api/app.py`__ and `api/routers/*`__: Modular FastAPI application (routers: `meta`, `retrieval`, `chat`, `indexing`, `maintenance`).
+- __`api/app.py`__ and `api/routers/*`__: Modular FastAPI application (routers: `meta`, `retrieval`, `indexing`, `maintenance`).
 - __`backend.py`__: Thin entrypoint that boots `api.app.create_app()`.
-- __`local.py`__ + `ui.py`__: Optional local Gradio UI (upload/index PDFs, chat, maintenance actions) separate from the FastAPI server.
 - __`clients/qdrant.py`__: `QdrantService` manages collection, indexing, multivector retrieval, and MinIO integration.
 - __`clients/minio.py`__: `MinioService` for image storage/retrieval with batch operations and public-read policy.
-- __`clients/openai.py`__: Thin wrapper for OpenAI SDK (streaming completions, message construction).
 - __`clients/colpali.py`__: HTTP client for a ColPali-style embedding API (queries, images, patch metadata).
 - __`config.py`__: Centralized configuration via environment variables.
 
@@ -79,12 +76,12 @@ __Retrieval flow__:
 1) Query -> embedding (ColPali API)
 2) Qdrant multivector prefetch (rows/cols) + re-ranking using `using="original"`
 3) Fetch images from MinIO for top-k pages
-4) Stream OpenAI answer conditioned on user text + page images
+4) Frontend chat API streams OpenAI Responses conditioned on user text + page images
 
 ## Features
 
 - __Page-level, multimodal RAG__: stores per-page images, uses image-token pooling for robust retrieval
-- __FastAPI endpoints__: OpenAPI docs at `/docs`; endpoints for indexing, search, chat (streaming), and maintenance
+- __FastAPI endpoints__: OpenAPI docs at `/docs`; endpoints for indexing, search, and maintenance
 - __Dockerized__: one `docker-compose up -d` brings up Qdrant, MinIO and the API
 - __Configurable__: all knobs in `.env`/`config.py`
 - __Optional binary quantization__: enable Qdrant binary quantization with env flags; supports rescore/oversampling.
@@ -171,9 +168,18 @@ Designed for extension:
 
 ```bash
 cp .env.example .env
-# Set OPENAI_API_KEY and OPENAI_MODEL.
-# Choose COLPALI_MODE (cpu|gpu) and optionally adjust COLPALI_CPU_URL/COLPALI_GPU_URL.
+# Backend: choose COLPALI_MODE (cpu|gpu) and optionally adjust COLPALI_CPU_URL/COLPALI_GPU_URL.
 # To force a single endpoint, set COLPALI_API_BASE_URL (takes precedence over mode URLs).
+
+# Frontend (chat streaming): create frontend/.env.local with your OpenAI settings
+# (these are read by Next.js API route at frontend/app/api/chat/route.ts)
+cat > frontend/.env.local << 'EOF'
+OPENAI_API_KEY=sk-your-key
+OPENAI_MODEL=gpt-4o-mini
+# Optional
+OPENAI_TEMPERATURE=1
+OPENAI_MAX_TOKENS=1500
+EOF
 ```
 
 Note: Start the ColPali Embedding API (separate compose) in another terminal before the backend tries to call it:
@@ -232,20 +238,11 @@ docker run -p 9000:9000 -p 9001:9001 -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT
 ```bash
 # From backend/
 cp ../.env.example ../.env
-# set OPENAI_API_KEY, OPENAI_MODEL, and ensure QDRANT_URL/MINIO_URL point to your services
+# ensure QDRANT_URL/MINIO_URL point to your services
 uvicorn backend:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-## Optional local Gradio UI
-
-For a local, interactive UI (separate from the FastAPI server, run from `backend/`):
-
-```bash
-# From backend/
-python local.py
-```
-
-Defaults to `HOST=0.0.0.0` and `PORT=7860` unless overridden via environment variables.
+For chat streaming, configure `frontend/.env.local` with `OPENAI_API_KEY`, `OPENAI_MODEL` (and optionally `OPENAI_TEMPERATURE`, `OPENAI_MAX_TOKENS`).
 
 ## Environment variables
 
@@ -253,8 +250,11 @@ Most defaults are in `config.py`. Key variables:
 
 - __Core__: `LOG_LEVEL` (INFO), `HOST` (0.0.0.0), `PORT` (8000)
 - __CORS__: `ALLOWED_ORIGINS` (comma-separated or `*` for all; use explicit origins in production)
-- __OpenAI__: `OPENAI_API_KEY`, `OPENAI_MODEL`
-  - Note: `clients/openai.py` uses `config.OPENAI_MODEL` (default `gpt-5-nano`). Both the API and local UI respect this unless overridden per request.
+- __Frontend chat (Next.js)__ — set in `frontend/.env.local`:
+  - `OPENAI_API_KEY` (required)
+  - `OPENAI_MODEL` (default `gpt-4o-mini`)
+  - `OPENAI_TEMPERATURE` (optional)
+  - `OPENAI_MAX_TOKENS` (optional)
 - __ColPali API__: Mode-based selection with optional explicit override:
   - `COLPALI_MODE` (cpu|gpu; default `cpu`)
   - `COLPALI_CPU_URL` (default `http://localhost:7001`)
@@ -279,8 +279,6 @@ You can interact via the OpenAPI UI at `/docs` or with HTTP clients:
 - `GET /health` — check dependencies status.
 - `GET /search?q=...&k=5` — retrieve top-k results with payload metadata.
 - `POST /index` (multipart files[]) — upload and index PDFs.
-- `POST /chat` — JSON body with query and options; returns full text and retrieved pages.
-- `POST /chat/stream` — same body; streams text/plain tokens.
 - `POST /clear/qdrant` | `/clear/minio` | `/clear/all` — maintenance.
 
 ## API Examples
@@ -289,18 +287,6 @@ Example search:
 
 ```bash
 curl "http://localhost:8000/search?q=What%20is%20the%20booking%20reference%3F&k=5"
-```
-
-Example chat:
-
-```bash
-curl -X POST http://localhost:8000/chat \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "message": "What is the booking reference for case 002?",
-    "k": 5,
-    "ai_enabled": true
-  }'
 ```
 
 ## ColPali API contract (expected)
@@ -366,7 +352,7 @@ This template supports binary quantization for Qdrant to reduce memory usage and
 
 ## Troubleshooting
 
-- __OpenAI key/model__: If AI responses show an error, verify `OPENAI_API_KEY` and `OPENAI_MODEL`.
+- __OpenAI key/model (frontend)__: If AI responses show an error, verify `frontend/.env.local` has `OPENAI_API_KEY` and `OPENAI_MODEL` (and that the Next.js API route has access to them in its environment).
 - __ColPali API health__: On start, `QdrantService` checks `GET /health`. Ensure your server is reachable at `COLPALI_API_BASE_URL`.
 - __Patch metadata mismatch__: If you see an error like "embed_images() returned embeddings without image-token boundaries", update your embedding server/client to include `image_patch_start` and `image_patch_len` per image.
 - __MinIO access__: The app sets a public-read bucket policy. For production, lock this down. If images fail to upload, check MinIO logs and credentials.
@@ -382,9 +368,8 @@ This template supports binary quantization for Qdrant to reduce memory usage and
 
 ## Development notes
 
-- FastAPI app is assembled by `api/app.py` (routers: meta, retrieval, chat, indexing, maintenance) and booted by `backend.py` in containers (alternatively, run `python main.py` locally from `backend/`).
-- Local Gradio UI lives in `local.py` and `ui.py` (separate from the API).
-- Replace OpenAI with another LLM by adapting `clients/openai.py` and the chat router in `api/routers/chat.py`.
+- FastAPI app is assembled by `api/app.py` (routers: meta, retrieval, indexing, maintenance) and booted by `backend.py` in containers (alternatively, run `python main.py` locally from `backend/`).
+- Replace OpenAI with another LLM by adapting the Next.js Chat API at `frontend/app/api/chat/route.ts`.
 - To filter search by metadata, see `QdrantService.search_with_metadata(...)`.
 
 ## For collaborators
@@ -404,7 +389,7 @@ MIT License. See `LICENSE`.
 
 ## Acknowledgements
 
-Inspired by ColPali-style page-level retrieval and multivector search patterns. Uses Qdrant, MinIO, Gradio, pdf2image, and OpenAI.
+Inspired by ColPali-style page-level retrieval and multivector search patterns. Uses Qdrant, MinIO, pdf2image, and OpenAI.
 
 ## Citations
 

@@ -5,10 +5,12 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
+
 # Helpers
 def _env_bool(name: str, default: str = "False") -> bool:
     """Parse environment boolean flags robustly."""
     return os.getenv(name, default).strip().lower() in ("1", "true", "yes", "on")
+
 
 # ===== Application Settings =====
 # Core Application
@@ -25,18 +27,6 @@ DEFAULT_TOP_K: Final[int] = int(os.getenv("DEFAULT_TOP_K", "5"))
 MAX_TOKENS: Final[int] = int(os.getenv("MAX_TOKENS", "500"))
 BATCH_SIZE: Final[int] = int(os.getenv("BATCH_SIZE", "4"))
 WORKER_THREADS: Final[int] = int(os.getenv("WORKER_THREADS", "4"))
-
-# ===== AI/ML Configuration =====
-# OpenAI
-OPENAI_API_KEY: Final[str] = os.getenv("OPENAI_API_KEY", "")
-OPENAI_MODEL: Final[str] = os.getenv("OPENAI_MODEL", "gpt-5-nano")
-OPENAI_TEMPERATURE: Final[float] = float(os.getenv("OPENAI_TEMPERATURE", "1.0"))
-OPENAI_SYSTEM_PROMPT: Final[str] = os.getenv(
-    "OPENAI_SYSTEM_PROMPT",
-    "You are a helpful PDF assistant. Use only the provided page images "
-    "to answer the user's question. If the answer isn't contained in the pages, "
-    "say you cannot find it. Be concise and always mention from which pages the answer is taken.",
-)
 
 # Image encoding for chat data URLs
 DATA_URL_IMAGE_FORMAT: Final[str] = (
@@ -78,9 +68,13 @@ QDRANT_ON_DISK: Final[bool] = _env_bool("QDRANT_ON_DISK", "True")
 QDRANT_ON_DISK_PAYLOAD: Final[bool] = _env_bool("QDRANT_ON_DISK_PAYLOAD", "True")
 QDRANT_USE_BINARY: Final[bool] = _env_bool("QDRANT_USE_BINARY", "True")
 QDRANT_BINARY_ALWAYS_RAM: Final[bool] = _env_bool("QDRANT_BINARY_ALWAYS_RAM", "True")
-QDRANT_SEARCH_IGNORE_QUANT: Final[bool] = _env_bool("QDRANT_SEARCH_IGNORE_QUANT", "False")
+QDRANT_SEARCH_IGNORE_QUANT: Final[bool] = _env_bool(
+    "QDRANT_SEARCH_IGNORE_QUANT", "False"
+)
 QDRANT_SEARCH_RESCORE: Final[bool] = _env_bool("QDRANT_SEARCH_RESCORE", "True")
-QDRANT_SEARCH_OVERSAMPLING: Final[float] = float(os.getenv("QDRANT_SEARCH_OVERSAMPLING", "2.0"))
+QDRANT_SEARCH_OVERSAMPLING: Final[float] = float(
+    os.getenv("QDRANT_SEARCH_OVERSAMPLING", "2.0")
+)
 
 # MinIO Object Storage
 MINIO_URL: Final[str] = os.getenv("MINIO_URL", "http://localhost:9000")
@@ -92,4 +86,4 @@ MINIO_WORKERS: Final[int] = int(os.getenv("MINIO_WORKERS", "4"))
 MINIO_RETRIES: Final[int] = int(os.getenv("MINIO_RETRIES", "2"))
 MINIO_FAIL_FAST: Final[bool] = _env_bool("MINIO_FAIL_FAST", "False")
 MINIO_PUBLIC_READ: Final[bool] = _env_bool("MINIO_PUBLIC_READ", "True")
-MINIO_IMAGE_FMT: Final[str] = os.getenv("MINIO_IMAGE_FMT", "JPEG")
+MINIO_IMAGE_FMT: Final[str] = os.getenv("MINIO_IMAGE_FMT", "PNG")

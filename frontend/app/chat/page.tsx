@@ -1,24 +1,19 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import type { ChatMessage } from "@/lib/api/generated";
-import { ChatService, ApiError } from "@/lib/api/generated";
-import { baseUrl } from "@/lib/api/client";
-import { Input } from "@/components/ui/input";
+import { useChat } from "@/lib/hooks/use-chat";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+// Removed Select in favor of a clearer segmented control
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Separator } from "@/components/ui/separator";
-import { MessageSquare, Send, Bot, User, Image as ImageIcon, Loader2, Zap, Hash, Sparkles, Brain, HelpCircle, FileText, BarChart3 } from "lucide-react";
+import { User, Image as ImageIcon, Loader2, Sparkles, Brain, FileText, BarChart3, MessageSquare } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
-import Image from "next/image";
 import ImageLightbox from "@/components/lightbox";
+import ChatInputBar from "@/components/chat/ChatInputBar";
+import StarterQuestions from "@/components/chat/StarterQuestions";
+import RecentSearchesChips from "@/components/search/RecentSearchesChips";
+import { BRAIN_PLACEHOLDERS } from "@/lib/utils";
 
 // Starter questions to help users get started
 const starterQuestions = [
@@ -45,20 +40,36 @@ const starterQuestions = [
 ];
 
 export default function ChatPage() {
-  const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [stream, setStream] = useState<boolean>(true);
-  const [k, setK] = useState<number>(5);
-  const [imageGroups, setImageGroups] = useState<
-    Array<{ url: string | null; label: string | null; score: number | null }[]>
-  >([]);
+  const {
+    input,
+    setInput,
+    messages,
+    loading,
+    error,
+    k,
+    kMode,
+    setK,
+    setKMode,
+    imageGroups,
+    isSettingsValid,
+    sendMessage,
+  } = useChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState("");
   const [lightboxAlt, setLightboxAlt] = useState<string | undefined>(undefined);
+  const [uiSettingsValid, setUiSettingsValid] = useState(true);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [requestStart, setRequestStart] = useState<number | null>(null);
+  const [lastResponseDurationMs, setLastResponseDurationMs] = useState<number | null>(null);
+  const [brainIdx, setBrainIdx] = useState<number>(0);
+  const examples = [
+    "Summarize my last report",
+    "What are the key risks?",
+    "Find diagrams about AI architecture",
+    "Which contracts mention payment terms?"
+  ];
+  const [placeholderIdx, setPlaceholderIdx] = useState(0);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -68,112 +79,39 @@ export default function ChatPage() {
     scrollToBottom();
   }, [messages]);
 
-  async function sendMessage(e: React.FormEvent) {
+  useEffect(() => {
+    const id = setInterval(() => setPlaceholderIdx((i) => (i + 1) % examples.length), 5000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Rotate "thinking" placeholders while loading
+  useEffect(() => {
+    if (loading) {
+      // randomize start for variety
+      setBrainIdx((prev) => (prev + Math.floor(Math.random() * BRAIN_PLACEHOLDERS.length)) % BRAIN_PLACEHOLDERS.length);
+      const id = setInterval(() => {
+        setBrainIdx((i) => (i + 1) % BRAIN_PLACEHOLDERS.length);
+      }, 1200);
+      return () => clearInterval(id);
+    }
+  }, [loading]);
+
+  // sendMessage now provided by useChat
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const text = input.trim();
-    if (!text) return;
-
-    const userMsg: ChatMessage = { role: "user", content: text };
-    const nextHistory: ChatMessage[] = [...messages, userMsg];
-    setInput("");
-    setLoading(true);
-    setError(null);
-
-    if (stream) {
-      // Show placeholder assistant message for live updates
-      setMessages([...nextHistory, { role: "assistant", content: "" }]);
-      try {
-        const res = await fetch(`${baseUrl}/chat/stream`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text, chat_history: nextHistory, k }),
-        });
-        if (!res.body) {
-          throw new Error("No response body for streaming");
-        }
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let assistantText = "";
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          assistantText += decoder.decode(value, { stream: true });
-          setMessages((curr) => {
-            if (curr.length === 0) return curr;
-            const updated = [...curr];
-            updated[updated.length - 1] = { role: "assistant", content: assistantText };
-            return updated;
-          });
-        }
-        // finalize decoder flush
-        assistantText += new TextDecoder().decode();
-        // Fetch retrieved images (non-AI path)
-        try {
-          const resImages = await fetch(`${baseUrl}/chat/stream`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message: text, chat_history: messages, ai_enabled: false, k }),
-          });
-          if (resImages.ok) {
-            const data = await resImages.json();
-            const group = (data.images || []).map((img: any) => ({
-              url: img.image_url ?? null,
-              label: img.label ?? null,
-              score: typeof img.score === "number" ? img.score : null,
-            }));
-            setImageGroups([group]);
-          }
-        } catch (e) {
-          // Swallow image retrieval errors; streaming already succeeded
-        }
-      } catch (err: unknown) {
-        let errorMsg = "Streaming failed";
-        if (err instanceof ApiError) {
-          errorMsg = `${err.status}: ${err.message}`;
-        } else if (err instanceof Error) {
-          errorMsg = err.message;
-        }
-        setError(errorMsg);
-        toast.error("Chat Failed", { description: errorMsg });
-      } finally {
-        setLoading(false);
-      }
-      return;
-    }
-
-    // Non-streaming fallback using generated client
-    setMessages(nextHistory);
-    try {
-      const res = await ChatService.chatChatPost({
-        message: text,
-        chat_history: messages,
-        k,
-      });
-      const withAssistant: ChatMessage[] = [
-        ...nextHistory,
-        { role: "assistant", content: res.text },
-      ];
-      setMessages(withAssistant);
-      const group = (res.images || []).map((img: any) => ({
-        url: img.image_url ?? null,
-        label: img.label ?? null,
-        score: typeof img.score === "number" ? img.score : null,
-      }));
-      setImageGroups([group]);
-      toast.success("Response received");
-    } catch (err: unknown) {
-      let errorMsg = "Chat failed";
-      if (err instanceof ApiError) {
-        errorMsg = `${err.status}: ${err.message}`;
-      } else if (err instanceof Error) {
-        errorMsg = err.message;
-      }
-      setError(errorMsg);
-      toast.error("Chat Failed", { description: errorMsg });
-    } finally {
-      setLoading(false);
-    }
-  }
+    if (!isSettingsValid || !uiSettingsValid) return;
+    const q = input.trim();
+    if (!q) return;
+    // track start and recent searches
+    setRequestStart(performance.now());
+    setLastResponseDurationMs(null);
+    setRecentSearches((prev) => {
+      const updated = [q, ...prev.filter((s) => s !== q)].slice(0, 8);
+      localStorage.setItem("colpali-chat-recent", JSON.stringify(updated));
+      return updated;
+    });
+    sendMessage(e);
+  };
 
   const messageVariants = {
     initial: { opacity: 0, y: 10 },
@@ -181,12 +119,33 @@ export default function ChatPage() {
     exit: { opacity: 0, y: -10 }
   };
 
+  // Load recent searches from localStorage once
+  useEffect(() => {
+    const saved = localStorage.getItem("colpali-chat-recent");
+    if (saved) {
+      try {
+        setRecentSearches(JSON.parse(saved));
+      } catch { }
+    }
+  }, []);
+
+  // When an assistant message appears after a started request, compute duration
+  useEffect(() => {
+    if (requestStart && messages.length > 0) {
+      const last = messages[messages.length - 1];
+      if (last.role === "assistant") {
+        setLastResponseDurationMs(performance.now() - requestStart);
+        setRequestStart(null);
+      }
+    }
+  }, [messages, requestStart]);
+
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="flex flex-col h-[calc(100vh-12rem)] max-h-[800px]"
+      className="flex flex-col h-[calc(100vh-12rem)] max-h-[825px]"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
@@ -199,56 +158,17 @@ export default function ChatPage() {
             <p className="text-muted-foreground text-lg">Ask questions about your documents and get AI-powered responses with visual citations</p>
           </div>
         </div>
-        
-        <div className="flex items-center gap-4">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex items-center gap-2">
-                <Hash className="w-4 h-4 text-muted-foreground" />
-                <Select value={k.toString()} onValueChange={(value) => setK(parseInt(value, 10))} disabled={loading}>
-                  <SelectTrigger className="w-20">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[1, 3, 5, 10, 15, 20].map((num) => (
-                      <SelectItem key={num} value={num.toString()}>{num}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Number of search results to retrieve</p>
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="stream-toggle"
-                  checked={stream}
-                  onCheckedChange={setStream}
-                  disabled={loading}
-                />
-                <Label htmlFor="stream-toggle" className="text-sm font-medium cursor-pointer flex items-center gap-1">
-                  <Zap className="w-4 h-4" />
-                  Stream responses
-                </Label>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Enable real-time streaming of AI responses</p>
-            </TooltipContent>
-          </Tooltip>
-        </div>
       </div>
 
       {/* Chat Messages */}
       <Card className="flex-1 flex flex-col overflow-hidden border-2 border-purple-100/50 shadow-lg">
         <div className="flex-1 overflow-y-auto p-4">
+          {messages.length > 0 && lastResponseDurationMs !== null && !loading && (
+            <div className="flex justify-end mb-2 text-xs text-muted-foreground">Responded in {(lastResponseDurationMs / 1000).toFixed(2)}s</div>
+          )}
           <AnimatePresence mode="popLayout">
             {messages.length === 0 ? (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="flex flex-col items-center justify-center h-full text-center py-12"
@@ -260,41 +180,20 @@ export default function ChatPage() {
                 <p className="text-muted-foreground max-w-lg mb-8 text-lg leading-relaxed">
                   Ask questions about your uploaded documents and get intelligent responses with visual proof from your content.
                 </p>
-                
+
                 {/* Starter Questions */}
-                <div className="w-full max-w-2xl space-y-4">
-                  <div className="flex items-center gap-2 mb-4">
-                    <HelpCircle className="w-5 h-5 text-purple-500" />
-                    <span className="text-sm font-medium text-muted-foreground">Try asking:</span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {starterQuestions.map((question, idx) => {
-                      const Icon = question.icon;
-                      return (
-                        <motion.button
-                          key={idx}
-                          whileHover={{ scale: 1.02, y: -2 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => setInput(question.text)}
-                          className="p-4 text-left rounded-xl border-2 border-dashed border-purple-200 hover:border-purple-400 hover:bg-purple-50/30 transition-all group"
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="p-2 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
-                              <Icon className="w-4 h-4 text-purple-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-foreground group-hover:text-purple-700 transition-colors">
-                                {question.text}
-                              </p>
-                              <Badge variant="outline" className="text-xs mt-2 group-hover:border-purple-300">
-                                {question.category}
-                              </Badge>
-                            </div>
-                          </div>
-                        </motion.button>
-                      );
-                    })}
-                  </div>
+                <StarterQuestions questions={starterQuestions} onSelect={(t) => setInput(t)} />
+                <div className="mt-6 w-full max-w-2xl">
+                  <RecentSearchesChips
+                    recentSearches={recentSearches}
+                    visible
+                    onSelect={(q) => setInput(q)}
+                    onRemove={(q) => {
+                      const updated = recentSearches.filter((s) => s !== q);
+                      setRecentSearches(updated);
+                      localStorage.setItem("colpali-chat-recent", JSON.stringify(updated));
+                    }}
+                  />
                 </div>
               </motion.div>
             ) : (
@@ -305,43 +204,70 @@ export default function ChatPage() {
                   initial="initial"
                   animate="animate"
                   exit="exit"
-                  className={`flex gap-3 ${message.role === "assistant" ? "" : "flex-row-reverse"}`}
+                  className={`flex gap-3 mb-4 md:mb-5 last:mb-0 ${message.role === "assistant" ? "" : "flex-row-reverse"}`}
                 >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    message.role === "assistant" 
-                      ? "bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-lg" 
-                      : "bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-lg"
-                  }`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${message.role === "assistant"
+                      ? "bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-lg"
+                      : "bg-gradient-to-br from-blue-100 to-cyan-100 text-foreground shadow-lg"
+                    }`}>
                     {message.role === "assistant" ? (
                       <Brain className="w-4 h-4" />
                     ) : (
                       <User className="w-4 h-4" />
                     )}
                   </div>
-                  
-                  <div className={`flex-1 max-w-[85%] ${
-                    message.role === "user" ? "text-right" : ""
-                  }`}>
-                    <div className={`inline-block p-4 rounded-2xl shadow-sm border ${
-                      message.role === "assistant"
-                        ? "bg-gradient-to-br from-purple-50 to-pink-50 text-foreground border-purple-200/50"
-                        : "bg-gradient-to-br from-blue-500 to-cyan-500 text-white border-blue-300"
+
+                  <div className={`flex-1 max-w-[85%] ${message.role === "user" ? "text-right" : ""
                     }`}>
-                      <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                        {message.content || (loading && message.role === "assistant" ? (
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            <span>Thinking...</span>
+                    <div className={`inline-block p-4 rounded-2xl shadow-sm border ${message.role === "assistant"
+                        ? "bg-gradient-to-br from-purple-50 to-pink-50 text-foreground border-purple-200/50"
+                        : "bg-gradient-to-br from-blue-100 to-cyan-100 text-foreground border-blue-200"
+                      }`}>
+                      {message.content ? (
+                        message.role === "assistant" ? (
+                          <div className="whitespace-pre-wrap text-[15px] leading-7">
+                            {message.content.split("\n\n").map((para, i) => (
+                              <p key={i} className="mb-3 last:mb-0">{para}</p>
+                            ))}
                           </div>
-                        ) : "")}
-                      </div>
+                        ) : (
+                          <div className="whitespace-pre-wrap text-[15px] leading-7">{message.content}</div>
+                        )
+                      ) : (
+                        loading && message.role === "assistant" ? (
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Loader2 className="w-4 h-4 animate-spin text-purple-500" />
+                            <AnimatePresence mode="wait" initial={false}>
+                              <motion.span
+                                key={brainIdx}
+                                initial={{ opacity: 0, y: 4 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -4 }}
+                                transition={{ duration: 0.2 }}
+                                className="text-sm"
+                              >
+                                {BRAIN_PLACEHOLDERS[brainIdx]}
+                              </motion.span>
+                            </AnimatePresence>
+                          </div>
+                        ) : null
+                      )}
                     </div>
-                    
+
                     {message.role === "assistant" && (
                       <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2 ml-2">
                         <Brain className="w-3 h-3 text-purple-500" />
                         <span>AI Assistant</span>
-                        {stream && <Badge variant="outline" className="text-xs">Streaming</Badge>}
+                        <div className="flex">
+                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { /* TODO: thumbs up handler */ }}>
+                            <span aria-hidden>👍</span>
+                            <span className="sr-only">Mark helpful</span>
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { /* TODO: thumbs down handler */ }}>
+                            <span aria-hidden>👎</span>
+                            <span className="sr-only">Mark unhelpful</span>
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -351,49 +277,24 @@ export default function ChatPage() {
           </AnimatePresence>
           <div ref={messagesEndRef} />
         </div>
-        
+
         {/* Input Form */}
         <div className="border-t border-purple-100/50 p-4 bg-gradient-to-r from-purple-50/30 to-pink-50/30">
-          <form onSubmit={sendMessage} className="flex gap-3">
-            <div className="flex-1 relative">
-              <MessageSquare className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <Input
-                ref={inputRef}
-                placeholder="Ask anything about your documents... Try: 'What are the key points in my reports?'"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                disabled={loading}
-                className={`flex-1 text-base pl-11 h-12 border-2 transition-all ${
-                  input.trim() 
-                    ? 'border-purple-400 bg-white shadow-md focus:border-purple-500' 
-                    : 'border-muted-foreground/20 focus:border-purple-400'
-                }`}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage(e);
-                  }
-                }}
-              />
-            </div>
-            <Button 
-              type="submit" 
-              disabled={loading || !input.trim()}
-              size="lg"
-              className="px-6 h-12 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                </>
-              ) : (
-                <>
-                  <Send className="w-5 h-5" />
-                </>
-              )}
-            </Button>
-          </form>
-          
+          <ChatInputBar
+            input={input}
+            setInput={setInput}
+            placeholder={`Ask anything about your documents... e.g., “${examples[placeholderIdx]}”`}
+            loading={loading}
+            isSettingsValid={isSettingsValid}
+            uiSettingsValid={uiSettingsValid}
+            setUiSettingsValid={setUiSettingsValid}
+            onSubmit={handleSubmit}
+            k={k}
+            kMode={kMode}
+            setK={setK}
+            setKMode={setKMode}
+          />
+
           {/* Tips below input */}
           <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
@@ -405,9 +306,9 @@ export default function ChatPage() {
               <span>Visual citations included</span>
             </div>
           </div>
-          
+
           {error && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               className="mt-3"
@@ -429,12 +330,15 @@ export default function ChatPage() {
             exit={{ opacity: 0, y: -20 }}
             className="bg-muted/50 rounded-lg p-3 max-h-64 overflow-y-auto"
           >
-            <div className="flex items-center gap-2 mb-3">
-              <div className="p-1 bg-purple-100 rounded">
-                <ImageIcon className="h-4 w-4 text-purple-600" />
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-1 bg-purple-100 rounded">
+                  <ImageIcon className="h-4 w-4 text-purple-600" />
+                </div>
+                <span className="text-sm font-medium">Visual Citations</span>
+                <Badge variant="secondary" className="bg-purple-100 text-purple-800">{imageGroups.flat().length} sources</Badge>
               </div>
-              <span className="text-sm font-medium">Visual Citations</span>
-              <Badge variant="secondary" className="bg-purple-100 text-purple-800">{imageGroups.flat().length} sources</Badge>
+              {/* Sources presets are now in the header for global visibility */}
             </div>
             <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1.5">
               {imageGroups.flat().map((img, idx) => (
