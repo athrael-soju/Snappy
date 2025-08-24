@@ -136,7 +136,7 @@ export function ChatSettings({ k, kMode, setK, setKMode, loading, className, onV
                   <Label className="text-sm font-medium">OpenAI model</Label>
                   <span className="text-xs text-muted-foreground">Choose model to use</span>
                 </div>
-                <div className="w-40">
+                <div className="w-30">
                   <Select
                     value={model}
                     onValueChange={(v) => setModel?.(v as 'gpt-5' | 'gpt-5-mini' | 'gpt-5-nano')}
