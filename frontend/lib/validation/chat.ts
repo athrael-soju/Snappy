@@ -28,7 +28,6 @@ export type RetrievedImageSchema = z.infer<typeof retrievedImageSchema>
 // Chat request payload to Next.js API route
 export const chatRequestSchema = z.object({
   message: messageSchema,
-  images: z.array(retrievedImageSchema),
   systemPrompt: z.string().min(1),
   stream: z.literal(true).or(z.literal(false)),
   model: modelSchema.optional(),

@@ -33,7 +33,7 @@ yarn install --frozen-lockfile
 Set the backend base URL for the SDK and fetches:
 ```bash
 # frontend/.env.local
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+NEXT_PUBLIC_BACKEND_BASE_URL=http://localhost:8000
 ```
 `frontend/lib/api/client.ts` falls back to `http://localhost:8000` if the env var is not set.
 
@@ -94,8 +94,8 @@ yarn gen:sdk && yarn gen:zod
         - OPENAI_API_KEY=sk-your-key
         - OPENAI_TEMPERATURE=1     # optional
         - OPENAI_MAX_TOKENS=1500   # optional
-        - NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+        - NEXT_PUBLIC_BACKEND_BASE_URL=http://localhost:8000
   ```
   Notes:
-  - `NEXT_PUBLIC_API_BASE_URL` is embedded at build time; the app defaults to `http://localhost:8000` if unset.
+  - `NEXT_PUBLIC_BACKEND_BASE_URL` is embedded at build time; the app defaults to `http://localhost:8000` if unset.
   - The chat API route reads `OPENAI_*` at server runtime, so setting them on the running container is sufficient.

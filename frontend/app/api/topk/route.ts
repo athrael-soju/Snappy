@@ -19,7 +19,7 @@ Guidelines:
 - Very broad research-type queries: up to 25.`
 
     const response = await openai.responses.create({
-      model: process.env.OPENAI_MODEL || 'gpt-5-nano',
+      model: 'gpt-5-nano',
       input: message,
       instructions,
       stream: false,

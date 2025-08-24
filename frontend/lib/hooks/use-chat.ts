@@ -5,12 +5,10 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import {
   chatRequest,
-  searchDocuments,
   streamAssistant,
   type RetrievedImage,
 } from '@/lib/api/chat'
 import { kSchema, messageSchema } from '@/lib/validation/chat'
-import { chooseTopK } from '@/lib/auto-topk'
 
 export type ChatMessage = {
   role: 'user' | 'assistant'
@@ -66,19 +64,6 @@ export function useChat() {
     } catch {}
   }, [kMode, k, toolsEnabled, model])
 
-  // very lightweight intent classifier for KB queries
-  function isKbQuery(text: string): boolean {
-    const q = text.toLowerCase()
-    const hints = [
-      'document', 'documents', 'pdf', 'page', 'pages', 'slide', 'slides',
-      'knowledge base', 'knowledgebase', 'kb', 'from my files', 'in my files',
-      'uploaded', 'dataset', 'report', 'contract', 'presentation', 'image search'
-    ]
-    // heuristic: contains any hint or asks to "find/show/search" something
-    if (hints.some(h => q.includes(h))) return true
-    const verbs = ['find', 'search', 'show', 'locate', 'cite', 'where in']
-    return verbs.some(v => q.includes(v))
-  }
 
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault()
@@ -94,69 +79,29 @@ export function useChat() {
     }
 
     const userMsg: ChatMessage = { role: 'user', content: text }
-    const nextHistory: ChatMessage[] = [...messages, userMsg]
+    const trimmedHistory: ChatMessage[] = (() => {
+      const copy = [...messages]
+      while (copy.length > 0) {
+        const last = copy[copy.length - 1]
+        if (last.role === 'assistant' && last.content.trim() === '') {
+          copy.pop()
+        } else {
+          break
+        }
+      }
+      return copy
+    })()
+    const nextHistory: ChatMessage[] = [...trimmedHistory, userMsg]
     setInput('')
     setError(null)
 
-    // Tool calling: only search when tools are enabled AND intent indicates KB query
-    // Otherwise, skip search and answer directly
-    let retrievedImages: RetrievedImage[] = []
-    const shouldUseTool = toolsEnabled && isKbQuery(text)
-    try {
-      if (shouldUseTool) {
-        let effectiveK = k
-        if (kMode === 'auto') {
-          try {
-            effectiveK = await chooseTopK(text)
-          } catch (err) {
-            const msg = 'Failed to choose sources automatically'
-            setError(msg)
-            toast.error('Auto sources selection failed', { description: msg })
-            return
-          }
-        }
-        // Validate k (align with ChatSettings upper bound 25)
-        const kParse = kSchema.safeParse(effectiveK)
-        if (!kParse.success) {
-          const msg = 'Number of sources must be between 1 and 25'
-          setError(msg)
-          toast.error('Invalid sources selection', { description: msg })
-          return
-        }
-
-        // Only set loading after validation passes
-        setLoading(true)
-
-        const searchData = await searchDocuments(text, kParse.data)
-        retrievedImages = searchData || []
-        const group = retrievedImages.map((img) => ({
-          url: img.image_url ?? null,
-          label: img.label ?? null,
-          score: typeof img.score === 'number' ? img.score : null,
-        }))
-        setImageGroups([group])
-      } else {
-        // Clear images when skipping tool to avoid stale citations panel
-        setImageGroups([])
-      }
-    } catch (e) {
-      // non-fatal
-      console.warn('Image retrieval failed:', e)
-    }
+    // Clear citations panel; server will emit kb.images if it decides to search
+    setImageGroups([])
 
     const basePrompt = process.env.NEXT_PUBLIC_OPENAI_SYSTEM_PROMPT ||
       "You are a helpful assistant. Be concise and accurate."
 
-    const kbPrompt = "You are a helpful PDF/document assistant. Use only the provided page images to answer the user's question. If the answer isn't contained in the pages, say you cannot find it. Be concise and always mention from which pages the answer is taken."
-
-    const systemPrompt = (retrievedImages.length > 0)
-      ? `${kbPrompt}
-
-[Retrieved pages]
-${retrievedImages.map((img, idx) => `Page ${idx + 1}: ${img.label || 'Unlabeled'}`).join('\n')}
-
-Cite pages using the labels above (do not infer by result order).`
-      : basePrompt
+    const systemPrompt = basePrompt
 
     try {
       // Always stream responses
@@ -165,28 +110,54 @@ Cite pages using the labels above (do not infer by result order).`
       setMessages([...nextHistory, { role: 'assistant', content: '' }])
       const res = await chatRequest({
         message: text,
-        images: retrievedImages,
         systemPrompt,
         stream: true,
         model,
       })
 
       let assistantText = ''
-      await streamAssistant(res, (delta) => {
-        assistantText += delta
-        setMessages((curr) => {
-          if (curr.length === 0) return curr
-        	const updated = [...curr]
-          updated[updated.length - 1] = { role: 'assistant', content: assistantText }
-          return updated
-        })
-      })
+      await streamAssistant(
+        res,
+        (delta) => {
+          assistantText += delta
+          setMessages((curr) => {
+            if (curr.length === 0) return curr
+            const updated = [...curr]
+            updated[updated.length - 1] = { role: 'assistant', content: assistantText }
+            return updated
+          })
+        },
+        (evt) => {
+          if (evt.event === 'kb.images' && evt.data?.images) {
+            const imgs = (evt.data.images as RetrievedImage[])
+            const group = imgs.map((img) => ({
+              url: img.image_url ?? null,
+              label: img.label ?? null,
+              score: typeof img.score === 'number' ? img.score : null,
+            }))
+            setImageGroups([group])
+          }
+        }
+      )
       toast.success('Response received')
     } catch (err: unknown) {
       let errorMsg = 'Streaming failed'
       if (err instanceof Error) errorMsg = err.message
       setError(errorMsg)
       toast.error('Chat Failed', { description: errorMsg })
+      // Ensure the pending assistant placeholder doesn't remain empty (which would re-trigger loading animations later)
+      setMessages((curr) => {
+        if (curr.length === 0) return curr
+        const updated = [...curr]
+        const last = updated[updated.length - 1]
+        if (last.role === 'assistant' && last.content.trim() === '') {
+          updated[updated.length - 1] = {
+            role: 'assistant',
+            content: 'Sorry, I ran into an error while answering. Please try again.',
+          }
+        }
+        return updated
+      })
     } finally {
       setLoading(false)
     }

@@ -43,7 +43,8 @@ export async function chatRequest(req: ChatRequest): Promise<Response> {
 
 export async function streamAssistant(
   res: Response,
-  onDelta: (chunk: string) => void
+  onDelta: (chunk: string) => void,
+  onEvent?: (evt: { event: string; data: any }) => void,
 ): Promise<void> {
   if (!res.ok || !res.body) {
     throw new Error(`Failed to stream chat: ${res.status}`)
@@ -74,6 +75,8 @@ export async function streamAssistant(
           const data = payload?.data
           if (eventType === 'response.output_text.delta' && data?.delta) {
             onDelta(String(data.delta))
+          } else if (onEvent) {
+            onEvent({ event: String(eventType), data })
           }
         } catch {
           // ignore malformed event

@@ -44,7 +44,7 @@ Notes
   - `frontend/app/search/page.tsx` → calls `/search` via `RetrievalService` and renders image results with labels/scores.
   - `frontend/app/upload/page.tsx` → calls `/index` via `IndexingService` to upload PDFs.
   - `frontend/app/page.tsx` → landing page.
-- __API client base URL__: `frontend/lib/api/client.ts` sets `OpenAPI.BASE` from `NEXT_PUBLIC_API_BASE_URL` (defaults to `http://localhost:8000`).
+- __API client base URL__: `frontend/lib/api/client.ts` sets `OpenAPI.BASE` from `NEXT_PUBLIC_BACKEND_BASE_URL` (defaults to `http://localhost:8000`).
 - __Images__: `frontend/next.config.ts` allows remote images from MinIO at `http://localhost:9000/**` and (inside Docker) `http://minio:9000/**` for Next/Image compatibility.
 
 ## Backend API surface used by the frontend
@@ -67,7 +67,7 @@ Chat streaming is not proxied by the backend. It is implemented in the Next.js A
 ## CORS and connectivity
 
 - `api/app.py` enables permissive CORS for development: `allow_origins=["*"]` and `allow_methods/headers=["*"]`.
-- Configure the frontend to reach the backend by setting `NEXT_PUBLIC_API_BASE_URL` (e.g., `http://localhost:8000`).
+- Configure the frontend to reach the backend by setting `NEXT_PUBLIC_BACKEND_BASE_URL` (e.g., `http://localhost:8000`).
 
 
 ## ColPali service (`colpali/`) and why it is separate
