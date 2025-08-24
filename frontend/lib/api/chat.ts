@@ -1,37 +1,43 @@
 // frontend/lib/api/chat.ts
 import { baseUrl } from '@/lib/api/client'
+import { z } from 'zod'
+import {
+  chatRequestSchema,
+  retrievedImageSchema,
+  type ChatRequestSchema,
+  type RetrievedImageSchema,
+} from '@/lib/validation/chat'
 
 export type ChatMessage = {
   role: 'user' | 'assistant'
   content: string
 }
 
-export type RetrievedImage = {
-  image_url?: string | null
-  label?: string | null
-  score?: number | null
-}
+export type RetrievedImage = RetrievedImageSchema
 
 export async function searchDocuments(query: string, k: number): Promise<RetrievedImage[]> {
   const res = await fetch(`${baseUrl}/search?q=${encodeURIComponent(query)}&k=${k}`)
   if (!res.ok) return []
   const data = await res.json()
-  return Array.isArray(data) ? data : []
+  // Validate array of retrieved images
+  const arrSchema = z.array(retrievedImageSchema)
+  const parsed = arrSchema.safeParse(data)
+  return parsed.success ? parsed.data : []
 }
 
-export type ChatRequest = {
-  message: string
-  images: RetrievedImage[]
-  systemPrompt: string
-  stream: boolean
-  model?: string
-}
+export type ChatRequest = ChatRequestSchema
 
 export async function chatRequest(req: ChatRequest): Promise<Response> {
+  // Validate outgoing payload before sending
+  const parsed = chatRequestSchema.safeParse(req)
+  if (!parsed.success) {
+    const first = parsed.error.issues[0]
+    throw new Error(`Invalid chat request: ${first?.path?.join('.') || 'payload'} ${first?.message || ''}`.trim())
+  }
   return fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(req),
+    body: JSON.stringify(parsed.data),
   })
 }
 
