@@ -6,7 +6,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info, Image as ImageIcon, Layers, Search, GitCompare, Sparkles, Database, Server } from "lucide-react";
 
-export default function AboutContent() {
+export default function AboutContent({ onClose }: { onClose?: () => void }) {
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -168,10 +168,10 @@ export default function AboutContent() {
       {/* Next-step CTAs */}
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
         <Button asChild className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-          <Link href="/upload">Start by uploading a file</Link>
+          <Link href="/upload" onClick={() => onClose?.()}>Start by uploading a file</Link>
         </Button>
         <Button asChild variant="outline">
-          <Link href="/search">Try a search</Link>
+          <Link href="/search" onClick={() => onClose?.()}>Try a search</Link>
         </Button>
         <Button asChild variant="ghost" className="text-muted-foreground">
           <Link href="https://github.com/athrael-soju/fastapi-nextjs-colpali-template" target="_blank" rel="noreferrer">Learn more</Link>

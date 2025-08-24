@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -20,6 +21,7 @@ const links = [
 
 export function Nav() {
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
   return (
     <header className="w-full border-b bg-gradient-to-r from-blue-50/80 via-purple-50/60 to-cyan-50/80 backdrop-blur-xl supports-[backdrop-filter]:bg-gradient-to-r supports-[backdrop-filter]:from-blue-50/60 supports-[backdrop-filter]:via-purple-50/40 supports-[backdrop-filter]:to-cyan-50/60 sticky top-0 z-50 shadow-lg border-blue-200/20">
       <nav className="mx-auto max-w-6xl flex items-center justify-between gap-4 px-6 py-4">
@@ -65,7 +67,7 @@ export function Nav() {
               </Link>
             );
           })}
-          <Dialog>
+          <Dialog open={open} onOpenChange={setOpen}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <DialogTrigger asChild>
@@ -84,7 +86,7 @@ export function Nav() {
             </Tooltip>
             <DialogContent className="max-h-[80vh] overflow-y-auto sm:max-w-3xl">
               <DialogTitle className="flex items-center gap-2 text-lg" />
-              <AboutContent />
+              <AboutContent onClose={() => setOpen(false)} />
             </DialogContent>
           </Dialog>
         </div>
