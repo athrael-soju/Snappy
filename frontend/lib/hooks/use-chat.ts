@@ -10,7 +10,6 @@ import {
   type RetrievedImage,
 } from '@/lib/api/chat'
 import { kSchema, messageSchema } from '@/lib/validation/chat'
-import { chooseTopK } from '@/lib/auto-topk'
 
 export type ChatMessage = {
   role: 'user' | 'assistant'
@@ -22,11 +21,6 @@ export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [kMode, setKMode] = useState<'auto' | 'manual'>(() => {
-    if (typeof window === 'undefined') return 'manual'
-    const saved = localStorage.getItem('kMode')
-    return (saved === 'auto' || saved === 'manual') ? saved : 'manual'
-  })
   const [k, setK] = useState<number>(() => {
     if (typeof window === 'undefined') return 5
     const saved = localStorage.getItem('k')
@@ -35,24 +29,20 @@ export function useChat() {
     return Number.isFinite(parsed) && kSchema.safeParse(parsed).success ? parsed : 5
   })
   const [imageGroups, setImageGroups] = useState<
-    Array<{ url: string | null; label: string | null; score: number | null }[]>
-  >([])
+    Array<{ url: string | null; label: string | null; score: number | null }>[
+  ]>([])
 
   // Validation schemas are imported from shared module
 
   // Derived validity for UI to disable send when settings are invalid
-  const isSettingsValid = (() => {
-    if (kMode === 'auto') return true
-    return kSchema.safeParse(k).success
-  })()
+  const isSettingsValid = kSchema.safeParse(k).success
 
   // persist preferences
   useEffect(() => {
     try {
-      localStorage.setItem('kMode', kMode)
       localStorage.setItem('k', String(k))
     } catch {}
-  }, [kMode, k])
+  }, [k])
 
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault()
@@ -72,22 +62,12 @@ export function useChat() {
     setInput('')
     setError(null)
 
-    // Determine effective K (auto via model or manual), then validate
+    // Determine effective K (from slider), then validate
     // Compute effectiveK separately to handle failures distinctly
     let retrievedImages: RetrievedImage[] = []
     try {
-      let effectiveK = k
-      if (kMode === 'auto') {
-        try {
-          effectiveK = await chooseTopK(text)
-        } catch (err) {
-          const msg = 'Failed to choose sources automatically'
-          setError(msg)
-          toast.error('Auto sources selection failed', { description: msg })
-          return
-        }
-      }
-      // Validate k (align with SourcesControl upper bound 25)
+      const effectiveK = k
+      // Validate k (align with ChatSettings upper bound 25)
       const kParse = kSchema.safeParse(effectiveK)
       if (!kParse.success) {
         const msg = 'Number of sources must be between 1 and 25'
@@ -149,6 +129,16 @@ Cite pages using the labels above (do not infer by result order).`
       if (err instanceof Error) errorMsg = err.message
       setError(errorMsg)
       toast.error('Chat Failed', { description: errorMsg })
+      // Remove the assistant placeholder message that was added before streaming
+      // to avoid showing a lingering loading bubble on the next message
+      setMessages((curr) => {
+        if (curr.length === 0) return curr
+        const last = curr[curr.length - 1]
+        if (last.role === 'assistant' && last.content === '') {
+          return curr.slice(0, -1)
+        }
+        return curr
+      })
     } finally {
       setLoading(false)
     }
@@ -161,13 +151,11 @@ Cite pages using the labels above (do not infer by result order).`
     loading,
     error,
     k,
-    kMode,
     imageGroups,
     isSettingsValid,
     // setters
     setInput,
     setK,
-    setKMode,
     // actions
     sendMessage,
   }

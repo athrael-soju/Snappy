@@ -5,8 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Search, Loader2 } from "lucide-react";
-import { SourcesControl } from "@/components/sources-control";
-import type { KMode } from "@/components/sources-control";
+import { ChatSettings } from "@/components/chat-settings";
 
 export interface SearchBarProps {
   q: string;
@@ -14,12 +13,10 @@ export interface SearchBarProps {
   loading: boolean;
   onSubmit: (e: React.FormEvent) => void;
   k: number;
-  kMode: KMode;
   setK: (k: number) => void;
-  setKMode: (m: KMode) => void;
 }
 
-export default function SearchBar({ q, setQ, loading, onSubmit, k, kMode, setK, setKMode }: SearchBarProps) {
+export default function SearchBar({ q, setQ, loading, onSubmit, k, setK }: SearchBarProps) {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="space-y-3">
@@ -40,11 +37,9 @@ export default function SearchBar({ q, setQ, loading, onSubmit, k, kMode, setK, 
             <Tooltip>
               <TooltipTrigger asChild>
                 <div>
-                  <SourcesControl
+                  <ChatSettings
                     k={k}
-                    kMode={kMode}
                     setK={setK}
-                    setKMode={setKMode}
                     loading={loading}
                     className="h-12 w-12"
                   />

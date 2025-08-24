@@ -47,9 +47,7 @@ export default function ChatPage() {
     loading,
     error,
     k,
-    kMode,
     setK,
-    setKMode,
     imageGroups,
     isSettingsValid,
     sendMessage,
@@ -290,9 +288,7 @@ export default function ChatPage() {
             setUiSettingsValid={setUiSettingsValid}
             onSubmit={handleSubmit}
             k={k}
-            kMode={kMode}
             setK={setK}
-            setKMode={setKMode}
           />
 
           {/* Tips below input */}

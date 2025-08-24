@@ -5,8 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MessageSquare, Send, Loader2 } from "lucide-react";
-import SourcesControl from "@/components/sources-control";
-import type { KMode } from "@/components/sources-control";
+import ChatSettings from "@/components/chat-settings";
 
 export interface ChatInputBarProps {
   input: string;
@@ -18,9 +17,7 @@ export interface ChatInputBarProps {
   setUiSettingsValid: (v: boolean) => void;
   onSubmit: (e: React.FormEvent) => void;
   k: number;
-  kMode: KMode;
   setK: (k: number) => void;
-  setKMode: (m: KMode) => void;
 }
 
 export default function ChatInputBar({
@@ -33,9 +30,7 @@ export default function ChatInputBar({
   setUiSettingsValid,
   onSubmit,
   k,
-  kMode,
   setK,
-  setKMode,
 }: ChatInputBarProps) {
   return (
     <form onSubmit={onSubmit} className="flex gap-3 items-center">
@@ -56,11 +51,9 @@ export default function ChatInputBar({
       <Tooltip>
         <TooltipTrigger asChild>
           <div>
-            <SourcesControl 
+            <ChatSettings 
               k={k}
-              kMode={kMode}
               setK={setK}
-              setKMode={setKMode}
               loading={loading}
               onValidityChange={setUiSettingsValid}
             />
