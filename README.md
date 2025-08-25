@@ -202,7 +202,7 @@ cp .env.example .env
 # (these are read by Next.js API route at frontend/app/api/chat/route.ts)
 cat > frontend/.env.local << 'EOF'
 OPENAI_API_KEY=sk-your-key
-OPENAI_MODEL=gpt-4o-mini
+OPENAI_MODEL=gpt-5-nano
 # Optional
 OPENAI_TEMPERATURE=1
 OPENAI_MAX_TOKENS=1500
@@ -279,7 +279,7 @@ Most defaults are in `config.py`. Key variables:
 - __CORS__: `ALLOWED_ORIGINS` (comma-separated or `*` for all; use explicit origins in production)
 - __Frontend chat (Next.js)__ — set in `frontend/.env.local`:
   - `OPENAI_API_KEY` (required)
-  - `OPENAI_MODEL` (default `gpt-4o-mini`)
+  - `OPENAI_MODEL` (default `gpt-5-nano`)
   - `OPENAI_TEMPERATURE` (optional)
   - `OPENAI_MAX_TOKENS` (optional)
 - __ColPali API__: Mode-based selection with optional explicit override:

@@ -139,4 +139,4 @@ Notes:
 ## Caveats Noted from Code
 
  - The ColPali image embedding path in `QdrantService._embed_and_mean_pool_batch()` expects per-image token boundaries (`image_patch_start`, `image_patch_len`), while `ColPaliClient.embed_images(...)` currently returns only `{"embeddings": ...}`. Ensure the API contract includes token boundary metadata or adjust the pooling logic accordingly.
- - The default OpenAI model for chat is configured on the frontend via `OPENAI_MODEL` (default `gpt-4o-mini`) in `frontend/.env.local`. The backend does not manage chat or OpenAI client configuration.
+ - The default OpenAI model for chat is configured on the frontend via `OPENAI_MODEL` (default `gpt-5-nano`) in `frontend/.env.local`. The backend does not manage chat or OpenAI client configuration.

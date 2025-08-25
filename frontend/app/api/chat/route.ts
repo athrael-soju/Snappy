@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
 
     // Always stream using the Responses API
     const events = await openai.responses.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      model: process.env.OPENAI_MODEL || 'gpt-5-nano',
       // Responses API input is an array of turns
       input: [
         {
