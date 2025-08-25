@@ -30,7 +30,7 @@ export function useChat() {
   })
   const [imageGroups, setImageGroups] = useState<
     Array<{ url: string | null; label: string | null; score: number | null }>[
-  ]>([])
+    ]>([])
 
   // Validation schemas are imported from shared module
 
@@ -41,7 +41,7 @@ export function useChat() {
   useEffect(() => {
     try {
       localStorage.setItem('k', String(k))
-    } catch {}
+    } catch { }
   }, [k])
 
   async function sendMessage(e: React.FormEvent) {
@@ -62,55 +62,11 @@ export function useChat() {
     setInput('')
     setError(null)
 
-    // Determine effective K (from slider), then validate
-    // Compute effectiveK separately to handle failures distinctly
-    let retrievedImages: RetrievedImage[] = []
     try {
-      const effectiveK = k
-      // Validate k (align with ChatSettings upper bound 25)
-      const kParse = kSchema.safeParse(effectiveK)
-      if (!kParse.success) {
-        const msg = 'Number of sources must be between 1 and 25'
-        setError(msg)
-        toast.error('Invalid sources selection', { description: msg })
-        return
-      }
-
-      // Only set loading after validation passes
-      setLoading(true)
-
-      const searchData = await searchDocuments(text, kParse.data)
-      retrievedImages = searchData || []
-      const group = retrievedImages.map((img) => ({
-        url: img.image_url ?? null,
-        label: img.label ?? null,
-        score: typeof img.score === 'number' ? img.score : null,
-      }))
-      setImageGroups([group])
-    } catch (e) {
-      // non-fatal
-      console.warn('Image retrieval failed:', e)
-    }
-
-    const basePrompt =
-      process.env.NEXT_PUBLIC_OPENAI_SYSTEM_PROMPT ||
-      "You are a helpful PDF assistant. Use only the provided page images to answer the user's question. If the answer isn't contained in the pages, say you cannot find it. Be concise and always mention from which pages the answer is taken."
-
-    const systemPrompt = `${basePrompt}
-
-[Retrieved pages]
-${retrievedImages.map((img, idx) => `Page ${idx + 1}: ${img.label || 'Unlabeled'}`).join('\n')}
-
-Cite pages using the labels above (do not infer by result order).`
-
-    try {
-      // Always stream responses
       setMessages([...nextHistory, { role: 'assistant', content: '' }])
       const res = await chatRequest({
         message: text,
-        images: retrievedImages,
-        systemPrompt,
-        stream: true,
+        k: k
       })
 
       let assistantText = ''
@@ -118,7 +74,7 @@ Cite pages using the labels above (do not infer by result order).`
         assistantText += delta
         setMessages((curr) => {
           if (curr.length === 0) return curr
-        	const updated = [...curr]
+          const updated = [...curr]
           updated[updated.length - 1] = { role: 'assistant', content: assistantText }
           return updated
         })

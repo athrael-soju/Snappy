@@ -21,9 +21,7 @@ export async function searchDocuments(query: string, k: number): Promise<Retriev
 
 export type ChatRequest = {
   message: string
-  images: RetrievedImage[]
-  systemPrompt: string
-  stream: boolean
+  k: number
 }
 
 export async function chatRequest(req: ChatRequest): Promise<Response> {
