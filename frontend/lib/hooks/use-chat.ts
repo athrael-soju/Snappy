@@ -61,6 +61,8 @@ export function useChat() {
     const nextHistory: ChatMessage[] = [...messages, userMsg]
     setInput('')
     setError(null)
+    // Mark as loading so UI shows thinking bubble until first token arrives
+    setLoading(true)
 
     try {
       setMessages([...nextHistory, { role: 'assistant', content: '' }])
