@@ -415,8 +415,11 @@ class QdrantService:
                 q_filter = models.Filter(must=conditions) if conditions else None
             except Exception:
                 q_filter = None
+        # Ensure we request at least k results from Qdrant; otherwise k>QDRANT_SEARCH_LIMIT
+        # would be silently capped by the default.
+        effective_limit = max(int(k), 1)
         search_results = self._reranking_search_batch(
-            [query_embedding], qdrant_filter=q_filter
+            [query_embedding], search_limit=effective_limit, qdrant_filter=q_filter
         )
 
         items = []
