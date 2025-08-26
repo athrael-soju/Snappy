@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 // Removed Select in favor of a clearer segmented control
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { User, Image as ImageIcon, Loader2, Sparkles, Brain, FileText, BarChart3, MessageSquare } from "lucide-react";
+import { User, Image as ImageIcon, Loader2, Sparkles, Brain, FileText, BarChart3, MessageSquare, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ImageLightbox from "@/components/lightbox";
 import ChatInputBar from "@/components/chat/ChatInputBar";
@@ -46,6 +46,7 @@ export default function ChatPage() {
     messages,
     loading,
     error,
+    timeToFirstTokenMs,
     k,
     setK,
     imageGroups,
@@ -112,7 +113,7 @@ export default function ChatPage() {
     setRequestStart(performance.now());
     setLastResponseDurationMs(null);
     setRecentSearches((prev) => {
-      const updated = [q, ...prev.filter((s) => s !== q)].slice(0, 8);
+      const updated = [q, ...prev.filter((s) => s !== q)].slice(0, 10);
       localStorage.setItem("colpali-chat-recent", JSON.stringify(updated));
       return updated;
     });
@@ -130,7 +131,8 @@ export default function ChatPage() {
     const saved = localStorage.getItem("colpali-chat-recent");
     if (saved) {
       try {
-        setRecentSearches(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        setRecentSearches(Array.isArray(parsed) ? parsed.slice(0, 10) : []);
       } catch { }
     }
   }, []);
@@ -169,9 +171,6 @@ export default function ChatPage() {
       {/* Chat Messages */}
       <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-2 border-purple-100/50 shadow-lg">
         <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4">
-          {messages.length > 0 && lastResponseDurationMs !== null && !loading && (
-            <div className="flex justify-end mb-2 text-xs text-muted-foreground">Responded in {(lastResponseDurationMs / 1000).toFixed(2)}s</div>
-          )}
           <AnimatePresence mode="popLayout">
             {messages.length === 0 ? (
               <motion.div
@@ -213,8 +212,8 @@ export default function ChatPage() {
                   className={`flex gap-3 mb-4 md:mb-5 last:mb-0 ${message.role === "assistant" ? "" : "flex-row-reverse"}`}
                 >
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${message.role === "assistant"
-                      ? "bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-lg"
-                      : "bg-gradient-to-br from-blue-100 to-cyan-100 text-foreground shadow-lg"
+                    ? "bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-lg"
+                    : "bg-gradient-to-br from-blue-100 to-cyan-100 text-foreground shadow-lg"
                     }`}>
                     {message.role === "assistant" ? (
                       <Brain className="w-4 h-4" />
@@ -226,8 +225,8 @@ export default function ChatPage() {
                   <div className={`flex-1 max-w-[85%] ${message.role === "user" ? "text-right" : ""
                     }`}>
                     <div className={`inline-block p-4 rounded-2xl shadow-sm border ${message.role === "assistant"
-                        ? "bg-gradient-to-br from-purple-50 to-pink-50 text-foreground border-purple-200/50"
-                        : "bg-gradient-to-br from-blue-100 to-cyan-100 text-foreground border-blue-200"
+                      ? "bg-gradient-to-br from-purple-50 to-pink-50 text-foreground border-purple-200/50"
+                      : "bg-gradient-to-br from-blue-100 to-cyan-100 text-foreground border-blue-200"
                       }`}>
                       {message.content ? (
                         message.role === "assistant" ? (
@@ -366,6 +365,12 @@ export default function ChatPage() {
               <ImageIcon className="w-3 h-3 text-pink-500" />
               <span>Visual citations included</span>
             </div>
+            {timeToFirstTokenMs !== null && (
+              <div className="flex items-center gap-1">
+                <Clock className="w-3 h-3 text-muted-foreground" />
+                <span>First token in {(timeToFirstTokenMs / 1000).toFixed(2)}s</span>
+              </div>
+            )}
           </div>
 
           {error && (

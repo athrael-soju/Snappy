@@ -21,6 +21,7 @@ export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [timeToFirstTokenMs, setTimeToFirstTokenMs] = useState<number | null>(null)
   const [k, setK] = useState<number>(() => {
     if (typeof window === 'undefined') return 5
     const saved = localStorage.getItem('k')
@@ -63,8 +64,10 @@ export function useChat() {
     setError(null)
     // Mark as loading so UI shows thinking bubble until first token arrives
     setLoading(true)
+    setTimeToFirstTokenMs(null)
 
     try {
+      const start = performance.now()
       setMessages([...nextHistory, { role: 'assistant', content: '' }])
       const res = await chatRequest({
         message: text,
@@ -80,7 +83,11 @@ export function useChat() {
           updated[updated.length - 1] = { role: 'assistant', content: assistantText }
           return updated
         })
-      })      
+      }, () => {
+        // first streamed token has arrived
+        setTimeToFirstTokenMs(performance.now() - start)
+      })
+      
     } catch (err: unknown) {
       let errorMsg = 'Streaming failed'
       if (err instanceof Error) errorMsg = err.message
@@ -107,6 +114,7 @@ export function useChat() {
     messages,
     loading,
     error,
+    timeToFirstTokenMs,
     k,
     imageGroups,
     isSettingsValid,
