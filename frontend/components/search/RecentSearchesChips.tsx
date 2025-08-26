@@ -72,7 +72,7 @@ export default function RecentSearchesChips({ recentSearches, loading, visible =
         className="space-y-3"
       >
         <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 text-muted-foreground" />
+          <Clock className="w-4 h-4 text-primary" />
           <span className="text-sm font-medium text-muted-foreground">Recent searches:</span>
         </div>
         <div className="relative">
@@ -82,7 +82,7 @@ export default function RecentSearchesChips({ recentSearches, loading, visible =
             aria-label="Previous"
             onClick={() => scrollByPage(-1)}
             disabled={currentPage === 0}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-1 rounded-md bg-background/70 shadow ring-1 ring-border disabled:opacity-40"
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-md bg-card/80 backdrop-blur-sm text-muted-foreground hover:text-primary hover:bg-primary/10 shadow ring-1 ring-border disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
@@ -93,52 +93,59 @@ export default function RecentSearchesChips({ recentSearches, loading, visible =
             aria-label="Next"
             onClick={() => scrollByPage(1)}
             disabled={currentPage >= pages.length - 1}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-1 rounded-md bg-background/70 shadow ring-1 ring-border disabled:opacity-40"
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-md bg-card/80 backdrop-blur-sm text-muted-foreground hover:text-primary hover:bg-primary/10 shadow ring-1 ring-border disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
 
           <div
             ref={containerRef}
-            className="overflow-x-hidden snap-x snap-mandatory"
+            className="overflow-x-hidden overflow-y-visible snap-x snap-mandatory"
           >
             <div className="flex w-full">
               {pages.map((page, pIdx) => (
-                <div key={pIdx} className="shrink-0 w-full snap-start px-8">
-                  <div className="flex items-stretch gap-2 pr-1">
+                <div key={pIdx} className="shrink-0 w-full snap-start px-8 py-1 overflow-visible">
+                  <div className="flex items-stretch gap-2 pr-1 overflow-visible">
                     {page.map((search, idx) => (
-                      <div
+                      <motion.div
                         key={`${pIdx}-${idx}`}
-                        className="relative flex-1 min-w-0 px-3 py-2 text-sm bg-muted/50 hover:bg-blue-100 rounded-lg transition-colors min-h-[3.75rem]"
+                        whileHover={{ scale: 1.02, y: -2 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="relative flex-1 min-w-0 p-3 text-sm rounded-xl border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/10 hover:shadow-sm transition-all group min-h-[3rem] transform-gpu will-change-transform"
                       >
                         <button
                           onClick={() => onSelect(search)}
                           disabled={!!loading}
-                          className="text-left focus:outline-none min-w-0 h-full block pr-6"
+                          className="text-left focus:outline-none min-w-0 h-full block pr-7"
                         >
-                          <span
-                            className="block"
-                            style={{
-                              display: '-webkit-box',
-                              WebkitLineClamp: 3,
-                              WebkitBoxOrient: 'vertical' as any,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              lineHeight: '1.25rem',
-                            }}
-                          >
-                            {search}
-                          </span>
+                          <div className="flex items-start gap-3">
+                            <div className="p-1.5 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                              <Clock className="w-4 h-4 text-primary" />
+                            </div>
+                            <span
+                              className="block group-hover:text-primary transition-colors"
+                              style={{
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical' as any,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                lineHeight: '1.2rem',
+                              }}
+                            >
+                              {search}
+                            </span>
+                          </div>
                         </button>
                         <button
                           aria-label={`Remove ${search}`}
                           onClick={() => onRemove(search)}
-                          className="absolute top-1 right-1 rounded-full hover:bg-muted p-0.5"
+                          className="absolute top-1 right-1 rounded-full hover:bg-primary/10 p-0.5"
                           disabled={!!loading}
                         >
                           <X className="w-3.5 h-3.5 text-muted-foreground" />
                         </button>
-                      </div>
+                      </motion.div>
                     ))}
                     {/* Fill remaining slots to keep 3 columns aligned */}
                     {Array.from({ length: Math.max(0, 3 - page.length) }).map((_, i) => (
