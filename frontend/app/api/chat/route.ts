@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
       streamResponse = await streamModel({ input, instructions: systemPrompt, withTools: false });
     } else {
       if (functionCall && functionCall.name === 'document_search') {
-        const searchResult = await executeDocumentSearch(functionCallArguments.query, kClamped);
+        const searchResult = await executeDocumentSearch(message, kClamped);
 
         // 4. Add function result to input
         input.push({
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
 
         // 5. Add retrieved images as visual input for the model to analyze
         if (searchResult.success && searchResult.images && searchResult.images.length > 0) {
-          const imageContent = await buildImageContent(searchResult.images, functionCallArguments.query);
+          const imageContent = await buildImageContent(searchResult.images, message);
           appendUserImages(input, imageContent);
           // capture rich results to emit to client
           kbItems = Array.isArray(searchResult.results) ? searchResult.results : null;

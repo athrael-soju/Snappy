@@ -1,17 +1,16 @@
 // frontend/lib/hooks/use-chat.ts
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import {
   chatRequest,
-  searchDocuments,
   streamAssistant,
-  type RetrievedImage,
 } from '@/lib/api/chat'
 import { kSchema, messageSchema } from '@/lib/validation/chat'
 
 export type ChatMessage = {
+  id: string
   role: 'user' | 'assistant'
   content: string
 }
@@ -42,6 +41,14 @@ export function useChat() {
   const [imageGroups, setImageGroups] = useState<
     Array<{ url: string | null; label: string | null; score: number | null }>[
     ]>([])
+  // Keep all images keyed by assistant message id to avoid mixing across turns
+  const imagesByMessageRef = useRef<Record<string, Array<{ url: string | null; label: string | null; score: number | null }>>>({})
+  const currentAssistantIdRef = useRef<string | null>(null)
+
+  const genId = () =>
+    (typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? (crypto as any).randomUUID()
+      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`)
 
   // Validation schemas are imported from shared module
 
@@ -74,19 +81,23 @@ export function useChat() {
       return
     }
 
-    const userMsg: ChatMessage = { role: 'user', content: text }
+    const userMsg: ChatMessage = { id: genId(), role: 'user', content: text }
     const nextHistory: ChatMessage[] = [...messages, userMsg]
     setInput('')
     setError(null)
     // reset previous visual citations for new request
     setImageGroups([])
+    // Reset current assistant association
+    currentAssistantIdRef.current = null
     // Mark as loading so UI shows thinking bubble until first token arrives
     setLoading(true)
     setTimeToFirstTokenMs(null)
 
     try {
       const start = performance.now()
-      setMessages([...nextHistory, { role: 'assistant', content: '' }])
+      const assistantId = genId()
+      currentAssistantIdRef.current = assistantId
+      setMessages([...nextHistory, { id: assistantId, role: 'assistant', content: '' }])
       const res = await chatRequest({
         message: text,
         k: k,
@@ -100,7 +111,11 @@ export function useChat() {
         setMessages((curr) => {
           if (curr.length === 0) return curr
           const updated = [...curr]
-          updated[updated.length - 1] = { role: 'assistant', content: assistantText }
+          // Preserve the assistant message id while updating content
+          updated[updated.length - 1] = {
+            ...updated[updated.length - 1],
+            content: assistantText,
+          }
           return updated
         })
       }, () => {
@@ -113,7 +128,28 @@ export function useChat() {
           label: (it as any).label ?? null,
           score: typeof (it as any).score === 'number' ? (it as any).score : null,
         }))
-        if (mapped.length > 0) setImageGroups([mapped])
+        if (mapped.length > 0) {
+          const msgId = currentAssistantIdRef.current
+          if (!msgId) {
+            // No assistant context; ignore defensively
+            return
+          }
+          const prev = imagesByMessageRef.current[msgId] || []
+          // append + dedupe by url
+          const combined = [...prev, ...mapped]
+          const seen = new Set<string>()
+          const deduped: Array<{ url: string | null; label: string | null; score: number | null }> = []
+          for (const it of combined) {
+            const key = it.url || ''
+            if (key && !seen.has(key)) {
+              seen.add(key)
+              deduped.push(it)
+            }
+          }
+          imagesByMessageRef.current[msgId] = deduped
+          // Expose only the current assistant turn's images to the UI
+          setImageGroups([deduped])
+        }
       })
       
     } catch (err: unknown) {

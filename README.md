@@ -49,6 +49,7 @@ This repo is intended as a developer-friendly starting point for vision RAG syst
   - [Citations](#citations)
 
 ## Architecture
+
 ```mermaid
 ---
 config:
@@ -153,6 +154,39 @@ Screenshots of the current UI. Pages: Home, Upload, Search, AI Chat, Maintenance
 </div>
 
 > Frontend is basic by design (no auth, i18n, SSR caching, or advanced routing) and off-course subject to change. It’s a scaffold for you to extend.
+
+## Tool calling and visual citations
+
+This template includes vision-first RAG with streamed visual citations in chat. The Next.js chat API (`frontend/app/api/chat/route.ts`) emits a custom SSE event `kb.images` when retrieved images are attached to the model input.
+
+When are images emitted?
+
+- Tools OFF (tool calling disabled)
+
+  - Behavior: backend always runs document search before generating an answer.
+  - UI: Visual citations chip glows and the gallery shows the images.
+- Tools ON (tool calling enabled)
+
+  - Behavior: backend calls the model with the `document_search` tool available.
+  - UI: If the model does not call the tool, no images are shown.
+
+Notes
+
+- Multiple `kb.images` events per assistant turn are supported; the UI appends and de‑duplicates by URL.
+- Images are associated to the current assistant message to avoid mixing across turns during re‑renders or pagination.
+
+How to test
+
+1) Open Chat at `/chat`.
+2) Toggle Tool Calling in the chat settings chip.
+   - OFF: ask a query like “What does the invoice say about due date?”; you should see the chip and image gallery.
+   - ON: ask a grounded query to induce a tool call (e.g., “Find diagrams about AI architecture”). Try a generic, non‑retrieval question to observe that no images are emitted when the tool is not used.
+3) Click the “Visual citations included” chip to scroll to the gallery. Click thumbnails to open the lightbox.
+
+Deterministic runs
+
+- You can disable tool calling from the UI, or via persisted preference (`localStorage['tool-calling-enabled']='false'`).
+- Top‑K for retrieval is controlled by the K setting; it persists in `localStorage['k']`.
 
 ## What this project is not
 
@@ -296,6 +330,7 @@ Most defaults are in `config.py`. Key variables:
 - __Processing__: `DEFAULT_TOP_K`, `BATCH_SIZE`, `WORKER_THREADS`, `MAX_TOKENS`
 
 See `.env.example` for a minimal starting point. When using Compose, note:
+
 - `backend` service sets defaults `COLPALI_CPU_URL=http://host.docker.internal:7001` and `COLPALI_GPU_URL=http://host.docker.internal:7002`.
 - `QDRANT_URL` and `MINIO_URL` are set to internal service addresses (`http://qdrant:6333`, `http://minio:9000`). `MINIO_PUBLIC_URL` is set to `http://localhost:9000` for browser access.
 
