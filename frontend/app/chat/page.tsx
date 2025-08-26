@@ -15,26 +15,26 @@ import StarterQuestions from "@/components/chat/StarterQuestions";
 import RecentSearchesChips from "@/components/search/RecentSearchesChips";
 import { BRAIN_PLACEHOLDERS } from "@/lib/utils";
 
-// Starter questions to help users get started
+// Starter questions to help users get started (qualitative phrasing)
 const starterQuestions = [
   {
     icon: FileText,
-    text: "Summarize my uploaded financial reports",
+    text: "What key themes emerge in my August 2025 financial report?",
     category: "Analysis"
   },
   {
     icon: BarChart3,
-    text: "Find diagrams about AI architecture",
+    text: "Explain the AI architecture in the Q2 system design docs at a high level",
     category: "Technical"
   },
   {
     icon: MessageSquare,
-    text: "What contracts mention payment terms?",
+    text: "For Project Orion, where are responsibilities and scope discussed?",
     category: "Legal"
   },
   {
     icon: Brain,
-    text: "Show me presentation slides about product features",
+    text: "Find slide decks that outline product vision and strategy",
     category: "Business"
   }
 ];
@@ -67,10 +67,10 @@ export default function ChatPage() {
   const [lastResponseDurationMs, setLastResponseDurationMs] = useState<number | null>(null);
   const [brainIdx, setBrainIdx] = useState<number>(0);
   const examples = [
-    "Summarize my last report",
-    "What are the key risks?",
-    "Find diagrams about AI architecture",
-    "Which contracts mention payment terms?"
+    "Give a high-level overview of my latest project report",
+    "What potential risks are highlighted in the compliance policies?",
+    "Show conceptual diagrams about AI systems from the design docs",
+    "Which vendor contracts discuss obligations?"
   ];
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
 
