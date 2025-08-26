@@ -17,8 +17,8 @@ export interface ChatSettingsProps {
   loading?: boolean;
   className?: string;
   onValidityChange?: (valid: boolean) => void;
-  toolCallingEnabled: boolean;
-  setToolCallingEnabled: (v: boolean) => void;
+  toolCallingEnabled?: boolean;
+  setToolCallingEnabled?: (v: boolean) => void;
 }
 
 export function ChatSettings({ k, setK, loading, className, onValidityChange, toolCallingEnabled, setToolCallingEnabled }: ChatSettingsProps) {
@@ -59,7 +59,7 @@ export function ChatSettings({ k, setK, loading, className, onValidityChange, to
                 <Switch
                   id="tool-calling"
                   checked={toolCallingEnabled}
-                  onCheckedChange={(v) => setToolCallingEnabled(!!v)}
+                  onCheckedChange={(v) => setToolCallingEnabled?.(!!v)}
                   disabled={!!loading}
                   aria-label="Enable tool calling"
                 />
