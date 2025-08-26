@@ -53,6 +53,7 @@ export default function ChatPage() {
     sendMessage,
   } = useChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState("");
   const [lightboxAlt, setLightboxAlt] = useState<string | undefined>(undefined);
@@ -70,7 +71,14 @@ export default function ChatPage() {
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesContainerRef.current) {
+      // Use rAF to ensure DOM has settled before scrolling
+      requestAnimationFrame(() => {
+        if (messagesContainerRef.current) {
+          messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+        }
+      });
+    }
   };
 
   useEffect(() => {
@@ -143,7 +151,7 @@ export default function ChatPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="flex flex-col h-[calc(100vh-12rem)] max-h-[825px]"
+      className="flex flex-col flex-1 min-h-0"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
@@ -159,8 +167,8 @@ export default function ChatPage() {
       </div>
 
       {/* Chat Messages */}
-      <Card className="flex-1 flex flex-col overflow-hidden border-2 border-purple-100/50 shadow-lg">
-        <div className="flex-1 overflow-y-auto p-4">
+      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-2 border-purple-100/50 shadow-lg">
+        <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4">
           {messages.length > 0 && lastResponseDurationMs !== null && !loading && (
             <div className="flex justify-end mb-2 text-xs text-muted-foreground">Responded in {(lastResponseDurationMs / 1000).toFixed(2)}s</div>
           )}
@@ -273,6 +281,63 @@ export default function ChatPage() {
               ))
             )}
           </AnimatePresence>
+          {/* Retrieved Images inside the scroll area to avoid page overflow */}
+          <AnimatePresence>
+            {imageGroups.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="bg-muted/50 rounded-lg p-3 max-h-64 overflow-y-auto mt-3"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1 bg-purple-100 rounded">
+                      <ImageIcon className="h-4 w-4 text-purple-600" />
+                    </div>
+                    <span className="text-sm font-medium">Visual Citations</span>
+                    <Badge variant="secondary" className="bg-purple-100 text-purple-800">{imageGroups.flat().length} sources</Badge>
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1.5">
+                  {imageGroups.flat().map((img, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="relative group"
+                    >
+                      {img.url && (
+                        <img
+                          src={img.url}
+                          alt={img.label || `Image ${idx + 1}`}
+                          className="w-full h-12 object-cover rounded border cursor-zoom-in"
+                          onClick={() => {
+                            setLightboxSrc(img.url!);
+                            setLightboxAlt(img.label || `Image ${idx + 1}`);
+                            setLightboxOpen(true);
+                          }}
+                        />
+                      )}
+                      <div className="pointer-events-none absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center">
+                        <div className="text-white text-center p-1">
+                          {img.label && (
+                            <p className="text-xs font-medium truncate">{img.label}</p>
+                          )}
+                          {img.score && (
+                            <Badge variant="secondary" className="mt-1 text-xs">
+                              {img.score.toFixed(2)}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
           <div ref={messagesEndRef} />
         </div>
 
@@ -316,65 +381,6 @@ export default function ChatPage() {
           )}
         </div>
       </Card>
-
-      {/* Retrieved Images */}
-      <AnimatePresence>
-        {imageGroups.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="bg-muted/50 rounded-lg p-3 max-h-64 overflow-y-auto"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-1 bg-purple-100 rounded">
-                  <ImageIcon className="h-4 w-4 text-purple-600" />
-                </div>
-                <span className="text-sm font-medium">Visual Citations</span>
-                <Badge variant="secondary" className="bg-purple-100 text-purple-800">{imageGroups.flat().length} sources</Badge>
-              </div>
-              {/* Sources presets are now in the header for global visibility */}
-            </div>
-            <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1.5">
-              {imageGroups.flat().map((img, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: idx * 0.05 }}
-                  className="relative group"
-                >
-                  {img.url && (
-                    <img
-                      src={img.url}
-                      alt={img.label || `Image ${idx + 1}`}
-                      className="w-full h-12 object-cover rounded border cursor-zoom-in"
-                      onClick={() => {
-                        setLightboxSrc(img.url!);
-                        setLightboxAlt(img.label || `Image ${idx + 1}`);
-                        setLightboxOpen(true);
-                      }}
-                    />
-                  )}
-                  <div className="pointer-events-none absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center">
-                    <div className="text-white text-center p-1">
-                      {img.label && (
-                        <p className="text-xs font-medium truncate">{img.label}</p>
-                      )}
-                      {img.score && (
-                        <Badge variant="secondary" className="mt-1 text-xs">
-                          {img.score.toFixed(2)}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
       <ImageLightbox
         open={lightboxOpen}
         src={lightboxSrc}
