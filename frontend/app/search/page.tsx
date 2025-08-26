@@ -156,7 +156,7 @@ export default function SearchPage() {
 
       {/* Search Form */}
       <Card className="border-2 border-blue-100/50 shadow-lg overflow-hidden !pt-0 bg-transparent">
-        <CardHeader className="bg-gradient-to-b from-blue-100 to-cyan-100 border-b rounded-t-xl py-6 mt-0">
+        <CardHeader className="bg-gradient-to-r from-blue-100 to-cyan-100 border-b rounded-t-xl py-6 mt-0">
           <CardTitle className="flex items-center gap-2 text-xl">
             <Search className="w-5 h-5 text-blue-600" />
             Search Your Documents
