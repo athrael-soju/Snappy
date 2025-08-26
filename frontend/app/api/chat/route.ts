@@ -6,9 +6,59 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Shared constants
+const MODEL = process.env.OPENAI_MODEL || 'gpt-5-nano';
+const TEMPERATURE = parseFloat(process.env.OPENAI_TEMPERATURE || '1');
+
+// Helper: build image content array (header + images), converting localhost URLs to data URLs in parallel
+async function buildImageContent(images: string[], query: string): Promise<any[]> {
+  const header = { type: 'input_text', text: `Based on the search results for "${query}", here are the relevant document images:` } as const;
+  const items = await Promise.all((images || []).map(async (imageUrl) => {
+    try {
+      const isLocal = imageUrl.includes('localhost') || imageUrl.includes('127.0.0.1');
+      if (isLocal) {
+        const imageResponse = await fetch(imageUrl);
+        if (!imageResponse.ok) return null;
+        const imageBuffer = await imageResponse.arrayBuffer();
+        const base64 = Buffer.from(imageBuffer).toString('base64');
+        const mimeType = imageResponse.headers.get('content-type') || 'image/png';
+        const dataUrl = `data:${mimeType};base64,${base64}`;
+        return { type: 'input_image', image_url: dataUrl } as const;
+      }
+      return { type: 'input_image', image_url: imageUrl } as const;
+    } catch (error) {
+      console.warn(`Error processing image: ${imageUrl}`, error);
+      return null;
+    }
+  }));
+  return [header, ...items.filter(Boolean)];
+}
+
+// Helper: append a user message containing image content
+function appendUserImages(input: any[], imageContent: any[]) {
+  input.push({
+    role: 'user',
+    content: imageContent,
+  } as any);
+}
+
+// Helper: stream a model response with or without tools
+async function streamModel(params: { input: any[]; instructions: string; withTools: boolean; }) {
+  const { input, instructions, withTools } = params;
+  return openai.responses.create({
+    model: MODEL,
+    ...(withTools ? { tools: [documentSearchTool] } : {}),
+    input: input as any,
+    instructions,
+    temperature: TEMPERATURE,
+    parallel_tool_calls: false,
+    stream: true,
+  });
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { message, k } = await request.json();
+    const { message, k, toolCallingEnabled } = await request.json();
 
     const systemPrompt = `
     You are a helpful PDF assistant. Use only the provided page images to answer the user's question. 
@@ -23,106 +73,79 @@ export async function POST(request: NextRequest) {
     Cite pages using the labels above (do not infer by result order).
     `
 
-    if (!message) {
+    // Basic validation & defaults (backend guards)
+    if (typeof message !== 'string' || !message.trim()) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
+    const kNum = Number.isFinite(Number(k)) ? Number(k) : 5;
+    // bound k to reasonable limits (mirror UI: 1..25)
+    const kClamped = Math.max(1, Math.min(25, kNum));
 
     // Create running input list following OpenAI guide pattern
     let input: any[] = [
       { role: 'user', content: message }
     ];
 
-    // 1. Initial API call with tools defined
-    let response = await openai.responses.create({
-      model: process.env.OPENAI_MODEL || 'gpt-5-nano',
-      tools: [documentSearchTool],
-      input: input as any,
-      instructions: systemPrompt,
-      temperature: parseFloat(process.env.OPENAI_TEMPERATURE || '1'),
-      parallel_tool_calls: false,
-    });
+    const toolEnabled = toolCallingEnabled !== false; // default to true
+
+    let response: any | undefined;
+    if (toolEnabled) {
+      // 1. Initial API call with tools defined
+      response = await openai.responses.create({
+        model: process.env.OPENAI_MODEL || 'gpt-5-nano',
+        tools: [documentSearchTool],
+        input: input as any,
+        instructions: systemPrompt,
+        temperature: parseFloat(process.env.OPENAI_TEMPERATURE || '1'),
+        parallel_tool_calls: false,
+      });
+    }
 
     // 2. Check for function calls and execute them
     let functionCall: any = null;
     let functionCallArguments: any = null;
-    input = input.concat(response.output as any);
-
-    response.output.forEach((item: any) => {
-      if (item.type === "function_call") {
-        functionCall = item;
-        functionCallArguments = JSON.parse(item.arguments);
-      }
-    });
+    if (toolEnabled && response?.output) {
+      input = input.concat(response.output as any);
+      response.output.forEach((item: any) => {
+        if (item.type === "function_call") {
+          functionCall = item;
+          functionCallArguments = JSON.parse(item.arguments);
+        }
+      });
+    }
 
     // 3. Execute function if called
     let streamResponse: any;
-    if (functionCall && functionCall.name === 'document_search') {
-      const searchResult = await executeDocumentSearch(functionCallArguments.query, k);
-
-      // 4. Add function result to input
-      input.push({
-        type: "function_call_output",
-        call_id: functionCall.call_id,
-        output: JSON.stringify(searchResult),
-      } as any);
-
-      // 5. Add retrieved images as visual input for the model to analyze
+    // When tool calling is disabled, always run knowledgebase search
+    if (!toolEnabled) {
+      const searchResult = await executeDocumentSearch(message, kClamped);
       if (searchResult.success && searchResult.images && searchResult.images.length > 0) {
-        const imageContent: any[] = [
-          { type: 'input_text', text: `Based on the search results for "${functionCallArguments.query}", here are the relevant document images:` }
-        ];
-        
-        // Convert localhost URLs to data URLs for OpenAI
-        for (const imageUrl of searchResult.images) {
-          try {
-            const isLocal = imageUrl.includes('localhost') || imageUrl.includes('127.0.0.1');
-            
-            if (isLocal) {
-              // Fetch the image and convert to data URL
-              const imageResponse = await fetch(imageUrl);
-              if (imageResponse.ok) {
-                const imageBuffer = await imageResponse.arrayBuffer();
-                const base64 = Buffer.from(imageBuffer).toString('base64');
-                const mimeType = imageResponse.headers.get('content-type') || 'image/png';
-                const dataUrl = `data:${mimeType};base64,${base64}`;
-                
-                imageContent.push({ 
-                  type: 'input_image', 
-                  image_url: dataUrl 
-                });
-              } else {
-                console.warn(`Failed to fetch image: ${imageUrl} - ${imageResponse.status}`);
-              }
-            } else {
-              // Public URL - use as-is
-              imageContent.push({ 
-                type: 'input_image', 
-                image_url: imageUrl 
-              });
-            }
-          } catch (error) {
-            console.warn(`Error processing image: ${imageUrl}`, error);
-          }
-        }
+        const imageContent = await buildImageContent(searchResult.images, message);
+        appendUserImages(input, imageContent);
+      }
+      // Now, generate answer WITHOUT tools
+      streamResponse = await streamModel({ input, instructions: systemPrompt, withTools: false });
+    } else {
+      if (functionCall && functionCall.name === 'document_search') {
+        const searchResult = await executeDocumentSearch(functionCallArguments.query, kClamped);
 
-        // Add user message with images for the model to analyze
+        // 4. Add function result to input
         input.push({
-          role: 'user',
-          content: imageContent
+          type: "function_call_output",
+          call_id: functionCall.call_id,
+          output: JSON.stringify(searchResult),
         } as any);
+
+        // 5. Add retrieved images as visual input for the model to analyze
+        if (searchResult.success && searchResult.images && searchResult.images.length > 0) {
+          const imageContent = await buildImageContent(searchResult.images, functionCallArguments.query);
+          appendUserImages(input, imageContent);
+        }
       }
 
+      // Continue streaming WITH tools enabled
+      streamResponse = await streamModel({ input, instructions: systemPrompt, withTools: true });
     }
-
-    streamResponse = await openai.responses.create({
-      model: process.env.OPENAI_MODEL || 'gpt-5-nano',
-      tools: [documentSearchTool],
-      input: input as any,
-      instructions: systemPrompt,
-      temperature: parseFloat(process.env.OPENAI_TEMPERATURE || '1'),
-      parallel_tool_calls: false,
-      stream: true,
-    });
 
 
     const encoder = new TextEncoder();

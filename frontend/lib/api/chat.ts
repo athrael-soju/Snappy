@@ -22,6 +22,7 @@ export async function searchDocuments(query: string, k: number): Promise<Retriev
 export type ChatRequest = {
   message: string
   k: number
+  toolCallingEnabled: boolean
 }
 
 export async function chatRequest(req: ChatRequest): Promise<Response> {

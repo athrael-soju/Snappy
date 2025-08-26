@@ -29,6 +29,16 @@ export function useChat() {
     // Validate persisted value using schema bounds; fallback to default 5
     return Number.isFinite(parsed) && kSchema.safeParse(parsed).success ? parsed : 5
   })
+  const [toolCallingEnabled, setToolCallingEnabled] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true
+    try {
+      const saved = localStorage.getItem('tool-calling-enabled')
+      if (saved === null) return true
+      return saved === 'true'
+    } catch {
+      return true
+    }
+  })
   const [imageGroups, setImageGroups] = useState<
     Array<{ url: string | null; label: string | null; score: number | null }>[
     ]>([])
@@ -44,6 +54,12 @@ export function useChat() {
       localStorage.setItem('k', String(k))
     } catch { }
   }, [k])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('tool-calling-enabled', String(toolCallingEnabled))
+    } catch { }
+  }, [toolCallingEnabled])
 
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault()
@@ -71,7 +87,8 @@ export function useChat() {
       setMessages([...nextHistory, { role: 'assistant', content: '' }])
       const res = await chatRequest({
         message: text,
-        k: k
+        k: k,
+        toolCallingEnabled,
       })
 
       let assistantText = ''
@@ -116,11 +133,13 @@ export function useChat() {
     error,
     timeToFirstTokenMs,
     k,
+    toolCallingEnabled,
     imageGroups,
     isSettingsValid,
     // setters
     setInput,
     setK,
+    setToolCallingEnabled,
     // actions
     sendMessage,
   }

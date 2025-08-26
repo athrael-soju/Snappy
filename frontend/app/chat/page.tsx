@@ -49,6 +49,8 @@ export default function ChatPage() {
     timeToFirstTokenMs,
     k,
     setK,
+    toolCallingEnabled,
+    setToolCallingEnabled,
     imageGroups,
     isSettingsValid,
     sendMessage,
@@ -353,6 +355,8 @@ export default function ChatPage() {
             onSubmit={handleSubmit}
             k={k}
             setK={setK}
+            toolCallingEnabled={toolCallingEnabled}
+            setToolCallingEnabled={setToolCallingEnabled}
           />
 
           {/* Tips below input */}
