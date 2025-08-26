@@ -80,8 +80,7 @@ export function useChat() {
           updated[updated.length - 1] = { role: 'assistant', content: assistantText }
           return updated
         })
-      })
-      toast.success('Response received')
+      })      
     } catch (err: unknown) {
       let errorMsg = 'Streaming failed'
       if (err instanceof Error) errorMsg = err.message
