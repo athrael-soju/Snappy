@@ -78,6 +78,8 @@ export function useChat() {
     const nextHistory: ChatMessage[] = [...messages, userMsg]
     setInput('')
     setError(null)
+    // reset previous visual citations for new request
+    setImageGroups([])
     // Mark as loading so UI shows thinking bubble until first token arrives
     setLoading(true)
     setTimeToFirstTokenMs(null)
@@ -92,6 +94,7 @@ export function useChat() {
       })
 
       let assistantText = ''
+
       await streamAssistant(res, (delta) => {
         assistantText += delta
         setMessages((curr) => {
@@ -103,6 +106,14 @@ export function useChat() {
       }, () => {
         // first streamed token has arrived
         setTimeToFirstTokenMs(performance.now() - start)
+      }, (items) => {
+        // Populate from SSE regardless of tool setting; server only emits when images are actually used
+        const mapped = (Array.isArray(items) ? items : []).map((it) => ({
+          url: (it as any).image_url ?? null,
+          label: (it as any).label ?? null,
+          score: typeof (it as any).score === 'number' ? (it as any).score : null,
+        }))
+        if (mapped.length > 0) setImageGroups([mapped])
       })
       
     } catch (err: unknown) {

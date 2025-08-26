@@ -57,6 +57,7 @@ export default function ChatPage() {
   } = useChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const imagesSectionRef = useRef<HTMLDivElement>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState("");
   const [lightboxAlt, setLightboxAlt] = useState<string | undefined>(undefined);
@@ -290,6 +291,7 @@ export default function ChatPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 className="bg-muted/50 rounded-lg p-3 max-h-64 overflow-y-auto mt-3"
+                ref={imagesSectionRef}
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
@@ -365,10 +367,31 @@ export default function ChatPage() {
               <Sparkles className="w-3 h-3 text-purple-500" />
               <span>AI-powered responses</span>
             </div>
-            <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                if (imagesSectionRef.current) {
+                  imagesSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  // Briefly flash focus ring for visibility
+                  imagesSectionRef.current.classList.add('ring-2', 'ring-pink-400');
+                  setTimeout(() => imagesSectionRef.current?.classList.remove('ring-2', 'ring-pink-400'), 1200);
+                }
+              }}
+              className={`flex items-center gap-1 rounded px-2 py-1 transition-shadow focus:outline-none focus:ring-2 focus:ring-pink-400 ${
+                imageGroups.length > 0
+                  ? 'bg-pink-50/60 text-foreground shadow-sm animate-pulse hover:animate-none'
+                  : ''
+              }`}
+              title={imageGroups.length > 0 ? 'Click to view retrieved images' : 'Will appear when images are retrieved'}
+            >
               <ImageIcon className="w-3 h-3 text-pink-500" />
               <span>Visual citations included</span>
-            </div>
+              {imageGroups.length > 0 && (
+                <Badge variant="secondary" className="ml-1 bg-pink-100 text-pink-800">
+                  {imageGroups.flat().length}
+                </Badge>
+              )}
+            </button>
             {timeToFirstTokenMs !== null && (
               <div className="flex items-center gap-1">
                 <Clock className="w-3 h-3 text-muted-foreground" />

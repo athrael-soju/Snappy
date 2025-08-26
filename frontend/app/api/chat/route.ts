@@ -116,12 +116,15 @@ export async function POST(request: NextRequest) {
 
     // 3. Execute function if called
     let streamResponse: any;
+    let kbItems: Array<{ image_url?: string | null; label?: string | null; score?: number | null }> | null = null;
     // When tool calling is disabled, always run knowledgebase search
     if (!toolEnabled) {
       const searchResult = await executeDocumentSearch(message, kClamped);
       if (searchResult.success && searchResult.images && searchResult.images.length > 0) {
         const imageContent = await buildImageContent(searchResult.images, message);
         appendUserImages(input, imageContent);
+        // capture rich results to emit to client
+        kbItems = Array.isArray(searchResult.results) ? searchResult.results : null;
       }
       // Now, generate answer WITHOUT tools
       streamResponse = await streamModel({ input, instructions: systemPrompt, withTools: false });
@@ -140,6 +143,8 @@ export async function POST(request: NextRequest) {
         if (searchResult.success && searchResult.images && searchResult.images.length > 0) {
           const imageContent = await buildImageContent(searchResult.images, functionCallArguments.query);
           appendUserImages(input, imageContent);
+          // capture rich results to emit to client
+          kbItems = Array.isArray(searchResult.results) ? searchResult.results : null;
         }
       }
 
@@ -152,6 +157,10 @@ export async function POST(request: NextRequest) {
     const readableStream = new ReadableStream<Uint8Array>({
       async start(controller) {
         try {
+          if (kbItems && kbItems.length > 0) {
+            const kbPayload = JSON.stringify({ event: 'kb.images', data: { items: kbItems } });
+            controller.enqueue(encoder.encode(`data: ${kbPayload}\n\n`));
+          }
           for await (const event of streamResponse as any) {
             // Send all events as SSE lines
             const payload = JSON.stringify({ event: event.type, data: event });

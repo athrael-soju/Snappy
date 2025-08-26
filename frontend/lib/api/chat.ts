@@ -36,7 +36,8 @@ export async function chatRequest(req: ChatRequest): Promise<Response> {
 export async function streamAssistant(
   res: Response,
   onDelta: (chunk: string) => void,
-  onFirstChunk?: () => void
+  onFirstChunk?: () => void,
+  onKbImages?: (items: Array<{ image_url?: string | null; label?: string | null; score?: number | null }>) => void
 ): Promise<void> {
   if (!res.ok || !res.body) {
     throw new Error(`Failed to stream chat: ${res.status}`)
@@ -72,6 +73,9 @@ export async function streamAssistant(
               onFirstChunk?.()
             }
             onDelta(String(data.delta))
+          } else if (eventType === 'kb.images') {
+            const items = Array.isArray(data?.items) ? data.items : []
+            onKbImages?.(items)
           }
         } catch {
           // ignore malformed event
