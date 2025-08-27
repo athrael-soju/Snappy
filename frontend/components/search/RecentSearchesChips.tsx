@@ -94,6 +94,7 @@ export default function RecentSearchesChips({ recentSearches, loading, visible =
           <Clock className="w-4 h-4 text-muted-foreground" />
           <span className="text-sm font-medium text-muted-foreground">Recent searches:</span>
         </div>
+        {/* Wrap scroller and arrows in a relative container so arrows center to the row, not including dots */}
         <div className="relative">
           {/* Left chevron */}
           <button
@@ -112,7 +113,7 @@ export default function RecentSearchesChips({ recentSearches, loading, visible =
             aria-label="Next"
             onClick={() => scrollByPage(1)}
             disabled={currentPage >= pages.length - 1}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-md bg-card/80 backdrop-blur-sm text-muted-foreground hover:text-foreground hover:bg-muted shadow ring-1 ring-border disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="absolute right-1 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-md bg-card/80 backdrop-blur-sm text-muted-foreground hover:text-foreground hover:bg-muted shadow ring-1 ring-border disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -190,21 +191,22 @@ export default function RecentSearchesChips({ recentSearches, loading, visible =
             />
           )}
 
-          {/* Pagination dots */}
-          {pagesLength > 1 && (
-            <div className="mt-2 flex items-center justify-center gap-1.5" aria-label="Carousel pagination">
-              {Array.from({ length: pagesLength }).map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  aria-label={`Go to page ${i + 1}`}
-                  onClick={() => goToPage(i)}
-                  className={`h-1.5 rounded-full transition-all ${i === currentPage ? 'w-4 bg-foreground' : 'w-2 bg-muted-foreground/40'}`}
-                />
-              ))}
-            </div>
-          )}
         </div>
+
+        {/* Pagination dots */}
+        {pagesLength > 1 && (
+          <div className="mt-2 flex items-center justify-center gap-1.5" aria-label="Carousel pagination">
+            {Array.from({ length: pagesLength }).map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                aria-label={`Go to page ${i + 1}`}
+                onClick={() => goToPage(i)}
+                className={`h-1.5 rounded-full transition-all ${i === currentPage ? 'w-4 bg-foreground' : 'w-2 bg-muted-foreground/40'}`}
+              />
+            ))}
+          </div>
+        )}
       </motion.div>
     </AnimatePresence>
   );
