@@ -1,4 +1,3 @@
-// frontend/lib/api/client.ts
 import { OpenAPI } from '@/lib/api/generated'
 
 export const baseUrl =

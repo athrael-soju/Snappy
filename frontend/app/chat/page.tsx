@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 // Removed Select in favor of a clearer segmented control
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { User, Image as ImageIcon, Loader2, Sparkles, Brain, FileText, BarChart3, MessageSquare } from "lucide-react";
+import { User, Image as ImageIcon, Loader2, Sparkles, Brain, FileText, BarChart3, MessageSquare, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ImageLightbox from "@/components/lightbox";
 import ChatInputBar from "@/components/chat/ChatInputBar";
@@ -15,26 +15,26 @@ import StarterQuestions from "@/components/chat/StarterQuestions";
 import RecentSearchesChips from "@/components/search/RecentSearchesChips";
 import { BRAIN_PLACEHOLDERS } from "@/lib/utils";
 
-// Starter questions to help users get started
+// Starter questions to help users get started (qualitative phrasing)
 const starterQuestions = [
   {
     icon: FileText,
-    text: "Summarize my uploaded financial reports",
+    text: "What key themes emerge in my August 2025 financial report?",
     category: "Analysis"
   },
   {
     icon: BarChart3,
-    text: "Find diagrams about AI architecture",
+    text: "Explain the AI architecture in the Q2 system design docs at a high level",
     category: "Technical"
   },
   {
     icon: MessageSquare,
-    text: "What contracts mention payment terms?",
+    text: "For Project Orion, where are responsibilities and scope discussed?",
     category: "Legal"
   },
   {
     icon: Brain,
-    text: "Show me presentation slides about product features",
+    text: "Find slide decks that outline product vision and strategy",
     category: "Business"
   }
 ];
@@ -46,13 +46,18 @@ export default function ChatPage() {
     messages,
     loading,
     error,
+    timeToFirstTokenMs,
     k,
     setK,
+    toolCallingEnabled,
+    setToolCallingEnabled,
     imageGroups,
     isSettingsValid,
     sendMessage,
   } = useChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const imagesSectionRef = useRef<HTMLDivElement>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState("");
   const [lightboxAlt, setLightboxAlt] = useState<string | undefined>(undefined);
@@ -62,15 +67,22 @@ export default function ChatPage() {
   const [lastResponseDurationMs, setLastResponseDurationMs] = useState<number | null>(null);
   const [brainIdx, setBrainIdx] = useState<number>(0);
   const examples = [
-    "Summarize my last report",
-    "What are the key risks?",
-    "Find diagrams about AI architecture",
-    "Which contracts mention payment terms?"
+    "Give a high-level overview of my latest project report",
+    "What potential risks are highlighted in the compliance policies?",
+    "Show conceptual diagrams about AI systems from the design docs",
+    "Which vendor contracts discuss obligations?"
   ];
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesContainerRef.current) {
+      // Use rAF to ensure DOM has settled before scrolling
+      requestAnimationFrame(() => {
+        if (messagesContainerRef.current) {
+          messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+        }
+      });
+    }
   };
 
   useEffect(() => {
@@ -104,7 +116,7 @@ export default function ChatPage() {
     setRequestStart(performance.now());
     setLastResponseDurationMs(null);
     setRecentSearches((prev) => {
-      const updated = [q, ...prev.filter((s) => s !== q)].slice(0, 8);
+      const updated = [q, ...prev.filter((s) => s !== q)].slice(0, 10);
       localStorage.setItem("colpali-chat-recent", JSON.stringify(updated));
       return updated;
     });
@@ -122,7 +134,8 @@ export default function ChatPage() {
     const saved = localStorage.getItem("colpali-chat-recent");
     if (saved) {
       try {
-        setRecentSearches(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        setRecentSearches(Array.isArray(parsed) ? parsed.slice(0, 10) : []);
       } catch { }
     }
   }, []);
@@ -143,7 +156,7 @@ export default function ChatPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="flex flex-col h-[calc(100vh-12rem)] max-h-[825px]"
+      className="flex flex-col flex-1 min-h-0"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
@@ -159,11 +172,8 @@ export default function ChatPage() {
       </div>
 
       {/* Chat Messages */}
-      <Card className="flex-1 flex flex-col overflow-hidden border-2 border-purple-100/50 shadow-lg">
-        <div className="flex-1 overflow-y-auto p-4">
-          {messages.length > 0 && lastResponseDurationMs !== null && !loading && (
-            <div className="flex justify-end mb-2 text-xs text-muted-foreground">Responded in {(lastResponseDurationMs / 1000).toFixed(2)}s</div>
-          )}
+      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-2 border-purple-100/50 shadow-lg">
+        <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4">
           <AnimatePresence mode="popLayout">
             {messages.length === 0 ? (
               <motion.div
@@ -205,8 +215,8 @@ export default function ChatPage() {
                   className={`flex gap-3 mb-4 md:mb-5 last:mb-0 ${message.role === "assistant" ? "" : "flex-row-reverse"}`}
                 >
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${message.role === "assistant"
-                      ? "bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-lg"
-                      : "bg-gradient-to-br from-blue-100 to-cyan-100 text-foreground shadow-lg"
+                    ? "bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-lg"
+                    : "bg-gradient-to-br from-blue-100 to-cyan-100 text-foreground shadow-lg"
                     }`}>
                     {message.role === "assistant" ? (
                       <Brain className="w-4 h-4" />
@@ -218,8 +228,8 @@ export default function ChatPage() {
                   <div className={`flex-1 max-w-[85%] ${message.role === "user" ? "text-right" : ""
                     }`}>
                     <div className={`inline-block p-4 rounded-2xl shadow-sm border ${message.role === "assistant"
-                        ? "bg-gradient-to-br from-purple-50 to-pink-50 text-foreground border-purple-200/50"
-                        : "bg-gradient-to-br from-blue-100 to-cyan-100 text-foreground border-blue-200"
+                      ? "bg-gradient-to-br from-purple-50 to-pink-50 text-foreground border-purple-200/50"
+                      : "bg-gradient-to-br from-blue-100 to-cyan-100 text-foreground border-blue-200"
                       }`}>
                       {message.content ? (
                         message.role === "assistant" ? (
@@ -273,6 +283,64 @@ export default function ChatPage() {
               ))
             )}
           </AnimatePresence>
+          {/* Retrieved Images inside the scroll area to avoid page overflow */}
+          <AnimatePresence>
+            {imageGroups.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="bg-muted/50 rounded-lg p-3 max-h-64 overflow-y-auto mt-3"
+                ref={imagesSectionRef}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1 bg-purple-100 rounded">
+                      <ImageIcon className="h-4 w-4 text-purple-600" />
+                    </div>
+                    <span className="text-sm font-medium">Visual Citations</span>
+                    <Badge variant="secondary" className="bg-purple-100 text-purple-800">{imageGroups.flat().length} sources</Badge>
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1.5">
+                  {imageGroups.flat().map((img, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="relative group"
+                    >
+                      {img.url && (
+                        <img
+                          src={img.url}
+                          alt={img.label || `Image ${idx + 1}`}
+                          className="w-full h-12 object-cover rounded border cursor-zoom-in"
+                          onClick={() => {
+                            setLightboxSrc(img.url!);
+                            setLightboxAlt(img.label || `Image ${idx + 1}`);
+                            setLightboxOpen(true);
+                          }}
+                        />
+                      )}
+                      <div className="pointer-events-none absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center">
+                        <div className="text-white text-center p-1">
+                          {img.label && (
+                            <p className="text-xs font-medium truncate">{img.label}</p>
+                          )}
+                          {img.score && (
+                            <Badge variant="secondary" className="mt-1 text-xs">
+                              {img.score.toFixed(2)}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
           <div ref={messagesEndRef} />
         </div>
 
@@ -289,6 +357,8 @@ export default function ChatPage() {
             onSubmit={handleSubmit}
             k={k}
             setK={setK}
+            toolCallingEnabled={toolCallingEnabled}
+            setToolCallingEnabled={setToolCallingEnabled}
           />
 
           {/* Tips below input */}
@@ -297,10 +367,37 @@ export default function ChatPage() {
               <Sparkles className="w-3 h-3 text-purple-500" />
               <span>AI-powered responses</span>
             </div>
-            <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                if (imagesSectionRef.current) {
+                  imagesSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  // Briefly flash focus ring for visibility
+                  imagesSectionRef.current.classList.add('ring-2', 'ring-pink-400');
+                  setTimeout(() => imagesSectionRef.current?.classList.remove('ring-2', 'ring-pink-400'), 1200);
+                }
+              }}
+              className={`flex items-center gap-1 rounded px-2 py-1 transition-shadow focus:outline-none focus:ring-2 focus:ring-pink-400 ${
+                imageGroups.length > 0
+                  ? 'bg-pink-50/60 text-foreground shadow-sm animate-pulse hover:animate-none'
+                  : ''
+              }`}
+              title={imageGroups.length > 0 ? 'Click to view retrieved images' : 'Will appear when images are retrieved'}
+            >
               <ImageIcon className="w-3 h-3 text-pink-500" />
               <span>Visual citations included</span>
-            </div>
+              {imageGroups.length > 0 && (
+                <Badge variant="secondary" className="ml-1 bg-pink-100 text-pink-800">
+                  {imageGroups.flat().length}
+                </Badge>
+              )}
+            </button>
+            {timeToFirstTokenMs !== null && (
+              <div className="flex items-center gap-1">
+                <Clock className="w-3 h-3 text-muted-foreground" />
+                <span>First token in {(timeToFirstTokenMs / 1000).toFixed(2)}s</span>
+              </div>
+            )}
           </div>
 
           {error && (
@@ -316,65 +413,6 @@ export default function ChatPage() {
           )}
         </div>
       </Card>
-
-      {/* Retrieved Images */}
-      <AnimatePresence>
-        {imageGroups.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="bg-muted/50 rounded-lg p-3 max-h-64 overflow-y-auto"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-1 bg-purple-100 rounded">
-                  <ImageIcon className="h-4 w-4 text-purple-600" />
-                </div>
-                <span className="text-sm font-medium">Visual Citations</span>
-                <Badge variant="secondary" className="bg-purple-100 text-purple-800">{imageGroups.flat().length} sources</Badge>
-              </div>
-              {/* Sources presets are now in the header for global visibility */}
-            </div>
-            <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1.5">
-              {imageGroups.flat().map((img, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: idx * 0.05 }}
-                  className="relative group"
-                >
-                  {img.url && (
-                    <img
-                      src={img.url}
-                      alt={img.label || `Image ${idx + 1}`}
-                      className="w-full h-12 object-cover rounded border cursor-zoom-in"
-                      onClick={() => {
-                        setLightboxSrc(img.url!);
-                        setLightboxAlt(img.label || `Image ${idx + 1}`);
-                        setLightboxOpen(true);
-                      }}
-                    />
-                  )}
-                  <div className="pointer-events-none absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center">
-                    <div className="text-white text-center p-1">
-                      {img.label && (
-                        <p className="text-xs font-medium truncate">{img.label}</p>
-                      )}
-                      {img.score && (
-                        <Badge variant="secondary" className="mt-1 text-xs">
-                          {img.score.toFixed(2)}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
       <ImageLightbox
         open={lightboxOpen}
         src={lightboxSrc}

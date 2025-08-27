@@ -71,15 +71,47 @@ yarn gen:sdk && yarn gen:zod
 
 ## Chat API (SSE)
 - Route: `POST /api/chat`
-- Body:
+- Request body:
   ```json
   {
     "message": "Explain this",
-    "images": [{ "image_url": "http://localhost:9000/documents/images/...png" }],
-    "systemPrompt": "You are a helpful assistant"
+    "k": 5,
+    "toolCallingEnabled": true
   }
   ```
-- Response: `text/event-stream` of OpenAI Responses events. The UI consumes this stream to render the assistant message progressively.
+- Response: `text/event-stream` (SSE). Events include:
+  - `response.output_text.delta` — incremental assistant text tokens `{ event, data: { delta: string } }`
+  - `kb.images` — visual citations used by the model `{ event, data: { items: [{ image_url, label, score }] } }`
+  - Other OpenAI event passthroughs are sent with `{ event: <type>, data: <raw> }` and are ignored by the UI
+
+Notes:
+
+- When tool calling is disabled, the backend performs document search unconditionally and emits `kb.images` if results exist. When tool calling is enabled, `kb.images` is emitted only if the model actually calls the `document_search` tool.
+- The UI listens for `kb.images` and shows a glowing "Visual citations included" chip; clicking scrolls to the gallery.
+
+## Tool calling & visual citations
+
+When are images emitted?
+
+- Tools OFF (disabled)
+  - Backend always runs document search before answering
+  - Emits `kb.images` if results exist
+
+- Tools ON (enabled)
+  - Backend exposes the `document_search` tool to the model
+  - Emits `kb.images` only if the model called the tool and images were attached
+
+Testing
+
+1) Visit `/chat`
+2) Toggle Tool Calling in the settings chip
+3) OFF: ask a grounded question (e.g. "What are the key risks?") and observe the citations chip + gallery
+4) ON: ask a retrieval question to induce a tool call (e.g. "Find diagrams about AI architecture"). Also try a generic question where the tool is not needed — no images should appear
+
+Deterministic behavior
+
+- Disable tools via the UI or set `localStorage['tool-calling-enabled'] = 'false'`
+- Adjust top‑K via the K control (persists to `localStorage['k']`)
 
 ## Docker/Compose
 - The repo root `docker-compose.yml` includes a `frontend` service (Next.js on 3000).

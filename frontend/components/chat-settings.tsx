@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { SlidersHorizontal } from "lucide-react";
 import { kSchema } from "@/lib/validation/chat";
+import { Switch } from "@/components/ui/switch";
 
 export interface ChatSettingsProps {
   k: number;
@@ -16,9 +17,11 @@ export interface ChatSettingsProps {
   loading?: boolean;
   className?: string;
   onValidityChange?: (valid: boolean) => void;
+  toolCallingEnabled?: boolean;
+  setToolCallingEnabled?: (v: boolean) => void;
 }
 
-export function ChatSettings({ k, setK, loading, className, onValidityChange }: ChatSettingsProps) {
+export function ChatSettings({ k, setK, loading, className, onValidityChange, toolCallingEnabled, setToolCallingEnabled }: ChatSettingsProps) {
   const [open, setOpen] = React.useState(false);
 
   // Slider always enforces bounds; always valid
@@ -47,7 +50,21 @@ export function ChatSettings({ k, setK, loading, className, onValidityChange }: 
 
             <Separator className="my-2" />
 
-            <div className="space-y-3">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label htmlFor="tool-calling" className="text-sm font-medium">Tool calling</Label>
+                  <p className="text-xs text-muted-foreground">When disabled, the assistant will always use the knowledge base (no tool calls).</p>
+                </div>
+                <Switch
+                  id="tool-calling"
+                  checked={toolCallingEnabled}
+                  onCheckedChange={(v) => setToolCallingEnabled?.(!!v)}
+                  disabled={!!loading}
+                  aria-label="Enable tool calling"
+                />
+              </div>
+
               <div>
                 <Label htmlFor="k-slider" className="text-sm font-medium">Sources</Label>
                 <div className="mt-4">

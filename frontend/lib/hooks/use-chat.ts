@@ -1,17 +1,16 @@
 // frontend/lib/hooks/use-chat.ts
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import {
   chatRequest,
-  searchDocuments,
   streamAssistant,
-  type RetrievedImage,
 } from '@/lib/api/chat'
 import { kSchema, messageSchema } from '@/lib/validation/chat'
 
 export type ChatMessage = {
+  id: string
   role: 'user' | 'assistant'
   content: string
 }
@@ -21,6 +20,7 @@ export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [timeToFirstTokenMs, setTimeToFirstTokenMs] = useState<number | null>(null)
   const [k, setK] = useState<number>(() => {
     if (typeof window === 'undefined') return 5
     const saved = localStorage.getItem('k')
@@ -28,9 +28,27 @@ export function useChat() {
     // Validate persisted value using schema bounds; fallback to default 5
     return Number.isFinite(parsed) && kSchema.safeParse(parsed).success ? parsed : 5
   })
+  const [toolCallingEnabled, setToolCallingEnabled] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true
+    try {
+      const saved = localStorage.getItem('tool-calling-enabled')
+      if (saved === null) return true
+      return saved === 'true'
+    } catch {
+      return true
+    }
+  })
   const [imageGroups, setImageGroups] = useState<
     Array<{ url: string | null; label: string | null; score: number | null }>[
-  ]>([])
+    ]>([])
+  // Keep all images keyed by assistant message id to avoid mixing across turns
+  const imagesByMessageRef = useRef<Record<string, Array<{ url: string | null; label: string | null; score: number | null }>>>({})
+  const currentAssistantIdRef = useRef<string | null>(null)
+
+  const genId = () =>
+    (typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? (crypto as any).randomUUID()
+      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`)
 
   // Validation schemas are imported from shared module
 
@@ -41,8 +59,14 @@ export function useChat() {
   useEffect(() => {
     try {
       localStorage.setItem('k', String(k))
-    } catch {}
+    } catch { }
   }, [k])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('tool-calling-enabled', String(toolCallingEnabled))
+    } catch { }
+  }, [toolCallingEnabled])
 
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault()
@@ -57,73 +81,77 @@ export function useChat() {
       return
     }
 
-    const userMsg: ChatMessage = { role: 'user', content: text }
+    const userMsg: ChatMessage = { id: genId(), role: 'user', content: text }
     const nextHistory: ChatMessage[] = [...messages, userMsg]
     setInput('')
     setError(null)
-
-    // Determine effective K (from slider), then validate
-    // Compute effectiveK separately to handle failures distinctly
-    let retrievedImages: RetrievedImage[] = []
-    try {
-      const effectiveK = k
-      // Validate k (align with ChatSettings upper bound 25)
-      const kParse = kSchema.safeParse(effectiveK)
-      if (!kParse.success) {
-        const msg = 'Number of sources must be between 1 and 25'
-        setError(msg)
-        toast.error('Invalid sources selection', { description: msg })
-        return
-      }
-
-      // Only set loading after validation passes
-      setLoading(true)
-
-      const searchData = await searchDocuments(text, kParse.data)
-      retrievedImages = searchData || []
-      const group = retrievedImages.map((img) => ({
-        url: img.image_url ?? null,
-        label: img.label ?? null,
-        score: typeof img.score === 'number' ? img.score : null,
-      }))
-      setImageGroups([group])
-    } catch (e) {
-      // non-fatal
-      console.warn('Image retrieval failed:', e)
-    }
-
-    const basePrompt =
-      process.env.NEXT_PUBLIC_OPENAI_SYSTEM_PROMPT ||
-      "You are a helpful PDF assistant. Use only the provided page images to answer the user's question. If the answer isn't contained in the pages, say you cannot find it. Be concise and always mention from which pages the answer is taken."
-
-    const systemPrompt = `${basePrompt}
-
-[Retrieved pages]
-${retrievedImages.map((img, idx) => `Page ${idx + 1}: ${img.label || 'Unlabeled'}`).join('\n')}
-
-Cite pages using the labels above (do not infer by result order).`
+    // reset previous visual citations for new request
+    setImageGroups([])
+    // Reset current assistant association
+    currentAssistantIdRef.current = null
+    // Mark as loading so UI shows thinking bubble until first token arrives
+    setLoading(true)
+    setTimeToFirstTokenMs(null)
 
     try {
-      // Always stream responses
-      setMessages([...nextHistory, { role: 'assistant', content: '' }])
+      const start = performance.now()
+      const assistantId = genId()
+      currentAssistantIdRef.current = assistantId
+      setMessages([...nextHistory, { id: assistantId, role: 'assistant', content: '' }])
       const res = await chatRequest({
         message: text,
-        images: retrievedImages,
-        systemPrompt,
-        stream: true,
+        k: k,
+        toolCallingEnabled,
       })
 
       let assistantText = ''
+
       await streamAssistant(res, (delta) => {
         assistantText += delta
         setMessages((curr) => {
           if (curr.length === 0) return curr
-        	const updated = [...curr]
-          updated[updated.length - 1] = { role: 'assistant', content: assistantText }
+          const updated = [...curr]
+          // Preserve the assistant message id while updating content
+          updated[updated.length - 1] = {
+            ...updated[updated.length - 1],
+            content: assistantText,
+          }
           return updated
         })
+      }, () => {
+        // first streamed token has arrived
+        setTimeToFirstTokenMs(performance.now() - start)
+      }, (items) => {
+        // Populate from SSE regardless of tool setting; server only emits when images are actually used
+        const mapped = (Array.isArray(items) ? items : []).map((it) => ({
+          url: (it as any).image_url ?? null,
+          label: (it as any).label ?? null,
+          score: typeof (it as any).score === 'number' ? (it as any).score : null,
+        }))
+        if (mapped.length > 0) {
+          const msgId = currentAssistantIdRef.current
+          if (!msgId) {
+            // No assistant context; ignore defensively
+            return
+          }
+          const prev = imagesByMessageRef.current[msgId] || []
+          // append + dedupe by url
+          const combined = [...prev, ...mapped]
+          const seen = new Set<string>()
+          const deduped: Array<{ url: string | null; label: string | null; score: number | null }> = []
+          for (const it of combined) {
+            const key = it.url || ''
+            if (key && !seen.has(key)) {
+              seen.add(key)
+              deduped.push(it)
+            }
+          }
+          imagesByMessageRef.current[msgId] = deduped
+          // Expose only the current assistant turn's images to the UI
+          setImageGroups([deduped])
+        }
       })
-      toast.success('Response received')
+      
     } catch (err: unknown) {
       let errorMsg = 'Streaming failed'
       if (err instanceof Error) errorMsg = err.message
@@ -150,12 +178,15 @@ Cite pages using the labels above (do not infer by result order).`
     messages,
     loading,
     error,
+    timeToFirstTokenMs,
     k,
+    toolCallingEnabled,
     imageGroups,
     isSettingsValid,
     // setters
     setInput,
     setK,
+    setToolCallingEnabled,
     // actions
     sendMessage,
   }

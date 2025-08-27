@@ -18,6 +18,8 @@ export interface ChatInputBarProps {
   onSubmit: (e: React.FormEvent) => void;
   k: number;
   setK: (k: number) => void;
+  toolCallingEnabled: boolean;
+  setToolCallingEnabled: (v: boolean) => void;
 }
 
 export default function ChatInputBar({
@@ -31,6 +33,8 @@ export default function ChatInputBar({
   onSubmit,
   k,
   setK,
+  toolCallingEnabled,
+  setToolCallingEnabled,
 }: ChatInputBarProps) {
   return (
     <form onSubmit={onSubmit} className="flex gap-3 items-center">
@@ -56,6 +60,8 @@ export default function ChatInputBar({
               setK={setK}
               loading={loading}
               onValidityChange={setUiSettingsValid}
+              toolCallingEnabled={toolCallingEnabled}
+              setToolCallingEnabled={setToolCallingEnabled}
             />
           </div>
         </TooltipTrigger>

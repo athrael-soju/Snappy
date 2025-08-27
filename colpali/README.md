@@ -54,3 +54,7 @@ Visit:
 ## Notes
 - If a model is gated, authenticate with Hugging Face or set appropriate env vars; the current model is public but large downloads can take time.
 - GPU build requires NVIDIA Container Toolkit.
+
+## Integration with chat & visual citations
+
+This service provides query/image embeddings consumed by the backend search (`GET /search`). The Next.js chat route (`frontend/app/api/chat/route.ts`) may perform a document search and, when images are used by the model, emits a `kb.images` Server‑Sent Event to the browser. The UI displays a "Visual citations included" chip and an image gallery accordingly.
