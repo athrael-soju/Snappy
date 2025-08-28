@@ -65,3 +65,7 @@ docker compose up -d --build
 - `GET /search?q=...&k=5`
 - `POST /index` (multipart files[])
 - `POST /clear/qdrant`, `/clear/minio`, `/clear/all`
+
+## Chat and visual citations (context)
+
+The chat streaming endpoint is implemented in the frontend at `frontend/app/api/chat/route.ts` using the OpenAI Responses API. It may perform document search via this backend's `GET /search` and, when images are used, the frontend emits a custom SSE event `kb.images` to the browser. The UI shows a glowing "Visual citations included" chip and an image gallery when such events are received.

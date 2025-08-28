@@ -21,9 +21,8 @@ export async function searchDocuments(query: string, k: number): Promise<Retriev
 
 export type ChatRequest = {
   message: string
-  images: RetrievedImage[]
-  systemPrompt: string
-  stream: boolean
+  k: number
+  toolCallingEnabled: boolean
 }
 
 export async function chatRequest(req: ChatRequest): Promise<Response> {
@@ -36,7 +35,9 @@ export async function chatRequest(req: ChatRequest): Promise<Response> {
 
 export async function streamAssistant(
   res: Response,
-  onDelta: (chunk: string) => void
+  onDelta: (chunk: string) => void,
+  onFirstChunk?: () => void,
+  onKbImages?: (items: Array<{ image_url?: string | null; label?: string | null; score?: number | null }>) => void
 ): Promise<void> {
   if (!res.ok || !res.body) {
     throw new Error(`Failed to stream chat: ${res.status}`)
@@ -45,6 +46,7 @@ export async function streamAssistant(
   const reader = res.body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
+  let firstEmitted = false
   while (true) {
     const { done, value } = await reader.read()
     if (done) break
@@ -66,7 +68,14 @@ export async function streamAssistant(
           const eventType = payload?.event
           const data = payload?.data
           if (eventType === 'response.output_text.delta' && data?.delta) {
+            if (!firstEmitted) {
+              firstEmitted = true
+              onFirstChunk?.()
+            }
             onDelta(String(data.delta))
+          } else if (eventType === 'kb.images') {
+            const items = Array.isArray(data?.items) ? data.items : []
+            onKbImages?.(items)
           }
         } catch {
           // ignore malformed event

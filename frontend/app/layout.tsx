@@ -35,18 +35,18 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased relative min-h-screen`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased relative h-screen flex flex-col overflow-hidden`}
       >
         {/* Site-wide background gradient */}
         <div className="absolute inset-0 bg-gradient-to-b from-blue-50/50 via-purple-50/30 to-cyan-50/50" />
 
         {/* Foreground content */}
-        <div className="relative z-10">
+        <div className="relative z-10 flex flex-col flex-1 min-h-0">
           <NextTopLoader showSpinner={false} />
           <Toaster richColors closeButton position="top-right" />
           <TooltipProvider>
             <Nav />
-            <main className="mx-auto max-w-6xl p-4 sm:p-6">
+            <main className="flex-1 min-h-0 mx-auto max-w-6xl w-full p-4 sm:p-6 flex flex-col">
               {children}
             </main>
           </TooltipProvider>
