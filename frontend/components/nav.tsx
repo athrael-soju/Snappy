@@ -24,11 +24,11 @@ export function Nav() {
   const [open, setOpen] = useState(false);
   return (
     <header className="w-full border-b bg-gradient-to-r from-blue-50/80 via-purple-50/60 to-cyan-50/80 backdrop-blur-xl supports-[backdrop-filter]:bg-gradient-to-r supports-[backdrop-filter]:from-blue-50/60 supports-[backdrop-filter]:via-purple-50/40 supports-[backdrop-filter]:to-cyan-50/60 sticky top-0 z-50 shadow-lg border-blue-200/20">
-      <nav className="mx-auto max-w-6xl flex items-center justify-between gap-4 px-6 py-4">
+      <nav className="mx-auto max-w-7xl flex items-center justify-between gap-4 px-6 py-4">
         <div className="flex items-center gap-3">
           <Link
             href="/"
-            className="flex items-center gap-3 font-bold text-xl tracking-tight hover:opacity-80 transition-all duration-300 hover:scale-105 group"
+            className="flex items-center gap-3 font-bold text-2xl tracking-tight hover:opacity-80 transition-all duration-300 hover:scale-105 group"
           >
             <Image
               src="/favicon.png"
@@ -54,14 +54,14 @@ export function Nav() {
                   aria-label={link.label}
                   aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 hover:scale-105 relative group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                  "flex items-center gap-2 px-4 py-2.5 rounded-xl text-base font-medium transition-all duration-300 hover:scale-105 relative group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                   active
                     ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg hover:shadow-xl"
                     : "text-muted-foreground hover:text-foreground hover:bg-white/60 hover:shadow-md border border-transparent hover:border-blue-200/50"
                 )}
                 >
-                <Icon className={cn("w-4 h-4 relative z-10 transition-colors duration-300", active ? "text-white" : link.color)} />
-                <span className={cn("hidden sm:inline relative z-10 transition-colors duration-300", active ? "text-white font-semibold" : "")}>
+                <Icon className={cn("w-6 h-6 relative z-10 transition-colors duration-300", active ? "text-white" : link.color)} />
+                <span className={cn("hidden sm:inline relative z-10 transition-colors duration-300", active ? "text-white font-semibold" : "")}> 
                   {link.label}
                 </span>
                 </Link>

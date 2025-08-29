@@ -17,7 +17,7 @@ type ActionType = "q" | "m" | "all";
 const actions = [
   {
     id: "q" as ActionType,
-    title: "Clear Vector Database",
+    title: "Clear Vector DB",
     description: "Remove all document embeddings from Qdrant vector store",
     detailedDescription: "This action will permanently delete all document embeddings and search indices. You'll need to re-upload and re-index your documents.",
     icon: Database,
@@ -32,7 +32,7 @@ const actions = [
   },
   {
     id: "m" as ActionType,
-    title: "Clear Object Storage",
+    title: "Clear Object Store",
     description: "Remove all uploaded images from MinIO storage bucket",
     detailedDescription: "This action will delete all stored images and file uploads. Original documents will be lost and cannot be recovered.",
     icon: Server,
@@ -253,7 +253,7 @@ export default function MaintenancePage() {
                             ) : (
                               <>
                                 <Icon className="w-4 h-4 mr-2" />
-                              Confirm {action.title}
+                              Confirm
                               </>
                             )}
                           </Button>
