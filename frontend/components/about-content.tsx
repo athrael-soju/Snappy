@@ -167,7 +167,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
 
       {/* Next-step CTAs */}
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-        <Button asChild className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+        <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90">
           <Link href="/upload" onClick={() => onClose?.()}>Start by uploading a file</Link>
         </Button>
         <Button asChild variant="outline">

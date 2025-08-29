@@ -162,18 +162,18 @@ export default function ChatPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-lg border border-purple-500/20">
-            <Brain className="w-6 h-6 text-purple-500" />
+          <div className="p-2 bg-gradient-to-br from-[var(--color-accent)]/10 to-[var(--color-ring)]/10 rounded-lg border border-[var(--color-accent)]/20">
+            <Brain className="w-6 h-6 text-[var(--color-accent)]" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">AI Chat</h1>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-ring)] bg-clip-text text-transparent">AI Chat</h1>
             <p className="text-muted-foreground text-lg">Ask questions about your documents and get AI-powered responses with visual citations</p>
           </div>
         </div>
       </div>
 
       {/* Chat Messages */}
-      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-2 border-purple-100/50 shadow-lg">
+      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-2 border-border/50 shadow-lg">
         <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4">
           <AnimatePresence mode="popLayout">
             {messages.length === 0 ? (
@@ -182,10 +182,10 @@ export default function ChatPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 className="flex flex-col items-center justify-center h-full text-center py-12"
               >
-                <div className="w-20 h-20 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-full flex items-center justify-center mb-6 border border-purple-500/20">
-                  <Brain className="w-10 h-10 text-purple-500" />
+                <div className="w-20 h-20 bg-gradient-to-br from-[var(--color-accent)]/10 to-[var(--color-ring)]/10 rounded-full flex items-center justify-center mb-6 border border-[var(--color-accent)]/20">
+                  <Brain className="w-10 h-10 text-[var(--color-accent)]" />
                 </div>
-                <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Start Your AI Conversation</h3>
+                <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-ring)] bg-clip-text text-transparent">Start Your AI Conversation</h3>
                 <p className="text-muted-foreground max-w-lg mb-8 text-lg leading-relaxed">
                   Ask questions about your uploaded documents and get intelligent responses with visual proof from your content.
                 </p>
@@ -238,11 +238,11 @@ export default function ChatPage() {
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <div className="p-1 bg-purple-100 rounded">
-                      <ImageIcon className="h-4 w-4 text-purple-600" />
+                    <div className="p-1 bg-[var(--color-accent)]/15 rounded">
+                      <ImageIcon className="h-4 w-4 text-[var(--color-accent)]" />
                     </div>
                     <span className="text-sm font-medium">Visual Citations</span>
-                    <Badge variant="secondary" className="bg-purple-100 text-purple-800">{imageGroups.flat().length} sources</Badge>
+                    <Badge variant="secondary" className="bg-[var(--color-accent)]/15 text-foreground">{imageGroups.flat().length} sources</Badge>
                   </div>
                 </div>
                 <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1.5">
@@ -266,7 +266,7 @@ export default function ChatPage() {
                           }}
                         />
                       )}
-                      <div className="pointer-events-none absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center">
+                      <div className="pointer-events-none absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center">
                         <div className="text-white text-center p-1">
                           {img.label && (
                             <p className="text-xs font-medium truncate">{img.label}</p>
@@ -288,7 +288,7 @@ export default function ChatPage() {
         </div>
 
         {/* Input Form */}
-        <div className="border-t border-purple-100/50 p-4 bg-gradient-to-r from-purple-50/30 to-pink-50/30">
+        <div className="border-t border-border/50 p-4 bg-gradient-to-r from-[var(--color-card)]/30 to-[var(--color-background)]/30">
           <ChatInputBar
             input={input}
             setInput={setInput}
@@ -307,7 +307,7 @@ export default function ChatPage() {
           {/* Tips below input */}
           <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-purple-500" />
+              <Sparkles className="w-3 h-3 text-[var(--color-accent)]" />
               <span>AI-powered responses</span>
             </div>
             <button
@@ -316,21 +316,21 @@ export default function ChatPage() {
                 if (imagesSectionRef.current) {
                   imagesSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
                   // Briefly flash focus ring for visibility
-                  imagesSectionRef.current.classList.add('ring-2', 'ring-pink-400');
-                  setTimeout(() => imagesSectionRef.current?.classList.remove('ring-2', 'ring-pink-400'), 1200);
+                  imagesSectionRef.current.classList.add('ring-2', 'ring-[var(--color-ring)]');
+                  setTimeout(() => imagesSectionRef.current?.classList.remove('ring-2', 'ring-[var(--color-ring)]'), 1200);
                 }
               }}
-              className={`flex items-center gap-1 rounded px-2 py-1 transition-shadow focus:outline-none focus:ring-2 focus:ring-pink-400 ${
+              className={`flex items-center gap-1 rounded px-2 py-1 transition-shadow focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] ${
                 imageGroups.length > 0
-                  ? 'bg-pink-50/60 text-foreground shadow-sm animate-pulse hover:animate-none'
+                  ? 'bg-[var(--color-accent)]/10 text-foreground shadow-sm animate-pulse hover:animate-none'
                   : ''
               }`}
               title={imageGroups.length > 0 ? 'Click to view retrieved images' : 'Will appear when images are retrieved'}
             >
-              <ImageIcon className="w-3 h-3 text-pink-500" />
+              <ImageIcon className="w-3 h-3 text-[var(--color-ring)]" />
               <span>Visual citations included</span>
               {imageGroups.length > 0 && (
-                <Badge variant="secondary" className="ml-1 bg-pink-100 text-pink-800">
+                <Badge variant="secondary" className="ml-1 bg-[var(--color-accent)]/15 text-foreground">
                   {imageGroups.flat().length}
                 </Badge>
               )}

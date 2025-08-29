@@ -109,7 +109,7 @@ export default function Home() {
             <Button
               asChild
               size="lg"
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 h-14 px-8 text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-8 text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
             >
               <Link href="/upload">
                 Start with Your Documents
@@ -118,7 +118,7 @@ export default function Home() {
 
             <div className="text-sm text-muted-foreground">
               or
-              <Link href="/search" className="ml-2 text-blue-600 hover:text-blue-700 font-medium hover:underline">
+              <Link href="/search" className="ml-2 text-primary hover:text-primary/90 font-medium hover:underline">
                 explore with search →
               </Link>
             </div>

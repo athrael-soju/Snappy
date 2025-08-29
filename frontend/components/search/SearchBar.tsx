@@ -30,7 +30,7 @@ export default function SearchBar({ q, setQ, loading, onSubmit, k, setK }: Searc
               required
               disabled={loading}
               aria-label="Search query"
-              className="text-base sm:text-lg pl-14 h-14 sm:h-16 rounded-2xl border-2 shadow-md bg-white placeholder:text-muted-foreground/80 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:border-blue-500 focus:shadow-lg"
+              className="text-base sm:text-lg pl-14 h-14 sm:h-16 rounded-2xl border-2 shadow-md bg-card placeholder:text-muted-foreground/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring focus:shadow-lg"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -53,7 +53,7 @@ export default function SearchBar({ q, setQ, loading, onSubmit, k, setK }: Searc
               type="submit"
               disabled={loading || !q.trim()}
               size="lg"
-              className="h-14 px-8 rounded-2xl bg-gradient-to-r from-blue-700 to-cyan-700 hover:from-blue-800 hover:to-cyan-800 text-white focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow"
+              className="h-14 px-8 rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-2 focus:ring-offset-2 focus:ring-ring shadow"
             >
               {loading ? (
                 <>

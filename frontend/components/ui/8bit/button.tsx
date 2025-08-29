@@ -1,6 +1,3 @@
-"use client";
-
-import * as React from "react";
 import { type VariantProps, cva } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
@@ -22,7 +19,6 @@ export const buttonVariants = cva("", {
       secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
       ghost: "hover:bg-accent hover:text-accent-foreground",
       link: "text-primary underline-offset-4 hover:underline",
-      success: "bg-green-600 text-white hover:bg-green-700",
     },
     size: {
       default: "h-9 px-4 py-2 has-[>svg]:px-3",
@@ -46,16 +42,6 @@ export interface BitButtonProps
 
 function Button({ children, asChild, ...props }: BitButtonProps) {
   const { variant, size, className, font } = props;
-  // ShadcnButton doesn't know about our custom 'success' variant.
-  // Map it to a supported base variant while keeping our custom styles via className.
-  const shadcnVariant = (variant === "success" ? "default" : variant) as
-    | "default"
-    | "destructive"
-    | "outline"
-    | "secondary"
-    | "ghost"
-    | "link"
-    | undefined;
 
   return (
     <ShadcnButton
@@ -66,7 +52,7 @@ function Button({ children, asChild, ...props }: BitButtonProps) {
         className
       )}
       size={size}
-      variant={shadcnVariant}
+      variant={variant}
       asChild={asChild}
     >
       {asChild ? (

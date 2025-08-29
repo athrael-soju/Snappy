@@ -40,12 +40,28 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${pixel.variable} antialiased relative h-screen flex flex-col overflow-hidden text-[15px] sm:text-base`}
       >
-        {/* Site-wide background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-b from-blue-50/50 via-purple-50/30 to-cyan-50/50" />
+        {/* Pre-paint theme setter to prevent FOUC */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+            (function(){
+              try {
+                const ls = localStorage.getItem('theme');
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const shouldDark = ls ? ls === 'dark' : prefersDark;
+                const root = document.documentElement;
+                if (shouldDark) root.classList.add('dark'); else root.classList.remove('dark');
+              } catch (e) {}
+            })();
+          `,
+          }}
+        />
+        {/* Site-wide background gradient using theme variables */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-card)] via-[var(--color-background)] to-[var(--color-card)]" />
 
         {/* Foreground content */}
         <div className="relative z-10 flex flex-col flex-1 min-h-0">

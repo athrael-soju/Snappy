@@ -176,7 +176,7 @@ export default function UploadPage() {
                   <Button 
                     type="button" 
                     variant="outline" 
-                    className="h-12 border-dashed hover:border-blue-400 hover:bg-blue-50/50"
+                    className="h-12 border-dashed hover:border-ring hover:bg-accent/10"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
                   >
@@ -250,7 +250,7 @@ export default function UploadPage() {
               <Button 
                 type="submit" 
                 disabled={uploading || !hasFiles}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 h-12"
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12"
                 size="lg"
               >
                 {uploading ? (
