@@ -56,9 +56,9 @@ export default function ThemeToggle() {
           className="group transition-transform hover:scale-105"
         >
           {isDark ? (
-            <Moon className="w-5 h-5 text-[var(--color-primary)] transition-colors duration-300 group-hover:text-[var(--color-ring)]" />
+            <Moon className="w-5 h-5 text-primary transition-colors duration-300 group-hover:text-ring" />
           ) : (
-            <Sun className="w-5 h-5 text-[var(--color-primary)] transition-colors duration-300 group-hover:text-[var(--color-ring)]" />
+            <Sun className="w-5 h-5 text-primary transition-colors duration-300 group-hover:text-ring" />
           )}
           <span className="sr-only">Toggle theme</span>
         </Button>

@@ -14,11 +14,11 @@ import ThemeToggle from "@/components/theme-toggle";
 import ProfileCard from "@/components/profile-card";
 
 const links = [
-  { href: "/", label: "Home", icon: Home, color: "text-[var(--color-primary)]" },
-  { href: "/search", label: "Search", icon: Eye, color: "text-[var(--color-primary)]" },
-  { href: "/upload", label: "Upload", icon: CloudUpload, color: "text-[var(--color-primary)]" },
-  { href: "/chat", label: "Chat", icon: Brain, color: "text-[var(--color-accent)]" },
-  { href: "/maintenance", label: "Maintenance", icon: Shield, color: "text-[var(--color-destructive)]" },
+  { href: "/", label: "Home", icon: Home, color: "text-primary" },
+  { href: "/search", label: "Search", icon: Eye, color: "text-primary" },
+  { href: "/upload", label: "Upload", icon: CloudUpload, color: "text-primary" },
+  { href: "/chat", label: "Chat", icon: Brain, color: "text-accent" },
+  { href: "/maintenance", label: "Maintenance", icon: Shield, color: "text-destructive" },
 ];
 
 export function Nav() {
@@ -41,7 +41,7 @@ export function Nav() {
               className="transition-all duration-300 group-hover:rotate-3"
               priority
             />
-            <span className="bg-gradient-to-r from-[var(--color-primary)] via-[var(--color-accent)] to-[var(--color-ring)] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-primary via-accent to-ring bg-clip-text text-transparent">
               FastAPI / Next.js / ColPali Template
             </span>
           </Link>
@@ -57,14 +57,14 @@ export function Nav() {
                 aria-label={link.label}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2.5 rounded-xl text-base font-medium transition-all duration-300 hover:scale-105 relative group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                  "flex items-center gap-2 px-4 py-2.5 rounded-xl text-base font-medium transition-all duration-300 hover:scale-105 relative group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                   active
-                    ? "bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] text-[var(--color-primary-foreground)] shadow-lg hover:shadow-xl"
-                    : "text-muted-foreground hover:text-foreground hover:bg-card/60 hover:shadow-md border border-transparent hover:border-[var(--color-border)]/50"
+                    ? "bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg hover:shadow-xl"
+                    : "text-muted-foreground hover:text-foreground hover:bg-card/60 hover:shadow-md border border-transparent hover:border-border/50"
                 )}
               >
-                <Icon className={cn("w-6 h-6 relative z-10 transition-colors duration-300", active ? "text-[var(--color-primary-foreground)]" : link.color)} />
-                <span className={cn("hidden sm:inline relative z-10 transition-colors duration-300", active ? "text-[var(--color-primary-foreground)] font-semibold" : "")}>
+                <Icon className={cn("w-6 h-6 relative z-10 transition-colors duration-300", active ? "text-primary-foreground" : link.color)} />
+                <span className={cn("hidden sm:inline relative z-10 transition-colors duration-300", active ? "text-primary-foreground font-semibold" : "")}>
                   {link.label}
                 </span>
               </Link>
@@ -81,7 +81,7 @@ export function Nav() {
                     aria-label="About this template"
                     className="group transition-transform hover:scale-105"
                   >
-                    <HelpCircle className="w-5 h-5 text-[var(--color-accent)] transition-colors duration-300 group-hover:text-[var(--color-ring)]" />
+                    <HelpCircle className="w-5 h-5 text-accent transition-colors duration-300 group-hover:text-ring" />
                     <span className="sr-only">About this template</span>
                   </Button>
                 </DialogTrigger>
@@ -106,7 +106,7 @@ export function Nav() {
                     aria-label="Open profile"
                     className="group transition-transform hover:scale-105"
                   >
-                    <User className="w-6 h-6 text-[var(--color-primary)] transition-colors duration-300 group-hover:text-[var(--color-ring)]" />
+                    <User className="w-6 h-6 text-primary transition-colors duration-300 group-hover:text-ring" />
                     <span className="sr-only">Open profile</span>
                   </Button>
                 </DialogTrigger>
