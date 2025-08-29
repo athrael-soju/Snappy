@@ -68,9 +68,9 @@ const itemVariants = {
 
 export default function Home() {
   return (
-    <div className="space-y-16 pb-16">
+    <div className="space-y-12 pb-12">
       {/* Hero Section */}
-      <section className="text-center py-16 sm:py-24 relative overflow-hidden">
+      <section className="text-center py-12 sm:py-16 relative overflow-hidden">
         {/* Background decoration */}
         <div className="absolute inset-0">
           <div className="absolute top-20 left-20 w-32 h-32 bg-blue-200/20 rounded-full blur-xl" />
@@ -85,31 +85,36 @@ export default function Home() {
           className="max-w-5xl mx-auto relative z-10"
         >
           <div className="mb-6">
-            <Badge variant="secondary" className="mb-4 px-4 py-2 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border-blue-200">
+            <Badge variant="secondary" className="mb-4 px-3 py-1 bg-gradient-to-r from-primary/10 to-accent/10 text-primary border-primary/20">
               <Sparkles className="w-4 h-4 mr-2" />
               Powered by the ColPali Vision
             </Badge>
           </div>
 
-          <h1 className="text-5xl sm:text-7xl font-bold mb-8">
-            <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">
-              FastAPI / Next.js / ColPali Template
+          <h1 className="text-4xl sm:text-6xl font-bold mb-6">
+            <span className="bg-gradient-to-r from-primary via-accent to-ring bg-clip-text text-transparent">
+              FastAPI / Next.js / ColPali
+            </span>
+            <br />
+            <span className="bg-gradient-to-r from-primary via-accent to-ring bg-clip-text text-transparent">
+              Template
             </span>
           </h1>
 
-          <p className="text-xl sm:text-2xl text-muted-foreground mb-4 max-w-3xl mx-auto leading-relaxed">
-            A lightweight, end-to-end template for knowledge retrieval, using ColPali
+          <p className="text-lg sm:text-xl text-muted-foreground mb-3 max-w-2xl mx-auto leading-relaxed">
+            A lightweight, end-to-end template for knowledge retrieval using
+            <br />ColPali
           </p>
-          <p className="text-lg text-muted-foreground mb-12 max-w-2xl mx-auto">
+          <p className="text-base text-muted-foreground mb-8 max-w-xl mx-auto">
             Upload documents, search using natural language, and chat with an AI assistant
           </p>
 
           {/* Single primary CTA */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center mb-8">
             <Button
               asChild
               size="lg"
-              className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-8 text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-6 text-base font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 retro"
             >
               <Link href="/upload">
                 Start with Your Documents
@@ -129,21 +134,21 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.3 }}
-            className="flex justify-center items-center gap-8 text-sm text-muted-foreground"
+            className="flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-6 text-sm text-muted-foreground"
           >
             {workflow.map((step, idx) => {
               const StepIcon = step.icon;
               return (
                 <div key={idx} className="flex items-center gap-2">
-                  <div className={`p-2 rounded-full bg-white border-2 ${step.color.replace('text-', 'border-').replace('-600', '-200')}`}>
-                    <StepIcon className={`w-4 h-4 ${step.color}`} />
+                  <div className={`p-2 rounded bg-card border-2 border-border shadow-sm ${step.color}`}>
+                    <StepIcon className={`w-4 h-4`} />
                   </div>
                   <div className="text-left">
-                    <div className="font-medium text-foreground">{step.title}</div>
+                    <div className="font-medium text-foreground text-sm">{step.title}</div>
                     <div className="text-xs">{step.description}</div>
                   </div>
                   {idx < workflow.length - 1 && (
-                    <ArrowRight className="w-4 h-4 text-muted-foreground/50 ml-4" />
+                    <ArrowRight className="w-4 h-4 text-muted-foreground/50 ml-2 hidden sm:block" />
                   )}
                 </div>
               );

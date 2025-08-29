@@ -6,7 +6,8 @@ import { Card } from "@/components/ui/8bit/card";
 import { Badge } from "@/components/ui/8bit/badge";
 // Removed Select in favor of a clearer segmented control
 import { Alert, AlertDescription } from "@/components/ui/8bit/alert";
-import { Image as ImageIcon, Sparkles, Brain, FileText, BarChart3, MessageSquare, Clock } from "lucide-react";
+import { ScrollArea } from "@/components/ui/8bit/scroll-area";
+import { Image as ImageIcon, Sparkles, Brain, FileText, BarChart3, MessageSquare, Clock, User, Loader2, Send, Eye } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ImageLightbox from "@/components/lightbox";
 import ChatInputBar from "@/components/chat/ChatInputBar";
@@ -157,42 +158,71 @@ export default function ChatPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="flex flex-col flex-1 min-h-0"
+      className="flex flex-col h-[calc(100vh-6rem)] max-w-5xl mx-auto"
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-br from-[var(--color-accent)]/10 to-[var(--color-ring)]/10 rounded-lg border border-[var(--color-accent)]/20">
-            <Brain className="w-6 h-6 text-[var(--color-accent)]" />
+      <div className="flex-shrink-0 space-y-4 mb-6">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-gradient-to-br from-accent/10 to-ring/10 rounded-lg border border-accent/20">
+            <Brain className="w-8 h-8 text-accent" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-ring)] bg-clip-text text-transparent">AI Chat</h1>
-            <p className="text-muted-foreground text-lg">Ask questions about your documents and get AI-powered responses with visual citations</p>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-accent to-ring bg-clip-text text-transparent">AI Chat</h1>
+            <p className="text-muted-foreground text-xl">Ask questions about your documents using natural language</p>
+          </div>
+        </div>
+
+        {/* Quick Stats */}
+        <div className="flex items-center gap-6 text-base text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-accent" />
+            <span>AI-powered responses</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <MessageSquare className="w-5 h-5 text-ring" />
+            <span>Context-aware conversations</span>
           </div>
         </div>
       </div>
 
       {/* Chat Messages */}
-      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-2 border-border/50 shadow-lg">
-        <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4">
-          <AnimatePresence mode="popLayout">
+      <div className="flex-1 overflow-hidden bg-gradient-to-b from-background to-muted/5 rounded-xl border border-border shadow-inner">
+        <div className="h-full p-6 overflow-y-auto">
+          <div className="space-y-6">
             {messages.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex flex-col items-center justify-center h-full text-center py-12"
-              >
-                <div className="w-20 h-20 bg-gradient-to-br from-[var(--color-accent)]/10 to-[var(--color-ring)]/10 rounded-full flex items-center justify-center mb-6 border border-[var(--color-accent)]/20">
-                  <Brain className="w-10 h-10 text-[var(--color-accent)]" />
+              <div className="flex flex-col items-center justify-center h-full py-16 text-center">
+                <div className="w-20 h-20 bg-gradient-to-br from-accent/10 to-ring/10 rounded-lg flex items-center justify-center mb-6 border border-accent/20">
+                  <Brain className="w-10 h-10 text-accent" />
                 </div>
-                <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-ring)] bg-clip-text text-transparent">Start Your AI Conversation</h3>
-                <p className="text-muted-foreground max-w-lg mb-8 text-lg leading-relaxed">
-                  Ask questions about your uploaded documents and get intelligent responses with visual proof from your content.
+                <h3 className="text-3xl font-semibold mb-4">Start a conversation</h3>
+                <p className="text-muted-foreground max-w-lg mb-8 text-xl leading-relaxed">
+                  Ask me anything about your uploaded documents. I can help you find information, summarize content, or answer specific questions.
                 </p>
 
                 {/* Starter Questions */}
-                <StarterQuestions questions={starterQuestions} onSelect={(t) => setInput(t)} />
-                <div className="mt-6 w-full max-w-2xl">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl">
+                  {starterQuestions.map((question, idx) => (
+                    <motion.button
+                      key={idx}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setInput(question.text)}
+                      className="p-6 text-left bg-card hover:bg-accent/5 rounded-lg border border-border hover:border-accent/30 transition-all duration-200 group"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="p-3 bg-accent/10 rounded border border-accent/20 group-hover:bg-accent/20 transition-colors">
+                          <question.icon className="w-5 h-5 text-accent" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-foreground mb-2 text-base leading-relaxed">{question.text}</div>
+                          <div className="text-sm text-muted-foreground">{question.category}</div>
+                        </div>
+                      </div>
+                    </motion.button>
+                  ))}
+                </div>
+
+                <div className="mt-8 w-full max-w-4xl">
                   <RecentSearchesChips
                     recentSearches={recentSearches}
                     visible
@@ -204,164 +234,66 @@ export default function ChatPage() {
                     }}
                   />
                 </div>
-              </motion.div>
-            ) : (
-              messages.map((message, idx) => (
-                <motion.div
-                  key={idx}
-                  variants={messageVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  className="mb-4 md:mb-5 last:mb-0"
-                >
-                  <Dialogue
-                    player={message.role === "assistant"}
-                    avatarFallback={message.role === "assistant" ? "AI" : "You"}
-                    title={message.role === "assistant" ? "AI Assistant" : "You"}
-                    description={message.content || (loading && message.role === "assistant" ? BRAIN_PLACEHOLDERS[brainIdx] : "")}
-                    className={cn(message.role !== "assistant" && "justify-end")}
-                  />
-                </motion.div>
-              ))
-            )}
-          </AnimatePresence>
-          {/* Retrieved Images inside the scroll area to avoid page overflow */}
-          <AnimatePresence>
-            {imageGroups.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="bg-muted/50 rounded-lg p-3 max-h-64 overflow-y-auto mt-3"
-                ref={imagesSectionRef}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1 bg-[var(--color-accent)]/15 rounded">
-                      <ImageIcon className="h-4 w-4 text-[var(--color-accent)]" />
-                    </div>
-                    <span className="text-sm font-medium">Visual Citations</span>
-                    <Badge variant="secondary" className="bg-[var(--color-accent)]/15 text-foreground">{imageGroups.flat().length} sources</Badge>
-                  </div>
-                </div>
-                <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1.5">
-                  {imageGroups.flat().map((img, idx) => (
-                    <motion.div
-                      key={idx}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: idx * 0.05 }}
-                      className="relative group"
-                    >
-                      {img.url && (
-                        <img
-                          src={img.url}
-                          alt={img.label || `Image ${idx + 1}`}
-                          className="w-full h-12 object-cover rounded border cursor-zoom-in"
-                          onClick={() => {
-                            setLightboxSrc(img.url!);
-                            setLightboxAlt(img.label || `Image ${idx + 1}`);
-                            setLightboxOpen(true);
-                          }}
-                        />
-                      )}
-                      <div className="pointer-events-none absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center">
-                        <div className="text-white text-center p-1">
-                          {img.label && (
-                            <p className="text-xs font-medium truncate">{img.label}</p>
-                          )}
-                          {img.score && (
-                            <Badge variant="secondary" className="mt-1 text-xs">
-                              {img.score.toFixed(2)}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input Form */}
-        <div className="border-t border-border/50 p-4 bg-gradient-to-r from-[var(--color-card)]/30 to-[var(--color-background)]/30">
-          <ChatInputBar
-            input={input}
-            setInput={setInput}
-            placeholder={`Ask anything about your documents... e.g., “${examples[placeholderIdx]}”`}
-            loading={loading}
-            isSettingsValid={isSettingsValid}
-            uiSettingsValid={uiSettingsValid}
-            setUiSettingsValid={setUiSettingsValid}
-            onSubmit={handleSubmit}
-            k={k}
-            setK={setK}
-            toolCallingEnabled={toolCallingEnabled}
-            setToolCallingEnabled={setToolCallingEnabled}
-          />
-
-          {/* Tips below input */}
-          <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-[var(--color-accent)]" />
-              <span>AI-powered responses</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                if (imagesSectionRef.current) {
-                  imagesSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  // Briefly flash focus ring for visibility
-                  imagesSectionRef.current.classList.add('ring-2', 'ring-[var(--color-ring)]');
-                  setTimeout(() => imagesSectionRef.current?.classList.remove('ring-2', 'ring-[var(--color-ring)]'), 1200);
-                }
-              }}
-              className={`flex items-center gap-1 rounded px-2 py-1 transition-shadow focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] ${
-                imageGroups.length > 0
-                  ? 'bg-[var(--color-accent)]/10 text-foreground shadow-sm animate-pulse hover:animate-none'
-                  : ''
-              }`}
-              title={imageGroups.length > 0 ? 'Click to view retrieved images' : 'Will appear when images are retrieved'}
-            >
-              <ImageIcon className="w-3 h-3 text-[var(--color-ring)]" />
-              <span>Visual citations included</span>
-              {imageGroups.length > 0 && (
-                <Badge variant="secondary" className="ml-1 bg-[var(--color-accent)]/15 text-foreground">
-                  {imageGroups.flat().length}
-                </Badge>
-              )}
-            </button>
-            {timeToFirstTokenMs !== null && (
-              <div className="flex items-center gap-1">
-                <Clock className="w-3 h-3 text-muted-foreground" />
-                <span>First token in {(timeToFirstTokenMs / 1000).toFixed(2)}s</span>
               </div>
+            ) : (
+              <AnimatePresence>
+                {messages.map((message, idx) => (
+                  <motion.div
+                    key={idx}
+                    variants={messageVariants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    className="mb-4 md:mb-5 last:mb-0"
+                  >
+                    <Dialogue
+                      player={message.role === "assistant"}
+                      avatarFallback={message.role === "assistant" ? "AI" : "You"}
+                      title={message.role === "assistant" ? "AI Assistant" : "You"}
+                      description={message.content || (loading && message.role === "assistant" ? BRAIN_PLACEHOLDERS[brainIdx] : "")}
+                      className={cn(message.role !== "assistant" && "justify-end")}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             )}
           </div>
-
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="mt-3"
-            >
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            </motion.div>
-          )}
         </div>
-      </Card>
-      <ImageLightbox
-        open={lightboxOpen}
-        src={lightboxSrc}
-        alt={lightboxAlt}
-        onOpenChange={setLightboxOpen}
-      />
+      </div>
+
+      {/* Chat Input */}
+      <div className="flex-shrink-0 mt-6">
+        <Card className="border-2 border-accent/20 shadow-lg">
+          <div className="p-6">
+            <ChatInputBar
+              input={input}
+              setInput={setInput}
+              onSubmit={handleSubmit}
+              loading={loading}
+              isSettingsValid={isSettingsValid}
+              uiSettingsValid={uiSettingsValid}
+              setUiSettingsValid={setUiSettingsValid}
+              placeholder={examples[placeholderIdx]}
+              k={k}
+              setK={setK}
+              toolCallingEnabled={toolCallingEnabled}
+              setToolCallingEnabled={setToolCallingEnabled}
+            />
+
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="mt-4"
+              >
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              </motion.div>
+            )}
+          </div>
+        </Card>
+      </div>
     </motion.div>
   );
 }

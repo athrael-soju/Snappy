@@ -125,45 +125,45 @@ export default function SearchPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="space-y-8"
+      className="space-y-6"
     >
       {/* Header */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-lg border border-blue-500/20">
-            <Eye className="w-6 h-6 text-blue-500" />
+          <div className="p-2 bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg border border-primary/20">
+            <Eye className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">Visual Search</h1>
-            <p className="text-muted-foreground text-lg">Find documents and images using natural language powered by AI vision</p>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Visual Search</h1>
+            <p className="text-muted-foreground text-base">Find documents and images using natural language powered by AI vision</p>
           </div>
         </div>
 
         {/* Quick Stats */}
-        <div className="flex items-center gap-6 text-sm text-muted-foreground">
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-blue-500" />
+            <Sparkles className="w-4 h-4 text-primary" />
             <span>AI-powered visual understanding</span>
           </div>
           <div className="flex items-center gap-2">
-            <Search className="w-4 h-4 text-cyan-500" />
+            <Search className="w-4 h-4 text-accent" />
             <span>Natural language queries</span>
           </div>
         </div>
       </div>
 
       {/* Search Form */}
-      <Card className="border-2 border-blue-100/50 shadow-lg overflow-hidden !pt-0 bg-transparent">
-        <CardHeader className="bg-gradient-to-r from-blue-100 to-cyan-100 border-b rounded-t-xl py-6 mt-0">
-          <CardTitle className="flex items-center gap-2 text-xl">
-            <Search className="w-5 h-5 text-blue-600" />
+      <Card className="border-2 border-primary/20 shadow-lg overflow-hidden bg-card">
+        <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10 border-b rounded-t-xl py-4">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Search className="w-5 h-5 text-primary" />
             Search Your Documents
           </CardTitle>
-          <CardDescription className="text-base">
+          <CardDescription className="text-sm">
             Describe what you're looking for using natural language.
           </CardDescription>
         </CardHeader>
-        <CardContent className="pt-6 space-y-6">
+        <CardContent className="pt-4 space-y-4">
           <SearchBar
             q={q}
             setQ={setQ}
@@ -204,12 +204,12 @@ export default function SearchPage() {
       }
       {!hasSearched && !loading && !error && (
         <Card className="border-2 border-dashed border-muted-foreground/25">
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-20 h-20 bg-gradient-to-br from-muted/50 to-muted/30 rounded-full flex items-center justify-center mb-6">
-              <Search className="w-10 h-10 text-muted-foreground" />
+          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="w-16 h-16 bg-gradient-to-br from-muted/50 to-muted/30 rounded-lg flex items-center justify-center mb-4">
+              <Search className="w-8 h-8 text-muted-foreground" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">Your results will appear here</h3>
-            <p className="text-muted-foreground max-w-md">
+            <h3 className="text-lg font-semibold mb-2">Your results will appear here</h3>
+            <p className="text-muted-foreground max-w-md text-sm">
               Use natural language to find documents and images instantly.
             </p>
           </CardContent>
@@ -226,14 +226,14 @@ export default function SearchPage() {
             exit={{ opacity: 0 }}
             className="space-y-4"
           >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="space-y-1">
-                <h2 className="text-2xl font-bold">
+                <h2 className="text-xl font-bold">
                   {results.length > 0 ? (
                     <>
                       {`Found ${results.length} result${results.length !== 1 ? 's' : ''}`}
                       {typeof searchDurationMs === 'number' && (
-                        <span className="text-base font-normal text-muted-foreground ml-2">
+                        <span className="text-sm font-normal text-muted-foreground ml-2">
                           in {(searchDurationMs / 1000).toFixed(2)}s
                         </span>
                       )}
@@ -243,7 +243,7 @@ export default function SearchPage() {
                   )}
                 </h2>
                 {results.length > 0 && (
-                  <p className="text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     Showing visual matches for your search
                   </p>
                 )}
@@ -262,12 +262,12 @@ export default function SearchPage() {
 
             {results.length === 0 ? (
               <Card className="border-2 border-dashed border-muted-foreground/25">
-                <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="w-20 h-20 bg-gradient-to-br from-muted/50 to-muted/30 rounded-full flex items-center justify-center mb-6">
-                    <ImageIcon className="w-10 h-10 text-muted-foreground" />
+                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="w-16 h-16 bg-gradient-to-br from-muted/50 to-muted/30 rounded-lg flex items-center justify-center mb-4">
+                    <ImageIcon className="w-8 h-8 text-muted-foreground" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-3">No matches found</h3>
-                  <p className="text-muted-foreground max-w-md mb-6">
+                  <h3 className="text-lg font-semibold mb-3">No matches found</h3>
+                  <p className="text-muted-foreground max-w-md mb-4 text-sm">
                     We couldn't find any visual content matching "<span className="font-medium text-foreground">{q}</span>". Try rephrasing your query or check if documents are uploaded.
                   </p>
                   <div className="space-y-3">
@@ -294,18 +294,18 @@ export default function SearchPage() {
                 </CardContent>
               </Card>
             ) : (
-              <motion.div
+                <motion.div
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
               >
                 {results.map((item, idx) => (
                   <motion.div key={idx} variants={itemVariants}>
-                    <Card className="h-full group overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-2 hover:border-blue-200">
+                    <Card className="h-full group overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-2 hover:border-primary/20">
                       {item.image_url && (
                         <div
-                          className="relative aspect-video overflow-hidden bg-gradient-to-br from-blue-50 to-cyan-50 cursor-zoom-in"
+                          className="relative aspect-video overflow-hidden bg-gradient-to-br from-primary/5 to-accent/5 cursor-zoom-in"
                           onClick={() => {
                             setLightboxSrc(item.image_url!);
                             setLightboxAlt(item.label ?? `Result ${idx + 1}`);
@@ -321,7 +321,7 @@ export default function SearchPage() {
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                           <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Badge className="bg-white/90 text-black">
+                            <Badge className="bg-card/90 text-foreground">
                               <Eye className="w-3 h-3 mr-1" />
                               View
                             </Badge>
@@ -331,7 +331,7 @@ export default function SearchPage() {
                       <CardContent className="p-4 space-y-3">
                         {item.label && (
                           <div className="space-y-1">
-                            <h3 className="font-semibold text-foreground line-clamp-2 group-hover:text-blue-600 transition-colors">
+                            <h3 className="font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
                               {item.label}
                             </h3>
                           </div>
