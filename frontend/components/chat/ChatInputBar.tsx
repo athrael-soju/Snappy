@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Input } from "@/components/ui/8bit/input";
+import { Button } from "@/components/ui/8bit/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/8bit/tooltip";
 import { MessageSquare, Send, Loader2 } from "lucide-react";
 import ChatSettings from "@/components/chat-settings";
 

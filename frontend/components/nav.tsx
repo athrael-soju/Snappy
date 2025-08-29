@@ -6,10 +6,10 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Home, Eye, CloudUpload, Brain, Shield, HelpCircle } from "lucide-react";
-import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/8bit/dialog";
 import AboutContent from "@/components/about-content";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/8bit/tooltip";
+import { Button } from "@/components/ui/8bit/button";
 
 const links = [
   { href: "/", label: "Home", icon: Home, color: "text-blue-600" },
@@ -48,23 +48,23 @@ export function Nav() {
             const active = link.href === "/" ? pathname === "/" : pathname === link.href || pathname.startsWith(`${link.href}/`);
             const Icon = link.icon;
             return (
-              <Link
+                <Link
                 key={link.href}
-                href={link.href}
-                aria-label={link.label}
-                aria-current={active ? "page" : undefined}
+                  href={link.href}
+                  aria-label={link.label}
+                  aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 hover:scale-105 relative group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                   active
                     ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg hover:shadow-xl"
                     : "text-muted-foreground hover:text-foreground hover:bg-white/60 hover:shadow-md border border-transparent hover:border-blue-200/50"
                 )}
-              >
+                >
                 <Icon className={cn("w-4 h-4 relative z-10 transition-colors duration-300", active ? "text-white" : link.color)} />
                 <span className={cn("hidden sm:inline relative z-10 transition-colors duration-300", active ? "text-white font-semibold" : "")}>
                   {link.label}
                 </span>
-              </Link>
+                </Link>
             );
           })}
           <Dialog open={open} onOpenChange={setOpen}>

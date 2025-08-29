@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Search, Upload, MessageSquare, Zap, Shield, Sparkles, ArrowRight, Eye, Brain, CloudUpload, Database } from "lucide-react";
+import { Button } from "@/components/ui/8bit/button";
+import { Badge } from "@/components/ui/8bit/badge";
+import { Sparkles, ArrowRight, Eye, Brain, CloudUpload, Database } from "lucide-react";
 import { motion } from "framer-motion";
 
 const features = [
@@ -88,7 +87,7 @@ export default function Home() {
           <div className="mb-6">
             <Badge variant="secondary" className="mb-4 px-4 py-2 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border-blue-200">
               <Sparkles className="w-4 h-4 mr-2" />
-              Powered by Vision Language Models
+              Powered by the ColPali Vision
             </Badge>
           </div>
 
@@ -113,9 +112,7 @@ export default function Home() {
               className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 h-14 px-8 text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
             >
               <Link href="/upload">
-                <CloudUpload className="mr-3 h-6 w-6" />
                 Start with Your Documents
-                <ArrowRight className="ml-3 h-5 w-5" />
               </Link>
             </Button>
 

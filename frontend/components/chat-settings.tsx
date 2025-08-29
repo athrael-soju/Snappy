@@ -1,15 +1,15 @@
 "use client";
 
 import React from "react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
-import { Separator } from "@/components/ui/separator";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/8bit/button";
+import { Badge } from "@/components/ui/8bit/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/8bit/tooltip";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/8bit/dialog";
+import { Separator } from "@/components/ui/8bit/separator";
+import { Label } from "@/components/ui/8bit/label";
 import { SlidersHorizontal } from "lucide-react";
 import { kSchema } from "@/lib/validation/chat";
-import { Switch } from "@/components/ui/switch";
+import { Switch } from "@/components/ui/8bit/switch";
 
 export interface ChatSettingsProps {
   k: number;

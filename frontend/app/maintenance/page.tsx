@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { MaintenanceService, ApiError } from "@/lib/api/generated";
 import "@/lib/api/client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/8bit/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/8bit/card";
+import { Badge } from "@/components/ui/8bit/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/8bit/alert";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/8bit/dialog";
 import { Settings, Database, Server, Trash2, AlertTriangle, CheckCircle, Loader2, Shield, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -232,31 +232,31 @@ export default function MaintenancePage() {
                         </div>
                       </div>
                       <DialogFooter className="gap-2">
-                        <Button 
-                          variant="outline" 
-                          onClick={() => setDialogOpen(null)}
-                          disabled={isLoading}
-                        >
-                          Cancel
-                        </Button>
-                        <Button 
-                          variant={action.buttonVariant}
-                          onClick={() => run(action.id)}
-                          disabled={isLoading}
+                          <Button 
+                            variant="outline" 
+                            onClick={() => setDialogOpen(null)}
+                            disabled={isLoading}
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            variant={action.buttonVariant}
+                            onClick={() => run(action.id)}
+                            disabled={isLoading}
                           className={action.severity === 'critical' ? 'bg-red-600 hover:bg-red-700' : action.severity === 'high' ? 'bg-orange-600 hover:bg-orange-700' : ''}
-                        >
-                          {isLoading ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Processing...
-                            </>
-                          ) : (
-                            <>
-                              <Icon className="w-4 h-4 mr-2" />
+                          >
+                            {isLoading ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Processing...
+                              </>
+                            ) : (
+                              <>
+                                <Icon className="w-4 h-4 mr-2" />
                               Confirm {action.title}
-                            </>
-                          )}
-                        </Button>
+                              </>
+                            )}
+                          </Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
@@ -275,7 +275,7 @@ export default function MaintenancePage() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
           >
-            <Alert variant="success">
+            <Alert variant="default">
               <CheckCircle className="h-4 w-4" />
               <AlertTitle>Operation Completed</AlertTitle>
               <AlertDescription>{status}</AlertDescription>

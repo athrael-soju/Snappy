@@ -514,6 +514,17 @@
   dependencies:
     "@radix-ui/react-primitive" "2.1.3"
 
+"@radix-ui/react-avatar@^1.1.10":
+  version "1.1.10"
+  resolved "https://registry.yarnpkg.com/@radix-ui/react-avatar/-/react-avatar-1.1.10.tgz#c58a8800ef3d3ee783b3168fee7c76f6534bfd93"
+  integrity sha512-V8piFfWapM5OmNCXTzVQY+E1rDa53zY+MQ4Y7356v4fFz6vqCyUtIz2rUD44ZEdwg78/jKmMJHj07+C/Z/rcog==
+  dependencies:
+    "@radix-ui/react-context" "1.1.2"
+    "@radix-ui/react-primitive" "2.1.3"
+    "@radix-ui/react-use-callback-ref" "1.1.1"
+    "@radix-ui/react-use-is-hydrated" "0.1.0"
+    "@radix-ui/react-use-layout-effect" "1.1.1"
+
 "@radix-ui/react-collapsible@1.1.12":
   version "1.1.12"
   resolved "https://registry.yarnpkg.com/@radix-ui/react-collapsible/-/react-collapsible-1.1.12.tgz#e2cc69a4490a2920f97c3c3150b0bf21281e3c49"
@@ -550,7 +561,7 @@
 
 "@radix-ui/react-dialog@^1.1.15":
   version "1.1.15"
-  resolved "https://registry.npmjs.org/@radix-ui/react-dialog/-/react-dialog-1.1.15.tgz"
+  resolved "https://registry.yarnpkg.com/@radix-ui/react-dialog/-/react-dialog-1.1.15.tgz#1de3d7a7e9a17a9874d29c07f5940a18a119b632"
   integrity sha512-TCglVRtzlffRNxRMEyR36DGBLJpeusFcgMVD9PZEzAKnUs1lKCgX5u9BmC2Yg+LL9MgZDugFFs1Vl+Jp4t/PGw==
   dependencies:
     "@radix-ui/primitive" "1.1.3"
@@ -620,7 +631,7 @@
 
 "@radix-ui/react-label@^2.1.7":
   version "2.1.7"
-  resolved "https://registry.npmjs.org/@radix-ui/react-label/-/react-label-2.1.7.tgz"
+  resolved "https://registry.yarnpkg.com/@radix-ui/react-label/-/react-label-2.1.7.tgz#ad959ff9c6e4968d533329eb95696e1ba8ad72ab"
   integrity sha512-YT1GqPSL8kJn20djelMX7/cTRp/Y9w5IZHvfxQTVHrOqa2yMl7i/UfMqKRU5V7mEyKTrUVgJXhNQPVCG8PBLoQ==
   dependencies:
     "@radix-ui/react-primitive" "2.1.3"
@@ -729,7 +740,7 @@
 
 "@radix-ui/react-select@^2.2.6":
   version "2.2.6"
-  resolved "https://registry.npmjs.org/@radix-ui/react-select/-/react-select-2.2.6.tgz"
+  resolved "https://registry.yarnpkg.com/@radix-ui/react-select/-/react-select-2.2.6.tgz#022cf8dab16bf05d0d1b4df9e53e4bea1b744fd9"
   integrity sha512-I30RydO+bnn2PQztvo25tswPH+wFBjehVGtmagkU78yMdwTwVf12wnAOF+AeP8S2N8xD+5UPbGhkUfPyvT+mwQ==
   dependencies:
     "@radix-ui/number" "1.1.1"
@@ -770,7 +781,7 @@
 
 "@radix-ui/react-switch@^1.2.6":
   version "1.2.6"
-  resolved "https://registry.npmjs.org/@radix-ui/react-switch/-/react-switch-1.2.6.tgz"
+  resolved "https://registry.yarnpkg.com/@radix-ui/react-switch/-/react-switch-1.2.6.tgz#ff79acb831f0d5ea9216cfcc5b939912571358e3"
   integrity sha512-bByzr1+ep1zk4VubeEVViV592vu2lHE2BZY5OnzehZqOOgogN80+mNtCqPkhn2gklJqOpxWgPoYTSnhBCqpOXQ==
   dependencies:
     "@radix-ui/primitive" "1.1.3"
@@ -797,7 +808,7 @@
 
 "@radix-ui/react-tooltip@^1.2.8":
   version "1.2.8"
-  resolved "https://registry.npmjs.org/@radix-ui/react-tooltip/-/react-tooltip-1.2.8.tgz"
+  resolved "https://registry.yarnpkg.com/@radix-ui/react-tooltip/-/react-tooltip-1.2.8.tgz#3f50267e25bccfc9e20bb3036bfd9ab4c2c30c2c"
   integrity sha512-tY7sVt1yL9ozIxvmbtN5qtmH2krXcBCfjEiCgKGLqunJHvgvZG2Pcl2oQ3kbcZARb1BGEHdkLzcYGO8ynVlieg==
   dependencies:
     "@radix-ui/primitive" "1.1.3"
@@ -839,6 +850,13 @@
   integrity sha512-Il0+boE7w/XebUHyBjroE+DbByORGR9KKmITzbR7MyQ4akpORYP/ZmbhAr0DG7RmmBqoOnZdy2QlvajJ2QA59g==
   dependencies:
     "@radix-ui/react-use-callback-ref" "1.1.1"
+
+"@radix-ui/react-use-is-hydrated@0.1.0":
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/@radix-ui/react-use-is-hydrated/-/react-use-is-hydrated-0.1.0.tgz#544da73369517036c77659d7cdd019dc0f5ff9a0"
+  integrity sha512-U+UORVEq+cTnRIaostJv9AGdV3G6Y+zbVd+12e18jQ5A3c0xL03IhnHuiU4UV69wolOQp5GfR58NW/EgdQhwOA==
+  dependencies:
+    use-sync-external-store "^1.5.0"
 
 "@radix-ui/react-use-layout-effect@1.1.1":
   version "1.1.1"
@@ -2001,6 +2019,11 @@ use-sidecar@^1.1.3:
   dependencies:
     detect-node-es "^1.1.0"
     tslib "^2.0.0"
+
+use-sync-external-store@^1.5.0:
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/use-sync-external-store/-/use-sync-external-store-1.5.0.tgz#55122e2a3edd2a6c106174c27485e0fd59bcfca0"
+  integrity sha512-Rb46I4cGGVBmjamjphe8L/UnvJD+uPPtTkNvX5mZgqdbavhI4EbgIWJiIHXJ8bc/i9EQGPRh4DwEURJ552Do0A==
 
 whence@^2.0.0:
   version "2.1.0"

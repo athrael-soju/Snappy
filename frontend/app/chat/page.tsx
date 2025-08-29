@@ -2,18 +2,19 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useChat } from "@/lib/hooks/use-chat";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/8bit/card";
+import { Badge } from "@/components/ui/8bit/badge";
 // Removed Select in favor of a clearer segmented control
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { User, Image as ImageIcon, Loader2, Sparkles, Brain, FileText, BarChart3, MessageSquare, Clock } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/8bit/alert";
+import { Image as ImageIcon, Sparkles, Brain, FileText, BarChart3, MessageSquare, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ImageLightbox from "@/components/lightbox";
 import ChatInputBar from "@/components/chat/ChatInputBar";
 import StarterQuestions from "@/components/chat/StarterQuestions";
 import RecentSearchesChips from "@/components/search/RecentSearchesChips";
 import { BRAIN_PLACEHOLDERS } from "@/lib/utils";
+import Dialogue from "@/components/ui/8bit/blocks/dialogue";
+import { cn } from "@/lib/utils";
 
 // Starter questions to help users get started (qualitative phrasing)
 const starterQuestions = [
@@ -212,73 +213,15 @@ export default function ChatPage() {
                   initial="initial"
                   animate="animate"
                   exit="exit"
-                  className={`flex gap-3 mb-4 md:mb-5 last:mb-0 ${message.role === "assistant" ? "" : "flex-row-reverse"}`}
+                  className="mb-4 md:mb-5 last:mb-0"
                 >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${message.role === "assistant"
-                    ? "bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-lg"
-                    : "bg-gradient-to-br from-blue-100 to-cyan-100 text-foreground shadow-lg"
-                    }`}>
-                    {message.role === "assistant" ? (
-                      <Brain className="w-4 h-4" />
-                    ) : (
-                      <User className="w-4 h-4" />
-                    )}
-                  </div>
-
-                  <div className={`flex-1 max-w-[85%] ${message.role === "user" ? "text-right" : ""
-                    }`}>
-                    <div className={`inline-block p-4 rounded-2xl shadow-sm border ${message.role === "assistant"
-                      ? "bg-gradient-to-br from-purple-50 to-pink-50 text-foreground border-purple-200/50"
-                      : "bg-gradient-to-br from-blue-100 to-cyan-100 text-foreground border-blue-200"
-                      }`}>
-                      {message.content ? (
-                        message.role === "assistant" ? (
-                          <div className="whitespace-pre-wrap text-[15px] leading-7">
-                            {message.content.split("\n\n").map((para, i) => (
-                              <p key={i} className="mb-3 last:mb-0">{para}</p>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="whitespace-pre-wrap text-[15px] leading-7">{message.content}</div>
-                        )
-                      ) : (
-                        loading && message.role === "assistant" ? (
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <Loader2 className="w-4 h-4 animate-spin text-purple-500" />
-                            <AnimatePresence mode="wait" initial={false}>
-                              <motion.span
-                                key={brainIdx}
-                                initial={{ opacity: 0, y: 4 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -4 }}
-                                transition={{ duration: 0.2 }}
-                                className="text-sm"
-                              >
-                                {BRAIN_PLACEHOLDERS[brainIdx]}
-                              </motion.span>
-                            </AnimatePresence>
-                          </div>
-                        ) : null
-                      )}
-                    </div>
-
-                    {message.role === "assistant" && (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2 ml-2">
-                        <Brain className="w-3 h-3 text-purple-500" />
-                        <span>AI Assistant</span>
-                        <div className="flex">
-                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { /* TODO: thumbs up handler */ }}>
-                            <span aria-hidden>👍</span>
-                            <span className="sr-only">Mark helpful</span>
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { /* TODO: thumbs down handler */ }}>
-                            <span aria-hidden>👎</span>
-                            <span className="sr-only">Mark unhelpful</span>
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <Dialogue
+                    player={message.role === "assistant"}
+                    avatarFallback={message.role === "assistant" ? "AI" : "You"}
+                    title={message.role === "assistant" ? "AI Assistant" : "You"}
+                    description={message.content || (loading && message.role === "assistant" ? BRAIN_PLACEHOLDERS[brainIdx] : "")}
+                    className={cn(message.role !== "assistant" && "justify-end")}
+                  />
                 </motion.div>
               ))
             )}

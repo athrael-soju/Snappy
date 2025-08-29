@@ -1,9 +1,9 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/8bit/card";
+import { Badge } from "@/components/ui/8bit/badge";
+import { Button } from "@/components/ui/8bit/button";
 import Link from "next/link";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/8bit/accordion";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/8bit/tooltip";
 import { Info, Image as ImageIcon, Layers, Search, GitCompare, Sparkles, Database, Server } from "lucide-react";
 
 export default function AboutContent({ onClose }: { onClose?: () => void }) {

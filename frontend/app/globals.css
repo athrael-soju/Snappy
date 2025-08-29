@@ -117,7 +117,12 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    /* Reduce base font size to make all rem-based text smaller globally */
+    font-size: 12px; /* default is 16px; change to 15px/14px/13px to taste */
+  }
   body {
     @apply bg-background text-foreground;
-  }
+    font-family: var(--font-retro), var(--font-geist-sans), system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  }  
 }

@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Pixelify_Sans } from "next/font/google";
 import "./globals.css";
 import "@/lib/api/client";
 import { Nav } from "@/components/nav";
 import NextTopLoader from "nextjs-toploader";
 import { Toaster } from "sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/8bit/tooltip";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,6 +15,13 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// Retro pixel font for 8bit UI
+const pixel = Pixelify_Sans({
+  variable: "--font-retro",
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
 });
 
 export const metadata: Metadata = {
@@ -35,7 +42,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased relative h-screen flex flex-col overflow-hidden`}
+        className={`${geistSans.variable} ${geistMono.variable} ${pixel.variable} antialiased relative h-screen flex flex-col overflow-hidden text-[15px] sm:text-base`}
       >
         {/* Site-wide background gradient */}
         <div className="absolute inset-0 bg-gradient-to-b from-blue-50/50 via-purple-50/30 to-cyan-50/50" />
