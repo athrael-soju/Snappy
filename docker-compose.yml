@@ -76,7 +76,12 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
-
+    environment:
+      - OPENAI_API_KEY=sk-your-openAI-key
+      - OPENAI_MODEL=gpt-5-nano # optional
+      - OPENAI_TEMPERATURE=1     # optional
+      - OPENAI_MAX_TOKENS=1500   # optional
+      - NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 networks:
   vision-rag-network:
     driver: bridge
