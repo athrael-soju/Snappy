@@ -20,7 +20,8 @@ export const documentSearchTool = {
 export async function executeDocumentSearch(query: string, k: number) {
   try {
     // Call your backend /search API - GET request with query parameters
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+    
+    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
     const searchParams = new URLSearchParams({
       q: query,
       k: k.toString()

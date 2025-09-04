@@ -16,6 +16,9 @@ async function buildImageContent(images: string[], query: string): Promise<any[]
   const items = await Promise.all((images || []).map(async (imageUrl) => {
     try {
       const isLocal = imageUrl.includes('localhost') || imageUrl.includes('127.0.0.1');
+      if (process.env.PUBLIC_MINIO_URL_SET === 'true') {
+        imageUrl = imageUrl.replace('localhost', 'minio') || imageUrl.replace('127.0.0.1', 'minio');
+      }
       if (isLocal) {
         const imageResponse = await fetch(imageUrl);
         if (!imageResponse.ok) return null;
@@ -24,7 +27,7 @@ async function buildImageContent(images: string[], query: string): Promise<any[]
         const mimeType = imageResponse.headers.get('content-type') || 'image/png';
         const dataUrl = `data:${mimeType};base64,${base64}`;
         return { type: 'input_image', image_url: dataUrl } as const;
-      }
+      }      
       return { type: 'input_image', image_url: imageUrl } as const;
     } catch (error) {
       console.warn(`Error processing image: ${imageUrl}`, error);

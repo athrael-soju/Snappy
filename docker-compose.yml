@@ -71,6 +71,11 @@ services:
     container_name: frontend
     ports:
       - "3000:3000"
+    env_file:
+      - ./frontend/.env.local
+    environment:
+      - NEXT_PUBLIC_API_BASE_URL=http://backend:8000
+      - PUBLIC_MINIO_URL_SET=true
     networks:
       - vision-rag-network
     restart: unless-stopped
