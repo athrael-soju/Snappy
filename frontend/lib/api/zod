@@ -90,6 +90,27 @@ const endpoints = makeApi([
   },
   {
     method: "get",
+    path: "/progress/stream/:job_id",
+    alias: "stream_progress_progress_stream__job_id__get",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "job_id",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
+    response: z.unknown(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
     path: "/search",
     alias: "search_search_get",
     requestFormat: "json",

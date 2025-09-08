@@ -10,6 +10,7 @@ A lightweight, end-to-end template for page-level retrieval over PDFs using a Co
 
 - __Storage__: page images in MinIO, multivector embeddings in Qdrant
 - __Retrieval__: two-stage reranking with pooled image-token vectors
+- __Retrieval__: two-stage reranking with pooled image-token vectors; optional MUVERA-first stage when enabled
 - __Generation__: Next.js chat API streams OpenAI Responses with multimodal context (retrieved page images)
 - __API__: FastAPI service exposing endpoints for indexing, search, and maintenance
 
@@ -102,14 +103,14 @@ __Indexing flow__:
 __Retrieval flow__:
 
 1) Query -> embedding (ColPali API)
-2) Qdrant multivector prefetch (rows/cols) + re-ranking using `using="original"`
+2) Qdrant multivector prefetch (rows/cols) + re-ranking using `using="original"`; if MUVERA is enabled, the service performs a first-stage search on `muvera_fde` and prefetches multivectors for rerank
 3) Fetch images from MinIO for top-k pages
 4) Frontend chat API streams OpenAI Responses conditioned on user text + page images
 
 ## Features
 
 - __Page-level, multimodal RAG__: stores per-page images, uses image-token pooling for robust retrieval
-- __FastAPI endpoints__: OpenAPI docs at `/docs`; endpoints for indexing, search, and maintenance
+- __FastAPI endpoints__: OpenAPI docs at `/docs`; endpoints for indexing, search, maintenance, and progress polling
 - __Dockerized__: one `docker-compose up -d` brings up Qdrant, MinIO and the API
 - __Configurable__: all knobs in `.env`/`config.py`
 - __Optional binary quantization__: enable Qdrant binary quantization with env flags; supports rescore/oversampling.
@@ -198,7 +199,7 @@ Deterministic runs
 - __PDFs only__: indexing assumes PDFs via `pdf2image`; other formats (images, Office docs) are not supported yet.
 - __Limited maintenance APIs__: provided endpoints clear stores (`/clear/*`), but there are no per-document delete/update endpoints.
 - __Single-tenant shape__: one Qdrant collection and one MinIO bucket; no namespace isolation per tenant.
-- __No background job system__: indexing runs in-request; there is no queue/worker for long tasks.
+- __No external job queue__: indexing runs as an in-process background task (FastAPI `BackgroundTasks`), with polling via `/progress/{job_id}`; there is no distributed queue/worker.
 - __No rate limiting or abuse protection__.
 - __No observability stack__: no Prometheus/Grafana, OpenTelemetry, or tracing; logs only.
 - __No automated tests/benchmarks__: no unit/integration tests in this template.
@@ -340,7 +341,8 @@ You can interact via the OpenAPI UI at `/docs` or with HTTP clients:
 
 - `GET /health` — check dependencies status.
 - `GET /search?q=...&k=5` — retrieve top-k results with payload metadata.
-- `POST /index` (multipart files[]) — upload and index PDFs.
+- `POST /index` (multipart files[]) — start background indexing job; returns `{ status:"started", job_id, total }`.
+- `GET /progress/{job_id}` — poll current progress `{ status, current, total, percent, message }`.
 - `POST /clear/qdrant` | `/clear/minio` | `/clear/all` — maintenance.
 
 ## API Examples
@@ -373,11 +375,12 @@ Note: the example `clients/colpali.py` is a thin starting client. Ensure it matc
 
 ## Data model in Qdrant
 
-`clients/qdrant.py` creates a collection with three vectors per point:
+`clients/qdrant.py` creates a collection with three vectors per point (plus an optional MUVERA vector when enabled):
 
 - `original`: full token sequence
 - `mean_pooling_rows`: pooled by rows
 - `mean_pooling_columns`: pooled by columns
+ - `muvera_fde` (optional): single-vector first-stage field used when MUVERA postprocessing is enabled
 
 Each point has payload metadata like:
 

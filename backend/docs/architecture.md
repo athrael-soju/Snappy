@@ -33,8 +33,8 @@ Notes
 
 - __Server entrypoint__: `main.py` (or `backend.py`) boots `api.app.create_app()` and serves the modular routers.
 - __Frontends__: Next.js app under `frontend/app/*` is the primary and only UI.
-- __Indexing__: The API `/index` route (`api/routers/indexing.py`) converts PDFs to page images (see `api/utils.py::convert_pdf_paths_to_images()`), then `QdrantService` stores images in MinIO, gets embeddings from the ColPali API (expected to include patch metadata: `image_patch_start`/`image_patch_len`), mean-pools rows/cols, and upserts multivectors to Qdrant. Ensure your ColPali server and `clients/colpali.py` align on this contract.
-- __Retrieval__: `QdrantService` embeds the query via ColPali, runs multivector search on Qdrant, fetches page images from MinIO, and returns them to the API. The frontend Chat API route (`frontend/app/api/chat/route.ts`) calls OpenAI with the user text + images and streams the answer to the browser. The `/search` route (`api/routers/retrieval.py`) returns structured results.
+- __Indexing__: The API `/index` route (`api/routers/indexing.py`) converts PDFs to page images (see `api/utils.py::convert_pdf_paths_to_images()`), then starts a background indexing job. `QdrantService` stores images in MinIO, gets embeddings from the ColPali API (expected to include patch metadata: `image_patch_start`/`image_patch_len`), mean-pools rows/cols, and upserts multivectors to Qdrant. Progress is tracked in-memory and exposed via `GET /progress/{job_id}`. Ensure your ColPali server and `clients/colpali.py` align on this contract.
+- __Retrieval__: `QdrantService` embeds the query via ColPali, runs multivector search on Qdrant (optionally MUVERA-first stage when enabled), fetches page images from MinIO, and returns them to the API. The frontend Chat API route (`frontend/app/api/chat/route.ts`) calls OpenAI with the user text + images and streams the answer to the browser. The `/search` route (`api/routers/retrieval.py`) returns structured results.
 - The diagram intentionally omits lower-level details (e.g., prefetch limits, comparator settings) to stay readable.
 
 ## Next.js frontend integration
@@ -42,7 +42,7 @@ Notes
 - __App location__: `frontend/app/*` with pages:
   - `frontend/app/chat/page.tsx` → retrieves images via backend `/search` and streams chat from `frontend/app/api/chat/route.ts`.
   - `frontend/app/search/page.tsx` → calls `/search` via `RetrievalService` and renders image results with labels/scores.
-  - `frontend/app/upload/page.tsx` → calls `/index` via `IndexingService` to upload PDFs.
+  - `frontend/app/upload/page.tsx` → calls `/index` (starts background job) and polls `/progress/{job_id}` to show real progress.
   - `frontend/app/page.tsx` → landing page.
 - __API client base URL__: `frontend/lib/api/client.ts` sets `OpenAPI.BASE` from `NEXT_PUBLIC_API_BASE_URL` (defaults to `http://localhost:8000`).
 - __Images__: `frontend/next.config.ts` allows remote images from MinIO at `http://localhost:9000/**` and (inside Docker) `http://minio:9000/**` for Next/Image compatibility.
@@ -51,7 +51,8 @@ Notes
 
 - `/` → root listing (see `api/routers/meta.py`).
 - `/health` → service health (ColPali, MinIO, Qdrant).
-- `/index` (POST multipart) → index PDFs (see `api/routers/indexing.py`).
+- `/index` (POST multipart) → start background indexing job; responds with `{ status, job_id, total }`.
+- `/progress/{job_id}` (GET) → poll indexing status `{ status, current, total, percent, message }`.
 - `/search` (GET q, k) → semantic search results (see `api/routers/retrieval.py`).
 - `/clear/qdrant`, `/clear/minio`, `/clear/all` → maintenance endpoints.
 

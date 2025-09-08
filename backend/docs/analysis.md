@@ -36,7 +36,7 @@ This document analyzes the current system implemented in this repository and com
   - Mean-pools the image patch tokens into two variants: by rows and by columns, preserving prefix/postfix tokens: `QdrantService._pool_image_tokens(...)`.
   - Produces three multivectors per page: `original`, `mean_pooling_rows`, `mean_pooling_columns`.
 - __Image persistence__: `MinioService.store_images_batch(...)` uploads images and returns public URLs.
-- __Upsert to Qdrant__: `QdrantService.index_documents(...)` calls `client.upload_collection(...)` with vectors and rich payload including `image_url` and page metadata.
+- __Upsert to Qdrant__: `QdrantService.index_documents(...)` calls `client.upsert(...)` with vectors and rich payload including `image_url` and page metadata. The `/index` route starts this as a background job and you can poll `/progress/{job_id}` for status.
 
 Notes:
 - Collection schema is created on startup in `QdrantService._create_collection_if_not_exists()` using model dimension from `/info`.
@@ -47,7 +47,7 @@ Notes:
 ## Retrieval Pipeline (What Happens on Query)
 
 - __Query embedding__: `QdrantService._batch_embed_query(...)` calls `/embed/queries` and returns per-token embeddings.
-- __Two-stage search__: `QdrantService._reranking_search_batch(...)`
+- __Two-stage search__: `QdrantService._reranking_search_batch(...)` (optionally MUVERA-first stage when enabled)
   - Prefetch against `mean_pooling_columns` and `mean_pooling_rows` with `prefetch_limit`.
   - Final rank against `original` with `search_limit`, `with_payload=True`.
 - __Result assembly__:

@@ -1,6 +1,6 @@
 import uuid
 import numpy as np
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Callable
 from PIL import Image
 from datetime import datetime
 from qdrant_client import QdrantClient, models
@@ -263,7 +263,7 @@ class QdrantService:
 
         return original_batch, pooled_by_rows_batch, pooled_by_columns_batch
 
-    def index_documents(self, images: List[Image.Image]):
+    def index_documents(self, images: List[Image.Image], progress_cb: Optional[Callable[[int, dict | None], None]] = None):
         """Index documents in Qdrant with rich payload metadata.
 
         Accepts either a list of PIL Images or a list of dicts, where each dict
@@ -275,7 +275,8 @@ class QdrantService:
 
         batch_size = int(BATCH_SIZE)
 
-        with tqdm(total=len(images), desc="Uploading progress") as pbar:
+        total_images = len(images)
+        with tqdm(total=total_images, desc="Uploading progress") as pbar:
             for i in range(0, len(images), batch_size):
                 batch = images[i : i + batch_size]
                 current_batch_size = len(batch)
@@ -395,6 +396,18 @@ class QdrantService:
                     )
 
                 pbar.update(current_batch_size)
+                # Notify progress callback, if provided
+                if progress_cb is not None:
+                    try:
+                        progress_cb(min(i + current_batch_size, total_images), {
+                            "stage": "upsert",
+                            "batch_start": i,
+                            "batch_size": current_batch_size,
+                            "total": total_images,
+                        })
+                    except Exception:
+                        # Swallow progress errors to avoid interrupting indexing
+                        pass
 
         return f"Uploaded and converted {len(images)} pages"
 

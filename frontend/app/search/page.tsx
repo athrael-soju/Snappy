@@ -300,7 +300,7 @@ export default function SearchPage() {
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 ${results.length > 4 ? 'max-h-[70vh] overflow-y-auto pr-2' : ''}`}
               >
                 {results.map((item, idx) => (
                   <motion.div key={idx} variants={itemVariants}>
