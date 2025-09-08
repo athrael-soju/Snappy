@@ -18,6 +18,7 @@ export interface ChatState {
   imageGroups: Array<{ url: string | null; label: string | null; score: number | null }>[];
   k: number;
   toolCallingEnabled: boolean;
+  loading: boolean;
 }
 
 export interface UploadState {
@@ -57,6 +58,7 @@ type AppAction =
   | { type: 'CHAT_SET_IMAGE_GROUPS'; payload: Array<{ url: string | null; label: string | null; score: number | null }>[] }
   | { type: 'CHAT_SET_K'; payload: number }
   | { type: 'CHAT_SET_TOOL_CALLING'; payload: boolean }
+  | { type: 'CHAT_SET_LOADING'; payload: boolean }
   | { type: 'CHAT_RESET' }
   
   // Upload actions
@@ -87,6 +89,7 @@ const initialState: AppState = {
     imageGroups: [],
     k: 5,
     toolCallingEnabled: true,
+    loading: false,
   },
   upload: {
     files: null,
@@ -148,6 +151,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, chat: { ...state.chat, k: action.payload } };
     case 'CHAT_SET_TOOL_CALLING':
       return { ...state, chat: { ...state.chat, toolCallingEnabled: action.payload } };
+    case 'CHAT_SET_LOADING':
+      return { ...state, chat: { ...state.chat, loading: action.payload } };
     case 'CHAT_RESET':
       return { ...state, chat: initialState.chat };
 
@@ -207,6 +212,7 @@ function serializeStateForStorage(state: AppState): any {
       imageGroups: state.chat.imageGroups,
       k: state.chat.k,
       toolCallingEnabled: state.chat.toolCallingEnabled,
+      loading: false, // Don't persist loading state across sessions
     },
     // Persist minimal upload state to track ongoing uploads
     upload: {
@@ -259,9 +265,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     if (eventSourceRef.current) {
       return;
     }
-
-    console.log('Creating global SSE connection for job:', state.upload.jobId);
-    
+   
     const es = new EventSource(`${process.env.NEXT_PUBLIC_API_BASE_URL || ''}/progress/stream/${state.upload.jobId}`);
     eventSourceRef.current = es;
 
@@ -281,10 +285,16 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           dispatch({ type: 'UPLOAD_SET_MESSAGE', payload: successMsg });
           dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: false });
           dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
+          dispatch({ type: 'UPLOAD_SET_FILES', payload: null }); // Clear files on completion
           
-          // Show toast if available (will be ignored if sonner not loaded)
-          if (typeof window !== 'undefined' && (window as any).toast) {
-            (window as any).toast.success('Upload Complete', { description: successMsg });
+          // Show toast notification
+          if (typeof window !== 'undefined') {
+            // Use dynamic import to ensure toast is available
+            import('sonner').then(({ toast }) => {
+              toast.success('Upload Complete', { description: successMsg });
+            }).catch(() => {
+              console.log('Upload completed:', successMsg);
+            });
           }
         } else if (data.status === 'failed') {
           closeSSEConnection();
@@ -293,9 +303,13 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: false });
           dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
           
-          // Show toast if available
-          if (typeof window !== 'undefined' && (window as any).toast) {
-            (window as any).toast.error('Upload Failed', { description: errMsg });
+          // Show toast notification
+          if (typeof window !== 'undefined') {
+            import('sonner').then(({ toast }) => {
+              toast.error('Upload Failed', { description: errMsg });
+            }).catch(() => {
+              console.error('Upload failed:', errMsg);
+            });
           }
         }
       } catch (e) {
@@ -388,6 +402,8 @@ export function useChatStore() {
     setK: (k: number) => dispatch({ type: 'CHAT_SET_K', payload: k }),
     setToolCallingEnabled: (enabled: boolean) => 
       dispatch({ type: 'CHAT_SET_TOOL_CALLING', payload: enabled }),
+    setLoading: (loading: boolean) => 
+      dispatch({ type: 'CHAT_SET_LOADING', payload: loading }),
     reset: () => dispatch({ type: 'CHAT_RESET' }),
   };
 }

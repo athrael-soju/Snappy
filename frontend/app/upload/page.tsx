@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ApiError } from "@/lib/api/generated";
 import "@/lib/api/client";
 import { Label } from "@/components/ui/label";
@@ -37,26 +37,6 @@ export default function UploadPage() {
   // Local state for UI interactions only
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
-
-  // Function to properly close existing SSE connection
-  const closeSSEConnection = useCallback(() => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-    }
-  }, []);
-
-  // Watch for upload completion/failure from global SSE
-  useEffect(() => {
-    if (!uploading) return; // Only watch when we have an active upload
-
-    if (message) {
-      // Upload completed successfully
-      setFiles(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  }, [uploading, message]);
 
   // Clear success/error messages after some time to avoid persistent state
   useEffect(() => {
@@ -77,38 +57,25 @@ export default function UploadPage() {
     }
   }, [error, uploading, setError]);
 
-  // Reconnect to SSE stream if we have an ongoing upload after page refresh
-  useEffect(() => {
-    // This logic is now handled globally in the AppStoreProvider
-    // Only keep local EventSource for new uploads initiated from this page
-  }, []);
-
-  // Cleanup SSE connection on unmount
-  useEffect(() => {
-    return () => {
-      closeSSEConnection();
-    };
-  }, [closeSSEConnection]);
-
   // Drag and drop handlers
-  const onDragOver = useCallback((e: React.DragEvent) => {
+  const onDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(true);
-  }, []);
+  };
 
-  const onDragLeave = useCallback((e: React.DragEvent) => {
+  const onDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-  }, []);
+  };
 
-  const onDrop = useCallback((e: React.DragEvent) => {
+  const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
     const droppedFiles = e.dataTransfer.files;
     if (droppedFiles.length > 0) {
       setFiles(droppedFiles);
     }
-  }, []);
+  };
 
   const handleFileSelect = (selectedFiles: FileList | null) => {
     if (selectedFiles) {

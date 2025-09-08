@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Search, AlertCircle, ImageIcon, Sparkles, Eye } from "lucide-react";
+import { Search, AlertCircle, ImageIcon, Sparkles, Eye, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import Image from "next/image";
@@ -41,6 +41,7 @@ export default function SearchPage() {
     setResults,
     setHasSearched,
     setK,
+    reset,
   } = useSearchStore();
 
   // Local state for UI interactions only
@@ -181,6 +182,12 @@ export default function SearchPage() {
             onSubmit={onSubmit}
             k={k}
             setK={setK}
+            hasResults={hasSearched && results.length > 0}
+            onClear={() => {
+              reset();
+              setError(null);
+              toast.success('Search results cleared');
+            }}
           />
 
           <RecentSearchesChips

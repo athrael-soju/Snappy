@@ -7,8 +7,9 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 // Removed Select in favor of a clearer segmented control
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { User, Image as ImageIcon, Loader2, Sparkles, Brain, FileText, BarChart3, MessageSquare, Clock } from "lucide-react";
+import { User, Image as ImageIcon, Loader2, Sparkles, Brain, FileText, BarChart3, MessageSquare, Clock, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import ImageLightbox from "@/components/lightbox";
 import ChatInputBar from "@/components/chat/ChatInputBar";
 import StarterQuestions from "@/components/chat/StarterQuestions";
@@ -350,7 +351,7 @@ export default function ChatPage() {
           <ChatInputBar
             input={input}
             setInput={setInput}
-            placeholder={`Ask anything about your documents... e.g., “${examples[placeholderIdx]}”`}
+            placeholder={`Ask anything about your documents... e.g., "${examples[placeholderIdx]}"`}
             loading={loading}
             isSettingsValid={isSettingsValid}
             uiSettingsValid={uiSettingsValid}
@@ -360,6 +361,14 @@ export default function ChatPage() {
             setK={setK}
             toolCallingEnabled={toolCallingEnabled}
             setToolCallingEnabled={setToolCallingEnabled}
+            hasMessages={messages.length > 0}
+            onClear={() => {
+              reset();
+              setInput('');
+              setRequestStart(null);
+              setLastResponseDurationMs(null);
+              toast.success('Conversation cleared');
+            }}
           />
 
           {/* Tips below input */}

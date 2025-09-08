@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -11,6 +11,7 @@ import AboutContent from "@/components/about-content";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/stores/app-store";
+import { motion, AnimatePresence } from "framer-motion";
 
 const links = [
   { href: "/", label: "Home", icon: Home, color: "text-blue-600" },
@@ -24,21 +25,30 @@ export function Nav() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const { state } = useAppStore();
+  const [showUploadBadge, setShowUploadBadge] = useState(true);
 
-  // Check for persisted data
-  const hasSearchData = state.search.hasSearched && state.search.results.length > 0;
-  const hasChatData = state.chat.messages.length > 0;
+  // Check for upload progress only
   const hasUploadProgress = state.upload.uploading || state.upload.uploadProgress > 0 || state.upload.jobId;
 
-  const getDataIndicator = (linkHref: string) => {
-    if (linkHref === "/search" && hasSearchData) {
-      return { count: state.search.results.length, color: "bg-blue-500" };
+  // Auto-hide upload badge when upload completes
+  useEffect(() => {
+    if (!state.upload.uploading && state.upload.uploadProgress >= 100) {
+      const timer = setTimeout(() => {
+        setShowUploadBadge(false);
+      }, 3000); // Hide after 3 seconds when upload completes
+      return () => clearTimeout(timer);
+    } else if (state.upload.uploading || state.upload.uploadProgress < 100) {
+      // Show badge when upload is active or incomplete
+      setShowUploadBadge(true);
     }
-    if (linkHref === "/chat" && hasChatData) {
-      return { count: state.chat.messages.length, color: "bg-purple-500" };
-    }
-    if (linkHref === "/upload" && hasUploadProgress) {
-      return { count: Math.round(state.upload.uploadProgress), color: "bg-cyan-500", isProgress: true };
+  }, [state.upload.uploading, state.upload.uploadProgress]);
+
+  const getUploadIndicator = () => {
+    if (hasUploadProgress && showUploadBadge) {
+      return { 
+        count: Math.round(state.upload.uploadProgress), 
+        isActive: state.upload.uploading
+      };
     }
     return null;
   };
@@ -67,7 +77,7 @@ export function Nav() {
           {links.map((link) => {
             const active = link.href === "/" ? pathname === "/" : pathname === link.href || pathname.startsWith(`${link.href}/`);
             const Icon = link.icon;
-            const dataIndicator = getDataIndicator(link.href);
+            const uploadIndicator = link.href === "/upload" ? getUploadIndicator() : null;
             return (
               <Link
                 key={link.href}
@@ -78,29 +88,64 @@ export function Nav() {
                   "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 hover:scale-105 relative group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                   active
                     ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg hover:shadow-xl"
-                    : "text-muted-foreground hover:text-foreground hover:bg-white/60 hover:shadow-md border border-transparent hover:border-blue-200/50"
+                    : "text-muted-foreground hover:text-foreground hover:bg-white/60 hover:shadow-md border border-transparent hover:border-blue-200/50",
+                  // Add extra padding-right when badge is present to prevent overlap
+                  uploadIndicator && link.href === "/upload" && "pr-8"
                 )}
               >
                 <Icon className={cn("w-4 h-4 relative z-10 transition-colors duration-300", active ? "text-white" : link.color)} />
                 <span className={cn("hidden sm:inline relative z-10 transition-colors duration-300", active ? "text-white font-semibold" : "")}>
                   {link.label}
                 </span>
-                {/* Data indicator badge */}
-                {dataIndicator && (
-                  <span 
-                    className={cn(
-                      "absolute -top-1 -right-1 text-xs font-bold text-white rounded-full min-w-[18px] h-[18px] flex items-center justify-center border-2 border-white shadow-sm",
-                      dataIndicator.color
-                    )}
-                    title={
-                      dataIndicator.isProgress 
-                        ? `Upload ${dataIndicator.count}% complete`
-                        : `${dataIndicator.count} item${dataIndicator.count !== 1 ? 's' : ''}`
-                    }
-                  >
-                    {dataIndicator.isProgress ? `${dataIndicator.count}%` : dataIndicator.count}
-                  </span>
-                )}
+                {/* Upload progress badge */}
+                <AnimatePresence>
+                  {uploadIndicator && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.3, y: -10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.3, y: -10 }}
+                      transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 20 }}
+                      className={cn(
+                        "absolute -top-1 -right-1 text-xs font-bold rounded-full min-w-[22px] h-[22px] flex items-center justify-center transition-all duration-300 z-20",
+                        // Enhanced styling to match the app theme
+                        uploadIndicator.isActive 
+                          ? "bg-gradient-to-br from-cyan-400 via-cyan-500 to-cyan-600 text-white shadow-lg shadow-cyan-500/40 border-2 border-white/80" 
+                          : "bg-gradient-to-br from-slate-500 via-slate-600 to-slate-700 text-white/90 shadow-md border-2 border-white/60",
+                        "hover:scale-110 hover:shadow-xl",
+                        // Subtle backdrop blur for premium feel
+                        "backdrop-blur-sm"
+                      )}
+                      title={`Upload ${uploadIndicator.count}% complete`}
+                    >
+                      {/* Animated progress ring background */}
+                      {uploadIndicator.isActive && (
+                        <motion.div
+                          className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-300/30 to-cyan-600/30"
+                          animate={{ 
+                            scale: [1, 1.15, 1],
+                            opacity: [0.3, 0.6, 0.3]
+                          }}
+                          transition={{ 
+                            duration: 2, 
+                            repeat: Infinity,
+                            ease: "easeInOut"
+                          }}
+                        />
+                      )}
+                      
+                      {/* Progress text with smooth transitions */}
+                      <motion.span
+                        key={`upload-${uploadIndicator.count}`}
+                        initial={{ scale: 1.3, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ duration: 0.2, type: "spring", stiffness: 400 }}
+                        className="relative z-10 text-[10px] font-extrabold tracking-tight"
+                      >
+                        {uploadIndicator.count}%
+                      </motion.span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </Link>
             );
           })}

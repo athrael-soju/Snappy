@@ -23,18 +23,19 @@ export function useChat() {
     imageGroups,
     k,
     toolCallingEnabled,
+    loading,
     setMessages,
     addMessage,
     updateLastMessage,
     setImageGroups,
     setK,
     setToolCallingEnabled,
+    setLoading,
     reset,
   } = useChatStore();
 
   // Local state for temporary UI state
   const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [timeToFirstTokenMs, setTimeToFirstTokenMs] = useState<number | null>(null)
 
