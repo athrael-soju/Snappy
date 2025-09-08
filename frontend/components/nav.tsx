@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/
 import AboutContent from "@/components/about-content";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAppStore } from "@/stores/app-store";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -48,8 +49,8 @@ export function Nav() {
 
   const getUploadIndicator = () => {
     if (hasUploadProgress && showUploadBadge) {
-      return { 
-        count: Math.round(state.upload.uploadProgress), 
+      return {
+        count: Math.round(state.upload.uploadProgress),
         isActive: state.upload.uploading
       };
     }
@@ -111,8 +112,8 @@ export function Nav() {
                       className={cn(
                         "absolute -top-1 -right-1 text-xs font-bold rounded-full min-w-[22px] h-[22px] flex items-center justify-center transition-all duration-300 z-20",
                         // Enhanced styling to match the app theme
-                        uploadIndicator.isActive 
-                          ? "bg-gradient-to-br from-cyan-400 via-cyan-500 to-cyan-600 text-white shadow-lg shadow-cyan-500/40 border-2 border-white/80" 
+                        uploadIndicator.isActive
+                          ? "bg-gradient-to-br from-cyan-400 via-cyan-500 to-cyan-600 text-white shadow-lg shadow-cyan-500/40 border-2 border-white/80"
                           : "bg-gradient-to-br from-slate-500 via-slate-600 to-slate-700 text-white/90 shadow-md border-2 border-white/60",
                         "hover:scale-110 hover:shadow-xl",
                         // Subtle backdrop blur for premium feel
@@ -124,18 +125,18 @@ export function Nav() {
                       {uploadIndicator.isActive && (
                         <motion.div
                           className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-300/30 to-cyan-600/30"
-                          animate={{ 
+                          animate={{
                             scale: [1, 1.15, 1],
                             opacity: [0.3, 0.6, 0.3]
                           }}
-                          transition={{ 
-                            duration: 2, 
+                          transition={{
+                            duration: 2,
                             repeat: Infinity,
                             ease: "easeInOut"
                           }}
                         />
                       )}
-                      
+
                       {/* Progress text with smooth transitions */}
                       <motion.span
                         key={`upload-${uploadIndicator.count}`}
@@ -152,6 +153,7 @@ export function Nav() {
               </Link>
             );
           })}
+
           <Dialog open={open} onOpenChange={setOpen}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -174,6 +176,7 @@ export function Nav() {
               <AboutContent onClose={() => setOpen(false)} />
             </DialogContent>
           </Dialog>
+          <ThemeToggle />
         </div>
       </nav>
     </header>
