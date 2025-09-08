@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { User, Image as ImageIcon, Loader2, Sparkles, Brain, FileText, BarChart3, MessageSquare, Clock, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 import ImageLightbox from "@/components/lightbox";
 import ChatInputBar from "@/components/chat/ChatInputBar";
 import StarterQuestions from "@/components/chat/StarterQuestions";

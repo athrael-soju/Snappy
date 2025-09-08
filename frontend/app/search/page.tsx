@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Search, AlertCircle, ImageIcon, Sparkles, Eye, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 import Image from "next/image";
 import ImageLightbox from "@/components/lightbox";
 import SearchBar from "@/components/search/SearchBar";

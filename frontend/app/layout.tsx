@@ -4,7 +4,7 @@ import "./globals.css";
 import "@/lib/api/client";
 import { Nav } from "@/components/nav";
 import NextTopLoader from "nextjs-toploader";
-import { Toaster } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppStoreProvider } from "@/stores/app-store";
 
@@ -44,7 +44,7 @@ export default function RootLayout({
         {/* Foreground content */}
         <div className="relative z-10 flex flex-col flex-1 min-h-0 overflow-hidden">
           <NextTopLoader showSpinner={false} />
-          <Toaster richColors closeButton position="top-right" />
+          <Toaster richColors position="top-right" />
           <AppStoreProvider>
             <TooltipProvider>
               <Nav />

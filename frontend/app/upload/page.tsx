@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Upload, FileText, CheckCircle, AlertCircle, Loader2, CloudUpload, FolderOpen, ArrowUpFromLine } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 import { useUploadStore } from "@/stores/app-store";
 
 export default function UploadPage() {

@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useReducer, useEffect, useRef, useCallback, ReactNode } from 'react';
 import type { SearchItem } from "@/lib/api/generated";
 import type { ChatMessage } from "@/lib/hooks/use-chat";
+import { toast } from '@/components/ui/sonner';
 
 // Types for our app state
 export interface SearchState {
@@ -289,12 +290,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           
           // Show toast notification
           if (typeof window !== 'undefined') {
-            // Use dynamic import to ensure toast is available
-            import('sonner').then(({ toast }) => {
-              toast.success('Upload Complete', { description: successMsg });
-            }).catch(() => {
-              console.log('Upload completed:', successMsg);
-            });
+            toast.success('Upload Complete', { description: successMsg });
           }
         } else if (data.status === 'failed') {
           closeSSEConnection();
@@ -305,11 +301,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           
           // Show toast notification
           if (typeof window !== 'undefined') {
-            import('sonner').then(({ toast }) => {
-              toast.error('Upload Failed', { description: errMsg });
-            }).catch(() => {
-              console.error('Upload failed:', errMsg);
-            });
+            toast.error('Upload Failed', { description: errMsg });
           }
         }
       } catch (e) {

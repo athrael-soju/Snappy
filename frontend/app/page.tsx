@@ -124,10 +124,6 @@ export default function Home() {
               <Link href="/search" className="ml-2 text-blue-600 hover:text-blue-700 font-medium hover:underline">
                 explore with search →
               </Link>
-              {" · "}
-              <Link href="/test-persistence" className="text-purple-600 hover:text-purple-700 font-medium hover:underline">
-                test data persistence →
-              </Link>
             </div>
           </div>
 

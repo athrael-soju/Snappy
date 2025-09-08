@@ -2,7 +2,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { toast } from 'sonner'
+import { toast } from '@/components/ui/sonner'
 import {
   chatRequest,
   streamAssistant,
