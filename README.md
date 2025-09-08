@@ -110,7 +110,7 @@ __Retrieval flow__:
 ## Features
 
 - __Page-level, multimodal RAG__: stores per-page images, uses image-token pooling for robust retrieval
-- __FastAPI endpoints__: OpenAPI docs at `/docs`; endpoints for indexing, search, maintenance, and progress polling
+- __FastAPI endpoints__: OpenAPI docs at `/docs`; endpoints for indexing, search, maintenance, and SSE progress streaming
 - __Dockerized__: one `docker-compose up -d` brings up Qdrant, MinIO and the API
 - __Configurable__: all knobs in `.env`/`config.py`
 - __Optional binary quantization__: enable Qdrant binary quantization with env flags; supports rescore/oversampling.
@@ -199,7 +199,7 @@ Deterministic runs
 - __PDFs only__: indexing assumes PDFs via `pdf2image`; other formats (images, Office docs) are not supported yet.
 - __Limited maintenance APIs__: provided endpoints clear stores (`/clear/*`), but there are no per-document delete/update endpoints.
 - __Single-tenant shape__: one Qdrant collection and one MinIO bucket; no namespace isolation per tenant.
-- __No external job queue__: indexing runs as an in-process background task (FastAPI `BackgroundTasks`), with polling via `/progress/{job_id}`; there is no distributed queue/worker.
+- __No external job queue__: indexing runs as an in-process background task (FastAPI `BackgroundTasks`), with SSE progress via `/progress/stream/{job_id}`; there is no distributed queue/worker.
 - __No rate limiting or abuse protection__.
 - __No observability stack__: no Prometheus/Grafana, OpenTelemetry, or tracing; logs only.
 - __No automated tests/benchmarks__: no unit/integration tests in this template.
@@ -342,7 +342,7 @@ You can interact via the OpenAPI UI at `/docs` or with HTTP clients:
 - `GET /health` — check dependencies status.
 - `GET /search?q=...&k=5` — retrieve top-k results with payload metadata.
 - `POST /index` (multipart files[]) — start background indexing job; returns `{ status:"started", job_id, total }`.
-- `GET /progress/{job_id}` — poll current progress `{ status, current, total, percent, message }`.
+- `GET /progress/stream/{job_id}` — Server‑Sent Events stream for real‑time progress updates.
 - `POST /clear/qdrant` | `/clear/minio` | `/clear/all` — maintenance.
 
 ## API Examples
