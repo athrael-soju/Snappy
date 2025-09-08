@@ -141,11 +141,11 @@ export default function SearchPage() {
       {/* Header */}
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-lg border border-blue-500/20">
-            <Eye className="w-6 h-6 text-blue-500" />
+          <div className="p-2 bg-gradient-to-br from-primary/10 to-primary/10 rounded-lg border border-border">
+            <Eye className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">Visual Search</h1>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">Visual Search</h1>
             <p className="text-muted-foreground text-lg">Find documents and images using natural language powered by AI vision</p>
           </div>
         </div>
@@ -153,21 +153,21 @@ export default function SearchPage() {
         {/* Quick Stats */}
         <div className="flex items-center gap-6 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-blue-500" />
+            <Sparkles className="w-4 h-4 text-primary" />
             <span>AI-powered visual understanding</span>
           </div>
           <div className="flex items-center gap-2">
-            <Search className="w-4 h-4 text-cyan-500" />
+            <Search className="w-4 h-4 text-primary" />
             <span>Natural language queries</span>
           </div>
         </div>
       </div>
 
       {/* Search Form */}
-      <Card className="border-2 border-blue-100/50 shadow-lg overflow-hidden !pt-0 bg-transparent">
-        <CardHeader className="bg-gradient-to-r from-blue-100 to-cyan-100 border-b rounded-t-xl py-6 mt-0">
+      <Card className="border-2 border-border shadow-lg overflow-hidden !pt-0 bg-transparent">
+        <CardHeader className="bg-gradient-to-r from-secondary/50 to-accent/50 border-b rounded-t-xl py-6 mt-0">
           <CardTitle className="flex items-center gap-2 text-xl">
-            <Search className="w-5 h-5 text-blue-600" />
+            <Search className="w-5 h-5 text-primary" />
             Search Your Documents
           </CardTitle>
           <CardDescription className="text-base">
@@ -291,19 +291,19 @@ export default function SearchPage() {
                     <p className="text-sm font-medium text-muted-foreground">Suggestions:</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                       <div className="flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                        <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                         <span className="text-muted-foreground">Try simpler, more descriptive terms</span>
                       </div>
                       <div className="flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                        <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                         <span className="text-muted-foreground">Check spelling and grammar</span>
                       </div>
                       <div className="flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                        <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                         <span className="text-muted-foreground">Upload more diverse content</span>
                       </div>
                       <div className="flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                        <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                         <span className="text-muted-foreground">Try the example queries above</span>
                       </div>
                     </div>
@@ -320,7 +320,7 @@ export default function SearchPage() {
                 >
                 {results.map((item, idx) => (
                   <motion.div key={idx} variants={itemVariants}>
-                    <Card className="h-full group overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-2 hover:border-blue-200">
+                    <Card className="h-full group overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-2 hover:border-primary/50">
                       {item.image_url && (
                         <div
                           className="relative aspect-video overflow-hidden bg-gradient-to-br from-blue-50 to-cyan-50 cursor-zoom-in"
@@ -349,7 +349,7 @@ export default function SearchPage() {
                       <CardContent className="p-4 space-y-3">
                         {item.label && (
                           <div className="space-y-1">
-                            <h3 className="font-semibold text-foreground line-clamp-2 group-hover:text-blue-600 transition-colors">
+                            <h3 className="font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
                               {item.label}
                             </h3>
                           </div>
@@ -361,7 +361,7 @@ export default function SearchPage() {
                             </Badge>
                             {typeof item.score === "number" && (
                               <div className="flex items-center gap-1">
-                                <div className={`w-2 h-2 rounded-full ${item.score > 0.8 ? 'bg-green-500' : item.score > 0.6 ? 'bg-yellow-500' : 'bg-red-500'
+                                <div className={`w-2 h-2 rounded-full ${item.score > 0.8 ? 'bg-primary' : item.score > 0.6 ? 'bg-secondary' : 'bg-destructive'
                                   }`} />
                                 <span className="text-xs text-muted-foreground font-mono">
                                   {(item.score * 100).toFixed(1)}%

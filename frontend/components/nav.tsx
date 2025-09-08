@@ -15,11 +15,11 @@ import { useAppStore } from "@/stores/app-store";
 import { motion, AnimatePresence } from "framer-motion";
 
 const links = [
-  { href: "/", label: "Home", icon: Home, color: "text-blue-600" },
-  { href: "/search", label: "Search", icon: Eye, color: "text-blue-500" },
-  { href: "/upload", label: "Upload", icon: CloudUpload, color: "text-cyan-500" },
-  { href: "/chat", label: "Chat", icon: Brain, color: "text-purple-500" },
-  { href: "/maintenance", label: "Maintenance", icon: Shield, color: "text-red-500" },
+  { href: "/", label: "Home", icon: Home, color: "text-primary" },
+  { href: "/search", label: "Search", icon: Eye, color: "text-primary" },
+  { href: "/upload", label: "Upload", icon: CloudUpload, color: "text-primary" },
+  { href: "/chat", label: "Chat", icon: Brain, color: "text-primary" },
+  { href: "/maintenance", label: "Maintenance", icon: Shield, color: "text-destructive" },
 ];
 
 export function Nav() {
@@ -57,7 +57,7 @@ export function Nav() {
     return null;
   };
   return (
-    <header className="w-full border-b bg-gradient-to-r from-blue-50/80 via-purple-50/60 to-cyan-50/80 backdrop-blur-xl supports-[backdrop-filter]:bg-gradient-to-r supports-[backdrop-filter]:from-blue-50/60 supports-[backdrop-filter]:via-purple-50/40 supports-[backdrop-filter]:to-cyan-50/60 sticky top-0 z-50 shadow-lg border-blue-200/20">
+    <header className="w-full border-b bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/10 backdrop-blur-xl supports-[backdrop-filter]:bg-gradient-to-r supports-[backdrop-filter]:from-primary/5 supports-[backdrop-filter]:via-secondary/5 supports-[backdrop-filter]:to-primary/5 sticky top-0 z-50 shadow-lg border-border">
       <nav className="mx-auto max-w-6xl flex items-center justify-between gap-4 px-6 py-4">
         <div className="flex items-center gap-3">
           <Link
@@ -72,7 +72,7 @@ export function Nav() {
               className="transition-all duration-300 group-hover:rotate-3"
               priority
             />
-            <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-primary via-primary to-primary bg-clip-text text-transparent">
               FastAPI / Next.js / ColPali Template
             </span>
           </Link>
@@ -91,14 +91,14 @@ export function Nav() {
                 className={cn(
                   "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 hover:scale-105 relative group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                   active
-                    ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg hover:shadow-xl"
-                    : "text-muted-foreground hover:text-foreground hover:bg-white/60 hover:shadow-md border border-transparent hover:border-blue-200/50",
+                    ? "bg-gradient-to-r from-primary to-primary text-primary-foreground shadow-lg hover:shadow-xl"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/60 hover:shadow-md border border-transparent hover:border-border",
                   // Add extra padding-right when badge is present to prevent overlap
                   uploadIndicator && link.href === "/upload" && "pr-8"
                 )}
               >
-                <Icon className={cn("w-4 h-4 relative z-10 transition-colors duration-300", active ? "text-white" : link.color)} />
-                <span className={cn("hidden sm:inline relative z-10 transition-colors duration-300", active ? "text-white font-semibold" : "")}>
+                <Icon className={cn("w-4 h-4 relative z-10 transition-colors duration-300", active ? "text-primary-foreground" : link.color)} />
+                <span className={cn("hidden sm:inline relative z-10 transition-colors duration-300", active ? "text-primary-foreground font-semibold" : "")}>
                   {link.label}
                 </span>
                 {/* Upload progress badge */}
@@ -113,8 +113,8 @@ export function Nav() {
                         "absolute -top-1 -right-1 text-xs font-bold rounded-full min-w-[22px] h-[22px] flex items-center justify-center transition-all duration-300 z-20",
                         // Enhanced styling to match the app theme
                         uploadIndicator.isActive
-                          ? "bg-gradient-to-br from-cyan-400 via-cyan-500 to-cyan-600 text-white shadow-lg shadow-cyan-500/40 border-2 border-white/80"
-                          : "bg-gradient-to-br from-slate-500 via-slate-600 to-slate-700 text-white/90 shadow-md border-2 border-white/60",
+                          ? "bg-gradient-to-br from-primary via-primary to-primary text-primary-foreground shadow-lg shadow-primary/40 border-2 border-primary-foreground/80"
+                          : "bg-gradient-to-br from-muted via-muted to-muted text-muted-foreground shadow-md border-2 border-primary-foreground/60",
                         "hover:scale-110 hover:shadow-xl",
                         // Subtle backdrop blur for premium feel
                         "backdrop-blur-sm"
@@ -124,7 +124,7 @@ export function Nav() {
                       {/* Animated progress ring background */}
                       {uploadIndicator.isActive && (
                         <motion.div
-                          className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-300/30 to-cyan-600/30"
+                          className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/30 to-primary/30"
                           animate={{
                             scale: [1, 1.15, 1],
                             opacity: [0.3, 0.6, 0.3]
@@ -164,7 +164,7 @@ export function Nav() {
                     aria-label="About this template"
                     className="group transition-transform hover:scale-105"
                   >
-                    <HelpCircle className="w-5 h-5 text-blue-600 transition-colors duration-300 group-hover:text-cyan-600" />
+                    <HelpCircle className="w-5 h-5 text-primary transition-colors duration-300 group-hover:text-primary/80" />
                     <span className="sr-only">About this template</span>
                   </Button>
                 </DialogTrigger>

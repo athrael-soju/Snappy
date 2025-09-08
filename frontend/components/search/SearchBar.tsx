@@ -32,7 +32,7 @@ export default function SearchBar({ q, setQ, loading, onSubmit, k, setK, onClear
               required
               disabled={loading}
               aria-label="Search query"
-              className="text-base sm:text-lg pl-14 h-14 sm:h-16 rounded-2xl border-2 shadow-md bg-white placeholder:text-muted-foreground/80 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:border-blue-500 focus:shadow-lg"
+              className="text-base sm:text-lg pl-14 h-14 sm:h-16 rounded-2xl border-2 shadow-md bg-background placeholder:text-muted-foreground/80 focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary focus:shadow-lg"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -58,7 +58,7 @@ export default function SearchBar({ q, setQ, loading, onSubmit, k, setK, onClear
                   type="submit"
                   disabled={loading || !q.trim()}
                   size="icon"
-                  className="h-14 w-14 rounded-2xl bg-gradient-to-r from-blue-700 to-cyan-700 hover:from-blue-800 hover:to-cyan-800 text-white focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow"
+                  className="h-14 w-14 rounded-2xl bg-gradient-to-r from-primary to-primary hover:from-primary/90 hover:to-primary/90 text-primary-foreground focus:ring-2 focus:ring-offset-2 focus:ring-primary shadow"
                 >
                   {loading ? (
                     <Loader2 className="w-6 h-6 animate-spin" />
@@ -80,7 +80,7 @@ export default function SearchBar({ q, setQ, loading, onSubmit, k, setK, onClear
                   disabled={loading || !hasResults}
                   size="icon"
                   variant="outline"
-                  className="h-14 w-14 rounded-2xl border-2 border-blue-200 hover:border-blue-400 hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 text-muted-foreground hover:text-blue-600 transition-all duration-300 shadow-sm hover:shadow-md disabled:opacity-50"
+                  className="h-14 w-14 rounded-2xl border-2 border-border hover:border-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-primary/10 text-muted-foreground hover:text-primary transition-all duration-300 shadow-sm hover:shadow-md disabled:opacity-50"
                 >
                   <Trash2 className="w-5 h-5" />
                 </Button>

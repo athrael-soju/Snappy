@@ -147,11 +147,11 @@ export default function UploadPage() {
       {/* Header */}
       <div className="space-y-2">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-lg border border-blue-500/20">
-            <CloudUpload className="w-6 h-6 text-blue-500" />
+          <div className="p-2 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-lg border border-border">
+            <CloudUpload className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Upload Documents</h1>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">Upload Documents</h1>
             <p className="text-muted-foreground">Drag & drop or select files to add to your visual search index</p>
           </div>
         </div>
@@ -160,8 +160,8 @@ export default function UploadPage() {
       {/* Upload Card with Drag & Drop */}
       <Card className={`relative border-2 border-dashed transition-all duration-300 group ${
         isDragOver 
-          ? 'border-blue-500 bg-blue-500/5 shadow-lg scale-[1.02]' 
-          : 'border-muted-foreground/25 hover:border-blue-400/50 hover:shadow-md'
+          ? 'border-primary bg-primary/5 shadow-lg scale-[1.02]' 
+          : 'border-muted-foreground/25 hover:border-primary/50 hover:shadow-md'
       }`}>
         <div 
           onDragOver={onDragOver}
@@ -176,11 +176,11 @@ export default function UploadPage() {
                 rotate: isDragOver ? 5 : 0
               }}
               className={`mx-auto w-20 h-20 rounded-full flex items-center justify-center mb-4 transition-all ${
-                isDragOver ? 'bg-blue-500/20 border-2 border-blue-500/30' : 'bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20'
+                isDragOver ? 'bg-primary/20 border-2 border-primary/30' : 'bg-gradient-to-br from-primary/10 to-secondary/10 border border-border'
               }`}
             >
               <CloudUpload className={`w-10 h-10 transition-colors ${
-                isDragOver ? 'text-blue-600' : 'text-blue-500'
+                isDragOver ? 'text-primary' : 'text-primary'
               }`} />
             </motion.div>
             
@@ -204,7 +204,7 @@ export default function UploadPage() {
                   <Button 
                     type="button" 
                     variant="outline" 
-                    className="h-12 border-dashed hover:border-blue-400 hover:bg-blue-50/50"
+                    className="h-12 border-dashed hover:border-primary hover:bg-primary/5"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
                   >
@@ -333,10 +333,10 @@ export default function UploadPage() {
 
       {/* Info Section - Moved closer and more prominent */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="border-blue-200/50">
+        <Card className="border-border">
           <CardHeader className="pb-4">
             <div className="flex items-center gap-2">
-              <FileText className="w-5 h-5 text-blue-500" />
+              <FileText className="w-5 h-5 text-primary" />
               <CardTitle className="text-lg">Supported Formats</CardTitle>
             </div>
           </CardHeader>
@@ -344,7 +344,7 @@ export default function UploadPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <div className="font-medium text-foreground flex items-center gap-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <div className="w-2 h-2 bg-primary rounded-full"></div>
                   Documents
                 </div>
                 <div className="text-sm text-muted-foreground pl-4">
@@ -353,7 +353,7 @@ export default function UploadPage() {
               </div>
               <div className="space-y-2">
                 <div className="font-medium text-foreground flex items-center gap-2">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                  <div className="w-2 h-2 bg-secondary rounded-full"></div>
                   Images
                 </div>
                 <div className="text-sm text-muted-foreground pl-4">
@@ -364,25 +364,25 @@ export default function UploadPage() {
           </CardContent>
         </Card>
         
-        <Card className="border-purple-200/50">
+        <Card className="border-border">
           <CardHeader className="pb-4">
             <div className="flex items-center gap-2">
-              <ArrowUpFromLine className="w-5 h-5 text-purple-500" />
+              <ArrowUpFromLine className="w-5 h-5 text-primary" />
               <CardTitle className="text-lg">Quick Tips</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-3 text-sm">
               <div className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+                <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                 <span className="text-muted-foreground">Drag files directly from your computer</span>
               </div>
               <div className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+                <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                 <span className="text-muted-foreground">Upload multiple files at once</span>
               </div>
               <div className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+                <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                 <span className="text-muted-foreground">Files are processed automatically for search</span>
               </div>
             </div>

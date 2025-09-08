@@ -163,18 +163,18 @@ export default function ChatPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-lg border border-purple-500/20">
-            <Brain className="w-6 h-6 text-purple-500" />
+          <div className="p-2 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-lg border border-border">
+            <Brain className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">AI Chat</h1>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">AI Chat</h1>
             <p className="text-muted-foreground text-lg">Ask questions about your documents and get AI-powered responses with visual citations</p>
           </div>
         </div>
       </div>
 
       {/* Chat Messages */}
-      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-2 border-purple-100/50 shadow-lg">
+      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-2 border-border shadow-lg">
         <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4">
           <AnimatePresence mode="popLayout">
             {messages.length === 0 ? (
@@ -183,10 +183,10 @@ export default function ChatPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 className="flex flex-col items-center justify-center h-full text-center py-12"
               >
-                <div className="w-20 h-20 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-full flex items-center justify-center mb-6 border border-purple-500/20">
-                  <Brain className="w-10 h-10 text-purple-500" />
+                <div className="w-20 h-20 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-full flex items-center justify-center mb-6 border border-border">
+                  <Brain className="w-10 h-10 text-primary" />
                 </div>
-                <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Start Your AI Conversation</h3>
+                <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">Start Your AI Conversation</h3>
                 <p className="text-muted-foreground max-w-lg mb-8 text-lg leading-relaxed">
                   Ask questions about your uploaded documents and get intelligent responses with visual proof from your content.
                 </p>
@@ -230,8 +230,8 @@ export default function ChatPage() {
                   <div className={`flex-1 max-w-[85%] ${message.role === "user" ? "text-right" : ""
                     }`}>
                     <div className={`inline-block p-4 rounded-2xl shadow-sm border ${message.role === "assistant"
-                      ? "bg-gradient-to-br from-purple-50 to-pink-50 text-foreground border-purple-200/50"
-                      : "bg-gradient-to-br from-blue-100 to-cyan-100 text-foreground border-blue-200"
+                      ? "bg-gradient-to-br from-secondary/50 to-accent/50 text-foreground border-border"
+                      : "bg-gradient-to-br from-primary/10 to-primary/10 text-foreground border-border"
                       }`}>
                       {message.content ? (
                         message.role === "assistant" ? (
@@ -246,7 +246,7 @@ export default function ChatPage() {
                       ) : (
                         loading && message.role === "assistant" ? (
                           <div className="flex items-center gap-2 text-muted-foreground">
-                            <Loader2 className="w-4 h-4 animate-spin text-purple-500" />
+                            <Loader2 className="w-4 h-4 animate-spin text-primary" />
                             <AnimatePresence mode="wait" initial={false}>
                               <motion.span
                                 key={brainIdx}
@@ -266,7 +266,7 @@ export default function ChatPage() {
 
                     {message.role === "assistant" && (
                       <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2 ml-2">
-                        <Brain className="w-3 h-3 text-purple-500" />
+                        <Brain className="w-3 h-3 text-primary" />
                         <span>AI Assistant</span>
                         <div className="flex">
                           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { /* TODO: thumbs up handler */ }}>
@@ -297,11 +297,11 @@ export default function ChatPage() {
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <div className="p-1 bg-purple-100 rounded">
-                      <ImageIcon className="h-4 w-4 text-purple-600" />
+                    <div className="p-1 bg-secondary rounded">
+                      <ImageIcon className="h-4 w-4 text-primary" />
                     </div>
                     <span className="text-sm font-medium">Visual Citations</span>
-                    <Badge variant="secondary" className="bg-purple-100 text-purple-800">{imageGroups.flat().length} sources</Badge>
+                    <Badge variant="secondary" className="bg-secondary text-foreground">{imageGroups.flat().length} sources</Badge>
                   </div>
                 </div>
                 <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1.5">
@@ -347,7 +347,7 @@ export default function ChatPage() {
         </div>
 
         {/* Input Form */}
-        <div className="border-t border-purple-100/50 p-4 bg-gradient-to-r from-purple-50/30 to-pink-50/30">
+        <div className="border-t border-border p-4 bg-gradient-to-r from-secondary/30 to-accent/30">
           <ChatInputBar
             input={input}
             setInput={setInput}
@@ -374,7 +374,7 @@ export default function ChatPage() {
           {/* Tips below input */}
           <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-purple-500" />
+              <Sparkles className="w-3 h-3 text-primary" />
               <span>AI-powered responses</span>
             </div>
             <button
@@ -383,21 +383,21 @@ export default function ChatPage() {
                 if (imagesSectionRef.current) {
                   imagesSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
                   // Briefly flash focus ring for visibility
-                  imagesSectionRef.current.classList.add('ring-2', 'ring-pink-400');
-                  setTimeout(() => imagesSectionRef.current?.classList.remove('ring-2', 'ring-pink-400'), 1200);
+                  imagesSectionRef.current.classList.add('ring-2', 'ring-primary');
+                  setTimeout(() => imagesSectionRef.current?.classList.remove('ring-2', 'ring-primary'), 1200);
                 }
               }}
-              className={`flex items-center gap-1 rounded px-2 py-1 transition-shadow focus:outline-none focus:ring-2 focus:ring-pink-400 ${
+              className={`flex items-center gap-1 rounded px-2 py-1 transition-shadow focus:outline-none focus:ring-2 focus:ring-primary ${
                 imageGroups.length > 0
-                  ? 'bg-pink-50/60 text-foreground shadow-sm animate-pulse hover:animate-none'
+                  ? 'bg-secondary/60 text-foreground shadow-sm animate-pulse hover:animate-none'
                   : ''
               }`}
               title={imageGroups.length > 0 ? 'Click to view retrieved images' : 'Will appear when images are retrieved'}
             >
-              <ImageIcon className="w-3 h-3 text-pink-500" />
+              <ImageIcon className="w-3 h-3 text-primary" />
               <span>Visual citations included</span>
               {imageGroups.length > 0 && (
-                <Badge variant="secondary" className="ml-1 bg-pink-100 text-pink-800">
+                <Badge variant="secondary" className="ml-1 bg-secondary text-foreground">
                   {imageGroups.flat().length}
                 </Badge>
               )}

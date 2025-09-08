@@ -13,9 +13,9 @@ const features = [
     title: "AI-Powered Visual Search",
     description: "Find documents using natural language descriptions",
     detail: "Advanced ColPali embeddings understand visual content context",
-    color: "text-blue-500",
-    bgColor: "from-blue-500/10 to-cyan-500/10",
-    borderColor: "border-blue-200/50",
+    color: "text-primary",
+    bgColor: "from-primary/10 to-primary/10",
+    borderColor: "border-border",
     preview: "search-preview"
   },
   {
@@ -23,9 +23,9 @@ const features = [
     title: "Smart Document Processing",
     description: "Drag & drop files for instant processing",
     detail: "Automatic indexing with progress tracking and format detection",
-    color: "text-green-500",
-    bgColor: "from-green-500/10 to-emerald-500/10",
-    borderColor: "border-green-200/50",
+    color: "text-primary",
+    bgColor: "from-primary/10 to-primary/10",
+    borderColor: "border-border",
     preview: "upload-preview"
   },
   {
@@ -33,17 +33,17 @@ const features = [
     title: "Intelligent Chat with Citations",
     description: "Ask questions and get visual proof",
     detail: "AI responses backed by relevant document excerpts and images",
-    color: "text-purple-500",
-    bgColor: "from-purple-500/10 to-pink-500/10",
-    borderColor: "border-purple-200/50",
+    color: "text-primary",
+    bgColor: "from-primary/10 to-primary/10",
+    borderColor: "border-border",
     preview: "chat-preview"
   }
 ];
 
 const workflow = [
-  { step: 1, title: "Upload", description: "Drag & drop your documents", icon: CloudUpload, color: "text-blue-600" },
-  { step: 2, title: "Process", description: "AI analyzes visual content", icon: Database, color: "text-purple-600" },
-  { step: 3, title: "Search & Chat", description: "Find and discuss your documents", icon: Brain, color: "text-green-600" }
+  { step: 1, title: "Upload", description: "Drag & drop your documents", icon: CloudUpload, color: "text-primary" },
+  { step: 2, title: "Process", description: "AI analyzes visual content", icon: Database, color: "text-primary" },
+  { step: 3, title: "Search & Chat", description: "Find and discuss your documents", icon: Brain, color: "text-primary" }
 ];
 
 const containerVariants = {
@@ -74,9 +74,9 @@ export default function Home() {
       <section className="text-center py-16 sm:py-24 relative overflow-hidden">
         {/* Background decoration */}
         <div className="absolute inset-0">
-          <div className="absolute top-20 left-20 w-32 h-32 bg-blue-200/20 rounded-full blur-xl" />
-          <div className="absolute top-40 right-32 w-24 h-24 bg-purple-200/20 rounded-full blur-xl" />
-          <div className="absolute bottom-32 left-1/3 w-40 h-40 bg-cyan-200/20 rounded-full blur-xl" />
+          <div className="absolute top-20 left-20 w-32 h-32 bg-primary/20 rounded-full blur-xl" />
+          <div className="absolute top-40 right-32 w-24 h-24 bg-secondary/20 rounded-full blur-xl" />
+          <div className="absolute bottom-32 left-1/3 w-40 h-40 bg-accent/20 rounded-full blur-xl" />
         </div>
 
         <motion.div
@@ -86,14 +86,14 @@ export default function Home() {
           className="max-w-5xl mx-auto relative z-10"
         >
           <div className="mb-6">
-            <Badge variant="secondary" className="mb-4 px-4 py-2 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border-blue-200">
+            <Badge variant="secondary" className="mb-4 px-4 py-2 bg-gradient-to-r from-primary/10 to-secondary/10 text-primary border-border">
               <Sparkles className="w-4 h-4 mr-2" />
               Powered by Vision Language Models
             </Badge>
           </div>
 
           <h1 className="text-5xl sm:text-7xl font-bold mb-8">
-            <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-primary via-primary to-primary bg-clip-text text-transparent">
               FastAPI / Next.js / ColPali Template
             </span>
           </h1>

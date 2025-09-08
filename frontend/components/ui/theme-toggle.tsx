@@ -30,8 +30,8 @@ export function ThemeToggle() {
           className="group transition-transform hover:scale-105"
           aria-label="Toggle theme"
         >
-          <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-blue-600 group-hover:text-cyan-600" />
-          <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-blue-600 group-hover:text-cyan-600" />
+          <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-primary group-hover:text-primary/80" />
+          <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-primary group-hover:text-primary/80" />
           <span className="sr-only">Toggle theme</span>
         </Button>
       </TooltipTrigger>

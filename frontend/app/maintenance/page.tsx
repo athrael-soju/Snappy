@@ -21,9 +21,9 @@ const actions = [
     description: "Remove all document embeddings from Qdrant vector store",
     detailedDescription: "This action will permanently delete all document embeddings and search indices. You'll need to re-upload and re-index your documents.",
     icon: Database,
-    color: "text-blue-500",
-    bgColor: "bg-blue-500/10",
-    borderColor: "border-blue-200",
+    color: "text-primary",
+    bgColor: "bg-primary/10",
+    borderColor: "border-border",
     buttonVariant: "secondary" as const,
     confirmTitle: "Clear Vector Database?",
     confirmMsg: "This will permanently delete all document embeddings from Qdrant. This action cannot be undone.",
@@ -36,9 +36,9 @@ const actions = [
     description: "Remove all uploaded images from MinIO storage bucket",
     detailedDescription: "This action will delete all stored images and file uploads. Original documents will be lost and cannot be recovered.",
     icon: Server,
-    color: "text-orange-500",
-    bgColor: "bg-orange-500/10",
-    borderColor: "border-orange-200",
+    color: "text-secondary",
+    bgColor: "bg-secondary/10",
+    borderColor: "border-border",
     buttonVariant: "destructive" as const,
     confirmTitle: "Clear Object Storage?",
     confirmMsg: "This will permanently delete all uploaded files and images from MinIO storage. This action cannot be undone and will affect all visual search functionality.",
@@ -51,9 +51,9 @@ const actions = [
     description: "Complete system reset - removes ALL data from both systems",
     detailedDescription: "This is a complete system reset that will delete all documents, embeddings, images, and search indices. The system will return to its initial empty state.",
     icon: Trash2,
-    color: "text-red-600",
-    bgColor: "bg-red-500/10",
-    borderColor: "border-red-300",
+    color: "text-destructive",
+    bgColor: "bg-destructive/10",
+    borderColor: "border-destructive",
     buttonVariant: "destructive" as const,
     confirmTitle: "Complete System Reset?",
     confirmMsg: "⚠️ DANGER: This will permanently delete ALL data from both Qdrant and MinIO. This includes all documents, embeddings, images, and search indices. This action cannot be undone and will reset the entire system to its initial state.",
@@ -115,11 +115,11 @@ export default function MaintenancePage() {
       {/* Header */}
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-br from-red-500/10 to-orange-500/10 rounded-lg border border-red-500/20">
-            <Shield className="w-6 h-6 text-red-500" />
+          <div className="p-2 bg-gradient-to-br from-destructive/10 to-secondary/10 rounded-lg border border-border">
+            <Shield className="w-6 h-6 text-destructive" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">System Maintenance</h1>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-destructive to-destructive bg-clip-text text-transparent">System Maintenance</h1>
             <p className="text-muted-foreground text-lg">Manage your vector database and object storage with care</p>
           </div>
         </div>
@@ -127,21 +127,21 @@ export default function MaintenancePage() {
         {/* Quick Info */}
         <div className="flex items-center gap-6 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-500" />
+            <AlertTriangle className="w-4 h-4 text-secondary" />
             <span>Destructive operations ahead</span>
           </div>
           <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4 text-green-500" />
+            <Shield className="w-4 h-4 text-primary" />
             <span>Confirm before proceeding</span>
           </div>
         </div>
       </div>
 
       {/* Warning Banner */}
-      <Alert className="border-2 border-amber-200 bg-gradient-to-r from-amber-50/50 to-orange-50/50">
-        <AlertTriangle className="h-5 w-5 text-amber-600" />
-        <AlertTitle className="text-amber-800 font-semibold">⚠️ Destructive Operations</AlertTitle>
-        <AlertDescription className="text-amber-700">
+      <Alert className="border-2 border-secondary bg-gradient-to-r from-secondary/50 to-accent/50">
+        <AlertTriangle className="h-5 w-5 text-secondary-foreground" />
+        <AlertTitle className="text-secondary-foreground font-semibold">⚠️ Destructive Operations</AlertTitle>
+        <AlertDescription className="text-secondary-foreground">
           The actions below permanently delete data and <strong>cannot be undone</strong>
         </AlertDescription>
       </Alert>
@@ -193,9 +193,9 @@ export default function MaintenancePage() {
                         disabled={isAnyLoading}
                         className={`w-full h-12 font-semibold ${
                           action.severity === 'critical' 
-                            ? 'bg-red-600 hover:bg-red-700 text-white' 
+                            ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground' 
                             : action.severity === 'high'
-                            ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                            ? 'bg-secondary hover:bg-secondary/90 text-secondary-foreground'
                             : ''
                         }`}
                         size="lg"
