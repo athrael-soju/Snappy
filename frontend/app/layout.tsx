@@ -4,8 +4,10 @@ import "./globals.css";
 import "@/lib/api/client";
 import { Nav } from "@/components/nav";
 import NextTopLoader from "nextjs-toploader";
-import { Toaster } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ThemeProvider } from "@/components/ui/theme-provider";
+import { AppStoreProvider } from "@/stores/app-store";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,7 +35,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased relative h-screen flex flex-col`}
       >
@@ -43,13 +45,23 @@ export default function RootLayout({
         {/* Foreground content */}
         <div className="relative z-10 flex flex-col flex-1 min-h-0 overflow-hidden">
           <NextTopLoader showSpinner={false} />
-          <Toaster richColors closeButton position="top-right" />
-          <TooltipProvider>
-            <Nav />
-            <main className="flex-1 min-h-0 mx-auto max-w-6xl w-full p-4 sm:p-6 flex flex-col overflow-hidden">
-              {children}
-            </main>
-          </TooltipProvider>
+          <Toaster richColors position="top-right" />
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+            storageKey="colpali-theme"
+          >
+            <AppStoreProvider>
+              <TooltipProvider>
+                <Nav />
+                <main className="flex-1 min-h-0 mx-auto max-w-6xl w-full p-4 sm:p-6 flex flex-col overflow-hidden">
+                  {children}
+                </main>
+              </TooltipProvider>
+            </AppStoreProvider>
+          </ThemeProvider>
         </div>
       </body>
     </html>

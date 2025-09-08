@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ApiError } from "@/lib/api/generated";
 import "@/lib/api/client";
 import { Label } from "@/components/ui/label";
@@ -12,38 +12,70 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Upload, FileText, CheckCircle, AlertCircle, Loader2, CloudUpload, FolderOpen, ArrowUpFromLine } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
+import { useUploadStore } from "@/stores/app-store";
 
 export default function UploadPage() {
-  const [files, setFiles] = useState<FileList | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // Use global upload store
+  const {
+    files,
+    uploading,
+    uploadProgress,
+    message,
+    error,
+    jobId,
+    statusText,
+    setFiles,
+    setUploading,
+    setProgress,
+    setMessage,
+    setError,
+    setJobId,
+    setStatusText,
+  } = useUploadStore();
+
+  // Local state for UI interactions only
   const [isDragOver, setIsDragOver] = useState(false);
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [statusText, setStatusText] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Clear success/error messages after some time to avoid persistent state
+  useEffect(() => {
+    if (message && !uploading) {
+      const timer = setTimeout(() => {
+        setMessage(null);
+      }, 10000); // Clear success message after 10 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [message, uploading, setMessage]);
+
+  useEffect(() => {
+    if (error && !uploading) {
+      const timer = setTimeout(() => {
+        setError(null);
+      }, 10000); // Clear error message after 10 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [error, uploading, setError]);
+
   // Drag and drop handlers
-  const onDragOver = useCallback((e: React.DragEvent) => {
+  const onDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(true);
-  }, []);
+  };
 
-  const onDragLeave = useCallback((e: React.DragEvent) => {
+  const onDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-  }, []);
+  };
 
-  const onDrop = useCallback((e: React.DragEvent) => {
+  const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
     const droppedFiles = e.dataTransfer.files;
     if (droppedFiles.length > 0) {
       setFiles(droppedFiles);
     }
-  }, []);
+  };
 
   const handleFileSelect = (selectedFiles: FileList | null) => {
     if (selectedFiles) {
@@ -54,8 +86,9 @@ export default function UploadPage() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!files || files.length === 0) return;
+    
     setUploading(true);
-    setUploadProgress(0);
+    setProgress(0);
     setMessage(null);
     setError(null);
     setStatusText(null);
@@ -80,59 +113,11 @@ export default function UploadPage() {
       setJobId(startedJobId);
       setStatusText(`Queued ${total} pages`);
 
-      // Subscribe to progress via SSE
-      await new Promise<void>((resolve, reject) => {
-        const es = new EventSource(`${process.env.NEXT_PUBLIC_API_BASE_URL || ''}/progress/stream/${startedJobId}`);
-
-        const close = () => {
-          try { es.close(); } catch {}
-        };
-
-        es.addEventListener('progress', (ev: MessageEvent) => {
-          try {
-            const data = JSON.parse(ev.data || '{}');
-            const pct = Number(data.percent ?? 0);
-            const tot = Number(data.total ?? total ?? 0);
-            setUploadProgress(pct);
-            if (data.message) setStatusText(data.message);
-
-            if (data.status === 'completed') {
-              close();
-              setUploadProgress(100);
-              const successMsg = data.message || `Indexed ${tot} page(s)`;
-              setMessage(successMsg);
-              setFiles(null);
-              toast.success('Upload Complete', { description: successMsg });
-              if (fileInputRef.current) fileInputRef.current.value = '';
-              resolve();
-            } else if (data.status === 'failed') {
-              close();
-              const errMsg = data.error || 'Indexing failed';
-              setError(errMsg);
-              toast.error('Upload Failed', { description: errMsg });
-              reject(new Error(errMsg));
-            }
-          } catch (e) {
-            // Ignore parse errors; will be handled by error listener if needed
-          }
-        });
-
-        es.addEventListener('not_found', () => {
-          close();
-          const errMsg = 'Job not found';
-          setError(errMsg);
-          toast.error('Upload Failed', { description: errMsg });
-          reject(new Error(errMsg));
-        });
-
-        es.addEventListener('error', () => {
-          // EventSource automatically retries; only reject if already terminal? We keep it lenient.
-          // If connection errors persist before any progress, surface a generic error.
-          // Do not close here; let EventSource reconnect.
-        });
-      });
+      // The global SSE connection will handle progress updates
+      // We just need to wait for completion since the global store manages it
+      
     } catch (err: unknown) {
-      setUploadProgress(0);
+      setProgress(0);
       
       let errorMsg = "Upload failed";
       if (err instanceof ApiError) {
@@ -144,9 +129,7 @@ export default function UploadPage() {
       toast.error("Upload Failed", { 
         description: errorMsg 
       });
-    } finally {
       setUploading(false);
-      setTimeout(() => setUploadProgress(0), 2000);
     }
   }
 
@@ -160,6 +143,7 @@ export default function UploadPage() {
       transition={{ duration: 0.5 }}
       className="space-y-8"
     >
+
       {/* Header */}
       <div className="space-y-2">
         <div className="flex items-center gap-3">
@@ -282,7 +266,9 @@ export default function UploadPage() {
                     className="space-y-2"
                   >
                     <div className="flex items-center justify-between text-sm">
-                      <span>{statusText || (jobId ? `Indexing job ${jobId.slice(0, 8)}...` : 'Uploading...')}</span>
+                      <span>
+                        {statusText || (jobId ? `Indexing job ${jobId.slice(0, 8)}...` : 'Uploading...')}
+                      </span>
                       <span>{Math.round(uploadProgress)}%</span>
                     </div>
                     <Progress value={uploadProgress} className="h-2" />

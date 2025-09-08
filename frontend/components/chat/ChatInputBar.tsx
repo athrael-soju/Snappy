@@ -4,7 +4,7 @@ import React from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { MessageSquare, Send, Loader2 } from "lucide-react";
+import { MessageSquare, Send, Loader2, Trash2 } from "lucide-react";
 import ChatSettings from "@/components/chat-settings";
 
 export interface ChatInputBarProps {
@@ -20,6 +20,8 @@ export interface ChatInputBarProps {
   setK: (k: number) => void;
   toolCallingEnabled: boolean;
   setToolCallingEnabled: (v: boolean) => void;
+  onClear: () => void;
+  hasMessages?: boolean; // Whether there are actual messages to clear
 }
 
 export default function ChatInputBar({
@@ -35,6 +37,8 @@ export default function ChatInputBar({
   setK,
   toolCallingEnabled,
   setToolCallingEnabled,
+  onClear,
+  hasMessages = false,
 }: ChatInputBarProps) {
   return (
     <form onSubmit={onSubmit} className="flex gap-3 items-center">
@@ -67,22 +71,44 @@ export default function ChatInputBar({
         </TooltipTrigger>
         <TooltipContent>Filter responses & source count</TooltipContent>
       </Tooltip>
-      <Button 
-        type="submit" 
-        disabled={loading || !input.trim() || !isSettingsValid || !uiSettingsValid}
-        size="lg"
-        className="px-6 h-12 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg"
-      >
-        {loading ? (
-          <>
-            <Loader2 className="w-5 h-5 animate-spin" />
-          </>
-        ) : (
-          <>
-            <Send className="w-5 h-5" />
-          </>
-        )}
-      </Button>
+      
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button 
+            type="submit" 
+            disabled={loading || !input.trim() || !isSettingsValid || !uiSettingsValid}
+            size="icon"
+            className="w-12 h-12 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg rounded-xl"
+          >
+            {loading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Send className="w-5 h-5" />
+            )}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{loading ? 'Sending message...' : 'Send message'}</p>
+        </TooltipContent>
+      </Tooltip>
+      
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="button"
+            onClick={onClear}
+            disabled={loading || !hasMessages}
+            size="icon"
+            variant="outline"
+            className="w-12 h-12 rounded-xl border-2 border-purple-200 hover:border-purple-400 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 text-muted-foreground hover:text-purple-600 transition-all duration-300 shadow-sm hover:shadow-md disabled:opacity-50"
+          >
+            <Trash2 className="w-5 h-5" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{hasMessages ? 'Clear conversation' : 'No conversation to clear'}</p>
+        </TooltipContent>
+      </Tooltip>
     </form>
   );
 }

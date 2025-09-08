@@ -9,14 +9,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Search, AlertCircle, ImageIcon, Sparkles, Eye } from "lucide-react";
+import { Search, AlertCircle, ImageIcon, Sparkles, Eye, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 import Image from "next/image";
 import ImageLightbox from "@/components/lightbox";
 import SearchBar from "@/components/search/SearchBar";
 // import ExampleQueries from "@/components/search/ExampleQueries";
 import RecentSearchesChips from "@/components/search/RecentSearchesChips";
+import { useSearchStore } from "@/stores/app-store";
 
 // Example search prompts to help users
 const exampleQueries = [
@@ -29,17 +30,27 @@ const exampleQueries = [
 ];
 
 export default function SearchPage() {
-  const [q, setQ] = useState("");
-  const [k, setK] = useState<number>(5);
-  const [results, setResults] = useState<SearchItem[]>([]);
+  // Use global search store instead of local state
+  const {
+    query: q,
+    results,
+    hasSearched,
+    searchDurationMs,
+    k,
+    setQuery: setQ,
+    setResults,
+    setHasSearched,
+    setK,
+    reset,
+  } = useSearchStore();
+
+  // Local state for UI interactions only
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hasSearched, setHasSearched] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState("");
   const [lightboxAlt, setLightboxAlt] = useState<string | undefined>(undefined);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  const [searchDurationMs, setSearchDurationMs] = useState<number | null>(null);
 
   // Load recent searches from localStorage
   useEffect(() => {
@@ -77,7 +88,6 @@ export default function SearchPage() {
     setLoading(true);
     setError(null);
     setHasSearched(true);
-    setSearchDurationMs(null);
 
     // Add to recent searches
     addToRecentSearches(query);
@@ -86,8 +96,7 @@ export default function SearchPage() {
       const start = performance.now();
       const data = await RetrievalService.searchSearchGet(query, k);
       const end = performance.now();
-      setSearchDurationMs(end - start);
-      setResults(data);
+      setResults(data, end - start);
       toast.success(`Found ${data.length} results for "${query}"`);
     } catch (err: unknown) {
       let errorMsg = "Search failed";
@@ -173,6 +182,12 @@ export default function SearchPage() {
             onSubmit={onSubmit}
             k={k}
             setK={setK}
+            hasResults={hasSearched && results.length > 0}
+            onClear={() => {
+              reset();
+              setError(null);
+              toast.success('Search results cleared');
+            }}
           />
 
           <RecentSearchesChips
