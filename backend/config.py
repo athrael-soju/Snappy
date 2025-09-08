@@ -76,6 +76,13 @@ QDRANT_SEARCH_OVERSAMPLING: Final[float] = float(
     os.getenv("QDRANT_SEARCH_OVERSAMPLING", "2.0")
 )
 
+# MUVERA (single-vector FDE for fast pre-retrieval) settings
+MUVERA_ENABLED: Final[bool] = _env_bool("MUVERA_ENABLED", "False")
+MUVERA_K_SIM: Final[int] = int(os.getenv("MUVERA_K_SIM", "6"))
+MUVERA_DIM_PROJ: Final[int] = int(os.getenv("MUVERA_DIM_PROJ", "32"))
+MUVERA_R_REPS: Final[int] = int(os.getenv("MUVERA_R_REPS", "20"))
+MUVERA_RANDOM_SEED: Final[int] = int(os.getenv("MUVERA_RANDOM_SEED", "42"))
+
 # MinIO Object Storage
 MINIO_URL: Final[str] = os.getenv("MINIO_URL", "http://localhost:9000")
 MINIO_PUBLIC_URL: Final[str] = os.getenv("MINIO_PUBLIC_URL", MINIO_URL)
