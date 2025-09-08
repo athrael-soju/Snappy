@@ -39,6 +39,24 @@ export function useChat() {
   const [error, setError] = useState<string | null>(null)
   const [timeToFirstTokenMs, setTimeToFirstTokenMs] = useState<number | null>(null)
 
+  // Handle incomplete messages on mount (after page refresh)
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1];
+    
+    // If there's an incomplete assistant message, add an interrupted message
+    if (lastMessage && 
+        lastMessage.role === 'assistant' && 
+        lastMessage.content === '') {
+      // Add helpful message to the interrupted assistant message
+      const updatedMessages = [...messages];
+      updatedMessages[updatedMessages.length - 1] = {
+        ...lastMessage,
+        content: "*Assistant response was interrupted.*"
+      };
+      setMessages(updatedMessages);
+    }
+  }, []); // Only run on mount
+
   // Keep all images keyed by assistant message id to avoid mixing across turns
   const imagesByMessageRef = useRef<Record<string, Array<{ url: string | null; label: string | null; score: number | null }>>>({})
   const currentAssistantIdRef = useRef<string | null>(null)
@@ -155,6 +173,7 @@ export function useChat() {
           setMessages(currentMessages.slice(0, -1));
         }
       }
+      // Clear request timestamp on error
     } finally {
       setLoading(false)
     }
