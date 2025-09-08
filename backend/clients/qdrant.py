@@ -1,6 +1,6 @@
 import uuid
 import numpy as np
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Callable
 from PIL import Image
 from datetime import datetime
 from qdrant_client import QdrantClient, models
@@ -22,6 +22,7 @@ from config import (
 )
 from .minio import MinioService
 from .colpali import ColPaliClient
+from .muvera import MuveraPostprocessor
 from api.utils import compute_page_label
 import logging
 
@@ -30,7 +31,10 @@ logger = logging.getLogger(__name__)
 
 class QdrantService:
     def __init__(
-        self, api_client: ColPaliClient = None, minio_service: MinioService = None
+        self,
+        api_client: ColPaliClient = None,
+        minio_service: MinioService = None,
+        muvera_post: MuveraPostprocessor | None = None,
     ):
         try:
             # Initialize Qdrant client
@@ -40,6 +44,7 @@ class QdrantService:
             # Use injected dependencies (do not initialize here)
             self.api_client = api_client
             self.minio_service = minio_service
+            self.muvera_post = muvera_post
         except Exception as e:
             raise Exception(f"Failed to initialize Qdrant service: {e}")
 
@@ -56,7 +61,37 @@ class QdrantService:
         """Create Qdrant collection for document storage with proper dimension validation"""
         # Return early if the collection already exists
         try:
-            _ = self.client.get_collection(self.collection_name)
+            coll = self.client.get_collection(self.collection_name)
+            logger.info("Qdrant collection '%s' exists; checking MUVERA vector space", self.collection_name)
+            # If MUVERA is enabled, ensure vector exists and has correct size
+            if self.muvera_post and self.muvera_post.embedding_size:
+                try:
+                    vectors = coll.vectors_count or {}
+                    # Try to fetch current vector config
+                    coll_info = self.client.get_collection(self.collection_name)
+                    # If 'muvera_fde' is missing, add it via update
+                    if not getattr(coll_info.config.params, "vectors", None) or (
+                        isinstance(coll_info.config.params.vectors, dict)
+                        and "muvera_fde" not in coll_info.config.params.vectors
+                    ):
+                        logger.info(
+                            "Adding MUVERA vector 'muvera_fde' (dim=%s) to existing collection",
+                            int(self.muvera_post.embedding_size),
+                        )
+                        self.client.update_collection(
+                            collection_name=self.collection_name,
+                            vectors_config={
+                                "muvera_fde": models.VectorParams(
+                                    size=int(self.muvera_post.embedding_size),
+                                    distance=models.Distance.COSINE,
+                                    on_disk=QDRANT_ON_DISK,
+                                )
+                            },
+                        )
+                except Exception:
+                    # Best-effort; if we can't introspect, proceed
+                    logger.warning("Could not verify or add MUVERA vector space; proceeding without update")
+                    pass
             return
         except Exception:
             pass
@@ -93,17 +128,27 @@ class QdrantService:
                 "mean_pooling_rows": _vp(),
             }
 
+            # Add MUVERA single-vector space if enabled
+            if self.muvera_post and self.muvera_post.embedding_size:
+                vector_config["muvera_fde"] = models.VectorParams(
+                    size=int(self.muvera_post.embedding_size),
+                    distance=models.Distance.COSINE,
+                    on_disk=QDRANT_ON_DISK,
+                )
+
             self.client.create_collection(
                 collection_name=self.collection_name,
                 vectors_config=vector_config,
                 on_disk_payload=QDRANT_ON_DISK_PAYLOAD,
             )
-            print(f"Created new collection with dimension: {model_dim}")
+            logger.info("Created new collection '%s' with model_dim=%s and vectors: %s", self.collection_name, model_dim, list(vector_config.keys()))
         except Exception as e:
             if "already exists" in str(e).lower():
                 model_dim = self._get_model_dimension()
-                print(
-                    f"Using existing collection: {self.collection_name} with dimension: {model_dim}"
+                logger.info(
+                    "Using existing collection '%s' with model_dim=%s",
+                    self.collection_name,
+                    model_dim,
                 )
             else:
                 raise Exception(f"Failed to create collection: {e}")
@@ -218,7 +263,7 @@ class QdrantService:
 
         return original_batch, pooled_by_rows_batch, pooled_by_columns_batch
 
-    def index_documents(self, images: List[Image.Image]):
+    def index_documents(self, images: List[Image.Image], progress_cb: Optional[Callable[[int, dict | None], None]] = None):
         """Index documents in Qdrant with rich payload metadata.
 
         Accepts either a list of PIL Images or a list of dicts, where each dict
@@ -230,7 +275,8 @@ class QdrantService:
 
         batch_size = int(BATCH_SIZE)
 
-        with tqdm(total=len(images), desc="Uploading progress") as pbar:
+        total_images = len(images)
+        with tqdm(total=total_images, desc="Uploading progress") as pbar:
             for i in range(0, len(images), batch_size):
                 batch = images[i : i + batch_size]
                 current_batch_size = len(batch)
@@ -319,6 +365,19 @@ class QdrantService:
                             "mean_pooling_rows": rows,
                         }
 
+                        # Compute and attach MUVERA FDE if available
+                        if self.muvera_post and self.muvera_post.enabled:
+                            try:
+                                fde = self.muvera_post.process_document(orig)
+                                if fde is not None:
+                                    vectors["muvera_fde"] = fde
+                                else:
+                                    logger.debug("No MUVERA FDE produced for doc_id=%s", doc_id)
+                            except Exception as e:
+                                logger.warning(
+                                    "Failed to compute MUVERA FDE for doc %s: %s", doc_id, e
+                                )
+
                         points.append(
                             models.PointStruct(
                                 id=doc_id,
@@ -337,6 +396,18 @@ class QdrantService:
                     )
 
                 pbar.update(current_batch_size)
+                # Notify progress callback, if provided
+                if progress_cb is not None:
+                    try:
+                        progress_cb(min(i + current_batch_size, total_images), {
+                            "stage": "upsert",
+                            "batch_start": i,
+                            "batch_size": current_batch_size,
+                            "total": total_images,
+                        })
+                    except Exception:
+                        # Swallow progress errors to avoid interrupting indexing
+                        pass
 
         return f"Uploaded and converted {len(images)} pages"
 
@@ -354,7 +425,7 @@ class QdrantService:
         prefetch_limit: int = QDRANT_PREFETCH_LIMIT,
         qdrant_filter: Optional[models.Filter] = None,
     ):
-        """Perform two-stage retrieval with multivectors"""
+        """Perform two-stage retrieval with MUVERA-first (if enabled) and multivector rerank."""
         # Optional quantization-aware search params
         params = None
         if QDRANT_USE_BINARY:
@@ -365,30 +436,67 @@ class QdrantService:
                     oversampling=QDRANT_SEARCH_OVERSAMPLING,
                 )
             )
-        search_queries = [
-            models.QueryRequest(
-                query=query_embedding.tolist(),
-                prefetch=[
-                    models.Prefetch(
-                        query=query_embedding.tolist(),
-                        limit=prefetch_limit,
-                        using="mean_pooling_columns",
-                    ),
-                    models.Prefetch(
-                        query=query_embedding.tolist(),
-                        limit=prefetch_limit,
-                        using="mean_pooling_rows",
-                    ),
-                ],
-                limit=search_limit,
-                with_payload=True,
-                with_vector=False,
-                using="original",
-                filter=qdrant_filter,
-                params=params,
-            )
-            for query_embedding in query_embeddings_batch
-        ]
+        search_queries = []
+        for query_embedding in query_embeddings_batch:
+            # If MUVERA available, compute query FDE
+            muvera_query = None
+            if self.muvera_post and self.muvera_post.enabled:
+                try:
+                    muvera_query = self.muvera_post.process_query(query_embedding.tolist())
+                    logger.debug("MUVERA query FDE generated: len=%s", len(muvera_query) if muvera_query else None)
+                except Exception as e:
+                    logger.warning("MUVERA query FDE failed, falling back: %s", e)
+                    muvera_query = None
+
+            if muvera_query is not None:
+                # First-stage using MUVERA single-vector, prefetch multivectors for rerank
+                logger.info("Search using MUVERA first-stage with prefetch for rerank")
+                req = models.QueryRequest(
+                    query=muvera_query,
+                    prefetch=[
+                        models.Prefetch(
+                            query=query_embedding.tolist(),
+                            limit=prefetch_limit,
+                            using="mean_pooling_columns",
+                        ),
+                        models.Prefetch(
+                            query=query_embedding.tolist(),
+                            limit=prefetch_limit,
+                            using="mean_pooling_rows",
+                        ),
+                    ],
+                    limit=search_limit,
+                    with_payload=True,
+                    with_vector=False,
+                    using="muvera_fde",
+                    filter=qdrant_filter,
+                    params=params,
+                )
+            else:
+                # Fallback: original multivector pipeline
+                logger.info("Search using multivector-only pipeline (MUVERA unavailable)")
+                req = models.QueryRequest(
+                    query=query_embedding.tolist(),
+                    prefetch=[
+                        models.Prefetch(
+                            query=query_embedding.tolist(),
+                            limit=prefetch_limit,
+                            using="mean_pooling_columns",
+                        ),
+                        models.Prefetch(
+                            query=query_embedding.tolist(),
+                            limit=prefetch_limit,
+                            using="mean_pooling_rows",
+                        ),
+                    ],
+                    limit=search_limit,
+                    with_payload=True,
+                    with_vector=False,
+                    using="original",
+                    filter=qdrant_filter,
+                    params=params,
+                )
+            search_queries.append(req)
         return self.client.query_batch_points(
             collection_name=self.collection_name, requests=search_queries
         )

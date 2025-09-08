@@ -127,7 +127,7 @@ export default function SearchPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="space-y-8"
+      className="space-y-8 min-h-0 flex flex-col"
     >
       {/* Header */}
       <div className="space-y-4">
@@ -226,7 +226,7 @@ export default function SearchPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="space-y-4"
+            className="space-y-4 flex-1 min-h-0 flex flex-col"
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
@@ -296,12 +296,13 @@ export default function SearchPage() {
                 </CardContent>
               </Card>
             ) : (
-              <motion.div
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-              >
+              <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+                <motion.div
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-6 px-1"
+                >
                 {results.map((item, idx) => (
                   <motion.div key={idx} variants={itemVariants}>
                     <Card className="h-full group overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-2 hover:border-blue-200">
@@ -358,7 +359,8 @@ export default function SearchPage() {
                     </Card>
                   </motion.div>
                 ))}
-              </motion.div>
+                </motion.div>
+              </div>
             )}
           </motion.div>
         )}

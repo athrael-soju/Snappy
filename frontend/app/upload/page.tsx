@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { IndexingService, ApiError } from "@/lib/api/generated";
-import type { Body_index_index_post } from "@/lib/api/generated";
+import { ApiError } from "@/lib/api/generated";
 import "@/lib/api/client";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -22,6 +21,8 @@ export default function UploadPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [statusText, setStatusText] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Drag and drop handlers
@@ -57,37 +58,80 @@ export default function UploadPage() {
     setUploadProgress(0);
     setMessage(null);
     setError(null);
-    
-    // Simulate progress for better UX
-    const progressInterval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev >= 90) return prev;
-        return prev + Math.random() * 10;
-      });
-    }, 300);
+    setStatusText(null);
+    setJobId(null);
     
     try {
-      const payload: Body_index_index_post = {
-        files: Array.from(files) as Blob[],
-      };
-      await IndexingService.indexIndexPost(payload);
-      
-      clearInterval(progressInterval);
-      setUploadProgress(100);
-      
-      const successMsg = `Successfully uploaded ${files.length} file(s)`;
-      setMessage(successMsg);
-      setFiles(null);
-      toast.success("Upload Complete", { 
-        description: successMsg 
+      // Build multipart form data manually to hit /index/start
+      const formData = new FormData();
+      Array.from(files).forEach((f) => formData.append("files", f));
+
+      const startRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || ''}/index`, {
+        method: "POST",
+        body: formData,
       });
-      
-      // Reset the file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+      if (!startRes.ok) {
+        const t = await startRes.text();
+        throw new Error(`Failed to start indexing: ${startRes.status} ${t}`);
       }
+      const startData = await startRes.json();
+      const startedJobId: string = startData.job_id;
+      const total: number = startData.total ?? 0;
+      setJobId(startedJobId);
+      setStatusText(`Queued ${total} pages`);
+
+      // Subscribe to progress via SSE
+      await new Promise<void>((resolve, reject) => {
+        const es = new EventSource(`${process.env.NEXT_PUBLIC_API_BASE_URL || ''}/progress/stream/${startedJobId}`);
+
+        const close = () => {
+          try { es.close(); } catch {}
+        };
+
+        es.addEventListener('progress', (ev: MessageEvent) => {
+          try {
+            const data = JSON.parse(ev.data || '{}');
+            const pct = Number(data.percent ?? 0);
+            const tot = Number(data.total ?? total ?? 0);
+            setUploadProgress(pct);
+            if (data.message) setStatusText(data.message);
+
+            if (data.status === 'completed') {
+              close();
+              setUploadProgress(100);
+              const successMsg = data.message || `Indexed ${tot} page(s)`;
+              setMessage(successMsg);
+              setFiles(null);
+              toast.success('Upload Complete', { description: successMsg });
+              if (fileInputRef.current) fileInputRef.current.value = '';
+              resolve();
+            } else if (data.status === 'failed') {
+              close();
+              const errMsg = data.error || 'Indexing failed';
+              setError(errMsg);
+              toast.error('Upload Failed', { description: errMsg });
+              reject(new Error(errMsg));
+            }
+          } catch (e) {
+            // Ignore parse errors; will be handled by error listener if needed
+          }
+        });
+
+        es.addEventListener('not_found', () => {
+          close();
+          const errMsg = 'Job not found';
+          setError(errMsg);
+          toast.error('Upload Failed', { description: errMsg });
+          reject(new Error(errMsg));
+        });
+
+        es.addEventListener('error', () => {
+          // EventSource automatically retries; only reject if already terminal? We keep it lenient.
+          // If connection errors persist before any progress, surface a generic error.
+          // Do not close here; let EventSource reconnect.
+        });
+      });
     } catch (err: unknown) {
-      clearInterval(progressInterval);
       setUploadProgress(0);
       
       let errorMsg = "Upload failed";
@@ -238,7 +282,7 @@ export default function UploadPage() {
                     className="space-y-2"
                   >
                     <div className="flex items-center justify-between text-sm">
-                      <span>Uploading...</span>
+                      <span>{statusText || (jobId ? `Indexing job ${jobId.slice(0, 8)}...` : 'Uploading...')}</span>
                       <span>{Math.round(uploadProgress)}%</span>
                     </div>
                     <Progress value={uploadProgress} className="h-2" />

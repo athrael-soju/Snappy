@@ -11,7 +11,7 @@ The app is intentionally simple and unauthenticated. Current pages:
 
 - `/` — Home: landing with quick links and overview.
 - `/about` — About: what this project does, what ColPali is, and comparison to traditional text-only RAG.
-- `/upload` — Upload PDFs for indexing (sent to FastAPI `/index`).
+- `/upload` — Upload PDFs for indexing. Starts a background job via FastAPI `POST /index` and subscribes to `GET /progress/stream/{job_id}` (SSE) for real-time progress.
 - `/search` — Visual search over indexed pages; returns top-k pages and metadata.
 - `/chat` — AI chat grounded on retrieved page images.
 - `/maintenance` — Destructive admin actions (clear Qdrant, clear MinIO, clear all) with confirmations.
@@ -35,7 +35,7 @@ Set the backend base URL for the SDK and fetches:
 # frontend/.env.local
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ```
-`frontend/lib/api/client.ts` falls back to `http://localhost:8000` if the env var is not set.
+`frontend/lib/api/client.ts` falls back to `http://localhost:8000` if the env var is not set. The Upload page uses `fetch` for `POST /index` and `EventSource` for `GET /progress/stream/{job_id}`.
 
 OpenAI for chat (SSE) — set on the frontend (server runtime):
 ```bash
@@ -62,9 +62,8 @@ yarn start
 ```
 
 ## API Schema & Codegen
-- The SDK and Zod types are generated from `frontend/docs/openapi.json`.
-- Generation runs automatically via `predev` and `prebuild` scripts.
-- To (re)generate manually:
+- The SDK and Zod types are generated from `frontend/docs/openapi.json` and are used across pages. The Upload page currently calls `POST /index` via `fetch` and uses `EventSource` for `GET /progress/stream/{job_id}`.
+- Codegen runs automatically via `predev` and `prebuild` scripts. To (re)generate manually:
 ```bash
 yarn gen:sdk && yarn gen:zod
 ```

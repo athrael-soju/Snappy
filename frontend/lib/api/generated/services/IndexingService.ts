@@ -26,4 +26,24 @@ export class IndexingService {
             },
         });
     }
+    /**
+     * Stream Progress
+     * @param jobId
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static streamProgressProgressStreamJobIdGet(
+        jobId: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/progress/stream/{job_id}',
+            path: {
+                'job_id': jobId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
 }

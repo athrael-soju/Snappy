@@ -1,24 +1,28 @@
 import os
 import tempfile
+import uuid
 from typing import List
+import asyncio
+import json
+from fastapi.responses import StreamingResponse
 
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
 
 from api.dependencies import get_qdrant_service, qdrant_init_error
 from api.utils import convert_pdf_paths_to_images
+from api.progress import progress_manager
 
 router = APIRouter(prefix="", tags=["indexing"])
 
 
 @router.post("/index")
-async def index(files: List[UploadFile] = File(...)):
+async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = File(...)):
     if not files:
         raise HTTPException(status_code=400, detail="No files uploaded")
 
     temp_paths: List[str] = []
     try:
         for uf in files:
-            # Persist to a temporary file so pdf2image can read
             suffix = os.path.splitext(uf.filename or "")[1] or ".pdf"
             with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
                 data = await uf.read()
@@ -32,11 +36,85 @@ async def index(files: List[UploadFile] = File(...)):
                 status_code=503,
                 detail=f"Service unavailable: {qdrant_init_error or 'Dependency services are down'}",
             )
-        message = svc.index_documents(images_with_meta)
-        return {"status": "ok", "message": message, "pages": len(images_with_meta)}
-    finally:
+
+        job_id = str(uuid.uuid4())
+        total = len(images_with_meta)
+        progress_manager.create(job_id, total=total)
+        progress_manager.start(job_id)
+
+        def progress_cb(current: int, info: dict | None = None):
+            msg = None
+            if info and "stage" in info:
+                msg = f"{info['stage']} {current}/{info.get('total', total)}"
+            progress_manager.update(job_id, current=current, message=msg)
+
+        def run_job(paths: List[str]):
+            try:
+                msg = svc.index_documents(images_with_meta, progress_cb=progress_cb)
+                progress_manager.complete(job_id, message=msg)
+            except Exception as e:
+                progress_manager.fail(job_id, error=str(e))
+            finally:
+                for p in paths:
+                    try:
+                        os.unlink(p)
+                    except Exception:
+                        pass
+
+        background_tasks.add_task(run_job, list(temp_paths))
+        return {"status": "started", "job_id": job_id, "total": total}
+    except Exception:
         for p in temp_paths:
             try:
                 os.unlink(p)
             except Exception:
                 pass
+        raise
+
+
+@router.get("/progress/stream/{job_id}")
+async def stream_progress(job_id: str):
+    async def event_stream():
+        last_current = None
+        last_status = None
+        # Send an initial snapshot if available
+        while True:
+            data = progress_manager.get(job_id)
+            if not data:
+                # Emit a terminal not_found event and stop
+                yield f"event: not_found\n" + f"data: {json.dumps({'job_id': job_id})}\n\n"
+                return
+            total = max(1, int(data.get("total") or 0))
+            try:
+                pct = int(round(((int(data.get("current") or 0) / total) * 100))) if data.get("total") else 0
+            except Exception:
+                pct = 0
+            payload = {
+                "job_id": data.get("job_id"),
+                "status": data.get("status"),
+                "current": int(data.get("current") or 0),
+                "total": int(data.get("total") or 0),
+                "percent": pct,
+                "message": data.get("message"),
+                "error": data.get("error"),
+            }
+
+            # Emit only on change or periodically as heartbeat
+            changed = (payload["current"] != (last_current if last_current is not None else -1)) or (
+                payload["status"] != last_status
+            )
+            if changed:
+                yield "event: progress\n" + f"data: {json.dumps(payload)}\n\n"
+                last_current = payload["current"]
+                last_status = payload["status"]
+            else:
+                # Heartbeat every 5 seconds to keep the connection alive
+                yield "event: heartbeat\n" + "data: {}\n\n"
+
+            # Stop on terminal states
+            if payload["status"] in ("completed", "failed"):
+                return
+
+            await asyncio.sleep(1.0)
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
