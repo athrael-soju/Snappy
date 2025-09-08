@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useRef, useCallback, ReactNode } from 'react';
 import type { SearchItem } from "@/lib/api/generated";
 import type { ChatMessage } from "@/lib/hooks/use-chat";
 
@@ -208,15 +208,15 @@ function serializeStateForStorage(state: AppState): any {
       k: state.chat.k,
       toolCallingEnabled: state.chat.toolCallingEnabled,
     },
-    // Don't persist upload state except for preferences
+    // Persist minimal upload state to track ongoing uploads
     upload: {
       files: null, // Never persist FileList
-      uploading: false,
-      uploadProgress: 0,
-      message: null,
-      error: null,
-      jobId: null,
-      statusText: null,
+      uploading: state.upload.uploading,
+      uploadProgress: state.upload.uploadProgress,
+      message: state.upload.message,
+      error: state.upload.error,
+      jobId: state.upload.jobId,
+      statusText: state.upload.statusText,
     },
   };
 }
@@ -224,6 +224,15 @@ function serializeStateForStorage(state: AppState): any {
 // Provider component
 export function AppStoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
+  const eventSourceRef = useRef<EventSource | null>(null);
+
+  // Function to properly close existing SSE connection
+  const closeSSEConnection = useCallback(() => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+  }, []);
 
   // Hydrate from localStorage on mount
   useEffect(() => {
@@ -237,6 +246,87 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       console.warn('Failed to load app state from localStorage:', error);
     }
   }, []);
+
+  // Global SSE connection management for uploads
+  useEffect(() => {
+    // Only connect if we have an ongoing upload
+    if (!state.upload.jobId || !state.upload.uploading || state.upload.uploadProgress >= 100) {
+      closeSSEConnection();
+      return;
+    }
+
+    // Don't create multiple connections
+    if (eventSourceRef.current) {
+      return;
+    }
+
+    console.log('Creating global SSE connection for job:', state.upload.jobId);
+    
+    const es = new EventSource(`${process.env.NEXT_PUBLIC_API_BASE_URL || ''}/progress/stream/${state.upload.jobId}`);
+    eventSourceRef.current = es;
+
+    es.addEventListener('progress', (ev: MessageEvent) => {
+      try {
+        const data = JSON.parse(ev.data || '{}');
+        const pct = Number(data.percent ?? 0);
+        dispatch({ type: 'UPLOAD_SET_PROGRESS', payload: pct });
+        if (data.message) {
+          dispatch({ type: 'UPLOAD_SET_STATUS_TEXT', payload: data.message });
+        }
+
+        if (data.status === 'completed') {
+          closeSSEConnection();
+          dispatch({ type: 'UPLOAD_SET_PROGRESS', payload: 100 });
+          const successMsg = data.message || `Upload completed`;
+          dispatch({ type: 'UPLOAD_SET_MESSAGE', payload: successMsg });
+          dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: false });
+          dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
+          
+          // Show toast if available (will be ignored if sonner not loaded)
+          if (typeof window !== 'undefined' && (window as any).toast) {
+            (window as any).toast.success('Upload Complete', { description: successMsg });
+          }
+        } else if (data.status === 'failed') {
+          closeSSEConnection();
+          const errMsg = data.error || 'Upload failed';
+          dispatch({ type: 'UPLOAD_SET_ERROR', payload: errMsg });
+          dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: false });
+          dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
+          
+          // Show toast if available
+          if (typeof window !== 'undefined' && (window as any).toast) {
+            (window as any).toast.error('Upload Failed', { description: errMsg });
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to parse SSE data:', e);
+      }
+    });
+
+    es.addEventListener('not_found', () => {
+      closeSSEConnection();
+      dispatch({ type: 'UPLOAD_SET_ERROR', payload: 'Upload job not found. It may have completed or failed.' });
+      dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: false });
+      dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
+      dispatch({ type: 'UPLOAD_SET_PROGRESS', payload: 0 });
+    });
+
+    es.addEventListener('error', (e) => {
+      console.warn('Global SSE connection error:', e);
+      // Don't immediately fail, let EventSource handle retries
+    });
+
+    return () => {
+      closeSSEConnection();
+    };
+  }, [state.upload.jobId, state.upload.uploading, state.upload.uploadProgress, closeSSEConnection]);
+
+  // Cleanup SSE connection on unmount
+  useEffect(() => {
+    return () => {
+      closeSSEConnection();
+    };
+  }, [closeSSEConnection]);
 
   // Persist to localStorage when state changes (debounced)
   useEffect(() => {

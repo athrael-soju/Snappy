@@ -14,8 +14,6 @@ import ChatInputBar from "@/components/chat/ChatInputBar";
 import StarterQuestions from "@/components/chat/StarterQuestions";
 import RecentSearchesChips from "@/components/search/RecentSearchesChips";
 import { BRAIN_PLACEHOLDERS } from "@/lib/utils";
-import { DataRestoredBanner } from "@/components/data-restored-banner";
-import { usePageVisitBanner } from "@/lib/hooks/use-page-visit-banner";
 
 // Starter questions to help users get started (qualitative phrasing)
 const starterQuestions = [
@@ -76,13 +74,6 @@ export default function ChatPage() {
     "Which vendor contracts discuss obligations?"
   ];
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
-
-  // Use the page visit banner hook
-  const { showBanner, hideBanner } = usePageVisitBanner(
-    'chat',
-    messages.length > 0,
-    [messages.length]
-  );
 
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
@@ -168,18 +159,6 @@ export default function ChatPage() {
       transition={{ duration: 0.5 }}
       className="flex flex-col flex-1 min-h-0"
     >
-      {/* Data Restored Banner */}
-      {showBanner && (
-        <DataRestoredBanner
-          dataType="chat"
-          description={`Previous conversation with ${messages.length} message${messages.length !== 1 ? 's' : ''} has been restored.`}
-          onClear={() => {
-            reset();
-            hideBanner();
-          }}
-        />
-      )}
-
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">

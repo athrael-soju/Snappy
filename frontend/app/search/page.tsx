@@ -18,8 +18,6 @@ import SearchBar from "@/components/search/SearchBar";
 // import ExampleQueries from "@/components/search/ExampleQueries";
 import RecentSearchesChips from "@/components/search/RecentSearchesChips";
 import { useSearchStore } from "@/stores/app-store";
-import { DataRestoredBanner } from "@/components/data-restored-banner";
-import { usePageVisitBanner } from "@/lib/hooks/use-page-visit-banner";
 
 // Example search prompts to help users
 const exampleQueries = [
@@ -52,13 +50,6 @@ export default function SearchPage() {
   const [lightboxSrc, setLightboxSrc] = useState("");
   const [lightboxAlt, setLightboxAlt] = useState<string | undefined>(undefined);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
-
-  // Use the page visit banner hook
-  const { showBanner, hideBanner } = usePageVisitBanner(
-    'search',
-    hasSearched && results.length > 0 && !!q,
-    [hasSearched, results.length, q]
-  );
 
   // Load recent searches from localStorage
   useEffect(() => {
@@ -146,19 +137,6 @@ export default function SearchPage() {
       transition={{ duration: 0.5 }}
       className="space-y-8 min-h-0 flex flex-col"
     >
-      {/* Data Restored Banner */}
-      {showBanner && (
-        <DataRestoredBanner
-          dataType="search"
-          description={`Previous search results for "${q}" have been restored.`}
-          onClear={() => {
-            setQ("");
-            setResults([], null);
-            setHasSearched(false);
-            hideBanner();
-          }}
-        />
-      )}
       {/* Header */}
       <div className="space-y-4">
         <div className="flex items-center gap-3">

@@ -37,6 +37,26 @@ export default function UploadPage() {
   // Local state for UI interactions only
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
+
+  // Function to properly close existing SSE connection
+  const closeSSEConnection = useCallback(() => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+  }, []);
+
+  // Watch for upload completion/failure from global SSE
+  useEffect(() => {
+    if (!uploading) return; // Only watch when we have an active upload
+
+    if (message) {
+      // Upload completed successfully
+      setFiles(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }, [uploading, message]);
 
   // Clear success/error messages after some time to avoid persistent state
   useEffect(() => {
@@ -56,6 +76,19 @@ export default function UploadPage() {
       return () => clearTimeout(timer);
     }
   }, [error, uploading, setError]);
+
+  // Reconnect to SSE stream if we have an ongoing upload after page refresh
+  useEffect(() => {
+    // This logic is now handled globally in the AppStoreProvider
+    // Only keep local EventSource for new uploads initiated from this page
+  }, []);
+
+  // Cleanup SSE connection on unmount
+  useEffect(() => {
+    return () => {
+      closeSSEConnection();
+    };
+  }, [closeSSEConnection]);
 
   // Drag and drop handlers
   const onDragOver = useCallback((e: React.DragEvent) => {
@@ -86,6 +119,7 @@ export default function UploadPage() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!files || files.length === 0) return;
+    
     setUploading(true);
     setProgress(0);
     setMessage(null);
@@ -112,57 +146,9 @@ export default function UploadPage() {
       setJobId(startedJobId);
       setStatusText(`Queued ${total} pages`);
 
-      // Subscribe to progress via SSE
-      await new Promise<void>((resolve, reject) => {
-        const es = new EventSource(`${process.env.NEXT_PUBLIC_API_BASE_URL || ''}/progress/stream/${startedJobId}`);
-
-        const close = () => {
-          try { es.close(); } catch {}
-        };
-
-        es.addEventListener('progress', (ev: MessageEvent) => {
-          try {
-            const data = JSON.parse(ev.data || '{}');
-            const pct = Number(data.percent ?? 0);
-            const tot = Number(data.total ?? total ?? 0);
-            setProgress(pct);
-            if (data.message) setStatusText(data.message);
-
-            if (data.status === 'completed') {
-              close();
-              setProgress(100);
-              const successMsg = data.message || `Indexed ${tot} page(s)`;
-              setMessage(successMsg);
-              setFiles(null);
-              toast.success('Upload Complete', { description: successMsg });
-              if (fileInputRef.current) fileInputRef.current.value = '';
-              resolve();
-            } else if (data.status === 'failed') {
-              close();
-              const errMsg = data.error || 'Indexing failed';
-              setError(errMsg);
-              toast.error('Upload Failed', { description: errMsg });
-              reject(new Error(errMsg));
-            }
-          } catch (e) {
-            // Ignore parse errors; will be handled by error listener if needed
-          }
-        });
-
-        es.addEventListener('not_found', () => {
-          close();
-          const errMsg = 'Job not found';
-          setError(errMsg);
-          toast.error('Upload Failed', { description: errMsg });
-          reject(new Error(errMsg));
-        });
-
-        es.addEventListener('error', () => {
-          // EventSource automatically retries; only reject if already terminal? We keep it lenient.
-          // If connection errors persist before any progress, surface a generic error.
-          // Do not close here; let EventSource reconnect.
-        });
-      });
+      // The global SSE connection will handle progress updates
+      // We just need to wait for completion since the global store manages it
+      
     } catch (err: unknown) {
       setProgress(0);
       
@@ -176,9 +162,7 @@ export default function UploadPage() {
       toast.error("Upload Failed", { 
         description: errorMsg 
       });
-    } finally {
       setUploading(false);
-      setTimeout(() => setProgress(0), 2000);
     }
   }
 
@@ -192,6 +176,7 @@ export default function UploadPage() {
       transition={{ duration: 0.5 }}
       className="space-y-8"
     >
+
       {/* Header */}
       <div className="space-y-2">
         <div className="flex items-center gap-3">
@@ -314,7 +299,9 @@ export default function UploadPage() {
                     className="space-y-2"
                   >
                     <div className="flex items-center justify-between text-sm">
-                      <span>{statusText || (jobId ? `Indexing job ${jobId.slice(0, 8)}...` : 'Uploading...')}</span>
+                      <span>
+                        {statusText || (jobId ? `Indexing job ${jobId.slice(0, 8)}...` : 'Uploading...')}
+                      </span>
                       <span>{Math.round(uploadProgress)}%</span>
                     </div>
                     <Progress value={uploadProgress} className="h-2" />

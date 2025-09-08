@@ -15,7 +15,7 @@ import { useAppStore } from "@/stores/app-store";
 const links = [
   { href: "/", label: "Home", icon: Home, color: "text-blue-600" },
   { href: "/search", label: "Search", icon: Eye, color: "text-blue-500" },
-  { href: "/upload", label: "Upload", icon: CloudUpload, color: "text-green-500" },
+  { href: "/upload", label: "Upload", icon: CloudUpload, color: "text-cyan-500" },
   { href: "/chat", label: "Chat", icon: Brain, color: "text-purple-500" },
   { href: "/maintenance", label: "Maintenance", icon: Shield, color: "text-red-500" },
 ];
@@ -28,7 +28,7 @@ export function Nav() {
   // Check for persisted data
   const hasSearchData = state.search.hasSearched && state.search.results.length > 0;
   const hasChatData = state.chat.messages.length > 0;
-  const hasUploadProgress = state.upload.uploading || state.upload.uploadProgress > 0;
+  const hasUploadProgress = state.upload.uploading || state.upload.uploadProgress > 0 || state.upload.jobId;
 
   const getDataIndicator = (linkHref: string) => {
     if (linkHref === "/search" && hasSearchData) {
@@ -38,7 +38,7 @@ export function Nav() {
       return { count: state.chat.messages.length, color: "bg-purple-500" };
     }
     if (linkHref === "/upload" && hasUploadProgress) {
-      return { count: Math.round(state.upload.uploadProgress), color: "bg-green-500", isProgress: true };
+      return { count: Math.round(state.upload.uploadProgress), color: "bg-cyan-500", isProgress: true };
     }
     return null;
   };
