@@ -176,7 +176,7 @@ export function Nav() {
               <AboutContent onClose={() => setOpen(false)} />
             </DialogContent>
           </Dialog>
-          <ThemeToggle />
+          {/* <ThemeToggle /> TODO*/}
         </div>
       </nav>
     </header>
