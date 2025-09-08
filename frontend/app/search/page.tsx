@@ -17,6 +17,9 @@ import ImageLightbox from "@/components/lightbox";
 import SearchBar from "@/components/search/SearchBar";
 // import ExampleQueries from "@/components/search/ExampleQueries";
 import RecentSearchesChips from "@/components/search/RecentSearchesChips";
+import { useSearchStore } from "@/stores/app-store";
+import { DataRestoredBanner } from "@/components/data-restored-banner";
+import { usePageVisitBanner } from "@/lib/hooks/use-page-visit-banner";
 
 // Example search prompts to help users
 const exampleQueries = [
@@ -29,17 +32,33 @@ const exampleQueries = [
 ];
 
 export default function SearchPage() {
-  const [q, setQ] = useState("");
-  const [k, setK] = useState<number>(5);
-  const [results, setResults] = useState<SearchItem[]>([]);
+  // Use global search store instead of local state
+  const {
+    query: q,
+    results,
+    hasSearched,
+    searchDurationMs,
+    k,
+    setQuery: setQ,
+    setResults,
+    setHasSearched,
+    setK,
+  } = useSearchStore();
+
+  // Local state for UI interactions only
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hasSearched, setHasSearched] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState("");
   const [lightboxAlt, setLightboxAlt] = useState<string | undefined>(undefined);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  const [searchDurationMs, setSearchDurationMs] = useState<number | null>(null);
+
+  // Use the page visit banner hook
+  const { showBanner, hideBanner } = usePageVisitBanner(
+    'search',
+    hasSearched && results.length > 0 && !!q,
+    [hasSearched, results.length, q]
+  );
 
   // Load recent searches from localStorage
   useEffect(() => {
@@ -77,7 +96,6 @@ export default function SearchPage() {
     setLoading(true);
     setError(null);
     setHasSearched(true);
-    setSearchDurationMs(null);
 
     // Add to recent searches
     addToRecentSearches(query);
@@ -86,8 +104,7 @@ export default function SearchPage() {
       const start = performance.now();
       const data = await RetrievalService.searchSearchGet(query, k);
       const end = performance.now();
-      setSearchDurationMs(end - start);
-      setResults(data);
+      setResults(data, end - start);
       toast.success(`Found ${data.length} results for "${query}"`);
     } catch (err: unknown) {
       let errorMsg = "Search failed";
@@ -129,6 +146,19 @@ export default function SearchPage() {
       transition={{ duration: 0.5 }}
       className="space-y-8 min-h-0 flex flex-col"
     >
+      {/* Data Restored Banner */}
+      {showBanner && (
+        <DataRestoredBanner
+          dataType="search"
+          description={`Previous search results for "${q}" have been restored.`}
+          onClear={() => {
+            setQ("");
+            setResults([], null);
+            setHasSearched(false);
+            hideBanner();
+          }}
+        />
+      )}
       {/* Header */}
       <div className="space-y-4">
         <div className="flex items-center gap-3">

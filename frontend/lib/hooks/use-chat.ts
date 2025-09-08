@@ -8,6 +8,7 @@ import {
   streamAssistant,
 } from '@/lib/api/chat'
 import { kSchema, messageSchema } from '@/lib/validation/chat'
+import { useChatStore } from '@/stores/app-store'
 
 export type ChatMessage = {
   id: string
@@ -16,31 +17,27 @@ export type ChatMessage = {
 }
 
 export function useChat() {
+  // Use global chat store
+  const {
+    messages,
+    imageGroups,
+    k,
+    toolCallingEnabled,
+    setMessages,
+    addMessage,
+    updateLastMessage,
+    setImageGroups,
+    setK,
+    setToolCallingEnabled,
+    reset,
+  } = useChatStore();
+
+  // Local state for temporary UI state
   const [input, setInput] = useState('')
-  const [messages, setMessages] = useState<ChatMessage[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [timeToFirstTokenMs, setTimeToFirstTokenMs] = useState<number | null>(null)
-  const [k, setK] = useState<number>(() => {
-    if (typeof window === 'undefined') return 5
-    const saved = localStorage.getItem('k')
-    const parsed = saved ? parseInt(saved, 10) : NaN
-    // Validate persisted value using schema bounds; fallback to default 5
-    return Number.isFinite(parsed) && kSchema.safeParse(parsed).success ? parsed : 5
-  })
-  const [toolCallingEnabled, setToolCallingEnabled] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true
-    try {
-      const saved = localStorage.getItem('tool-calling-enabled')
-      if (saved === null) return true
-      return saved === 'true'
-    } catch {
-      return true
-    }
-  })
-  const [imageGroups, setImageGroups] = useState<
-    Array<{ url: string | null; label: string | null; score: number | null }>[
-    ]>([])
+
   // Keep all images keyed by assistant message id to avoid mixing across turns
   const imagesByMessageRef = useRef<Record<string, Array<{ url: string | null; label: string | null; score: number | null }>>>({})
   const currentAssistantIdRef = useRef<string | null>(null)
@@ -82,7 +79,7 @@ export function useChat() {
     }
 
     const userMsg: ChatMessage = { id: genId(), role: 'user', content: text }
-    const nextHistory: ChatMessage[] = [...messages, userMsg]
+    addMessage(userMsg);
     setInput('')
     setError(null)
     // reset previous visual citations for new request
@@ -97,7 +94,7 @@ export function useChat() {
       const start = performance.now()
       const assistantId = genId()
       currentAssistantIdRef.current = assistantId
-      setMessages([...nextHistory, { id: assistantId, role: 'assistant', content: '' }])
+      addMessage({ id: assistantId, role: 'assistant', content: '' });
       const res = await chatRequest({
         message: text,
         k: k,
@@ -108,16 +105,7 @@ export function useChat() {
 
       await streamAssistant(res, (delta) => {
         assistantText += delta
-        setMessages((curr) => {
-          if (curr.length === 0) return curr
-          const updated = [...curr]
-          // Preserve the assistant message id while updating content
-          updated[updated.length - 1] = {
-            ...updated[updated.length - 1],
-            content: assistantText,
-          }
-          return updated
-        })
+        updateLastMessage(assistantText);
       }, () => {
         // first streamed token has arrived
         setTimeToFirstTokenMs(performance.now() - start)
@@ -159,14 +147,13 @@ export function useChat() {
       toast.error('Chat Failed', { description: errorMsg })
       // Remove the assistant placeholder message that was added before streaming
       // to avoid showing a lingering loading bubble on the next message
-      setMessages((curr) => {
-        if (curr.length === 0) return curr
-        const last = curr[curr.length - 1]
+      const currentMessages = messages;
+      if (currentMessages.length > 0) {
+        const last = currentMessages[currentMessages.length - 1]
         if (last.role === 'assistant' && last.content === '') {
-          return curr.slice(0, -1)
+          setMessages(currentMessages.slice(0, -1));
         }
-        return curr
-      })
+      }
     } finally {
       setLoading(false)
     }
@@ -189,5 +176,6 @@ export function useChat() {
     setToolCallingEnabled,
     // actions
     sendMessage,
+    reset,
   }
 }

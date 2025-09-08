@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { ApiError } from "@/lib/api/generated";
 import "@/lib/api/client";
 import { Label } from "@/components/ui/label";
@@ -13,17 +13,49 @@ import { Progress } from "@/components/ui/progress";
 import { Upload, FileText, CheckCircle, AlertCircle, Loader2, CloudUpload, FolderOpen, ArrowUpFromLine } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { useUploadStore } from "@/stores/app-store";
 
 export default function UploadPage() {
-  const [files, setFiles] = useState<FileList | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // Use global upload store
+  const {
+    files,
+    uploading,
+    uploadProgress,
+    message,
+    error,
+    jobId,
+    statusText,
+    setFiles,
+    setUploading,
+    setProgress,
+    setMessage,
+    setError,
+    setJobId,
+    setStatusText,
+  } = useUploadStore();
+
+  // Local state for UI interactions only
   const [isDragOver, setIsDragOver] = useState(false);
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [statusText, setStatusText] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Clear success/error messages after some time to avoid persistent state
+  useEffect(() => {
+    if (message && !uploading) {
+      const timer = setTimeout(() => {
+        setMessage(null);
+      }, 10000); // Clear success message after 10 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [message, uploading, setMessage]);
+
+  useEffect(() => {
+    if (error && !uploading) {
+      const timer = setTimeout(() => {
+        setError(null);
+      }, 10000); // Clear error message after 10 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [error, uploading, setError]);
 
   // Drag and drop handlers
   const onDragOver = useCallback((e: React.DragEvent) => {
@@ -55,7 +87,7 @@ export default function UploadPage() {
     e.preventDefault();
     if (!files || files.length === 0) return;
     setUploading(true);
-    setUploadProgress(0);
+    setProgress(0);
     setMessage(null);
     setError(null);
     setStatusText(null);
@@ -93,12 +125,12 @@ export default function UploadPage() {
             const data = JSON.parse(ev.data || '{}');
             const pct = Number(data.percent ?? 0);
             const tot = Number(data.total ?? total ?? 0);
-            setUploadProgress(pct);
+            setProgress(pct);
             if (data.message) setStatusText(data.message);
 
             if (data.status === 'completed') {
               close();
-              setUploadProgress(100);
+              setProgress(100);
               const successMsg = data.message || `Indexed ${tot} page(s)`;
               setMessage(successMsg);
               setFiles(null);
@@ -132,7 +164,7 @@ export default function UploadPage() {
         });
       });
     } catch (err: unknown) {
-      setUploadProgress(0);
+      setProgress(0);
       
       let errorMsg = "Upload failed";
       if (err instanceof ApiError) {
@@ -146,7 +178,7 @@ export default function UploadPage() {
       });
     } finally {
       setUploading(false);
-      setTimeout(() => setUploadProgress(0), 2000);
+      setTimeout(() => setProgress(0), 2000);
     }
   }
 

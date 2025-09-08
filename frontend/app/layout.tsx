@@ -6,6 +6,7 @@ import { Nav } from "@/components/nav";
 import NextTopLoader from "nextjs-toploader";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AppStoreProvider } from "@/stores/app-store";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,12 +45,14 @@ export default function RootLayout({
         <div className="relative z-10 flex flex-col flex-1 min-h-0 overflow-hidden">
           <NextTopLoader showSpinner={false} />
           <Toaster richColors closeButton position="top-right" />
-          <TooltipProvider>
-            <Nav />
-            <main className="flex-1 min-h-0 mx-auto max-w-6xl w-full p-4 sm:p-6 flex flex-col overflow-hidden">
-              {children}
-            </main>
-          </TooltipProvider>
+          <AppStoreProvider>
+            <TooltipProvider>
+              <Nav />
+              <main className="flex-1 min-h-0 mx-auto max-w-6xl w-full p-4 sm:p-6 flex flex-col overflow-hidden">
+                {children}
+              </main>
+            </TooltipProvider>
+          </AppStoreProvider>
         </div>
       </body>
     </html>

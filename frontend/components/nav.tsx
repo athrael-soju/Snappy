@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/
 import AboutContent from "@/components/about-content";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
+import { useAppStore } from "@/stores/app-store";
 
 const links = [
   { href: "/", label: "Home", icon: Home, color: "text-blue-600" },
@@ -22,6 +23,25 @@ const links = [
 export function Nav() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const { state } = useAppStore();
+
+  // Check for persisted data
+  const hasSearchData = state.search.hasSearched && state.search.results.length > 0;
+  const hasChatData = state.chat.messages.length > 0;
+  const hasUploadProgress = state.upload.uploading || state.upload.uploadProgress > 0;
+
+  const getDataIndicator = (linkHref: string) => {
+    if (linkHref === "/search" && hasSearchData) {
+      return { count: state.search.results.length, color: "bg-blue-500" };
+    }
+    if (linkHref === "/chat" && hasChatData) {
+      return { count: state.chat.messages.length, color: "bg-purple-500" };
+    }
+    if (linkHref === "/upload" && hasUploadProgress) {
+      return { count: Math.round(state.upload.uploadProgress), color: "bg-green-500", isProgress: true };
+    }
+    return null;
+  };
   return (
     <header className="w-full border-b bg-gradient-to-r from-blue-50/80 via-purple-50/60 to-cyan-50/80 backdrop-blur-xl supports-[backdrop-filter]:bg-gradient-to-r supports-[backdrop-filter]:from-blue-50/60 supports-[backdrop-filter]:via-purple-50/40 supports-[backdrop-filter]:to-cyan-50/60 sticky top-0 z-50 shadow-lg border-blue-200/20">
       <nav className="mx-auto max-w-6xl flex items-center justify-between gap-4 px-6 py-4">
@@ -47,6 +67,7 @@ export function Nav() {
           {links.map((link) => {
             const active = link.href === "/" ? pathname === "/" : pathname === link.href || pathname.startsWith(`${link.href}/`);
             const Icon = link.icon;
+            const dataIndicator = getDataIndicator(link.href);
             return (
               <Link
                 key={link.href}
@@ -64,6 +85,22 @@ export function Nav() {
                 <span className={cn("hidden sm:inline relative z-10 transition-colors duration-300", active ? "text-white font-semibold" : "")}>
                   {link.label}
                 </span>
+                {/* Data indicator badge */}
+                {dataIndicator && (
+                  <span 
+                    className={cn(
+                      "absolute -top-1 -right-1 text-xs font-bold text-white rounded-full min-w-[18px] h-[18px] flex items-center justify-center border-2 border-white shadow-sm",
+                      dataIndicator.color
+                    )}
+                    title={
+                      dataIndicator.isProgress 
+                        ? `Upload ${dataIndicator.count}% complete`
+                        : `${dataIndicator.count} item${dataIndicator.count !== 1 ? 's' : ''}`
+                    }
+                  >
+                    {dataIndicator.isProgress ? `${dataIndicator.count}%` : dataIndicator.count}
+                  </span>
+                )}
               </Link>
             );
           })}
