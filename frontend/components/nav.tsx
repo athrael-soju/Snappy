@@ -28,20 +28,23 @@ export function Nav() {
   const [showUploadBadge, setShowUploadBadge] = useState(true);
 
   // Check for upload progress only
-  const hasUploadProgress = state.upload.uploading || state.upload.uploadProgress > 0 || state.upload.jobId;
+  const hasUploadProgress = state.upload.uploading || (state.upload.uploadProgress > 0 && state.upload.jobId);
 
   // Auto-hide upload badge when upload completes
   useEffect(() => {
-    if (!state.upload.uploading && state.upload.uploadProgress >= 100) {
+    if (!state.upload.uploading && state.upload.uploadProgress >= 100 && !state.upload.jobId) {
       const timer = setTimeout(() => {
         setShowUploadBadge(false);
       }, 3000); // Hide after 3 seconds when upload completes
       return () => clearTimeout(timer);
-    } else if (state.upload.uploading || state.upload.uploadProgress < 100) {
+    } else if (state.upload.uploading || (state.upload.uploadProgress < 100 && state.upload.jobId)) {
       // Show badge when upload is active or incomplete
       setShowUploadBadge(true);
+    } else if (!state.upload.jobId && state.upload.uploadProgress === 0) {
+      // Hide badge when no job and no progress
+      setShowUploadBadge(false);
     }
-  }, [state.upload.uploading, state.upload.uploadProgress]);
+  }, [state.upload.uploading, state.upload.uploadProgress, state.upload.jobId]);
 
   const getUploadIndicator = () => {
     if (hasUploadProgress && showUploadBadge) {
