@@ -274,6 +274,7 @@ class QdrantService:
         batch: List,
         total_images: int,
         progress_cb: Optional[Callable[[int, dict | None], None]] = None,
+        skip_progress: bool = False,  # Skip progress reporting for pipelined mode
     ) -> Tuple[List[models.PointStruct], int]:
         """Process a single batch: embed, store, and prepare points.
         
@@ -301,7 +302,8 @@ class QdrantService:
         ]
 
         # Notify that embedding is starting (this is the slow step on CPU)
-        if progress_cb is not None:
+        # Skip progress updates during concurrent batch processing to avoid out-of-order updates
+        if progress_cb is not None and not skip_progress:
             try:
                 progress_cb(i, {
                     "stage": "embedding",
@@ -316,6 +318,14 @@ class QdrantService:
                     raise
                 # Swallow other progress callback errors
                 pass
+        
+        # Check for cancellation even when skipping progress
+        if progress_cb is not None and skip_progress:
+            try:
+                progress_cb(i, {"stage": "check_cancel"})
+            except Exception as ex:
+                if "cancelled" in str(ex).lower() or ex.__class__.__name__ == "CancellationError":
+                    raise
 
         # STEP 1: Embed images (SLOW on CPU)
         try:
@@ -326,7 +336,7 @@ class QdrantService:
             raise Exception(f"Error during embed: {e}")
 
         # Notify storage phase
-        if progress_cb is not None:
+        if progress_cb is not None and not skip_progress:
             try:
                 progress_cb(i, {
                     "stage": "storing",
@@ -341,6 +351,14 @@ class QdrantService:
                     raise
                 # Swallow other progress callback errors
                 pass
+        
+        # Check for cancellation even when skipping progress
+        if progress_cb is not None and skip_progress:
+            try:
+                progress_cb(i, {"stage": "check_cancel"})
+            except Exception as ex:
+                if "cancelled" in str(ex).lower() or ex.__class__.__name__ == "CancellationError":
+                    raise
 
         # STEP 2: Store images in MinIO (I/O-bound, parallelized internally)
         image_urls = []
@@ -519,6 +537,7 @@ class QdrantService:
                         batch=batch,
                         total_images=total_images,
                         progress_cb=progress_cb,
+                        skip_progress=True,  # Skip progress updates from worker threads
                     )
                     futures[future] = (i, len(batch))
                 
@@ -538,11 +557,11 @@ class QdrantService:
                             completed_count += batch_size_processed
                             pbar.update(batch_size_processed)
                             
-                            # Notify progress
+                            # Notify progress - report cumulative completed count
                             if progress_cb is not None:
                                 try:
                                     progress_cb(completed_count, {
-                                        "stage": "upsert",
+                                        "stage": "processing",  # Generic stage for pipelined mode
                                         "batch_start": idx,
                                         "batch_size": batch_size_processed,
                                         "total": total_images,

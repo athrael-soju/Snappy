@@ -53,6 +53,11 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
             # Check for cancellation before updating progress
             if progress_manager.is_cancelled(job_id):
                 raise CancellationError("Job cancelled by user")
+            
+            # Skip updating progress for cancellation checks only
+            if info and info.get("stage") == "check_cancel":
+                return
+            
             msg = None
             if info and "stage" in info:
                 msg = f"{info['stage']} {current}/{info.get('total', total)}"

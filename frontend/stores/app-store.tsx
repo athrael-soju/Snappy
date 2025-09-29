@@ -429,7 +429,7 @@ export function useUploadStore() {
       }
       
       // The SSE stream will handle the state updates when it receives the 'cancelled' status
-      toast.info('Cancelling upload...', { description: 'Please wait while we stop the process' });
+      toast.info('Cancelling upload...', { description: 'Please wait until the upload is cancelled' });
     } catch (error) {
       console.error('Failed to cancel upload:', error);
       toast.error('Cancellation Failed', { 
