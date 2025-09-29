@@ -24,6 +24,7 @@ from config import (
     QDRANT_SEARCH_OVERSAMPLING,
     ENABLE_PIPELINE_INDEXING,
     MAX_CONCURRENT_BATCHES,
+    MINIO_IMAGE_QUALITY,
 )
 from .minio import MinioService
 from .colpali import ColPaliClient
@@ -371,6 +372,7 @@ class QdrantService:
                 image_url_dict = self.minio_service.store_images_batch(
                     image_batch,
                     image_ids=image_ids,
+                    quality=MINIO_IMAGE_QUALITY,  # JPEG quality for compression
                 )
                 # Keep alignment by resolving URL per ID
                 image_urls = [

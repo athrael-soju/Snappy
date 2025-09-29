@@ -1,19 +1,23 @@
+"""
+Configuration module for FastAPI backend.
+
+All settings are loaded from environment variables.
+See docs/configuration.md for detailed documentation of all options.
+"""
+
 import os
 from typing import Final
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
 load_dotenv()
 
 
-# Helpers
 def _env_bool(name: str, default: str = "False") -> bool:
     """Parse environment boolean flags robustly."""
     return os.getenv(name, default).strip().lower() in ("1", "true", "yes", "on")
 
 
-# ===== Application Settings =====
-# Core Application
+# Application
 LOG_LEVEL: Final[str] = os.getenv("LOG_LEVEL", "INFO")
 ALLOWED_ORIGINS_RAW: Final[str] = os.getenv("ALLOWED_ORIGINS", "*")
 ALLOWED_ORIGINS: Final[list[str]] = (
@@ -25,29 +29,13 @@ ALLOWED_ORIGINS: Final[list[str]] = (
 # Processing
 DEFAULT_TOP_K: Final[int] = int(os.getenv("DEFAULT_TOP_K", "5"))
 MAX_TOKENS: Final[int] = int(os.getenv("MAX_TOKENS", "500"))
-BATCH_SIZE: Final[int] = int(os.getenv("BATCH_SIZE", "8"))
-WORKER_THREADS: Final[int] = int(os.getenv("WORKER_THREADS", "8"))
-# Enable pipelined indexing (embed batch N while uploading batch N-1)
+BATCH_SIZE: Final[int] = int(os.getenv("BATCH_SIZE", "4"))
+WORKER_THREADS: Final[int] = int(os.getenv("WORKER_THREADS", "4"))
 ENABLE_PIPELINE_INDEXING: Final[bool] = _env_bool("ENABLE_PIPELINE_INDEXING", "True")
-# Maximum number of batches to process concurrently (0 = unlimited, use with caution)
-MAX_CONCURRENT_BATCHES: Final[int] = int(os.getenv("MAX_CONCURRENT_BATCHES", "4"))
+MAX_CONCURRENT_BATCHES: Final[int] = int(os.getenv("MAX_CONCURRENT_BATCHES", "2"))
+MINIO_IMAGE_QUALITY: Final[int] = int(os.getenv("MINIO_IMAGE_QUALITY", "90"))
 
-# Image encoding for chat data URLs
-DATA_URL_IMAGE_FORMAT: Final[str] = (
-    os.getenv("DATA_URL_IMAGE_FORMAT", os.getenv("MINIO_IMAGE_FMT", "JPEG"))
-    .strip()
-    .upper()
-)
-DATA_URL_IMAGE_QUALITY: Final[int] = int(os.getenv("DATA_URL_IMAGE_QUALITY", "90"))
-
-"""
-ColPali API configuration
-
-Priority:
-1) If COLPALI_API_BASE_URL is explicitly set, use it as-is.
-2) Otherwise, select based on COLPALI_MODE (cpu|gpu) between COLPALI_CPU_URL and COLPALI_GPU_URL.
-"""
-
+# ColPali API
 COLPALI_MODE: Final[str] = os.getenv("COLPALI_MODE", "cpu").lower()
 COLPALI_CPU_URL: Final[str] = os.getenv("COLPALI_CPU_URL", "http://localhost:7001")
 COLPALI_GPU_URL: Final[str] = os.getenv("COLPALI_GPU_URL", "http://localhost:7002")
@@ -62,7 +50,6 @@ else:
 
 COLPALI_API_TIMEOUT: Final[int] = int(os.getenv("COLPALI_API_TIMEOUT", "300"))
 
-# ===== Storage Configurations =====
 # Qdrant
 QDRANT_URL: Final[str] = os.getenv("QDRANT_URL", "http://localhost:6333")
 QDRANT_COLLECTION_NAME: Final[str] = os.getenv("QDRANT_COLLECTION_NAME", "documents")
@@ -72,22 +59,18 @@ QDRANT_ON_DISK: Final[bool] = _env_bool("QDRANT_ON_DISK", "True")
 QDRANT_ON_DISK_PAYLOAD: Final[bool] = _env_bool("QDRANT_ON_DISK_PAYLOAD", "True")
 QDRANT_USE_BINARY: Final[bool] = _env_bool("QDRANT_USE_BINARY", "True")
 QDRANT_BINARY_ALWAYS_RAM: Final[bool] = _env_bool("QDRANT_BINARY_ALWAYS_RAM", "True")
-QDRANT_SEARCH_IGNORE_QUANT: Final[bool] = _env_bool(
-    "QDRANT_SEARCH_IGNORE_QUANT", "False"
-)
+QDRANT_SEARCH_IGNORE_QUANT: Final[bool] = _env_bool("QDRANT_SEARCH_IGNORE_QUANT", "False")
 QDRANT_SEARCH_RESCORE: Final[bool] = _env_bool("QDRANT_SEARCH_RESCORE", "True")
-QDRANT_SEARCH_OVERSAMPLING: Final[float] = float(
-    os.getenv("QDRANT_SEARCH_OVERSAMPLING", "2.0")
-)
+QDRANT_SEARCH_OVERSAMPLING: Final[float] = float(os.getenv("QDRANT_SEARCH_OVERSAMPLING", "2.0"))
 
-# MUVERA (single-vector FDE for fast pre-retrieval) settings
+# MUVERA
 MUVERA_ENABLED: Final[bool] = _env_bool("MUVERA_ENABLED", "False")
 MUVERA_K_SIM: Final[int] = int(os.getenv("MUVERA_K_SIM", "6"))
 MUVERA_DIM_PROJ: Final[int] = int(os.getenv("MUVERA_DIM_PROJ", "32"))
 MUVERA_R_REPS: Final[int] = int(os.getenv("MUVERA_R_REPS", "20"))
 MUVERA_RANDOM_SEED: Final[int] = int(os.getenv("MUVERA_RANDOM_SEED", "42"))
 
-# MinIO Object Storage
+# MinIO
 MINIO_URL: Final[str] = os.getenv("MINIO_URL", "http://localhost:9000")
 MINIO_PUBLIC_URL: Final[str] = os.getenv("MINIO_PUBLIC_URL", MINIO_URL)
 MINIO_ACCESS_KEY: Final[str] = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
