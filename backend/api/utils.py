@@ -8,7 +8,13 @@ from pdf2image import convert_from_path
 from config import WORKER_THREADS
 
 
-def convert_pdf_paths_to_images(paths: List[str]) -> List[dict]:
+def convert_pdf_paths_to_images(paths: List[str], original_filenames: Dict[str, str] = None) -> List[dict]:
+    """Convert PDF files to images with metadata.
+    
+    Args:
+        paths: List of file paths (may be temporary files)
+        original_filenames: Optional mapping of path -> original filename
+    """
     items: List[dict] = []
     for f in paths:
         try:
@@ -22,7 +28,13 @@ def convert_pdf_paths_to_images(paths: List[str]) -> List[dict]:
             size_bytes = os.path.getsize(f)
         except Exception:
             size_bytes = None
-        filename = os.path.basename(str(f))
+        
+        # Use original filename if provided, otherwise fall back to basename
+        if original_filenames and f in original_filenames:
+            filename = original_filenames[f]
+        else:
+            filename = os.path.basename(str(f))
+            
         for idx, img in enumerate(pages):
             w, h = (img.size[0], img.size[1]) if hasattr(img, "size") else (None, None)
             items.append(
@@ -46,8 +58,10 @@ def compute_page_label(payload: Dict) -> str:
       - filename: str
       - pdf_page_index: int (1-based)
       - total_pages: int
+    
+    Returns format: "filename.pdf — Page X of Y"
     """
     fname = payload["filename"]
     page_num = payload["pdf_page_index"]
     total = payload["total_pages"]
-    return f"{fname} — {page_num}/{total}"
+    return f"{fname} — Page {page_num} of {total}"

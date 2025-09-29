@@ -24,6 +24,7 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
         raise HTTPException(status_code=400, detail="No files uploaded")
 
     temp_paths: List[str] = []
+    original_filenames: dict[str, str] = {}  # Map temp path -> original filename
     try:
         for uf in files:
             suffix = os.path.splitext(uf.filename or "")[1] or ".pdf"
@@ -31,8 +32,10 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
                 data = await uf.read()
                 tmp.write(data)
                 temp_paths.append(tmp.name)
+                # Store original filename
+                original_filenames[tmp.name] = uf.filename or "document.pdf"
 
-        images_with_meta = convert_pdf_paths_to_images(temp_paths)
+        images_with_meta = convert_pdf_paths_to_images(temp_paths, original_filenames)
         svc = get_qdrant_service()
         if not svc:
             raise HTTPException(
