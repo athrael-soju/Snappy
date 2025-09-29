@@ -56,38 +56,48 @@ This document provides detailed explanations for all configuration options avail
 
 ### `BATCH_SIZE`
 - **Type**: Integer
-- **Default**: `4`
+- **Default**: `16` (optimized for RTX 5090)
 - **Recommended**:
   - **CPU mode**: `1-2` (better progress feedback, lower memory)
-  - **GPU mode**: `4-16` (better throughput)
-- **Description**: Number of document pages processed per batch during indexing. Larger batches are more efficient but use more memory.
+  - **GPU mode (consumer)**: `4-8` (GTX/RTX 30xx/40xx with 8-16GB VRAM)
+  - **GPU mode (high-end)**: `16-24` (RTX 5090 with 32GB VRAM)
+- **Description**: Number of document pages processed per batch during indexing. Larger batches maximize GPU utilization but use more VRAM.
 - **Performance Impact**:
   - CPU: ~1.5-3 minutes per page
   - GPU: ~1-2 seconds per page
   - 30-50x speed difference between CPU and GPU
+- **Memory Usage**: ~2GB VRAM per batch of 8 images (ColQwen2.5), scales linearly
 
 ### `WORKER_THREADS`
 - **Type**: Integer
-- **Default**: `4`
-- **Description**: Number of worker threads for PDF conversion and other CPU-bound tasks. Set to your CPU core count for optimal performance.
+- **Default**: `12` (optimized for high-end AMD CPU)
+- **Recommended**:
+  - **Consumer CPU**: `4-8` (8-16 threads)
+  - **High-end CPU**: `12-16` (24+ threads like Ryzen 9 7950X, Threadripper)
+- **Description**: Number of worker threads for PDF rasterization (via `pdf2image`). More threads = faster PDF-to-image conversion.
+- **Performance Impact**: Directly affects PDF conversion speed (CPU-bound). Use 50-75% of your CPU thread count.
 
 ### `ENABLE_PIPELINE_INDEXING`
 - **Type**: Boolean
 - **Default**: `True`
-- **Description**: Enables concurrent batch processing to overlap embedding (CPU-bound) with storage (I/O-bound) operations.
+- **Description**: Enables concurrent batch processing with dual thread pools to overlap embedding (slow), MinIO uploads (I/O), and Qdrant upserts (I/O).
 - **Benefits**:
-  - 20-30% faster indexing for multi-page documents
-  - Better resource utilization
+  - 20-40% faster indexing for multi-page documents
+  - Better resource utilization (GPU stays busy while I/O happens)
+  - Non-blocking upserts allow next batch to start immediately
 - **When to Disable**: For single-page documents or when debugging indexing issues.
 
 ### `MAX_CONCURRENT_BATCHES`
 - **Type**: Integer
-- **Default**: `2`
+- **Default**: `3` (optimized for 64GB RAM)
 - **Recommended**:
-  - **CPU mode**: `2-4`
-  - **GPU mode**: `4-8`
-- **Description**: Maximum number of batches processed concurrently when `ENABLE_PIPELINE_INDEXING=True`. Higher values increase throughput but use more memory.
-- **Memory Impact**: Each concurrent batch holds images in memory during processing.
+  - **Low RAM (16GB)**: `2`
+  - **Medium RAM (32GB)**: `2-3`
+  - **High RAM (64GB+)**: `3-4`
+  - **CPU mode**: Stay lower (2-3) due to slower processing
+- **Description**: Maximum number of batches processed concurrently when `ENABLE_PIPELINE_INDEXING=True`. Each batch runs in parallel: embedding, MinIO upload, and upsert all overlap.
+- **Memory Impact**: Each concurrent batch holds `BATCH_SIZE` images in RAM during processing. Formula: `~200MB × BATCH_SIZE × MAX_CONCURRENT_BATCHES`
+- **Example**: `BATCH_SIZE=16, MAX_CONCURRENT_BATCHES=3` → ~9.6GB RAM for image buffers
 
 ### `MINIO_IMAGE_QUALITY`
 - **Type**: Integer
@@ -272,27 +282,37 @@ MinIO stores document images and provides public URLs for retrieval.
 
 #### `MINIO_IMAGE_FMT`
 - **Type**: String
-- **Default**: `PNG`
+- **Default**: `JPEG` (optimized for high-quality with compression)
 - **Options**: `PNG`, `JPEG`, `WEBP`
 - **Description**: Image format for storing document pages.
 - **Recommendations**:
-  - **PNG**: Lossless, larger files (~500KB per page), best quality
-  - **JPEG**: Lossy, smaller files (~100-200KB per page), good quality
-  - **WEBP**: Modern format, best compression, may have compatibility issues
+  - **PNG**: Lossless, larger files (~500KB per page), best quality - use when file size isn't a concern
+  - **JPEG**: Lossy, smaller files (~100-200KB per page with quality=95), excellent visual quality - **recommended for most use cases**
+  - **WEBP**: Modern format, best compression, may have compatibility issues with older browsers
+- **Note**: When using JPEG, set `MINIO_IMAGE_QUALITY=95` for near-lossless quality
 
 ### Performance Tuning
 
 #### `MINIO_WORKERS`
 - **Type**: Integer
-- **Default**: `4`
-- **Description**: Number of concurrent threads for uploading images to MinIO. Higher values speed up batch uploads but increase network/CPU load.
-- **Recommendation**: Set to 4-8 for most deployments.
+- **Default**: `16` (optimized for high-end CPU + fast storage)
+- **Recommended**:
+  - **Consumer**: `4-8` (standard CPU, HDD/SATA SSD)
+  - **High-end**: `12-16` (high-core-count CPU, NVMe SSD, fast network)
+  - **Enterprise**: `16-32` (server-grade hardware)
+- **Description**: Number of concurrent threads for uploading images to MinIO within each batch. Higher values maximize throughput when you have fast CPU and I/O.
+- **Performance Impact**: Directly affects MinIO upload speed. Each thread handles one image upload at a time.
+- **Bottleneck Check**: Monitor CPU and network usage. If neither is saturated, increase this value.
+- **Note**: HTTP connection pool is automatically sized to `MINIO_WORKERS × MAX_CONCURRENT_BATCHES + 10` to prevent connection exhaustion
 
 #### `MINIO_RETRIES`
 - **Type**: Integer
-- **Default**: `2`
+- **Default**: `3` (increased for reliability at higher throughput)
+- **Recommended**:
+  - **Local/LAN**: `2-3` (reliable network)
+  - **Remote/WAN**: `3-5` (higher latency, more packet loss)
 - **Description**: Number of retry attempts for failed MinIO operations (total attempts = retries + 1).
-- **Use Case**: Increase for unreliable networks.
+- **Use Case**: Higher concurrency (large `MINIO_WORKERS`) increases chance of transient failures, so more retries help reliability.
 
 #### `MINIO_FAIL_FAST`
 - **Type**: Boolean

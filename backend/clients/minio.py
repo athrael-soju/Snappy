@@ -13,6 +13,7 @@ from minio import Minio
 from minio.error import S3Error
 from minio.deleteobjects import DeleteObject
 from PIL import Image
+import urllib3
 
 from config import (
     MINIO_URL,
@@ -26,6 +27,7 @@ from config import (
     MINIO_FAIL_FAST,
     MINIO_PUBLIC_READ,
     MINIO_IMAGE_FMT,
+    MAX_CONCURRENT_BATCHES,
 )
 
 # ---------------------------------------------------------------------------
@@ -70,16 +72,36 @@ class MinioService:
                 else f"http://{endpoint}"
             )
 
+            # Configure HTTP connection pool to handle high concurrency
+            # Pool size should accommodate: MINIO_WORKERS × MAX_CONCURRENT_BATCHES + buffer
+            # With MINIO_WORKERS=16 and MAX_CONCURRENT_BATCHES=3, we need ~48+ connections
+            max_pool_connections = max(50, MINIO_WORKERS * MAX_CONCURRENT_BATCHES + 10)  # +10 for overhead
+            http_client = urllib3.PoolManager(
+                maxsize=max_pool_connections,
+                cert_reqs='CERT_REQUIRED' if self.secure else 'CERT_NONE',
+                timeout=urllib3.Timeout.DEFAULT_TIMEOUT,
+                retries=urllib3.Retry(
+                    total=0,  # Retries handled by our logic
+                    connect=None,
+                    read=False,
+                    redirect=False,
+                )
+            )
+
             self.client = Minio(
                 self.endpoint,
                 access_key=MINIO_ACCESS_KEY,
                 secret_key=MINIO_SECRET_KEY,
                 secure=self.secure,
+                http_client=http_client,
             )
 
             self.bucket_name = MINIO_BUCKET_NAME
             self._create_bucket_if_not_exists()
-            logger.info(f"MinIO service initialized with bucket: {self.bucket_name}")
+            logger.info(
+                f"MinIO service initialized with bucket: {self.bucket_name}, "
+                f"connection pool size: {max_pool_connections}"
+            )
 
         except Exception as e:
             raise Exception(f"Failed to initialize MinIO service: {e}") from e

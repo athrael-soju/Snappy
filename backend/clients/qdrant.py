@@ -222,10 +222,38 @@ class QdrantService:
 
         return pooled_by_rows, pooled_by_columns
 
+    def _pool_single_image(self, item, image, patch_result):
+        """Pool a single image's embeddings (for parallel execution)"""
+        if isinstance(item, dict):
+            embedding_list = item.get("embedding")
+            start = item.get("image_patch_start", -1)
+            patch_len = item.get("image_patch_len", 0)
+        else:
+            raise Exception(
+                "embed_images() returned embeddings without image-token boundaries"
+            )
+
+        image_embedding_np = np.asarray(embedding_list, dtype=np.float32)
+        x_patches = patch_result["n_patches_x"]
+        y_patches = patch_result["n_patches_y"]
+
+        # Pool using explicit boundaries; sanity checks inside
+        pooled_by_rows, pooled_by_columns = self._pool_image_tokens(
+            image_embedding_np=image_embedding_np,
+            start=int(start),
+            patch_len=int(patch_len),
+            x_patches=int(x_patches),
+            y_patches=int(y_patches),
+        )
+
+        return image_embedding_np.tolist(), pooled_by_rows, pooled_by_columns
+
     def _embed_and_mean_pool_batch(self, image_batch: List[Image.Image]):
         """
         Embed images via API and create mean pooled representations using explicit
         image-token boundaries provided by the API (no midpoint guessing).
+        
+        Pooling operations are parallelized for better CPU utilization on high-core-count systems.
         """
         # API returns per-image dicts: {embedding, image_patch_start, image_patch_len}
         api_items = self.api_client.embed_images(image_batch)
@@ -236,36 +264,30 @@ class QdrantService:
         ]
         patch_results = self.api_client.get_patches(dimensions)
 
+        # Parallelize pooling operations to maximize CPU utilization
         pooled_by_rows_batch = []
         pooled_by_columns_batch = []
         original_batch = []
-
-        for item, image, patch_result in zip(api_items, image_batch, patch_results):
-            if isinstance(item, dict):
-                embedding_list = item.get("embedding")
-                start = item.get("image_patch_start", -1)
-                patch_len = item.get("image_patch_len", 0)
-            else:
-                raise Exception(
-                    "embed_images() returned embeddings without image-token boundaries"
-                )
-
-            image_embedding_np = np.asarray(embedding_list, dtype=np.float32)
-            x_patches = patch_result["n_patches_x"]
-            y_patches = patch_result["n_patches_y"]
-
-            # Pool using explicit boundaries; sanity checks inside
-            pooled_by_rows, pooled_by_columns = self._pool_image_tokens(
-                image_embedding_np=image_embedding_np,
-                start=int(start),
-                patch_len=int(patch_len),
-                x_patches=int(x_patches),
-                y_patches=int(y_patches),
-            )
-
-            original_batch.append(image_embedding_np.tolist())
-            pooled_by_rows_batch.append(pooled_by_rows)
-            pooled_by_columns_batch.append(pooled_by_columns)
+        
+        # For batches larger than 2, use parallel pooling
+        if len(api_items) > 2:
+            with ThreadPoolExecutor(max_workers=min(8, len(api_items))) as executor:
+                results = list(executor.map(
+                    lambda args: self._pool_single_image(args[0], args[1], args[2]),
+                    zip(api_items, image_batch, patch_results)
+                ))
+                
+            for orig, rows, cols in results:
+                original_batch.append(orig)
+                pooled_by_rows_batch.append(rows)
+                pooled_by_columns_batch.append(cols)
+        else:
+            # For small batches, avoid threading overhead
+            for item, image, patch_result in zip(api_items, image_batch, patch_results):
+                orig, rows, cols = self._pool_single_image(item, image, patch_result)
+                original_batch.append(orig)
+                pooled_by_rows_batch.append(rows)
+                pooled_by_columns_batch.append(cols)
 
         return original_batch, pooled_by_rows_batch, pooled_by_columns_batch
 
@@ -522,18 +544,23 @@ class QdrantService:
     ) -> str:
         """Pipelined processing: process multiple batches concurrently with controlled parallelism.
         
-        This overlaps embedding (slow) with uploading and upserting (I/O-bound).
+        This overlaps embedding (slow), MinIO uploads (I/O-bound), and Qdrant upserts (I/O-bound)
+        for maximum throughput. Uses separate thread pools for processing and upserting.
         """
         max_workers = MAX_CONCURRENT_BATCHES if MAX_CONCURRENT_BATCHES > 0 else 2
         completed_count = 0
+        upsert_futures = []
         
         with tqdm(total=total_images, desc="Indexing progress (pipelined)") as pbar:
-            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Separate executor for upserts to avoid blocking the processing pipeline
+            with ThreadPoolExecutor(max_workers=max_workers) as process_executor, \
+                 ThreadPoolExecutor(max_workers=max_workers) as upsert_executor:
+                
                 # Submit all batch processing jobs
-                futures = {}
+                process_futures = {}
                 for i in range(0, len(images), batch_size):
                     batch = images[i : i + batch_size]
-                    future = executor.submit(
+                    future = process_executor.submit(
                         self._process_single_batch,
                         batch_idx=i,
                         batch=batch,
@@ -541,20 +568,23 @@ class QdrantService:
                         progress_cb=progress_cb,
                         skip_progress=True,  # Skip progress updates from worker threads
                     )
-                    futures[future] = (i, len(batch))
+                    process_futures[future] = (i, len(batch))
                 
-                # Process completed batches and upsert in order of completion
+                # Process completed batches and submit upserts concurrently
                 try:
-                    for future in as_completed(futures):
-                        batch_idx, batch_size_processed = futures[future]
+                    for future in as_completed(process_futures):
+                        batch_idx, batch_size_processed = process_futures[future]
                         try:
                             points, idx = future.result()
                             
-                            # Upsert to Qdrant (happens concurrently with other embedding jobs)
-                            self.client.upsert(
+                            # Submit upsert to separate executor (non-blocking)
+                            # This allows embedding to continue while upserts happen in parallel
+                            upsert_future = upsert_executor.submit(
+                                self.client.upsert,
                                 collection_name=self.collection_name,
                                 points=points,
                             )
+                            upsert_futures.append((upsert_future, batch_idx, batch_size_processed, idx))
                             
                             completed_count += batch_size_processed
                             pbar.update(batch_size_processed)
@@ -584,13 +614,24 @@ class QdrantService:
                             # Other errors
                             logger.error(f"Batch {batch_idx} failed: {batch_err}")
                             raise Exception(f"Error processing batch starting at {batch_idx}: {batch_err}")
+                    
+                    # Wait for all upserts to complete and check for errors
+                    for upsert_fut, b_idx, b_size, idx in upsert_futures:
+                        try:
+                            upsert_fut.result()  # Will raise if upsert failed
+                        except Exception as upsert_err:
+                            logger.error(f"Upsert failed for batch {b_idx}: {upsert_err}")
+                            raise Exception(f"Upsert failed for batch starting at {b_idx}: {upsert_err}")
+                            
                 except Exception as cancel_err:
                     # Check if it's a cancellation exception
                     if "cancelled" in str(cancel_err).lower() or cancel_err.__class__.__name__ == "CancellationError":
                         # Cancel all remaining futures
                         logger.info("Cancelling remaining batches...")
-                        for future in futures:
+                        for future in process_futures:
                             future.cancel()
+                        for upsert_fut, _, _, _ in upsert_futures:
+                            upsert_fut.cancel()
                         raise
         return f"Uploaded and converted {len(images)} pages (pipelined mode)"
 
@@ -687,7 +728,11 @@ class QdrantService:
     def search_with_metadata(
         self, query: str, k: int = 5, payload_filter: Optional[dict] = None
     ):
-        """Search and return images alongside full Qdrant payload metadata.
+        """Search and return metadata with image URLs.
+
+        Returns search results with payload metadata including image_url.
+        Images are NOT fetched from MinIO to optimize latency - the frontend
+        uses URLs directly for display and chat.
 
         payload_filter: optional dict of equality filters, e.g.
           {"filename": "doc.pdf", "pdf_page_index": 3}
@@ -716,42 +761,39 @@ class QdrantService:
         items = []
         if search_results and search_results[0].points:
             for i, point in enumerate(search_results[0].points[:k]):
-                try:
-                    image_url = (
-                        point.payload.get("image_url") if point.payload else None
-                    )
-                    if image_url and self.minio_service:
-                        image = self.minio_service.get_image(image_url)
-                        items.append(
-                            {
-                                "image": image,
-                                "payload": point.payload,
-                                "label": compute_page_label(point.payload),
-                                "score": getattr(point, "score", None),
-                            }
-                        )
-                    else:
-                        raise Exception(
-                            f"Cannot retrieve image for point {i}. "
-                            f"Image URL: {image_url}, MinIO available: {self.minio_service is not None}"
-                        )
-                except Exception as e:
-                    raise Exception(
-                        f"Error retrieving image from MinIO for point {i}: {e}"
-                    )
+                image_url = (
+                    point.payload.get("image_url") if point.payload else None
+                )
+                if not image_url:
+                    logger.warning(f"Point {i} missing image_url in payload")
+                    continue
+                
+                items.append(
+                    {
+                        "payload": point.payload,
+                        "label": compute_page_label(point.payload),
+                        "score": getattr(point, "score", None),
+                    }
+                )
         return items
 
     def search(self, query: str, k: int = 5):
-        """Search for relevant documents using Qdrant and retrieve images from MinIO.
+        """Search for relevant documents and return metadata with URLs.
 
-        Returns a list suitable for Gradio Gallery: (image, caption), while
-        internally enabling richer metadata retrieval via `search_with_metadata`.
+        This is a convenience wrapper around search_with_metadata().
+        For backwards compatibility, use get_image_from_url() to fetch PIL images.
         """
-        items = self.search_with_metadata(query, k)
-        results = []
-        for item in items:
-            results.append((item.get("image"), item["label"]))
-        return results
+        return self.search_with_metadata(query, k)
+    
+    def get_image_from_url(self, image_url: str) -> Image.Image:
+        """Fetch a PIL Image from MinIO by URL.
+        
+        Use this when you need the actual image object (e.g., for server-side processing).
+        The main search flow returns URLs to avoid unnecessary downloads.
+        """
+        if not self.minio_service:
+            raise Exception("MinIO service not available")
+        return self.minio_service.get_image(image_url)
 
     # -----------------------
     # Maintenance helpers
