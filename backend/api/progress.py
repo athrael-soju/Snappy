@@ -11,6 +11,7 @@ class ProgressManager:
     def __init__(self):
         self._lock = threading.Lock()
         self._jobs: Dict[str, Dict] = {}
+        self._cancel_flags: Dict[str, bool] = {}  # Track cancellation requests
 
     def create(self, job_id: str, total: int = 0):
         with self._lock:
@@ -18,12 +19,13 @@ class ProgressManager:
                 "job_id": job_id,
                 "total": int(total) if total else 0,
                 "current": 0,
-                "status": "pending",  # pending | running | completed | failed
+                "status": "pending",  # pending | running | completed | failed | cancelled
                 "message": None,
                 "started_at": time.time(),
                 "finished_at": None,
                 "error": None,
             }
+            self._cancel_flags[job_id] = False  # Initialize cancel flag
 
     def set_total(self, job_id: str, total: int):
         with self._lock:
@@ -60,6 +62,31 @@ class ProgressManager:
     def get(self, job_id: str) -> Optional[Dict]:
         with self._lock:
             return dict(self._jobs.get(job_id)) if job_id in self._jobs else None
+
+    def cancel(self, job_id: str) -> bool:
+        """Request cancellation of a job. Returns True if job exists and can be cancelled."""
+        with self._lock:
+            if job_id in self._jobs:
+                status = self._jobs[job_id]["status"]
+                # Can only cancel running or pending jobs
+                if status in ("pending", "running"):
+                    self._cancel_flags[job_id] = True
+                    self._jobs[job_id]["status"] = "cancelled"
+                    self._jobs[job_id]["finished_at"] = time.time()
+                    self._jobs[job_id]["message"] = "Upload cancelled by user"
+                    return True
+            return False
+
+    def is_cancelled(self, job_id: str) -> bool:
+        """Check if a job has been cancelled."""
+        with self._lock:
+            return self._cancel_flags.get(job_id, False)
+
+    def cleanup(self, job_id: str):
+        """Remove job data (call after job completion/cancellation)."""
+        with self._lock:
+            self._jobs.pop(job_id, None)
+            self._cancel_flags.pop(job_id, None)
 
 
 progress_manager = ProgressManager()

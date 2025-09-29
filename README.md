@@ -21,7 +21,10 @@ This repo is intended as a developer-friendly starting point for vision RAG syst
 - [backend/README.md](backend/README.md) — FastAPI backend
 - [frontend/README.md](frontend/README.md) — Next.js frontend
 - [colpali/README.md](colpali/README.md) — ColPali embedding API
+- [PERFORMANCE.md](PERFORMANCE.md) — **Performance guide: CPU vs GPU indexing** ⚡
 - [feature-list.md](feature-list.md) — Production hardening and roadmap checklist
+
+> **⚠️ Performance Note**: CPU-based indexing is **30-50x slower** than GPU (expect ~1.5-3 minutes per page). For production deployments with frequent indexing, GPU acceleration is strongly recommended. See [PERFORMANCE.md](PERFORMANCE.md) for detailed benchmarks and optimization strategies.
 
 ## Table of Contents
 

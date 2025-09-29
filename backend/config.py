@@ -25,8 +25,12 @@ ALLOWED_ORIGINS: Final[list[str]] = (
 # Processing
 DEFAULT_TOP_K: Final[int] = int(os.getenv("DEFAULT_TOP_K", "5"))
 MAX_TOKENS: Final[int] = int(os.getenv("MAX_TOKENS", "500"))
-BATCH_SIZE: Final[int] = int(os.getenv("BATCH_SIZE", "4"))
-WORKER_THREADS: Final[int] = int(os.getenv("WORKER_THREADS", "4"))
+BATCH_SIZE: Final[int] = int(os.getenv("BATCH_SIZE", "8"))
+WORKER_THREADS: Final[int] = int(os.getenv("WORKER_THREADS", "8"))
+# Enable pipelined indexing (embed batch N while uploading batch N-1)
+ENABLE_PIPELINE_INDEXING: Final[bool] = _env_bool("ENABLE_PIPELINE_INDEXING", "True")
+# Maximum number of batches to process concurrently (0 = unlimited, use with caution)
+MAX_CONCURRENT_BATCHES: Final[int] = int(os.getenv("MAX_CONCURRENT_BATCHES", "4"))
 
 # Image encoding for chat data URLs
 DATA_URL_IMAGE_FORMAT: Final[str] = (

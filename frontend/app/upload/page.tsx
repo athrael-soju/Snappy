@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Upload, FileText, CheckCircle, AlertCircle, Loader2, CloudUpload, FolderOpen, ArrowUpFromLine } from "lucide-react";
+import { Upload, FileText, CheckCircle, AlertCircle, Loader2, CloudUpload, FolderOpen, ArrowUpFromLine, XCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "@/components/ui/sonner";
 import { useUploadStore } from "@/stores/app-store";
@@ -32,6 +32,7 @@ export default function UploadPage() {
     setError,
     setJobId,
     setStatusText,
+    cancelUpload,
   } = useUploadStore();
 
   // Local state for UI interactions only
@@ -276,17 +277,22 @@ export default function UploadPage() {
                 )}
               </AnimatePresence>
               
-              {/* Upload Button */}
+              {/* Upload/Cancel Button (transforms based on state) */}
               <Button 
-                type="submit" 
-                disabled={uploading || !hasFiles}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 h-12"
+                type={uploading ? "button" : "submit"}
+                onClick={uploading ? cancelUpload : undefined}
+                disabled={!uploading && !hasFiles}
+                variant={uploading ? "destructive" : "default"}
+                className={uploading 
+                  ? "w-full h-12 bg-red-600 hover:bg-red-700" 
+                  : "w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 h-12"
+                }
                 size="lg"
               >
                 {uploading ? (
                   <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Processing {fileCount} file{fileCount !== 1 ? 's' : ''}...
+                    <XCircle className="w-5 h-5 mr-2" />
+                    Cancel Upload
                   </>
                 ) : (
                   <>

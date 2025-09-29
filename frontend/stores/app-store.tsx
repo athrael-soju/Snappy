@@ -256,8 +256,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
   // Global SSE connection management for uploads
   useEffect(() => {
-    // Only connect if we have an ongoing upload
-    if (!state.upload.jobId || !state.upload.uploading || state.upload.uploadProgress >= 100) {
+    // Only connect if we have an ongoing upload with a valid job ID
+    if (!state.upload.jobId || !state.upload.uploading) {
       closeSSEConnection();
       return;
     }
@@ -303,6 +303,18 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           if (typeof window !== 'undefined') {
             toast.error('Upload Failed', { description: errMsg });
           }
+        } else if (data.status === 'cancelled') {
+          closeSSEConnection();
+          const cancelMsg = data.message || 'Upload cancelled';
+          dispatch({ type: 'UPLOAD_SET_MESSAGE', payload: cancelMsg });
+          dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: false });
+          dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
+          dispatch({ type: 'UPLOAD_SET_FILES', payload: null });
+          
+          // Show toast notification
+          if (typeof window !== 'undefined') {
+            toast.info('Upload Cancelled', { description: cancelMsg });
+          }
         }
       } catch (e) {
         console.warn('Failed to parse SSE data:', e);
@@ -325,7 +337,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     return () => {
       closeSSEConnection();
     };
-  }, [state.upload.jobId, state.upload.uploading, state.upload.uploadProgress, closeSSEConnection]);
+  }, [state.upload.jobId, state.upload.uploading, closeSSEConnection]);
 
   // Cleanup SSE connection on unmount
   useEffect(() => {
@@ -402,6 +414,30 @@ export function useChatStore() {
 
 export function useUploadStore() {
   const { state, dispatch } = useAppStore();
+  
+  const cancelUpload = async () => {
+    const jobId = state.upload.jobId;
+    if (!jobId) return;
+    
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || ''}/index/cancel/${jobId}`, {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to cancel: ${response.statusText}`);
+      }
+      
+      // The SSE stream will handle the state updates when it receives the 'cancelled' status
+      toast.info('Cancelling upload...', { description: 'Please wait while we stop the process' });
+    } catch (error) {
+      console.error('Failed to cancel upload:', error);
+      toast.error('Cancellation Failed', { 
+        description: error instanceof Error ? error.message : 'Could not cancel upload' 
+      });
+    }
+  };
+  
   return {
     ...state.upload,
     setFiles: (files: FileList | null) => 
@@ -419,5 +455,6 @@ export function useUploadStore() {
     setStatusText: (statusText: string | null) => 
       dispatch({ type: 'UPLOAD_SET_STATUS_TEXT', payload: statusText }),
     reset: () => dispatch({ type: 'UPLOAD_RESET' }),
+    cancelUpload,
   };
 }

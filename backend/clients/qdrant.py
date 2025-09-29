@@ -5,6 +5,9 @@ from PIL import Image
 from datetime import datetime
 from qdrant_client import QdrantClient, models
 from tqdm import tqdm
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import queue
+import threading
 
 from config import (
     QDRANT_URL,
@@ -19,6 +22,8 @@ from config import (
     QDRANT_SEARCH_IGNORE_QUANT,
     QDRANT_SEARCH_RESCORE,
     QDRANT_SEARCH_OVERSAMPLING,
+    ENABLE_PIPELINE_INDEXING,
+    MAX_CONCURRENT_BATCHES,
 )
 from .minio import MinioService
 from .colpali import ColPaliClient
@@ -263,6 +268,162 @@ class QdrantService:
 
         return original_batch, pooled_by_rows_batch, pooled_by_columns_batch
 
+    def _process_single_batch(
+        self,
+        batch_idx: int,
+        batch: List,
+        total_images: int,
+        progress_cb: Optional[Callable[[int, dict | None], None]] = None,
+    ) -> Tuple[List[models.PointStruct], int]:
+        """Process a single batch: embed, store, and prepare points.
+        
+        Returns:
+            Tuple of (points, batch_start_index)
+        """
+        current_batch_size = len(batch)
+        i = batch_idx
+        
+        # Split into image and metadata batches, preserving order
+        image_batch: List[Image.Image] = [
+            (b if isinstance(b, Image.Image) else b.get("image")) for b in batch
+        ]
+        meta_batch: List[dict] = [
+            (
+                {
+                    k: v
+                    for k, v in (
+                        {} if isinstance(b, Image.Image) else dict(b)
+                    ).items()
+                    if k != "image"
+                }
+            )
+            for b in batch
+        ]
+
+        # Notify that embedding is starting (this is the slow step on CPU)
+        if progress_cb is not None:
+            try:
+                progress_cb(i, {
+                    "stage": "embedding",
+                    "batch_start": i,
+                    "batch_size": current_batch_size,
+                    "total": total_images,
+                })
+            except Exception as ex:
+                # Check if it's a cancellation exception (from progress callback)
+                if "cancelled" in str(ex).lower() or ex.__class__.__name__ == "CancellationError":
+                    # Re-raise cancellation to stop processing
+                    raise
+                # Swallow other progress callback errors
+                pass
+
+        # STEP 1: Embed images (SLOW on CPU)
+        try:
+            original_batch, pooled_by_rows_batch, pooled_by_columns_batch = (
+                self._embed_and_mean_pool_batch(image_batch)
+            )
+        except Exception as e:
+            raise Exception(f"Error during embed: {e}")
+
+        # Notify storage phase
+        if progress_cb is not None:
+            try:
+                progress_cb(i, {
+                    "stage": "storing",
+                    "batch_start": i,
+                    "batch_size": current_batch_size,
+                    "total": total_images,
+                })
+            except Exception as ex:
+                # Check if it's a cancellation exception (from progress callback)
+                if "cancelled" in str(ex).lower() or ex.__class__.__name__ == "CancellationError":
+                    # Re-raise cancellation to stop processing
+                    raise
+                # Swallow other progress callback errors
+                pass
+
+        # STEP 2: Store images in MinIO (I/O-bound, parallelized internally)
+        image_urls = []
+        if self.minio_service:
+            try:
+                # Generate deterministic image IDs aligned with the batch
+                image_ids = [
+                    str(uuid.uuid4()) for _ in range(current_batch_size)
+                ]
+                image_url_dict = self.minio_service.store_images_batch(
+                    image_batch,
+                    image_ids=image_ids,
+                )
+                # Keep alignment by resolving URL per ID
+                image_urls = [
+                    image_url_dict.get(img_id) for img_id in image_ids
+                ]
+            except Exception as e:
+                raise Exception(
+                    f"Error storing images in MinIO for batch starting at {i}: {e}"
+                )
+        else:
+            raise Exception("MinIO service not available")
+
+        # STEP 3: Build points for Qdrant
+        points = []
+        for j in range(current_batch_size):
+            orig = original_batch[j]
+            rows = pooled_by_rows_batch[j]
+            cols = pooled_by_columns_batch[j]
+            image_url = image_urls[j]
+            meta = meta_batch[j] if j < len(meta_batch) else {}
+
+            # Skip if image failed to upload
+            if not image_url:
+                raise Exception(
+                    f"Image failed to upload for batch starting at {i}: {image_url}"
+                )
+
+            doc_id = image_ids[j]
+
+            # Prepare payload with MinIO URL
+            now_iso = datetime.now().isoformat() + "Z"
+            payload = {
+                "index": i + j,
+                "image_url": image_url,
+                "document_id": doc_id,
+                "filename": meta.get("filename"),
+                "file_size_bytes": meta.get("file_size_bytes"),
+                "pdf_page_index": meta.get("pdf_page_index"),
+                "total_pages": meta.get("total_pages"),
+                "indexed_at": now_iso,
+            }
+
+            vectors = {
+                "mean_pooling_columns": cols,
+                "original": orig,
+                "mean_pooling_rows": rows,
+            }
+
+            # Compute and attach MUVERA FDE if available
+            if self.muvera_post and self.muvera_post.enabled:
+                try:
+                    fde = self.muvera_post.process_document(orig)
+                    if fde is not None:
+                        vectors["muvera_fde"] = fde
+                    else:
+                        logger.debug("No MUVERA FDE produced for doc_id=%s", doc_id)
+                except Exception as e:
+                    logger.warning(
+                        "Failed to compute MUVERA FDE for doc %s: %s", doc_id, e
+                    )
+
+            points.append(
+                models.PointStruct(
+                    id=doc_id,
+                    vector=vectors,
+                    payload=payload,
+                )
+            )
+
+        return points, i
+
     def index_documents(self, images: List[Image.Image], progress_cb: Optional[Callable[[int, dict | None], None]] = None):
         """Index documents in Qdrant with rich payload metadata.
 
@@ -270,122 +431,44 @@ class QdrantService:
         contains at least the key 'image': PIL.Image plus optional metadata
         keys, e.g. 'filename', 'file_size_bytes', 'pdf_page_index',
         'total_pages', 'page_width_px', 'page_height_px'.
+        
+        Uses pipelined processing if ENABLE_PIPELINE_INDEXING=True to overlap
+        embedding, storage, and upserting operations.
         """
         self._create_collection_if_not_exists()
 
         batch_size = int(BATCH_SIZE)
-
         total_images = len(images)
-        with tqdm(total=total_images, desc="Uploading progress") as pbar:
+        
+        # Choose processing mode based on configuration
+        if ENABLE_PIPELINE_INDEXING and total_images > batch_size:
+            return self._index_documents_pipelined(images, batch_size, total_images, progress_cb)
+        else:
+            return self._index_documents_sequential(images, batch_size, total_images, progress_cb)
+
+    def _index_documents_sequential(
+        self, 
+        images: List, 
+        batch_size: int, 
+        total_images: int, 
+        progress_cb: Optional[Callable[[int, dict | None], None]] = None
+    ) -> str:
+        """Sequential processing: process one batch fully before starting the next."""
+        with tqdm(total=total_images, desc="Indexing progress") as pbar:
             for i in range(0, len(images), batch_size):
                 batch = images[i : i + batch_size]
                 current_batch_size = len(batch)
 
-                # Split into image and metadata batches, preserving order
-                image_batch: List[Image.Image] = [
-                    (b if isinstance(b, Image.Image) else b.get("image")) for b in batch
-                ]
-                meta_batch: List[dict] = [
-                    (
-                        {
-                            k: v
-                            for k, v in (
-                                {} if isinstance(b, Image.Image) else dict(b)
-                            ).items()
-                            if k != "image"
-                        }
-                    )
-                    for b in batch
-                ]
+                # Process batch: embed, store, build points
+                points, batch_idx = self._process_single_batch(
+                    batch_idx=i,
+                    batch=batch,
+                    total_images=total_images,
+                    progress_cb=progress_cb,
+                )
 
+                # Upsert to Qdrant
                 try:
-                    original_batch, pooled_by_rows_batch, pooled_by_columns_batch = (
-                        self._embed_and_mean_pool_batch(image_batch)
-                    )
-                except Exception as e:
-                    raise Exception(f"Error during embed: {e}")
-
-                # Store images in MinIO (if available) and upload each document individually
-                image_urls = []
-                if self.minio_service:
-                    try:
-                        # Generate deterministic image IDs aligned with the batch
-                        image_ids = [
-                            str(uuid.uuid4()) for _ in range(current_batch_size)
-                        ]
-                        image_url_dict = self.minio_service.store_images_batch(
-                            image_batch,
-                            image_ids=image_ids,
-                        )
-                        # Keep alignment by resolving URL per ID
-                        image_urls = [
-                            image_url_dict.get(img_id) for img_id in image_ids
-                        ]
-                    except Exception as e:
-                        raise Exception(
-                            f"Error storing images in MinIO for batch starting at {i}: {e}"
-                        )
-                else:
-                    raise Exception("MinIO service not available")
-
-                # Build a batch of points and upsert in one request
-                try:
-                    points = []
-                    for j in range(current_batch_size):
-                        orig = original_batch[j]
-                        rows = pooled_by_rows_batch[j]
-                        cols = pooled_by_columns_batch[j]
-                        image_url = image_urls[j]
-                        meta = meta_batch[j] if j < len(meta_batch) else {}
-
-                        # Skip if image failed to upload
-                        if not image_url:
-                            raise Exception(
-                                f"Image failed to upload for batch starting at {i}: {image_url}"
-                            )
-
-                        doc_id = image_ids[j]
-
-                        # Prepare payload with MinIO URL
-                        now_iso = datetime.now().isoformat() + "Z"
-                        payload = {
-                            "index": i + j,
-                            "image_url": image_url,
-                            "document_id": doc_id,
-                            "filename": meta.get("filename"),
-                            "file_size_bytes": meta.get("file_size_bytes"),
-                            "pdf_page_index": meta.get("pdf_page_index"),
-                            "total_pages": meta.get("total_pages"),
-                            "indexed_at": now_iso,
-                        }
-
-                        vectors = {
-                            "mean_pooling_columns": cols,
-                            "original": orig,
-                            "mean_pooling_rows": rows,
-                        }
-
-                        # Compute and attach MUVERA FDE if available
-                        if self.muvera_post and self.muvera_post.enabled:
-                            try:
-                                fde = self.muvera_post.process_document(orig)
-                                if fde is not None:
-                                    vectors["muvera_fde"] = fde
-                                else:
-                                    logger.debug("No MUVERA FDE produced for doc_id=%s", doc_id)
-                            except Exception as e:
-                                logger.warning(
-                                    "Failed to compute MUVERA FDE for doc %s: %s", doc_id, e
-                                )
-
-                        points.append(
-                            models.PointStruct(
-                                id=doc_id,
-                                vector=vectors,
-                                payload=payload,
-                            )
-                        )
-
                     self.client.upsert(
                         collection_name=self.collection_name,
                         points=points,
@@ -396,7 +479,7 @@ class QdrantService:
                     )
 
                 pbar.update(current_batch_size)
-                # Notify progress callback, if provided
+                # Notify progress callback
                 if progress_cb is not None:
                     try:
                         progress_cb(min(i + current_batch_size, total_images), {
@@ -406,10 +489,89 @@ class QdrantService:
                             "total": total_images,
                         })
                     except Exception:
-                        # Swallow progress errors to avoid interrupting indexing
                         pass
 
         return f"Uploaded and converted {len(images)} pages"
+
+    def _index_documents_pipelined(
+        self, 
+        images: List, 
+        batch_size: int, 
+        total_images: int, 
+        progress_cb: Optional[Callable[[int, dict | None], None]] = None
+    ) -> str:
+        """Pipelined processing: process multiple batches concurrently with controlled parallelism.
+        
+        This overlaps embedding (slow) with uploading and upserting (I/O-bound).
+        """
+        max_workers = MAX_CONCURRENT_BATCHES if MAX_CONCURRENT_BATCHES > 0 else 2
+        completed_count = 0
+        
+        with tqdm(total=total_images, desc="Indexing progress (pipelined)") as pbar:
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                # Submit all batch processing jobs
+                futures = {}
+                for i in range(0, len(images), batch_size):
+                    batch = images[i : i + batch_size]
+                    future = executor.submit(
+                        self._process_single_batch,
+                        batch_idx=i,
+                        batch=batch,
+                        total_images=total_images,
+                        progress_cb=progress_cb,
+                    )
+                    futures[future] = (i, len(batch))
+                
+                # Process completed batches and upsert in order of completion
+                try:
+                    for future in as_completed(futures):
+                        batch_idx, batch_size_processed = futures[future]
+                        try:
+                            points, idx = future.result()
+                            
+                            # Upsert to Qdrant (happens concurrently with other embedding jobs)
+                            self.client.upsert(
+                                collection_name=self.collection_name,
+                                points=points,
+                            )
+                            
+                            completed_count += batch_size_processed
+                            pbar.update(batch_size_processed)
+                            
+                            # Notify progress
+                            if progress_cb is not None:
+                                try:
+                                    progress_cb(completed_count, {
+                                        "stage": "upsert",
+                                        "batch_start": idx,
+                                        "batch_size": batch_size_processed,
+                                        "total": total_images,
+                                    })
+                                except Exception as ex:
+                                    # Check if it's a cancellation exception
+                                    if "cancelled" in str(ex).lower() or ex.__class__.__name__ == "CancellationError":
+                                        # Cancellation detected, stop processing
+                                        raise
+                                    # Swallow other progress callback errors
+                                    pass
+                                    
+                        except Exception as batch_err:
+                            # Check if it's a cancellation exception
+                            if "cancelled" in str(batch_err).lower() or batch_err.__class__.__name__ == "CancellationError":
+                                logger.info(f"Batch {batch_idx} cancelled")
+                                raise
+                            # Other errors
+                            logger.error(f"Batch {batch_idx} failed: {batch_err}")
+                            raise Exception(f"Error processing batch starting at {batch_idx}: {batch_err}")
+                except Exception as cancel_err:
+                    # Check if it's a cancellation exception
+                    if "cancelled" in str(cancel_err).lower() or cancel_err.__class__.__name__ == "CancellationError":
+                        # Cancel all remaining futures
+                        logger.info("Cancelling remaining batches...")
+                        for future in futures:
+                            future.cancel()
+                        raise
+        return f"Uploaded and converted {len(images)} pages (pipelined mode)"
 
     def _batch_embed_query(self, query_batch: List[str]) -> np.ndarray:
         """Embed query batch using API (returns the first, since we submit one)."""
