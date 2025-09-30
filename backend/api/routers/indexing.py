@@ -4,6 +4,7 @@ import uuid
 from typing import List
 import asyncio
 import json
+import logging
 from fastapi.responses import StreamingResponse
 
 from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
@@ -11,6 +12,8 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
 from api.dependencies import get_qdrant_service, qdrant_init_error
 from api.utils import convert_pdf_paths_to_images
 from api.progress import progress_manager
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="", tags=["indexing"])
 
@@ -21,6 +24,7 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
         raise HTTPException(status_code=400, detail="No files uploaded")
 
     temp_paths: List[str] = []
+    original_filenames: dict[str, str] = {}  # Map temp path -> original filename
     try:
         for uf in files:
             suffix = os.path.splitext(uf.filename or "")[1] or ".pdf"
@@ -28,8 +32,10 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
                 data = await uf.read()
                 tmp.write(data)
                 temp_paths.append(tmp.name)
+                # Store original filename
+                original_filenames[tmp.name] = uf.filename or "document.pdf"
 
-        images_with_meta = convert_pdf_paths_to_images(temp_paths)
+        images_with_meta = convert_pdf_paths_to_images(temp_paths, original_filenames)
         svc = get_qdrant_service()
         if not svc:
             raise HTTPException(
@@ -42,7 +48,19 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
         progress_manager.create(job_id, total=total)
         progress_manager.start(job_id)
 
+        class CancellationError(Exception):
+            """Custom exception for job cancellation"""
+            pass
+
         def progress_cb(current: int, info: dict | None = None):
+            # Check for cancellation before updating progress
+            if progress_manager.is_cancelled(job_id):
+                raise CancellationError("Job cancelled by user")
+            
+            # Skip updating progress for cancellation checks only
+            if info and info.get("stage") == "check_cancel":
+                return
+            
             msg = None
             if info and "stage" in info:
                 msg = f"{info['stage']} {current}/{info.get('total', total)}"
@@ -51,9 +69,20 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
         def run_job(paths: List[str]):
             try:
                 msg = svc.index_documents(images_with_meta, progress_cb=progress_cb)
-                progress_manager.complete(job_id, message=msg)
+                # Check if job was cancelled during execution
+                if progress_manager.is_cancelled(job_id):
+                    # Already marked as cancelled, no need to complete
+                    pass
+                else:
+                    progress_manager.complete(job_id, message=msg)
+            except CancellationError as e:
+                # Cancellation - already marked by progress_manager.cancel()
+                logger.info(f"Job {job_id} was cancelled: {e}")
+                pass
             except Exception as e:
-                progress_manager.fail(job_id, error=str(e))
+                # Only mark as failed if not already cancelled
+                if not progress_manager.is_cancelled(job_id):
+                    progress_manager.fail(job_id, error=str(e))
             finally:
                 for p in paths:
                     try:
@@ -70,6 +99,23 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
             except Exception:
                 pass
         raise
+
+
+@router.post("/index/cancel/{job_id}")
+async def cancel_upload(job_id: str):
+    """Cancel an ongoing upload/indexing job."""
+    success = progress_manager.cancel(job_id)
+    if success:
+        return {"status": "cancelled", "job_id": job_id, "message": "Upload cancelled successfully"}
+    else:
+        job_data = progress_manager.get(job_id)
+        if not job_data:
+            raise HTTPException(status_code=404, detail="Job not found")
+        else:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Cannot cancel job in status: {job_data.get('status')}"
+            )
 
 
 @router.get("/progress/stream/{job_id}")
@@ -112,7 +158,7 @@ async def stream_progress(job_id: str):
                 yield "event: heartbeat\n" + "data: {}\n\n"
 
             # Stop on terminal states
-            if payload["status"] in ("completed", "failed"):
+            if payload["status"] in ("completed", "failed", "cancelled"):
                 return
 
             await asyncio.sleep(1.0)

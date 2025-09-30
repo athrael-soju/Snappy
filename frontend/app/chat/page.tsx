@@ -14,6 +14,7 @@ import ImageLightbox from "@/components/lightbox";
 import ChatInputBar from "@/components/chat/ChatInputBar";
 import StarterQuestions from "@/components/chat/StarterQuestions";
 import RecentSearchesChips from "@/components/search/RecentSearchesChips";
+import MarkdownRenderer from "@/components/chat/MarkdownRenderer";
 import { BRAIN_PLACEHOLDERS } from "@/lib/utils";
 
 // Starter questions to help users get started (qualitative phrasing)
@@ -235,10 +236,24 @@ export default function ChatPage() {
                       }`}>
                       {message.content ? (
                         message.role === "assistant" ? (
-                          <div className="whitespace-pre-wrap text-[15px] leading-7">
-                            {message.content.split("\n\n").map((para, i) => (
-                              <p key={i} className="mb-3 last:mb-0">{para}</p>
-                            ))}
+                          <div className="text-[15px] leading-7">
+                            <MarkdownRenderer 
+                              content={message.content}
+                              images={imageGroups.flat()}
+                              onImageClick={(url, label) => {
+                                setLightboxSrc(url);
+                                setLightboxAlt(label || 'Citation image');
+                                setLightboxOpen(true);
+                              }}
+                              onCitationClick={(citation) => {
+                                // Scroll to visual citations section and highlight
+                                if (imagesSectionRef.current) {
+                                  imagesSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                  imagesSectionRef.current.classList.add('ring-2', 'ring-purple-400');
+                                  setTimeout(() => imagesSectionRef.current?.classList.remove('ring-2', 'ring-purple-400'), 1500);
+                                }
+                              }}
+                            />
                           </div>
                         ) : (
                           <div className="whitespace-pre-wrap text-[15px] leading-7">{message.content}</div>

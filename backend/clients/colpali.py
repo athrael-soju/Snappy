@@ -107,6 +107,13 @@ class ColPaliClient:
             self._logger.error(f"Failed to embed queries: {e}")
             raise
 
+    def _encode_image_to_bytes(self, image: Image.Image, idx: int) -> tuple:
+        """Encode a single image to bytes (for parallel execution)"""
+        img_byte_arr = io.BytesIO()
+        image.save(img_byte_arr, format="PNG")
+        img_byte_arr.seek(0)
+        return ("files", (f"image_{idx}.png", img_byte_arr, "image/png"))
+
     def embed_images(self, images: List[Image.Image]) -> List[List[List[float]]]:
         """
         Generate embeddings for images
@@ -118,13 +125,13 @@ class ColPaliClient:
             List of embeddings (each embedding is a list of vectors)
         """
         try:
-            files = []
-            for i, image in enumerate(images):
-                # Convert PIL Image to bytes
-                img_byte_arr = io.BytesIO()
-                image.save(img_byte_arr, format="PNG")
-                img_byte_arr.seek(0)
-                files.append(("files", (f"image_{i}.png", img_byte_arr, "image/png")))
+            # Parallelize image encoding to maximize CPU utilization
+            from concurrent.futures import ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=min(8, len(images))) as executor:
+                files = list(executor.map(
+                    lambda args: self._encode_image_to_bytes(args[1], args[0]),
+                    enumerate(images)
+                ))
 
             response = self.session.post(
                 f"{self.base_url}/embed/images", files=files, timeout=self.timeout

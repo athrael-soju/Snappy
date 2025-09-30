@@ -30,17 +30,22 @@ This document analyzes the current system implemented in this repository and com
 ## Indexing Pipeline (What Happens on Upload)
 
 - __PDF to images__: The API route uses `api/utils.py::convert_pdf_paths_to_images(...)` (via the `/index` endpoint). Each page becomes one PIL image with payload metadata: `filename`, `pdf_page_index`, `page_width_px`, `page_height_px`, etc.
+- __Pipelined processing__: `QdrantService._index_documents_pipelined(...)` (when `ENABLE_PIPELINE_INDEXING=True`)
+  - Uses dual thread pools: one for batch processing (embedding + MinIO upload), one for Qdrant upserts
+  - Controlled parallelism via `MAX_CONCURRENT_BATCHES` (default: 2 batches in parallel)
+  - Allows embedding, MinIO uploads, and Qdrant upserts to overlap for maximum throughput
 - __Embeddings__: `QdrantService._embed_and_mean_pool_batch(...)`
-  - Calls `ColPaliClient.embed_images(...)` to get image patch embeddings.
+  - Calls `ColPaliClient.embed_images(...)` to get image patch embeddings (image encoding parallelized for high-CPU systems).
   - Calls `ColPaliClient.get_patches(...)` to obtain the patch grid (`n_patches_x`, `n_patches_y`).
-  - Mean-pools the image patch tokens into two variants: by rows and by columns, preserving prefix/postfix tokens: `QdrantService._pool_image_tokens(...)`.
+  - Mean-pools the image patch tokens into two variants: by rows and by columns, preserving prefix/postfix tokens via parallelized `_pool_single_image(...)` calls.
   - Produces three multivectors per page: `original`, `mean_pooling_rows`, `mean_pooling_columns`.
-- __Image persistence__: `MinioService.store_images_batch(...)` uploads images and returns public URLs.
-- __Upsert to Qdrant__: `QdrantService.index_documents(...)` calls `client.upsert(...)` with vectors and rich payload including `image_url` and page metadata. The `/index` route starts this as a background job and you can poll `/progress/{job_id}` for status.
+- __Image persistence__: `MinioService.store_images_batch(...)` uploads images concurrently with internal thread pool (`MINIO_WORKERS` threads, default: 16). HTTP connection pool is automatically sized to match concurrency (`MINIO_WORKERS × MAX_CONCURRENT_BATCHES + 10`) to prevent connection exhaustion.
+- __Upsert to Qdrant__: Non-blocking upserts submitted to separate executor, allowing next batch to start embedding immediately. The `/index` route starts this as a background job and you can poll `/progress/{job_id}` for status.
 
 Notes:
 - Collection schema is created on startup in `QdrantService._create_collection_if_not_exists()` using model dimension from `/info`.
 - Images are stored under an S3-like path (`images/<uuid>.<ext>`), publicly readable by default.
+- Sequential mode (`ENABLE_PIPELINE_INDEXING=False`) processes one batch fully before starting the next.
 
 ---
 
@@ -51,8 +56,8 @@ Notes:
   - Prefetch against `mean_pooling_columns` and `mean_pooling_rows` with `prefetch_limit`.
   - Final rank against `original` with `search_limit`, `with_payload=True`.
 - __Result assembly__:
-  - `search_with_metadata(...)` fetches images back from MinIO by `image_url` and returns `[{"image": PIL.Image, 'payload': {...}}]`.
-  - The API `/search` route (`api/routers/retrieval.py`) formats and returns structured results.
+  - `search_with_metadata(...)` returns metadata with image URLs without fetching actual images (optimized for latency).
+  - The API `/search` route (`api/routers/retrieval.py`) formats and returns structured results with URLs.
 - __Multimodal answer__:
   - The frontend chat API route (`frontend/app/api/chat/route.ts`) sends the user text and retrieved images to OpenAI's Responses API and streams tokens back to the UI via SSE.
 

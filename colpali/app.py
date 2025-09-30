@@ -1,5 +1,6 @@
 from io import BytesIO
 from typing import List, Union, Optional
+import os
 
 import torch
 from fastapi import FastAPI, File, UploadFile, HTTPException, Body
@@ -9,27 +10,44 @@ from PIL import Image
 from colpali_engine.models import ColQwen2_5, ColQwen2_5_Processor
 from transformers.utils.import_utils import is_flash_attn_2_available
 
+# Configuration for CPU parallelism
+CPU_THREADS = int(os.getenv("CPU_THREADS", "4"))  # Number of torch threads for CPU inference
+ENABLE_CPU_MULTIPROCESSING = os.getenv("ENABLE_CPU_MULTIPROCESSING", "false").lower() == "true"
+
 # Initialize FastAPI app
 app = FastAPI(
     title="ColQwen2.5 Embedding API",
     description="API for generating embeddings from images and queries",
 )
 
+# Determine device
+device = (
+    "cuda:0"
+    if torch.cuda.is_available()
+    else "mps"
+    if torch.backends.mps.is_available()
+    else "cpu"
+)
+
+# Configure CPU threading for better performance
+if device == "cpu":
+    torch.set_num_threads(CPU_THREADS)
+    torch.set_num_interop_threads(CPU_THREADS)
+    print(f"CPU mode: Set torch threads to {CPU_THREADS}")
+
 # Load model and processor
 model = ColQwen2_5.from_pretrained(
     "vidore/colqwen2.5-v0.2",
     torch_dtype=torch.bfloat16,
-    device_map=(
-        "cuda:0"
-        if torch.cuda.is_available()
-        else "mps"
-        if torch.backends.mps.is_available()
-        else "cpu"
-    ),
+    device_map=device,
     attn_implementation="flash_attention_2" if is_flash_attn_2_available() else None,
 ).eval()
 
 processor = ColQwen2_5_Processor.from_pretrained("vidore/colqwen2.5-v0.2")
+
+print(f"ColPali model loaded on device: {device}")
+print(f"Model dtype: {model.dtype}")
+print(f"Flash Attention 2: {'enabled' if is_flash_attn_2_available() else 'disabled'}")
 
 
 class QueryRequest(BaseModel):
