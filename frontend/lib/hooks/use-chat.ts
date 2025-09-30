@@ -14,6 +14,7 @@ export type ChatMessage = {
   id: string
   role: 'user' | 'assistant'
   content: string
+  citations?: Array<{ url: string | null; label: string | null; score: number | null }>
 }
 
 export function useChat() {
@@ -27,6 +28,7 @@ export function useChat() {
     setMessages,
     addMessage,
     updateLastMessage,
+    updateMessageCitations,
     setImageGroups,
     setK,
     setToolCallingEnabled,
@@ -101,8 +103,6 @@ export function useChat() {
     addMessage(userMsg);
     setInput('')
     setError(null)
-    // reset previous visual citations for new request
-    setImageGroups([])
     // Reset current assistant association
     currentAssistantIdRef.current = null
     // Mark as loading so UI shows thinking bubble until first token arrives
@@ -154,7 +154,9 @@ export function useChat() {
             }
           }
           imagesByMessageRef.current[msgId] = deduped
-          // Expose only the current assistant turn's images to the UI
+          // Update the assistant message with citations
+          updateMessageCitations(msgId, deduped)
+          // Expose only the current assistant turn's images to the UI (for backward compatibility)
           setImageGroups([deduped])
         }
       })

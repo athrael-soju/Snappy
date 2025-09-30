@@ -1,9 +1,10 @@
 "use client";
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { FileText, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
+import CitationHoverCard from './CitationHoverCard';
 
 interface ImageData {
   url: string | null;
@@ -14,30 +15,50 @@ interface ImageData {
 interface MarkdownRendererProps {
   content: string;
   images?: ImageData[];
-  onCitationClick?: (citation: string) => void;
   onImageClick?: (url: string, label?: string) => void;
 }
 
 /**
- * Renders markdown-formatted text with special handling for citations.
- * Supports:
- * - **bold** text
- * - *italic* text
- * - `code` inline
- * - ```code blocks```
- * - # Headers
- * - - Lists
- * - [Page X](citation) or (Page X) citations with visual badges
+ * Renders markdown-formatted text with numbered superscript citations.
+ * Citations are deduplicated and numbered sequentially [1], [2], etc.
+ * Max 2 citations per sentence.
  */
-export default function MarkdownRenderer({ content, images = [], onCitationClick, onImageClick }: MarkdownRendererProps) {
-  // Helper to find matching image by label
-  const findImageByLabel = (citation: string): ImageData | undefined => {
-    if (!images || images.length === 0) return undefined;
+export default function MarkdownRenderer({ content, images = [], onImageClick }: MarkdownRendererProps) {
+  // Build citation mapping: deduplicate by label and assign numbers
+  const citationMap = useMemo(() => {
+    const map = new Map<string, { number: number; image: ImageData }>();
+    let citationNumber = 1;
     
-    // Try to match the citation text with image labels
-    return images.find(img => 
-      img.label && citation.toLowerCase().includes(img.label.toLowerCase())
-    );
+    // Extract all citations from content
+    const citationRegex = /\(([^)]*(?:page|Page|PAGE|p\.|P\.)\s*\d+[^)]*)\)|\[([^\]]*(?:page|Page|PAGE|p\.|P\.)\s*\d+[^\]]*)\]/g;
+    const matches = content.matchAll(citationRegex);
+    
+    for (const match of matches) {
+      const citation = match[1] || match[2];
+      if (!citation) continue;
+      
+      // Normalize citation for deduplication
+      const normalized = citation.toLowerCase().trim();
+      
+      if (!map.has(normalized)) {
+        // Find matching image
+        const image = images.find(img => 
+          img.label && citation.toLowerCase().includes(img.label.toLowerCase())
+        );
+        
+        if (image && image.url) {
+          map.set(normalized, { number: citationNumber++, image });
+        }
+      }
+    }
+    
+    return map;
+  }, [content, images]);
+
+  // Helper to find citation info
+  const getCitationInfo = (citation: string) => {
+    const normalized = citation.toLowerCase().trim();
+    return citationMap.get(normalized);
   };
   const renderContent = () => {
     const lines = content.split('\n');
@@ -146,8 +167,16 @@ export default function MarkdownRenderer({ content, images = [], onCitationClick
     const parts: React.ReactNode[] = [];
     let remaining = text;
     let keyCounter = 0;
+    let citationsInSentence = 0;
+    const MAX_CITATIONS_PER_SENTENCE = 2;
 
     while (remaining.length > 0) {
+      // Check for sentence boundaries to reset citation counter
+      const sentenceEnd = remaining.match(/[.!?]\s/);
+      if (sentenceEnd && sentenceEnd.index === 0) {
+        citationsInSentence = 0;
+      }
+
       // Citations: (Page X) or [Page X] or similar patterns
       const citationMatch = remaining.match(/\(([^)]*(?:page|Page|PAGE|p\.|P\.)\s*\d+[^)]*)\)|\[([^\]]*(?:page|Page|PAGE|p\.|P\.)\s*\d+[^\]]*)\]/);
       
@@ -160,52 +189,27 @@ export default function MarkdownRenderer({ content, images = [], onCitationClick
           parts.push(...processTextFormatting(beforeCitation, keyCounter++));
         }
 
-        // Try to find matching image
-        const matchedImage = findImageByLabel(citation);
+        // Get citation info (number and image)
+        const citationInfo = getCitationInfo(citation);
 
-        if (matchedImage && matchedImage.url) {
-          // Render inline image thumbnail
+        // Only render if we haven't exceeded max citations per sentence and citation exists
+        if (citationInfo && citationsInSentence < MAX_CITATIONS_PER_SENTENCE) {
+          citationsInSentence++;
+          
+          // Render numbered superscript with hover card
           parts.push(
-            <span
-              key={`cite-img-${keyCounter++}`}
-              className="inline-flex items-center gap-1.5 mx-1 px-2 py-1 bg-purple-50 border border-purple-200 rounded-lg cursor-pointer hover:bg-purple-100 hover:border-purple-300 transition-all group"
-              onClick={() => {
-                onImageClick?.(matchedImage.url!, matchedImage.label || undefined);
-                onCitationClick?.(citation);
-              }}
-            >
-              <div className="relative w-12 h-12 rounded overflow-hidden border border-purple-200 flex-shrink-0">
-                <img
-                  src={matchedImage.url}
-                  alt={matchedImage.label || 'Citation'}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform"
-                />
-              </div>
-              <div className="flex flex-col items-start">
-                <span className="text-xs font-medium text-purple-800 leading-tight">
-                  {matchedImage.label || citation}
-                </span>
-                {matchedImage.score && (
-                  <span className="text-[10px] text-purple-600">
-                    {(matchedImage.score * 100).toFixed(0)}% match
-                  </span>
-                )}
-              </div>
-              <ExternalLink className="w-3 h-3 text-purple-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </span>
-          );
-        } else {
-          // Fallback to badge if no image found
-          parts.push(
-            <Badge
+            <CitationHoverCard
               key={`cite-${keyCounter++}`}
-              variant="secondary"
-              className="mx-1 cursor-pointer hover:bg-purple-200 transition-colors bg-purple-100 text-purple-800 border border-purple-300"
-              onClick={() => onCitationClick?.(citation)}
-            >
-              <FileText className="w-3 h-3 mr-1" />
-              {citation}
-            </Badge>
+              number={citationInfo.number}
+              imageUrl={citationInfo.image.url!}
+              label={citationInfo.image.label || citation}
+              score={citationInfo.image.score || undefined}
+              onOpen={() => {
+                if (citationInfo.image.url) {
+                  onImageClick?.(citationInfo.image.url, citationInfo.image.label || undefined);
+                }
+              }}
+            />
           );
         }
 
