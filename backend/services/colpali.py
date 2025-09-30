@@ -10,7 +10,7 @@ from urllib3.util.retry import Retry
 from config import COLPALI_API_BASE_URL, COLPALI_API_TIMEOUT, LOG_LEVEL
 
 
-class ColPaliClient:
+class ColPaliService:
     """Client for ColPali Embedding API"""
 
     def __init__(self, base_url: str = None, timeout: int = None):

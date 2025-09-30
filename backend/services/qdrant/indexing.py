@@ -39,7 +39,7 @@ class DocumentIndexer:
             minio_service: MinIO service for image storage
             muvera_post: Optional MUVERA postprocessor
         """
-        self.client = qdrant_client
+        self.service = qdrant_client
         self.collection_name = collection_name
         self.embedding_processor = embedding_processor
         self.minio_service = minio_service
@@ -263,7 +263,7 @@ class DocumentIndexer:
 
                 # Upsert to Qdrant
                 try:
-                    self.client.upsert(
+                    self.service.upsert(
                         collection_name=self.collection_name,
                         points=points,
                     )
@@ -332,7 +332,7 @@ class DocumentIndexer:
                             # Submit upsert to separate executor (non-blocking)
                             # This allows embedding to continue while upserts happen in parallel
                             upsert_future = upsert_executor.submit(
-                                self.client.upsert,
+                                self.service.upsert,
                                 collection_name=self.collection_name,
                                 points=points,
                             )

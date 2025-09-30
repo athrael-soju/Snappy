@@ -45,7 +45,7 @@ class QdrantService:
             )
 
             self.indexer = DocumentIndexer(
-                qdrant_client=self.collection_manager.client,
+                qdrant_client=self.collection_manager.service,
                 collection_name=self.collection_manager.collection_name,
                 embedding_processor=self.embedding_processor,
                 minio_service=minio_service,
@@ -53,14 +53,14 @@ class QdrantService:
             )
 
             self.search_manager = SearchManager(
-                qdrant_client=self.collection_manager.client,
+                qdrant_client=self.collection_manager.service,
                 collection_name=self.collection_manager.collection_name,
                 embedding_processor=self.embedding_processor,
                 muvera_post=muvera_post,
             )
 
             # Expose client for backward compatibility
-            self.client = self.collection_manager.client
+            self.service = self.collection_manager.service
             self.collection_name = self.collection_manager.collection_name
 
         except Exception as e:

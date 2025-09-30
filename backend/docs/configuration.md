@@ -50,19 +50,19 @@ This document provides detailed explanations for all configuration options avail
 - **Description**: Default number of search results to return when not specified in the query. Higher values return more results but increase response time.
 
 ### `MAX_TOKENS`
-- **Type**: Integer
 - **Default**: `500`
 - **Description**: Maximum number of tokens for text generation or processing operations. Primarily used for chat/completion features.
 
 ### `BATCH_SIZE`
 - **Type**: Integer
-- **Default**: `16` (optimized for RTX 5090)
+- **Default**: `12`
 - **Recommended**:
   - **CPU mode**: `1-2` (better progress feedback, lower memory)
   - **GPU mode (consumer)**: `4-8` (GTX/RTX 30xx/40xx with 8-16GB VRAM)
-  - **GPU mode (high-end)**: `16-24` (RTX 5090 with 32GB VRAM)
+  - **GPU mode (high-end)**: `12-16` (RTX 5090 with 32GB VRAM)
 - **Description**: Number of document pages processed per batch during indexing. Larger batches maximize GPU utilization but use more VRAM.
 - **Performance Impact**:
+{{ ... }}
   - CPU: ~1.5-3 minutes per page
   - GPU: ~1-2 seconds per page
   - 30-50x speed difference between CPU and GPU
@@ -70,10 +70,10 @@ This document provides detailed explanations for all configuration options avail
 
 ### `WORKER_THREADS`
 - **Type**: Integer
-- **Default**: `12` (optimized for high-end AMD CPU)
+- **Default**: `8`
 - **Recommended**:
   - **Consumer CPU**: `4-8` (8-16 threads)
-  - **High-end CPU**: `12-16` (24+ threads like Ryzen 9 7950X, Threadripper)
+  - **High-end CPU**: `8-12` (24+ threads like Ryzen 9 7950X, Threadripper)
 - **Description**: Number of worker threads for PDF rasterization (via `pdf2image`). More threads = faster PDF-to-image conversion.
 - **Performance Impact**: Directly affects PDF conversion speed (CPU-bound). Use 50-75% of your CPU thread count.
 
@@ -89,7 +89,7 @@ This document provides detailed explanations for all configuration options avail
 
 ### `MAX_CONCURRENT_BATCHES`
 - **Type**: Integer
-- **Default**: `3` (optimized for 64GB RAM)
+- **Default**: `3`
 - **Recommended**:
   - **Low RAM (16GB)**: `2`
   - **Medium RAM (32GB)**: `2-3`
@@ -101,7 +101,7 @@ This document provides detailed explanations for all configuration options avail
 
 ### `MINIO_IMAGE_QUALITY`
 - **Type**: Integer
-- **Default**: `90`
+- **Default**: `85`
 - **Range**: `1-100`
 - **Description**: JPEG compression quality for images stored in MinIO. Higher values produce better quality but larger files.
 - **Recommendations**:
@@ -248,7 +248,7 @@ MinIO stores document images and provides public URLs for retrieval.
 #### `MINIO_PUBLIC_URL`
 - **Type**: String (URL)
 - **Default**: *(same as `MINIO_URL`)*
-- **Description**: Public URL for accessing stored images. Used in URLs returned to clients.
+- **Description**: Public URL for accessing stored images. Used in URLs returned to services.
 - **Use Case**: Set differently from `MINIO_URL` when MinIO is behind a reverse proxy or load balancer.
 - **Example**: `MINIO_URL=http://minio:9000` (internal), `MINIO_PUBLIC_URL=https://storage.yourdomain.com` (public)
 
@@ -295,7 +295,7 @@ MinIO stores document images and provides public URLs for retrieval.
 
 #### `MINIO_WORKERS`
 - **Type**: Integer
-- **Default**: `16` (optimized for high-end CPU + fast storage)
+- **Default**: `12`
 - **Recommended**:
   - **Consumer**: `4-8` (standard CPU, HDD/SATA SSD)
   - **High-end**: `12-16` (high-core-count CPU, NVMe SSD, fast network)

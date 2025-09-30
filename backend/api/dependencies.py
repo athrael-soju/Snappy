@@ -1,15 +1,14 @@
 from typing import Optional
 
-from clients.colpali import ColPaliClient
-from clients.qdrant import QdrantService
-from clients.minio import MinioService
-from clients.muvera import MuveraPostprocessor
+from services.colpali import ColPaliService
+from services.qdrant import QdrantService, MuveraPostprocessor
+from services.minio import MinioService
 from config import MUVERA_ENABLED
 import logging
 logger = logging.getLogger(__name__)
 
 # Singleton-style dependencies with lazy initialization and error capture
-api_client = ColPaliClient()
+api_client = ColPaliService()
 muvera_post: Optional[MuveraPostprocessor] = None
 
 qdrant_service: Optional[QdrantService] = None

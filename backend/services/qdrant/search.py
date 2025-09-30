@@ -36,7 +36,7 @@ class SearchManager:
             embedding_processor: EmbeddingProcessor instance
             muvera_post: Optional MUVERA postprocessor
         """
-        self.client = qdrant_client
+        self.service = qdrant_client
         self.collection_name = collection_name
         self.embedding_processor = embedding_processor
         self.muvera_post = muvera_post
@@ -120,7 +120,7 @@ class SearchManager:
                     params=params,
                 )
             search_queries.append(req)
-        return self.client.query_batch_points(
+        return self.service.query_batch_points(
             collection_name=self.collection_name, requests=search_queries
         )
 

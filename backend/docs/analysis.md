@@ -14,32 +14,35 @@ This document analyzes the current system implemented in this repository and com
 ## Current System Overview
 
 - __API server__: `main.py` boots `api.app.create_app()` which includes routers: `meta`, `retrieval`, `indexing`, `maintenance`.
-- __Storage and retrieval__: `clients/qdrant.py`
-  - Qdrant multivector collection with fields: `original`, `mean_pooling_rows`, `mean_pooling_columns` and comparator `MAX_SIM`.
-  - Two-stage search via `query_batch_points` with `prefetch` on pooled vectors and final ranking `using="original"`.
-  - Images stored/fetched via `MinioService`.
-- __Embeddings__: `clients/colpali.py`
-  - Talks to an external ColPali Embedding API: `/health`, `/info` (to get dim), `/patches`, `/embed/queries`, `/embed/images`.
-- __Image storage__: `clients/minio.py`
-  - Batch uploads with retries and public-read policy. URLs derived from `MINIO_URL` and bucket.
+- __Storage and retrieval__: `services/qdrant/` (refactored package)
+  - `service.py`: Main `QdrantService` orchestrator
+  - `collection.py`: Qdrant multivector collection management with fields: `original`, `mean_pooling_rows`, `mean_pooling_columns` and comparator `MAX_SIM`
+  - `search.py`: Two-stage search via `query_batch_points` with `prefetch` on pooled vectors and final ranking `using="original"`
+  - `embedding.py`: Parallel embedding and pooling operations
+  - `indexing.py`: Pipelined document indexing with concurrent batch processing
+  - Images stored/fetched via `MinioService`
+- __Embeddings__: `services/colpali.py`
+  - Talks to an external ColPali Embedding API: `/health`, `/info` (to get dim), `/patches`, `/embed/queries`, `/embed/images`
+- __Image storage__: `services/minio.py`
+  - Batch uploads with retries and public-read policy. URLs derived from `MINIO_URL` and bucket
 - __Frontend Chat__: `frontend/app/api/chat/route.ts`
-  - Next.js route calls OpenAI Responses API and streams Server-Sent Events (SSE) to the browser. It sends user text plus retrieved image URLs or data URLs.
+  - Next.js route calls OpenAI Responses API and streams Server-Sent Events (SSE) to the browser. It sends user text plus retrieved image URLs or data URLs
 
 ---
 
 ## Indexing Pipeline (What Happens on Upload)
 
 - __PDF to images__: The API route uses `api/utils.py::convert_pdf_paths_to_images(...)` (via the `/index` endpoint). Each page becomes one PIL image with payload metadata: `filename`, `pdf_page_index`, `page_width_px`, `page_height_px`, etc.
-- __Pipelined processing__: `QdrantService._index_documents_pipelined(...)` (when `ENABLE_PIPELINE_INDEXING=True`)
+- __Pipelined processing__: `DocumentIndexer._index_documents_pipelined(...)` (in `services/qdrant/indexing.py`, when `ENABLE_PIPELINE_INDEXING=True`)
   - Uses dual thread pools: one for batch processing (embedding + MinIO upload), one for Qdrant upserts
-  - Controlled parallelism via `MAX_CONCURRENT_BATCHES` (default: 2 batches in parallel)
+  - Controlled parallelism via `MAX_CONCURRENT_BATCHES` (default: 3 batches in parallel)
   - Allows embedding, MinIO uploads, and Qdrant upserts to overlap for maximum throughput
-- __Embeddings__: `QdrantService._embed_and_mean_pool_batch(...)`
-  - Calls `ColPaliClient.embed_images(...)` to get image patch embeddings (image encoding parallelized for high-CPU systems).
-  - Calls `ColPaliClient.get_patches(...)` to obtain the patch grid (`n_patches_x`, `n_patches_y`).
-  - Mean-pools the image patch tokens into two variants: by rows and by columns, preserving prefix/postfix tokens via parallelized `_pool_single_image(...)` calls.
-  - Produces three multivectors per page: `original`, `mean_pooling_rows`, `mean_pooling_columns`.
-- __Image persistence__: `MinioService.store_images_batch(...)` uploads images concurrently with internal thread pool (`MINIO_WORKERS` threads, default: 16). HTTP connection pool is automatically sized to match concurrency (`MINIO_WORKERS × MAX_CONCURRENT_BATCHES + 10`) to prevent connection exhaustion.
+- __Embeddings__: `EmbeddingProcessor` (in `services/qdrant/embedding.py`)
+  - Calls `ColPaliService.embed_images(...)` to get image patch embeddings (image encoding parallelized for high-CPU systems)
+  - Calls `ColPaliService.get_patches(...)` to obtain the patch grid (`n_patches_x`, `n_patches_y`)
+  - Mean-pools the image patch tokens into two variants: by rows and by columns, preserving prefix/postfix tokens via parallelized pooling operations
+  - Produces three multivectors per page: `original`, `mean_pooling_rows`, `mean_pooling_columns`
+- __Image persistence__: `MinioService.store_images_batch(...)` uploads images concurrently with internal thread pool (`MINIO_WORKERS` threads, default: 12). HTTP connection pool is automatically sized to match concurrency (`MINIO_WORKERS × MAX_CONCURRENT_BATCHES + 10`) to prevent connection exhaustion.
 - __Upsert to Qdrant__: Non-blocking upserts submitted to separate executor, allowing next batch to start embedding immediately. The `/index` route starts this as a background job and you can poll `/progress/{job_id}` for status.
 
 Notes:
@@ -51,15 +54,15 @@ Notes:
 
 ## Retrieval Pipeline (What Happens on Query)
 
-- __Query embedding__: `QdrantService._batch_embed_query(...)` calls `/embed/queries` and returns per-token embeddings.
-- __Two-stage search__: `QdrantService._reranking_search_batch(...)` (optionally MUVERA-first stage when enabled)
-  - Prefetch against `mean_pooling_columns` and `mean_pooling_rows` with `prefetch_limit`.
-  - Final rank against `original` with `search_limit`, `with_payload=True`.
+- __Query embedding__: `EmbeddingProcessor.batch_embed_query(...)` (in `services/qdrant/embedding.py`) calls `/embed/queries` and returns per-token embeddings
+- __Two-stage search__: `SearchManager._reranking_search_batch(...)` (in `services/qdrant/search.py`, optionally MUVERA-first stage when enabled)
+  - Prefetch against `mean_pooling_columns` and `mean_pooling_rows` with `prefetch_limit`
+  - Final rank against `original` with `search_limit`, `with_payload=True`
 - __Result assembly__:
-  - `search_with_metadata(...)` returns metadata with image URLs without fetching actual images (optimized for latency).
-  - The API `/search` route (`api/routers/retrieval.py`) formats and returns structured results with URLs.
+  - `SearchManager.search_with_metadata(...)` returns metadata with image URLs without fetching actual images (optimized for latency)
+  - The API `/search` route (`api/routers/retrieval.py`) formats and returns structured results with URLs
 - __Multimodal answer__:
-  - The frontend chat API route (`frontend/app/api/chat/route.ts`) sends the user text and retrieved images to OpenAI's Responses API and streams tokens back to the UI via SSE.
+  - The frontend chat API route (`frontend/app/api/chat/route.ts`) sends the user text and retrieved images to OpenAI's Responses API and streams tokens back to the UI via SSE
 
 ---
 
@@ -132,16 +135,16 @@ Notes:
 
 ## Implementation Pointers (for this repo)
 
-- __Indexing paths__: `api/utils.py::convert_pdf_paths_to_images()`, `QdrantService.index_documents()`
-- __Collection schema__: `QdrantService._create_collection_if_not_exists()`
-- __Pooling logic__: `QdrantService._pool_image_tokens()`
- - __Two-stage query__: `QdrantService._reranking_search_batch()`
- - __MinIO URLs__: `MinioService._get_image_url()` and `_extract_object_name_from_url()`
- - __Chat streaming__: `frontend/app/api/chat/route.ts` (SSE) and `frontend/lib/api/chat.ts` (helpers for request and stream parsing)
+- __Indexing paths__: `api/utils.py::convert_pdf_paths_to_images()`, `DocumentIndexer.index_documents()` (in `services/qdrant/indexing.py`)
+- __Collection schema__: `CollectionManager.create_collection_if_not_exists()` (in `services/qdrant/collection.py`)
+- __Pooling logic__: `EmbeddingProcessor._pool_image_tokens()` (in `services/qdrant/embedding.py`)
+- __Two-stage query__: `SearchManager._reranking_search_batch()` (in `services/qdrant/search.py`)
+- __MinIO URLs__: `MinioService._get_image_url()` and `_extract_object_name_from_url()`
+- __Chat streaming__: `frontend/app/api/chat/route.ts` (SSE) and `frontend/lib/api/chat.ts` (helpers for request and stream parsing)
 
 ---
 
 ## Caveats Noted from Code
 
- - The ColPali image embedding path in `QdrantService._embed_and_mean_pool_batch()` expects per-image token boundaries (`image_patch_start`, `image_patch_len`), while `ColPaliClient.embed_images(...)` currently returns only `{"embeddings": ...}`. Ensure the API contract includes token boundary metadata or adjust the pooling logic accordingly.
+ - The ColPali image embedding API is expected to return per-image embeddings with token boundaries, which are processed by `EmbeddingProcessor` in `services/qdrant/embedding.py`. The current implementation in `ColPaliService.embed_images(...)` returns embeddings in the expected format.
  - The default OpenAI model for chat is configured on the frontend via `OPENAI_MODEL` (default `gpt-5-nano`) in `frontend/.env.local`. The backend does not manage chat or OpenAI client configuration.
