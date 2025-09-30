@@ -88,7 +88,7 @@ class MinioService:
                 )
             )
 
-            self.client = Minio(
+            self.service = Minio(
                 self.endpoint,
                 access_key=MINIO_ACCESS_KEY,
                 secret_key=MINIO_SECRET_KEY,
@@ -109,8 +109,8 @@ class MinioService:
     def _create_bucket_if_not_exists(self) -> None:
         """Create MinIO bucket if it doesn't exist and set public read policy."""
         try:
-            if not self.client.bucket_exists(self.bucket_name):
-                self.client.make_bucket(self.bucket_name)
+            if not self.service.bucket_exists(self.bucket_name):
+                self.service.make_bucket(self.bucket_name)
                 logger.info(f"Created bucket: {self.bucket_name}")
             else:
                 logger.info(f"Bucket already exists: {self.bucket_name}")
@@ -157,7 +157,7 @@ class MinioService:
         """
         try:
             object_name = self._extract_object_name_from_url(image_url)
-            response = self.client.get_object(self.bucket_name, object_name)
+            response = self.service.get_object(self.bucket_name, object_name)
             try:
                 data = response.read()
             finally:
@@ -225,7 +225,7 @@ class MinioService:
                         img, fmt=fmt, **save_kwargs
                     )
                     object_name = f"images/{img_id}.{used_fmt.lower()}"
-                    self.client.put_object(
+                    self.service.put_object(
                         bucket_name=self.bucket_name,
                         object_name=object_name,
                         data=buf,
@@ -285,7 +285,7 @@ class MinioService:
         if not objects:
             return result
 
-        errors = self.client.remove_objects(self.bucket_name, objects)
+        errors = self.service.remove_objects(self.bucket_name, objects)
         failed = set()
         for err in errors:  # generator yields failures
             url = mapping.get(err.object_name, err.object_name)
@@ -339,7 +339,7 @@ class MinioService:
     def get_presigned_url(self, object_name: str, expires: int = 3600) -> str:
         """Generate a presigned URL for secure access to an object."""
         try:
-            url = self.client.presigned_get_object(
+            url = self.service.presigned_get_object(
                 self.bucket_name, object_name, expires=timedelta(seconds=expires)
             )
             return url
@@ -351,7 +351,7 @@ class MinioService:
     def health_check(self) -> bool:
         """Check if MinIO service is healthy and accessible."""
         try:
-            _ = self.client.list_buckets()
+            _ = self.service.list_buckets()
             return True
         except Exception as e:
             logger.error(f"MinIO health check failed: {e}")
@@ -371,7 +371,7 @@ class MinioService:
                     },
                 ],
             }
-            self.client.set_bucket_policy(self.bucket_name, json.dumps(policy))
+            self.service.set_bucket_policy(self.bucket_name, json.dumps(policy))
             logger.info(f"Public read policy set for bucket '{self.bucket_name}'.")
         except S3Error as e:
             raise Exception(
@@ -384,7 +384,7 @@ class MinioService:
     def list_object_names(self, prefix: str = "", recursive: bool = True) -> List[str]:
         """List object names in the bucket under an optional prefix."""
         try:
-            objs = self.client.list_objects(
+            objs = self.service.list_objects(
                 self.bucket_name, prefix=prefix or None, recursive=recursive
             )
             return [o.object_name for o in objs]
@@ -398,7 +398,7 @@ class MinioService:
             return {"deleted": 0, "failed": 0}
 
         objects = [DeleteObject(n) for n in names]
-        errors = list(self.client.remove_objects(self.bucket_name, objects))
+        errors = list(self.service.remove_objects(self.bucket_name, objects))
         failed = len(errors)
         deleted = max(0, len(names) - failed)
 

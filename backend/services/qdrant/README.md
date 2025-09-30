@@ -85,7 +85,7 @@ All configuration is loaded from environment variables (no hardcoded fallbacks):
 ## Usage
 
 ```python
-from clients.qdrant import QdrantService
+from services.qdrant import QdrantService
 
 # Initialize service (typically done via dependency injection)
 service = QdrantService(

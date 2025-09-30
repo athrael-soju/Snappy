@@ -31,7 +31,7 @@ class CollectionManager:
             muvera_post: Optional MUVERA postprocessor for FDE embeddings
         """
         try:
-            self.client = QdrantClient(url=QDRANT_URL)
+            self.service = QdrantClient(url=QDRANT_URL)
             self.collection_name = QDRANT_COLLECTION_NAME
             self.api_client = api_client
             self.muvera_post = muvera_post
@@ -51,14 +51,14 @@ class CollectionManager:
         """Create Qdrant collection for document storage with proper dimension validation."""
         # Return early if the collection already exists
         try:
-            coll = self.client.get_collection(self.collection_name)
+            coll = self.service.get_collection(self.collection_name)
             logger.info("Qdrant collection '%s' exists; checking MUVERA vector space", self.collection_name)
             # If MUVERA is enabled, ensure vector exists and has correct size
             if self.muvera_post and self.muvera_post.embedding_size:
                 try:
                     vectors = coll.vectors_count or {}
                     # Try to fetch current vector config
-                    coll_info = self.client.get_collection(self.collection_name)
+                    coll_info = self.service.get_collection(self.collection_name)
                     # If 'muvera_fde' is missing, add it via update
                     if not getattr(coll_info.config.params, "vectors", None) or (
                         isinstance(coll_info.config.params.vectors, dict)
@@ -68,7 +68,7 @@ class CollectionManager:
                             "Adding MUVERA vector 'muvera_fde' (dim=%s) to existing collection",
                             int(self.muvera_post.embedding_size),
                         )
-                        self.client.update_collection(
+                        self.service.update_collection(
                             collection_name=self.collection_name,
                             vectors_config={
                                 "muvera_fde": models.VectorParams(
@@ -126,7 +126,7 @@ class CollectionManager:
                     on_disk=QDRANT_ON_DISK,
                 )
 
-            self.client.create_collection(
+            self.service.create_collection(
                 collection_name=self.collection_name,
                 vectors_config=vector_config,
                 on_disk_payload=QDRANT_ON_DISK_PAYLOAD,
@@ -146,7 +146,7 @@ class CollectionManager:
     def clear_collection(self) -> str:
         """Delete and recreate the configured collection to remove all points."""
         try:
-            self.client.delete_collection(collection_name=self.collection_name)
+            self.service.delete_collection(collection_name=self.collection_name)
         except Exception as e:
             # If not exists, ignore and proceed to (re)create
             if "not found" not in str(e).lower():
@@ -159,7 +159,7 @@ class CollectionManager:
     def health_check(self) -> bool:
         """Check if Qdrant service is healthy and accessible."""
         try:
-            _ = self.client.get_collection(self.collection_name)
+            _ = self.service.get_collection(self.collection_name)
             return True
         except Exception as e:
             logger.error(f"Qdrant health check failed: {e}")

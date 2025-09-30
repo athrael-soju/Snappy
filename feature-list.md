@@ -9,7 +9,7 @@ This checklist captures key tasks to take this template (FastAPI + Next.js + Qdr
     - Frontend: session handling/protected pages.
   - [ ] Tighten CORS to explicit origins only via `ALLOWED_ORIGINS` in `backend/config.py`.
   - [ ] Make MinIO bucket private; serve images via presigned URLs; enable SSE (SSE-S3/KMS).
-    - Update `backend/clients/minio.py`; set `MINIO_PUBLIC_READ=False` in `.env`.
+    - Update `backend/services/minio.py`; set `MINIO_PUBLIC_READ=False` in `.env`.
   - [ ] Secrets management (move secrets from `.env` to Secret Manager or Kubernetes Secrets/SealedSecrets).
   - [ ] Reverse proxy + TLS termination (Traefik/Nginx/Caddy), HSTS, HTTP→HTTPS.
   - [ ] Upload hardening: max file size, MIME/type checks, and optional malware scan.
@@ -18,7 +18,7 @@ This checklist captures key tasks to take this template (FastAPI + Next.js + Qdr
 
   - [ ] Offload indexing to background jobs (Celery/RQ/Arq) + job status endpoints.
   - [ ] Add client timeouts, retries with backoff, and circuit breakers for calls to OpenAI, ColPali, MinIO, Qdrant.
-    - Touch `backend/clients/*.py` and shared HTTP client config.
+    - Touch `backend/services/*.py` and shared HTTP client config.
   - [ ] Production server: `gunicorn` + `uvicorn.workers.UvicornWorker`; tune workers/threads/timeouts/keepalive.
     - Update `backend/Dockerfile` and container entrypoint.
   - [ ] Health/readiness/liveness endpoints and container healthchecks.

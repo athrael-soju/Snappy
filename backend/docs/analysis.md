@@ -14,13 +14,13 @@ This document analyzes the current system implemented in this repository and com
 ## Current System Overview
 
 - __API server__: `main.py` boots `api.app.create_app()` which includes routers: `meta`, `retrieval`, `indexing`, `maintenance`.
-- __Storage and retrieval__: `clients/qdrant.py`
+- __Storage and retrieval__: `services/qdrant.py`
   - Qdrant multivector collection with fields: `original`, `mean_pooling_rows`, `mean_pooling_columns` and comparator `MAX_SIM`.
   - Two-stage search via `query_batch_points` with `prefetch` on pooled vectors and final ranking `using="original"`.
   - Images stored/fetched via `MinioService`.
-- __Embeddings__: `clients/colpali.py`
+- __Embeddings__: `services/colpali.py`
   - Talks to an external ColPali Embedding API: `/health`, `/info` (to get dim), `/patches`, `/embed/queries`, `/embed/images`.
-- __Image storage__: `clients/minio.py`
+- __Image storage__: `services/minio.py`
   - Batch uploads with retries and public-read policy. URLs derived from `MINIO_URL` and bucket.
 - __Frontend Chat__: `frontend/app/api/chat/route.ts`
   - Next.js route calls OpenAI Responses API and streams Server-Sent Events (SSE) to the browser. It sends user text plus retrieved image URLs or data URLs.
@@ -35,8 +35,8 @@ This document analyzes the current system implemented in this repository and com
   - Controlled parallelism via `MAX_CONCURRENT_BATCHES` (default: 2 batches in parallel)
   - Allows embedding, MinIO uploads, and Qdrant upserts to overlap for maximum throughput
 - __Embeddings__: `QdrantService._embed_and_mean_pool_batch(...)`
-  - Calls `ColPaliClient.embed_images(...)` to get image patch embeddings (image encoding parallelized for high-CPU systems).
-  - Calls `ColPaliClient.get_patches(...)` to obtain the patch grid (`n_patches_x`, `n_patches_y`).
+  - Calls `ColPaliService.embed_images(...)` to get image patch embeddings (image encoding parallelized for high-CPU systems).
+  - Calls `ColPaliService.get_patches(...)` to obtain the patch grid (`n_patches_x`, `n_patches_y`).
   - Mean-pools the image patch tokens into two variants: by rows and by columns, preserving prefix/postfix tokens via parallelized `_pool_single_image(...)` calls.
   - Produces three multivectors per page: `original`, `mean_pooling_rows`, `mean_pooling_columns`.
 - __Image persistence__: `MinioService.store_images_batch(...)` uploads images concurrently with internal thread pool (`MINIO_WORKERS` threads, default: 16). HTTP connection pool is automatically sized to match concurrency (`MINIO_WORKERS × MAX_CONCURRENT_BATCHES + 10`) to prevent connection exhaustion.
@@ -143,5 +143,5 @@ Notes:
 
 ## Caveats Noted from Code
 
- - The ColPali image embedding path in `QdrantService._embed_and_mean_pool_batch()` expects per-image token boundaries (`image_patch_start`, `image_patch_len`), while `ColPaliClient.embed_images(...)` currently returns only `{"embeddings": ...}`. Ensure the API contract includes token boundary metadata or adjust the pooling logic accordingly.
+ - The ColPali image embedding path in `QdrantService._embed_and_mean_pool_batch()` expects per-image token boundaries (`image_patch_start`, `image_patch_len`), while `ColPaliService.embed_images(...)` currently returns only `{"embeddings": ...}`. Ensure the API contract includes token boundary metadata or adjust the pooling logic accordingly.
  - The default OpenAI model for chat is configured on the frontend via `OPENAI_MODEL` (default `gpt-5-nano`) in `frontend/.env.local`. The backend does not manage chat or OpenAI client configuration.

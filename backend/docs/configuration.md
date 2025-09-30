@@ -248,7 +248,7 @@ MinIO stores document images and provides public URLs for retrieval.
 #### `MINIO_PUBLIC_URL`
 - **Type**: String (URL)
 - **Default**: *(same as `MINIO_URL`)*
-- **Description**: Public URL for accessing stored images. Used in URLs returned to clients.
+- **Description**: Public URL for accessing stored images. Used in URLs returned to services.
 - **Use Case**: Set differently from `MINIO_URL` when MinIO is behind a reverse proxy or load balancer.
 - **Example**: `MINIO_URL=http://minio:9000` (internal), `MINIO_PUBLIC_URL=https://storage.yourdomain.com` (public)
 

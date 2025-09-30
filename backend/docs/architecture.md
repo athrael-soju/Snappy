@@ -33,7 +33,7 @@ Notes
 
 - __Server entrypoint__: `main.py` (or `backend.py`) boots `api.app.create_app()` and serves the modular routers.
 - __Frontends__: Next.js app under `frontend/app/*` is the primary and only UI.
-- __Indexing__: The API `/index` route (`api/routers/indexing.py`) converts PDFs to page images (see `api/utils.py::convert_pdf_paths_to_images()`), then starts a background indexing job. `QdrantService` uses a pipelined architecture with separate thread pools for batch processing and Qdrant upserts, maximizing throughput by overlapping embedding (slow), MinIO uploads (I/O-bound, internally parallelized with `MINIO_WORKERS` threads), and Qdrant upserts (I/O-bound). The service gets embeddings from the ColPali API (expected to include patch metadata: `image_patch_start`/`image_patch_len`), mean-pools rows/cols, and upserts multivectors to Qdrant concurrently. Progress is tracked in-memory and streamed via `GET /progress/stream/{job_id}` (SSE). Ensure your ColPali server and `clients/colpali.py` align on this contract.
+- __Indexing__: The API `/index` route (`api/routers/indexing.py`) converts PDFs to page images (see `api/utils.py::convert_pdf_paths_to_images()`), then starts a background indexing job. `QdrantService` uses a pipelined architecture with separate thread pools for batch processing and Qdrant upserts, maximizing throughput by overlapping embedding (slow), MinIO uploads (I/O-bound, internally parallelized with `MINIO_WORKERS` threads), and Qdrant upserts (I/O-bound). The service gets embeddings from the ColPali API (expected to include patch metadata: `image_patch_start`/`image_patch_len`), mean-pools rows/cols, and upserts multivectors to Qdrant concurrently. Progress is tracked in-memory and streamed via `GET /progress/stream/{job_id}` (SSE). Ensure your ColPali server and `services/colpali.py` align on this contract.
 - __Retrieval__: `QdrantService` embeds the query via ColPali, runs multivector search on Qdrant (optionally MUVERA-first stage when enabled), and returns metadata with image URLs (images are NOT fetched from MinIO during search to optimize latency). The frontend uses URLs directly for display. The frontend Chat API route (`frontend/app/api/chat/route.ts`) calls OpenAI with the user text + images and streams the answer to the browser. The `/search` route (`api/routers/retrieval.py`) returns structured results with URLs.
 - The diagram intentionally omits lower-level details (e.g., prefetch limits, comparator settings) to stay readable.
 
@@ -80,7 +80,7 @@ Chat streaming is not proxied by the backend. It is implemented in the Next.js A
   - `POST /embed/queries` → query embeddings
   - `POST /embed/images` → image embeddings with image-token boundaries
 - **How backend uses it**:
-  - `backend/clients/colpali.py` calls the above endpoints.
+  - `backend/services/colpali.py` calls the above endpoints.
   - Base URL configured in `backend/config.py` via `COLPALI_API_BASE_URL` or `COLPALI_MODE` (`cpu|gpu`) selecting `COLPALI_CPU_URL` (default `http://localhost:7001`) or `COLPALI_GPU_URL` (default `http://localhost:7002`).
   - Timeout via `COLPALI_API_TIMEOUT`.
 - **Deployment (ports and Docker)**:

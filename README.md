@@ -87,9 +87,9 @@ See the architecture diagram in [backend/docs/architecture.md](backend/docs/arch
 
 - __`api/app.py`__ and `api/routers/*`__: Modular FastAPI application (routers: `meta`, `retrieval`, `indexing`, `maintenance`).
 - __`backend.py`__: Thin entrypoint that boots `api.app.create_app()`.
-- __`clients/qdrant.py`__: `QdrantService` manages collection, indexing, multivector retrieval, and MinIO integration.
-- __`clients/minio.py`__: `MinioService` for image storage/retrieval with batch operations and public-read policy.
-- __`clients/colpali.py`__: HTTP client for a ColPali-style embedding API (queries, images, patch metadata).
+- __`services/qdrant.py`__: `QdrantService` manages collection, indexing, multivector retrieval, and MinIO integration.
+- __`services/minio.py`__: `MinioService` for image storage/retrieval with batch operations and public-read policy.
+- __`services/colpali.py`__: HTTP client for a ColPali-style embedding API (queries, images, patch metadata).
 - __`config.py`__: Centralized configuration via environment variables.
 
 Additionally:
@@ -358,7 +358,7 @@ curl "http://localhost:8000/search?q=What%20is%20the%20booking%20reference%3F&k=
 
 ## ColPali API contract (expected)
 
-`clients/qdrant.py` expects the embedding server to expose endpoints:
+`services/qdrant.py` expects the embedding server to expose endpoints:
 
 - `GET /health` -> `200` when healthy
 - `GET /info` -> JSON including `{"dim": <int>}` for embedding dimension
@@ -374,11 +374,11 @@ curl "http://localhost:8000/search?q=What%20is%20the%20booking%20reference%3F&k=
   }
   ```
 
-Note: the example `clients/colpali.py` is a thin starting client. Ensure it matches your server’s response shape (including `image_patch_start`/`image_patch_len`) to avoid runtime errors in `QdrantService._embed_and_mean_pool_batch(...)`.
+Note: the example `services/colpali.py` is a thin starting client. Ensure it matches your server’s response shape (including `image_patch_start`/`image_patch_len`) to avoid runtime errors in `QdrantService._embed_and_mean_pool_batch(...)`.
 
 ## Data model in Qdrant
 
-`clients/qdrant.py` creates a collection with three vectors per point (plus an optional MUVERA vector when enabled):
+`services/qdrant.py` creates a collection with three vectors per point (plus an optional MUVERA vector when enabled):
 
 - `original`: full token sequence
 - `mean_pooling_rows`: pooled by rows
