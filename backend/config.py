@@ -33,7 +33,6 @@ BATCH_SIZE: Final[int] = int(os.getenv("BATCH_SIZE", "12"))
 WORKER_THREADS: Final[int] = int(os.getenv("WORKER_THREADS", "8"))
 ENABLE_PIPELINE_INDEXING: Final[bool] = _env_bool("ENABLE_PIPELINE_INDEXING", "True")
 MAX_CONCURRENT_BATCHES: Final[int] = int(os.getenv("MAX_CONCURRENT_BATCHES", "3"))
-MINIO_IMAGE_QUALITY: Final[int] = int(os.getenv("MINIO_IMAGE_QUALITY", "85"))
 
 # ColPali API
 COLPALI_MODE: Final[str] = os.getenv("COLPALI_MODE", "cpu").lower()
@@ -81,3 +80,4 @@ MINIO_RETRIES: Final[int] = int(os.getenv("MINIO_RETRIES", "3"))
 MINIO_FAIL_FAST: Final[bool] = _env_bool("MINIO_FAIL_FAST", "False")
 MINIO_PUBLIC_READ: Final[bool] = _env_bool("MINIO_PUBLIC_READ", "True")
 MINIO_IMAGE_FMT: Final[str] = os.getenv("MINIO_IMAGE_FMT", "JPEG")
+MINIO_IMAGE_QUALITY: Final[int] = int(os.getenv("MINIO_IMAGE_QUALITY", "75"))
