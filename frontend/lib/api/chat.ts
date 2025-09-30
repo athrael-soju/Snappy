@@ -42,14 +42,20 @@ export async function streamAssistant(
   if (!res.ok || !res.body) {
     throw new Error(`Failed to stream chat: ${res.status}`)
   }
+  
   // Parse Server-Sent Events from the response body
   const reader = res.body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
   let firstEmitted = false
+  
   while (true) {
     const { done, value } = await reader.read()
-    if (done) break
+    
+    if (done) {
+      break
+    }
+    
     buffer += decoder.decode(value, { stream: true })
 
     // SSE events are separated by a blank line \n\n

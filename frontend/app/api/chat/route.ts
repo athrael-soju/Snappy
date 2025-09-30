@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { documentSearchTool, executeDocumentSearch } from '../functions/document_search';
 
+// Use Edge Runtime for better streaming performance
+export const runtime = 'edge';
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -11,29 +14,43 @@ const MODEL = process.env.OPENAI_MODEL || 'gpt-5-nano';
 const TEMPERATURE = parseFloat(process.env.OPENAI_TEMPERATURE || '1');
 
 // Helper: build image content array (header + images), converting localhost URLs to data URLs in parallel
-async function buildImageContent(images: string[], query: string): Promise<any[]> {
-  const header = { type: 'input_text', text: `Based on the search results for "${query}", here are the relevant document images:` } as const;
-  const items = await Promise.all((images || []).map(async (imageUrl) => {
+async function buildImageContent(results: Array<{ image_url: string; label?: string | null; score?: number | null }>, query: string): Promise<any[]> {
+  // Build header with labels so model knows what to cite
+  const labelsText = results.map((r, i) => `Image ${i + 1}: ${r.label || 'Unknown'}`).join('\n');
+  const header = { type: 'input_text', text: `Based on the search results for "${query}", here are the relevant document images:\n\n${labelsText}\n\nWhen citing these images, use the EXACT labels provided above.` } as const;
+  
+  const items = await Promise.all((results || []).map(async (result, index) => {
     try {
+      let imageUrl = result.image_url;
       const isLocal = imageUrl.includes('localhost') || imageUrl.includes('127.0.0.1');
       if (process.env.PUBLIC_MINIO_URL_SET === 'true') {
         imageUrl = imageUrl.replace('localhost', 'minio') || imageUrl.replace('127.0.0.1', 'minio');
       }
       if (isLocal) {
-        const imageResponse = await fetch(imageUrl);
-        if (!imageResponse.ok) return null;
+        // Add timeout to prevent hanging
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout per image
+        
+        const imageResponse = await fetch(imageUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (!imageResponse.ok) {
+          return null;
+        }
+        
         const imageBuffer = await imageResponse.arrayBuffer();
         const base64 = Buffer.from(imageBuffer).toString('base64');
         const mimeType = imageResponse.headers.get('content-type') || 'image/png';
         const dataUrl = `data:${mimeType};base64,${base64}`;
+        
         return { type: 'input_image', image_url: dataUrl } as const;
       }      
       return { type: 'input_image', image_url: imageUrl } as const;
     } catch (error) {
-      console.warn(`Error processing image: ${imageUrl}`, error);
       return null;
     }
   }));
+  
   return [header, ...items.filter(Boolean)];
 }
 
@@ -48,7 +65,7 @@ function appendUserImages(input: any[], imageContent: any[]) {
 // Helper: stream a model response with or without tools
 async function streamModel(params: { input: any[]; instructions: string; withTools: boolean; }) {
   const { input, instructions, withTools } = params;
-  return openai.responses.create({
+  const stream = await openai.responses.create({
     model: MODEL,
     ...(withTools ? { tools: [documentSearchTool] } : {}),
     input: input as any,
@@ -57,6 +74,7 @@ async function streamModel(params: { input: any[]; instructions: string; withToo
     parallel_tool_calls: false,
     stream: true,
   });
+  return stream;
 }
 
 export async function POST(request: NextRequest) {
@@ -139,8 +157,10 @@ export async function POST(request: NextRequest) {
     // When tool calling is disabled, always run knowledgebase search
     if (!toolEnabled) {
       const searchResult = await executeDocumentSearch(message, kClamped);
-      if (searchResult.success && searchResult.images && searchResult.images.length > 0) {
-        const imageContent = await buildImageContent(searchResult.images, message);
+      
+      if (searchResult.success && searchResult.results && searchResult.results.length > 0) {
+        // Build image content - this is the bottleneck!
+        const imageContent = await buildImageContent(searchResult.results, message);
         appendUserImages(input, imageContent);
         // capture rich results to emit to client
         kbItems = Array.isArray(searchResult.results) ? searchResult.results : null;
@@ -159,8 +179,9 @@ export async function POST(request: NextRequest) {
         } as any);
 
         // 5. Add retrieved images as visual input for the model to analyze
-        if (searchResult.success && searchResult.images && searchResult.images.length > 0) {
-          const imageContent = await buildImageContent(searchResult.images, message);
+        if (searchResult.success && searchResult.results && searchResult.results.length > 0) {
+          // Build image content - this is the bottleneck!
+          const imageContent = await buildImageContent(searchResult.results, message);
           appendUserImages(input, imageContent);
           // capture rich results to emit to client
           kbItems = Array.isArray(searchResult.results) ? searchResult.results : null;
@@ -173,27 +194,37 @@ export async function POST(request: NextRequest) {
 
 
     const encoder = new TextEncoder();
-    const readableStream = new ReadableStream<Uint8Array>({
-      async start(controller) {
-        try {
-          if (kbItems && kbItems.length > 0) {
-            const kbPayload = JSON.stringify({ event: 'kb.images', data: { items: kbItems } });
-            controller.enqueue(encoder.encode(`data: ${kbPayload}\n\n`));
-          }
-          for await (const event of streamResponse as any) {
-            // Send all events as SSE lines
-            const payload = JSON.stringify({ event: event.type, data: event });
-            controller.enqueue(encoder.encode(`data: ${payload}\n\n`));
-          }
-          controller.close();
-        } catch (error) {
-          console.error('Stream error:', error);
-          controller.error(error);
+    
+    // Create a TransformStream to ensure immediate flushing
+    const { readable, writable } = new TransformStream();
+    const writer = writable.getWriter();
+    
+    // Start streaming in the background
+    (async () => {
+      try {
+        // Send initial comment to force stream to open immediately
+        await writer.write(encoder.encode(`: stream-start\n\n`));
+        
+        // Send KB images FIRST to show citations immediately
+        if (kbItems && kbItems.length > 0) {
+          const kbPayload = JSON.stringify({ event: 'kb.images', data: { items: kbItems } });
+          await writer.write(encoder.encode(`data: ${kbPayload}\n\n`));
         }
-      },
-    });
+        
+        // Now stream the model response
+        for await (const event of streamResponse as any) {
+          // Send all events as SSE lines
+          const payload = JSON.stringify({ event: event.type, data: event });
+          await writer.write(encoder.encode(`data: ${payload}\n\n`));
+        }
+        await writer.close();
+      } catch (error) {
+        console.error('Stream error:', error);
+        await writer.abort(error);
+      }
+    })();
 
-    return new Response(readableStream, {
+    return new Response(readable, {
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
