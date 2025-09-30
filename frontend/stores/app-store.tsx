@@ -166,7 +166,15 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'CHAT_SET_LOADING':
       return { ...state, chat: { ...state.chat, loading: action.payload } };
     case 'CHAT_RESET':
-      return { ...state, chat: initialState.chat };
+      // Preserve user settings when clearing conversation
+      return { 
+        ...state, 
+        chat: { 
+          ...initialState.chat,
+          k: state.chat.k, // Preserve k setting
+          toolCallingEnabled: state.chat.toolCallingEnabled, // Preserve tool calling setting
+        } 
+      };
 
     // Upload actions
     case 'UPLOAD_SET_FILES':

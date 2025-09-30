@@ -70,6 +70,7 @@ export default function ChatPage() {
   const [lastResponseDurationMs, setLastResponseDurationMs] = useState<number | null>(null);
   const [brainIdx, setBrainIdx] = useState<number>(0);
   const [sourceInspectorOpen, setSourceInspectorOpen] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   const examples = [
     "Give a high-level overview of my latest project report",
     "What potential risks are highlighted in the compliance policies?",
@@ -128,9 +129,13 @@ export default function ChatPage() {
   };
 
   const messageVariants = {
-    initial: { opacity: 0, y: 10 },
-    animate: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: -10 }
+    initial: { opacity: 0, y: 10, scale: 0.95 },
+    animate: { opacity: 1, y: 0, scale: 1 },
+    exit: { 
+      opacity: 0, 
+      y: -20, 
+      scale: 0.9
+    }
   };
 
   // Load recent searches from localStorage once
@@ -211,11 +216,15 @@ export default function ChatPage() {
             ) : (
               messages.map((message, idx) => (
                 <motion.div
-                  key={idx}
+                  key={message.id || idx}
                   variants={messageVariants}
                   initial="initial"
-                  animate="animate"
+                  animate={isClearing ? "exit" : "animate"}
                   exit="exit"
+                  transition={{
+                    duration: 0.3,
+                    delay: isClearing ? idx * 0.08 : 0,
+                  }}
                   className={`flex gap-3 mb-4 md:mb-5 last:mb-0 ${message.role === "assistant" ? "" : "flex-row-reverse"}`}
                 >
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${message.role === "assistant"
@@ -312,12 +321,23 @@ export default function ChatPage() {
             toolCallingEnabled={toolCallingEnabled}
             setToolCallingEnabled={setToolCallingEnabled}
             hasMessages={messages.length > 0}
-            onClear={() => {
+            onClear={async () => {
+              // Start clearing animation
+              setIsClearing(true);
+              
+              // Wait for exit animations to complete
+              await new Promise(resolve => setTimeout(resolve, 600));
+              
+              // Now actually clear the data
               reset();
               setInput('');
               setRequestStart(null);
               setLastResponseDurationMs(null);
-              toast.success('Conversation cleared');
+              setIsClearing(false);
+              
+              toast.success('Conversation cleared', {
+                description: 'Ready for a fresh start',
+              });
             }}
           />
 

@@ -69,7 +69,7 @@ export default function ChatInputBar({
             />
           </div>
         </TooltipTrigger>
-        <TooltipContent>Filter responses & source count</TooltipContent>
+        <TooltipContent>Chat Settings</TooltipContent>
       </Tooltip>
       
       <Tooltip>
