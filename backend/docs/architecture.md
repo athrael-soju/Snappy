@@ -27,14 +27,48 @@ flowchart TB
     NEXT -- 💬 Ask Question --> NXCHAT
     NXCHAT <--> OA
     NXCHAT -- 📡 Streamed Reply --> U
+
 ```
+
+Below is the high-level component architecture of the Vision RAG template.
+See the architecture diagram in [backend/docs/architecture.md](backend/docs/architecture.md). It focuses on the core indexing and retrieval flows for clarity.
+
+- __`api/app.py`__ and `api/routers/*`__: Modular FastAPI application (routers: `meta`, `retrieval`, `indexing`, `maintenance`).
+- __`backend.py`__: Thin entrypoint that boots `api.app.create_app()`.
+- __`services/qdrant/`__: Refactored package with separation of concerns:
+  - `service.py`: `QdrantService` main orchestrator
+  - `collection.py`: Collection management and schema creation
+  - `embedding.py`: Embedding processor with parallel pooling operations
+  - `indexing.py`: Document indexing with pipelined processing
+  - `search.py`: Search operations with MUVERA and multi-vector reranking
+- __`services/minio.py`__: `MinioService` for image storage/retrieval with batch operations and public-read policy.
+- __`services/colpali.py`__: HTTP client for a ColPali-style embedding API (queries, images, patch metadata).
+- __`config.py`__: Centralized configuration via environment variables.
+
+Additionally:
+
+- __`api/utils.py`__: Shared helpers for the API (e.g., PDF→image conversion used by the indexing route).
+
+__Indexing flow__:
+
+1) PDF -> images via `pdf2image.convert_from_path`
+2) Images -> embeddings via external ColPali API
+3) Images saved to MinIO (public URL)
+4) Embeddings (original + mean-pooled rows/cols) upserted to Qdrant with payload metadata
+
+__Retrieval flow__:
+
+1) Query -> embedding (ColPali API)
+2) Qdrant multivector prefetch (rows/cols) + re-ranking using `using="original"`; if MUVERA is enabled, the service performs a first-stage search on `muvera_fde` and prefetches multivectors for rerank
+3) Fetch images from MinIO for top-k pages
+4) Frontend chat API streams OpenAI Responses with multimodal context (retrieved page images)
 
 Notes
 
 - __Server entrypoint__: `main.py` (or `backend.py`) boots `api.app.create_app()` and serves the modular routers.
 - __Frontends__: Next.js app under `frontend/app/*` is the primary and only UI.
-- __Indexing__: The API `/index` route (`api/routers/indexing.py`) converts PDFs to page images (see `api/utils.py::convert_pdf_paths_to_images()`), then starts a background indexing job. `QdrantService` uses a pipelined architecture with separate thread pools for batch processing and Qdrant upserts, maximizing throughput by overlapping embedding (slow), MinIO uploads (I/O-bound, internally parallelized with `MINIO_WORKERS` threads), and Qdrant upserts (I/O-bound). The service gets embeddings from the ColPali API (expected to include patch metadata: `image_patch_start`/`image_patch_len`), mean-pools rows/cols, and upserts multivectors to Qdrant concurrently. Progress is tracked in-memory and streamed via `GET /progress/stream/{job_id}` (SSE). Ensure your ColPali server and `services/colpali.py` align on this contract.
-- __Retrieval__: `QdrantService` embeds the query via ColPali, runs multivector search on Qdrant (optionally MUVERA-first stage when enabled), and returns metadata with image URLs (images are NOT fetched from MinIO during search to optimize latency). The frontend uses URLs directly for display. The frontend Chat API route (`frontend/app/api/chat/route.ts`) calls OpenAI with the user text + images and streams the answer to the browser. The `/search` route (`api/routers/retrieval.py`) returns structured results with URLs.
+- __Indexing__: The API `/index` route (`api/routers/indexing.py`) converts PDFs to page images (see `api/utils.py::convert_pdf_paths_to_images()`), then starts a background indexing job. `DocumentIndexer` (in `services/qdrant/indexing.py`) uses a pipelined architecture with separate thread pools for batch processing and Qdrant upserts, maximizing throughput by overlapping embedding (slow), MinIO uploads (I/O-bound, internally parallelized with `MINIO_WORKERS` threads), and Qdrant upserts (I/O-bound). The `EmbeddingProcessor` (in `services/qdrant/embedding.py`) gets embeddings from the ColPali API, mean-pools rows/cols with parallel processing for high-core systems, and the indexer upserts multivectors to Qdrant concurrently. Progress is tracked in-memory and streamed via `GET /progress/stream/{job_id}` (SSE).
+- __Retrieval__: `SearchManager` (in `services/qdrant/search.py`) embeds the query via ColPali, runs multivector search on Qdrant (optionally MUVERA-first stage when enabled), and returns metadata with image URLs (images are NOT fetched from MinIO during search to optimize latency). The frontend uses URLs directly for display. The frontend Chat API route (`frontend/app/api/chat/route.ts`) calls OpenAI with the user text + images and streams the answer to the browser. The `/search` route (`api/routers/retrieval.py`) returns structured results with URLs.
 - The diagram intentionally omits lower-level details (e.g., prefetch limits, comparator settings) to stay readable.
 
 ## Next.js frontend integration
