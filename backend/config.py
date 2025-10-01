@@ -35,7 +35,7 @@ ENABLE_PIPELINE_INDEXING: Final[bool] = _env_bool("ENABLE_PIPELINE_INDEXING", "T
 MAX_CONCURRENT_BATCHES: Final[int] = int(os.getenv("MAX_CONCURRENT_BATCHES", "3"))
 
 # ColPali API
-COLPALI_MODE: Final[str] = os.getenv("COLPALI_MODE", "cpu").lower()
+COLPALI_MODE: Final[str] = os.getenv("COLPALI_MODE", "gpu").lower()
 COLPALI_CPU_URL: Final[str] = os.getenv("COLPALI_CPU_URL", "http://localhost:7001")
 COLPALI_GPU_URL: Final[str] = os.getenv("COLPALI_GPU_URL", "http://localhost:7002")
 
@@ -61,7 +61,7 @@ QDRANT_BINARY_ALWAYS_RAM: Final[bool] = _env_bool("QDRANT_BINARY_ALWAYS_RAM", "T
 QDRANT_SEARCH_IGNORE_QUANT: Final[bool] = _env_bool("QDRANT_SEARCH_IGNORE_QUANT", "False")
 QDRANT_SEARCH_RESCORE: Final[bool] = _env_bool("QDRANT_SEARCH_RESCORE", "True")
 QDRANT_SEARCH_OVERSAMPLING: Final[float] = float(os.getenv("QDRANT_SEARCH_OVERSAMPLING", "2.0"))
-ENABLE_MEAN_POOLING_RERANKING: Final[bool] = _env_bool("ENABLE_MEAN_POOLING_RERANKING", "False")
+QDRANT_MEAN_POOLING_ENABLED: Final[bool] = _env_bool("QDRANT_MEAN_POOLING_ENABLED", "False")
 
 # MUVERA
 MUVERA_ENABLED: Final[bool] = _env_bool("MUVERA_ENABLED", "False")

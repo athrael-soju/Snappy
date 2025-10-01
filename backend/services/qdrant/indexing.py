@@ -14,7 +14,7 @@ from config import (
     ENABLE_PIPELINE_INDEXING,
     MAX_CONCURRENT_BATCHES,
     MINIO_IMAGE_QUALITY,
-    ENABLE_MEAN_POOLING_RERANKING,
+    QDRANT_MEAN_POOLING_ENABLED,
 )
 
 logger = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ class DocumentIndexer:
         self.embedding_processor = embedding_processor
         self.minio_service = minio_service
         self.muvera_post = muvera_post
-        self.enable_mean_pooling = ENABLE_MEAN_POOLING_RERANKING
+        self.enable_mean_pooling = QDRANT_MEAN_POOLING_ENABLED
 
     def process_single_batch(
         self,

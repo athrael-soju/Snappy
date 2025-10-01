@@ -12,7 +12,7 @@ from config import (
     MUVERA_DIM_PROJ,
     MUVERA_R_REPS,
     MUVERA_RANDOM_SEED,
-    ENABLE_MEAN_POOLING_RERANKING,
+    QDRANT_MEAN_POOLING_ENABLED,
 )
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ class EmbeddingProcessor:
             api_client: ColPali client for embedding operations
         """
         self.api_client = api_client
-        self.enable_mean_pooling = ENABLE_MEAN_POOLING_RERANKING
+        self.enable_mean_pooling = QDRANT_MEAN_POOLING_ENABLED
 
     def get_patches(self, image_size: Tuple[int, int]) -> Tuple[int, int]:
         """Get number of patches for image using API."""
@@ -125,7 +125,7 @@ class EmbeddingProcessor:
         image-token boundaries provided by the API (no midpoint guessing).
         
         Pooling operations are parallelized for better CPU utilization on high-core-count systems.
-        If ENABLE_MEAN_POOLING_RERANKING is False, pooling is skipped and empty lists are returned.
+        If QDRANT_MEAN_POOLING_ENABLED is False, pooling is skipped and empty lists are returned.
         """
         # API returns per-image dicts: {embedding, image_patch_start, image_patch_len}
         api_items = self.api_client.embed_images(image_batch)

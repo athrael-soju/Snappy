@@ -12,7 +12,7 @@ from config import (
     QDRANT_SEARCH_IGNORE_QUANT,
     QDRANT_SEARCH_RESCORE,
     QDRANT_SEARCH_OVERSAMPLING,
-    ENABLE_MEAN_POOLING_RERANKING,
+    QDRANT_MEAN_POOLING_ENABLED,
 )
 from api.utils import compute_page_label
 
@@ -41,7 +41,7 @@ class SearchManager:
         self.collection_name = collection_name
         self.embedding_processor = embedding_processor
         self.muvera_post = muvera_post
-        self.enable_mean_pooling = ENABLE_MEAN_POOLING_RERANKING
+        self.enable_mean_pooling = QDRANT_MEAN_POOLING_ENABLED
 
     def reranking_search_batch(
         self,
@@ -52,7 +52,7 @@ class SearchManager:
     ):
         """Perform two-stage retrieval with MUVERA-first (if enabled) and multivector rerank.
         
-        If ENABLE_MEAN_POOLING_RERANKING is False, performs simple single-vector search.
+        If QDRANT_MEAN_POOLING_ENABLED is False, performs simple single-vector search.
         """
         # Optional quantization-aware search params
         params = None

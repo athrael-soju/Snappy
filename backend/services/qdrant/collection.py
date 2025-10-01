@@ -11,7 +11,7 @@ from config import (
     QDRANT_ON_DISK_PAYLOAD,
     QDRANT_USE_BINARY,
     QDRANT_BINARY_ALWAYS_RAM,
-    ENABLE_MEAN_POOLING_RERANKING,
+    QDRANT_MEAN_POOLING_ENABLED,
 )
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ class CollectionManager:
             self.collection_name = QDRANT_COLLECTION_NAME
             self.api_client = api_client
             self.muvera_post = muvera_post
-            self.enable_mean_pooling = ENABLE_MEAN_POOLING_RERANKING
+            self.enable_mean_pooling = QDRANT_MEAN_POOLING_ENABLED
         except Exception as e:
             raise Exception(f"Failed to initialize Qdrant client: {e}")
 

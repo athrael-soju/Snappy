@@ -232,7 +232,7 @@ Binary quantization compresses vectors to 1-bit representations, reducing memory
 - **Description**: Multiplier for how many candidates to retrieve before rescoring. Higher values improve accuracy but increase latency.
 - **Example**: With `SEARCH_LIMIT=20` and `OVERSAMPLING=2.0`, retrieves 40 candidates, then rescores to return top 20.
 
-#### `ENABLE_MEAN_POOLING_RERANKING`
+#### `QDRANT_MEAN_POOLING_ENABLED`
 - **Type**: Boolean
 - **Default**: `True`
 - **Description**: Enable mean pooling computation and two-stage reranking for improved search quality. When disabled, skips mean pooling during indexing and uses simple single-vector search.
@@ -398,7 +398,7 @@ COLPALI_MODE=cpu
 COLPALI_API_TIMEOUT=300
 
 # Qdrant - Disable mean pooling for faster indexing
-ENABLE_MEAN_POOLING_RERANKING=False
+QDRANT_MEAN_POOLING_ENABLED=False
 
 # Storage
 MINIO_IMAGE_FMT=JPEG
@@ -453,7 +453,7 @@ QDRANT_SEARCH_RESCORE=True
 ### For Faster Indexing
 
 1. **Use GPU**: Set `COLPALI_MODE=gpu` (30-50x faster)
-2. **Disable mean pooling**: `ENABLE_MEAN_POOLING_RERANKING=False` (20-40% faster)
+2. **Disable mean pooling**: `QDRANT_MEAN_POOLING_ENABLED=False` (20-40% faster)
 3. **Increase batch size**: `BATCH_SIZE=8-16` (GPU only)
 4. **Enable pipelining**: `ENABLE_PIPELINE_INDEXING=True`
 5. **More concurrent batches**: `MAX_CONCURRENT_BATCHES=4-8`
@@ -468,7 +468,7 @@ QDRANT_SEARCH_RESCORE=True
 
 ### For Better Search Quality
 
-1. **Enable mean pooling reranking**: `ENABLE_MEAN_POOLING_RERANKING=True`
+1. **Enable mean pooling reranking**: `QDRANT_MEAN_POOLING_ENABLED=True`
 2. **Disable quantization**: `QDRANT_USE_BINARY=False`
 3. **Increase prefetch**: `QDRANT_PREFETCH_LIMIT=500`
 4. **Enable rescoring**: `QDRANT_SEARCH_RESCORE=True`
@@ -487,7 +487,7 @@ QDRANT_SEARCH_RESCORE=True
 
 ### Indexing is too slow
 - Check `COLPALI_MODE` (GPU is 30-50x faster)
-- Disable mean pooling: `ENABLE_MEAN_POOLING_RERANKING=False` (20-40% faster)
+- Disable mean pooling: `QDRANT_MEAN_POOLING_ENABLED=False` (20-40% faster)
 - Increase `BATCH_SIZE` (GPU only)
 - Enable `ENABLE_PIPELINE_INDEXING=True`
 - Increase `MAX_CONCURRENT_BATCHES`
@@ -499,7 +499,7 @@ QDRANT_SEARCH_RESCORE=True
 - Use `QDRANT_USE_BINARY=True`
 
 ### Search results are poor
-- Enable mean pooling reranking: `ENABLE_MEAN_POOLING_RERANKING=True`
+- Enable mean pooling reranking: `QDRANT_MEAN_POOLING_ENABLED=True`
 - Disable quantization: `QDRANT_USE_BINARY=False`
 - Enable rescoring: `QDRANT_SEARCH_RESCORE=True`
 - Increase `QDRANT_PREFETCH_LIMIT`
