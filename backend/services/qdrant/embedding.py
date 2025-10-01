@@ -12,6 +12,7 @@ from config import (
     MUVERA_DIM_PROJ,
     MUVERA_R_REPS,
     MUVERA_RANDOM_SEED,
+    ENABLE_MEAN_POOLING_RERANKING,
 )
 
 logger = logging.getLogger(__name__)
@@ -27,6 +28,7 @@ class EmbeddingProcessor:
             api_client: ColPali client for embedding operations
         """
         self.api_client = api_client
+        self.enable_mean_pooling = ENABLE_MEAN_POOLING_RERANKING
 
     def get_patches(self, image_size: Tuple[int, int]) -> Tuple[int, int]:
         """Get number of patches for image using API."""
@@ -123,9 +125,26 @@ class EmbeddingProcessor:
         image-token boundaries provided by the API (no midpoint guessing).
         
         Pooling operations are parallelized for better CPU utilization on high-core-count systems.
+        If ENABLE_MEAN_POOLING_RERANKING is False, pooling is skipped and empty lists are returned.
         """
         # API returns per-image dicts: {embedding, image_patch_start, image_patch_len}
         api_items = self.api_client.embed_images(image_batch)
+
+        # Extract original embeddings
+        original_batch = []
+        for item in api_items:
+            if isinstance(item, dict):
+                embedding_list = item.get("embedding")
+                original_batch.append(embedding_list)
+            else:
+                raise Exception(
+                    "embed_images() returned embeddings without proper format"
+                )
+        
+        # If mean pooling is disabled, return empty pooled batches
+        if not self.enable_mean_pooling:
+            logger.debug("Mean pooling disabled, skipping pooling operations")
+            return original_batch, [], []
 
         # Batch get patches for all images
         dimensions = [
@@ -136,7 +155,6 @@ class EmbeddingProcessor:
         # Parallelize pooling operations to maximize CPU utilization
         pooled_by_rows_batch = []
         pooled_by_columns_batch = []
-        original_batch = []
         
         # For batches larger than 2, use parallel pooling
         if len(api_items) > 2:
@@ -147,14 +165,12 @@ class EmbeddingProcessor:
                 ))
                 
             for orig, rows, cols in results:
-                original_batch.append(orig)
                 pooled_by_rows_batch.append(rows)
                 pooled_by_columns_batch.append(cols)
         else:
             # For small batches, avoid threading overhead
             for item, image, patch_result in zip(api_items, image_batch, patch_results):
                 orig, rows, cols = self.pool_single_image(item, image, patch_result)
-                original_batch.append(orig)
                 pooled_by_rows_batch.append(rows)
                 pooled_by_columns_batch.append(cols)
 
