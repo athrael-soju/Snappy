@@ -8,13 +8,16 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Settings, Save, RotateCcw, AlertTriangle, Loader2, Database, Cpu, Brain, HardDrive, HelpCircle } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Settings, Save, RotateCcw, AlertTriangle, Loader2, Database, Cpu, Brain, HardDrive, HelpCircle, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import { ConfigurationService, ApiError } from "@/lib/api/generated";
 import "@/lib/api/client";
 import { saveConfigToStorage, mergeWithStoredConfig, clearConfigFromStorage } from "@/lib/config/config-store";
@@ -68,6 +71,8 @@ export function ConfigurationPanel() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("application");
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [resetSectionDialogOpen, setResetSectionDialogOpen] = useState<string | null>(null);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   
   useEffect(() => {
     loadConfiguration();
@@ -146,13 +151,14 @@ export function ConfigurationPanel() {
       saveConfigToStorage(values);
 
       setOriginalValues({ ...values });
-      toast.success("Configuration Saved", { 
-        description: `${changedKeys.length} setting(s) updated and saved to browser storage.` 
+      setLastSaved(new Date());
+      toast.success("Configuration saved", { 
+        description: `${changedKeys.length} setting${changedKeys.length !== 1 ? 's' : ''} updated` 
       });
     } catch (err) {
       const errorMsg = err instanceof ApiError ? err.message : "Failed to save configuration";
       setError(errorMsg);
-      toast.error("Save Failed", { description: errorMsg });
+      toast.error("Save failed", { description: errorMsg });
     } finally {
       setSaving(false);
     }
@@ -161,7 +167,40 @@ export function ConfigurationPanel() {
   function resetChanges() {
     setValues({ ...originalValues });
     setError(null);
-    toast.info("Changes Discarded", { description: "All changes have been reverted" });
+    toast.info("Changes discarded");
+  }
+
+  async function resetSection(categoryKey: string) {
+    if (!schema || !schema[categoryKey]) return;
+    
+    setSaving(true);
+    setResetSectionDialogOpen(null);
+    
+    try {
+      const category = schema[categoryKey];
+      const defaultValues: Record<string, string> = {};
+      
+      for (const setting of category.settings) {
+        defaultValues[setting.key] = setting.default;
+        await ConfigurationService.updateConfigConfigUpdatePost({
+          key: setting.key,
+          value: setting.default
+        });
+      }
+      
+      setValues(prev => ({ ...prev, ...defaultValues }));
+      setOriginalValues(prev => ({ ...prev, ...defaultValues }));
+      saveConfigToStorage({ ...values, ...defaultValues });
+      
+      toast.success("Section reset", { 
+        description: `${category.name} settings restored to defaults` 
+      });
+    } catch (err) {
+      const errorMsg = err instanceof ApiError ? err.message : "Failed to reset section";
+      toast.error("Reset failed", { description: errorMsg });
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function resetToDefaults() {
@@ -178,12 +217,13 @@ export function ConfigurationPanel() {
       
       // Reload configuration
       await loadConfiguration();
+      setLastSaved(new Date());
       
-      toast.success("Reset Complete", { description: "All settings reset to defaults" });
+      toast.success("Configuration reset", { description: "All settings restored to defaults" });
     } catch (err) {
       const errorMsg = err instanceof ApiError ? err.message : "Failed to reset configuration";
       setError(errorMsg);
-      toast.error("Reset Failed", { description: errorMsg });
+      toast.error("Reset failed", { description: errorMsg });
     } finally {
       setSaving(false);
     }
@@ -204,16 +244,17 @@ export function ConfigurationPanel() {
     return parentBool === setting.depends_on.value;
   }
 
-  function renderSetting(setting: ConfigSetting, isNested: boolean = false) {
+  function renderSetting(setting: ConfigSetting) {
     const currentValue = values[setting.key] || setting.default;
 
+    // Two-column layout: label+description left, control right
     switch (setting.type) {
       case "boolean":
         return (
-          <div className="flex items-center justify-between space-x-2">
-            <Label htmlFor={setting.key} className="flex-1">
-              <div className="flex items-center gap-1.5">
-                <span className="font-medium">{setting.label}</span>
+          <div className="grid grid-cols-[1fr,auto] gap-6 items-start">
+            <div className="space-y-1">
+              <Label htmlFor={setting.key} className="text-sm font-medium flex items-center gap-1.5">
+                {setting.label}
                 {setting.help_text && (
                   <TooltipProvider>
                     <Tooltip>
@@ -226,24 +267,25 @@ export function ConfigurationPanel() {
                     </Tooltip>
                   </TooltipProvider>
                 )}
-              </div>
-              <div className="text-xs text-muted-foreground mt-0.5">{setting.description}</div>
-            </Label>
+              </Label>
+              <p className="text-sm text-muted-foreground">{setting.description}</p>
+            </div>
             <Switch
               id={setting.key}
               checked={currentValue.toLowerCase() === "true"}
               onCheckedChange={(checked) => handleValueChange(setting.key, checked ? "True" : "False")}
               disabled={saving}
+              className="mt-1"
             />
           </div>
         );
 
       case "select":
         return (
-          <div className="space-y-2">
-            <Label htmlFor={setting.key}>
-              <div className="flex items-center gap-1.5">
-                <span className="font-medium">{setting.label}</span>
+          <div className="grid grid-cols-[1fr,280px] gap-6 items-start">
+            <div className="space-y-1">
+              <Label htmlFor={setting.key} className="text-sm font-medium flex items-center gap-1.5">
+                {setting.label}
                 {setting.help_text && (
                   <TooltipProvider>
                     <Tooltip>
@@ -256,9 +298,9 @@ export function ConfigurationPanel() {
                     </Tooltip>
                   </TooltipProvider>
                 )}
-              </div>
-              <div className="text-xs text-muted-foreground mt-0.5">{setting.description}</div>
-            </Label>
+              </Label>
+              <p className="text-sm text-muted-foreground">{setting.description}</p>
+            </div>
             <Select
               value={currentValue}
               onValueChange={(value) => handleValueChange(setting.key, value)}
@@ -284,54 +326,11 @@ export function ConfigurationPanel() {
         const max = setting.max ?? 100;
         const step = setting.step ?? 1;
 
-        if (isNested) {
-          // Compact inline version for nested settings
-          return (
-            <div className="flex items-center gap-3">
-              <Label htmlFor={setting.key} className="min-w-[120px] text-sm flex items-center gap-1.5">
-                <span>{setting.label}</span>
-                {setting.help_text && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p className="text-sm">{setting.help_text}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-              </Label>
-              <Slider
-                id={setting.key}
-                value={[numValue]}
-                min={min}
-                max={max}
-                step={step}
-                onValueChange={(vals) => handleValueChange(setting.key, vals[0].toString())}
-                disabled={saving}
-                className="flex-1 max-w-[200px]"
-              />
-              <Input
-                type="number"
-                value={currentValue}
-                onChange={(e) => handleValueChange(setting.key, e.target.value)}
-                min={min}
-                max={max}
-                step={step}
-                disabled={saving}
-                className="w-20 h-8"
-              />
-            </div>
-          );
-        }
-
         return (
-          <div className="space-y-3">
-            <Label htmlFor={setting.key}>
-              <div className="flex items-center gap-1.5">
-                <span className="font-medium">{setting.label}</span>
+          <div className="grid grid-cols-[1fr,280px] gap-6 items-start">
+            <div className="space-y-1">
+              <Label htmlFor={setting.key} className="text-sm font-medium flex items-center gap-1.5">
+                {setting.label}
                 {setting.help_text && (
                   <TooltipProvider>
                     <Tooltip>
@@ -344,10 +343,17 @@ export function ConfigurationPanel() {
                     </Tooltip>
                   </TooltipProvider>
                 )}
-              </div>
-              <div className="text-xs text-muted-foreground mt-0.5">{setting.description}</div>
-            </Label>
-            <div className="flex items-center gap-4">
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                {setting.description}
+                {(min !== undefined || max !== undefined) && (
+                  <span className="ml-1 text-xs">
+                    ({min}–{max})
+                  </span>
+                )}
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
               <Slider
                 id={setting.key}
                 value={[numValue]}
@@ -366,7 +372,7 @@ export function ConfigurationPanel() {
                 max={max}
                 step={step}
                 disabled={saving}
-                className="w-24"
+                className="w-20"
               />
             </div>
           </div>
@@ -374,10 +380,10 @@ export function ConfigurationPanel() {
 
       case "password":
         return (
-          <div className="space-y-2">
-            <Label htmlFor={setting.key}>
-              <div className="flex items-center gap-1.5">
-                <span className="font-medium">{setting.label}</span>
+          <div className="grid grid-cols-[1fr,280px] gap-6 items-start">
+            <div className="space-y-1">
+              <Label htmlFor={setting.key} className="text-sm font-medium flex items-center gap-1.5">
+                {setting.label}
                 {setting.help_text && (
                   <TooltipProvider>
                     <Tooltip>
@@ -390,9 +396,9 @@ export function ConfigurationPanel() {
                     </Tooltip>
                   </TooltipProvider>
                 )}
-              </div>
-              <div className="text-xs text-muted-foreground mt-0.5">{setting.description}</div>
-            </Label>
+              </Label>
+              <p className="text-sm text-muted-foreground">{setting.description}</p>
+            </div>
             <Input
               id={setting.key}
               type="password"
@@ -406,10 +412,10 @@ export function ConfigurationPanel() {
 
       default: // text
         return (
-          <div className="space-y-2">
-            <Label htmlFor={setting.key}>
-              <div className="flex items-center gap-1.5">
-                <span className="font-medium">{setting.label}</span>
+          <div className="grid grid-cols-[1fr,280px] gap-6 items-start">
+            <div className="space-y-1">
+              <Label htmlFor={setting.key} className="text-sm font-medium flex items-center gap-1.5">
+                {setting.label}
                 {setting.help_text && (
                   <TooltipProvider>
                     <Tooltip>
@@ -422,9 +428,9 @@ export function ConfigurationPanel() {
                     </Tooltip>
                   </TooltipProvider>
                 )}
-              </div>
-              <div className="text-xs text-muted-foreground mt-0.5">{setting.description}</div>
-            </Label>
+              </Label>
+              <p className="text-sm text-muted-foreground">{setting.description}</p>
+            </div>
             <Input
               id={setting.key}
               type="text"
@@ -439,250 +445,268 @@ export function ConfigurationPanel() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      <div className="container max-w-7xl py-8 space-y-4">
+        <Skeleton className="h-8 w-48" />
+        <div className="flex gap-6">
+          <Skeleton className="h-96 w-48" />
+          <div className="flex-1 space-y-4">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+          </div>
+        </div>
       </div>
     );
   }
 
+  const sortedCategories = Object.entries(schema).sort(([, a], [, b]) => a.order - b.order);
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-
-
-      {/* Action Buttons */}
-      {hasChanges && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-3 p-4 rounded-lg border border-amber-200 bg-amber-50/50"
-        >
-          <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0" />
-          <div className="flex-1">
-            <p className="text-sm font-medium text-amber-900">
-              You have {configStats.modifiedSettings} unsaved change{configStats.modifiedSettings !== 1 ? 's' : ''}
-            </p>
-            <p className="text-xs text-amber-700">
-              Changes will take effect immediately but won't persist after restart
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={resetChanges}
-              disabled={saving}
-            >
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Discard
-            </Button>
-            <Button
-              size="sm"
-              onClick={saveChanges}
-              disabled={saving}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Save {configStats.modifiedSettings} Change{configStats.modifiedSettings !== 1 ? 's' : ''}
-                </>
-              )}
-            </Button>
-          </div>
-        </motion.div>
+      {/* Error alert */}
+      {error && (
+        <div className="flex-shrink-0 mb-4">
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        </div>
       )}
 
-      {/* Status Messages */}
-      <AnimatePresence>      
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-          >
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Main content - scrollable */}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        {/* Vertical tabs layout */}
+        <div className="flex gap-6 h-full">
+          {/* Left rail navigation */}
+          <nav className="w-48 flex-shrink-0">
+            <ScrollArea className="h-full">
+                <div className="space-y-1 pr-2">
+                  {sortedCategories.map(([categoryKey, category]) => {
+                    const Icon = iconMap[category.icon] || Settings;
+                    const isActive = activeTab === categoryKey;
+                    
+                    return (
+                      <button
+                        key={categoryKey}
+                        onClick={() => setActiveTab(categoryKey)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                          isActive
+                            ? 'bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 border border-blue-200'
+                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4 flex-shrink-0" />
+                        <span className="truncate text-left">{category.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </ScrollArea>
+            </nav>
 
-      {/* Configuration Categories - Using Tabs */}
-      <Card className="flex-1 flex flex-col min-h-0">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
-          <CardHeader className="border-b flex-shrink-0 py-3">
-            <TabsList className="grid w-full grid-cols-5 h-auto bg-transparent p-0 gap-1">
-              {Object.entries(schema)
-                .sort(([, a], [, b]) => a.order - b.order)
-                .map(([categoryKey, category]) => {
-                  const Icon = iconMap[category.icon] || Settings;
-                  return (
-                    <TabsTrigger
-                      key={categoryKey}
-                      value={categoryKey}
-                      className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-primary/5 data-[state=active]:border-primary data-[state=active]:border-b-2 rounded-none"
-                    >
-                      <Icon className="w-5 h-5" />
-                      <span className="text-xs font-medium hidden sm:inline">{category.name}</span>
-                    </TabsTrigger>
-                  );
-                })}
-            </TabsList>
-          </CardHeader>
-
-          <CardContent className="flex-1 overflow-y-auto pt-4 pb-2">
-            {Object.entries(schema).map(([categoryKey, category]) => {
-              const Icon = iconMap[category.icon] || Settings;
+          {/* Main content area */}
+          <div className="flex-1 min-w-0 flex flex-col gap-4">
+            {sortedCategories.map(([categoryKey, category]) => {
+              if (activeTab !== categoryKey) return null;
               
-              // Group settings by parent/child relationship
-              const parentSettings = category.settings.filter(s => !s.depends_on);
+              const Icon = iconMap[category.icon] || Settings;
+              const visibleSettings = category.settings.filter(isSettingVisible);
               
               return (
-                <TabsContent key={categoryKey} value={categoryKey} className="mt-0 space-y-4 h-full">
-                  {/* Category Header */}
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-lg border">
-                      <Icon className="w-5 h-5 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold tracking-tight">{category.name}</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">{category.description}</p>
-                    </div>
-                  </div>
-
-                  {/* Settings Grid - 2 Columns */}
-                  <div className="grid gap-3 md:grid-cols-2">
-                    {parentSettings.map(setting => {
-                      // Find child settings for this parent
-                      const childSettings = category.settings.filter(
-                        s => s.depends_on?.key === setting.key && isSettingVisible(s)
-                      );
-                      const hasChildren = childSettings.length > 0;
-                      
-                      return (
-                        <motion.div
-                          key={setting.key}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          transition={{ duration: 0.2 }}
-                          className={hasChildren ? "md:col-span-2" : ""}
+                <motion.div
+                  key={categoryKey}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex-1 min-h-0 flex flex-col gap-4"
+                >
+                  {/* Settings Card - Scrollable */}
+                  <Card className="flex-1 min-h-0 flex flex-col">
+                    <CardHeader className="pb-4 flex-shrink-0">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-lg border">
+                            <Icon className="w-5 h-5 text-primary" />
+                          </div>
+                          <div>
+                            <CardTitle className="text-xl">{category.name}</CardTitle>
+                            <CardDescription className="mt-1">{category.description}</CardDescription>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setResetSectionDialogOpen(categoryKey)}
+                          disabled={saving}
+                          className="text-muted-foreground hover:text-foreground"
                         >
-                          <Card className="h-full hover:shadow-md transition-shadow">
-                            <CardContent className="pt-4 pb-4 space-y-3">
-                              {renderSetting(setting, false)}
-                              
-                              {/* Nested child settings in a compact row */}
-                              {hasChildren && (
-                                <div className="mt-3 pt-3 border-t border-primary/20 bg-muted/30 -mx-6 px-6 py-3 rounded-b-lg">
-                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                    {childSettings.map(childSetting => (
-                                      <motion.div
-                                        key={childSetting.key}
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        transition={{ duration: 0.2 }}
-                                      >
-                                        {renderSetting(childSetting, true)}
-                                      </motion.div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </CardContent>
-                          </Card>
-                        </motion.div>
-                      );
-                    })}
-                  </div>
-                </TabsContent>
+                          <RotateCcw className="w-4 h-4 mr-2" />
+                          Reset section
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <ScrollArea className="flex-1 min-h-0">
+                      <CardContent className="space-y-6 pr-4">
+                        {visibleSettings.map((setting, index) => (
+                          <div key={setting.key}>
+                            {index > 0 && <Separator className="my-6" />}
+                            {renderSetting(setting)}
+                          </div>
+                        ))}
+                      </CardContent>
+                    </ScrollArea>
+                  </Card>
+
+                  {/* Danger Zone - Always visible */}
+                  <Card className="border-destructive/50 flex-shrink-0">
+                    <CardContent className="py-4 px-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-semibold text-destructive text-sm">Danger Zone</div>
+                          <p className="text-sm text-muted-foreground mt-0.5">
+                            Reset all settings to defaults
+                          </p>
+                        </div>
+                        <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+                          <DialogTrigger asChild>
+                            <Button variant="destructive" size="sm" disabled={saving}>
+                              <RotateCcw className="w-4 h-4 mr-2" />
+                              Reset All
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle className="flex items-center gap-2">
+                                <AlertTriangle className="w-5 h-5 text-destructive" />
+                                Reset all configuration?
+                              </DialogTitle>
+                              <DialogDescription>
+                                This will reset all configuration settings to their default values. 
+                                Your saved configuration will be cleared from browser storage.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <DialogFooter>
+                              <Button 
+                                variant="outline" 
+                                onClick={() => setResetDialogOpen(false)}
+                                disabled={saving}
+                              >
+                                Cancel
+                              </Button>
+                              <Button 
+                                variant="destructive"
+                                onClick={resetToDefaults}
+                                disabled={saving}
+                              >
+                                {saving ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Resetting...
+                                  </>
+                                ) : (
+                                  "Confirm Reset"
+                                )}
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               );
             })}
-          </CardContent>
-        </Tabs>
-      </Card>
+          </div>
+        </div>
+      </div>
 
-      {/* Reset to Defaults - Fixed Footer */}
-      <Card className="border-red-200/50 mt-4 flex-shrink-0">
-        <CardContent className="py-3 px-4">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <div className="font-semibold text-red-600 text-sm">Danger Zone</div>
-              <p className="text-xs text-muted-foreground">
-                Reset all configuration values to their defaults. This will affect the running application.
-              </p>
-            </div>
-            <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  variant="destructive"
-                  disabled={saving}
-                  size="sm"
-                >
-                  <RotateCcw className="w-4 h-4 mr-2" />
-                  Reset All to Defaults
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2 text-lg">
-                    <RotateCcw className="w-5 h-5 text-red-600" />
-                    Reset All Configuration?
-                  </DialogTitle>
-                  <DialogDescription className="text-base leading-relaxed pt-2">
-                    ⚠️ This will permanently reset all configuration settings to their default values. 
-                    Your saved configuration will be cleared from browser storage and the backend will be reset.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="bg-muted/50 p-4 rounded-lg border-l-4 border-amber-400">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-muted-foreground">
-                      <strong>Important:</strong> This action cannot be reversed. The application will use default settings after reset.
-                    </p>
-                  </div>
-                </div>
-                <DialogFooter className="gap-2">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setResetDialogOpen(false)}
+      <AnimatePresence>
+        {hasChanges && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="border-t bg-amber-50/95 backdrop-blur-sm shadow-lg"
+          >
+            <div className="container max-w-7xl py-4 px-6">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
+                <p className="text-sm font-medium text-amber-900 flex-1">
+                  You have {configStats.modifiedSettings} unsaved change{configStats.modifiedSettings !== 1 ? 's' : ''}
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={resetChanges}
                     disabled={saving}
                   >
-                    Cancel
+                    Discard
                   </Button>
-                  <Button 
-                    variant="destructive"
-                    onClick={resetToDefaults}
+                  <Button
+                    size="sm"
+                    onClick={saveChanges}
                     disabled={saving}
-                    className="bg-red-600 hover:bg-red-700"
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                   >
                     {saving ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Resetting...
+                        Saving...
                       </>
                     ) : (
                       <>
-                        <RotateCcw className="w-4 h-4 mr-2" />
-                        Confirm Reset
+                        <Save className="w-4 h-4 mr-2" />
+                        Save {configStats.modifiedSettings} Change{configStats.modifiedSettings !== 1 ? 's' : ''}
                       </>
                     )}
                   </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </CardContent>
-      </Card>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Section Reset Dialog */}
+      <Dialog open={!!resetSectionDialogOpen} onOpenChange={(open) => !open && setResetSectionDialogOpen(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RotateCcw className="w-5 h-5 text-destructive" />
+              Reset section?
+            </DialogTitle>
+            <DialogDescription>
+              This will reset all {resetSectionDialogOpen && schema[resetSectionDialogOpen]?.name} settings to their defaults.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setResetSectionDialogOpen(null)}
+              disabled={saving}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={() => resetSectionDialogOpen && resetSection(resetSectionDialogOpen)}
+              disabled={saving}
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Resetting...
+                </>
+              ) : (
+                "Reset Section"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
