@@ -167,40 +167,43 @@ export default function ChatPage() {
       transition={{ duration: 0.5 }}
       className="flex flex-col flex-1 min-h-0"
     >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-lg border border-purple-500/20">
-            <Brain className="w-6 h-6 text-purple-500" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">AI Chat</h1>
-            <p className="text-muted-foreground text-lg">Ask questions about your documents and get AI-powered responses with inline citations</p>
-          </div>
+      {/* Header with Background Decoration */}
+      <div className="space-y-3 mb-4 text-center relative">
+        {/* Background decoration */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 left-20 w-32 h-32 bg-blue-200/20 rounded-full blur-xl" />
+          <div className="absolute top-10 right-32 w-24 h-24 bg-purple-200/20 rounded-full blur-xl" />
         </div>
+        
+        <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent relative z-10">
+          AI Chat
+        </h1>
+        <p className="text-muted-foreground text-sm sm:text-base max-w-2xl mx-auto relative z-10">
+          Ask questions about your documents and get AI-powered responses with inline citations
+        </p>
       </div>
 
       {/* Chat Messages */}
-      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-2 border-purple-100/50 shadow-lg">
-        <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4">
+      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-2 border-purple-200/50 shadow-xl bg-white">
+        <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 custom-scrollbar bg-gradient-to-br from-blue-50/20 via-white to-purple-50/20">
           <AnimatePresence mode="popLayout">
             {messages.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="flex flex-col items-center justify-center h-full text-center py-12"
+                className="flex flex-col items-center justify-center h-full text-center py-6"
               >
-                <div className="w-20 h-20 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-full flex items-center justify-center mb-6 border border-purple-500/20">
-                  <Brain className="w-10 h-10 text-purple-500" />
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full flex items-center justify-center mb-4 border-2 border-purple-200/50 shadow-md">
+                  <Brain className="w-8 h-8 text-purple-500" />
                 </div>
-                <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Start Your AI Conversation</h3>
-                <p className="text-muted-foreground max-w-lg mb-8 text-lg leading-relaxed">
+                <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">Start Your AI Conversation</h3>
+                <p className="text-muted-foreground max-w-lg mb-6 text-sm leading-relaxed">
                   Ask questions about your uploaded documents and get intelligent responses with visual proof from your content.
                 </p>
 
                 {/* Starter Questions */}
                 <StarterQuestions questions={starterQuestions} onSelect={(t) => setInput(t)} />
-                <div className="mt-6 w-full max-w-2xl">
+                <div className="mt-4 w-full max-w-2xl">
                   <RecentSearchesChips
                     recentSearches={recentSearches}
                     visible
@@ -228,8 +231,8 @@ export default function ChatPage() {
                   className={`flex gap-3 mb-4 md:mb-5 last:mb-0 ${message.role === "assistant" ? "" : "flex-row-reverse"}`}
                 >
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${message.role === "assistant"
-                    ? "bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-lg"
-                    : "bg-gradient-to-br from-blue-100 to-cyan-100 text-foreground shadow-lg"
+                    ? "bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-lg border-2 border-purple-200/30"
+                    : "bg-gradient-to-br from-blue-100 to-cyan-100 text-foreground shadow-lg border-2 border-blue-200/50"
                     }`}>
                     {message.role === "assistant" ? (
                       <Brain className="w-4 h-4" />
@@ -240,9 +243,9 @@ export default function ChatPage() {
 
                   <div className={`flex-1 max-w-[85%] ${message.role === "user" ? "text-right" : ""
                     }`}>
-                    <div className={`inline-block p-4 rounded-2xl shadow-sm border ${message.role === "assistant"
-                      ? "bg-gradient-to-br from-purple-50 to-pink-50 text-foreground border-purple-200/50"
-                      : "bg-gradient-to-br from-blue-100 to-cyan-100 text-foreground border-blue-200"
+                    <div className={`inline-block p-4 rounded-2xl shadow-md border-2 ${message.role === "assistant"
+                      ? "bg-gradient-to-br from-blue-50 to-purple-50 text-foreground border-purple-200/50"
+                      : "bg-gradient-to-br from-blue-100 to-cyan-100 text-foreground border-blue-200/50"
                       }`}>
                       {message.content ? (
                         message.role === "assistant" ? (
@@ -306,7 +309,7 @@ export default function ChatPage() {
         </div>
 
         {/* Input Form */}
-        <div className="border-t border-purple-100/50 p-4 bg-gradient-to-r from-purple-50/30 to-pink-50/30">
+        <div className="border-t-2 border-purple-200/50 p-4 bg-gradient-to-r from-blue-50/70 via-purple-50/70 to-cyan-50/70 backdrop-blur-sm">
           <ChatInputBar
             input={input}
             setInput={setInput}
@@ -342,7 +345,7 @@ export default function ChatPage() {
           />
 
           {/* Tips below input */}
-          <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
               <Sparkles className="w-3 h-3 text-purple-500" />
               <span>AI-powered responses with inline citations</span>

@@ -8,17 +8,21 @@ import { Info, Image as ImageIcon, Layers, Search, GitCompare, Sparkles, Databas
 
 export default function AboutContent({ onClose }: { onClose?: () => void }) {
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-lg border border-blue-500/20">
-            <Info className="w-6 h-6 text-blue-600" />
+      <div className="text-center relative">
+        {/* Background decoration */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 left-20 w-32 h-32 bg-blue-200/20 rounded-full blur-xl" />
+          <div className="absolute top-10 right-32 w-24 h-24 bg-purple-200/20 rounded-full blur-xl" />
+        </div>
+        
+        <div className="relative z-10 space-y-2">
+          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full flex items-center justify-center mb-4 border-2 border-blue-200/50 shadow-md">
+            <Info className="w-8 h-8 text-blue-500" />
           </div>
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-cyan-700 bg-clip-text text-transparent">About this Template</h1>
-            <p className="text-muted-foreground text-lg">What this template does, what ColPali is, and how it differs from traditional RAG</p>
-          </div>
+          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">About This Template</h1>
+          <p className="text-muted-foreground text-sm sm:text-base max-w-2xl mx-auto">What this template does, what ColPali is, and how it differs from traditional RAG</p>
         </div>
       </div>
 
@@ -32,9 +36,9 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
             </div>
           </AccordionTrigger>
           <AccordionContent>
-            <Card className="border-blue-200/60">
-              <CardHeader className="pb-2">
-                <CardDescription>
+            <Card className="border-2 border-blue-200/50 bg-gradient-to-br from-blue-500/5 to-cyan-500/5 shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <CardHeader className="pb-3">
+                <CardDescription className="text-base">
                   Upload, index, and search/chat over your documents and images. Visual-first retrieval with ColPali.
                 </CardDescription>
               </CardHeader>
@@ -73,7 +77,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
             </div>
           </AccordionTrigger>
           <AccordionContent>
-            <Card className="border-cyan-200/60">
+            <Card className="border-2 border-cyan-200/50 bg-gradient-to-br from-cyan-500/5 to-blue-500/5 shadow-lg hover:shadow-xl transition-shadow duration-300">
               <CardContent className="pt-4 text-sm text-muted-foreground space-y-3">
                 <p>
                   ColPali is a visual search method. It compares your question to many small features in a page image to find matches.
@@ -104,7 +108,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
           </AccordionTrigger>
           <AccordionContent>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <Card className="border-amber-200/60">
+              <Card className="border-2 border-amber-200/50 bg-gradient-to-br from-amber-500/5 to-orange-500/5 shadow-md hover:shadow-lg transition-shadow duration-300">
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -122,7 +126,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
                   </ul>
                 </CardContent>
               </Card>
-              <Card className="border-emerald-200/60">
+              <Card className="border-2 border-emerald-200/50 bg-gradient-to-br from-emerald-500/5 to-green-500/5 shadow-md hover:shadow-lg transition-shadow duration-300">
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -152,7 +156,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
             </div>
           </AccordionTrigger>
           <AccordionContent>
-            <Card className="border-purple-200/60">
+            <Card className="border-2 border-purple-200/50 bg-gradient-to-br from-purple-500/5 to-pink-500/5 shadow-lg hover:shadow-xl transition-shadow duration-300">
               <CardContent className="pt-4 text-sm text-muted-foreground space-y-2">
                 <ul className="space-y-1">
                   <li className="flex items-start gap-2"><span>•</span><span><strong>Text-only RAG</strong> for blogs, docs, code.</span></li>
@@ -167,14 +171,14 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
 
       {/* Next-step CTAs */}
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-        <Button asChild className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+        <Button asChild className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-300 rounded-full h-12 px-6">
           <Link href="/upload" onClick={() => onClose?.()}>Start by uploading a file</Link>
         </Button>
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" className="border-2 border-blue-200/50 hover:border-blue-400 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 rounded-full h-12 px-6">
           <Link href="/search" onClick={() => onClose?.()}>Try a search</Link>
         </Button>
-        <Button asChild variant="ghost" className="text-muted-foreground">
-          <Link href="https://github.com/athrael-soju/fastapi-nextjs-colpali-template" target="_blank" rel="noreferrer">Learn more</Link>
+        <Button asChild variant="ghost" className="text-muted-foreground hover:text-blue-600 rounded-full">
+          <Link href="https://github.com/athrael-soju/fastapi-nextjs-colpali-template" target="_blank" rel="noreferrer">Learn more →</Link>
         </Button>
       </div>
     </div>

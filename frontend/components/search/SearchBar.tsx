@@ -58,7 +58,7 @@ export default function SearchBar({ q, setQ, loading, onSubmit, k, setK, onClear
                   type="submit"
                   disabled={loading || !q.trim()}
                   size="icon"
-                  className="h-14 w-14 rounded-2xl bg-gradient-to-r from-blue-700 to-cyan-700 hover:from-blue-800 hover:to-cyan-800 text-white focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow"
+                  className="h-14 w-14 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
                 >
                   {loading ? (
                     <Loader2 className="w-6 h-6 animate-spin" />
@@ -80,7 +80,7 @@ export default function SearchBar({ q, setQ, loading, onSubmit, k, setK, onClear
                   disabled={loading || !hasResults}
                   size="icon"
                   variant="outline"
-                  className="h-14 w-14 rounded-2xl border-2 border-blue-200 hover:border-blue-400 hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 text-muted-foreground hover:text-blue-600 transition-all duration-300 shadow-sm hover:shadow-md disabled:opacity-50"
+                  className="h-14 w-14 rounded-2xl border-2 border-blue-200/50 hover:border-blue-400 hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 text-muted-foreground hover:text-blue-600 transition-all duration-300 shadow-md hover:shadow-lg disabled:opacity-50"
                 >
                   <Trash2 className="w-5 h-5" />
                 </Button>
