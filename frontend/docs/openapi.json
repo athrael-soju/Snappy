@@ -67,10 +67,16 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "integer",
-              "maximum": 50,
-              "minimum": 1,
-              "default": 5,
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 50,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "title": "K"
             }
           }
@@ -336,7 +342,7 @@
           "configuration"
         ],
         "summary": "Update Config",
-        "description": "Update a configuration value at runtime.\n\nNote: This only updates the runtime environment variable.\nTo persist changes, you must update your .env file manually.",
+        "description": "Update a configuration value at runtime.\n\nNote: This updates the runtime configuration immediately.\nTo persist changes across restarts, update your .env file manually.",
         "operationId": "update_config_config_update_post",
         "requestBody": {
           "content": {

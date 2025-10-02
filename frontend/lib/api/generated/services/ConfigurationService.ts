@@ -35,8 +35,8 @@ export class ConfigurationService {
      * Update Config
      * Update a configuration value at runtime.
      *
-     * Note: This only updates the runtime environment variable.
-     * To persist changes, you must update your .env file manually.
+     * Note: This updates the runtime configuration immediately.
+     * To persist changes across restarts, update your .env file manually.
      * @param requestBody
      * @returns any Successful Response
      * @throws ApiError

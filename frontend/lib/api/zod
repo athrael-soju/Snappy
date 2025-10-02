@@ -1,6 +1,7 @@
 import { makeApi, Zodios, type ZodiosOptions } from "@zodios/core";
 import { z } from "zod";
 
+const k = z.union([z.number(), z.null()]).optional();
 const SearchItem = z
   .object({
     image_url: z.union([z.string(), z.null()]),
@@ -28,6 +29,7 @@ const ConfigUpdate = z
   .passthrough();
 
 export const schemas = {
+  k,
   SearchItem,
   ValidationError,
   HTTPValidationError,
@@ -88,8 +90,8 @@ Note: This only affects runtime values. Your .env file remains unchanged.`,
     alias: "update_config_config_update_post",
     description: `Update a configuration value at runtime.
 
-Note: This only updates the runtime environment variable.
-To persist changes, you must update your .env file manually.`,
+Note: This updates the runtime configuration immediately.
+To persist changes across restarts, update your .env file manually.`,
     requestFormat: "json",
     parameters: [
       {
@@ -200,7 +202,7 @@ To persist changes, you must update your .env file manually.`,
       {
         name: "k",
         type: "Query",
-        schema: z.number().int().gte(1).lte(50).optional().default(5),
+        schema: k,
       },
     ],
     response: z.array(SearchItem),

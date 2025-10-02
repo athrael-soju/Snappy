@@ -11,13 +11,43 @@ import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Settings, Save, RotateCcw, AlertTriangle, Loader2, Database, Cpu, Brain, HardDrive } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Settings, Save, RotateCcw, AlertTriangle, Loader2, Database, Cpu, Brain, HardDrive, HelpCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "@/components/ui/sonner";
 import { ConfigurationService, ApiError } from "@/lib/api/generated";
 import "@/lib/api/client";
-import { CONFIG_SCHEMA, type ConfigSetting, type ConfigSchema } from "@/lib/config/schema";
 import { saveConfigToStorage, mergeWithStoredConfig, clearConfigFromStorage } from "@/lib/config/config-store";
+
+// Types for configuration schema
+interface ConfigSetting {
+  key: string;
+  label: string;
+  type: "text" | "number" | "boolean" | "select" | "password";
+  options?: string[];
+  default: string;
+  description: string;
+  help_text?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+  depends_on?: {
+    key: string;
+    value: boolean;
+  };
+}
+
+interface ConfigCategory {
+  name: string;
+  description: string;
+  order: number;
+  icon: string;
+  settings: ConfigSetting[];
+}
+
+interface ConfigSchema {
+  [categoryKey: string]: ConfigCategory;
+}
 
 // Icon mapping
 const iconMap: Record<string, any> = {
@@ -31,6 +61,7 @@ const iconMap: Record<string, any> = {
 export function ConfigurationPanel() {
   const [values, setValues] = useState<Record<string, string>>({});
   const [originalValues, setOriginalValues] = useState<Record<string, string>>({});
+  const [schema, setSchema] = useState<ConfigSchema | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -38,6 +69,16 @@ export function ConfigurationPanel() {
   const [activeTab, setActiveTab] = useState("application");
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   
+  useEffect(() => {
+    loadConfiguration();
+  }, []);
+
+  useEffect(() => {
+    // Check if there are any changes
+    const changed = Object.keys(values).some(key => values[key] !== originalValues[key]);
+    setHasChanges(changed);
+  }, [values, originalValues]);
+
   // Calculate stats for overview cards
   const configStats = {
     totalSettings: Object.keys(values).length,
@@ -51,22 +92,26 @@ export function ConfigurationPanel() {
     currentMode: values.COLPALI_MODE || "gpu",
   };
 
-  useEffect(() => {
-    loadConfiguration();
-  }, []);
-
-  useEffect(() => {
-    // Check if there are any changes
-    const changed = Object.keys(values).some(key => values[key] !== originalValues[key]);
-    setHasChanges(changed);
-  }, [values, originalValues]);
+  // Return early if schema not loaded
+  if (!schema) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   async function loadConfiguration() {
     setLoading(true);
     setError(null);
     try {
-      // Load current values from backend
-      const valuesData = await ConfigurationService.getConfigValuesConfigValuesGet();
+      // Load schema and values from backend
+      const [schemaData, valuesData] = await Promise.all([
+        ConfigurationService.getConfigSchemaConfigSchemaGet(),
+        ConfigurationService.getConfigValuesConfigValuesGet()
+      ]);
+      
+      setSchema(schemaData as ConfigSchema);
       
       // Merge with localStorage (localStorage takes precedence)
       const mergedValues = mergeWithStoredConfig(valuesData);
@@ -167,7 +212,21 @@ export function ConfigurationPanel() {
         return (
           <div className="flex items-center justify-between space-x-2">
             <Label htmlFor={setting.key} className="flex-1">
-              <div className="font-medium">{setting.label}</div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-medium">{setting.label}</span>
+                {setting.help_text && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p className="text-sm">{setting.help_text}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
               <div className="text-xs text-muted-foreground mt-0.5">{setting.description}</div>
             </Label>
             <Switch
@@ -183,7 +242,21 @@ export function ConfigurationPanel() {
         return (
           <div className="space-y-2">
             <Label htmlFor={setting.key}>
-              <div className="font-medium">{setting.label}</div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-medium">{setting.label}</span>
+                {setting.help_text && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p className="text-sm">{setting.help_text}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
               <div className="text-xs text-muted-foreground mt-0.5">{setting.description}</div>
             </Label>
             <Select
@@ -215,8 +288,20 @@ export function ConfigurationPanel() {
           // Compact inline version for nested settings
           return (
             <div className="flex items-center gap-3">
-              <Label htmlFor={setting.key} className="min-w-[120px] text-sm">
-                {setting.label}
+              <Label htmlFor={setting.key} className="min-w-[120px] text-sm flex items-center gap-1.5">
+                <span>{setting.label}</span>
+                {setting.help_text && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p className="text-sm">{setting.help_text}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
               </Label>
               <Slider
                 id={setting.key}
@@ -245,7 +330,21 @@ export function ConfigurationPanel() {
         return (
           <div className="space-y-3">
             <Label htmlFor={setting.key}>
-              <div className="font-medium">{setting.label}</div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-medium">{setting.label}</span>
+                {setting.help_text && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p className="text-sm">{setting.help_text}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
               <div className="text-xs text-muted-foreground mt-0.5">{setting.description}</div>
             </Label>
             <div className="flex items-center gap-4">
@@ -277,7 +376,21 @@ export function ConfigurationPanel() {
         return (
           <div className="space-y-2">
             <Label htmlFor={setting.key}>
-              <div className="font-medium">{setting.label}</div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-medium">{setting.label}</span>
+                {setting.help_text && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p className="text-sm">{setting.help_text}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
               <div className="text-xs text-muted-foreground mt-0.5">{setting.description}</div>
             </Label>
             <Input
@@ -295,7 +408,21 @@ export function ConfigurationPanel() {
         return (
           <div className="space-y-2">
             <Label htmlFor={setting.key}>
-              <div className="font-medium">{setting.label}</div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-medium">{setting.label}</span>
+                {setting.help_text && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p className="text-sm">{setting.help_text}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
               <div className="text-xs text-muted-foreground mt-0.5">{setting.description}</div>
             </Label>
             <Input
@@ -394,7 +521,7 @@ export function ConfigurationPanel() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
           <CardHeader className="border-b flex-shrink-0 py-3">
             <TabsList className="grid w-full grid-cols-5 h-auto bg-transparent p-0 gap-1">
-              {Object.entries(CONFIG_SCHEMA)
+              {Object.entries(schema)
                 .sort(([, a], [, b]) => a.order - b.order)
                 .map(([categoryKey, category]) => {
                   const Icon = iconMap[category.icon] || Settings;
@@ -413,7 +540,7 @@ export function ConfigurationPanel() {
           </CardHeader>
 
           <CardContent className="flex-1 overflow-y-auto pt-4 pb-2">
-            {Object.entries(CONFIG_SCHEMA).map(([categoryKey, category]) => {
+            {Object.entries(schema).map(([categoryKey, category]) => {
               const Icon = iconMap[category.icon] || Settings;
               
               // Group settings by parent/child relationship
