@@ -171,7 +171,7 @@ export function Nav() {
               </TooltipTrigger>
               <TooltipContent>About this template</TooltipContent>
             </Tooltip>
-            <DialogContent className="max-h-[80vh] overflow-y-auto sm:max-w-3xl">
+            <DialogContent className="max-h-[90vh] overflow-y-auto max-w-[95vw] sm:max-w-6xl">
               <DialogTitle className="flex items-center gap-2 text-lg" />
               <AboutContent onClose={() => setOpen(false)} />
             </DialogContent>
