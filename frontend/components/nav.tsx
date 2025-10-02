@@ -58,26 +58,26 @@ export function Nav() {
   };
   return (
     <header className="w-full border-b bg-gradient-to-r from-blue-50/80 via-purple-50/60 to-cyan-50/80 backdrop-blur-xl supports-[backdrop-filter]:bg-gradient-to-r supports-[backdrop-filter]:from-blue-50/60 supports-[backdrop-filter]:via-purple-50/40 supports-[backdrop-filter]:to-cyan-50/60 sticky top-0 z-50 shadow-lg border-blue-200/20">
-      <nav className="mx-auto max-w-6xl flex items-center justify-between gap-4 px-6 py-4">
-        <div className="flex items-center gap-3">
+      <nav className="mx-auto max-w-6xl flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-6 py-3 sm:py-4">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Link
             href="/"
-            className="flex items-center gap-3 font-bold text-xl tracking-tight hover:opacity-80 transition-all duration-300 hover:scale-105 group"
+            className="flex items-center gap-2 sm:gap-3 font-bold text-base sm:text-xl tracking-tight hover:opacity-80 transition-all duration-300 hover:scale-105 group"
           >
             <Image
               src="/favicon.png"
               alt="App icon"
-              width={40}
-              height={40}
-              className="transition-all duration-300 group-hover:rotate-3"
+              width={32}
+              height={32}
+              className="transition-all duration-300 group-hover:rotate-3 sm:w-10 sm:h-10"
               priority
             />
-            <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent hidden md:inline text-sm sm:text-base md:text-xl">
               FastAPI / Next.js / ColPali Template
             </span>
           </Link>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           {links.map((link) => {
             const active = link.href === "/" ? pathname === "/" : pathname === link.href || pathname.startsWith(`${link.href}/`);
             const Icon = link.icon;
@@ -89,15 +89,15 @@ export function Nav() {
                 aria-label={link.label}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 hover:scale-105 relative group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                  "flex items-center gap-2 px-2 py-2 sm:px-4 sm:py-2.5 rounded-xl text-sm font-medium transition-all duration-300 hover:scale-105 relative group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                   active
                     ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg hover:shadow-xl"
                     : "text-muted-foreground hover:text-foreground hover:bg-white/60 hover:shadow-md border border-transparent hover:border-blue-200/50",
                   // Add extra padding-right when badge is present to prevent overlap
-                  uploadIndicator && link.href === "/upload" && "pr-8"
+                  uploadIndicator && link.href === "/upload" && "pr-6 sm:pr-8"
                 )}
               >
-                <Icon className={cn("w-4 h-4 relative z-10 transition-colors duration-300", active ? "text-white" : link.color)} />
+                <Icon className={cn("w-5 h-5 sm:w-4 sm:h-4 relative z-10 transition-colors duration-300", active ? "text-white" : link.color)} />
                 <span className={cn("hidden sm:inline relative z-10 transition-colors duration-300", active ? "text-white font-semibold" : "")}>
                   {link.label}
                 </span>
@@ -162,9 +162,9 @@ export function Nav() {
                     variant="ghost"
                     size="icon"
                     aria-label="About this template"
-                    className="group transition-transform hover:scale-105"
+                    className="group transition-transform hover:scale-105 h-9 w-9 sm:h-10 sm:w-10"
                   >
-                    <HelpCircle className="w-5 h-5 text-blue-600 transition-colors duration-300 group-hover:text-cyan-600" />
+                    <HelpCircle className="w-5 h-5 sm:w-5 sm:h-5 text-blue-600 transition-colors duration-300 group-hover:text-cyan-600" />
                     <span className="sr-only">About this template</span>
                   </Button>
                 </DialogTrigger>
