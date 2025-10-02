@@ -287,8 +287,8 @@ export default function UploadPage() {
                 disabled={!uploading && !hasFiles}
                 variant={uploading ? "destructive" : "default"}
                 className={uploading 
-                  ? "w-full h-12 bg-red-600 hover:bg-red-700" 
-                  : "w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 h-12"
+                  ? "w-full h-12 bg-red-600 hover:bg-red-700 rounded-full" 
+                  : "w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 h-12 rounded-full"
                 }
                 size="lg"
               >

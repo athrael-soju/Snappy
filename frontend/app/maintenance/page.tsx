@@ -153,10 +153,10 @@ export default function MaintenancePage() {
 
       {/* Tabs Container with Scroll */}
       <Tabs defaultValue="maintenance" className="flex-1 flex flex-col min-h-0">
-        <TabsList className="w-full mb-6 bg-gradient-to-r from-blue-50/50 via-purple-50/50 to-cyan-50/50 border border-blue-200/50 h-12">
+        <TabsList className="w-full mb-6 bg-gradient-to-r from-blue-50/50 via-purple-50/50 to-cyan-50/50 border border-blue-200/50 h-12 rounded-full">
           <TabsTrigger 
             value="maintenance" 
-            className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all"
+            className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all rounded-full"
           >
             <Shield className="w-4 h-4 mr-2" />
             <span className="hidden sm:inline">Data Management</span>
@@ -164,7 +164,7 @@ export default function MaintenancePage() {
           </TabsTrigger>
           <TabsTrigger 
             value="configuration" 
-            className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all"
+            className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all rounded-full"
           >
             <Sliders className="w-4 h-4 mr-2" />
             <span className="hidden sm:inline">Configuration</span>
@@ -221,7 +221,7 @@ export default function MaintenancePage() {
                       <Button
                         variant={action.buttonVariant}
                         disabled={isAnyLoading}
-                        className={`w-full h-12 font-semibold ${
+                        className={`w-full h-12 font-semibold rounded-full ${
                           action.severity === 'critical' 
                             ? 'bg-red-600 hover:bg-red-700 text-white' 
                             : action.severity === 'high'

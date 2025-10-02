@@ -88,7 +88,7 @@ export default function Home() {
           <div className="mb-6">
             <Badge variant="secondary" className="mb-4 px-4 py-2 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border-blue-200">
               <Sparkles className="w-4 h-4 mr-2" />
-              Powered by Vision Language Models
+              Powered by the ColPali Vision
             </Badge>
           </div>
 
@@ -110,7 +110,7 @@ export default function Home() {
             <Button
               asChild
               size="lg"
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 h-14 px-8 text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 h-14 px-8 text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 rounded-full"
             >
               <Link href="/upload">
                 <CloudUpload className="mr-3 h-6 w-6" />

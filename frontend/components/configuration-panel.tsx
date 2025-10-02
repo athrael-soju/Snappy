@@ -244,15 +244,71 @@ export function ConfigurationPanel() {
     return parentBool === setting.depends_on.value;
   }
 
-  function renderSetting(setting: ConfigSetting) {
+  function renderSetting(setting: ConfigSetting, isNested: boolean = false) {
     const currentValue = values[setting.key] || setting.default;
+
+    // Nested settings have compact styling
+    if (isNested) {
+      switch (setting.type) {
+        case "number":
+          const numValue = parseFloat(currentValue) || parseFloat(setting.default);
+          const min = setting.min ?? 0;
+          const max = setting.max ?? 100;
+          const step = setting.step ?? 1;
+          
+          return (
+            <div className="space-y-2">
+              <Label htmlFor={setting.key} className="text-xs font-medium flex items-center gap-1">
+                {setting.label}
+                {setting.help_text && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p className="text-xs">{setting.help_text}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </Label>
+              <div className="flex items-center gap-2">
+                <Slider
+                  id={setting.key}
+                  value={[numValue]}
+                  min={min}
+                  max={max}
+                  step={step}
+                  onValueChange={(vals) => handleValueChange(setting.key, vals[0].toString())}
+                  disabled={saving}
+                  className="flex-1"
+                />
+                <Input
+                  type="number"
+                  value={currentValue}
+                  onChange={(e) => handleValueChange(setting.key, e.target.value)}
+                  min={min}
+                  max={max}
+                  step={step}
+                  disabled={saving}
+                  className="w-16 h-8 text-xs"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">{setting.description}</p>
+            </div>
+          );
+        default:
+          return null;
+      }
+    }
 
     // Two-column layout: label+description left, control right
     switch (setting.type) {
       case "boolean":
         return (
-          <div className="grid grid-cols-[1fr,auto] gap-6 items-start">
-            <div className="space-y-1">
+          <div className="grid grid-cols-[1fr,auto] gap-6 items-start py-3">
+            <div className="space-y-0.5">
               <Label htmlFor={setting.key} className="text-sm font-medium flex items-center gap-1.5">
                 {setting.label}
                 {setting.help_text && (
@@ -282,8 +338,8 @@ export function ConfigurationPanel() {
 
       case "select":
         return (
-          <div className="grid grid-cols-[1fr,280px] gap-6 items-start">
-            <div className="space-y-1">
+          <div className="grid grid-cols-[1fr,280px] gap-6 items-start py-3">
+            <div className="space-y-0.5">
               <Label htmlFor={setting.key} className="text-sm font-medium flex items-center gap-1.5">
                 {setting.label}
                 {setting.help_text && (
@@ -327,8 +383,8 @@ export function ConfigurationPanel() {
         const step = setting.step ?? 1;
 
         return (
-          <div className="grid grid-cols-[1fr,280px] gap-6 items-start">
-            <div className="space-y-1">
+          <div className="grid grid-cols-[1fr,280px] gap-6 items-start py-3">
+            <div className="space-y-0.5">
               <Label htmlFor={setting.key} className="text-sm font-medium flex items-center gap-1.5">
                 {setting.label}
                 {setting.help_text && (
@@ -380,8 +436,8 @@ export function ConfigurationPanel() {
 
       case "password":
         return (
-          <div className="grid grid-cols-[1fr,280px] gap-6 items-start">
-            <div className="space-y-1">
+          <div className="grid grid-cols-[1fr,280px] gap-6 items-start py-3">
+            <div className="space-y-0.5">
               <Label htmlFor={setting.key} className="text-sm font-medium flex items-center gap-1.5">
                 {setting.label}
                 {setting.help_text && (
@@ -412,8 +468,8 @@ export function ConfigurationPanel() {
 
       default: // text
         return (
-          <div className="grid grid-cols-[1fr,280px] gap-6 items-start">
-            <div className="space-y-1">
+          <div className="grid grid-cols-[1fr,280px] gap-6 items-start py-3">
+            <div className="space-y-0.5">
               <Label htmlFor={setting.key} className="text-sm font-medium flex items-center gap-1.5">
                 {setting.label}
                 {setting.help_text && (
@@ -548,73 +604,87 @@ export function ConfigurationPanel() {
                       </div>
                     </CardHeader>
                     <ScrollArea className="flex-1 min-h-0">
-                      <CardContent className="space-y-6 pr-4">
-                        {visibleSettings.map((setting, index) => (
-                          <div key={setting.key}>
-                            {index > 0 && <Separator className="my-6" />}
-                            {renderSetting(setting)}
-                          </div>
-                        ))}
+                      <CardContent className="pr-4 py-4">
+                        {visibleSettings.map((setting, index) => {
+                          // Check for nested settings
+                          const childSettings = category.settings.filter(
+                            s => s.depends_on?.key === setting.key && isSettingVisible(s)
+                          );
+                          const hasChildren = childSettings.length > 0;
+                          
+                          return (
+                            <div key={setting.key}>
+                              {index > 0 && <Separator className="my-2" />}
+                              {renderSetting(setting)}
+                              
+                              {/* Nested child settings */}
+                              {hasChildren && (
+                                <div className="mt-3 ml-6 pl-4 border-l-2 border-primary/20 space-y-3">
+                                  {childSettings.map(childSetting => (
+                                    <div key={childSetting.key}>
+                                      {renderSetting(childSetting, true)}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </CardContent>
                     </ScrollArea>
                   </Card>
 
-                  {/* Danger Zone - Always visible */}
-                  <Card className="border-destructive/50 flex-shrink-0">
-                    <CardContent className="py-4 px-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-semibold text-destructive text-sm">Danger Zone</div>
-                          <p className="text-sm text-muted-foreground mt-0.5">
-                            Reset all settings to defaults
-                          </p>
-                        </div>
-                        <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
-                          <DialogTrigger asChild>
-                            <Button variant="destructive" size="sm" disabled={saving}>
-                              <RotateCcw className="w-4 h-4 mr-2" />
-                              Reset All
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle className="flex items-center gap-2">
-                                <AlertTriangle className="w-5 h-5 text-destructive" />
-                                Reset all configuration?
-                              </DialogTitle>
-                              <DialogDescription>
-                                This will reset all configuration settings to their default values. 
-                                Your saved configuration will be cleared from browser storage.
-                              </DialogDescription>
-                            </DialogHeader>
-                            <DialogFooter>
-                              <Button 
-                                variant="outline" 
-                                onClick={() => setResetDialogOpen(false)}
-                                disabled={saving}
-                              >
-                                Cancel
-                              </Button>
-                              <Button 
-                                variant="destructive"
-                                onClick={resetToDefaults}
-                                disabled={saving}
-                              >
-                                {saving ? (
-                                  <>
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Resetting...
-                                  </>
-                                ) : (
-                                  "Confirm Reset"
-                                )}
-                              </Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  {/* Reset All - Compact button */}
+                  <div className="flex justify-end flex-shrink-0">
+                    <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          disabled={saving} 
+                          className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300 transition-colors"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5 mr-2" />
+                          Reset All to Defaults
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle className="flex items-center gap-2">
+                            <AlertTriangle className="w-5 h-5 text-destructive" />
+                            Reset all configuration?
+                          </DialogTitle>
+                          <DialogDescription>
+                            This will reset all configuration settings to their default values. 
+                            Your saved configuration will be cleared from browser storage.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                          <Button 
+                            variant="outline" 
+                            onClick={() => setResetDialogOpen(false)}
+                            disabled={saving}
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            variant="destructive"
+                            onClick={resetToDefaults}
+                            disabled={saving}
+                          >
+                            {saving ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Resetting...
+                              </>
+                            ) : (
+                              "Confirm Reset"
+                            )}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </motion.div>
               );
             })}
@@ -628,20 +698,25 @@ export function ConfigurationPanel() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="border-t bg-amber-50/95 backdrop-blur-sm shadow-lg"
+            className="border-t border-blue-200/50 bg-gradient-to-r from-blue-50/95 via-purple-50/95 to-cyan-50/95 backdrop-blur-sm shadow-lg rounded-full"
           >
             <div className="container max-w-7xl py-4 px-6">
               <div className="flex items-center gap-3">
-                <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
-                <p className="text-sm font-medium text-amber-900 flex-1">
-                  You have {configStats.modifiedSettings} unsaved change{configStats.modifiedSettings !== 1 ? 's' : ''}
-                </p>
+                <div className="flex items-center gap-2 flex-1">
+                  <div className="p-1.5 rounded-full bg-gradient-to-r from-blue-500 to-purple-500">
+                    <AlertTriangle className="h-3.5 w-3.5 text-white" />
+                  </div>
+                  <p className="text-sm font-medium bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">
+                    You have {configStats.modifiedSettings} unsaved change{configStats.modifiedSettings !== 1 ? 's' : ''}
+                  </p>
+                </div>
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={resetChanges}
                     disabled={saving}
+                    className="border-blue-200 hover:bg-blue-50"
                   >
                     Discard
                   </Button>
@@ -649,7 +724,7 @@ export function ConfigurationPanel() {
                     size="sm"
                     onClick={saveChanges}
                     disabled={saving}
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
                   >
                     {saving ? (
                       <>
