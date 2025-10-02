@@ -33,7 +33,7 @@ flowchart TB
 Below is the high-level component architecture of the Vision RAG template.
 See the architecture diagram in [backend/docs/architecture.md](backend/docs/architecture.md). It focuses on the core indexing and retrieval flows for clarity.
 
-- __`api/app.py`__ and `api/routers/*`__: Modular FastAPI application (routers: `meta`, `retrieval`, `indexing`, `maintenance`).
+- __`api/app.py`__ and `api/routers/*`__: Modular FastAPI application (routers: `meta`, `retrieval`, `indexing`, `maintenance`, `config`).
 - __`backend.py`__: Thin entrypoint that boots `api.app.create_app()`.
 - __`services/qdrant/`__: Refactored package with separation of concerns:
   - `service.py`: `QdrantService` main orchestrator
@@ -89,8 +89,12 @@ Notes
 - `/progress/stream/{job_id}` (GET) → push indexing status via Server‑Sent Events.
 - `/search` (GET q, k) → semantic search results (see `api/routers/retrieval.py`).
 - `/clear/qdrant`, `/clear/minio`, `/clear/all` → maintenance endpoints.
+- `/config/schema` (GET) → retrieve configuration schema with categories and settings.
+- `/config/values` (GET) → get current runtime configuration values.
+- `/config/update` (POST) → update a configuration value at runtime.
+- `/config/reset` (POST) → reset all configuration to defaults.
 
-Chat streaming is not proxied by the backend. It is implemented in the Next.js API route at `frontend/app/api/chat/route.ts`, which calls OpenAI's Responses API and streams Server-Sent Events (SSE) to the browser.
+Chat streaming is not proxied by the backend. It is implemented in the Next.js API route at `frontend/app/api/chat/route.ts` using **Edge Runtime** for optimized streaming performance. The route calls OpenAI's Responses API and streams Server-Sent Events (SSE) to the browser.
 
 ## OpenAPI and client generation
 

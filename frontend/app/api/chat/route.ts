@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
     if (toolEnabled) {
       // 1. Initial API call with tools defined
       response = await openai.responses.create({
-        model: process.env.OPENAI_MODEL || 'gpt-5-nano',
+        model: MODEL,
         tools: [documentSearchTool],
         input: input as any,
         instructions: systemPrompt,
