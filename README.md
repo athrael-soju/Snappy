@@ -130,7 +130,7 @@ Screenshots of the current UI. Pages: Home, Upload, Search, AI Chat, Maintenance
       </td>
       <td align="center">
         <strong>Upload</strong><br/>
-        <img width="1920" height="1200" alt="image" src="https://github.com/user-attachments/assets/9f8388df-04c8-4224-b28d-ad6b710439d6" />
+        <img width="1920" height="1200" alt="image" src="https://github.com/user-attachments/assets/9470fc82-6d73-46ba-ad23-13fe671a0cf0" />        
       </td>
     </tr>
     <tr>
