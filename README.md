@@ -126,33 +126,39 @@ Screenshots of the current UI. Pages: Home, Upload, Search, AI Chat, Maintenance
     <tr>
       <td align="center">
         <strong>Home</strong><br/>
-        <img src="image/README/1755819874527.png" alt="Home screen" width="520" />
+        <img width="1920" height="1200" alt="image" src="https://github.com/user-attachments/assets/a0db1883-e5d2-426d-b7eb-0e1d379c859e" />
       </td>
       <td align="center">
         <strong>Upload</strong><br/>
-        <img src="image/README/1755819906049.png" alt="Upload screen" width="520" />
+        <img width="1920" height="1200" alt="image" src="https://github.com/user-attachments/assets/9f8388df-04c8-4224-b28d-ad6b710439d6" />
       </td>
     </tr>
     <tr>
       <td align="center">
         <strong>Search</strong><br/>
-        <img src="image/README/1755819889262.png" alt="Search screen" width="520" />
+        <img width="1920" height="1200" alt="image" src="https://github.com/user-attachments/assets/d7e3dc5b-03cb-4ccf-bcd1-5049c9fedc0b" />
       </td>
       <td align="center">
         <strong>Chat</strong><br/>
-        <img src="image/README/1755819922170.png" alt="Chat screen" width="520" />
+        <img width="1920" height="1200" alt="image" src="https://github.com/user-attachments/assets/cdb7f4a9-4015-4910-b85c-071db52ef8ff" />
       </td>
     </tr>
     <tr>
       <td align="center">
-        <strong>Maintenance</strong><br/>
-        <img src="image/README/1755819936077.png" alt="Maintenance screen" width="520" />
+        <strong>Maintenance (Data Management)</strong><br/>
+        <img width="1920" height="1200" alt="image" src="https://github.com/user-attachments/assets/e7145d9d-a650-4388-8e3e-4dff79d28a35" />
       </td>
       <td align="center">
-        <strong>About</strong><br/>
-        <img src="image/README/1755819989515.png" alt="About screen" width="520" />
-      </td>
+        <strong>Maintenance (Configuration)</strong><br/>
+        <img width="1920" height="1200" alt="image" src="https://github.com/user-attachments/assets/0b82f6b1-2631-4741-8cad-79185f400e76" />
+      </td>      
     </tr>
+    <tr>    
+      <td align="center">
+         <strong>About</strong><br/>
+         <img width="1920" height="1200" alt="image" src="https://github.com/user-attachments/assets/e30a9ae9-ef61-49a8-8e7e-89c74d056fe8" />
+      </td>
+    </tr>      
   </table>
 </div>
 
