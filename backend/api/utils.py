@@ -5,7 +5,7 @@ from typing import List, Dict
 from fastapi import HTTPException
 from pdf2image import convert_from_path
 
-from config import WORKER_THREADS
+import config  # Import module for dynamic config access
 
 
 def convert_pdf_paths_to_images(paths: List[str], original_filenames: Dict[str, str] = None) -> List[dict]:
@@ -18,7 +18,7 @@ def convert_pdf_paths_to_images(paths: List[str], original_filenames: Dict[str, 
     items: List[dict] = []
     for f in paths:
         try:
-            pages = convert_from_path(f, thread_count=int(WORKER_THREADS))
+            pages = convert_from_path(f, thread_count=int(config.WORKER_THREADS))
         except Exception as e:
             raise HTTPException(
                 status_code=400, detail=f"Failed to convert PDF {f}: {e}"

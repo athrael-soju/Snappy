@@ -67,10 +67,16 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "integer",
-              "maximum": 50,
-              "minimum": 1,
-              "default": 5,
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 50,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "title": "K"
             }
           }
@@ -120,6 +126,47 @@
           },
           "required": true
         },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/index/cancel/{job_id}": {
+      "post": {
+        "tags": [
+          "indexing"
+        ],
+        "summary": "Cancel Upload",
+        "description": "Cancel an ongoing upload/indexing job.",
+        "operationId": "cancel_upload_index_cancel__job_id__post",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -238,6 +285,124 @@
           }
         }
       }
+    },
+    "/config/schema": {
+      "get": {
+        "tags": [
+          "configuration"
+        ],
+        "summary": "Get Config Schema",
+        "description": "Get the configuration schema with categories and settings.",
+        "operationId": "get_config_schema_config_schema_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Config Schema Config Schema Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config/values": {
+      "get": {
+        "tags": [
+          "configuration"
+        ],
+        "summary": "Get Config Values",
+        "description": "Get current values for all configuration variables.",
+        "operationId": "get_config_values_config_values_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Get Config Values Config Values Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config/update": {
+      "post": {
+        "tags": [
+          "configuration"
+        ],
+        "summary": "Update Config",
+        "description": "Update a configuration value at runtime.\n\nNote: This updates the runtime configuration immediately.\nTo persist changes across restarts, update your .env file manually.",
+        "operationId": "update_config_config_update_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Update Config Config Update Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config/reset": {
+      "post": {
+        "tags": [
+          "configuration"
+        ],
+        "summary": "Reset Config",
+        "description": "Reset all configuration to defaults from schema.\n\nNote: This only affects runtime values. Your .env file remains unchanged.",
+        "operationId": "reset_config_config_reset_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Reset Config Config Reset Post"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -258,6 +423,27 @@
           "files"
         ],
         "title": "Body_index_index_post"
+      },
+      "ConfigUpdate": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key",
+            "description": "Environment variable name"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value",
+            "description": "New value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "value"
+        ],
+        "title": "ConfigUpdate",
+        "description": "Request model for updating configuration."
       },
       "HTTPValidationError": {
         "properties": {

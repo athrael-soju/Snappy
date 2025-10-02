@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MaintenanceService, ApiError } from "@/lib/api/generated";
 import "@/lib/api/client";
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Settings, Database, Server, Trash2, AlertTriangle, CheckCircle, Loader2, Shield, Zap } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Settings, Database, Server, Trash2, AlertTriangle, CheckCircle, Loader2, Shield, Zap, Sliders, Activity, HardDrive, FileText } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "@/components/ui/sonner";
+import { ConfigurationPanel } from "@/components/configuration-panel";
 
 type ActionType = "q" | "m" | "all";
 
@@ -67,6 +69,23 @@ export default function MaintenancePage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<{ q: boolean; m: boolean; all: boolean }>({ q: false, m: false, all: false });
   const [dialogOpen, setDialogOpen] = useState<ActionType | null>(null);
+  const [systemHealth, setSystemHealth] = useState({
+    qdrantStatus: "operational",
+    minioStatus: "operational",
+    lastCleared: null as string | null,
+    totalOperations: 0
+  });
+
+  useEffect(() => {
+    // Load system health/stats on mount
+    const stats = {
+      qdrantStatus: "operational",
+      minioStatus: "operational", 
+      lastCleared: localStorage.getItem("last_maintenance_action"),
+      totalOperations: parseInt(localStorage.getItem("maintenance_operations") || "0")
+    };
+    setSystemHealth(stats);
+  }, []);
 
   async function run(action: ActionType) {
     const actionConfig = actions.find(a => a.id === action);
@@ -89,6 +108,16 @@ export default function MaintenancePage() {
       
       setStatus(msg);
       toast.success(actionConfig.successMsg, { description: msg });
+      
+      // Update stats
+      const newTotal = systemHealth.totalOperations + 1;
+      localStorage.setItem("maintenance_operations", newTotal.toString());
+      localStorage.setItem("last_maintenance_action", new Date().toISOString());
+      setSystemHealth(prev => ({
+        ...prev,
+        totalOperations: newTotal,
+        lastCleared: new Date().toISOString()
+      }));
     } catch (err: unknown) {
       let errorMsg = "Maintenance action failed";
       if (err instanceof ApiError) {
@@ -110,44 +139,51 @@ export default function MaintenancePage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="space-y-8"
+      className="flex flex-col min-h-0 flex-1"
     >
       {/* Header */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-br from-red-500/10 to-orange-500/10 rounded-lg border border-red-500/20">
-            <Shield className="w-6 h-6 text-red-500" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">System Maintenance</h1>
-            <p className="text-muted-foreground text-lg">Manage your vector database and object storage with care</p>
-          </div>
+      <div className="space-y-4 mb-4 text-center relative">
+        {/* Background decoration */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 left-20 w-32 h-32 bg-blue-200/20 rounded-full blur-xl" />
+          <div className="absolute top-10 right-32 w-24 h-24 bg-purple-200/20 rounded-full blur-xl" />
         </div>
         
-        {/* Quick Info */}
-        <div className="flex items-center gap-6 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-500" />
-            <span>Destructive operations ahead</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4 text-green-500" />
-            <span>Confirm before proceeding</span>
-          </div>
-        </div>
+        <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent relative z-10">
+          System Maintenance
+        </h1>
+        <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto relative z-10">
+          Manage your vector database, object storage, and runtime configuration
+        </p>
       </div>
 
-      {/* Warning Banner */}
-      <Alert className="border-2 border-amber-200 bg-gradient-to-r from-amber-50/50 to-orange-50/50">
-        <AlertTriangle className="h-5 w-5 text-amber-600" />
-        <AlertTitle className="text-amber-800 font-semibold">⚠️ Destructive Operations</AlertTitle>
-        <AlertDescription className="text-amber-700">
-          The actions below permanently delete data and <strong>cannot be undone</strong>
-        </AlertDescription>
-      </Alert>
+      {/* Tabs Container with Scroll */}
+      <Tabs defaultValue="maintenance" className="flex-1 flex flex-col min-h-0">
+        <TabsList className="w-full max-w-md mx-auto mb-4 bg-gradient-to-r from-blue-100/50 via-purple-100/50 to-cyan-100/50 border border-blue-200/50 h-14 rounded-full p-1 shadow-sm">
+          <TabsTrigger 
+            value="maintenance" 
+            className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300 rounded-full font-medium"
+          >
+            <Shield className="w-4 h-4 mr-2" />
+            <span className="hidden sm:inline">Data Management</span>
+            <span className="sm:hidden">Data</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="configuration" 
+            className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300 rounded-full font-medium"
+          >
+            <Sliders className="w-4 h-4 mr-2" />
+            <span className="hidden sm:inline">Configuration</span>
+            <span className="sm:hidden">Config</span>
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Actions Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Maintenance Tab */}
+        <TabsContent value="maintenance" className="flex-1 min-h-0 overflow-y-auto mt-0 custom-scrollbar pr-2">
+          <div className="space-y-4 pb-4">
+
+        {/* Actions Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {actions.map((action, index) => {
           const Icon = action.icon;
           const isLoading = loading[action.id];
@@ -158,30 +194,31 @@ export default function MaintenancePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
+              className="py-1"
             >
-              <Card className={`h-full flex flex-col group hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-2 ${action.borderColor}`}>
+              <Card className={`h-full flex flex-col group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border ${action.borderColor} bg-gradient-to-br ${action.bgColor} backdrop-blur-sm`}>
                 <CardHeader className="pb-6">
                   <div className="flex items-center justify-between mb-4">
-                    <div className={`inline-flex w-12 h-12 items-center justify-center rounded-xl ${action.color} ${action.bgColor} border ${action.borderColor} group-hover:scale-110 transition-transform`}>
-                      <Icon className="w-6 h-6" />
+                    <div className={`inline-flex w-14 h-14 items-center justify-center rounded-2xl ${action.color} bg-white border-2 ${action.borderColor} group-hover:scale-110 transition-transform shadow-sm`}>
+                      <Icon className="w-7 h-7" />
                     </div>
                     <Badge 
                       variant={action.severity === 'critical' ? 'destructive' : action.severity === 'high' ? 'secondary' : 'outline'}
-                      className="text-xs"
+                      className="text-xs font-medium"
                     >
-                      {action.severity === 'critical' ? '🚨 Critical' : action.severity === 'high' ? '⚠️ High Risk' : '⚡ Medium Risk'}
+                      {action.severity === 'critical' ? '🚨' : action.severity === 'high' ? '⚠️' : '⚡'}
                     </Badge>
                   </div>
-                  <CardTitle className={`text-xl font-bold ${action.color} group-hover:opacity-90 transition-opacity`}>
+                  <CardTitle className={`text-xl font-bold ${action.color} group-hover:opacity-80 transition-opacity`}>
                     {action.title}
                   </CardTitle>
-                  <CardDescription className="text-base leading-relaxed">
+                  <CardDescription className="text-base leading-relaxed mt-2">
                     {action.description}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-0 flex-1 grid grid-rows-[1fr_auto] gap-4">
-                  <div className="p-3 bg-muted/30 rounded-lg">
-                    <p className="text-sm text-muted-foreground">
+                  <div className="p-4 bg-white/60 backdrop-blur-sm rounded-xl border border-gray-200/50">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
                       {action.detailedDescription}
                     </p>
                   </div>
@@ -191,12 +228,12 @@ export default function MaintenancePage() {
                       <Button
                         variant={action.buttonVariant}
                         disabled={isAnyLoading}
-                        className={`w-full h-12 font-semibold ${
+                        className={`w-full h-12 font-semibold rounded-full shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105 ${
                           action.severity === 'critical' 
                             ? 'bg-red-600 hover:bg-red-700 text-white' 
                             : action.severity === 'high'
                             ? 'bg-orange-600 hover:bg-orange-700 text-white'
-                            : ''
+                            : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white'
                         }`}
                         size="lg"
                       >
@@ -267,89 +304,72 @@ export default function MaintenancePage() {
         })}
       </div>
 
-      {/* Status Messages */}
-      <AnimatePresence>
-        {status && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-          >
-            <Alert variant="success">
-              <CheckCircle className="h-4 w-4" />
-              <AlertTitle>Operation Completed</AlertTitle>
-              <AlertDescription>{status}</AlertDescription>
-            </Alert>
-          </motion.div>
-        )}
-        
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-          >
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Operation Failed</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        {/* Info Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <Card className="border border-blue-200/50 bg-gradient-to-br from-blue-500/5 to-cyan-500/5 hover:shadow-lg transition-shadow duration-300">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-white border-2 border-blue-200/50 shadow-sm">
+                  <Database className="w-5 h-5 text-blue-500" />
+                </div>
+                <CardTitle className="text-lg font-bold">Qdrant Vector Database</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2 text-sm">
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></div>
+                  <span className="text-muted-foreground">Document embeddings and vector representations</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></div>
+                  <span className="text-muted-foreground">Search indices for visual content retrieval</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></div>
+                  <span className="text-muted-foreground">AI-generated semantic understanding data</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border border-orange-200/50 bg-gradient-to-br from-orange-500/5 to-amber-500/5 hover:shadow-lg transition-shadow duration-300">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-white border-2 border-orange-200/50 shadow-sm">
+                  <Server className="w-5 h-5 text-orange-500" />
+                </div>
+                <CardTitle className="text-lg font-bold">MinIO Object Storage</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2 text-sm">
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-1.5 flex-shrink-0"></div>
+                  <span className="text-muted-foreground">Original uploaded documents and images</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-1.5 flex-shrink-0"></div>
+                  <span className="text-muted-foreground">Processed file thumbnails and previews</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-1.5 flex-shrink-0"></div>
+                  <span className="text-muted-foreground">File metadata and storage organization</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+          </div>
+        </TabsContent>
 
-      {/* Info Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="border-blue-200/50">
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-2">
-              <Database className="w-5 h-5 text-blue-500" />
-              <CardTitle className="text-lg">Qdrant Vector Database</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-2 text-sm">
-              <div className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-muted-foreground">Document embeddings and vector representations</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-muted-foreground">Search indices for visual content retrieval</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-muted-foreground">AI-generated semantic understanding data</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-orange-200/50">
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-2">
-              <Server className="w-5 h-5 text-orange-500" />
-              <CardTitle className="text-lg">MinIO Object Storage</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-2 text-sm">
-              <div className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-muted-foreground">Original uploaded documents and images</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-muted-foreground">Processed file thumbnails and previews</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-muted-foreground">File metadata and storage organization</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+        {/* Configuration Tab */}
+        <TabsContent value="configuration" className="flex-1 min-h-0 mt-0 h-full">
+          <div className="h-full flex flex-col">
+            <ConfigurationPanel />
+          </div>
+        </TabsContent>
+      </Tabs>
     </motion.div>
   );
 }

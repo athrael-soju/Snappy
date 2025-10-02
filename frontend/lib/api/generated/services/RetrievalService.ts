@@ -16,7 +16,7 @@ export class RetrievalService {
      */
     public static searchSearchGet(
         q: string,
-        k: number = 5,
+        k?: (number | null),
     ): CancelablePromise<Array<SearchItem>> {
         return __request(OpenAPI, {
             method: 'GET',

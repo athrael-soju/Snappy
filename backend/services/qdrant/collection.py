@@ -4,15 +4,7 @@ import logging
 from typing import Optional
 from qdrant_client import QdrantClient, models
 
-from config import (
-    QDRANT_URL,
-    QDRANT_COLLECTION_NAME,
-    QDRANT_ON_DISK,
-    QDRANT_ON_DISK_PAYLOAD,
-    QDRANT_USE_BINARY,
-    QDRANT_BINARY_ALWAYS_RAM,
-    QDRANT_MEAN_POOLING_ENABLED,
-)
+import config
 
 logger = logging.getLogger(__name__)
 
@@ -32,13 +24,29 @@ class CollectionManager:
             muvera_post: Optional MUVERA postprocessor for FDE embeddings
         """
         try:
-            self.service = QdrantClient(url=QDRANT_URL)
-            self.collection_name = QDRANT_COLLECTION_NAME
+            # Store API client and MUVERA (these don't change)
             self.api_client = api_client
             self.muvera_post = muvera_post
-            self.enable_mean_pooling = QDRANT_MEAN_POOLING_ENABLED
+            # Don't cache config values - read them dynamically via properties
         except Exception as e:
             raise Exception(f"Failed to initialize Qdrant client: {e}")
+
+    @property
+    def service(self) -> QdrantClient:
+        """Get Qdrant client, reading URL from current config."""
+        if not hasattr(self, '_service') or self._service is None:
+            self._service = QdrantClient(url=config.QDRANT_URL)
+        return self._service
+    
+    @property
+    def collection_name(self) -> str:
+        """Get collection name from current config."""
+        return config.QDRANT_COLLECTION_NAME
+    
+    @property
+    def enable_mean_pooling(self) -> bool:
+        """Get mean pooling setting from current config."""
+        return config.QDRANT_MEAN_POOLING_ENABLED
 
     def _get_model_dimension(self) -> int:
         """Get the embedding dimension from the API."""
@@ -97,10 +105,10 @@ class CollectionManager:
                 quant = (
                     models.BinaryQuantization(
                         binary=models.BinaryQuantizationConfig(
-                            always_ram=QDRANT_BINARY_ALWAYS_RAM
+                            always_ram=config.QDRANT_BINARY_ALWAYS_RAM
                         )
                     )
-                    if QDRANT_USE_BINARY
+                    if config.QDRANT_USE_BINARY
                     else None
                 )
                 return models.VectorParams(
@@ -110,7 +118,7 @@ class CollectionManager:
                         comparator=models.MultiVectorComparator.MAX_SIM
                     ),
                     hnsw_config=(models.HnswConfigDiff(m=0) if include_hnsw else None),
-                    on_disk=QDRANT_ON_DISK,
+                    on_disk=config.QDRANT_ON_DISK,
                     quantization_config=quant,
                 )
 
@@ -122,16 +130,21 @@ class CollectionManager:
 
             # Add MUVERA single-vector space if enabled
             if self.muvera_post and self.muvera_post.embedding_size:
+                logger.info("Adding MUVERA vector space 'muvera_fde' with dim=%s", int(self.muvera_post.embedding_size))
                 vector_config["muvera_fde"] = models.VectorParams(
                     size=int(self.muvera_post.embedding_size),
                     distance=models.Distance.COSINE,
-                    on_disk=QDRANT_ON_DISK,
+                    on_disk=config.QDRANT_ON_DISK,
                 )
+            else:
+                logger.info("MUVERA not added: muvera_post=%s, has_embedding_size=%s", 
+                           self.muvera_post is not None,
+                           getattr(self.muvera_post, 'embedding_size', None) if self.muvera_post else None)
 
             self.service.create_collection(
                 collection_name=self.collection_name,
                 vectors_config=vector_config,
-                on_disk_payload=QDRANT_ON_DISK_PAYLOAD,
+                on_disk_payload=config.QDRANT_ON_DISK_PAYLOAD,
             )
             logger.info("Created new collection '%s' with model_dim=%s and vectors: %s", self.collection_name, model_dim, list(vector_config.keys()))
         except Exception as e:

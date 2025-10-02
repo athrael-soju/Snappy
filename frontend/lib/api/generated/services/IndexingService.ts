@@ -27,6 +27,27 @@ export class IndexingService {
         });
     }
     /**
+     * Cancel Upload
+     * Cancel an ongoing upload/indexing job.
+     * @param jobId
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static cancelUploadIndexCancelJobIdPost(
+        jobId: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/index/cancel/{job_id}',
+            path: {
+                'job_id': jobId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Stream Progress
      * @param jobId
      * @returns any Successful Response
