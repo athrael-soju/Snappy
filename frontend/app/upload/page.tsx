@@ -142,21 +142,24 @@ export default function UploadPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="space-y-8"
+      className="flex flex-col min-h-0 flex-1"
     >
-
       {/* Header */}
-      <div className="space-y-2">
+      <div className="space-y-2 mb-6">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-lg border border-blue-500/20">
             <CloudUpload className="w-6 h-6 text-blue-500" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Upload Documents</h1>
-            <p className="text-muted-foreground">Drag & drop or select files to add to your visual search index</p>
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Upload Documents</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">Drag & drop or select files to add to your visual search index</p>
           </div>
         </div>
       </div>
+
+      {/* Scrollable Content */}
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-2">
+        <div className="space-y-6 pb-6">
 
       {/* Upload Card with Drag & Drop */}
       <Card className={`relative border-2 border-dashed transition-all duration-300 group ${
@@ -337,63 +340,65 @@ export default function UploadPage() {
         </div>
       </Card>
 
-      {/* Info Section - Moved closer and more prominent */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="border-blue-200/50">
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-2">
-              <FileText className="w-5 h-5 text-blue-500" />
-              <CardTitle className="text-lg">Supported Formats</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <div className="font-medium text-foreground flex items-center gap-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  Documents
+          {/* Info Section - Moved closer and more prominent */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            <Card className="border-blue-200/50">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-blue-500" />
+                  <CardTitle className="text-lg">Supported Formats</CardTitle>
                 </div>
-                <div className="text-sm text-muted-foreground pl-4">
-                  PDF
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="font-medium text-foreground flex items-center gap-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      Documents
+                    </div>
+                    <div className="text-sm text-muted-foreground pl-4">
+                      PDF
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="font-medium text-foreground flex items-center gap-2">
+                      <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                      Images
+                    </div>
+                    <div className="text-sm text-muted-foreground pl-4">
+                      PNG, JPG, JPEG, GIF
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="space-y-2">
-                <div className="font-medium text-foreground flex items-center gap-2">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  Images
+              </CardContent>
+            </Card>
+            
+            <Card className="border-purple-200/50">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-2">
+                  <ArrowUpFromLine className="w-5 h-5 text-purple-500" />
+                  <CardTitle className="text-lg">Quick Tips</CardTitle>
                 </div>
-                <div className="text-sm text-muted-foreground pl-4">
-                  PNG, JPG, JPEG, GIF
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-start gap-2">
+                    <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <span className="text-muted-foreground">Drag files directly from your computer</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <span className="text-muted-foreground">Upload multiple files at once</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <span className="text-muted-foreground">Files are processed automatically for search</span>
+                  </div>
                 </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-purple-200/50">
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-2">
-              <ArrowUpFromLine className="w-5 h-5 text-purple-500" />
-              <CardTitle className="text-lg">Quick Tips</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 text-sm">
-              <div className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-muted-foreground">Drag files directly from your computer</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-muted-foreground">Upload multiple files at once</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-muted-foreground">Files are processed automatically for search</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </motion.div>
   );

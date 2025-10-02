@@ -1,84 +1,107 @@
 """
 Configuration module for FastAPI backend.
 
-All settings are loaded from environment variables.
+All settings are dynamically loaded from runtime configuration.
+Values can be updated at runtime via the configuration API.
 See docs/configuration.md for detailed documentation of all options.
 """
 
 import os
-from typing import Final
+from typing import Any
 from dotenv import load_dotenv
+from runtime_config import get_runtime_config
 
 load_dotenv()
 
+# Initialize runtime config with environment variables
+_runtime = get_runtime_config()
 
-def _env_bool(name: str, default: str = "False") -> bool:
-    """Parse environment boolean flags robustly."""
-    return os.getenv(name, default).strip().lower() in ("1", "true", "yes", "on")
+# Configuration defaults for each setting
+_CONFIG_DEFAULTS = {
+    # Application
+    "LOG_LEVEL": ("str", "INFO"),
+    "ALLOWED_ORIGINS": ("list", "*"),
+    
+    # Processing
+    "DEFAULT_TOP_K": ("int", 5),
+    "MAX_TOKENS": ("int", 500),
+    "BATCH_SIZE": ("int", 12),
+    "WORKER_THREADS": ("int", 8),
+    "ENABLE_PIPELINE_INDEXING": ("bool", True),
+    "MAX_CONCURRENT_BATCHES": ("int", 3),
+    
+    # ColPali API
+    "COLPALI_MODE": ("str", "gpu"),
+    "COLPALI_CPU_URL": ("str", "http://localhost:7001"),
+    "COLPALI_GPU_URL": ("str", "http://localhost:7002"),
+    "COLPALI_API_BASE_URL": ("str", ""),
+    "COLPALI_API_TIMEOUT": ("int", 300),
+    
+    # Qdrant
+    "QDRANT_URL": ("str", "http://localhost:6333"),
+    "QDRANT_COLLECTION_NAME": ("str", "documents"),
+    "QDRANT_SEARCH_LIMIT": ("int", 20),
+    "QDRANT_PREFETCH_LIMIT": ("int", 200),
+    "QDRANT_ON_DISK": ("bool", True),
+    "QDRANT_ON_DISK_PAYLOAD": ("bool", True),
+    "QDRANT_USE_BINARY": ("bool", False),
+    "QDRANT_BINARY_ALWAYS_RAM": ("bool", True),
+    "QDRANT_SEARCH_IGNORE_QUANT": ("bool", False),
+    "QDRANT_SEARCH_RESCORE": ("bool", True),
+    "QDRANT_SEARCH_OVERSAMPLING": ("float", 2.0),
+    "QDRANT_MEAN_POOLING_ENABLED": ("bool", False),
+    
+    # MUVERA
+    "MUVERA_ENABLED": ("bool", False),
+    "MUVERA_K_SIM": ("int", 6),
+    "MUVERA_DIM_PROJ": ("int", 32),
+    "MUVERA_R_REPS": ("int", 20),
+    "MUVERA_RANDOM_SEED": ("int", 42),
+    
+    # MinIO
+    "MINIO_URL": ("str", "http://localhost:9000"),
+    "MINIO_PUBLIC_URL": ("str", "http://localhost:9000"),
+    "MINIO_ACCESS_KEY": ("str", "minioadmin"),
+    "MINIO_SECRET_KEY": ("str", "minioadmin"),
+    "MINIO_BUCKET_NAME": ("str", "documents"),
+    "MINIO_WORKERS": ("int", 12),
+    "MINIO_RETRIES": ("int", 3),
+    "MINIO_FAIL_FAST": ("bool", False),
+    "MINIO_PUBLIC_READ": ("bool", True),
+    "MINIO_IMAGE_FMT": ("str", "JPEG"),
+    "MINIO_IMAGE_QUALITY": ("int", 75),
+}
 
 
-# Application
-LOG_LEVEL: Final[str] = os.getenv("LOG_LEVEL", "INFO")
-ALLOWED_ORIGINS_RAW: Final[str] = os.getenv("ALLOWED_ORIGINS", "*")
-ALLOWED_ORIGINS: Final[list[str]] = (
-    ["*"]
-    if ALLOWED_ORIGINS_RAW.strip() == "*"
-    else [o.strip() for o in ALLOWED_ORIGINS_RAW.split(",") if o.strip()]
-)
-
-# Processing
-DEFAULT_TOP_K: Final[int] = int(os.getenv("DEFAULT_TOP_K", "5"))
-MAX_TOKENS: Final[int] = int(os.getenv("MAX_TOKENS", "500"))
-BATCH_SIZE: Final[int] = int(os.getenv("BATCH_SIZE", "12"))
-WORKER_THREADS: Final[int] = int(os.getenv("WORKER_THREADS", "8"))
-ENABLE_PIPELINE_INDEXING: Final[bool] = _env_bool("ENABLE_PIPELINE_INDEXING", "True")
-MAX_CONCURRENT_BATCHES: Final[int] = int(os.getenv("MAX_CONCURRENT_BATCHES", "3"))
-
-# ColPali API
-COLPALI_MODE: Final[str] = os.getenv("COLPALI_MODE", "gpu").lower()
-COLPALI_CPU_URL: Final[str] = os.getenv("COLPALI_CPU_URL", "http://localhost:7001")
-COLPALI_GPU_URL: Final[str] = os.getenv("COLPALI_GPU_URL", "http://localhost:7002")
-
-_explicit_base = os.getenv("COLPALI_API_BASE_URL", "").strip()
-if _explicit_base:
-    COLPALI_API_BASE_URL: Final[str] = _explicit_base
-else:
-    COLPALI_API_BASE_URL: Final[str] = (
-        COLPALI_GPU_URL if COLPALI_MODE == "gpu" else COLPALI_CPU_URL
-    )
-
-COLPALI_API_TIMEOUT: Final[int] = int(os.getenv("COLPALI_API_TIMEOUT", "300"))
-
-# Qdrant
-QDRANT_URL: Final[str] = os.getenv("QDRANT_URL", "http://localhost:6333")
-QDRANT_COLLECTION_NAME: Final[str] = os.getenv("QDRANT_COLLECTION_NAME", "documents")
-QDRANT_SEARCH_LIMIT: Final[int] = int(os.getenv("QDRANT_SEARCH_LIMIT", "20"))
-QDRANT_PREFETCH_LIMIT: Final[int] = int(os.getenv("QDRANT_PREFETCH_LIMIT", "200"))
-QDRANT_ON_DISK: Final[bool] = _env_bool("QDRANT_ON_DISK", "True")
-QDRANT_ON_DISK_PAYLOAD: Final[bool] = _env_bool("QDRANT_ON_DISK_PAYLOAD", "True")
-QDRANT_USE_BINARY: Final[bool] = _env_bool("QDRANT_USE_BINARY", "True")
-QDRANT_BINARY_ALWAYS_RAM: Final[bool] = _env_bool("QDRANT_BINARY_ALWAYS_RAM", "True")
-QDRANT_SEARCH_IGNORE_QUANT: Final[bool] = _env_bool("QDRANT_SEARCH_IGNORE_QUANT", "False")
-QDRANT_SEARCH_RESCORE: Final[bool] = _env_bool("QDRANT_SEARCH_RESCORE", "True")
-QDRANT_SEARCH_OVERSAMPLING: Final[float] = float(os.getenv("QDRANT_SEARCH_OVERSAMPLING", "2.0"))
-QDRANT_MEAN_POOLING_ENABLED: Final[bool] = _env_bool("QDRANT_MEAN_POOLING_ENABLED", "False")
-
-# MUVERA
-MUVERA_ENABLED: Final[bool] = _env_bool("MUVERA_ENABLED", "False")
-MUVERA_K_SIM: Final[int] = int(os.getenv("MUVERA_K_SIM", "6"))
-MUVERA_DIM_PROJ: Final[int] = int(os.getenv("MUVERA_DIM_PROJ", "32"))
-MUVERA_R_REPS: Final[int] = int(os.getenv("MUVERA_R_REPS", "20"))
-MUVERA_RANDOM_SEED: Final[int] = int(os.getenv("MUVERA_RANDOM_SEED", "42"))
-
-# MinIO
-MINIO_URL: Final[str] = os.getenv("MINIO_URL", "http://localhost:9000")
-MINIO_PUBLIC_URL: Final[str] = os.getenv("MINIO_PUBLIC_URL", MINIO_URL)
-MINIO_ACCESS_KEY: Final[str] = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
-MINIO_SECRET_KEY: Final[str] = os.getenv("MINIO_SECRET_KEY", "minioadmin")
-MINIO_BUCKET_NAME: Final[str] = os.getenv("MINIO_BUCKET_NAME", "documents")
-MINIO_WORKERS: Final[int] = int(os.getenv("MINIO_WORKERS", "12"))
-MINIO_RETRIES: Final[int] = int(os.getenv("MINIO_RETRIES", "3"))
-MINIO_FAIL_FAST: Final[bool] = _env_bool("MINIO_FAIL_FAST", "False")
-MINIO_PUBLIC_READ: Final[bool] = _env_bool("MINIO_PUBLIC_READ", "True")
-MINIO_IMAGE_FMT: Final[str] = os.getenv("MINIO_IMAGE_FMT", "JPEG")
-MINIO_IMAGE_QUALITY: Final[int] = int(os.getenv("MINIO_IMAGE_QUALITY", "75"))
+def __getattr__(name: str) -> Any:
+    """
+    Dynamically retrieve configuration values.
+    This allows config values to be accessed like module constants but read from runtime config.
+    """
+    if name in _CONFIG_DEFAULTS:
+        type_str, default = _CONFIG_DEFAULTS[name]
+        
+        if type_str == "int":
+            return _runtime.get_int(name, default)
+        elif type_str == "float":
+            return _runtime.get_float(name, default)
+        elif type_str == "bool":
+            return _runtime.get_bool(name, default)
+        elif type_str == "list":
+            raw = _runtime.get(name, str(default))
+            if raw.strip() == "*":
+                return ["*"]
+            return [o.strip() for o in raw.split(",") if o.strip()]
+        else:  # str
+            value = _runtime.get(name, str(default))
+            # Handle special cases
+            if name == "COLPALI_MODE":
+                return value.lower()
+            elif name == "COLPALI_API_BASE_URL" and not value:
+                mode = __getattr__("COLPALI_MODE")
+                return __getattr__("COLPALI_GPU_URL") if mode == "gpu" else __getattr__("COLPALI_CPU_URL")
+            elif name == "MINIO_PUBLIC_URL" and not value:
+                return __getattr__("MINIO_URL")
+            return value
+    
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

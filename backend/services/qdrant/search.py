@@ -5,15 +5,7 @@ import numpy as np
 from typing import List, Optional
 from qdrant_client import models
 
-from config import (
-    QDRANT_SEARCH_LIMIT,
-    QDRANT_PREFETCH_LIMIT,
-    QDRANT_USE_BINARY,
-    QDRANT_SEARCH_IGNORE_QUANT,
-    QDRANT_SEARCH_RESCORE,
-    QDRANT_SEARCH_OVERSAMPLING,
-    QDRANT_MEAN_POOLING_ENABLED,
-)
+import config  # Import module for dynamic config access
 from api.utils import compute_page_label
 
 logger = logging.getLogger(__name__)
@@ -41,27 +33,32 @@ class SearchManager:
         self.collection_name = collection_name
         self.embedding_processor = embedding_processor
         self.muvera_post = muvera_post
-        self.enable_mean_pooling = QDRANT_MEAN_POOLING_ENABLED
 
     def reranking_search_batch(
         self,
         query_embeddings_batch: List[np.ndarray],
-        search_limit: int = QDRANT_SEARCH_LIMIT,
-        prefetch_limit: int = QDRANT_PREFETCH_LIMIT,
+        search_limit: Optional[int] = None,
+        prefetch_limit: Optional[int] = None,
         qdrant_filter: Optional[models.Filter] = None,
     ):
         """Perform two-stage retrieval with MUVERA-first (if enabled) and multivector rerank.
         
         If QDRANT_MEAN_POOLING_ENABLED is False, performs simple single-vector search.
         """
+        # Use config defaults if not specified
+        if search_limit is None:
+            search_limit = config.QDRANT_SEARCH_LIMIT
+        if prefetch_limit is None:
+            prefetch_limit = config.QDRANT_PREFETCH_LIMIT
+            
         # Optional quantization-aware search params
         params = None
-        if QDRANT_USE_BINARY:
+        if config.QDRANT_USE_BINARY:
             params = models.SearchParams(
                 quantization=models.QuantizationSearchParams(
-                    ignore=QDRANT_SEARCH_IGNORE_QUANT,
-                    rescore=QDRANT_SEARCH_RESCORE,
-                    oversampling=QDRANT_SEARCH_OVERSAMPLING,
+                    ignore=config.QDRANT_SEARCH_IGNORE_QUANT,
+                    rescore=config.QDRANT_SEARCH_RESCORE,
+                    oversampling=config.QDRANT_SEARCH_OVERSAMPLING,
                 )
             )
         search_queries = []
@@ -76,7 +73,7 @@ class SearchManager:
                     logger.warning("MUVERA query FDE failed, falling back: %s", e)
                     muvera_query = None
 
-            if not self.enable_mean_pooling:
+            if not config.QDRANT_MEAN_POOLING_ENABLED:
                 # Simple single-vector search without reranking
                 logger.info("Search using simple single-vector (mean pooling disabled)")
                 if muvera_query is not None:

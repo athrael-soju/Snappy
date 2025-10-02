@@ -23,12 +23,16 @@ const HTTPValidationError = z
 const Body_index_index_post = z
   .object({ files: z.array(z.instanceof(File)) })
   .passthrough();
+const ConfigUpdate = z
+  .object({ key: z.string(), value: z.string() })
+  .passthrough();
 
 export const schemas = {
   SearchItem,
   ValidationError,
   HTTPValidationError,
   Body_index_index_post,
+  ConfigUpdate,
 };
 
 const endpoints = makeApi([
@@ -61,6 +65,57 @@ const endpoints = makeApi([
     response: z.unknown(),
   },
   {
+    method: "post",
+    path: "/config/reset",
+    alias: "reset_config_config_reset_post",
+    description: `Reset all configuration to defaults from schema.
+
+Note: This only affects runtime values. Your .env file remains unchanged.`,
+    requestFormat: "json",
+    response: z.object({}).partial().passthrough(),
+  },
+  {
+    method: "get",
+    path: "/config/schema",
+    alias: "get_config_schema_config_schema_get",
+    description: `Get the configuration schema with categories and settings.`,
+    requestFormat: "json",
+    response: z.object({}).partial().passthrough(),
+  },
+  {
+    method: "post",
+    path: "/config/update",
+    alias: "update_config_config_update_post",
+    description: `Update a configuration value at runtime.
+
+Note: This only updates the runtime environment variable.
+To persist changes, you must update your .env file manually.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: ConfigUpdate,
+      },
+    ],
+    response: z.object({}).partial().passthrough(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/config/values",
+    alias: "get_config_values_config_values_get",
+    description: `Get current values for all configuration variables.`,
+    requestFormat: "json",
+    response: z.record(z.string()),
+  },
+  {
     method: "get",
     path: "/health",
     alias: "health_health_get",
@@ -77,6 +132,28 @@ const endpoints = makeApi([
         name: "body",
         type: "Body",
         schema: Body_index_index_post,
+      },
+    ],
+    response: z.unknown(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/index/cancel/:job_id",
+    alias: "cancel_upload_index_cancel__job_id__post",
+    description: `Cancel an ongoing upload/indexing job.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "job_id",
+        type: "Path",
+        schema: z.string(),
       },
     ],
     response: z.unknown(),

@@ -9,13 +9,7 @@ from qdrant_client import models
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from config import (
-    BATCH_SIZE,
-    ENABLE_PIPELINE_INDEXING,
-    MAX_CONCURRENT_BATCHES,
-    MINIO_IMAGE_QUALITY,
-    QDRANT_MEAN_POOLING_ENABLED,
-)
+import config  # Import module for dynamic config access
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +39,7 @@ class DocumentIndexer:
         self.embedding_processor = embedding_processor
         self.minio_service = minio_service
         self.muvera_post = muvera_post
-        self.enable_mean_pooling = QDRANT_MEAN_POOLING_ENABLED
+        # Don't cache config values - access dynamically via config module
 
     def process_single_batch(
         self,
@@ -150,7 +144,7 @@ class DocumentIndexer:
                 image_url_dict = self.minio_service.store_images_batch(
                     image_batch,
                     image_ids=image_ids,
-                    quality=MINIO_IMAGE_QUALITY,  # JPEG quality for compression
+                    quality=config.MINIO_IMAGE_QUALITY,  # JPEG quality for compression
                 )
                 # Keep alignment by resolving URL per ID
                 image_urls = [
@@ -168,8 +162,8 @@ class DocumentIndexer:
         for j in range(current_batch_size):
             orig = original_batch[j]
             # Only access pooled batches if mean pooling is enabled
-            rows = pooled_by_rows_batch[j] if self.enable_mean_pooling else None
-            cols = pooled_by_columns_batch[j] if self.enable_mean_pooling else None
+            rows = pooled_by_rows_batch[j] if config.QDRANT_MEAN_POOLING_ENABLED else None
+            cols = pooled_by_columns_batch[j] if config.QDRANT_MEAN_POOLING_ENABLED else None
             image_url = image_urls[j]
             meta = meta_batch[j] if j < len(meta_batch) else {}
 
@@ -196,7 +190,7 @@ class DocumentIndexer:
 
             # Build vectors dict - only include mean pooling if enabled
             vectors = {"original": orig}
-            if self.enable_mean_pooling and rows is not None and cols is not None:
+            if config.QDRANT_MEAN_POOLING_ENABLED and rows is not None and cols is not None:
                 vectors["mean_pooling_columns"] = cols
                 vectors["mean_pooling_rows"] = rows
 
@@ -234,11 +228,11 @@ class DocumentIndexer:
         Uses pipelined processing if ENABLE_PIPELINE_INDEXING=True to overlap
         embedding, storage, and upserting operations.
         """
-        batch_size = int(BATCH_SIZE)
+        batch_size = int(config.BATCH_SIZE)
         total_images = len(images)
         
         # Choose processing mode based on configuration
-        if ENABLE_PIPELINE_INDEXING and total_images > batch_size:
+        if config.ENABLE_PIPELINE_INDEXING and total_images > batch_size:
             return self._index_documents_pipelined(images, batch_size, total_images, progress_cb)
         else:
             return self._index_documents_sequential(images, batch_size, total_images, progress_cb)
@@ -302,7 +296,7 @@ class DocumentIndexer:
         This overlaps embedding (slow), MinIO uploads (I/O-bound), and Qdrant upserts (I/O-bound)
         for maximum throughput. Uses separate thread pools for processing and upserting.
         """
-        max_workers = MAX_CONCURRENT_BATCHES if MAX_CONCURRENT_BATCHES > 0 else 2
+        max_workers = config.MAX_CONCURRENT_BATCHES if config.MAX_CONCURRENT_BATCHES > 0 else 2
         completed_count = 0
         upsert_futures = []
         

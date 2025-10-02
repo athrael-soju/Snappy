@@ -6,14 +6,7 @@ from typing import List, Tuple, Optional
 from PIL import Image
 from concurrent.futures import ThreadPoolExecutor
 
-from config import (
-    MUVERA_ENABLED,
-    MUVERA_K_SIM,
-    MUVERA_DIM_PROJ,
-    MUVERA_R_REPS,
-    MUVERA_RANDOM_SEED,
-    QDRANT_MEAN_POOLING_ENABLED,
-)
+import config  # Import module for dynamic config access
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +21,6 @@ class EmbeddingProcessor:
             api_client: ColPali client for embedding operations
         """
         self.api_client = api_client
-        self.enable_mean_pooling = QDRANT_MEAN_POOLING_ENABLED
 
     def get_patches(self, image_size: Tuple[int, int]) -> Tuple[int, int]:
         """Get number of patches for image using API."""
@@ -142,7 +134,7 @@ class EmbeddingProcessor:
                 )
         
         # If mean pooling is disabled, return empty pooled batches
-        if not self.enable_mean_pooling:
+        if not config.QDRANT_MEAN_POOLING_ENABLED:
             logger.debug("Mean pooling disabled, skipping pooling operations")
             return original_batch, [], []
 
@@ -192,7 +184,7 @@ class MuveraPostprocessor:
     """
 
     def __init__(self, input_dim: int):
-        self.enabled = bool(MUVERA_ENABLED)
+        self.enabled = bool(config.MUVERA_ENABLED)
         self._muvera = None
         self._embedding_size: Optional[int] = None
 
@@ -204,21 +196,26 @@ class MuveraPostprocessor:
             # Lazy import to avoid dependency issues if disabled
             from fastembed.postprocess import Muvera as _Muvera
 
+            k_sim = int(config.MUVERA_K_SIM)
+            dim_proj = int(config.MUVERA_DIM_PROJ)
+            r_reps = int(config.MUVERA_R_REPS)
+            random_seed = int(config.MUVERA_RANDOM_SEED)
+
             self._muvera = _Muvera(
                 dim=input_dim,
-                k_sim=int(MUVERA_K_SIM),
-                dim_proj=int(MUVERA_DIM_PROJ),
-                r_reps=int(MUVERA_R_REPS),
-                random_seed=int(MUVERA_RANDOM_SEED),
+                k_sim=k_sim,
+                dim_proj=dim_proj,
+                r_reps=r_reps,
+                random_seed=random_seed,
             )
             # Determine output dimension (fde size)
             self._embedding_size = int(self._muvera.embedding_size)
             logger.info(
                 "Initialized MUVERA: input_dim=%s, k_sim=%s, dim_proj=%s, r_reps=%s, fde_dim=%s",
                 input_dim,
-                MUVERA_K_SIM,
-                MUVERA_DIM_PROJ,
-                MUVERA_R_REPS,
+                k_sim,
+                dim_proj,
+                r_reps,
                 self._embedding_size,
             )
         except Exception as e:

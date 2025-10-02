@@ -8,9 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Settings, Database, Server, Trash2, AlertTriangle, CheckCircle, Loader2, Shield, Zap } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Settings, Database, Server, Trash2, AlertTriangle, CheckCircle, Loader2, Shield, Zap, Sliders } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "@/components/ui/sonner";
+import { ConfigurationPanel } from "@/components/configuration-panel";
 
 type ActionType = "q" | "m" | "all";
 
@@ -110,22 +112,45 @@ export default function MaintenancePage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="space-y-8"
+      className="flex flex-col min-h-0 flex-1"
     >
       {/* Header */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-br from-red-500/10 to-orange-500/10 rounded-lg border border-red-500/20">
-            <Shield className="w-6 h-6 text-red-500" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">System Maintenance</h1>
-            <p className="text-muted-foreground text-lg">Manage your vector database and object storage with care</p>
-          </div>
-        </div>
-        
+      <div className="space-y-4 mb-6 text-center">
+        <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">
+          System Maintenance
+        </h1>
+        <p className="text-muted-foreground text-sm sm:text-base max-w-2xl mx-auto">
+          Manage your vector database, object storage, and runtime configuration
+        </p>
+      </div>
+
+      {/* Tabs Container with Scroll */}
+      <Tabs defaultValue="maintenance" className="flex-1 flex flex-col min-h-0">
+        <TabsList className="w-full mb-6 bg-gradient-to-r from-blue-50/50 via-purple-50/50 to-cyan-50/50 border border-blue-200/50 h-12">
+          <TabsTrigger 
+            value="maintenance" 
+            className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all"
+          >
+            <Shield className="w-4 h-4 mr-2" />
+            <span className="hidden sm:inline">Data Management</span>
+            <span className="sm:hidden">Data</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="configuration" 
+            className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all"
+          >
+            <Sliders className="w-4 h-4 mr-2" />
+            <span className="hidden sm:inline">Configuration</span>
+            <span className="sm:hidden">Config</span>
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Maintenance Tab */}
+        <TabsContent value="maintenance" className="flex-1 min-h-0 overflow-y-auto mt-0 custom-scrollbar pr-2">
+          <div className="space-y-6 pb-6">{/* Maintenance Tab Content */}
+      <div className="space-y-4 sm:space-y-6">
         {/* Quick Info */}
-        <div className="flex items-center gap-6 text-sm text-muted-foreground">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-amber-500" />
             <span>Destructive operations ahead</span>
@@ -135,19 +160,9 @@ export default function MaintenancePage() {
             <span>Confirm before proceeding</span>
           </div>
         </div>
-      </div>
 
-      {/* Warning Banner */}
-      <Alert className="border-2 border-amber-200 bg-gradient-to-r from-amber-50/50 to-orange-50/50">
-        <AlertTriangle className="h-5 w-5 text-amber-600" />
-        <AlertTitle className="text-amber-800 font-semibold">⚠️ Destructive Operations</AlertTitle>
-        <AlertDescription className="text-amber-700">
-          The actions below permanently delete data and <strong>cannot be undone</strong>
-        </AlertDescription>
-      </Alert>
-
-      {/* Actions Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Actions Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {actions.map((action, index) => {
           const Icon = action.icon;
           const isLoading = loading[action.id];
@@ -298,58 +313,69 @@ export default function MaintenancePage() {
         )}
       </AnimatePresence>
 
-      {/* Info Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="border-blue-200/50">
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-2">
-              <Database className="w-5 h-5 text-blue-500" />
-              <CardTitle className="text-lg">Qdrant Vector Database</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-2 text-sm">
-              <div className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-muted-foreground">Document embeddings and vector representations</span>
+        {/* Info Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <Card className="border-blue-200/50">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-2">
+                <Database className="w-5 h-5 text-blue-500" />
+                <CardTitle className="text-lg">Qdrant Vector Database</CardTitle>
               </div>
-              <div className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-muted-foreground">Search indices for visual content retrieval</span>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2 text-sm">
+                <div className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <span className="text-muted-foreground">Document embeddings and vector representations</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <span className="text-muted-foreground">Search indices for visual content retrieval</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <span className="text-muted-foreground">AI-generated semantic understanding data</span>
+                </div>
               </div>
-              <div className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-muted-foreground">AI-generated semantic understanding data</span>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-orange-200/50">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-2">
+                <Server className="w-5 h-5 text-orange-500" />
+                <CardTitle className="text-lg">MinIO Object Storage</CardTitle>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-orange-200/50">
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-2">
-              <Server className="w-5 h-5 text-orange-500" />
-              <CardTitle className="text-lg">MinIO Object Storage</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-2 text-sm">
-              <div className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-muted-foreground">Original uploaded documents and images</span>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2 text-sm">
+                <div className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <span className="text-muted-foreground">Original uploaded documents and images</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <span className="text-muted-foreground">Processed file thumbnails and previews</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <span className="text-muted-foreground">File metadata and storage organization</span>
+                </div>
               </div>
-              <div className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-muted-foreground">Processed file thumbnails and previews</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-muted-foreground">File metadata and storage organization</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
+          </div>
+        </TabsContent>
+
+        {/* Configuration Tab */}
+        <TabsContent value="configuration" className="flex-1 min-h-0 overflow-y-auto mt-0 custom-scrollbar pr-2">
+          <div className="pb-6">
+            <ConfigurationPanel />
+          </div>
+        </TabsContent>
+      </Tabs>
     </motion.div>
   );
 }
