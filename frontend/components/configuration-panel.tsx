@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Settings, Save, RotateCcw, AlertTriangle, Loader2, Database, Cpu, Brain, HardDrive } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "@/components/ui/sonner";
@@ -35,6 +36,7 @@ export function ConfigurationPanel() {
   const [hasChanges, setHasChanges] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("application");
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
   
   // Calculate stats for overview cards
   const configStats = {
@@ -118,12 +120,9 @@ export function ConfigurationPanel() {
   }
 
   async function resetToDefaults() {
-    if (!confirm("Reset all settings to default values? This will clear your saved configuration.")) {
-      return;
-    }
-
     setSaving(true);
     setError(null);
+    setResetDialogOpen(false);
 
     try {
       // Clear localStorage
@@ -495,15 +494,65 @@ export function ConfigurationPanel() {
                 Reset all configuration values to their defaults. This will affect the running application.
               </p>
             </div>
-            <Button
-              variant="destructive"
-              onClick={resetToDefaults}
-              disabled={saving}
-              size="sm"
-            >
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Reset All to Defaults
-            </Button>
+            <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="destructive"
+                  disabled={saving}
+                  size="sm"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Reset All to Defaults
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 text-lg">
+                    <RotateCcw className="w-5 h-5 text-red-600" />
+                    Reset All Configuration?
+                  </DialogTitle>
+                  <DialogDescription className="text-base leading-relaxed pt-2">
+                    ⚠️ This will permanently reset all configuration settings to their default values. 
+                    Your saved configuration will be cleared from browser storage and the backend will be reset.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="bg-muted/50 p-4 rounded-lg border-l-4 border-amber-400">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-muted-foreground">
+                      <strong>Important:</strong> This action cannot be reversed. The application will use default settings after reset.
+                    </p>
+                  </div>
+                </div>
+                <DialogFooter className="gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setResetDialogOpen(false)}
+                    disabled={saving}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    variant="destructive"
+                    onClick={resetToDefaults}
+                    disabled={saving}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Resetting...
+                      </>
+                    ) : (
+                      <>
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        Confirm Reset
+                      </>
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </CardContent>
       </Card>
