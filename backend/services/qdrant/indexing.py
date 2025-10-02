@@ -14,6 +14,7 @@ from config import (
     ENABLE_PIPELINE_INDEXING,
     MAX_CONCURRENT_BATCHES,
     MINIO_IMAGE_QUALITY,
+    QDRANT_MEAN_POOLING_ENABLED,
 )
 
 logger = logging.getLogger(__name__)
@@ -44,6 +45,7 @@ class DocumentIndexer:
         self.embedding_processor = embedding_processor
         self.minio_service = minio_service
         self.muvera_post = muvera_post
+        self.enable_mean_pooling = QDRANT_MEAN_POOLING_ENABLED
 
     def process_single_batch(
         self,
@@ -165,8 +167,9 @@ class DocumentIndexer:
         points = []
         for j in range(current_batch_size):
             orig = original_batch[j]
-            rows = pooled_by_rows_batch[j]
-            cols = pooled_by_columns_batch[j]
+            # Only access pooled batches if mean pooling is enabled
+            rows = pooled_by_rows_batch[j] if self.enable_mean_pooling else None
+            cols = pooled_by_columns_batch[j] if self.enable_mean_pooling else None
             image_url = image_urls[j]
             meta = meta_batch[j] if j < len(meta_batch) else {}
 
@@ -191,11 +194,11 @@ class DocumentIndexer:
                 "indexed_at": now_iso,
             }
 
-            vectors = {
-                "mean_pooling_columns": cols,
-                "original": orig,
-                "mean_pooling_rows": rows,
-            }
+            # Build vectors dict - only include mean pooling if enabled
+            vectors = {"original": orig}
+            if self.enable_mean_pooling and rows is not None and cols is not None:
+                vectors["mean_pooling_columns"] = cols
+                vectors["mean_pooling_rows"] = rows
 
             # Compute and attach MUVERA FDE if available
             if self.muvera_post and self.muvera_post.enabled:

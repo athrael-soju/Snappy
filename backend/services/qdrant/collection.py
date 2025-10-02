@@ -11,6 +11,7 @@ from config import (
     QDRANT_ON_DISK_PAYLOAD,
     QDRANT_USE_BINARY,
     QDRANT_BINARY_ALWAYS_RAM,
+    QDRANT_MEAN_POOLING_ENABLED,
 )
 
 logger = logging.getLogger(__name__)
@@ -35,6 +36,7 @@ class CollectionManager:
             self.collection_name = QDRANT_COLLECTION_NAME
             self.api_client = api_client
             self.muvera_post = muvera_post
+            self.enable_mean_pooling = QDRANT_MEAN_POOLING_ENABLED
         except Exception as e:
             raise Exception(f"Failed to initialize Qdrant client: {e}")
 
@@ -112,11 +114,11 @@ class CollectionManager:
                     quantization_config=quant,
                 )
 
-            vector_config = {
-                "original": _vp(include_hnsw=True),
-                "mean_pooling_columns": _vp(),
-                "mean_pooling_rows": _vp(),
-            }
+            # Build vector config - only include mean pooling if enabled
+            vector_config = {"original": _vp(include_hnsw=True)}
+            if self.enable_mean_pooling:
+                vector_config["mean_pooling_columns"] = _vp()
+                vector_config["mean_pooling_rows"] = _vp()
 
             # Add MUVERA single-vector space if enabled
             if self.muvera_post and self.muvera_post.embedding_size:

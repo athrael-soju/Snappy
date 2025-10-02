@@ -232,6 +232,23 @@ Binary quantization compresses vectors to 1-bit representations, reducing memory
 - **Description**: Multiplier for how many candidates to retrieve before rescoring. Higher values improve accuracy but increase latency.
 - **Example**: With `SEARCH_LIMIT=20` and `OVERSAMPLING=2.0`, retrieves 40 candidates, then rescores to return top 20.
 
+#### `QDRANT_MEAN_POOLING_ENABLED`
+- **Type**: Boolean
+- **Default**: `True`
+- **Description**: Enable mean pooling computation and two-stage reranking for improved search quality. When disabled, skips mean pooling during indexing and uses simple single-vector search.
+- **Benefits of Enabling**:
+  - Better search quality through two-stage retrieval
+  - Reranking with row/column pooled vectors
+  - More robust results for complex queries
+- **Benefits of Disabling**:
+  - **20-40% faster indexing** (no mean pooling computation)
+  - Lower storage requirements (no mean pooling vectors)
+  - Simpler search pipeline
+  - Ideal for small-scale deployments or rapid prototyping
+- **Recommendation**: 
+  - **Enable** (`True`) for production with large document collections where search quality is critical
+  - **Disable** (`False`) for development, testing, or small-scale loads where indexing speed matters more
+
 ---
 
 ## MinIO Object Storage
@@ -380,6 +397,9 @@ MAX_CONCURRENT_BATCHES=1
 COLPALI_MODE=cpu
 COLPALI_API_TIMEOUT=300
 
+# Qdrant - Disable mean pooling for faster indexing
+QDRANT_MEAN_POOLING_ENABLED=False
+
 # Storage
 MINIO_IMAGE_FMT=JPEG
 MINIO_IMAGE_QUALITY=85
@@ -433,10 +453,11 @@ QDRANT_SEARCH_RESCORE=True
 ### For Faster Indexing
 
 1. **Use GPU**: Set `COLPALI_MODE=gpu` (30-50x faster)
-2. **Increase batch size**: `BATCH_SIZE=8-16` (GPU only)
-3. **Enable pipelining**: `ENABLE_PIPELINE_INDEXING=True`
-4. **More concurrent batches**: `MAX_CONCURRENT_BATCHES=4-8`
-5. **Lower image quality**: `MINIO_IMAGE_QUALITY=85`
+2. **Disable mean pooling**: `QDRANT_MEAN_POOLING_ENABLED=False` (20-40% faster)
+3. **Increase batch size**: `BATCH_SIZE=8-16` (GPU only)
+4. **Enable pipelining**: `ENABLE_PIPELINE_INDEXING=True`
+5. **More concurrent batches**: `MAX_CONCURRENT_BATCHES=4-8`
+6. **Lower image quality**: `MINIO_IMAGE_QUALITY=85`
 
 ### For Lower Memory Usage
 
@@ -447,10 +468,11 @@ QDRANT_SEARCH_RESCORE=True
 
 ### For Better Search Quality
 
-1. **Disable quantization**: `QDRANT_USE_BINARY=False`
-2. **Increase prefetch**: `QDRANT_PREFETCH_LIMIT=500`
-3. **Enable rescoring**: `QDRANT_SEARCH_RESCORE=True`
-4. **Higher oversampling**: `QDRANT_SEARCH_OVERSAMPLING=3.0`
+1. **Enable mean pooling reranking**: `QDRANT_MEAN_POOLING_ENABLED=True`
+2. **Disable quantization**: `QDRANT_USE_BINARY=False`
+3. **Increase prefetch**: `QDRANT_PREFETCH_LIMIT=500`
+4. **Enable rescoring**: `QDRANT_SEARCH_RESCORE=True`
+5. **Higher oversampling**: `QDRANT_SEARCH_OVERSAMPLING=3.0`
 
 ### For Large Document Collections (1M+ pages)
 
@@ -465,6 +487,7 @@ QDRANT_SEARCH_RESCORE=True
 
 ### Indexing is too slow
 - Check `COLPALI_MODE` (GPU is 30-50x faster)
+- Disable mean pooling: `QDRANT_MEAN_POOLING_ENABLED=False` (20-40% faster)
 - Increase `BATCH_SIZE` (GPU only)
 - Enable `ENABLE_PIPELINE_INDEXING=True`
 - Increase `MAX_CONCURRENT_BATCHES`
@@ -476,6 +499,7 @@ QDRANT_SEARCH_RESCORE=True
 - Use `QDRANT_USE_BINARY=True`
 
 ### Search results are poor
+- Enable mean pooling reranking: `QDRANT_MEAN_POOLING_ENABLED=True`
 - Disable quantization: `QDRANT_USE_BINARY=False`
 - Enable rescoring: `QDRANT_SEARCH_RESCORE=True`
 - Increase `QDRANT_PREFETCH_LIMIT`
