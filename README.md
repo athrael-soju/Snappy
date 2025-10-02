@@ -156,7 +156,7 @@ Screenshots of the current UI. Pages: Home, Upload, Search, AI Chat, Maintenance
     <tr>    
       <td align="center">
          <strong>About</strong><br/>
-         <img src="image/README/496755313-e30a9ae9-ef61-49a8-8e7e-89c74d056fe8.png" alt="About screen" width="520" />
+         <img src="image/README/496773757-af0cdf48-ddd2-453f-a9bd-af2eeb374850.png" alt="About screen" width="520" />
       </td>
     </tr>      
   </table>
