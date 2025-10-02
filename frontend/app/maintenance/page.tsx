@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MaintenanceService, ApiError } from "@/lib/api/generated";
 import "@/lib/api/client";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Database, Server, Trash2, AlertTriangle, CheckCircle, Loader2, Shield, Zap, Sliders } from "lucide-react";
+import { Settings, Database, Server, Trash2, AlertTriangle, CheckCircle, Loader2, Shield, Zap, Sliders, Activity, HardDrive, FileText } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "@/components/ui/sonner";
 import { ConfigurationPanel } from "@/components/configuration-panel";
@@ -69,6 +69,23 @@ export default function MaintenancePage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<{ q: boolean; m: boolean; all: boolean }>({ q: false, m: false, all: false });
   const [dialogOpen, setDialogOpen] = useState<ActionType | null>(null);
+  const [systemHealth, setSystemHealth] = useState({
+    qdrantStatus: "operational",
+    minioStatus: "operational",
+    lastCleared: null as string | null,
+    totalOperations: 0
+  });
+
+  useEffect(() => {
+    // Load system health/stats on mount
+    const stats = {
+      qdrantStatus: "operational",
+      minioStatus: "operational", 
+      lastCleared: localStorage.getItem("last_maintenance_action"),
+      totalOperations: parseInt(localStorage.getItem("maintenance_operations") || "0")
+    };
+    setSystemHealth(stats);
+  }, []);
 
   async function run(action: ActionType) {
     const actionConfig = actions.find(a => a.id === action);
@@ -91,6 +108,16 @@ export default function MaintenancePage() {
       
       setStatus(msg);
       toast.success(actionConfig.successMsg, { description: msg });
+      
+      // Update stats
+      const newTotal = systemHealth.totalOperations + 1;
+      localStorage.setItem("maintenance_operations", newTotal.toString());
+      localStorage.setItem("last_maintenance_action", new Date().toISOString());
+      setSystemHealth(prev => ({
+        ...prev,
+        totalOperations: newTotal,
+        lastCleared: new Date().toISOString()
+      }));
     } catch (err: unknown) {
       let errorMsg = "Maintenance action failed";
       if (err instanceof ApiError) {
@@ -147,19 +174,7 @@ export default function MaintenancePage() {
 
         {/* Maintenance Tab */}
         <TabsContent value="maintenance" className="flex-1 min-h-0 overflow-y-auto mt-0 custom-scrollbar pr-2">
-          <div className="space-y-6 pb-6">{/* Maintenance Tab Content */}
-      <div className="space-y-4 sm:space-y-6">
-        {/* Quick Info */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-500" />
-            <span>Destructive operations ahead</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4 text-green-500" />
-            <span>Confirm before proceeding</span>
-          </div>
-        </div>
+          <div className="space-y-6 pb-6">
 
         {/* Actions Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -282,37 +297,6 @@ export default function MaintenancePage() {
         })}
       </div>
 
-      {/* Status Messages */}
-      <AnimatePresence>
-        {status && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-          >
-            <Alert variant="success">
-              <CheckCircle className="h-4 w-4" />
-              <AlertTitle>Operation Completed</AlertTitle>
-              <AlertDescription>{status}</AlertDescription>
-            </Alert>
-          </motion.div>
-        )}
-        
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-          >
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Operation Failed</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
         {/* Info Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <Card className="border-blue-200/50">
@@ -365,13 +349,12 @@ export default function MaintenancePage() {
             </CardContent>
           </Card>
         </div>
-      </div>
           </div>
         </TabsContent>
 
         {/* Configuration Tab */}
-        <TabsContent value="configuration" className="flex-1 min-h-0 overflow-y-auto mt-0 custom-scrollbar pr-2">
-          <div className="pb-6">
+        <TabsContent value="configuration" className="flex-1 min-h-0 mt-0 h-full">
+          <div className="h-full flex flex-col">
             <ConfigurationPanel />
           </div>
         </TabsContent>

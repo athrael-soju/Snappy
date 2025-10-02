@@ -13,11 +13,17 @@ export interface ConfigSetting {
   min?: number;
   max?: number;
   step?: number;
+  depends_on?: {
+    key: string;
+    value: boolean;
+  };
 }
 
 export interface ConfigCategory {
   name: string;
   description: string;
+  order: number;
+  icon: string;
   settings: ConfigSetting[];
 }
 
@@ -27,6 +33,8 @@ export interface ConfigSchema {
 
 export const CONFIG_SCHEMA: ConfigSchema = {
   application: {
+    order: 1,
+    icon: "settings",
     name: "Application",
     description: "Core application settings",
     settings: [
@@ -48,6 +56,8 @@ export const CONFIG_SCHEMA: ConfigSchema = {
     ]
   },
   processing: {
+    order: 2,
+    icon: "cpu",
     name: "Processing",
     description: "Document processing and indexing settings",
     settings: [
@@ -106,8 +116,10 @@ export const CONFIG_SCHEMA: ConfigSchema = {
     ]
   },
   colpali: {
-    name: "ColPali API",
-    description: "ColPali embedding model settings",
+    order: 3,
+    icon: "brain",
+    name: "Embedding Model",
+    description: "ColPali embedding model configuration",
     settings: [
       {
         key: "COLPALI_MODE",
@@ -143,8 +155,10 @@ export const CONFIG_SCHEMA: ConfigSchema = {
     ]
   },
   qdrant: {
-    name: "Qdrant Vector DB",
-    description: "Vector database configuration",
+    order: 4,
+    icon: "database",
+    name: "Vector Database",
+    description: "Qdrant vector store and retrieval settings",
     settings: [
       {
         key: "QDRANT_URL",
@@ -196,7 +210,7 @@ export const CONFIG_SCHEMA: ConfigSchema = {
         key: "QDRANT_USE_BINARY",
         label: "Use Binary Quantization",
         type: "boolean",
-        default: "True",
+        default: "False",
         description: "Enable binary quantization for vectors"
       },
       {
@@ -207,11 +221,11 @@ export const CONFIG_SCHEMA: ConfigSchema = {
         description: "Always keep binary vectors in RAM"
       },
       {
-        key: "QDRANT_SEARCH_IGNORE_QUANT",
-        label: "Ignore Quantization in Search",
+        key: "QDRANT_SEARCH_ENABLE_QUANT",
+        label: "Enable Quantization in Search",
         type: "boolean",
         default: "False",
-        description: "Disable quantization during search"
+        description: "Enable quantization during search"
       },
       {
         key: "QDRANT_SEARCH_RESCORE",
@@ -236,19 +250,13 @@ export const CONFIG_SCHEMA: ConfigSchema = {
         type: "boolean",
         default: "False",
         description: "Use mean pooling for embeddings"
-      }
-    ]
-  },
-  muvera: {
-    name: "MUVERA",
-    description: "Multi-Vector Embedding Retrieval Augmentation",
-    settings: [
+      },
       {
         key: "MUVERA_ENABLED",
         label: "Enable MUVERA",
         type: "boolean",
         default: "False",
-        description: "Enable MUVERA retrieval augmentation"
+        description: "Multi-Vector Embedding Retrieval Augmentation for faster initial retrieval"
       },
       {
         key: "MUVERA_K_SIM",
@@ -257,7 +265,8 @@ export const CONFIG_SCHEMA: ConfigSchema = {
         min: 1,
         max: 20,
         default: "6",
-        description: "Number of similar vectors to consider"
+        description: "Number of similar vectors to consider",
+        depends_on: { key: "MUVERA_ENABLED", value: true }
       },
       {
         key: "MUVERA_DIM_PROJ",
@@ -266,7 +275,8 @@ export const CONFIG_SCHEMA: ConfigSchema = {
         min: 8,
         max: 128,
         default: "32",
-        description: "Dimensionality of projection space"
+        description: "Dimensionality of projection space",
+        depends_on: { key: "MUVERA_ENABLED", value: true }
       },
       {
         key: "MUVERA_R_REPS",
@@ -275,7 +285,8 @@ export const CONFIG_SCHEMA: ConfigSchema = {
         min: 1,
         max: 100,
         default: "20",
-        description: "Number of repetitions"
+        description: "Number of repetitions",
+        depends_on: { key: "MUVERA_ENABLED", value: true }
       },
       {
         key: "MUVERA_RANDOM_SEED",
@@ -284,13 +295,16 @@ export const CONFIG_SCHEMA: ConfigSchema = {
         min: 0,
         max: 9999,
         default: "42",
-        description: "Random seed for reproducibility"
+        description: "Random seed for reproducibility",
+        depends_on: { key: "MUVERA_ENABLED", value: true }
       }
     ]
   },
-  minio: {
-    name: "MinIO Storage",
-    description: "Object storage configuration",
+  storage: {
+    order: 5,
+    icon: "hard-drive",
+    name: "Object Storage",
+    description: "MinIO object storage configuration",
     settings: [
       {
         key: "MINIO_URL",

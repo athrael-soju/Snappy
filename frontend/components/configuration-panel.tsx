@@ -8,15 +8,24 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Settings, Save, RotateCcw, AlertTriangle, Loader2 } from "lucide-react";
+import { Settings, Save, RotateCcw, AlertTriangle, Loader2, Database, Cpu, Brain, HardDrive } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "@/components/ui/sonner";
 import { ConfigurationService, ApiError } from "@/lib/api/generated";
 import "@/lib/api/client";
 import { CONFIG_SCHEMA, type ConfigSetting, type ConfigSchema } from "@/lib/config/schema";
 import { saveConfigToStorage, mergeWithStoredConfig, clearConfigFromStorage } from "@/lib/config/config-store";
+
+// Icon mapping
+const iconMap: Record<string, any> = {
+  settings: Settings,
+  cpu: Cpu,
+  brain: Brain,
+  database: Database,
+  "hard-drive": HardDrive,
+};
 
 export function ConfigurationPanel() {
   const [values, setValues] = useState<Record<string, string>>({});
@@ -25,6 +34,20 @@ export function ConfigurationPanel() {
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("application");
+  
+  // Calculate stats for overview cards
+  const configStats = {
+    totalSettings: Object.keys(values).length,
+    modifiedSettings: Object.keys(values).filter(key => values[key] !== originalValues[key]).length,
+    enabledFeatures: [
+      values.MUVERA_ENABLED === "True" ? "MUVERA" : null,
+      values.QDRANT_MEAN_POOLING_ENABLED === "True" ? "Mean Pooling" : null,
+      values.ENABLE_PIPELINE_INDEXING === "True" ? "Pipeline Indexing" : null,
+      values.QDRANT_USE_BINARY === "True" ? "Binary Quantization" : null,
+    ].filter(Boolean),
+    currentMode: values.COLPALI_MODE || "gpu",
+  };
 
   useEffect(() => {
     loadConfiguration();
@@ -126,7 +149,18 @@ export function ConfigurationPanel() {
     setValues(prev => ({ ...prev, [key]: value }));
   }
 
-  function renderSetting(setting: ConfigSetting) {
+  function isSettingVisible(setting: ConfigSetting): boolean {
+    // If no dependency, always visible
+    if (!setting.depends_on) return true;
+    
+    // Check if parent setting has the required value
+    const parentValue = values[setting.depends_on.key] || "";
+    const parentBool = parentValue.toLowerCase() === "true";
+    
+    return parentBool === setting.depends_on.value;
+  }
+
+  function renderSetting(setting: ConfigSetting, isNested: boolean = false) {
     const currentValue = values[setting.key] || setting.default;
 
     switch (setting.type) {
@@ -177,6 +211,37 @@ export function ConfigurationPanel() {
         const min = setting.min ?? 0;
         const max = setting.max ?? 100;
         const step = setting.step ?? 1;
+
+        if (isNested) {
+          // Compact inline version for nested settings
+          return (
+            <div className="flex items-center gap-3">
+              <Label htmlFor={setting.key} className="min-w-[120px] text-sm">
+                {setting.label}
+              </Label>
+              <Slider
+                id={setting.key}
+                value={[numValue]}
+                min={min}
+                max={max}
+                step={step}
+                onValueChange={(vals) => handleValueChange(setting.key, vals[0].toString())}
+                disabled={saving}
+                className="flex-1 max-w-[200px]"
+              />
+              <Input
+                type="number"
+                value={currentValue}
+                onChange={(e) => handleValueChange(setting.key, e.target.value)}
+                min={min}
+                max={max}
+                step={step}
+                disabled={saving}
+                className="w-20 h-8"
+              />
+            </div>
+          );
+        }
 
         return (
           <div className="space-y-3">
@@ -256,17 +321,27 @@ export function ConfigurationPanel() {
 
 
   return (
-    <div className="space-y-6">
-      {/* Header with Actions */}
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold">Runtime Configuration</h2>
-          <p className="text-sm text-muted-foreground">
-            Adjust settings dynamically. Changes take effect immediately but won't persist after restart.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {hasChanges && (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+
+
+      {/* Action Buttons */}
+      {hasChanges && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 p-4 rounded-lg border border-amber-200 bg-amber-50/50"
+        >
+          <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-amber-900">
+              You have {configStats.modifiedSettings} unsaved change{configStats.modifiedSettings !== 1 ? 's' : ''}
+            </p>
+            <p className="text-xs text-amber-700">
+              Changes will take effect immediately but won't persist after restart
+            </p>
+          </div>
+          <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -276,27 +351,27 @@ export function ConfigurationPanel() {
               <RotateCcw className="w-4 h-4 mr-2" />
               Discard
             </Button>
-          )}
-          <Button
-            size="sm"
-            onClick={saveChanges}
-            disabled={!hasChanges || saving}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg"
-          >
-            {saving ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4 mr-2" />
-                Save Changes
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
+            <Button
+              size="sm"
+              onClick={saveChanges}
+              disabled={saving}
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save {configStats.modifiedSettings} Change{configStats.modifiedSettings !== 1 ? 's' : ''}
+                </>
+              )}
+            </Button>
+          </div>
+        </motion.div>
+      )}
 
       {/* Status Messages */}
       <AnimatePresence>      
@@ -315,51 +390,121 @@ export function ConfigurationPanel() {
         )}
       </AnimatePresence>
 
-      {/* Configuration Categories - Using Accordions */}
-      <Accordion type="single" defaultValue="application" collapsible className="space-y-4">
-        {Object.entries(CONFIG_SCHEMA).map(([categoryKey, category]) => (
-          <AccordionItem key={categoryKey} value={categoryKey} className="border rounded-lg bg-card shadow-sm hover:shadow-md transition-shadow">
-            <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/50 rounded-t-lg transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-lg border border-blue-200/30">
-                  <Settings className="w-5 h-5 text-primary" />
-                </div>
-                <div className="text-left">
-                  <div className="font-semibold text-base">{category.name}</div>
-                  <div className="text-sm text-muted-foreground font-normal">{category.description}</div>
-                </div>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent className="px-6 pb-6 pt-2">
-              <div className="space-y-6">
-                {category.settings.map(setting => (
-                  <div key={setting.key} className="pb-4 border-b last:border-b-0 last:pb-0">
-                    {renderSetting(setting)}
-                  </div>
-                ))}
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-        ))}
-      </Accordion>
+      {/* Configuration Categories - Using Tabs */}
+      <Card className="flex-1 flex flex-col min-h-0">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
+          <CardHeader className="border-b flex-shrink-0 py-3">
+            <TabsList className="grid w-full grid-cols-5 h-auto bg-transparent p-0 gap-1">
+              {Object.entries(CONFIG_SCHEMA)
+                .sort(([, a], [, b]) => a.order - b.order)
+                .map(([categoryKey, category]) => {
+                  const Icon = iconMap[category.icon] || Settings;
+                  return (
+                    <TabsTrigger
+                      key={categoryKey}
+                      value={categoryKey}
+                      className="flex flex-col items-center gap-1.5 py-3 px-2 data-[state=active]:bg-primary/5 data-[state=active]:border-primary data-[state=active]:border-b-2 rounded-none"
+                    >
+                      <Icon className="w-5 h-5" />
+                      <span className="text-xs font-medium hidden sm:inline">{category.name}</span>
+                    </TabsTrigger>
+                  );
+                })}
+            </TabsList>
+          </CardHeader>
 
-      {/* Reset to Defaults */}
-      <Card className="border-red-200/50">
-        <CardHeader>
-          <CardTitle className="text-red-600">Danger Zone</CardTitle>
-          <CardDescription>
-            Reset all configuration values to their defaults. This will affect the running application.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button
-            variant="destructive"
-            onClick={resetToDefaults}
-            disabled={saving}
-          >
-            <RotateCcw className="w-4 h-4 mr-2" />
-            Reset All to Defaults
-          </Button>
+          <CardContent className="flex-1 overflow-y-auto pt-4 pb-2">
+            {Object.entries(CONFIG_SCHEMA).map(([categoryKey, category]) => {
+              const Icon = iconMap[category.icon] || Settings;
+              
+              // Group settings by parent/child relationship
+              const parentSettings = category.settings.filter(s => !s.depends_on);
+              
+              return (
+                <TabsContent key={categoryKey} value={categoryKey} className="mt-0 space-y-4 h-full">
+                  {/* Category Header */}
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-lg border">
+                      <Icon className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold tracking-tight">{category.name}</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">{category.description}</p>
+                    </div>
+                  </div>
+
+                  {/* Settings Grid - 2 Columns */}
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {parentSettings.map(setting => {
+                      // Find child settings for this parent
+                      const childSettings = category.settings.filter(
+                        s => s.depends_on?.key === setting.key && isSettingVisible(s)
+                      );
+                      const hasChildren = childSettings.length > 0;
+                      
+                      return (
+                        <motion.div
+                          key={setting.key}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          transition={{ duration: 0.2 }}
+                          className={hasChildren ? "md:col-span-2" : ""}
+                        >
+                          <Card className="h-full hover:shadow-md transition-shadow">
+                            <CardContent className="pt-4 pb-4 space-y-3">
+                              {renderSetting(setting, false)}
+                              
+                              {/* Nested child settings in a compact row */}
+                              {hasChildren && (
+                                <div className="mt-3 pt-3 border-t border-primary/20 bg-muted/30 -mx-6 px-6 py-3 rounded-b-lg">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    {childSettings.map(childSetting => (
+                                      <motion.div
+                                        key={childSetting.key}
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{ duration: 0.2 }}
+                                      >
+                                        {renderSetting(childSetting, true)}
+                                      </motion.div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                </TabsContent>
+              );
+            })}
+          </CardContent>
+        </Tabs>
+      </Card>
+
+      {/* Reset to Defaults - Fixed Footer */}
+      <Card className="border-red-200/50 mt-4 flex-shrink-0">
+        <CardContent className="py-3 px-4">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <div className="font-semibold text-red-600 text-sm">Danger Zone</div>
+              <p className="text-xs text-muted-foreground">
+                Reset all configuration values to their defaults. This will affect the running application.
+              </p>
+            </div>
+            <Button
+              variant="destructive"
+              onClick={resetToDefaults}
+              disabled={saving}
+              size="sm"
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Reset All to Defaults
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

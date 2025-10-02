@@ -33,9 +33,12 @@ def _infer_ui_type(config_type: ConfigType, has_options: bool = False) -> Config
 
 
 # Complete configuration schema with all metadata
-# Structure: {category_key: {name, description, settings: [{key, type, default, ...}]}}
+# Structure: {category_key: {name, description, icon, order, settings: [{key, type, default, ...}]}}
+# Settings can have 'depends_on' to create parent-child relationships
 CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
     "application": {
+        "order": 1,
+        "icon": "settings",
         "name": "Application",
         "description": "Core application settings",
         "settings": [
@@ -59,6 +62,8 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
         ]
     },
     "processing": {
+        "order": 2,
+        "icon": "cpu",
         "name": "Processing",
         "description": "Document processing and indexing settings",
         "settings": [
@@ -123,8 +128,10 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
         ]
     },
     "colpali": {
-        "name": "ColPali API",
-        "description": "ColPali embedding model settings",
+        "order": 3,
+        "icon": "brain",
+        "name": "Embedding Model",
+        "description": "ColPali embedding model configuration",
         "settings": [
             {
                 "key": "COLPALI_MODE",
@@ -172,8 +179,10 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
         ]
     },
     "qdrant": {
-        "name": "Qdrant Vector DB",
-        "description": "Vector database configuration",
+        "order": 4,
+        "icon": "database",
+        "name": "Vector Database",
+        "description": "Qdrant vector store and retrieval settings",
         "settings": [
             {
                 "key": "QDRANT_URL",
@@ -277,20 +286,14 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "label": "Enable Mean Pooling",
                 "ui_type": "boolean",
                 "description": "Use mean pooling for embeddings"
-            }
-        ]
-    },
-    "muvera": {
-        "name": "MUVERA",
-        "description": "Multi-Vector Embedding Retrieval Augmentation",
-        "settings": [
+            },
             {
                 "key": "MUVERA_ENABLED",
                 "type": "bool",
                 "default": False,
                 "label": "Enable MUVERA",
                 "ui_type": "boolean",
-                "description": "Enable MUVERA retrieval augmentation"
+                "description": "Multi-Vector Embedding Retrieval Augmentation for faster initial retrieval"
             },
             {
                 "key": "MUVERA_K_SIM",
@@ -300,7 +303,8 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "number",
                 "min": 1,
                 "max": 20,
-                "description": "Number of similar vectors to consider"
+                "description": "Number of similar vectors to consider",
+                "depends_on": {"key": "MUVERA_ENABLED", "value": True}
             },
             {
                 "key": "MUVERA_DIM_PROJ",
@@ -310,7 +314,8 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "number",
                 "min": 8,
                 "max": 128,
-                "description": "Dimensionality of projection space"
+                "description": "Dimensionality of projection space",
+                "depends_on": {"key": "MUVERA_ENABLED", "value": True}
             },
             {
                 "key": "MUVERA_R_REPS",
@@ -320,7 +325,8 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "number",
                 "min": 1,
                 "max": 100,
-                "description": "Number of repetitions"
+                "description": "Number of repetitions",
+                "depends_on": {"key": "MUVERA_ENABLED", "value": True}
             },
             {
                 "key": "MUVERA_RANDOM_SEED",
@@ -330,13 +336,16 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "number",
                 "min": 0,
                 "max": 9999,
-                "description": "Random seed for reproducibility"
+                "description": "Random seed for reproducibility",
+                "depends_on": {"key": "MUVERA_ENABLED", "value": True}
             }
         ]
     },
-    "minio": {
-        "name": "MinIO Storage",
-        "description": "Object storage configuration",
+    "storage": {
+        "order": 5,
+        "icon": "hard-drive",
+        "name": "Object Storage",
+        "description": "MinIO object storage configuration",
         "settings": [
             {
                 "key": "MINIO_URL",
@@ -469,6 +478,8 @@ def get_api_schema() -> Dict[str, Any]:
         api_schema[cat_key] = {
             "name": category["name"],
             "description": category["description"],
+            "order": category.get("order", 99),
+            "icon": category.get("icon", "settings"),
             "settings": []
         }
         
@@ -490,6 +501,8 @@ def get_api_schema() -> Dict[str, Any]:
                 api_setting["max"] = setting["max"]
             if "step" in setting:
                 api_setting["step"] = setting["step"]
+            if "depends_on" in setting:
+                api_setting["depends_on"] = setting["depends_on"]
             
             api_schema[cat_key]["settings"].append(api_setting)
     
