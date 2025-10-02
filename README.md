@@ -9,7 +9,6 @@
 A lightweight, end-to-end template for page-level retrieval over PDFs using a ColPali-like approach:
 
 - __Storage__: page images in MinIO, multivector embeddings in Qdrant
-- __Retrieval__: two-stage reranking with pooled image-token vectors
 - __Retrieval__: two-stage reranking with pooled image-token vectors; optional MUVERA-first stage when enabled
 - __Generation__: Next.js chat API streams OpenAI Responses with multimodal context (retrieved page images)
 - __API__: FastAPI service exposing endpoints for indexing, search, and maintenance
@@ -21,10 +20,10 @@ This repo is intended as a developer-friendly starting point for vision RAG syst
 - [backend/README.md](backend/README.md) — FastAPI backend
 - [frontend/README.md](frontend/README.md) — Next.js frontend
 - [colpali/README.md](colpali/README.md) — ColPali embedding API
-- [PERFORMANCE.md](PERFORMANCE.md) — **Performance guide: CPU vs GPU indexing** ⚡
+- [backend/docs/configuration.md](backend/docs/configuration.md) — **Configuration reference and performance tuning** ⚙️
 - [feature-list.md](feature-list.md) — Production hardening and roadmap checklist
 
-> **⚠️ Performance Note**: CPU-based indexing is **30-50x slower** than GPU (expect ~1.5-3 minutes per page). For production deployments with frequent indexing, GPU acceleration is strongly recommended. See [PERFORMANCE.md](PERFORMANCE.md) for detailed benchmarks and optimization strategies.
+> **⚠️ Performance Note**: CPU-based indexing is **30-50x slower** than GPU (expect ~1.5-3 minutes per page). For production deployments with frequent indexing, GPU acceleration is strongly recommended. See [backend/docs/configuration.md](backend/docs/configuration.md) for detailed configuration options and performance tuning strategies.
 
 ## Table of Contents
 
@@ -85,7 +84,7 @@ flowchart TB
 Below is the high-level component architecture of the Vision RAG template.
 See the architecture diagram in [backend/docs/architecture.md](backend/docs/architecture.md). It focuses on the core indexing and retrieval flows for clarity.
 
-- __`api/app.py`__ and `api/routers/*`__: Modular FastAPI application (routers: `meta`, `retrieval`, `indexing`, `maintenance`).
+- __`api/app.py`__ and `api/routers/*`__: Modular FastAPI application (routers: `meta`, `retrieval`, `indexing`, `maintenance`, `config`).
 - __`backend.py`__: Thin entrypoint that boots `api.app.create_app()`.
 - __`services/qdrant/`__: Refactored package with separation of concerns (service.py, collection.py, embedding.py, indexing.py, search.py). `QdrantService` orchestrates collection management, indexing, multivector retrieval, and MinIO integration.
 - __`services/minio.py`__: `MinioService` for image storage/retrieval with batch operations and public-read policy.
@@ -120,7 +119,7 @@ __Retrieval flow__:
 
 ## New Frontend
 
-Screenshots of the current UI. Pages: Home, Upload, Search, AI Chat, Maintenance, and About.
+Screenshots of the current UI. Pages: Home, Upload, Search, AI Chat, Maintenance (with Configuration), and About.
 
 <div align="center">
   <table>
@@ -157,7 +156,19 @@ Screenshots of the current UI. Pages: Home, Upload, Search, AI Chat, Maintenance
   </table>
 </div>
 
-> Frontend is basic by design (no auth, i18n, SSR caching, or advanced routing) and off-course subject to change. It’s a scaffold for you to extend.
+> Frontend is basic by design (no auth, i18n, SSR caching, or advanced routing) and off-course subject to change. It's a scaffold for you to extend.
+
+### Configuration Management UI
+
+The Maintenance page includes a **Configuration** tab that provides a web-based interface for managing all backend environment variables at runtime:
+
+- **Live editing**: Modify configuration values through an intuitive UI with sliders, toggles, and input fields
+- **Categorized settings**: Organized by Application, Processing, ColPali API, Qdrant, MinIO, and MUVERA
+- **Real-time validation**: Input constraints and tooltips guide valid configurations
+- **Persistence**: Changes are saved to browser localStorage and synced with the backend runtime configuration
+- **Reset options**: Reset individual sections or all settings to defaults
+
+**Note**: Configuration changes update the runtime environment immediately but are **not persisted** to your `.env` file. For permanent changes across container restarts, update your `.env` file manually. See [backend/docs/configuration.md](backend/docs/configuration.md) for detailed documentation of all available settings.
 
 ## Tool calling and visual citations
 
@@ -321,7 +332,7 @@ Most defaults are in `config.py`. Key variables:
   - `OPENAI_TEMPERATURE` (optional)
   - `OPENAI_MAX_TOKENS` (optional)
 - __ColPali API__: Mode-based selection with optional explicit override:
-  - `COLPALI_MODE` (cpu|gpu; default `cpu`)
+  - `COLPALI_MODE` (cpu|gpu; default `gpu`)
   - `COLPALI_CPU_URL` (default `http://localhost:7001`)
   - `COLPALI_GPU_URL` (default `http://localhost:7002`)
   - `COLPALI_API_BASE_URL` (if set, overrides the above and is used as-is)
@@ -347,6 +358,10 @@ You can interact via the OpenAPI UI at `/docs` or with HTTP clients:
 - `POST /index` (multipart files[]) — start background indexing job; returns `{ status:"started", job_id, total }`.
 - `GET /progress/stream/{job_id}` — Server‑Sent Events stream for real‑time progress updates.
 - `POST /clear/qdrant` | `/clear/minio` | `/clear/all` — maintenance.
+- `GET /config/schema` — retrieve configuration schema with categories and settings.
+- `GET /config/values` — get current runtime configuration values.
+- `POST /config/update` — update a configuration value at runtime.
+- `POST /config/reset` — reset all configuration to defaults.
 
 ## API Examples
 

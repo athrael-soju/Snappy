@@ -58,7 +58,7 @@ This document provides detailed explanations for all configuration options avail
 - **Default**: `12`
 - **Recommended**:
   - **CPU mode**: `1-2` (better progress feedback, lower memory)
-  - **GPU mode (consumer)**: `4-8` (GTX/RTX 30xx/40xx with 8-16GB VRAM)
+  - **GPU mode (consumer)**: `4-12` (GTX/RTX 30xx/40xx with 8-16GB VRAM)
   - **GPU mode (high-end)**: `12-16` (RTX 5090 with 32GB VRAM)
 - **Description**: Number of document pages processed per batch during indexing. Larger batches maximize GPU utilization but use more VRAM.
 - **Performance Impact**:
@@ -92,7 +92,7 @@ This document provides detailed explanations for all configuration options avail
 - **Default**: `3`
 - **Recommended**:
   - **Low RAM (16GB)**: `2`
-  - **Medium RAM (32GB)**: `2-3`
+  - **Medium RAM (32GB)**: `3`
   - **High RAM (64GB+)**: `3-4`
   - **CPU mode**: Stay lower (2-3) due to slower processing
 - **Description**: Maximum number of batches processed concurrently when `ENABLE_PIPELINE_INDEXING=True`. Each batch runs in parallel: embedding, MinIO upload, and upsert all overlap.
@@ -101,13 +101,13 @@ This document provides detailed explanations for all configuration options avail
 
 ### `MINIO_IMAGE_QUALITY`
 - **Type**: Integer
-- **Default**: `85`
+- **Default**: `75`
 - **Range**: `1-100`
 - **Description**: JPEG compression quality for images stored in MinIO. Higher values produce better quality but larger files.
 - **Recommendations**:
-  - **85**: Good balance for most use cases (~100KB per page)
-  - **90**: High quality, recommended default (~150KB per page)
-  - **95**: Near-lossless quality (~200KB per page)
+  - **75**: Good balance for most use cases (~80KB per page)
+  - **85**: High quality (~100KB per page)
+  - **90-95**: Near-lossless quality (~150-200KB per page)
 - **Note**: Only applies to JPEG format. PNG is lossless and ignores this setting.
 
 ---
@@ -120,7 +120,7 @@ The ColPali API handles document embedding using vision-language models. You can
 
 #### `COLPALI_MODE`
 - **Type**: String
-- **Default**: `cpu`
+- **Default**: `gpu`
 - **Options**: `cpu`, `gpu`
 - **Description**: Selects which ColPali API endpoint to use based on available hardware.
 
@@ -299,14 +299,14 @@ MinIO stores document images and provides public URLs for retrieval.
 
 #### `MINIO_IMAGE_FMT`
 - **Type**: String
-- **Default**: `JPEG` (optimized for high-quality with compression)
+- **Default**: `JPEG` (optimized for balance of quality and compression)
 - **Options**: `PNG`, `JPEG`, `WEBP`
 - **Description**: Image format for storing document pages.
 - **Recommendations**:
   - **PNG**: Lossless, larger files (~500KB per page), best quality - use when file size isn't a concern
-  - **JPEG**: Lossy, smaller files (~100-200KB per page with quality=95), excellent visual quality - **recommended for most use cases**
+  - **JPEG**: Lossy, smaller files (~80-200KB per page depending on quality), excellent visual quality - **recommended for most use cases**
   - **WEBP**: Modern format, best compression, may have compatibility issues with older browsers
-- **Note**: When using JPEG, set `MINIO_IMAGE_QUALITY=95` for near-lossless quality
+- **Note**: When using JPEG, adjust `MINIO_IMAGE_QUALITY` (75=good balance, 90-95=near-lossless quality)
 
 ### Performance Tuning
 
@@ -315,7 +315,7 @@ MinIO stores document images and provides public URLs for retrieval.
 - **Default**: `12`
 - **Recommended**:
   - **Consumer**: `4-8` (standard CPU, HDD/SATA SSD)
-  - **High-end**: `12-16` (high-core-count CPU, NVMe SSD, fast network)
+  - **High-end**: `12` (high-core-count CPU, NVMe SSD, fast network)
   - **Enterprise**: `16-32` (server-grade hardware)
 - **Description**: Number of concurrent threads for uploading images to MinIO within each batch. Higher values maximize throughput when you have fast CPU and I/O.
 - **Performance Impact**: Directly affects MinIO upload speed. Each thread handles one image upload at a time.
@@ -324,7 +324,7 @@ MinIO stores document images and provides public URLs for retrieval.
 
 #### `MINIO_RETRIES`
 - **Type**: Integer
-- **Default**: `3` (increased for reliability at higher throughput)
+- **Default**: `3`
 - **Recommended**:
   - **Local/LAN**: `2-3` (reliable network)
   - **Remote/WAN**: `3-5` (higher latency, more packet loss)
@@ -402,7 +402,7 @@ QDRANT_MEAN_POOLING_ENABLED=False
 
 # Storage
 MINIO_IMAGE_FMT=JPEG
-MINIO_IMAGE_QUALITY=85
+MINIO_IMAGE_QUALITY=75
 ```
 
 ### Production (GPU, Large Collections)
@@ -413,9 +413,9 @@ LOG_LEVEL=INFO
 ALLOWED_ORIGINS=https://yourdomain.com,https://app.yourdomain.com
 
 # Processing
-BATCH_SIZE=8
+BATCH_SIZE=12
 ENABLE_PIPELINE_INDEXING=True
-MAX_CONCURRENT_BATCHES=4
+MAX_CONCURRENT_BATCHES=3
 WORKER_THREADS=8
 
 # ColPali
@@ -425,11 +425,12 @@ COLPALI_API_TIMEOUT=120
 # Qdrant
 QDRANT_USE_BINARY=True
 QDRANT_SEARCH_RESCORE=True
+QDRANT_MEAN_POOLING_ENABLED=False
 
 # MinIO
 MINIO_IMAGE_FMT=JPEG
-MINIO_IMAGE_QUALITY=90
-MINIO_WORKERS=8
+MINIO_IMAGE_QUALITY=75
+MINIO_WORKERS=12
 MINIO_PUBLIC_URL=https://storage.yourdomain.com
 
 # MUVERA (for large collections)
@@ -444,6 +445,7 @@ MINIO_IMAGE_FMT=PNG  # Lossless
 BATCH_SIZE=2
 QDRANT_USE_BINARY=False  # No quantization
 QDRANT_SEARCH_RESCORE=True
+QDRANT_MEAN_POOLING_ENABLED=False
 ```
 
 ---
@@ -453,11 +455,11 @@ QDRANT_SEARCH_RESCORE=True
 ### For Faster Indexing
 
 1. **Use GPU**: Set `COLPALI_MODE=gpu` (30-50x faster)
-2. **Disable mean pooling**: `QDRANT_MEAN_POOLING_ENABLED=False` (20-40% faster)
-3. **Increase batch size**: `BATCH_SIZE=8-16` (GPU only)
-4. **Enable pipelining**: `ENABLE_PIPELINE_INDEXING=True`
-5. **More concurrent batches**: `MAX_CONCURRENT_BATCHES=4-8`
-6. **Lower image quality**: `MINIO_IMAGE_QUALITY=85`
+2. **Disable mean pooling**: `QDRANT_MEAN_POOLING_ENABLED=False` (20-40% faster, already default)
+3. **Increase batch size**: `BATCH_SIZE=12-16` (GPU only)
+4. **Enable pipelining**: `ENABLE_PIPELINE_INDEXING=True` (already default)
+5. **More concurrent batches**: `MAX_CONCURRENT_BATCHES=3-4`
+6. **Lower image quality**: `MINIO_IMAGE_QUALITY=75` (already default)
 
 ### For Lower Memory Usage
 
@@ -477,9 +479,9 @@ QDRANT_SEARCH_RESCORE=True
 ### For Large Document Collections (1M+ pages)
 
 1. **Enable MUVERA**: `MUVERA_ENABLED=True`
-2. **Use binary quantization**: `QDRANT_USE_BINARY=True`
-3. **Disk storage**: `QDRANT_ON_DISK=True`
-4. **Lower image quality**: `MINIO_IMAGE_QUALITY=85`
+2. **Use binary quantization**: `QDRANT_USE_BINARY=True` (already default)
+3. **Disk storage**: `QDRANT_ON_DISK=True` (already default)
+4. **Lower image quality**: `MINIO_IMAGE_QUALITY=75` (already default)
 
 ---
 

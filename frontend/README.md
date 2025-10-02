@@ -14,7 +14,9 @@ The app is intentionally simple and unauthenticated. Current pages:
 - `/upload` — Upload PDFs for indexing. Starts a background job via FastAPI `POST /index` and subscribes to `GET /progress/stream/{job_id}` (SSE) for real-time progress.
 - `/search` — Visual search over indexed pages; returns top-k pages and metadata.
 - `/chat` — AI chat grounded on retrieved page images.
-- `/maintenance` — Destructive admin actions (clear Qdrant, clear MinIO, clear all) with confirmations.
+- `/maintenance` — Two tabs:
+  - **Data Management**: Destructive admin actions (clear Qdrant, clear MinIO, clear all) with confirmations.
+  - **Configuration**: Web-based UI for managing backend environment variables at runtime (see Configuration Management below).
 
 Screenshots live in `image/README/` and are referenced from the repo root `README.md`.
 
@@ -70,6 +72,7 @@ yarn gen:sdk && yarn gen:zod
 
 ## Chat API (SSE)
 - Route: `POST /api/chat`
+- Runtime: **Edge Runtime** for optimized streaming performance and reduced latency
 - Request body:
   ```json
   {
@@ -111,6 +114,32 @@ Deterministic behavior
 
 - Disable tools via the UI or set `localStorage['tool-calling-enabled'] = 'false'`
 - Adjust top‑K via the K control (persists to `localStorage['k']`)
+
+## Configuration Management
+
+The `/maintenance` page includes a **Configuration** tab providing a web-based interface for managing backend environment variables:
+
+### Features
+- **Live editing**: Modify all backend configuration values through an intuitive UI
+- **Categorized settings**: Organized by Application, Processing, ColPali API, Qdrant, MinIO, and MUVERA
+- **Smart controls**: Sliders for numeric values, toggles for booleans, dropdowns for enums
+- **Real-time validation**: Input constraints, min/max ranges, and tooltips
+- **Conditional visibility**: Dependent settings show/hide based on parent values
+- **Browser persistence**: Changes saved to `localStorage` and synced with backend runtime
+- **Reset options**: Reset individual sections or all settings to defaults
+
+### API Endpoints Used
+- `GET /config/schema` — retrieves configuration schema with metadata
+- `GET /config/values` — fetches current runtime values
+- `POST /config/update` — updates individual settings
+- `POST /config/reset` — resets all settings to defaults
+
+### Important Notes
+- Configuration changes update the backend **runtime environment** immediately
+- Changes are **not persisted** to the `.env` file and will be lost on container restart
+- For permanent changes, manually update your `.env` file
+- Critical settings (e.g., API URLs) trigger service invalidation and re-initialization
+- See [backend/docs/configuration.md](../backend/docs/configuration.md) for detailed setting documentation
 
 ## Docker/Compose
 - The repo root `docker-compose.yml` includes a `frontend` service (Next.js on 3000).

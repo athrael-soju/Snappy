@@ -2,7 +2,7 @@
 
 A modular FastAPI service that exposes endpoints for indexing PDFs, search, and maintenance.
 
-- Routers in `backend/api/routers/`: `meta`, `retrieval`, `indexing`, `maintenance`
+- Routers in `backend/api/routers/`: `meta`, `retrieval`, `indexing`, `maintenance`, `config`
 - App factory: `backend/api/app.py:create_app()`
 - Entrypoints: `backend/backend.py` (used by Docker) and `backend/main.py` (alt local entry)
 
@@ -65,6 +65,7 @@ docker compose up -d --build
 - `GET /search?q=...&k=5`
 - `POST /index` (multipart files[])
 - `POST /clear/qdrant`, `/clear/minio`, `/clear/all`
+- `GET /config/schema`, `GET /config/values`, `POST /config/update`, `POST /config/reset`
 
 ## Chat and visual citations (context)
 
