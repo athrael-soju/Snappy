@@ -142,21 +142,27 @@ export default function MaintenancePage() {
       className="flex flex-col min-h-0 flex-1"
     >
       {/* Header */}
-      <div className="space-y-4 mb-6 text-center">
-        <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">
+      <div className="space-y-4 mb-4 text-center relative">
+        {/* Background decoration */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 left-20 w-32 h-32 bg-blue-200/20 rounded-full blur-xl" />
+          <div className="absolute top-10 right-32 w-24 h-24 bg-purple-200/20 rounded-full blur-xl" />
+        </div>
+        
+        <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent relative z-10">
           System Maintenance
         </h1>
-        <p className="text-muted-foreground text-sm sm:text-base max-w-2xl mx-auto">
+        <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto relative z-10">
           Manage your vector database, object storage, and runtime configuration
         </p>
       </div>
 
       {/* Tabs Container with Scroll */}
       <Tabs defaultValue="maintenance" className="flex-1 flex flex-col min-h-0">
-        <TabsList className="w-full mb-6 bg-gradient-to-r from-blue-50/50 via-purple-50/50 to-cyan-50/50 border border-blue-200/50 h-12 rounded-full">
+        <TabsList className="w-full max-w-md mx-auto mb-4 bg-gradient-to-r from-blue-100/50 via-purple-100/50 to-cyan-100/50 border border-blue-200/50 h-14 rounded-full p-1 shadow-sm">
           <TabsTrigger 
             value="maintenance" 
-            className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all rounded-full"
+            className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300 rounded-full font-medium"
           >
             <Shield className="w-4 h-4 mr-2" />
             <span className="hidden sm:inline">Data Management</span>
@@ -164,7 +170,7 @@ export default function MaintenancePage() {
           </TabsTrigger>
           <TabsTrigger 
             value="configuration" 
-            className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all rounded-full"
+            className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300 rounded-full font-medium"
           >
             <Sliders className="w-4 h-4 mr-2" />
             <span className="hidden sm:inline">Configuration</span>
@@ -174,7 +180,7 @@ export default function MaintenancePage() {
 
         {/* Maintenance Tab */}
         <TabsContent value="maintenance" className="flex-1 min-h-0 overflow-y-auto mt-0 custom-scrollbar pr-2">
-          <div className="space-y-6 pb-6">
+          <div className="space-y-4 pb-4">
 
         {/* Actions Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -188,30 +194,31 @@ export default function MaintenancePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
+              className="py-1"
             >
-              <Card className={`h-full flex flex-col group hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-2 ${action.borderColor}`}>
+              <Card className={`h-full flex flex-col group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border ${action.borderColor} bg-gradient-to-br ${action.bgColor} backdrop-blur-sm`}>
                 <CardHeader className="pb-6">
                   <div className="flex items-center justify-between mb-4">
-                    <div className={`inline-flex w-12 h-12 items-center justify-center rounded-xl ${action.color} ${action.bgColor} border ${action.borderColor} group-hover:scale-110 transition-transform`}>
-                      <Icon className="w-6 h-6" />
+                    <div className={`inline-flex w-14 h-14 items-center justify-center rounded-2xl ${action.color} bg-white border-2 ${action.borderColor} group-hover:scale-110 transition-transform shadow-sm`}>
+                      <Icon className="w-7 h-7" />
                     </div>
                     <Badge 
                       variant={action.severity === 'critical' ? 'destructive' : action.severity === 'high' ? 'secondary' : 'outline'}
-                      className="text-xs"
+                      className="text-xs font-medium"
                     >
-                      {action.severity === 'critical' ? '🚨 Critical' : action.severity === 'high' ? '⚠️ High Risk' : '⚡ Medium Risk'}
+                      {action.severity === 'critical' ? '🚨' : action.severity === 'high' ? '⚠️' : '⚡'}
                     </Badge>
                   </div>
-                  <CardTitle className={`text-xl font-bold ${action.color} group-hover:opacity-90 transition-opacity`}>
+                  <CardTitle className={`text-xl font-bold ${action.color} group-hover:opacity-80 transition-opacity`}>
                     {action.title}
                   </CardTitle>
-                  <CardDescription className="text-base leading-relaxed">
+                  <CardDescription className="text-base leading-relaxed mt-2">
                     {action.description}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-0 flex-1 grid grid-rows-[1fr_auto] gap-4">
-                  <div className="p-3 bg-muted/30 rounded-lg">
-                    <p className="text-sm text-muted-foreground">
+                  <div className="p-4 bg-white/60 backdrop-blur-sm rounded-xl border border-gray-200/50">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
                       {action.detailedDescription}
                     </p>
                   </div>
@@ -221,12 +228,12 @@ export default function MaintenancePage() {
                       <Button
                         variant={action.buttonVariant}
                         disabled={isAnyLoading}
-                        className={`w-full h-12 font-semibold rounded-full ${
+                        className={`w-full h-12 font-semibold rounded-full shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105 ${
                           action.severity === 'critical' 
                             ? 'bg-red-600 hover:bg-red-700 text-white' 
                             : action.severity === 'high'
                             ? 'bg-orange-600 hover:bg-orange-700 text-white'
-                            : ''
+                            : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white'
                         }`}
                         size="lg"
                       >
@@ -299,50 +306,54 @@ export default function MaintenancePage() {
 
         {/* Info Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          <Card className="border-blue-200/50">
+          <Card className="border border-blue-200/50 bg-gradient-to-br from-blue-500/5 to-cyan-500/5 hover:shadow-lg transition-shadow duration-300">
             <CardHeader className="pb-4">
-              <div className="flex items-center gap-2">
-                <Database className="w-5 h-5 text-blue-500" />
-                <CardTitle className="text-lg">Qdrant Vector Database</CardTitle>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-white border-2 border-blue-200/50 shadow-sm">
+                  <Database className="w-5 h-5 text-blue-500" />
+                </div>
+                <CardTitle className="text-lg font-bold">Qdrant Vector Database</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="space-y-2 text-sm">
-                <div className="flex items-start gap-2">
-                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></div>
                   <span className="text-muted-foreground">Document embeddings and vector representations</span>
                 </div>
-                <div className="flex items-start gap-2">
-                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></div>
                   <span className="text-muted-foreground">Search indices for visual content retrieval</span>
                 </div>
-                <div className="flex items-start gap-2">
-                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></div>
                   <span className="text-muted-foreground">AI-generated semantic understanding data</span>
                 </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card className="border-orange-200/50">
+          <Card className="border border-orange-200/50 bg-gradient-to-br from-orange-500/5 to-amber-500/5 hover:shadow-lg transition-shadow duration-300">
             <CardHeader className="pb-4">
-              <div className="flex items-center gap-2">
-                <Server className="w-5 h-5 text-orange-500" />
-                <CardTitle className="text-lg">MinIO Object Storage</CardTitle>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-white border-2 border-orange-200/50 shadow-sm">
+                  <Server className="w-5 h-5 text-orange-500" />
+                </div>
+                <CardTitle className="text-lg font-bold">MinIO Object Storage</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="space-y-2 text-sm">
-                <div className="flex items-start gap-2">
-                  <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-1.5 flex-shrink-0"></div>
                   <span className="text-muted-foreground">Original uploaded documents and images</span>
                 </div>
-                <div className="flex items-start gap-2">
-                  <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-1.5 flex-shrink-0"></div>
                   <span className="text-muted-foreground">Processed file thumbnails and previews</span>
                 </div>
-                <div className="flex items-start gap-2">
-                  <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-1.5 flex-shrink-0"></div>
                   <span className="text-muted-foreground">File metadata and storage organization</span>
                 </div>
               </div>
