@@ -136,45 +136,52 @@ export default function SearchPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="space-y-8 min-h-0 flex flex-col flex-1 overflow-y-auto custom-scrollbar"
+      className="space-y-4 min-h-0 flex flex-col flex-1 overflow-y-auto custom-scrollbar"
     >
-      {/* Header */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-lg border border-blue-500/20">
-            <Eye className="w-6 h-6 text-blue-500" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">Visual Search</h1>
-            <p className="text-muted-foreground text-lg">Find documents and images using natural language powered by AI vision</p>
-          </div>
+      {/* Header with Background Decoration */}
+      <div className="space-y-3 text-center relative">
+        {/* Background decoration */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 left-20 w-32 h-32 bg-blue-200/20 rounded-full blur-xl" />
+          <div className="absolute top-10 right-32 w-24 h-24 bg-cyan-200/20 rounded-full blur-xl" />
         </div>
+        
+        <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 bg-clip-text text-transparent relative z-10">
+          Visual Search
+        </h1>
+        <p className="text-muted-foreground text-sm sm:text-base max-w-2xl mx-auto relative z-10">
+          Find documents and images using natural language powered by AI vision
+        </p>
 
         {/* Quick Stats */}
-        <div className="flex items-center gap-6 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-blue-500" />
+        <div className="flex flex-wrap justify-center items-center gap-3 sm:gap-4 text-xs text-muted-foreground relative z-10">
+          <div className="flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-blue-500" />
             <span>AI-powered visual understanding</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Search className="w-4 h-4 text-cyan-500" />
+          <div className="flex items-center gap-1.5">
+            <Search className="w-3.5 h-3.5 text-cyan-500" />
             <span>Natural language queries</span>
           </div>
         </div>
       </div>
 
       {/* Search Form */}
-      <Card className="border-2 border-blue-100/50 shadow-lg overflow-hidden !pt-0 bg-transparent">
-        <CardHeader className="bg-gradient-to-r from-blue-100 to-cyan-100 border-b rounded-t-xl py-6 mt-0">
-          <CardTitle className="flex items-center gap-2 text-xl">
-            <Search className="w-5 h-5 text-blue-600" />
-            Search Your Documents
-          </CardTitle>
-          <CardDescription className="text-base">
-            Describe what you're looking for using natural language.
-          </CardDescription>
+      <Card className="border-2 border-blue-200/50 shadow-lg bg-gradient-to-br from-blue-500/5 to-cyan-500/5 hover:shadow-xl transition-shadow duration-300">
+        <CardHeader className="bg-gradient-to-r from-blue-100/50 via-cyan-100/50 to-blue-100/50 border-b border-blue-200/50 py-4">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 rounded-xl bg-white border-2 border-blue-200/50 shadow-sm">
+              <Search className="w-4 h-4 text-blue-500" />
+            </div>
+            <div>
+              <CardTitle className="text-lg font-bold">Search Your Documents</CardTitle>
+              <CardDescription className="text-sm mt-0.5">
+                Describe what you're looking for using natural language.
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="pt-6 space-y-6">
+        <CardContent className="pt-5 pb-5 space-y-5">
           <SearchBar
             q={q}
             setQ={setQ}
@@ -256,7 +263,7 @@ export default function SearchPage() {
                       )}
                     </>
                   ) : (
-                    "No results found"
+                    ""
                   )}
                 </h2>
                 {results.length > 0 && (
@@ -320,7 +327,7 @@ export default function SearchPage() {
                 >
                 {results.map((item, idx) => (
                   <motion.div key={idx} variants={itemVariants}>
-                    <Card className="h-full group overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-2 hover:border-blue-200">
+                    <Card className="h-full group overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-2 border-blue-200/50 hover:border-blue-300 bg-gradient-to-br from-blue-500/5 to-cyan-500/5">
                       {item.image_url && (
                         <div
                           className="relative aspect-video overflow-hidden bg-gradient-to-br from-blue-50 to-cyan-50 cursor-zoom-in"
@@ -339,7 +346,7 @@ export default function SearchPage() {
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                           <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Badge className="bg-white/90 text-black">
+                            <Badge className="bg-white/90 text-black shadow-md">
                               <Eye className="w-3 h-3 mr-1" />
                               View
                             </Badge>
@@ -354,9 +361,9 @@ export default function SearchPage() {
                             </h3>
                           </div>
                         )}
-                        <div className="flex items-center justify-between pt-2 border-t border-muted/30">
+                        <div className="flex items-center justify-between pt-2 border-t border-blue-200/30">
                           <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs font-medium">
+                            <Badge variant="outline" className="text-xs font-medium border-blue-200/50">
                               #{idx + 1}
                             </Badge>
                             {typeof item.score === "number" && (

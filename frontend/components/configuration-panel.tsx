@@ -546,10 +546,10 @@ export function ConfigurationPanel() {
                       <button
                         key={categoryKey}
                         onClick={() => setActiveTab(categoryKey)}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${
                           isActive
-                            ? 'bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 border border-blue-200'
-                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                            ? 'bg-gradient-to-r from-blue-100/80 via-purple-100/80 to-blue-100/80 text-blue-700 border-2 border-blue-200/50 shadow-md'
+                            : 'text-muted-foreground hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/50 hover:text-foreground border-2 border-transparent'
                         }`}
                       >
                         <Icon className="w-4 h-4 flex-shrink-0" />
@@ -579,16 +579,16 @@ export function ConfigurationPanel() {
                   className="flex-1 min-h-0 flex flex-col gap-4"
                 >
                   {/* Settings Card - Scrollable */}
-                  <Card className="flex-1 min-h-0 flex flex-col">
+                  <Card className="flex-1 min-h-0 flex flex-col border-2 border-blue-200/50 bg-gradient-to-br from-blue-500/5 to-purple-500/5 shadow-lg hover:shadow-xl transition-shadow duration-300">
                     <CardHeader className="pb-4 flex-shrink-0">
                       <div className="flex items-start justify-between">
                         <div className="flex items-start gap-3">
-                          <div className="p-2 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-lg border">
-                            <Icon className="w-5 h-5 text-primary" />
+                          <div className="p-2 bg-white rounded-xl border-2 border-blue-200/50 shadow-sm">
+                            <Icon className="w-5 h-5 text-blue-500" />
                           </div>
                           <div>
-                            <CardTitle className="text-xl">{category.name}</CardTitle>
-                            <CardDescription className="mt-1">{category.description}</CardDescription>
+                            <CardTitle className="text-xl font-bold">{category.name}</CardTitle>
+                            <CardDescription className="mt-1 text-base">{category.description}</CardDescription>
                           </div>
                         </div>
                         <Button
@@ -596,7 +596,7 @@ export function ConfigurationPanel() {
                           size="sm"
                           onClick={() => setResetSectionDialogOpen(categoryKey)}
                           disabled={saving}
-                          className="text-muted-foreground hover:text-foreground"
+                          className="text-muted-foreground hover:text-blue-600 hover:bg-blue-50"
                         >
                           <RotateCcw className="w-4 h-4 mr-2" />
                           Reset section
@@ -642,7 +642,7 @@ export function ConfigurationPanel() {
                           variant="outline" 
                           size="sm" 
                           disabled={saving} 
-                          className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300 transition-colors"
+                          className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300 transition-all duration-300 rounded-full"
                         >
                           <RotateCcw className="w-3.5 h-3.5 mr-2" />
                           Reset All to Defaults
@@ -698,12 +698,12 @@ export function ConfigurationPanel() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="border-t border-blue-200/50 bg-gradient-to-r from-blue-50/95 via-purple-50/95 to-cyan-50/95 backdrop-blur-sm shadow-lg rounded-full"
+            className="border-t-2 border-blue-200/50 bg-gradient-to-r from-blue-50/95 via-purple-50/95 to-cyan-50/95 backdrop-blur-sm shadow-2xl"
           >
             <div className="container max-w-7xl py-4 px-6">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 flex-1">
-                  <div className="p-1.5 rounded-full bg-gradient-to-r from-blue-500 to-purple-500">
+                  <div className="p-1.5 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 shadow-md">
                     <AlertTriangle className="h-3.5 w-3.5 text-white" />
                   </div>
                   <p className="text-sm font-medium bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">
@@ -716,7 +716,7 @@ export function ConfigurationPanel() {
                     size="sm"
                     onClick={resetChanges}
                     disabled={saving}
-                    className="border-blue-200 hover:bg-blue-50"
+                    className="border-blue-200 hover:bg-blue-50 rounded-full"
                   >
                     Discard
                   </Button>
@@ -724,7 +724,7 @@ export function ConfigurationPanel() {
                     size="sm"
                     onClick={saveChanges}
                     disabled={saving}
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-full"
                   >
                     {saving ? (
                       <>

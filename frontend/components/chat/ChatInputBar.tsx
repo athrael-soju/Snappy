@@ -49,9 +49,9 @@ export default function ChatInputBar({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           disabled={loading}
-          className={`flex-1 text-base pl-11 h-12 border-2 transition-all ${
+          className={`flex-1 text-base pl-11 h-12 border-2 transition-all rounded-xl ${
             input.trim()
-              ? 'border-purple-400 bg-white shadow-md focus:border-purple-500'
+              ? 'border-purple-400 bg-white shadow-md focus:border-purple-500 focus:ring-2 focus:ring-purple-200'
               : 'border-muted-foreground/20 focus:border-purple-400'
           }`}
         />
@@ -78,7 +78,7 @@ export default function ChatInputBar({
             type="submit" 
             disabled={loading || !input.trim() || !isSettingsValid || !uiSettingsValid}
             size="icon"
-            className="w-12 h-12 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg rounded-xl"
+            className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl"
           >
             {loading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -100,7 +100,7 @@ export default function ChatInputBar({
             disabled={loading || !hasMessages}
             size="icon"
             variant="outline"
-            className="w-12 h-12 rounded-xl border-2 border-purple-200 hover:border-purple-400 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 text-muted-foreground hover:text-purple-600 transition-all duration-300 shadow-sm hover:shadow-md disabled:opacity-50"
+            className="w-12 h-12 rounded-xl border-2 border-purple-200 hover:border-purple-400 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 text-muted-foreground hover:text-purple-600 transition-all duration-300 shadow-sm hover:shadow-md disabled:opacity-50"
           >
             <Trash2 className="w-5 h-5" />
           </Button>
