@@ -2,22 +2,23 @@
 
 import { useState, useEffect } from "react";
 import type { SearchItem } from "@/lib/api/generated";
-import { RetrievalService, ApiError } from "@/lib/api/generated";
+import { RetrievalService, ApiError, MaintenanceService } from "@/lib/api/generated";
 import "@/lib/api/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Search, AlertCircle, ImageIcon, Sparkles, Eye, Trash2 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Search, AlertCircle, ImageIcon, Sparkles, Eye, Trash2, AlertTriangle, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "@/components/ui/sonner";
 import Image from "next/image";
 import ImageLightbox from "@/components/lightbox";
 import SearchBar from "@/components/search/SearchBar";
 import RecentSearchesChips from "@/components/search/RecentSearchesChips";
-import { useSearchStore } from "@/stores/app-store";
+import { useSearchStore, useSystemStatus } from "@/stores/app-store";
 import { PageHeader } from "@/components/page-header";
+import Link from "next/link";
 
 export default function SearchPage() {
   // Use global search store instead of local state
@@ -36,13 +37,35 @@ export default function SearchPage() {
     reset,
   } = useSearchStore();
 
+  // Use system status
+  const { systemStatus, setStatus, isReady, needsRefresh } = useSystemStatus();
+
   // Local state for UI interactions only
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [statusLoading, setStatusLoading] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState("");
   const [lightboxAlt, setLightboxAlt] = useState<string | undefined>(undefined);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+
+  // Fetch system status on mount or when needed
+  useEffect(() => {
+    async function fetchStatus() {
+      if (!systemStatus || needsRefresh) {
+        setStatusLoading(true);
+        try {
+          const status = await MaintenanceService.getStatusStatusGet();
+          setStatus({ ...status, lastChecked: Date.now() });
+        } catch (err) {
+          console.error('Failed to fetch system status:', err);
+        } finally {
+          setStatusLoading(false);
+        }
+      }
+    }
+    fetchStatus();
+  }, [systemStatus, needsRefresh, setStatus]);
 
   // Load recent searches from localStorage
   useEffect(() => {
@@ -76,6 +99,14 @@ export default function SearchPage() {
     e.preventDefault();
     const query = q.trim();
     if (!query) return;
+
+    // Check if system is ready
+    if (!isReady) {
+      toast.error('System Not Ready', { 
+        description: 'Initialize collection and bucket before searching' 
+      });
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -136,6 +167,21 @@ export default function SearchPage() {
         icon={Search}
       />
 
+      {/* System Status Warning */}
+      {systemStatus && !isReady && (
+        <Alert className="border-amber-300 bg-amber-50">
+          <AlertTriangle className="h-5 w-5 text-amber-600" />
+          <AlertTitle className="text-amber-900 font-semibold">System Not Initialized</AlertTitle>
+          <AlertDescription className="text-amber-800">
+            The collection and bucket must be initialized before searching.
+            <Link href="/maintenance" className="inline-flex items-center gap-1 ml-2 text-amber-900 font-medium underline hover:text-amber-950">
+              Go to Data Management
+              <ExternalLink className="w-3 h-3" />
+            </Link>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Search Form */}
       <Card className="border-2 border-blue-200/50 shadow-lg bg-gradient-to-br from-blue-500/5 to-cyan-500/5 hover:shadow-xl transition-shadow duration-300">
         <CardContent className="pt-6 pb-6 space-y-4">
@@ -166,8 +212,7 @@ export default function SearchPage() {
         </CardContent>
       </Card>
 
-      {/* Error State */
-      }
+      {/* Error State */}
       <AnimatePresence>
         {error && (
           <motion.div

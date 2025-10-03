@@ -35,10 +35,28 @@ export interface UploadState {
   statusText: string | null;
 }
 
+export interface SystemStatus {
+  collection: {
+    name: string;
+    exists: boolean;
+    vector_count: number;
+    unique_files: number;
+    error: string | null;
+  };
+  bucket: {
+    name: string;
+    exists: boolean;
+    object_count: number;
+    error: string | null;
+  };
+  lastChecked: number | null;
+}
+
 export interface AppState {
   search: SearchState;
   chat: ChatState;
   upload: UploadState;
+  systemStatus: SystemStatus | null;
   lastVisited: {
     search: number | null;
     chat: number | null;
@@ -79,6 +97,10 @@ type AppAction =
   | { type: 'UPLOAD_SET_STATUS_TEXT'; payload: string | null }
   | { type: 'UPLOAD_RESET' }
   
+  // System status actions
+  | { type: 'SYSTEM_SET_STATUS'; payload: SystemStatus }
+  | { type: 'SYSTEM_CLEAR_STATUS' }
+  
   // Global actions
   | { type: 'HYDRATE_FROM_STORAGE'; payload: Partial<AppState> }
   | { type: 'SET_PAGE_VISITED'; payload: { page: 'search' | 'chat' | 'upload'; timestamp: number } };
@@ -111,6 +133,7 @@ const initialState: AppState = {
     jobId: null,
     statusText: null,
   },
+  systemStatus: null,
   lastVisited: {
     search: null,
     chat: null,
@@ -211,6 +234,12 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'UPLOAD_RESET':
       return { ...state, upload: initialState.upload };
 
+    // System status actions
+    case 'SYSTEM_SET_STATUS':
+      return { ...state, systemStatus: action.payload };
+    case 'SYSTEM_CLEAR_STATUS':
+      return { ...state, systemStatus: null };
+
     // Global actions
     case 'HYDRATE_FROM_STORAGE':
       return { ...state, ...action.payload };
@@ -264,6 +293,7 @@ function serializeStateForStorage(state: AppState): any {
       jobId: state.upload.jobId,
       statusText: state.upload.statusText,
     },
+    systemStatus: state.systemStatus,
   };
 }
 
@@ -497,5 +527,35 @@ export function useUploadStore() {
       dispatch({ type: 'UPLOAD_SET_STATUS_TEXT', payload: statusText }),
     reset: () => dispatch({ type: 'UPLOAD_RESET' }),
     cancelUpload,
+  };
+}
+
+export function useSystemStatus() {
+  const { state, dispatch } = useAppStore();
+  
+  const setStatus = (status: SystemStatus) => {
+    dispatch({ type: 'SYSTEM_SET_STATUS', payload: status });
+  };
+  
+  const clearStatus = () => {
+    dispatch({ type: 'SYSTEM_CLEAR_STATUS' });
+  };
+  
+  const isReady = () => {
+    return state.systemStatus?.collection.exists && state.systemStatus?.bucket.exists;
+  };
+  
+  const needsRefresh = () => {
+    if (!state.systemStatus?.lastChecked) return true;
+    const fiveMinutes = 5 * 60 * 1000;
+    return Date.now() - state.systemStatus.lastChecked > fiveMinutes;
+  };
+  
+  return {
+    systemStatus: state.systemStatus,
+    setStatus,
+    clearStatus,
+    isReady: isReady(),
+    needsRefresh: needsRefresh(),
   };
 }

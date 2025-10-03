@@ -8,13 +8,33 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Database, Server, Trash2, AlertTriangle, Loader2, Shield, Sliders } from "lucide-react";
+import { Settings, Database, Server, Trash2, AlertTriangle, Loader2, Shield, Sliders, CheckCircle2, XCircle, PlayCircle, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "@/components/ui/sonner";
 import { ConfigurationPanel } from "@/components/configuration-panel";
 import { PageHeader } from "@/components/page-header";
 
 type ActionType = "q" | "m" | "all";
+
+interface CollectionStatus {
+  name: string;
+  exists: boolean;
+  vector_count: number;
+  unique_files: number;
+  error: string | null;
+}
+
+interface BucketStatus {
+  name: string;
+  exists: boolean;
+  object_count: number;
+  error: string | null;
+}
+
+interface SystemStatus {
+  collection: CollectionStatus;
+  bucket: BucketStatus;
+}
 
 const actions = [
   {
@@ -37,6 +57,11 @@ const actions = [
 export default function MaintenancePage() {
   const [loading, setLoading] = useState<{ q: boolean; m: boolean; all: boolean }>({ q: false, m: false, all: false });
   const [dialogOpen, setDialogOpen] = useState<ActionType | null>(null);
+  const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null);
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [initLoading, setInitLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   // No system health state stored locally; rely directly on localStorage when needed
 
   async function run(action: ActionType) {
@@ -76,7 +101,100 @@ export default function MaintenancePage() {
     }
   }
 
+  async function fetchStatus() {
+    setStatusLoading(true);
+    try {
+      const status = await MaintenanceService.getStatusStatusGet();
+      setSystemStatus(status as SystemStatus);
+    } catch (err: unknown) {
+      let errorMsg = "Failed to fetch status";
+      if (err instanceof ApiError) {
+        errorMsg = `${err.status}: ${err.message}`;
+      } else if (err instanceof Error) {
+        errorMsg = err.message;
+      }
+      toast.error("Status Check Failed", { description: errorMsg });
+    } finally {
+      setStatusLoading(false);
+    }
+  }
+
+  async function handleInitialize() {
+    setInitLoading(true);
+    try {
+      const result = await MaintenanceService.initializeInitializePost();
+      
+      if (result.status === "success") {
+        toast.success("Initialization Complete", { 
+          description: "Collection and bucket are ready to use" 
+        });
+      } else if (result.status === "partial") {
+        toast.warning("Partial Initialization", { 
+          description: "Some components failed to initialize. Check details." 
+        });
+      } else {
+        toast.error("Initialization Failed", { 
+          description: "Failed to initialize collection and bucket" 
+        });
+      }
+      
+      // Refresh status
+      await fetchStatus();
+    } catch (err: unknown) {
+      let errorMsg = "Initialization failed";
+      if (err instanceof ApiError) {
+        errorMsg = `${err.status}: ${err.message}`;
+      } else if (err instanceof Error) {
+        errorMsg = err.message;
+      }
+      toast.error("Initialization Failed", { description: errorMsg });
+    } finally {
+      setInitLoading(false);
+    }
+  }
+
+  async function handleDelete() {
+    setDeleteLoading(true);
+    setDeleteDialogOpen(false);
+    try {
+      const result = await MaintenanceService.deleteCollectionAndBucketDeleteDelete();
+      
+      if (result.status === "success") {
+        toast.success("Deletion Complete", { 
+          description: "Collection and bucket have been deleted" 
+        });
+      } else if (result.status === "partial") {
+        toast.warning("Partial Deletion", { 
+          description: "Some components failed to delete. Check details." 
+        });
+      } else {
+        toast.error("Deletion Failed", { 
+          description: "Failed to delete collection and bucket" 
+        });
+      }
+      
+      // Refresh status
+      await fetchStatus();
+    } catch (err: unknown) {
+      let errorMsg = "Deletion failed";
+      if (err instanceof ApiError) {
+        errorMsg = `${err.status}: ${err.message}`;
+      } else if (err instanceof Error) {
+        errorMsg = err.message;
+      }
+      toast.error("Deletion Failed", { description: errorMsg });
+    } finally {
+      setDeleteLoading(false);
+    }
+  }
+
+  // Fetch status on mount and when tab changes to data_management
+  useEffect(() => {
+    fetchStatus();
+  }, []);
+
   const isAnyLoading = loading.q || loading.m || loading.all;
+  const isSystemReady = systemStatus?.collection.exists && systemStatus?.bucket.exists;
 
   return (
     <motion.div
@@ -122,6 +240,278 @@ export default function MaintenancePage() {
         {/* Data Management Tab */}
         <TabsContent value="data_management" className="flex-1 min-h-0 overflow-y-auto mt-0 custom-scrollbar pr-2">
           <div className="space-y-6 pb-4">
+            {/* System Status and Management */}
+            <div className="space-y-4">
+              {/* Overall Status Banner */}
+              {systemStatus && (
+                <Card className={`border-2 ${isSystemReady ? 'border-green-300/50 bg-gradient-to-br from-green-500/5 to-emerald-500/5' : 'border-amber-300/50 bg-gradient-to-br from-amber-500/5 to-orange-500/5'}`}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {isSystemReady ? (
+                          <CheckCircle2 className="w-6 h-6 text-green-600" />
+                        ) : (
+                          <AlertTriangle className="w-6 h-6 text-amber-600" />
+                        )}
+                        <div>
+                          <CardTitle className="text-lg">
+                            {isSystemReady ? "System Ready" : "System Not Initialized"}
+                          </CardTitle>
+                          <CardDescription className="text-sm mt-1">
+                            {isSystemReady 
+                              ? "Collection and bucket are ready for use. You can upload files and search the knowledge base."
+                              : "Initialize the collection and bucket before uploading files or searching."}
+                          </CardDescription>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={fetchStatus}
+                        disabled={statusLoading}
+                      >
+                        {statusLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </CardHeader>
+                </Card>
+              )}
+
+              {/* Collection and Bucket Status */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Qdrant Collection Status */}
+                <Card className="border border-blue-200/50 bg-white/80">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-xl bg-blue-100 border-2 border-blue-200/50">
+                          <Database className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <CardTitle className="text-base font-semibold">Qdrant Collection</CardTitle>
+                      </div>
+                      {systemStatus && (
+                        systemStatus.collection.exists ? (
+                          <Badge className="bg-green-100 text-green-700 border-green-300">
+                            <CheckCircle2 className="w-3 h-3 mr-1" />
+                            Active
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="bg-gray-100 text-gray-700">
+                            <XCircle className="w-3 h-3 mr-1" />
+                            Not Found
+                          </Badge>
+                        )
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {statusLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                      </div>
+                    ) : systemStatus ? (
+                      <>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between items-center p-2 bg-blue-50/50 rounded">
+                            <span className="text-muted-foreground">Collection Name:</span>
+                            <span className="font-medium">{systemStatus.collection.name}</span>
+                          </div>
+                          <div className="flex justify-between items-center p-2 bg-blue-50/50 rounded">
+                            <span className="text-muted-foreground">Vector Count:</span>
+                            <span className="font-medium">{systemStatus.collection.vector_count.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between items-center p-2 bg-blue-50/50 rounded">
+                            <span className="text-muted-foreground">Unique Files:</span>
+                            <span className="font-medium">{systemStatus.collection.unique_files.toLocaleString()}</span>
+                          </div>
+                        </div>
+                        {systemStatus.collection.error && (
+                          <div className="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+                            Error: {systemStatus.collection.error}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No status available</p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* MinIO Bucket Status */}
+                <Card className="border border-orange-200/50 bg-white/80">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-xl bg-orange-100 border-2 border-orange-200/50">
+                          <Server className="w-5 h-5 text-orange-600" />
+                        </div>
+                        <CardTitle className="text-base font-semibold">MinIO Bucket</CardTitle>
+                      </div>
+                      {systemStatus && (
+                        systemStatus.bucket.exists ? (
+                          <Badge className="bg-green-100 text-green-700 border-green-300">
+                            <CheckCircle2 className="w-3 h-3 mr-1" />
+                            Active
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="bg-gray-100 text-gray-700">
+                            <XCircle className="w-3 h-3 mr-1" />
+                            Not Found
+                          </Badge>
+                        )
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {statusLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-6 h-6 animate-spin text-orange-500" />
+                      </div>
+                    ) : systemStatus ? (
+                      <>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between items-center p-2 bg-orange-50/50 rounded">
+                            <span className="text-muted-foreground">Bucket Name:</span>
+                            <span className="font-medium">{systemStatus.bucket.name}</span>
+                          </div>
+                          <div className="flex justify-between items-center p-2 bg-orange-50/50 rounded">
+                            <span className="text-muted-foreground">Object Count:</span>
+                            <span className="font-medium">{systemStatus.bucket.object_count.toLocaleString()}</span>
+                          </div>
+                        </div>
+                        {systemStatus.bucket.error && (
+                          <div className="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+                            Error: {systemStatus.bucket.error}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No status available</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Management Actions */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Initialize Action */}
+                <Card className="border-2 border-green-200/50 bg-gradient-to-br from-green-500/5 to-emerald-500/5">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-xl bg-green-100 border-2 border-green-200/50">
+                        <PlayCircle className="w-5 h-5 text-green-600" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-base font-semibold text-green-900">Initialize System</CardTitle>
+                        <CardDescription className="text-sm">Create collection and bucket</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Creates the Qdrant collection and MinIO bucket based on your current configuration settings. Required before uploading files.
+                    </p>
+                    <Button
+                      onClick={handleInitialize}
+                      disabled={initLoading || deleteLoading || isSystemReady}
+                      className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+                    >
+                      {initLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Initializing...
+                        </>
+                      ) : (
+                        <>
+                          <PlayCircle className="w-4 h-4 mr-2" />
+                          Initialize
+                        </>
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Delete Action */}
+                <Card className="border-2 border-red-200/50 bg-gradient-to-br from-red-500/5 to-pink-500/5">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-xl bg-red-100 border-2 border-red-200/50">
+                        <Trash2 className="w-5 h-5 text-red-600" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-base font-semibold text-red-900">Delete System</CardTitle>
+                        <CardDescription className="text-sm">Remove collection and bucket</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Permanently deletes the Qdrant collection and MinIO bucket including all data. Use this to change configuration or start fresh.
+                    </p>
+                    <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="destructive"
+                          disabled={deleteLoading || initLoading || !isSystemReady}
+                          className="w-full"
+                        >
+                          {deleteLoading ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Deleting...
+                            </>
+                          ) : (
+                            <>
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete
+                            </>
+                          )}
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle className="flex items-center gap-2">
+                            <Trash2 className="w-5 h-5 text-red-600" />
+                            Delete Collection and Bucket?
+                          </DialogTitle>
+                          <DialogDescription className="pt-2">
+                            This will permanently delete the Qdrant collection and MinIO bucket, including all vectors, files, and metadata. This action cannot be undone.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="bg-red-50 p-4 rounded-lg border-l-4 border-red-400">
+                          <div className="flex items-start gap-2">
+                            <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+                            <p className="text-sm text-red-800">
+                              <strong>Warning:</strong> All uploaded documents, embeddings, and search indices will be permanently lost.
+                            </p>
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button
+                            variant="outline"
+                            onClick={() => setDeleteDialogOpen(false)}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            onClick={handleDelete}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Confirm Delete
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
             {/* Standard Actions */}
             <div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

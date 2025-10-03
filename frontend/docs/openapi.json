@@ -286,6 +286,66 @@
         }
       }
     },
+    "/status": {
+      "get": {
+        "tags": [
+          "maintenance"
+        ],
+        "summary": "Get Status",
+        "description": "Get the status of collection and bucket including statistics.",
+        "operationId": "get_status_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/initialize": {
+      "post": {
+        "tags": [
+          "maintenance"
+        ],
+        "summary": "Initialize",
+        "description": "Initialize/create collection and bucket based on current configuration.",
+        "operationId": "initialize_initialize_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/delete": {
+      "delete": {
+        "tags": [
+          "maintenance"
+        ],
+        "summary": "Delete Collection And Bucket",
+        "description": "Delete collection and bucket completely.",
+        "operationId": "delete_collection_and_bucket_delete_delete",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/config/schema": {
       "get": {
         "tags": [

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ApiError } from "@/lib/api/generated";
+import { ApiError, MaintenanceService } from "@/lib/api/generated";
 import "@/lib/api/client";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -10,11 +10,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Upload, FileText, CheckCircle, AlertCircle, Loader2, CloudUpload, FolderOpen, ArrowUpFromLine, XCircle } from "lucide-react";
+import { Upload, FileText, CheckCircle, AlertCircle, Loader2, CloudUpload, FolderOpen, ArrowUpFromLine, XCircle, AlertTriangle, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "@/components/ui/sonner";
-import { useUploadStore } from "@/stores/app-store";
+import { useUploadStore, useSystemStatus } from "@/stores/app-store";
 import { PageHeader } from "@/components/page-header";
+import Link from "next/link";
 
 export default function UploadPage() {
   // Use global upload store
@@ -36,9 +37,31 @@ export default function UploadPage() {
     cancelUpload,
   } = useUploadStore();
 
+  // Use system status
+  const { systemStatus, setStatus, isReady, needsRefresh } = useSystemStatus();
+
   // Local state for UI interactions only
   const [isDragOver, setIsDragOver] = useState(false);
+  const [statusLoading, setStatusLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch system status on mount or when needed
+  useEffect(() => {
+    async function fetchStatus() {
+      if (!systemStatus || needsRefresh) {
+        setStatusLoading(true);
+        try {
+          const status = await MaintenanceService.getStatusStatusGet();
+          setStatus({ ...status, lastChecked: Date.now() });
+        } catch (err) {
+          console.error('Failed to fetch system status:', err);
+        } finally {
+          setStatusLoading(false);
+        }
+      }
+    }
+    fetchStatus();
+  }, [systemStatus, needsRefresh, setStatus]);
 
   // Clear success/error messages after some time to avoid persistent state
   useEffect(() => {
@@ -155,6 +178,21 @@ export default function UploadPage() {
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-2">
         <div className="space-y-6 pb-6">
 
+          {/* System Status Warning */}
+          {systemStatus && !isReady && (
+            <Alert className="border-amber-300 bg-amber-50">
+              <AlertTriangle className="h-5 w-5 text-amber-600" />
+              <AlertTitle className="text-amber-900 font-semibold">System Not Initialized</AlertTitle>
+              <AlertDescription className="text-amber-800">
+                The collection and bucket must be initialized before uploading files.
+                <Link href="/maintenance" className="inline-flex items-center gap-1 ml-2 text-amber-900 font-medium underline hover:text-amber-950">
+                  Go to Data Management
+                  <ExternalLink className="w-3 h-3" />
+                </Link>
+              </AlertDescription>
+            </Alert>
+          )}
+
       {/* Upload Card with Drag & Drop */}
       <Card className={`relative border-2 border-dashed transition-all duration-300 group ${
         isDragOver 
@@ -260,13 +298,14 @@ export default function UploadPage() {
               <Button 
                 type={uploading ? "button" : "submit"}
                 onClick={uploading ? cancelUpload : undefined}
-                disabled={!uploading && !hasFiles}
+                disabled={!uploading && (!hasFiles || !isReady)}
                 variant={uploading ? "destructive" : "default"}
                 className={uploading 
                   ? "w-full h-12 bg-red-600 hover:bg-red-700 rounded-full" 
                   : "w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 h-12 rounded-full"
                 }
                 size="lg"
+                title={!isReady && !uploading ? "System must be initialized before uploading" : ""}
               >
                 {uploading ? (
                   <>
