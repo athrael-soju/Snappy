@@ -119,7 +119,7 @@ export default function MaintenancePage() {
       />
 
       {/* Tabs Container with Scroll */}
-      <Tabs defaultValue="maintenance" className="flex-1 flex flex-col min-h-0">
+      <Tabs defaultValue="configuration" className="flex-1 flex flex-col min-h-0">
         <TabsList className="w-full max-w-md mx-auto mb-4 bg-gradient-to-r from-blue-100/50 via-purple-100/50 to-cyan-100/50 border border-blue-200/50 h-14 rounded-full p-1 shadow-sm">
         <TabsTrigger
             value="configuration"
@@ -130,7 +130,7 @@ export default function MaintenancePage() {
             <span className="sm:hidden">Config</span>
           </TabsTrigger>          
           <TabsTrigger
-            value="maintenance"
+            value="data_management"
             className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300 rounded-full font-medium"
           >
             <Shield className="w-4 h-4 mr-2" />
@@ -146,8 +146,8 @@ export default function MaintenancePage() {
         </div>
       </TabsContent>
 
-        {/* Maintenance Tab */}
-        <TabsContent value="maintenance" className="flex-1 min-h-0 overflow-y-auto mt-0 custom-scrollbar pr-2">
+        {/* Data Management Tab */}
+        <TabsContent value="data_management" className="flex-1 min-h-0 overflow-y-auto mt-0 custom-scrollbar pr-2">
           <div className="space-y-6 pb-4">
             {/* Standard Actions */}
             <div>
