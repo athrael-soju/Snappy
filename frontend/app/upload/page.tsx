@@ -14,6 +14,7 @@ import { Upload, FileText, CheckCircle, AlertCircle, Loader2, CloudUpload, Folde
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "@/components/ui/sonner";
 import { useUploadStore } from "@/stores/app-store";
+import { PageHeader } from "@/components/page-header";
 
 export default function UploadPage() {
   // Use global upload store
@@ -144,18 +145,11 @@ export default function UploadPage() {
       transition={{ duration: 0.5 }}
       className="flex flex-col min-h-0 flex-1"
     >
-      {/* Header */}
-      <div className="space-y-2 mb-6">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-lg border border-blue-500/20">
-            <CloudUpload className="w-6 h-6 text-blue-500" />
-          </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Upload Documents</h1>
-            <p className="text-muted-foreground text-sm sm:text-base">Drag & drop or select files to add to your visual search index</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="Upload Documents"
+        description="Drag & drop or select files to add to your visual search index"
+        icon={CloudUpload}
+      />
 
       {/* Scrollable Content */}
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-2">
@@ -174,27 +168,9 @@ export default function UploadPage() {
           className="relative"
         >
           <CardHeader className="text-center pb-6">
-            <motion.div 
-              animate={{ 
-                scale: isDragOver ? 1.1 : 1,
-                rotate: isDragOver ? 5 : 0
-              }}
-              className={`mx-auto w-20 h-20 rounded-full flex items-center justify-center mb-4 transition-all ${
-                isDragOver ? 'bg-blue-500/20 border-2 border-blue-500/30' : 'bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20'
-              }`}
-            >
-              <CloudUpload className={`w-10 h-10 transition-colors ${
-                isDragOver ? 'text-blue-600' : 'text-blue-500'
-              }`} />
-            </motion.div>
-            
-            <CardTitle className="text-2xl mb-2">
-              {isDragOver ? 'Drop your files here!' : 'Upload Documents'}
-            </CardTitle>
-            
             <CardDescription className="text-base leading-relaxed max-w-md mx-auto">
               {isDragOver 
-                ? 'Release to upload your documents' 
+                ? '📁 Release to upload your documents' 
                 : 'Drag & drop your files here, or click to browse. Upload reports, contracts, or images for instant visual search.'
               }
             </CardDescription>
@@ -346,7 +322,7 @@ export default function UploadPage() {
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-2">
                   <FileText className="w-5 h-5 text-blue-500" />
-                  <CardTitle className="text-lg">Supported Formats</CardTitle>
+                  <CardTitle className="text-lg font-semibold">Supported Formats</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
@@ -377,7 +353,7 @@ export default function UploadPage() {
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-2">
                   <ArrowUpFromLine className="w-5 h-5 text-purple-500" />
-                  <CardTitle className="text-lg">Quick Tips</CardTitle>
+                  <CardTitle className="text-lg font-semibold">Quick Tips</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>

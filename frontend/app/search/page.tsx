@@ -18,6 +18,7 @@ import SearchBar from "@/components/search/SearchBar";
 // import ExampleQueries from "@/components/search/ExampleQueries";
 import RecentSearchesChips from "@/components/search/RecentSearchesChips";
 import { useSearchStore } from "@/stores/app-store";
+import { PageHeader } from "@/components/page-header";
 
 // Example search prompts to help users
 const exampleQueries = [
@@ -136,52 +137,17 @@ export default function SearchPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="space-y-4 min-h-0 flex flex-col flex-1 overflow-y-auto custom-scrollbar"
+      className="space-y-4 min-h-0 flex flex-col flex-1"
     >
-      {/* Header with Background Decoration */}
-      <div className="space-y-3 text-center relative">
-        {/* Background decoration */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-20 w-32 h-32 bg-blue-200/20 rounded-full blur-xl" />
-          <div className="absolute top-10 right-32 w-24 h-24 bg-cyan-200/20 rounded-full blur-xl" />
-        </div>
-        
-        <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 bg-clip-text text-transparent relative z-10">
-          Visual Search
-        </h1>
-        <p className="text-muted-foreground text-sm sm:text-base max-w-2xl mx-auto relative z-10">
-          Find documents and images using natural language powered by AI vision
-        </p>
-
-        {/* Quick Stats */}
-        <div className="flex flex-wrap justify-center items-center gap-3 sm:gap-4 text-xs text-muted-foreground relative z-10">
-          <div className="flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-blue-500" />
-            <span>AI-powered visual understanding</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Search className="w-3.5 h-3.5 text-cyan-500" />
-            <span>Natural language queries</span>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="Visual Search"
+        description="Find documents and images using natural language powered by AI vision"
+        icon={Search}
+      />
 
       {/* Search Form */}
       <Card className="border-2 border-blue-200/50 shadow-lg bg-gradient-to-br from-blue-500/5 to-cyan-500/5 hover:shadow-xl transition-shadow duration-300">
-        <CardHeader className="bg-gradient-to-r from-blue-100/50 via-cyan-100/50 to-blue-100/50 border-b border-blue-200/50 py-4">
-          <div className="flex items-center gap-2.5">
-            <div className="p-1.5 rounded-xl bg-white border-2 border-blue-200/50 shadow-sm">
-              <Search className="w-4 h-4 text-blue-500" />
-            </div>
-            <div>
-              <CardTitle className="text-lg font-bold">Search Your Documents</CardTitle>
-              <CardDescription className="text-sm mt-0.5">
-                Describe what you're looking for using natural language.
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-5 pb-5 space-y-5">
+        <CardContent className="pt-6 pb-6 space-y-4">
           <SearchBar
             q={q}
             setQ={setQ}
@@ -224,35 +190,34 @@ export default function SearchPage() {
         )}
       </AnimatePresence>
 
-      {/* Pre-search Placeholder / Results */
-      }
-      {!hasSearched && !loading && !error && (
-        <Card className="border-2 border-dashed border-muted-foreground/25">
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-20 h-20 bg-gradient-to-br from-muted/50 to-muted/30 rounded-full flex items-center justify-center mb-6">
-              <Search className="w-10 h-10 text-muted-foreground" />
-            </div>
-            <h3 className="text-xl font-semibold mb-2">Your results will appear here</h3>
-            <p className="text-muted-foreground max-w-md">
-              Use natural language to find documents and images instantly.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      {/* Pre-search Placeholder / Results - Scrollable Container */}
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+        {!hasSearched && !loading && !error && (
+          <Card className="border-2 border-dashed border-muted-foreground/25">
+            <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-20 h-20 bg-gradient-to-br from-muted/50 to-muted/30 rounded-full flex items-center justify-center mb-6">
+                <Search className="w-10 h-10 text-muted-foreground" />
+              </div>
+              <h3 className="text-xl font-medium mb-2">Your results will appear here</h3>
+              <p className="text-muted-foreground max-w-md leading-relaxed">
+                Use natural language to find documents and images instantly.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
-      {/* Results */
-      }
-      <AnimatePresence>
-        {hasSearched && !loading && !error && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="space-y-4 flex-shrink-0"
-          >
+        {/* Results */}
+        <AnimatePresence>
+          {hasSearched && !loading && !error && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="space-y-4 pb-4"
+            >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
-                <h2 className="text-2xl font-bold">
+                <h2 className="text-2xl font-semibold">
                   {results.length > 0 ? (
                     <>
                       {`Found ${results.length} result${results.length !== 1 ? 's' : ''}`}
@@ -267,7 +232,7 @@ export default function SearchPage() {
                   )}
                 </h2>
                 {results.length > 0 && (
-                  <p className="text-muted-foreground">
+                  <p className="text-sm text-muted-foreground">
                     Showing visual matches for your search
                   </p>
                 )}
@@ -290,8 +255,8 @@ export default function SearchPage() {
                   <div className="w-20 h-20 bg-gradient-to-br from-muted/50 to-muted/30 rounded-full flex items-center justify-center mb-6">
                     <ImageIcon className="w-10 h-10 text-muted-foreground" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-3">No matches found</h3>
-                  <p className="text-muted-foreground max-w-md mb-6">
+                  <h3 className="text-xl font-medium mb-3">No matches found</h3>
+                  <p className="text-muted-foreground max-w-md mb-6 leading-relaxed">
                     We couldn't find any visual content matching "<span className="font-medium text-foreground">{q}</span>". Try rephrasing your query or check if documents are uploaded.
                   </p>
                   <div className="space-y-3">
@@ -318,14 +283,13 @@ export default function SearchPage() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
-                <motion.div
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-6 px-1"
-                >
-                {results.map((item, idx) => (
+              <motion.div
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-6 px-1"
+              >
+              {results.map((item, idx) => (
                   <motion.div key={idx} variants={itemVariants}>
                     <Card className="h-full group overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-2 border-blue-200/50 hover:border-blue-300 bg-gradient-to-br from-blue-500/5 to-cyan-500/5">
                       {item.image_url && (
@@ -356,7 +320,7 @@ export default function SearchPage() {
                       <CardContent className="p-4 space-y-3">
                         {item.label && (
                           <div className="space-y-1">
-                            <h3 className="font-semibold text-foreground line-clamp-2 group-hover:text-blue-600 transition-colors">
+                            <h3 className="text-base font-medium text-foreground line-clamp-2 group-hover:text-blue-600 transition-colors">
                               {item.label}
                             </h3>
                           </div>
@@ -367,26 +331,22 @@ export default function SearchPage() {
                               #{idx + 1}
                             </Badge>
                             {typeof item.score === "number" && (
-                              <div className="flex items-center gap-1">
-                                <div className={`w-2 h-2 rounded-full ${item.score > 0.8 ? 'bg-green-500' : item.score > 0.6 ? 'bg-yellow-500' : 'bg-red-500'
-                                  }`} />
-                                <span className="text-xs text-muted-foreground font-mono">
-                                  {(item.score * 100).toFixed(1)}%
-                                </span>
-                              </div>
+                              <Badge variant="outline" className="text-xs font-medium border-blue-200/50">
+                                Score {Math.round(item.score * 100)}
+                              </Badge>
                             )}
                           </div>
                         </div>
                       </CardContent>
                     </Card>
                   </motion.div>
-                ))}
-                </motion.div>
-              </div>
+              ))}
+              </motion.div>
             )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
       <ImageLightbox
         open={lightboxOpen}
         src={lightboxSrc}

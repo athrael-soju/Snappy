@@ -7,39 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Upload, MessageSquare, Zap, Shield, Sparkles, ArrowRight, Eye, Brain, CloudUpload, Database } from "lucide-react";
 import { motion } from "framer-motion";
 
-const features = [
-  {
-    icon: Eye,
-    title: "AI-Powered Visual Search",
-    description: "Find documents using natural language descriptions",
-    detail: "Advanced ColPali embeddings understand visual content context",
-    color: "text-blue-500",
-    bgColor: "from-blue-500/10 to-cyan-500/10",
-    borderColor: "border-blue-200/50",
-    preview: "search-preview"
-  },
-  {
-    icon: CloudUpload,
-    title: "Smart Document Processing",
-    description: "Drag & drop files for instant processing",
-    detail: "Automatic indexing with progress tracking and format detection",
-    color: "text-green-500",
-    bgColor: "from-green-500/10 to-emerald-500/10",
-    borderColor: "border-green-200/50",
-    preview: "upload-preview"
-  },
-  {
-    icon: Brain,
-    title: "Intelligent Chat with Citations",
-    description: "Ask questions and get visual proof",
-    detail: "AI responses backed by relevant document excerpts and images",
-    color: "text-purple-500",
-    bgColor: "from-purple-500/10 to-pink-500/10",
-    borderColor: "border-purple-200/50",
-    preview: "chat-preview"
-  }
-];
-
 const workflow = [
   { step: 1, title: "Upload", description: "Drag & drop your documents", icon: CloudUpload, color: "text-blue-600" },
   { step: 2, title: "Process", description: "AI analyzes visual content", icon: Database, color: "text-purple-600" },
@@ -92,21 +59,21 @@ export default function Home() {
             </Badge>
           </div>
 
-          <h1 className="text-5xl sm:text-7xl font-bold mb-8">
+          <h1 className="text-5xl sm:text-6xl font-semibold mb-6">
             <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">
               FastAPI / Next.js / ColPali Template
             </span>
           </h1>
 
-          <p className="text-xl sm:text-2xl text-muted-foreground mb-4 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-xl text-muted-foreground mb-3 max-w-3xl mx-auto leading-relaxed">
             A lightweight, end-to-end template for knowledge retrieval, using ColPali
           </p>
-          <p className="text-lg text-muted-foreground mb-12 max-w-2xl mx-auto">
+          <p className="text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed">
             Upload documents, search using natural language, and chat with an AI assistant
           </p>
 
           {/* Single primary CTA */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
             <Button
               asChild
               size="lg"
@@ -119,10 +86,10 @@ export default function Home() {
               </Link>
             </Button>
 
-            <div className="text-sm text-muted-foreground">
+            <div className="text-muted-foreground">
               or
               <Link href="/search" className="ml-2 text-blue-600 hover:text-blue-700 font-medium hover:underline">
-                explore with search →
+                explore search →
               </Link>
             </div>
           </div>
@@ -132,21 +99,21 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.3 }}
-            className="flex justify-center items-center gap-8 text-sm text-muted-foreground"
+            className="flex justify-center items-center gap-6 text-muted-foreground"
           >
             {workflow.map((step, idx) => {
               const StepIcon = step.icon;
               return (
-                <div key={idx} className="flex items-center gap-2">
+                <div key={idx} className="flex items-center gap-3">
                   <div className={`p-2 rounded-full bg-white border-2 ${step.color.replace('text-', 'border-').replace('-600', '-200')}`}>
                     <StepIcon className={`w-4 h-4 ${step.color}`} />
                   </div>
                   <div className="text-left">
                     <div className="font-medium text-foreground">{step.title}</div>
-                    <div className="text-xs">{step.description}</div>
+                    <div className="text-sm">{step.description}</div>
                   </div>
                   {idx < workflow.length - 1 && (
-                    <ArrowRight className="w-4 h-4 text-muted-foreground/50 ml-4" />
+                    <ArrowRight className="w-4 h-4 text-muted-foreground/50 ml-2" />
                   )}
                 </div>
               );
