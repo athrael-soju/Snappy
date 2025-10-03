@@ -352,7 +352,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           
           // Show toast notification
           if (typeof window !== 'undefined') {
-            toast.info('Upload Cancelled', { description: cancelMsg });
+            toast.info('Upload Status', { description: cancelMsg });
           }
         }
       } catch (e) {
