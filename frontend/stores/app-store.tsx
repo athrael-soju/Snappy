@@ -447,10 +447,7 @@ export function useUploadStore() {
       
       if (!response.ok) {
         throw new Error(`Failed to cancel: ${response.statusText}`);
-      }
-      
-      // The SSE stream will handle the state updates when it receives the 'cancelled' status
-      toast.info('Cancelling upload...', { description: 'Please wait until the upload is cancelled' });
+      }      
     } catch (error) {
       console.error('Failed to cancel upload:', error);
       toast.error('Cancellation Failed', { 
