@@ -292,7 +292,7 @@ export default function UploadPage() {
                 >
                   <Alert variant="default" className="border-green-200 bg-green-50/50">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    <AlertTitle className="text-green-800">Upload Successful</AlertTitle>
+                    <AlertTitle className="text-green-800">Upload Status</AlertTitle>
                     <AlertDescription className="text-green-700">{message}</AlertDescription>
                   </Alert>
                 </motion.div>
@@ -306,7 +306,7 @@ export default function UploadPage() {
                 >
                   <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Upload Failed</AlertTitle>
+                    <AlertTitle>Upload Status</AlertTitle>
                     <AlertDescription>{error}</AlertDescription>
                   </Alert>
                 </motion.div>
