@@ -250,6 +250,36 @@ export function ConfigurationPanel() {
     // Nested settings have compact styling
     if (isNested) {
       switch (setting.type) {
+        case "boolean":
+          return (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-4">
+                <Label htmlFor={setting.key} className="text-xs font-medium flex items-center gap-1.5">
+                  {setting.label}
+                  {setting.help_text && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-xs">{setting.help_text}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </Label>
+                <Switch
+                  id={setting.key}
+                  checked={currentValue.toLowerCase() === "true"}
+                  onCheckedChange={(checked) => handleValueChange(setting.key, checked ? "True" : "False")}
+                  disabled={saving}
+                  className="scale-90"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">{setting.description}</p>
+            </div>
+          );
         case "number":
           const numValue = parseFloat(currentValue) || parseFloat(setting.default);
           const min = setting.min ?? 0;
@@ -307,8 +337,8 @@ export function ConfigurationPanel() {
     switch (setting.type) {
       case "boolean":
         return (
-          <div className="grid grid-cols-[1fr,auto] gap-8 items-start py-4">
-            <div className="space-y-0.5">
+          <div className="py-4 space-y-2">
+            <div className="flex items-center justify-between gap-8">
               <Label htmlFor={setting.key} className="text-sm font-medium flex items-center gap-1.5">
                 {setting.label}
                 {setting.help_text && (
@@ -324,15 +354,14 @@ export function ConfigurationPanel() {
                   </TooltipProvider>
                 )}
               </Label>
-              <p className="text-sm text-muted-foreground">{setting.description}</p>
+              <Switch
+                id={setting.key}
+                checked={currentValue.toLowerCase() === "true"}
+                onCheckedChange={(checked) => handleValueChange(setting.key, checked ? "True" : "False")}
+                disabled={saving}
+              />
             </div>
-            <Switch
-              id={setting.key}
-              checked={currentValue.toLowerCase() === "true"}
-              onCheckedChange={(checked) => handleValueChange(setting.key, checked ? "True" : "False")}
-              disabled={saving}
-              className="mt-1"
-            />
+            <p className="text-sm text-muted-foreground">{setting.description}</p>
           </div>
         );
 
