@@ -8,7 +8,7 @@ import { Info, Image as ImageIcon, Layers, Search, GitCompare, Sparkles, Databas
 
 export default function AboutContent({ onClose }: { onClose?: () => void }) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl mx-auto">
       {/* Header */}
       <div className="text-center relative">
         {/* Background decoration */}
@@ -21,8 +21,8 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
           <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full flex items-center justify-center mb-4 border-2 border-blue-200/50 shadow-md">
             <Info className="w-8 h-8 text-blue-500" />
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">About This Template</h1>
-          <p className="text-muted-foreground text-sm sm:text-base max-w-2xl mx-auto">A friendly and light-weight knowledge base platform with visual document understanding</p>
+          <h2 className="text-3xl font-semibold bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">About This Template</h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">A friendly and light-weight knowledge base platform with visual document understanding</p>
         </div>
       </div>
 
@@ -38,7 +38,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
           <AccordionContent>
             <Card className="border-2 border-blue-200/50 bg-gradient-to-br from-blue-500/5 to-cyan-500/5 shadow-lg hover:shadow-xl transition-shadow duration-300">
               <CardHeader className="pb-3">
-                <CardDescription className="text-base">
+                <CardDescription className="max-w-prose leading-relaxed">
                   A full-stack multimodal RAG system combining FastAPI, Next.js, and ColQwen2.5 for visual document understanding. Optimized for scanned documents, forms, tables, and complex layouts where traditional text-only RAG falls short.
                 </CardDescription>
               </CardHeader>
@@ -80,17 +80,17 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
           </AccordionTrigger>
           <AccordionContent>
             <Card className="border-2 border-cyan-200/50 bg-gradient-to-br from-cyan-500/5 to-blue-500/5 shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <CardContent className="pt-4 text-sm text-muted-foreground space-y-3">
-                <p>
+              <CardContent className="pt-4 text-muted-foreground space-y-3 max-w-prose">
+                <p className="leading-relaxed">
                   <strong className="text-foreground">ColPali</strong> (Contextualized Late Interaction over PaliGemma) is a state-of-the-art visual document retrieval method that treats entire page images as multi-vector embeddings. This template uses <strong className="text-foreground">ColQwen2.5</strong>, a 7B parameter vision-language model fine-tuned for document understanding.
                 </p>
-                <p>
+                <p className="leading-relaxed">
                   Instead of extracting text via OCR and losing layout information, ColPali generates <strong className="text-foreground">128 patch embeddings per image</strong> (1024 dimensions each). Your query is compared against all patches using <strong className="text-foreground">MaxSim scoring</strong> - finding the maximum similarity between query tokens and image patches.
                 </p>
-                <p>
+                <p className="leading-relaxed">
                   The system performs <strong className="text-foreground">mean pooling across rows and columns</strong> to create additional pooled vectors, enabling both fine-grained patch-level matching and holistic document-level retrieval. Binary quantization (32x compression) accelerates search while maintaining accuracy through full-precision rescoring.
                 </p>
-                <p>
+                <p className="leading-relaxed">
                   This approach preserves visual layout, typography, tables, charts, and handwriting - making it ideal for scanned documents, forms, invoices, and any content where visual structure matters.
                 </p>
               </CardContent>
@@ -112,7 +112,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Layers className="w-5 h-5 text-amber-600" />
-                      <CardTitle className="text-base">Traditional RAG</CardTitle>
+                      <CardTitle className="text-base font-semibold">Traditional RAG</CardTitle>
                     </div>
                     <Badge variant="outline" className="text-xs">Baseline</Badge>
                   </div>
@@ -132,7 +132,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <ImageIcon className="w-5 h-5 text-emerald-600" />
-                      <CardTitle className="text-base">ColPali</CardTitle>
+                      <CardTitle className="text-base font-semibold">ColPali</CardTitle>
                     </div>
                     <Badge className="text-xs">High recall</Badge>
                   </div>
@@ -244,9 +244,9 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
           </AccordionTrigger>
           <AccordionContent>
             <Card className="border-2 border-purple-200/50 bg-gradient-to-br from-purple-500/5 to-pink-500/5 shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <CardContent className="pt-4 text-sm text-muted-foreground space-y-3">
+              <CardContent className="pt-4 text-muted-foreground space-y-3 max-w-prose">
                 <div className="space-y-2">
-                  <p><strong className="text-foreground">Choose Text-only RAG when:</strong></p>
+                  <p className="leading-relaxed"><strong className="text-foreground">Choose Text-only RAG when:</strong></p>
                   <ul className="space-y-1 ml-4">
                     <li className="flex items-start gap-2"><span>•</span><span>Documents are clean, digital-native (blogs, code, markdown)</span></li>
                     <li className="flex items-start gap-2"><span>•</span><span>Storage and compute constraints are tight</span></li>
@@ -254,7 +254,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
                   </ul>
                 </div>
                 <div className="space-y-2">
-                  <p><strong className="text-foreground">Choose ColPali when:</strong></p>
+                  <p className="leading-relaxed"><strong className="text-foreground">Choose ColPali when:</strong></p>
                   <ul className="space-y-1 ml-4">
                     <li className="flex items-start gap-2"><span>•</span><span>Documents are scanned, contain complex tables, charts, or handwriting</span></li>
                     <li className="flex items-start gap-2"><span>•</span><span>Visual layout carries semantic meaning (forms, invoices, receipts)</span></li>
@@ -262,7 +262,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
                     <li className="flex items-start gap-2"><span>•</span><span>You need high recall on visual/spatial cues</span></li>
                   </ul>
                 </div>
-                <p className="pt-2 border-t"><strong className="text-foreground">Hybrid approach:</strong> This template can be extended to combine both methods - use ColPali for visual-heavy pages and text embeddings for clean documents.</p>
+                <p className="pt-2 border-t leading-relaxed"><strong className="text-foreground">Hybrid approach:</strong> This template can be extended to combine both methods - use ColPali for visual-heavy pages and text embeddings for clean documents.</p>
               </CardContent>
             </Card>
           </AccordionContent>
@@ -277,7 +277,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
           </AccordionTrigger>
           <AccordionContent>
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground text-center">
+              <p className="text-muted-foreground text-center leading-relaxed">
                 Get started with this template in four simple steps:
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-2">
@@ -288,7 +288,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-white flex items-center justify-center font-bold text-sm">1</div>
                       <CloudUpload className="w-5 h-5 text-blue-600" />
                     </div>
-                    <CardTitle className="text-base">Upload Documents</CardTitle>
+                    <CardTitle className="text-base font-semibold">Upload Documents</CardTitle>
                     <CardDescription className="text-xs">
                       Upload PDFs, forms, or scanned documents for automatic processing
                     </CardDescription>
@@ -309,7 +309,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 text-white flex items-center justify-center font-bold text-sm">2</div>
                       <Eye className="w-5 h-5 text-cyan-600" />
                     </div>
-                    <CardTitle className="text-base">Search Documents</CardTitle>
+                    <CardTitle className="text-base font-semibold">Search Documents</CardTitle>
                     <CardDescription className="text-xs">
                       Use natural language to find pages with visual understanding
                     </CardDescription>
@@ -330,7 +330,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-white flex items-center justify-center font-bold text-sm">3</div>
                       <Brain className="w-5 h-5 text-purple-600" />
                     </div>
-                    <CardTitle className="text-base">Chat with AI</CardTitle>
+                    <CardTitle className="text-base font-semibold">Chat with AI</CardTitle>
                     <CardDescription className="text-xs">
                       Ask questions with answers backed by visual citations
                     </CardDescription>
@@ -351,7 +351,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-orange-500 text-white flex items-center justify-center font-bold text-sm">4</div>
                       <Shield className="w-5 h-5 text-red-600" />
                     </div>
-                    <CardTitle className="text-base">Maintenance</CardTitle>
+                    <CardTitle className="text-base font-semibold">Maintenance</CardTitle>
                     <CardDescription className="text-xs">
                       Manage data, configure settings, and monitor system health
                     </CardDescription>

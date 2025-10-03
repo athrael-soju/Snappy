@@ -19,9 +19,14 @@ export interface ChatSettingsProps {
   onValidityChange?: (valid: boolean) => void;
   toolCallingEnabled?: boolean;
   setToolCallingEnabled?: (v: boolean) => void;
+  topK?: number;
+  setTopK?: (v: number) => void;
+  maxTokens?: number;
+  setMaxTokens?: (v: number) => void;
+  showMaxTokens?: boolean; // Whether to show max tokens setting (only for chat, not search)
 }
 
-export function ChatSettings({ k, setK, loading, className, onValidityChange, toolCallingEnabled, setToolCallingEnabled }: ChatSettingsProps) {
+export function ChatSettings({ k, setK, loading, className, onValidityChange, toolCallingEnabled, setToolCallingEnabled, topK = 16, setTopK, maxTokens = 500, setMaxTokens, showMaxTokens = true }: ChatSettingsProps) {
   const [open, setOpen] = React.useState(false);
 
   // Slider always enforces bounds; always valid
@@ -41,9 +46,9 @@ export function ChatSettings({ k, setK, loading, className, onValidityChange, to
           <DialogContent aria-label="Chat settings">
             <div className="flex items-start justify-between gap-2">
               <DialogHeader className="space-y-1">
-                <DialogTitle className="text-lg font-semibold">Chat settings</DialogTitle>
+                <DialogTitle className="text-lg font-semibold">{showMaxTokens ? 'Chat' : 'Search'} settings</DialogTitle>
                 <DialogDescription>
-                  Choose how many sources are used to answer your question. Fewer sources = faster responses. More sources = broader context.
+                  Configure your {showMaxTokens ? 'chat' : 'search'} preferences and result settings.
                 </DialogDescription>
               </DialogHeader>
             </div>
@@ -51,54 +56,97 @@ export function ChatSettings({ k, setK, loading, className, onValidityChange, to
             <Separator className="my-2" />
 
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <Label htmlFor="tool-calling" className="text-sm font-medium">Tool calling</Label>
-                  <p className="text-xs text-muted-foreground">When disabled, the assistant will always use the knowledge base (no tool calls).</p>
+              {showMaxTokens && toolCallingEnabled !== undefined && setToolCallingEnabled && (
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label htmlFor="tool-calling" className="text-sm font-medium">Tool calling</Label>
+                    <p className="text-xs text-muted-foreground">When disabled, the assistant will always use the knowledge base (no tool calls).</p>
+                  </div>
+                  <Switch
+                    id="tool-calling"
+                    checked={toolCallingEnabled}
+                    onCheckedChange={(v) => setToolCallingEnabled?.(!!v)}
+                    disabled={!!loading}
+                    aria-label="Enable tool calling"
+                  />
                 </div>
-                <Switch
-                  id="tool-calling"
-                  checked={toolCallingEnabled}
-                  onCheckedChange={(v) => setToolCallingEnabled?.(!!v)}
-                  disabled={!!loading}
-                  aria-label="Enable tool calling"
-                />
-              </div>
+              )}
 
               <div>
-                <Label htmlFor="k-slider" className="text-sm font-medium">Sources</Label>
+                <Label htmlFor="topk-slider" className="text-sm font-medium">Search Results</Label>
+                <p className="text-xs text-muted-foreground mb-4">Number of search results to return (1-100)</p>
                 <div className="mt-4">
                   <input
-                    id="k-slider"
+                    id="topk-slider"
                     type="range"
                     min={1}
-                    max={25}
+                    max={100}
                     step={1}
-                    value={k}
+                    value={topK}
                     disabled={!!loading}
                     onChange={(e) => {
                       const next = Number(e.target.value);
-                      const parsed = kSchema.safeParse(next);
-                      if (parsed.success) {
-                        setK(parsed.data);
-                        onValidityChange?.(true);
+                      if (next >= 1 && next <= 100) {
+                        setTopK?.(next);
+                        // Also update k to match topK
+                        const parsed = kSchema.safeParse(Math.min(next, 25));
+                        if (parsed.success) {
+                          setK(parsed.data);
+                          onValidityChange?.(true);
+                        }
                       }
                     }}
                     className="w-full"
                     aria-valuemin={1}
-                    aria-valuemax={25}
-                    aria-valuenow={k}
-                    aria-label="Number of sources"
+                    aria-valuemax={100}
+                    aria-valuenow={topK}
+                    aria-label="Search Results"
                   />
                   <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                    <span>1 (Fast)</span>
+                    <span>1</span>
                     <span>
-                      Selected: <Badge variant="secondary" className="align-middle">{k}</Badge>
+                      Selected: <Badge variant="secondary" className="align-middle">{topK}</Badge>
                     </span>
-                    <span>25 (Broader)</span>
+                    <span>100</span>
                   </div>
                 </div>
               </div>
+
+              {showMaxTokens && (
+                <div>
+                  <Label htmlFor="maxtokens-slider" className="text-sm font-medium">Max Tokens</Label>
+                  <p className="text-xs text-muted-foreground mb-4">Maximum tokens for text generation (100-4096)</p>
+                  <div className="mt-4">
+                    <input
+                      id="maxtokens-slider"
+                      type="range"
+                      min={100}
+                      max={4096}
+                      step={1}
+                      value={maxTokens}
+                      disabled={!!loading}
+                      onChange={(e) => {
+                        const next = Number(e.target.value);
+                        if (next >= 100 && next <= 4096) {
+                          setMaxTokens?.(next);
+                        }
+                      }}
+                      className="w-full"
+                      aria-valuemin={100}
+                      aria-valuemax={4096}
+                      aria-valuenow={maxTokens}
+                      aria-label="Max Tokens"
+                    />
+                    <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                      <span>100</span>
+                      <span>
+                        Selected: <Badge variant="secondary" className="align-middle">{maxTokens}</Badge>
+                      </span>
+                      <span>4096</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </DialogContent>
         </Dialog>

@@ -12,6 +12,7 @@ export interface SearchState {
   hasSearched: boolean;
   searchDurationMs: number | null;
   k: number;
+  topK: number;
 }
 
 export interface ChatState {
@@ -20,6 +21,8 @@ export interface ChatState {
   k: number;
   toolCallingEnabled: boolean;
   loading: boolean;
+  topK: number;
+  maxTokens: number;
 }
 
 export interface UploadState {
@@ -50,6 +53,7 @@ type AppAction =
   | { type: 'SEARCH_SET_RESULTS'; payload: { results: SearchItem[]; duration: number | null } }
   | { type: 'SEARCH_SET_HAS_SEARCHED'; payload: boolean }
   | { type: 'SEARCH_SET_K'; payload: number }
+  | { type: 'SEARCH_SET_TOP_K'; payload: number }
   | { type: 'SEARCH_RESET' }
   
   // Chat actions
@@ -61,6 +65,8 @@ type AppAction =
   | { type: 'CHAT_SET_K'; payload: number }
   | { type: 'CHAT_SET_TOOL_CALLING'; payload: boolean }
   | { type: 'CHAT_SET_LOADING'; payload: boolean }
+  | { type: 'CHAT_SET_TOP_K'; payload: number }
+  | { type: 'CHAT_SET_MAX_TOKENS'; payload: number }
   | { type: 'CHAT_RESET' }
   
   // Upload actions
@@ -85,6 +91,7 @@ const initialState: AppState = {
     hasSearched: false,
     searchDurationMs: null,
     k: 5,
+    topK: 16,
   },
   chat: {
     messages: [],
@@ -92,6 +99,8 @@ const initialState: AppState = {
     k: 5,
     toolCallingEnabled: true,
     loading: false,
+    topK: 16,
+    maxTokens: 500,
   },
   upload: {
     files: null,
@@ -129,6 +138,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, search: { ...state.search, hasSearched: action.payload } };
     case 'SEARCH_SET_K':
       return { ...state, search: { ...state.search, k: action.payload } };
+    case 'SEARCH_SET_TOP_K':
+      return { ...state, search: { ...state.search, topK: action.payload } };
     case 'SEARCH_RESET':
       return { ...state, search: initialState.search };
 
@@ -165,6 +176,10 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, chat: { ...state.chat, toolCallingEnabled: action.payload } };
     case 'CHAT_SET_LOADING':
       return { ...state, chat: { ...state.chat, loading: action.payload } };
+    case 'CHAT_SET_TOP_K':
+      return { ...state, chat: { ...state.chat, topK: action.payload } };
+    case 'CHAT_SET_MAX_TOKENS':
+      return { ...state, chat: { ...state.chat, maxTokens: action.payload } };
     case 'CHAT_RESET':
       // Preserve user settings when clearing conversation
       return { 
@@ -173,6 +188,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
           ...initialState.chat,
           k: state.chat.k, // Preserve k setting
           toolCallingEnabled: state.chat.toolCallingEnabled, // Preserve tool calling setting
+          topK: state.chat.topK, // Preserve topK setting
+          maxTokens: state.chat.maxTokens, // Preserve maxTokens setting
         } 
       };
 
@@ -226,6 +243,7 @@ function serializeStateForStorage(state: AppState): any {
       hasSearched: state.search.hasSearched,
       searchDurationMs: state.search.searchDurationMs,
       k: state.search.k,
+      topK: state.search.topK,
     },
     chat: {
       messages: state.chat.messages,
@@ -233,6 +251,8 @@ function serializeStateForStorage(state: AppState): any {
       k: state.chat.k,
       toolCallingEnabled: state.chat.toolCallingEnabled,
       loading: false, // Don't persist loading state across sessions
+      topK: state.chat.topK,
+      maxTokens: state.chat.maxTokens,
     },
     // Persist minimal upload state to track ongoing uploads
     upload: {
@@ -332,7 +352,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           
           // Show toast notification
           if (typeof window !== 'undefined') {
-            toast.info('Upload Cancelled', { description: cancelMsg });
+            toast.info('Upload Status', { description: cancelMsg });
           }
         }
       } catch (e) {
@@ -406,6 +426,7 @@ export function useSearchStore() {
     setHasSearched: (hasSearched: boolean) => 
       dispatch({ type: 'SEARCH_SET_HAS_SEARCHED', payload: hasSearched }),
     setK: (k: number) => dispatch({ type: 'SEARCH_SET_K', payload: k }),
+    setTopK: (topK: number) => dispatch({ type: 'SEARCH_SET_TOP_K', payload: topK }),
     reset: () => dispatch({ type: 'SEARCH_RESET' }),
   };
 }
@@ -429,6 +450,8 @@ export function useChatStore() {
       dispatch({ type: 'CHAT_SET_TOOL_CALLING', payload: enabled }),
     setLoading: (loading: boolean) => 
       dispatch({ type: 'CHAT_SET_LOADING', payload: loading }),
+    setTopK: (topK: number) => dispatch({ type: 'CHAT_SET_TOP_K', payload: topK }),
+    setMaxTokens: (maxTokens: number) => dispatch({ type: 'CHAT_SET_MAX_TOKENS', payload: maxTokens }),
     reset: () => dispatch({ type: 'CHAT_RESET' }),
   };
 }
@@ -447,10 +470,7 @@ export function useUploadStore() {
       
       if (!response.ok) {
         throw new Error(`Failed to cancel: ${response.statusText}`);
-      }
-      
-      // The SSE stream will handle the state updates when it receives the 'cancelled' status
-      toast.info('Cancelling upload...', { description: 'Please wait until the upload is cancelled' });
+      }      
     } catch (error) {
       console.error('Failed to cancel upload:', error);
       toast.error('Cancellation Failed', { 

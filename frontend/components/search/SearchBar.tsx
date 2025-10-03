@@ -14,11 +14,13 @@ export interface SearchBarProps {
   onSubmit: (e: React.FormEvent) => void;
   k: number;
   setK: (k: number) => void;
+  topK?: number;
+  setTopK?: (v: number) => void;
   onClear: () => void;
   hasResults?: boolean; // Whether there are actual results to clear
 }
 
-export default function SearchBar({ q, setQ, loading, onSubmit, k, setK, onClear, hasResults = false }: SearchBarProps) {
+export default function SearchBar({ q, setQ, loading, onSubmit, k, setK, topK = 16, setTopK, onClear, hasResults = false }: SearchBarProps) {
   return (
     <form onSubmit={onSubmit} className="space-y-4 mx-auto max-w-4xl">
       <div className="space-y-3">
@@ -44,6 +46,9 @@ export default function SearchBar({ q, setQ, loading, onSubmit, k, setK, onClear
                     setK={setK}
                     loading={loading}
                     className="h-14 w-14"
+                    topK={topK}
+                    setTopK={setTopK}
+                    showMaxTokens={false}
                   />
                 </div>
               </TooltipTrigger>

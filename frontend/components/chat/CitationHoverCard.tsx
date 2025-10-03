@@ -74,7 +74,7 @@ export default function CitationHoverCard({
             {/* Score if available */}
             {score !== undefined && score !== null && (
               <div className="text-xs text-purple-600 font-medium">
-                {(score * 100).toFixed(0)}% relevance
+                {score.toFixed(2)}% relevance
               </div>
             )}
             

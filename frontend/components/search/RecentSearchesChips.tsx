@@ -181,13 +181,13 @@ export default function RecentSearchesChips({ recentSearches, loading, visible =
           {!atStart && (
             <div
               aria-hidden
-              className="pointer-events-none absolute left-0 top-0 h-full w-8 bg-gradient-to-r from-background to-transparent"
+              className="pointer-events-none absolute left-0 top-0 h-full w-8 from-background to-transparent"
             />
           )}
           {!atEnd && (
             <div
               aria-hidden
-              className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-background to-transparent"
+              className="pointer-events-none absolute right-0 top-0 h-full w-8 from-background to-transparent"
             />
           )}
 

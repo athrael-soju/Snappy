@@ -250,6 +250,36 @@ export function ConfigurationPanel() {
     // Nested settings have compact styling
     if (isNested) {
       switch (setting.type) {
+        case "boolean":
+          return (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-4">
+                <Label htmlFor={setting.key} className="text-xs font-medium flex items-center gap-1.5">
+                  {setting.label}
+                  {setting.help_text && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-xs">{setting.help_text}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </Label>
+                <Switch
+                  id={setting.key}
+                  checked={currentValue.toLowerCase() === "true"}
+                  onCheckedChange={(checked) => handleValueChange(setting.key, checked ? "True" : "False")}
+                  disabled={saving}
+                  className="scale-90"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">{setting.description}</p>
+            </div>
+          );
         case "number":
           const numValue = parseFloat(currentValue) || parseFloat(setting.default);
           const min = setting.min ?? 0;
@@ -257,14 +287,14 @@ export function ConfigurationPanel() {
           const step = setting.step ?? 1;
           
           return (
-            <div className="space-y-2">
-              <Label htmlFor={setting.key} className="text-xs font-medium flex items-center gap-1">
+            <div className="space-y-2.5">
+              <Label htmlFor={setting.key} className="text-xs font-medium flex items-center gap-1.5">
                 {setting.label}
                 {setting.help_text && (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help" />
+                        <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
                         <p className="text-xs">{setting.help_text}</p>
@@ -273,7 +303,7 @@ export function ConfigurationPanel() {
                   </TooltipProvider>
                 )}
               </Label>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <Slider
                   id={setting.key}
                   value={[numValue]}
@@ -292,10 +322,10 @@ export function ConfigurationPanel() {
                   max={max}
                   step={step}
                   disabled={saving}
-                  className="w-16 h-8 text-xs"
+                  className="w-20 h-9 text-sm"
                 />
               </div>
-              <p className="text-xs text-muted-foreground">{setting.description}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">{setting.description}</p>
             </div>
           );
         default:
@@ -307,8 +337,8 @@ export function ConfigurationPanel() {
     switch (setting.type) {
       case "boolean":
         return (
-          <div className="grid grid-cols-[1fr,auto] gap-6 items-start py-3">
-            <div className="space-y-0.5">
+          <div className="py-4 space-y-2">
+            <div className="flex items-center justify-between gap-8">
               <Label htmlFor={setting.key} className="text-sm font-medium flex items-center gap-1.5">
                 {setting.label}
                 {setting.help_text && (
@@ -324,21 +354,20 @@ export function ConfigurationPanel() {
                   </TooltipProvider>
                 )}
               </Label>
-              <p className="text-sm text-muted-foreground">{setting.description}</p>
+              <Switch
+                id={setting.key}
+                checked={currentValue.toLowerCase() === "true"}
+                onCheckedChange={(checked) => handleValueChange(setting.key, checked ? "True" : "False")}
+                disabled={saving}
+              />
             </div>
-            <Switch
-              id={setting.key}
-              checked={currentValue.toLowerCase() === "true"}
-              onCheckedChange={(checked) => handleValueChange(setting.key, checked ? "True" : "False")}
-              disabled={saving}
-              className="mt-1"
-            />
+            <p className="text-sm text-muted-foreground">{setting.description}</p>
           </div>
         );
 
       case "select":
         return (
-          <div className="grid grid-cols-[1fr,280px] gap-6 items-start py-3">
+          <div className="grid grid-cols-[1fr,280px] gap-8 items-start py-4">
             <div className="space-y-0.5">
               <Label htmlFor={setting.key} className="text-sm font-medium flex items-center gap-1.5">
                 {setting.label}
@@ -383,7 +412,7 @@ export function ConfigurationPanel() {
         const step = setting.step ?? 1;
 
         return (
-          <div className="grid grid-cols-[1fr,280px] gap-6 items-start py-3">
+          <div className="grid grid-cols-[1fr,280px] gap-8 items-start py-4">
             <div className="space-y-0.5">
               <Label htmlFor={setting.key} className="text-sm font-medium flex items-center gap-1.5">
                 {setting.label}
@@ -436,7 +465,7 @@ export function ConfigurationPanel() {
 
       case "password":
         return (
-          <div className="grid grid-cols-[1fr,280px] gap-6 items-start py-3">
+          <div className="grid grid-cols-[1fr,280px] gap-8 items-start py-4">
             <div className="space-y-0.5">
               <Label htmlFor={setting.key} className="text-sm font-medium flex items-center gap-1.5">
                 {setting.label}
@@ -468,7 +497,7 @@ export function ConfigurationPanel() {
 
       default: // text
         return (
-          <div className="grid grid-cols-[1fr,280px] gap-6 items-start py-3">
+          <div className="grid grid-cols-[1fr,280px] gap-8 items-start py-4">
             <div className="space-y-0.5">
               <Label htmlFor={setting.key} className="text-sm font-medium flex items-center gap-1.5">
                 {setting.label}
@@ -567,7 +596,8 @@ export function ConfigurationPanel() {
               if (activeTab !== categoryKey) return null;
               
               const Icon = iconMap[category.icon] || Settings;
-              const visibleSettings = category.settings.filter(isSettingVisible);
+              // Filter to show only top-level settings (exclude nested children with depends_on)
+              const visibleSettings = category.settings.filter(s => isSettingVisible(s) && !s.depends_on);
               
               return (
                 <motion.div
@@ -614,12 +644,12 @@ export function ConfigurationPanel() {
                           
                           return (
                             <div key={setting.key}>
-                              {index > 0 && <Separator className="my-2" />}
+                              {index > 0 && <Separator className="my-3" />}
                               {renderSetting(setting)}
                               
                               {/* Nested child settings */}
                               {hasChildren && (
-                                <div className="mt-3 ml-6 pl-4 border-l-2 border-primary/20 space-y-3">
+                                <div className="mt-4 ml-8 pl-5 border-l-2 border-blue-300/40 space-y-4 pb-2">
                                   {childSettings.map(childSetting => (
                                     <div key={childSetting.key}>
                                       {renderSetting(childSetting, true)}

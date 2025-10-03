@@ -39,7 +39,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
     "application": {
         "order": 1,
         "icon": "settings",
-        "name": "Application",
+        "name": "Core Application",
         "description": "Core application settings",
         "settings": [
             {
@@ -60,36 +60,6 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "text",
                 "description": "Comma-separated list of allowed origins, or * for all",
                 "help_text": "Defines which web domains can access your API via cross-origin requests. Use '*' to allow all origins (development only - NOT recommended for production). In production, specify exact domains (e.g., 'https://example.com,https://app.example.com') to prevent unauthorized access. This is a critical security setting that protects against cross-site request forgery."
-            }
-        ]
-    },
-    "processing": {
-        "order": 2,
-        "icon": "cpu",
-        "name": "Processing",
-        "description": "Document processing and indexing settings",
-        "settings": [
-            {
-                "key": "DEFAULT_TOP_K",
-                "type": "int",
-                "default": 5,
-                "label": "Default Top K Results",
-                "ui_type": "number",
-                "min": 1,
-                "max": 100,
-                "description": "Default number of search results to return",
-                "help_text": "Number of most relevant documents to return from search queries. Lower values (3-5) provide quick, focused results. Higher values (10-20) give more comprehensive results but slower response times. Adjust based on your use case - customer support may need 3-5, research applications may need 10-20."
-            },
-            {
-                "key": "MAX_TOKENS",
-                "type": "int",
-                "default": 500,
-                "label": "Max Tokens",
-                "ui_type": "number",
-                "min": 100,
-                "max": 4096,
-                "description": "Maximum tokens for text generation",
-                "help_text": "Limits the length of generated text responses. One token ≈ 4 characters or 0.75 words. Lower values (100-300) give concise answers and faster responses. Higher values (1000-4096) allow detailed explanations but increase costs and latency. Set based on your application needs."
             },
             {
                 "key": "BATCH_SIZE",
@@ -131,12 +101,13 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "min": 1,
                 "max": 10,
                 "description": "Maximum number of concurrent batches",
+                "depends_on": {"key": "ENABLE_PIPELINE_INDEXING", "value": True},
                 "help_text": "Limits how many document batches process simultaneously in the pipeline. Higher values (5-10) maximize throughput but require more RAM and processing power. Lower values (1-3) are safer for limited resources. Only applies when pipeline indexing is enabled."
             }
         ]
     },
     "colpali": {
-        "order": 3,
+        "order": 2,
         "icon": "brain",
         "name": "Embedding Model",
         "description": "ColPali embedding model configuration",
@@ -192,7 +163,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
         ]
     },
     "qdrant": {
-        "order": 4,
+        "order": 3,
         "icon": "database",
         "name": "Vector Database",
         "description": "Qdrant vector store and retrieval settings",
@@ -214,17 +185,6 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "text",
                 "description": "Name of the Qdrant collection",
                 "help_text": "Name of the Qdrant collection storing your document embeddings. Think of it as a database table. Changing this creates/uses a different collection. Useful for testing or separating data by environment (dev/staging/prod). Requires restart to take effect."
-            },
-            {
-                "key": "QDRANT_SEARCH_LIMIT",
-                "type": "int",
-                "default": 20,
-                "label": "Search Limit",
-                "ui_type": "number",
-                "min": 1,
-                "max": 1000,
-                "description": "Maximum results from vector search",
-                "help_text": "Maximum number of results returned by vector similarity search. Higher values (50-200) provide more candidates for reranking but slower queries. Lower values (10-20) are faster. Should be higher than DEFAULT_TOP_K to allow for filtering and reranking. Balance between thoroughness and speed."
             },
             {
                 "key": "QDRANT_PREFETCH_LIMIT",
@@ -258,7 +218,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
             {
                 "key": "QDRANT_USE_BINARY",
                 "type": "bool",
-                "default": True,
+                "default": False,
                 "label": "Use Binary Quantization",
                 "ui_type": "boolean",
                 "description": "Enable binary quantization for vectors",
@@ -271,6 +231,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "label": "Keep Binary Vectors in RAM",
                 "ui_type": "boolean",
                 "description": "Always keep binary vectors in RAM",
+                "depends_on": {"key": "QDRANT_USE_BINARY", "value": True},
                 "help_text": "When binary quantization is enabled, keeps the compressed vectors in RAM for fastest search. Binary vectors are small (~32x smaller), so RAM usage is minimal. Disable only on extremely memory-constrained systems. Only applies when USE_BINARY is enabled."
             },
             {
@@ -280,6 +241,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "label": "Ignore Quantization in Search",
                 "ui_type": "boolean",
                 "description": "Disable quantization during search",
+                "depends_on": {"key": "QDRANT_USE_BINARY", "value": True},
                 "help_text": "Forces search to use full-precision vectors even when quantization is enabled. Slower but more accurate initial search. Only useful for debugging quantization issues. Keep disabled (False) for normal operation. When False, quantized vectors are used for fast initial search followed by rescoring."
             },
             {
@@ -289,6 +251,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "label": "Enable Rescoring",
                 "ui_type": "boolean",
                 "description": "Rescore results with full precision",
+                "depends_on": {"key": "QDRANT_USE_BINARY", "value": True},
                 "help_text": "After initial search with quantized vectors, recalculates scores using full-precision vectors for better accuracy. Recommended to keep enabled (True). Slight performance cost but significantly improves result quality. Only relevant when using quantization."
             },
             {
@@ -301,6 +264,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "max": 10.0,
                 "step": 0.1,
                 "description": "Oversampling factor for search",
+                "depends_on": {"key": "QDRANT_USE_BINARY", "value": True},
                 "help_text": "Multiplier for initial search candidates when using quantization. Factor of 2.0 means searching 2x more candidates before rescoring. Higher values (3-5) improve recall but slower. Lower values (1-2) are faster. Balance between accuracy and speed. Only applies with quantization + rescoring enabled."
             },
             {
@@ -372,7 +336,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
         ]
     },
     "storage": {
-        "order": 5,
+        "order": 4,
         "icon": "hard-drive",
         "name": "Object Storage",
         "description": "MinIO object storage configuration",

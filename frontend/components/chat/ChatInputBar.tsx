@@ -20,6 +20,10 @@ export interface ChatInputBarProps {
   setK: (k: number) => void;
   toolCallingEnabled: boolean;
   setToolCallingEnabled: (v: boolean) => void;
+  topK: number;
+  setTopK: (v: number) => void;
+  maxTokens: number;
+  setMaxTokens: (v: number) => void;
   onClear: () => void;
   hasMessages?: boolean; // Whether there are actual messages to clear
 }
@@ -37,6 +41,10 @@ export default function ChatInputBar({
   setK,
   toolCallingEnabled,
   setToolCallingEnabled,
+  topK,
+  setTopK,
+  maxTokens,
+  setMaxTokens,
   onClear,
   hasMessages = false,
 }: ChatInputBarProps) {
@@ -66,6 +74,10 @@ export default function ChatInputBar({
               onValidityChange={setUiSettingsValid}
               toolCallingEnabled={toolCallingEnabled}
               setToolCallingEnabled={setToolCallingEnabled}
+              topK={topK}
+              setTopK={setTopK}
+              maxTokens={maxTokens}
+              setMaxTokens={setMaxTokens}
             />
           </div>
         </TooltipTrigger>

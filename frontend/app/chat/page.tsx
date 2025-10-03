@@ -15,6 +15,7 @@ import ChatInputBar from "@/components/chat/ChatInputBar";
 import StarterQuestions from "@/components/chat/StarterQuestions";
 import RecentSearchesChips from "@/components/search/RecentSearchesChips";
 import MarkdownRenderer from "@/components/chat/MarkdownRenderer";
+import { PageHeader } from "@/components/page-header";
 
 import { BRAIN_PLACEHOLDERS } from "@/lib/utils";
 
@@ -54,6 +55,10 @@ export default function ChatPage() {
     setK,
     toolCallingEnabled,
     setToolCallingEnabled,
+    topK,
+    setTopK,
+    maxTokens,
+    setMaxTokens,
     imageGroups,
     isSettingsValid,
     sendMessage,
@@ -167,21 +172,11 @@ export default function ChatPage() {
       transition={{ duration: 0.5 }}
       className="flex flex-col flex-1 min-h-0"
     >
-      {/* Header with Background Decoration */}
-      <div className="space-y-3 mb-4 text-center relative">
-        {/* Background decoration */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-20 w-32 h-32 bg-blue-200/20 rounded-full blur-xl" />
-          <div className="absolute top-10 right-32 w-24 h-24 bg-purple-200/20 rounded-full blur-xl" />
-        </div>
-        
-        <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent relative z-10">
-          AI Chat
-        </h1>
-        <p className="text-muted-foreground text-sm sm:text-base max-w-2xl mx-auto relative z-10">
-          Ask questions about your documents and get AI-powered responses with inline citations
-        </p>
-      </div>
+      <PageHeader
+        title="AI Chat"
+        description="Ask questions about your documents and get AI-powered responses with inline citations"
+        icon={Brain}
+      />
 
       {/* Chat Messages */}
       <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-2 border-purple-200/50 shadow-xl bg-white">
@@ -193,11 +188,9 @@ export default function ChatPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 className="flex flex-col items-center justify-center h-full text-center py-6"
               >
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full flex items-center justify-center mb-4 border-2 border-purple-200/50 shadow-md">
-                  <Brain className="w-8 h-8 text-purple-500" />
-                </div>
-                <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">Start Your AI Conversation</h3>
-                <p className="text-muted-foreground max-w-lg mb-6 text-sm leading-relaxed">
+
+                <h2 className="text-2xl font-semibold mb-3 bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">Start Your Conversation</h2>
+                <p className="text-muted-foreground max-w-lg mb-6 leading-relaxed">
                   Ask questions about your uploaded documents and get intelligent responses with visual proof from your content.
                 </p>
 
@@ -323,6 +316,10 @@ export default function ChatPage() {
             setK={setK}
             toolCallingEnabled={toolCallingEnabled}
             setToolCallingEnabled={setToolCallingEnabled}
+            topK={topK}
+            setTopK={setTopK}
+            maxTokens={maxTokens}
+            setMaxTokens={setMaxTokens}
             hasMessages={messages.length > 0}
             onClear={async () => {
               // Start clearing animation
