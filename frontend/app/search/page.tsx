@@ -15,20 +15,9 @@ import { toast } from "@/components/ui/sonner";
 import Image from "next/image";
 import ImageLightbox from "@/components/lightbox";
 import SearchBar from "@/components/search/SearchBar";
-// import ExampleQueries from "@/components/search/ExampleQueries";
 import RecentSearchesChips from "@/components/search/RecentSearchesChips";
 import { useSearchStore } from "@/stores/app-store";
 import { PageHeader } from "@/components/page-header";
-
-// Example search prompts to help users
-const exampleQueries = [
-  { text: "Find invoices with company logo", category: "Documents" },
-  { text: "Show slides about product launch", category: "Presentations" },
-  { text: "Charts with financial data", category: "Analysis" },
-  { text: "Images with people in meetings", category: "Photos" },
-  { text: "Technical diagrams or flowcharts", category: "Technical" },
-  { text: "Contract documents with signatures", category: "Legal" }
-];
 
 export default function SearchPage() {
   // Use global search store instead of local state
@@ -38,10 +27,12 @@ export default function SearchPage() {
     hasSearched,
     searchDurationMs,
     k,
+    topK,
     setQuery: setQ,
     setResults,
     setHasSearched,
     setK,
+    setTopK,
     reset,
   } = useSearchStore();
 
@@ -155,6 +146,8 @@ export default function SearchPage() {
             onSubmit={onSubmit}
             k={k}
             setK={setK}
+            topK={topK}
+            setTopK={setTopK}
             hasResults={hasSearched && results.length > 0}
             onClear={() => {
               reset();

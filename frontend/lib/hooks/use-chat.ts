@@ -25,6 +25,8 @@ export function useChat() {
     k,
     toolCallingEnabled,
     loading,
+    topK,
+    maxTokens,
     setMessages,
     addMessage,
     updateLastMessage,
@@ -33,6 +35,8 @@ export function useChat() {
     setK,
     setToolCallingEnabled,
     setLoading,
+    setTopK,
+    setMaxTokens,
     reset,
   } = useChatStore();
 
@@ -85,6 +89,18 @@ export function useChat() {
       localStorage.setItem('tool-calling-enabled', String(toolCallingEnabled))
     } catch { }
   }, [toolCallingEnabled])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('topK', String(topK))
+    } catch { }
+  }, [topK])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('maxTokens', String(maxTokens))
+    } catch { }
+  }, [maxTokens])
 
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault()
@@ -192,10 +208,14 @@ export function useChat() {
     toolCallingEnabled,
     imageGroups,
     isSettingsValid,
+    topK,
+    maxTokens,
     // setters
     setInput,
     setK,
     setToolCallingEnabled,
+    setTopK,
+    setMaxTokens,
     // actions
     sendMessage,
     reset,

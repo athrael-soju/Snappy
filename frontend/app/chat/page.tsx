@@ -55,6 +55,10 @@ export default function ChatPage() {
     setK,
     toolCallingEnabled,
     setToolCallingEnabled,
+    topK,
+    setTopK,
+    maxTokens,
+    setMaxTokens,
     imageGroups,
     isSettingsValid,
     sendMessage,
@@ -312,6 +316,10 @@ export default function ChatPage() {
             setK={setK}
             toolCallingEnabled={toolCallingEnabled}
             setToolCallingEnabled={setToolCallingEnabled}
+            topK={topK}
+            setTopK={setTopK}
+            maxTokens={maxTokens}
+            setMaxTokens={setMaxTokens}
             hasMessages={messages.length > 0}
             onClear={async () => {
               // Start clearing animation

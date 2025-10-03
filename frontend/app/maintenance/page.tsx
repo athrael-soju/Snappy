@@ -6,11 +6,10 @@ import "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Database, Server, Trash2, AlertTriangle, CheckCircle, Loader2, Shield, Zap, Sliders, Activity, HardDrive, FileText } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Settings, Database, Server, Trash2, AlertTriangle, Loader2, Shield, Sliders } from "lucide-react";
+import { motion } from "framer-motion";
 import { toast } from "@/components/ui/sonner";
 import { ConfigurationPanel } from "@/components/configuration-panel";
 import { PageHeader } from "@/components/page-header";
@@ -36,34 +35,14 @@ const actions = [
 ];
 
 export default function MaintenancePage() {
-  const [status, setStatus] = useState<string>("");
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<{ q: boolean; m: boolean; all: boolean }>({ q: false, m: false, all: false });
   const [dialogOpen, setDialogOpen] = useState<ActionType | null>(null);
-  const [systemHealth, setSystemHealth] = useState({
-    qdrantStatus: "operational",
-    minioStatus: "operational",
-    lastCleared: null as string | null,
-    totalOperations: 0
-  });
-
-  useEffect(() => {
-    // Load system health/stats on mount
-    const stats = {
-      qdrantStatus: "operational",
-      minioStatus: "operational",
-      lastCleared: localStorage.getItem("last_maintenance_action"),
-      totalOperations: parseInt(localStorage.getItem("maintenance_operations") || "0")
-    };
-    setSystemHealth(stats);
-  }, []);
+  // No system health state stored locally; rely directly on localStorage when needed
 
   async function run(action: ActionType) {
     const actionConfig = actions.find(a => a.id === action);
     if (!actionConfig) return;
 
-    setError(null);
-    setStatus("");
     setLoading((s) => ({ ...s, [action]: true }));
     setDialogOpen(null);
 
@@ -77,18 +56,13 @@ export default function MaintenancePage() {
         ? (res.message ?? JSON.stringify(res))
         : String(res ?? "Operation completed successfully");
 
-      setStatus(msg);
       toast.success(actionConfig.successMsg, { description: msg });
 
       // Update stats
-      const newTotal = systemHealth.totalOperations + 1;
+      const prevTotal = parseInt(localStorage.getItem("maintenance_operations") || "0");
+      const newTotal = prevTotal + 1;
       localStorage.setItem("maintenance_operations", newTotal.toString());
       localStorage.setItem("last_maintenance_action", new Date().toISOString());
-      setSystemHealth(prev => ({
-        ...prev,
-        totalOperations: newTotal,
-        lastCleared: new Date().toISOString()
-      }));
     } catch (err: unknown) {
       let errorMsg = "Maintenance action failed";
       if (err instanceof ApiError) {
@@ -96,7 +70,6 @@ export default function MaintenancePage() {
       } else if (err instanceof Error) {
         errorMsg = err.message;
       }
-      setError(errorMsg);
       toast.error("Action failed", { description: errorMsg });
     } finally {
       setLoading((s) => ({ ...s, [action]: false }));
