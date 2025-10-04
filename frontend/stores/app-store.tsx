@@ -4,7 +4,7 @@ import React, { createContext, useContext, useReducer, useEffect, ReactNode } fr
 import { appReducer } from './reducers';
 import { initialState } from './types';
 import { loadStateFromStorage, saveStateToStorage } from './utils/storage';
-import { useUploadSSE } from './hooks/use-upload-sse';
+import { useUploadSSE } from '../lib/hooks/use-upload-sse';
 import type { AppState, AppAction } from './types';
 
 // Re-export types for convenience
@@ -64,7 +64,7 @@ export function useAppStore() {
 }
 
 // Re-export domain-specific hooks
-export { useSearchStore } from './hooks/use-search-store';
-export { useChatStore } from './hooks/use-chat-store';
-export { useUploadStore } from './hooks/use-upload-store';
-export { useSystemStatus } from './hooks/use-system-status';
+export { useSearchStore } from '../lib/hooks/use-search-store';
+export { useChatStore } from '../lib/hooks/use-chat-store';
+export { useUploadStore } from '../lib/hooks/use-upload-store';
+export { useSystemStatus } from '../lib/hooks/use-system-status';

@@ -6,7 +6,7 @@ import { Settings, Shield, Sliders } from "lucide-react";
 import { motion } from "framer-motion";
 import { ConfigurationPanel } from "@/components/configuration-panel";
 import { PageHeader } from "@/components/page-header";
-import { useSystemStatus, useMaintenanceActions, useSystemManagement } from "@/stores/hooks";
+import { useSystemStatus, useMaintenanceActions, useSystemManagement } from "@/lib/hooks";
 import {
   SystemStatusBadge,
   CollectionStatusCard,
