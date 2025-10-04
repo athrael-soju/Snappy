@@ -40,14 +40,14 @@ const actions = [
   {
     id: "all" as ActionType,
     title: "Data Reset",
-    description: "Complete system reset - removes ALL data from both systems",
-    detailedDescription: "This is a complete system reset that will delete all documents, embeddings, images, and search indices. The system will return to its initial empty state.",
+    description: "Removes all data from both systems",
+    detailedDescription: "This will delete all documents, embeddings, images, and search indices. The system will return to its initial empty state.",
     icon: Trash2,
     color: "text-red-600",
     bgColor: "bg-red-500/10",
     borderColor: "border-red-300",
     buttonVariant: "destructive" as const,
-    confirmTitle: "Complete System Reset?",
+    confirmTitle: "Data Reset?",
     confirmMsg: "⚠️ DANGER: This will permanently delete ALL data from both Qdrant and MinIO. This includes all documents, embeddings, images, and search indices. This action cannot be undone and will reset the entire system to its initial state.",
     successMsg: "System completely reset",
     severity: "critical" as const
@@ -215,24 +215,55 @@ export default function MaintenancePage() {
 
       {/* Tabs Container with Scroll */}
       <Tabs defaultValue="configuration" className="flex-1 flex flex-col min-h-0">
-        <TabsList className="w-full max-w-md mx-auto mb-4 bg-gradient-to-r from-blue-100/50 via-purple-100/50 to-cyan-100/50 border border-blue-200/50 h-14 rounded-full p-1 shadow-sm">
-        <TabsTrigger
-            value="configuration"
-            className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300 rounded-full font-medium"
-          >
-            <Sliders className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Configuration</span>
-            <span className="sm:hidden">Config</span>
-          </TabsTrigger>          
+        <div className="flex items-center justify-between mb-4 gap-4">
+          <TabsList className="flex-1 max-w-md mx-auto bg-gradient-to-r from-blue-100/50 via-purple-100/50 to-cyan-100/50 border border-blue-200/50 h-14 rounded-full p-1 shadow-sm">
           <TabsTrigger
-            value="data_management"
-            className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300 rounded-full font-medium"
-          >
-            <Shield className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Data Management</span>
-            <span className="sm:hidden">Data</span>
-          </TabsTrigger>
-        </TabsList>
+              value="configuration"
+              className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300 rounded-full font-medium"
+            >
+              <Sliders className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Configuration</span>
+              <span className="sm:hidden">Config</span>
+            </TabsTrigger>          
+            <TabsTrigger
+              value="data_management"
+              className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300 rounded-full font-medium"
+            >
+              <Shield className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Data Management</span>
+              <span className="sm:hidden">Data</span>
+            </TabsTrigger>
+          </TabsList>
+          
+          {/* System Status Badge */}
+          {systemStatus && (
+            <div className="flex items-center gap-2">
+              <Badge 
+                variant={isSystemReady ? "default" : "secondary"}
+                className={`h-10 px-4 ${isSystemReady ? 'bg-green-600 hover:bg-green-700' : 'bg-amber-500 hover:bg-amber-600'} text-white`}
+              >
+                {isSystemReady ? (
+                  <><CheckCircle2 className="w-4 h-4 mr-2" /> Ready</>
+                ) : (
+                  <><AlertTriangle className="w-4 h-4 mr-2" /> Not Initialized</>
+                )}
+              </Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchStatus}
+                disabled={statusLoading}
+                className="h-10"
+              >
+                {statusLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+          )}
+        </div>
 
       {/* Configuration Tab */}
       <TabsContent value="configuration" className="flex-1 min-h-0 mt-0 h-full">
@@ -246,56 +277,20 @@ export default function MaintenancePage() {
           <div className="space-y-6 pb-4">
             {/* System Status and Management */}
             <div className="space-y-4">
-              {/* Overall Status Banner */}
-              {systemStatus && (
-                <Card className={`border-2 ${isSystemReady ? 'border-green-300/50 bg-gradient-to-br from-green-500/5 to-emerald-500/5' : 'border-amber-300/50 bg-gradient-to-br from-amber-500/5 to-orange-500/5'}`}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {isSystemReady ? (
-                          <CheckCircle2 className="w-6 h-6 text-green-600" />
-                        ) : (
-                          <AlertTriangle className="w-6 h-6 text-amber-600" />
-                        )}
-                        <div>
-                          <CardTitle className="text-lg">
-                            {isSystemReady ? "System Ready" : "System Not Initialized"}
-                          </CardTitle>
-                          <CardDescription className="text-sm mt-1">
-                            {isSystemReady 
-                              ? "Collection and bucket are ready for use. You can upload files and search the knowledge base."
-                              : "Initialize the collection and bucket before uploading files or searching."}
-                          </CardDescription>
-                        </div>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={fetchStatus}
-                        disabled={statusLoading}
-                      >
-                        {statusLoading ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <RefreshCw className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </CardHeader>
-                </Card>
-              )}
-
               {/* Collection and Bucket Status */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Qdrant Collection Status */}
-                <Card className="border border-blue-200/50 bg-white/80">
+                <Card className="border border-blue-200/50 bg-gradient-to-br from-blue-500/5 to-cyan-500/5">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-3">
                         <div className="p-2 rounded-xl bg-blue-100 border-2 border-blue-200/50">
                           <Database className="w-5 h-5 text-blue-600" />
                         </div>
-                        <CardTitle className="text-base font-semibold">Qdrant Collection</CardTitle>
+                        <div>
+                          <CardTitle className="text-base font-semibold">Qdrant Collection</CardTitle>
+                          <CardDescription className="text-xs">Vector Database</CardDescription>
+                        </div>
                       </div>
                       {systemStatus && (
                         systemStatus.collection.exists ? (
@@ -338,6 +333,20 @@ export default function MaintenancePage() {
                             Error: {systemStatus.collection.error}
                           </div>
                         )}
+                        <div className="mt-3 pt-3 border-t border-blue-200/30 space-y-2 text-xs">
+                          <div className="flex items-start gap-2">
+                            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1 flex-shrink-0"></div>
+                            <span className="text-muted-foreground">Document embeddings and vector representations</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1 flex-shrink-0"></div>
+                            <span className="text-muted-foreground">Search indices for visual content retrieval</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1 flex-shrink-0"></div>
+                            <span className="text-muted-foreground">AI-generated semantic understanding data</span>
+                          </div>
+                        </div>
                       </>
                     ) : (
                       <p className="text-sm text-muted-foreground">No status available</p>
@@ -346,14 +355,17 @@ export default function MaintenancePage() {
                 </Card>
 
                 {/* MinIO Bucket Status */}
-                <Card className="border border-orange-200/50 bg-white/80">
+                <Card className="border border-orange-200/50 bg-gradient-to-br from-orange-500/5 to-amber-500/5">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-3">
                         <div className="p-2 rounded-xl bg-orange-100 border-2 border-orange-200/50">
                           <Server className="w-5 h-5 text-orange-600" />
                         </div>
-                        <CardTitle className="text-base font-semibold">MinIO Bucket</CardTitle>
+                        <div>
+                          <CardTitle className="text-base font-semibold">MinIO Bucket</CardTitle>
+                          <CardDescription className="text-xs">Object Storage</CardDescription>
+                        </div>
                       </div>
                       {systemStatus && (
                         systemStatus.bucket.exists ? (
@@ -392,6 +404,20 @@ export default function MaintenancePage() {
                             Error: {systemStatus.bucket.error}
                           </div>
                         )}
+                        <div className="mt-3 pt-3 border-t border-orange-200/30 space-y-2 text-xs">
+                          <div className="flex items-start gap-2">
+                            <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-1 flex-shrink-0"></div>
+                            <span className="text-muted-foreground">Original uploaded documents and images</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-1 flex-shrink-0"></div>
+                            <span className="text-muted-foreground">Processed file thumbnails and previews</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-1 flex-shrink-0"></div>
+                            <span className="text-muted-foreground">File metadata and storage organization</span>
+                          </div>
+                        </div>
                       </>
                     ) : (
                       <p className="text-sm text-muted-foreground">No status available</p>
@@ -401,7 +427,7 @@ export default function MaintenancePage() {
               </div>
 
               {/* Management Actions */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* Initialize Action */}
                 <Card className="border-2 border-green-200/50 bg-gradient-to-br from-green-500/5 to-emerald-500/5">
                   <CardHeader className="pb-3">
@@ -513,6 +539,100 @@ export default function MaintenancePage() {
                     </Dialog>
                   </CardContent>
                 </Card>
+
+                {/* Data Reset Action */}
+                {actions.filter(a => a.severity === 'critical').map((action) => {
+                  const Icon = action.icon;
+                  const isLoading = loading[action.id];
+
+                  return (
+                    <Card key={action.id} className="border-2 border-amber-200/50 bg-gradient-to-br from-amber-500/5 to-orange-500/5">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-xl bg-amber-100 border-2 border-amber-200/50">
+                            <Icon className="w-5 h-5 text-amber-600" />
+                          </div>
+                          <div>
+                            <CardTitle className="text-base font-semibold text-amber-900">{action.title}</CardTitle>
+                            <CardDescription className="text-sm">{action.description}</CardDescription>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          {action.detailedDescription}
+                        </p>
+                        <Dialog open={dialogOpen === action.id} onOpenChange={(open) => setDialogOpen(open ? action.id : null)}>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="destructive"
+                              disabled={isAnyLoading}
+                              className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700"
+                            >
+                              {isLoading ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  Processing...
+                                </>
+                              ) : (
+                                <>
+                                  <Icon className="w-4 h-4 mr-2" />
+                                  {action.title}
+                                </>
+                              )}
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-md">
+                            <DialogHeader>
+                              <DialogTitle className="flex items-center gap-2 text-lg">
+                                <Icon className="w-5 h-5 text-amber-600" />
+                                {action.confirmTitle}
+                              </DialogTitle>
+                              <DialogDescription className="leading-relaxed pt-2 max-w-prose">
+                                {action.confirmMsg}
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="bg-amber-50 p-4 rounded-lg border-l-4 border-amber-400">
+                              <div className="flex items-start gap-2">
+                                <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                                <p className="text-sm text-amber-800 leading-relaxed">
+                                  <strong>Warning:</strong> This operation cannot be reversed. The system will return to its initial empty state.
+                                </p>
+                              </div>
+                            </div>
+                            <DialogFooter className="gap-2">
+                              <Button
+                                variant="outline"
+                                onClick={() => setDialogOpen(null)}
+                                disabled={isLoading}
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                onClick={() => run(action.id)}
+                                disabled={isLoading}
+                                className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700"
+                              >
+                                {isLoading ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Processing...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Icon className="w-4 h-4 mr-2" />
+                                    Confirm {action.title}
+                                  </>
+                                )}
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             </div>
 
@@ -632,168 +752,6 @@ export default function MaintenancePage() {
                   );
                 })}
               </div>
-            </div>
-
-            {/* Danger Zone */}
-            <div>
-              {actions.filter(a => a.severity === 'critical').map((action, index) => {
-                const Icon = action.icon;
-                const isLoading = loading[action.id];
-
-                return (
-                  <Card key={action.id} className="border-2 border-red-300/50 bg-white/80">
-                    <CardHeader className="pb-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="inline-flex w-12 h-12 items-center justify-center rounded-xl bg-red-100 border-2 border-red-300">
-                          <Icon className="w-6 h-6 text-red-600" />
-                        </div>
-                        <Badge variant='destructive' className="text-xs font-medium">
-                          🚨 CRITICAL
-                        </Badge>
-                      </div>
-                      <CardTitle className="text-lg font-semibold text-red-900">
-                        {action.title}
-                      </CardTitle>
-                      <CardDescription className="leading-relaxed">
-                        {action.description}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="p-3 bg-red-50 rounded-lg border border-red-200">
-                        <p className="text-sm text-red-800 leading-relaxed">
-                          {action.detailedDescription}
-                        </p>
-                      </div>
-
-                      <Dialog open={dialogOpen === action.id} onOpenChange={(open) => setDialogOpen(open ? action.id : null)}>
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="destructive"
-                            disabled={isAnyLoading}
-                            className="w-full h-11 font-semibold rounded-lg"
-                            size="lg"
-                          >
-                            {isLoading ? (
-                              <>
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                Processing...
-                              </>
-                            ) : (
-                              <>
-                                <Icon className="w-4 h-4 mr-2" />
-                                {action.title}
-                              </>
-                            )}
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-md">
-                          <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2 text-lg">
-                              <Icon className="w-5 h-5 text-red-600" />
-                              {action.confirmTitle}
-                            </DialogTitle>
-                            <DialogDescription className="leading-relaxed pt-2 max-w-prose">
-                              {action.confirmMsg}
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="bg-red-50 p-4 rounded-lg border-l-4 border-red-400">
-                            <div className="flex items-start gap-2">
-                              <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
-                              <p className="text-sm text-red-800 leading-relaxed">
-                                <strong>Important:</strong> This operation cannot be reversed. Make sure you have backups if needed.
-                              </p>
-                            </div>
-                          </div>
-                          <DialogFooter className="gap-2">
-                            <Button
-                              variant="outline"
-                              onClick={() => setDialogOpen(null)}
-                              disabled={isLoading}
-                            >
-                              Cancel
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              onClick={() => run(action.id)}
-                              disabled={isLoading}
-                            >
-                              {isLoading ? (
-                                <>
-                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                  Processing...
-                                </>
-                              ) : (
-                                <>
-                                  <Icon className="w-4 h-4 mr-2" />
-                                  Confirm {action.title}
-                                </>
-                              )}
-                            </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-
-            </div>
-
-            {/* Info Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-              <Card className="border border-blue-200/50 bg-gradient-to-br from-blue-500/5 to-cyan-500/5 hover:shadow-lg transition-shadow duration-300">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-white border-2 border-blue-200/50 shadow-sm">
-                      <Database className="w-5 h-5 text-blue-500" />
-                    </div>
-                    <CardTitle className="text-lg font-semibold">Qdrant Vector Database</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></div>
-                      <span className="text-muted-foreground">Document embeddings and vector representations</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></div>
-                      <span className="text-muted-foreground">Search indices for visual content retrieval</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></div>
-                      <span className="text-muted-foreground">AI-generated semantic understanding data</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border border-orange-200/50 bg-gradient-to-br from-orange-500/5 to-amber-500/5 hover:shadow-lg transition-shadow duration-300">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-white border-2 border-orange-200/50 shadow-sm">
-                      <Server className="w-5 h-5 text-orange-500" />
-                    </div>
-                    <CardTitle className="text-lg font-semibold">MinIO Object Storage</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-orange-500 rounded-full mt-1.5 flex-shrink-0"></div>
-                      <span className="text-muted-foreground">Original uploaded documents and images</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-orange-500 rounded-full mt-1.5 flex-shrink-0"></div>
-                      <span className="text-muted-foreground">Processed file thumbnails and previews</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-orange-500 rounded-full mt-1.5 flex-shrink-0"></div>
-                      <span className="text-muted-foreground">File metadata and storage organization</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </div>
         </TabsContent>
