@@ -119,7 +119,16 @@ __Retrieval flow__:
 
 ## New Frontend
 
-Screenshots of the current UI. Pages: Home, Upload, Search, AI Chat, Maintenance (with Configuration), and About.
+A modern Next.js 15 UI with server-side streaming, real-time progress updates, and visual citations. Features include:
+
+- **Home** (`/`) — Landing page with quick navigation and system overview
+- **Upload** (`/upload`) — PDF upload with real-time progress tracking via SSE and cancellation support
+- **Search** (`/search`) — Visual search interface with image lightbox and recent searches
+- **Chat** (`/chat`) — AI assistant with tool calling, visual citations, and conversation management
+- **Maintenance** (`/maintenance`) — System administration with configuration management and data operations
+- **About** (`/about`) — Project information and ColPali explanation
+
+Screenshots of the current UI:
 
 <div align="center">
   <table>
@@ -217,7 +226,7 @@ Deterministic runs
 - __Frontend is basic by design__: the Next.js app is intentionally simple (no auth, i18n, SSR caching, or advanced routing). It’s a scaffold for you to extend.
 - __Image-first RAG only__: no OCR or text chunking; retrieval operates on page images. No hybrid BM25 + vector by default.
 - __PDFs only__: indexing assumes PDFs via `pdf2image`; other formats (images, Office docs) are not supported yet.
-- __Limited maintenance APIs__: provided endpoints clear stores (`/clear/*`), but there are no per-document delete/update endpoints.
+- __Limited maintenance APIs__: provided endpoints clear stores (`/clear/*`), initialize/delete infrastructure (`/initialize`, `/delete`), and get status (`/status`), but there are no per-document delete/update endpoints.
 - __Single-tenant shape__: one Qdrant collection and one MinIO bucket; no namespace isolation per tenant.
 - __No external job queue__: indexing runs as an in-process background task (FastAPI `BackgroundTasks`), with SSE progress via `/progress/stream/{job_id}`; there is no distributed queue/worker.
 - __No rate limiting or abuse protection__.
@@ -363,7 +372,11 @@ You can interact via the OpenAPI UI at `/docs` or with HTTP clients:
 - `GET /search?q=...&k=5` — retrieve top-k results with payload metadata.
 - `POST /index` (multipart files[]) — start background indexing job; returns `{ status:"started", job_id, total }`.
 - `GET /progress/stream/{job_id}` — Server‑Sent Events stream for real‑time progress updates.
-- `POST /clear/qdrant` | `/clear/minio` | `/clear/all` — maintenance.
+- `POST /clear/qdrant` | `/clear/minio` | `/clear/all` — clear data from individual or all systems (data reset).
+- `GET /status` — get collection and bucket status with statistics.
+- `POST /initialize` — create/initialize collection and bucket based on current configuration.
+- `DELETE /delete` — delete collection and bucket completely.
+- `POST /index/cancel/{job_id}` — cancel an in-progress indexing job.
 - `GET /config/schema` — retrieve configuration schema with categories and settings.
 - `GET /config/values` — get current runtime configuration values.
 - `POST /config/update` — update a configuration value at runtime.

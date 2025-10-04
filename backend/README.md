@@ -61,11 +61,31 @@ docker compose up -d --build
 ```
 
 ## Key Endpoints
-- `GET /health`
-- `GET /search?q=...&k=5`
-- `POST /index` (multipart files[])
-- `POST /clear/qdrant`, `/clear/minio`, `/clear/all`
-- `GET /config/schema`, `GET /config/values`, `POST /config/update`, `POST /config/reset`
+
+### Meta
+- `GET /health` — Service health check with dependencies status
+
+### Retrieval
+- `GET /search?q=...&k=5` — Visual search over indexed documents
+
+### Indexing
+- `POST /index` (multipart files[]) — Start background indexing job
+- `GET /progress/stream/{job_id}` — SSE stream for real-time indexing progress
+- `POST /index/cancel/{job_id}` — Cancel an in-progress indexing job
+
+### Maintenance
+- `GET /status` — Get collection and bucket status with statistics (vector count, object count, exists flags)
+- `POST /initialize` — Create/initialize collection and bucket based on current configuration
+- `DELETE /delete` — Delete collection and bucket completely
+- `POST /clear/qdrant` — Clear all data from Qdrant collection (data reset)
+- `POST /clear/minio` — Clear all objects from MinIO bucket (data reset)
+- `POST /clear/all` — Clear all data from both systems (complete data reset)
+
+### Configuration
+- `GET /config/schema` — Get configuration schema with categories and metadata
+- `GET /config/values` — Get current runtime configuration values
+- `POST /config/update` — Update a configuration value at runtime
+- `POST /config/reset` — Reset all configuration to defaults
 
 ## Chat and visual citations (context)
 
