@@ -52,32 +52,19 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
                 detail=f"Service unavailable: {qdrant_init_error or 'Dependency services are down'}",
             )
 
-        # Quick metadata read to get accurate page count (fast, non-blocking)
+        # Start with rough estimate (will be updated during conversion)
         job_id = str(uuid.uuid4())
-        total_pages = 0
-        try:
-            from pdf2image import pdfinfo_from_path
-            for path in temp_paths:
-                try:
-                    info = pdfinfo_from_path(path)
-                    total_pages += info.get("Pages", 1)
-                except Exception:
-                    total_pages += 1  # Estimate 1 page if unable to read
-        except Exception:
-            total_pages = len(temp_paths)  # Fallback
+        estimated_total = len(temp_paths) * 10  # Rough estimate: 10 pages per file
         
-        file_count = len(temp_paths)
-        progress_manager.create(job_id, total=total_pages)
+        progress_manager.create(job_id, total=estimated_total)
         progress_manager.start(job_id)
 
         class CancellationError(Exception):
             """Custom exception for job cancellation"""
             pass
 
-        # Track progress offset for chunked processing and overall total
+        # Track progress offset for chunked processing
         progress_offset = {"value": 0}
-        overall_total = {"value": total_pages}
-        current_file = {"name": ""}
         
         def progress_cb(current: int, info: dict | None = None):
             # Check for cancellation before updating progress
@@ -90,17 +77,18 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
             
             # Add offset for chunked processing
             actual_current = progress_offset["value"] + current
-            pct = int((actual_current / overall_total["value"]) * 100) if overall_total["value"] > 0 else 0
             
-            # Show stage detail + overall progress + current file
+            # Get the current total from progress_manager (dynamically updated)
+            job_data = progress_manager.get(job_id)
+            current_total = job_data.get("total", 1) if job_data else 1
+            
+            # Calculate percentage
+            percentage = int((actual_current / current_total) * 100) if current_total > 0 else 0
+            
             msg = None
             if info and "stage" in info:
-                stage_name = info['stage']
-                file_info = f" [{current_file['name']}]" if current_file['name'] else ""
-                msg = f"{stage_name.capitalize()}{file_info} {pct}% ({actual_current}/{overall_total['value']})"
-            else:
-                msg = f"Processing... {pct}% ({actual_current}/{overall_total['value']})"
-            
+                stage_name = info['stage'].capitalize()
+                msg = f"{stage_name} - {actual_current}/{current_total} ({percentage}%)"
             progress_manager.update(job_id, current=actual_current, message=msg)
 
         def run_job(paths: List[str], filenames_map: dict[str, str]):
@@ -111,23 +99,21 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
                 images_chunk = []
                 conversion_count = 0
                 total_indexed = 0
-                last_filename = ""
+                last_known_total = estimated_total
                 
-                for page_dict, total_pages_from_stream in convert_pdf_paths_to_images_streaming(paths, filenames_map, batch_size=20):
+                for page_dict, total_pages in convert_pdf_paths_to_images_streaming(paths, filenames_map, batch_size=20):
                     images_chunk.append(page_dict)
                     conversion_count += 1
                     
-                    # Update current filename being processed
-                    filename = page_dict.get("filename", "")
-                    if filename != last_filename:
-                        current_file["name"] = filename
-                        last_filename = filename
+                    # Update total if it changed
+                    if total_pages != last_known_total:
+                        progress_manager.set_total(job_id, total_pages)
+                        last_known_total = total_pages
                     
                     # When chunk is full, index it immediately
                     if len(images_chunk) >= chunk_size:
-                        pct = int((total_indexed / overall_total["value"]) * 100) if overall_total["value"] > 0 else 0
-                        file_info = f" [{current_file['name']}]" if current_file['name'] else ""
-                        progress_manager.update(job_id, current=total_indexed, message=f"Indexing{file_info} {pct}% ({total_indexed}/{overall_total['value']})")
+                        pct = int((total_indexed / last_known_total) * 100) if last_known_total > 0 else 0
+                        progress_manager.update(job_id, current=total_indexed, message=f"Indexing chunk - {total_indexed}/{last_known_total} ({pct}%)")
                         progress_offset["value"] = total_indexed  # Update offset for progress tracking
                         svc.index_documents(images_chunk, progress_cb=progress_cb)
                         total_indexed += len(images_chunk)
@@ -139,9 +125,8 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
                 
                 # Index remaining pages
                 if images_chunk:
-                    pct = int((total_indexed / overall_total["value"]) * 100) if overall_total["value"] > 0 else 0
-                    file_info = f" [{current_file['name']}]" if current_file['name'] else ""
-                    progress_manager.update(job_id, current=total_indexed, message=f"Indexing final batch{file_info} {pct}% ({total_indexed}/{overall_total['value']})")
+                    pct = int((total_indexed / last_known_total) * 100) if last_known_total > 0 else 0
+                    progress_manager.update(job_id, current=total_indexed, message=f"Indexing final chunk - {total_indexed}/{last_known_total} ({pct}%)")
                     progress_offset["value"] = total_indexed  # Update offset
                     svc.index_documents(images_chunk, progress_cb=progress_cb)
                     total_indexed += len(images_chunk)
@@ -169,8 +154,7 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
                         pass
 
         background_tasks.add_task(run_job, list(temp_paths), dict(original_filenames))
-        file_word = "file" if file_count == 1 else "files"
-        return {"status": "started", "job_id": job_id, "total": total_pages, "message": f"Processing {total_pages} pages from {file_count} {file_word}"}
+        return {"status": "started", "job_id": job_id, "total": estimated_total}
     except Exception:
         for p in temp_paths:
             try:

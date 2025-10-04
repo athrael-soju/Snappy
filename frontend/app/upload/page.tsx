@@ -199,10 +199,9 @@ export default function UploadPage() {
       
       const startedJobId: string = startData.job_id;
       const total: number = startData.total ?? 0;
-      const message: string = startData.message || `Processing ${total} pages...`;
       setJobId(startedJobId);
       setProgress(0); // Reset for indexing progress
-      setStatusText(message);
+      setStatusText(`Processing ${total} pages...`);
 
       // The global SSE connection will handle progress updates
       // We just need to wait for completion since the global store manages it
