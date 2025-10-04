@@ -1,14 +1,19 @@
-import { useAppStore } from '../app-store';
-import type { SystemStatus } from '../types';
+import { useState, useEffect, useCallback } from "react";
+import { MaintenanceService, ApiError } from "@/lib/api/generated";
+import { toast } from "@/components/ui/sonner";
+import type { SystemStatus } from "@/components/maintenance/types";
+import { useAppStore } from "@/stores/app-store";
 
 /**
- * Hook for accessing and managing system status
+ * Hook to manage system status (collection and bucket health)
  */
 export function useSystemStatus() {
+  const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null);
+  const [statusLoading, setStatusLoading] = useState(false);
   const { state, dispatch } = useAppStore();
-  
+
   const setStatus = (status: SystemStatus) => {
-    dispatch({ type: 'SYSTEM_SET_STATUS', payload: status });
+    dispatch({ type: 'SYSTEM_SET_STATUS', payload: { ...status, lastChecked: Date.now() } });
   };
   
   const clearStatus = () => {
@@ -24,12 +29,39 @@ export function useSystemStatus() {
     const fiveMinutes = 5 * 60 * 1000;
     return Date.now() - state.systemStatus.lastChecked > fiveMinutes;
   };
-  
+
+  const fetchStatus = useCallback(async () => {
+    setStatusLoading(true);
+    try {
+      const status = await MaintenanceService.getStatusStatusGet();
+      setSystemStatus(status as SystemStatus);
+    } catch (err: unknown) {
+      let errorMsg = "Failed to fetch status";
+      if (err instanceof ApiError) {
+        errorMsg = `${err.status}: ${err.message}`;
+      } else if (err instanceof Error) {
+        errorMsg = err.message;
+      }
+      toast.error("Status Check Failed", { description: errorMsg });
+    } finally {
+      setStatusLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStatus();
+  }, [fetchStatus]);
+
+  const isSystemReady = systemStatus?.collection.exists && systemStatus?.bucket.exists;
+
   return {
     systemStatus: state.systemStatus,
     setStatus,
     clearStatus,
+    statusLoading,
+    fetchStatus,
     isReady: isReady(),
     needsRefresh: needsRefresh(),
+    isSystemReady : !!isSystemReady,
   };
 }

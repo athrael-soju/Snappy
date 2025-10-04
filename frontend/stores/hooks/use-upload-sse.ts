@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { toast } from '@/components/ui/sonner';
-import type { AppAction, UploadState } from '../types';
+import { UploadState, AppAction } from '@/stores/app-store';
 
 interface UseUploadSSEOptions {
   uploadState: UploadState;

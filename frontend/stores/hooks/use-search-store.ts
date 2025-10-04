@@ -1,4 +1,4 @@
-import { useAppStore } from '../app-store';
+import { useAppStore } from '@/stores/app-store';
 import type { SearchItem } from "@/lib/api/generated";
 
 /**

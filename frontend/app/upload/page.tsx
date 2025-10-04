@@ -38,7 +38,7 @@ export default function UploadPage() {
   } = useUploadStore();
 
   // Use system status
-  const { systemStatus, setStatus, isReady, needsRefresh } = useSystemStatus();
+  const { systemStatus, setStatus, isReady } = useSystemStatus();
 
   // Local state for UI interactions only
   const [isDragOver, setIsDragOver] = useState(false);
