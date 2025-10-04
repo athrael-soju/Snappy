@@ -156,7 +156,7 @@ export default function UploadPage() {
     setProgress(0);
     setMessage(null);
     setError(null);
-    setStatusText(null);
+    setStatusText('Uploading files...');
     setJobId(null);
     
     try {
@@ -164,19 +164,45 @@ export default function UploadPage() {
       const formData = new FormData();
       Array.from(files).forEach((f) => formData.append("files", f));
 
-      const startRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || ''}/index`, {
-        method: "POST",
-        body: formData,
+      // Use XMLHttpRequest to track upload progress
+      const startData: any = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        
+        // Track upload progress
+        xhr.upload.addEventListener('progress', (e) => {
+          if (e.lengthComputable) {
+            const percentComplete = (e.loaded / e.total) * 100;
+            setProgress(percentComplete);
+            setStatusText(`Uploading... ${Math.round(percentComplete)}%`);
+          }
+        });
+        
+        xhr.addEventListener('load', () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              resolve(JSON.parse(xhr.responseText));
+            } catch (e) {
+              reject(new Error('Invalid JSON response'));
+            }
+          } else {
+            reject(new Error(`Failed to start indexing: ${xhr.status} ${xhr.responseText}`));
+          }
+        });
+        
+        xhr.addEventListener('error', () => {
+          reject(new Error('Network error during upload'));
+        });
+        
+        xhr.open('POST', `${process.env.NEXT_PUBLIC_API_BASE_URL || ''}/index`);
+        xhr.send(formData);
       });
-      if (!startRes.ok) {
-        const t = await startRes.text();
-        throw new Error(`Failed to start indexing: ${startRes.status} ${t}`);
-      }
-      const startData = await startRes.json();
+      
       const startedJobId: string = startData.job_id;
       const total: number = startData.total ?? 0;
+      const message: string = startData.message || `Processing ${total} pages...`;
       setJobId(startedJobId);
-      setStatusText(`Queued ${total} pages`);
+      setProgress(0); // Reset for indexing progress
+      setStatusText(message);
 
       // The global SSE connection will handle progress updates
       // We just need to wait for completion since the global store manages it
@@ -324,10 +350,10 @@ export default function UploadPage() {
                     className="space-y-2"
                   >
                     <div className="flex items-center justify-between text-sm">
-                      <span>
-                        {statusText || (jobId ? `Indexing job ${jobId.slice(0, 8)}...` : 'Uploading...')}
+                      <span className="font-medium">
+                        {statusText || (jobId ? `Processing...` : 'Uploading...')}
                       </span>
-                      <span>{Math.round(uploadProgress)}%</span>
+                      {uploadProgress > 0 && <span className="text-muted-foreground">{Math.round(uploadProgress)}%</span>}
                     </div>
                     <Progress value={uploadProgress} className="h-2" />
                   </motion.div>

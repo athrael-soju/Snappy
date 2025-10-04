@@ -5,12 +5,14 @@ from typing import List
 import asyncio
 import json
 import logging
+import aiofiles
+import aiofiles.os
 from fastapi.responses import StreamingResponse
 
 from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
 
 from api.dependencies import get_qdrant_service, qdrant_init_error
-from api.utils import convert_pdf_paths_to_images
+from api.utils import convert_pdf_paths_to_images_streaming
 from api.progress import progress_manager
 
 logger = logging.getLogger(__name__)
@@ -26,16 +28,23 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
     temp_paths: List[str] = []
     original_filenames: dict[str, str] = {}  # Map temp path -> original filename
     try:
+        # Stream files to disk in chunks (async I/O to avoid blocking event loop)
         for uf in files:
             suffix = os.path.splitext(uf.filename or "")[1] or ".pdf"
-            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-                data = await uf.read()
-                tmp.write(data)
-                temp_paths.append(tmp.name)
-                # Store original filename
-                original_filenames[tmp.name] = uf.filename or "document.pdf"
+            # Create temp file synchronously (fast operation)
+            tmp_fd = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+            tmp_path = tmp_fd.name
+            tmp_fd.close()  # Close sync file handle
+            
+            # Write async in chunks to avoid blocking
+            async with aiofiles.open(tmp_path, 'wb') as tmp:
+                while chunk := await uf.read(1024 * 1024):  # 1MB chunks
+                    await tmp.write(chunk)
+            
+            temp_paths.append(tmp_path)
+            original_filenames[tmp_path] = uf.filename or "document.pdf"
 
-        images_with_meta = convert_pdf_paths_to_images(temp_paths, original_filenames)
+        # Quick validation: check service availability
         svc = get_qdrant_service()
         if not svc:
             raise HTTPException(
@@ -43,15 +52,33 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
                 detail=f"Service unavailable: {qdrant_init_error or 'Dependency services are down'}",
             )
 
+        # Quick metadata read to get accurate page count (fast, non-blocking)
         job_id = str(uuid.uuid4())
-        total = len(images_with_meta)
-        progress_manager.create(job_id, total=total)
+        total_pages = 0
+        try:
+            from pdf2image import pdfinfo_from_path
+            for path in temp_paths:
+                try:
+                    info = pdfinfo_from_path(path)
+                    total_pages += info.get("Pages", 1)
+                except Exception:
+                    total_pages += 1  # Estimate 1 page if unable to read
+        except Exception:
+            total_pages = len(temp_paths)  # Fallback
+        
+        file_count = len(temp_paths)
+        progress_manager.create(job_id, total=total_pages)
         progress_manager.start(job_id)
 
         class CancellationError(Exception):
             """Custom exception for job cancellation"""
             pass
 
+        # Track progress offset for chunked processing and overall total
+        progress_offset = {"value": 0}
+        overall_total = {"value": total_pages}
+        current_file = {"name": ""}
+        
         def progress_cb(current: int, info: dict | None = None):
             # Check for cancellation before updating progress
             if progress_manager.is_cancelled(job_id):
@@ -61,14 +88,65 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
             if info and info.get("stage") == "check_cancel":
                 return
             
+            # Add offset for chunked processing
+            actual_current = progress_offset["value"] + current
+            pct = int((actual_current / overall_total["value"]) * 100) if overall_total["value"] > 0 else 0
+            
+            # Show stage detail + overall progress + current file
             msg = None
             if info and "stage" in info:
-                msg = f"{info['stage']} {current}/{info.get('total', total)}"
-            progress_manager.update(job_id, current=current, message=msg)
+                stage_name = info['stage']
+                file_info = f" [{current_file['name']}]" if current_file['name'] else ""
+                msg = f"{stage_name.capitalize()}{file_info} {pct}% ({actual_current}/{overall_total['value']})"
+            else:
+                msg = f"Processing... {pct}% ({actual_current}/{overall_total['value']})"
+            
+            progress_manager.update(job_id, current=actual_current, message=msg)
 
-        def run_job(paths: List[str]):
+        def run_job(paths: List[str], filenames_map: dict[str, str]):
             try:
-                msg = svc.index_documents(images_with_meta, progress_cb=progress_cb)
+                # Process in chunks: convert batch -> index batch -> repeat
+                # This keeps memory usage low by not holding all images at once
+                chunk_size = 50  # Convert and index 50 pages at a time
+                images_chunk = []
+                conversion_count = 0
+                total_indexed = 0
+                last_filename = ""
+                
+                for page_dict, total_pages_from_stream in convert_pdf_paths_to_images_streaming(paths, filenames_map, batch_size=20):
+                    images_chunk.append(page_dict)
+                    conversion_count += 1
+                    
+                    # Update current filename being processed
+                    filename = page_dict.get("filename", "")
+                    if filename != last_filename:
+                        current_file["name"] = filename
+                        last_filename = filename
+                    
+                    # When chunk is full, index it immediately
+                    if len(images_chunk) >= chunk_size:
+                        pct = int((total_indexed / overall_total["value"]) * 100) if overall_total["value"] > 0 else 0
+                        file_info = f" [{current_file['name']}]" if current_file['name'] else ""
+                        progress_manager.update(job_id, current=total_indexed, message=f"Indexing{file_info} {pct}% ({total_indexed}/{overall_total['value']})")
+                        progress_offset["value"] = total_indexed  # Update offset for progress tracking
+                        svc.index_documents(images_chunk, progress_cb=progress_cb)
+                        total_indexed += len(images_chunk)
+                        images_chunk = []  # Clear chunk to free memory
+                        
+                        # Check for cancellation
+                        if progress_manager.is_cancelled(job_id):
+                            raise CancellationError("Job cancelled during indexing")
+                
+                # Index remaining pages
+                if images_chunk:
+                    pct = int((total_indexed / overall_total["value"]) * 100) if overall_total["value"] > 0 else 0
+                    file_info = f" [{current_file['name']}]" if current_file['name'] else ""
+                    progress_manager.update(job_id, current=total_indexed, message=f"Indexing final batch{file_info} {pct}% ({total_indexed}/{overall_total['value']})")
+                    progress_offset["value"] = total_indexed  # Update offset
+                    svc.index_documents(images_chunk, progress_cb=progress_cb)
+                    total_indexed += len(images_chunk)
+                
+                msg = f"Uploaded and indexed {total_indexed} pages"
                 # Check if job was cancelled during execution
                 if progress_manager.is_cancelled(job_id):
                     # Already marked as cancelled, no need to complete
@@ -90,8 +168,9 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
                     except Exception:
                         pass
 
-        background_tasks.add_task(run_job, list(temp_paths))
-        return {"status": "started", "job_id": job_id, "total": total}
+        background_tasks.add_task(run_job, list(temp_paths), dict(original_filenames))
+        file_word = "file" if file_count == 1 else "files"
+        return {"status": "started", "job_id": job_id, "total": total_pages, "message": f"Processing {total_pages} pages from {file_count} {file_word}"}
     except Exception:
         for p in temp_paths:
             try:

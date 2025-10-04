@@ -10,3 +10,4 @@ fastapi
 uvicorn[standard]
 python-multipart
 fastembed
+aiofiles
