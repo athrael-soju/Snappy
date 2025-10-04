@@ -106,6 +106,169 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
             }
         ]
     },
+    "ingestion": {
+        "order": 5,
+        "icon": "upload",
+        "name": "Ingestion Pipeline",
+        "description": "Concurrent ingestion pipeline settings",
+        "settings": [
+            {
+                "key": "ENABLE_PARALLEL_FILES",
+                "type": "bool",
+                "default": True,
+                "label": "Enable Parallel Files",
+                "ui_type": "boolean",
+                "description": "Process multiple files in parallel",
+                "help_text": "Enables concurrent processing of multiple files. When enabled, files are processed in parallel with controlled concurrency. Disable for sequential file processing."
+            },
+            {
+                "key": "MAX_PARALLEL_FILES",
+                "type": "int",
+                "default": 4,
+                "label": "Max Parallel Files",
+                "ui_type": "number",
+                "min": 1,
+                "max": 10,
+                "description": "Maximum number of files to process in parallel",
+                "depends_on": {"key": "ENABLE_PARALLEL_FILES", "value": True},
+                "help_text": "Controls how many files are processed simultaneously. Higher values (6-10) speed up multi-file uploads but use more resources. Lower values (2-4) are safer for limited systems."
+            },
+            {
+                "key": "PAGE_BATCH_SIZE",
+                "type": "int",
+                "default": 1,
+                "label": "Page Batch Size",
+                "ui_type": "number",
+                "min": 1,
+                "max": 10,
+                "description": "Number of pages to process per batch",
+                "help_text": "Number of pages to group together for processing. Value of 1 processes one page at a time for fine-grained progress. Higher values (3-5) improve throughput but coarser progress updates."
+            },
+            {
+                "key": "MAX_CONCURRENT_PAGE_BATCHES",
+                "type": "int",
+                "default": 3,
+                "label": "Max Concurrent Page Batches",
+                "ui_type": "number",
+                "min": 1,
+                "max": 10,
+                "description": "Maximum concurrent page batches per file",
+                "help_text": "Limits concurrent processing of page batches within a single file. Higher values (5-10) maximize throughput. Lower values (2-3) reduce memory usage."
+            },
+            {
+                "key": "IMAGE_WORKERS",
+                "type": "int",
+                "default": 4,
+                "label": "Image Generation Workers",
+                "ui_type": "number",
+                "min": 1,
+                "max": 16,
+                "description": "ProcessPool workers for CPU-bound image generation",
+                "help_text": "Number of CPU workers for PDF rasterization and OCR. Set to CPU core count for optimal performance. More workers (8-16) speed up processing on powerful systems."
+            },
+            {
+                "key": "EMBED_WORKERS",
+                "type": "int",
+                "default": 3,
+                "label": "Embedding Workers",
+                "ui_type": "number",
+                "min": 1,
+                "max": 10,
+                "description": "Async concurrency for embeddings",
+                "help_text": "Number of concurrent embedding requests. Higher values (5-10) improve throughput if embedding service can handle it. Lower values (2-3) reduce load on embedding service."
+            },
+            {
+                "key": "INDEX_WORKERS",
+                "type": "int",
+                "default": 3,
+                "label": "Indexing Workers",
+                "ui_type": "number",
+                "min": 1,
+                "max": 10,
+                "description": "Async concurrency for vector DB upserts",
+                "help_text": "Number of concurrent Qdrant upsert operations. Higher values (5-10) speed up indexing. Lower values (2-3) reduce load on vector database."
+            },
+            {
+                "key": "STORAGE_WORKERS",
+                "type": "int",
+                "default": 4,
+                "label": "Storage Workers",
+                "ui_type": "number",
+                "min": 1,
+                "max": 16,
+                "description": "Async concurrency for MinIO uploads",
+                "help_text": "Number of concurrent MinIO upload operations. Higher values (8-16) speed up storage. Lower values (2-4) reduce network/storage load."
+            },
+            {
+                "key": "EMBEDDING_BATCH_SIZE",
+                "type": "int",
+                "default": 8,
+                "label": "Embedding Batch Size",
+                "ui_type": "number",
+                "min": 1,
+                "max": 32,
+                "description": "Number of images to embed per request",
+                "help_text": "Batch size for embedding API calls. Higher values (16-32) improve throughput but use more memory. Lower values (4-8) reduce memory usage."
+            },
+            {
+                "key": "VECTOR_DB_BATCH_SIZE",
+                "type": "int",
+                "default": 16,
+                "label": "Vector DB Batch Size",
+                "ui_type": "number",
+                "min": 1,
+                "max": 100,
+                "description": "Number of vectors to upsert per request",
+                "help_text": "Batch size for Qdrant upsert operations. Higher values (50-100) improve throughput. Lower values (10-20) reduce memory and request size."
+            },
+            {
+                "key": "MINIO_MAX_CONCURRENCY",
+                "type": "int",
+                "default": 8,
+                "label": "MinIO Max Concurrency",
+                "ui_type": "number",
+                "min": 1,
+                "max": 32,
+                "description": "Maximum concurrent MinIO operations",
+                "help_text": "Internal concurrency limit for MinIO uploads within a batch. Higher values (16-32) maximize upload speed. Lower values (4-8) reduce connection overhead."
+            },
+            {
+                "key": "EMBEDDING_RPS",
+                "type": "float",
+                "default": 10.0,
+                "label": "Embedding RPS Limit",
+                "ui_type": "number",
+                "min": 0.1,
+                "max": 100.0,
+                "step": 0.1,
+                "description": "Requests per second limit for embeddings",
+                "help_text": "Rate limit for embedding API calls to prevent overwhelming the service. Adjust based on service capacity. Set to 0 to disable rate limiting."
+            },
+            {
+                "key": "MAX_RETRIES",
+                "type": "int",
+                "default": 3,
+                "label": "Max Retries",
+                "ui_type": "number",
+                "min": 0,
+                "max": 10,
+                "description": "Maximum retry attempts for failed operations",
+                "help_text": "Number of retry attempts for failed operations (embeddings, storage, indexing). Higher values (5-10) improve reliability. Zero disables retries."
+            },
+            {
+                "key": "RETRY_BACKOFF_BASE",
+                "type": "float",
+                "default": 1.0,
+                "label": "Retry Backoff Base (seconds)",
+                "ui_type": "number",
+                "min": 0.1,
+                "max": 10.0,
+                "step": 0.1,
+                "description": "Base delay for exponential backoff",
+                "help_text": "Base delay in seconds for exponential backoff between retries. Actual delay = base * (2 ^ attempt). Higher values slow retry rate but reduce service load."
+            }
+        ]
+    },
     "colpali": {
         "order": 2,
         "icon": "brain",

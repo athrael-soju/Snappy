@@ -136,6 +136,8 @@ To persist changes across restarts, update your .env file manually.`,
     method: "post",
     path: "/index",
     alias: "index_index_post",
+    description: `Upload and index files. Returns 202 Accepted with job_id.
+Use /sse/ingestion/{job_id} to track progress.`,
     requestFormat: "form-data",
     parameters: [
       {
@@ -156,8 +158,9 @@ To persist changes across restarts, update your .env file manually.`,
   {
     method: "post",
     path: "/index/cancel/:job_id",
-    alias: "cancel_upload_index_cancel__job_id__post",
-    description: `Cancel an ongoing upload/indexing job.`,
+    alias: "cancel_ingestion_index_cancel__job_id__post",
+    description: `Cancel an ongoing ingestion job (best effort).
+Note: Cancellation is not fully implemented in the concurrent pipeline yet.`,
     requestFormat: "json",
     parameters: [
       {
@@ -185,27 +188,6 @@ To persist changes across restarts, update your .env file manually.`,
   },
   {
     method: "get",
-    path: "/progress/stream/:job_id",
-    alias: "stream_progress_progress_stream__job_id__get",
-    requestFormat: "json",
-    parameters: [
-      {
-        name: "job_id",
-        type: "Path",
-        schema: z.string(),
-      },
-    ],
-    response: z.unknown(),
-    errors: [
-      {
-        status: 422,
-        description: `Validation Error`,
-        schema: HTTPValidationError,
-      },
-    ],
-  },
-  {
-    method: "get",
     path: "/search",
     alias: "search_search_get",
     requestFormat: "json",
@@ -222,6 +204,29 @@ To persist changes across restarts, update your .env file manually.`,
       },
     ],
     response: z.array(SearchItem),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/sse/ingestion/:job_id",
+    alias: "stream_ingestion_progress_sse_ingestion__job_id__get",
+    description: `Server-Sent Events endpoint for ingestion progress.
+Returns events: queued, intake, image, embed, index, storage, completed, error.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "job_id",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
+    response: z.unknown(),
     errors: [
       {
         status: 422,

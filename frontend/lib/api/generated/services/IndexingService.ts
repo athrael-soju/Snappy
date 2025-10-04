@@ -9,6 +9,8 @@ import { request as __request } from '../core/request';
 export class IndexingService {
     /**
      * Index
+     * Upload and index files. Returns 202 Accepted with job_id.
+     * Use /sse/ingestion/{job_id} to track progress.
      * @param formData
      * @returns any Successful Response
      * @throws ApiError
@@ -27,18 +29,19 @@ export class IndexingService {
         });
     }
     /**
-     * Cancel Upload
-     * Cancel an ongoing upload/indexing job.
+     * Stream Ingestion Progress
+     * Server-Sent Events endpoint for ingestion progress.
+     * Returns events: queued, intake, image, embed, index, storage, completed, error.
      * @param jobId
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static cancelUploadIndexCancelJobIdPost(
+    public static streamIngestionProgressSseIngestionJobIdGet(
         jobId: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
-            method: 'POST',
-            url: '/index/cancel/{job_id}',
+            method: 'GET',
+            url: '/sse/ingestion/{job_id}',
             path: {
                 'job_id': jobId,
             },
@@ -48,17 +51,19 @@ export class IndexingService {
         });
     }
     /**
-     * Stream Progress
+     * Cancel Ingestion
+     * Cancel an ongoing ingestion job (best effort).
+     * Note: Cancellation is not fully implemented in the concurrent pipeline yet.
      * @param jobId
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static streamProgressProgressStreamJobIdGet(
+    public static cancelIngestionIndexCancelJobIdPost(
         jobId: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
-            method: 'GET',
-            url: '/progress/stream/{job_id}',
+            method: 'POST',
+            url: '/index/cancel/{job_id}',
             path: {
                 'job_id': jobId,
             },

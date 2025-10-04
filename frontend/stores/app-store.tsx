@@ -345,67 +345,67 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     // Reset last progress time when starting new connection
     lastProgressTimeRef.current = Date.now();
     
-    const es = new EventSource(`${process.env.NEXT_PUBLIC_API_BASE_URL || ''}/progress/stream/${state.upload.jobId}`);
+    const es = new EventSource(`${process.env.NEXT_PUBLIC_API_BASE_URL || ''}/sse/ingestion/${state.upload.jobId}`);
     eventSourceRef.current = es;
 
     es.addEventListener('progress', (ev: MessageEvent) => {
       try {
         const data = JSON.parse(ev.data || '{}');
-        const pct = Number(data.percent ?? 0);
         lastProgressTimeRef.current = Date.now(); // Update last progress time
-        dispatch({ type: 'UPLOAD_SET_PROGRESS', payload: pct });
-        if (data.message) {
-          dispatch({ type: 'UPLOAD_SET_STATUS_TEXT', payload: data.message });
-        }
-
-        if (data.status === 'completed') {
+        
+        const stage = data.stage || 'processing';
+        const counts = data.counts || {};
+        
+        // Handle terminal states
+        if (stage === 'completed') {
           closeSSEConnection();
           dispatch({ type: 'UPLOAD_SET_PROGRESS', payload: 100 });
-          const successMsg = data.message || `Upload completed`;
+          const successMsg = data.message || `Indexed ${counts.total_pages || 0} pages successfully`;
           dispatch({ type: 'UPLOAD_SET_MESSAGE', payload: successMsg });
           dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: false });
           dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
-          dispatch({ type: 'UPLOAD_SET_FILES', payload: null }); // Clear files on completion
+          dispatch({ type: 'UPLOAD_SET_FILES', payload: null });
           
-          // Show toast notification
           if (typeof window !== 'undefined') {
             toast.success('Upload Complete', { description: successMsg });
           }
-        } else if (data.status === 'failed') {
+          return;
+        }
+        
+        if (stage === 'error') {
           closeSSEConnection();
           const errMsg = data.error || 'Upload failed';
           dispatch({ type: 'UPLOAD_SET_ERROR', payload: errMsg });
           dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: false });
           dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
           
-          // Show toast notification
           if (typeof window !== 'undefined') {
             toast.error('Upload Failed', { description: errMsg });
           }
-        } else if (data.status === 'cancelled') {
-          closeSSEConnection();
-          const cancelMsg = data.message || 'Upload cancelled';
-          dispatch({ type: 'UPLOAD_SET_MESSAGE', payload: cancelMsg });
-          dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: false });
-          dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
-          dispatch({ type: 'UPLOAD_SET_FILES', payload: null });
-          
-          // Show toast notification
-          if (typeof window !== 'undefined') {
-            toast.info('Upload Status', { description: cancelMsg });
-          }
+          return;
         }
+        
+        // For all other stages, use the progress from backend
+        const progress = counts.percent || 0;
+        const statusText = data.message || `Processing: ${counts.done || 0}/${counts.total || 0}`;
+        
+        dispatch({ type: 'UPLOAD_SET_PROGRESS', payload: progress });
+        dispatch({ type: 'UPLOAD_SET_STATUS_TEXT', payload: statusText });
+        
       } catch (e) {
         console.warn('Failed to parse SSE data:', e);
       }
     });
 
-    es.addEventListener('not_found', () => {
-      closeSSEConnection();
-      dispatch({ type: 'UPLOAD_SET_ERROR', payload: 'Upload job not found. It may have completed or failed.' });
-      dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: false });
-      dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
+    es.addEventListener('waiting', () => {
+      // Job not started yet, show minimal progress
       dispatch({ type: 'UPLOAD_SET_PROGRESS', payload: 0 });
+      dispatch({ type: 'UPLOAD_SET_STATUS_TEXT', payload: 'Waiting for job to start...' });
+    });
+
+    es.addEventListener('heartbeat', () => {
+      // Just update last progress time, no state change needed
+      lastProgressTimeRef.current = Date.now();
     });
 
     es.addEventListener('error', (e) => {

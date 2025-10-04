@@ -115,6 +115,7 @@
           "indexing"
         ],
         "summary": "Index",
+        "description": "Upload and index files. Returns 202 Accepted with job_id.\nUse /sse/ingestion/{job_id} to track progress.",
         "operationId": "index_index_post",
         "requestBody": {
           "content": {
@@ -148,14 +149,14 @@
         }
       }
     },
-    "/index/cancel/{job_id}": {
-      "post": {
+    "/sse/ingestion/{job_id}": {
+      "get": {
         "tags": [
           "indexing"
         ],
-        "summary": "Cancel Upload",
-        "description": "Cancel an ongoing upload/indexing job.",
-        "operationId": "cancel_upload_index_cancel__job_id__post",
+        "summary": "Stream Ingestion Progress",
+        "description": "Server-Sent Events endpoint for ingestion progress.\nReturns events: queued, intake, image, embed, index, storage, completed, error.",
+        "operationId": "stream_ingestion_progress_sse_ingestion__job_id__get",
         "parameters": [
           {
             "name": "job_id",
@@ -189,13 +190,14 @@
         }
       }
     },
-    "/progress/stream/{job_id}": {
-      "get": {
+    "/index/cancel/{job_id}": {
+      "post": {
         "tags": [
           "indexing"
         ],
-        "summary": "Stream Progress",
-        "operationId": "stream_progress_progress_stream__job_id__get",
+        "summary": "Cancel Ingestion",
+        "description": "Cancel an ongoing ingestion job (best effort).\nNote: Cancellation is not fully implemented in the concurrent pipeline yet.",
+        "operationId": "cancel_ingestion_index_cancel__job_id__post",
         "parameters": [
           {
             "name": "job_id",

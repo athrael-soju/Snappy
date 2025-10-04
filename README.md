@@ -95,12 +95,16 @@ Additionally:
 
 - __`api/utils.py`__: Shared helpers for the API (e.g., PDF→image conversion used by the indexing route).
 
-__Indexing flow__:
+__Indexing flow__ (concurrent streaming pipeline):
 
-1) PDF -> images via `pdf2image.convert_from_path`
-2) Images -> embeddings via external ColPali API
-3) Images saved to MinIO (public URL)
-4) Embeddings (original + mean-pooled rows/cols) upserted to Qdrant with payload metadata
+1) **Intake**: Upload files, save to temp storage, return `202 Accepted` with job_id
+2) **Image generation**: Rasterize PDFs to PNG images in ProcessPoolExecutor (CPU-bound)
+3) **Embedding**: Generate embeddings via ColPali API with async batching and rate limiting
+4) **Indexing**: Upsert vectors to Qdrant with batched operations (async I/O)
+5) **Storage**: Upload page images to MinIO with concurrent workers (async I/O)
+6) **Completion**: Emit final status via SSE; cleanup temp files
+
+All stages run concurrently with bounded queues and backpressure control. Progress updates stream via `/sse/ingestion/{job_id}` with detailed stage information.
 
 __Retrieval flow__:
 
@@ -358,6 +362,12 @@ Most defaults are in `config.py`. Key variables:
   - Search tuning (when binary is enabled): `QDRANT_SEARCH_RESCORE`, `QDRANT_SEARCH_OVERSAMPLING`, `QDRANT_SEARCH_IGNORE_QUANT`
 - __MinIO__: `MINIO_URL` (default http://localhost:9000), `MINIO_PUBLIC_URL` (public base for links), `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET_NAME` (documents), `MINIO_WORKERS`, `MINIO_RETRIES`, `MINIO_FAIL_FAST`, `MINIO_PUBLIC_READ` (apply public-read policy automatically), `MINIO_IMAGE_FMT`
 - __Processing__: `DEFAULT_TOP_K`, `BATCH_SIZE`, `WORKER_THREADS`, `MAX_TOKENS`
+- __Ingestion Pipeline__ (concurrent streaming architecture):
+  - **File-level concurrency**: `ENABLE_PARALLEL_FILES` (default: True), `MAX_PARALLEL_FILES` (default: 4)
+  - **Page batching**: `PAGE_BATCH_SIZE` (default: 1), `MAX_CONCURRENT_PAGE_BATCHES` (default: 3)
+  - **Worker pools**: `IMAGE_WORKERS` (ProcessPool, default: 4), `EMBED_WORKERS` (async, default: 3), `INDEX_WORKERS` (async, default: 3), `STORAGE_WORKERS` (async, default: 4)
+  - **Batch sizes**: `EMBEDDING_BATCH_SIZE` (default: 8), `VECTOR_DB_BATCH_SIZE` (default: 16), `MINIO_MAX_CONCURRENCY` (default: 8)
+  - **Rate limiting & retries**: `EMBEDDING_RPS` (default: 10.0, 0 to disable), `MAX_RETRIES` (default: 3), `RETRY_BACKOFF_BASE` (default: 1.0s)
 
 See `.env.example` for a minimal starting point. When using Compose, note:
 
@@ -370,8 +380,8 @@ You can interact via the OpenAPI UI at `/docs` or with HTTP clients:
 
 - `GET /health` — check dependencies status.
 - `GET /search?q=...&k=5` — retrieve top-k results with payload metadata.
-- `POST /index` (multipart files[]) — start background indexing job; returns `{ status:"started", job_id, total }`.
-- `GET /progress/stream/{job_id}` — Server‑Sent Events stream for real‑time progress updates.
+- `POST /index` (multipart files[]) — start background indexing job; returns `202 Accepted` with `{ status:"accepted", job_id, file_count }`.
+- `GET /sse/ingestion/{job_id}` — Server‑Sent Events stream for real‑time ingestion progress with detailed stage updates (queued, intake, image, embed, index, storage, completed, error).
 - `POST /clear/qdrant` | `/clear/minio` | `/clear/all` — clear data from individual or all systems (data reset).
 - `GET /status` — get collection and bucket status with statistics.
 - `POST /initialize` — create/initialize collection and bucket based on current configuration.
