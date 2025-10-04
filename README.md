@@ -23,7 +23,7 @@ This repo is intended as a developer-friendly starting point for vision RAG syst
 - [backend/docs/configuration.md](backend/docs/configuration.md) — **Configuration reference and performance tuning** ⚙️
 - [feature-list.md](feature-list.md) — Production hardening and roadmap checklist
 
-> **⚠️ Performance Note**: CPU-based indexing is **30-50x slower** than GPU (expect ~1.5-3 minutes per page). For production deployments with frequent indexing, GPU acceleration is strongly recommended. See [backend/docs/configuration.md](backend/docs/configuration.md) for detailed configuration options and performance tuning strategies.
+> **⚠️ Performance Note**: CPU-based indexing is **significantly slower** than GPU. For production deployments with frequent indexing, GPU acceleration is strongly recommended. See [backend/docs/configuration.md](backend/docs/configuration.md) for detailed configuration options and performance tuning strategies.
 
 ## Table of Contents
 
