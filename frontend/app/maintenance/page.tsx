@@ -571,7 +571,7 @@ export default function MaintenancePage() {
                           <DialogTrigger asChild>
                             <Button
                               variant="destructive"
-                              disabled={isAnyLoading}
+                              disabled={initLoading || deleteLoading || !isSystemReady}
                               className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700"
                             >
                               {isLoading ? (
