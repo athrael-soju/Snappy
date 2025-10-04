@@ -41,7 +41,7 @@ const actions = [
     id: "all" as ActionType,
     title: "Data Reset",
     description: "Removes all data from both systems",
-    detailedDescription: "This will delete all documents, embeddings, images, and search indices. The system will return to its initial empty state.",
+    detailedDescription: "This will delete all documents, embeddings, and images. The system will return to its initial empty state.",
     icon: Trash2,
     color: "text-red-600",
     bgColor: "bg-red-500/10",
