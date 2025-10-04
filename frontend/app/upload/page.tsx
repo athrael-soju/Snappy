@@ -45,6 +45,7 @@ export default function UploadPage() {
   const [statusLoading, setStatusLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasFetchedRef = useRef(false);
+  const isCancellingRef = useRef(false);
 
   // Fetch system status function - always fetches fresh when called
   const fetchSystemStatus = useCallback(async () => {
@@ -85,6 +86,17 @@ export default function UploadPage() {
     }
   }, [message, uploading, setMessage]);
 
+  // Reset cancelling flag after cancellation completes
+  useEffect(() => {
+    if (!uploading && isCancellingRef.current) {
+      // Short delay to ensure all state updates have settled
+      const timer = setTimeout(() => {
+        isCancellingRef.current = false;
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [uploading]);
+
   useEffect(() => {
     if (error && !uploading) {
       const timer = setTimeout(() => {
@@ -122,8 +134,24 @@ export default function UploadPage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    
+    // Prevent re-submission while already uploading or cancelling
+    if (uploading || isCancellingRef.current) {
+      console.warn('Upload already in progress or cancelling, ignoring submission');
+      return;
+    }
+    
     if (!files || files.length === 0) return;
     
+    // Check if system is ready
+    if (!isReady) {
+      toast.error('System Not Ready', { 
+        description: 'Initialize collection and bucket before uploading' 
+      });
+      return;
+    }
+    
+    isCancellingRef.current = false; // Reset cancel flag
     setUploading(true);
     setProgress(0);
     setMessage(null);
@@ -309,7 +337,10 @@ export default function UploadPage() {
               {/* Upload/Cancel Button (transforms based on state) */}
               <Button 
                 type={uploading ? "button" : "submit"}
-                onClick={uploading ? cancelUpload : undefined}
+                onClick={uploading ? () => {
+                  isCancellingRef.current = true;
+                  cancelUpload();
+                } : undefined}
                 disabled={!uploading && (!hasFiles || !isReady)}
                 variant={uploading ? "destructive" : "default"}
                 className={uploading 

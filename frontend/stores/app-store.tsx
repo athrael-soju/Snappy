@@ -538,32 +538,55 @@ export function useUploadStore() {
   const cancelUpload = async () => {
     const jobId = state.upload.jobId;
     
-    // Force reset upload state immediately
-    dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: false });
-    dispatch({ type: 'UPLOAD_SET_PROGRESS', payload: 0 });
-    dispatch({ type: 'UPLOAD_SET_ERROR', payload: null });
-    dispatch({ type: 'UPLOAD_SET_MESSAGE', payload: 'Upload cancelled' });
-    dispatch({ type: 'UPLOAD_SET_STATUS_TEXT', payload: null });
-    
     if (!jobId) {
-      dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
       return;
     }
     
+    // First, clear jobId to stop SSE connection (it watches jobId)
+    // This will trigger the SSE cleanup before we change other state
+    dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
+    
+    // Then reset other upload state
+    dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: false });
+    dispatch({ type: 'UPLOAD_SET_PROGRESS', payload: 0 });
+    dispatch({ type: 'UPLOAD_SET_STATUS_TEXT', payload: null });
+    
     try {
-      // Try to cancel on backend (best effort)
+      // Call backend to cancel (best effort)
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || ''}/index/cancel/${jobId}`, {
         method: 'POST',
       });
       
-      if (!response.ok) {
+      if (response.ok) {
+        dispatch({ type: 'UPLOAD_SET_ERROR', payload: null });
+        dispatch({ type: 'UPLOAD_SET_MESSAGE', payload: 'Upload cancelled' });
+        
+        if (typeof window !== 'undefined') {
+          toast.success('Upload Cancelled', { 
+            description: 'The upload has been stopped successfully' 
+          });
+        }
+      } else {
         console.warn(`Backend cancel failed: ${response.statusText}`);
+        dispatch({ type: 'UPLOAD_SET_ERROR', payload: 'Cancellation may not have completed on server' });
+        dispatch({ type: 'UPLOAD_SET_MESSAGE', payload: null });
+        
+        if (typeof window !== 'undefined') {
+          toast.warning('Upload Stopped', { 
+            description: 'Upload stopped locally, but server may still be processing' 
+          });
+        }
       }      
     } catch (error) {
-      console.warn('Failed to cancel upload on backend:', error);
-      // Don't show error toast - we already reset the state locally
-    } finally {
-      dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
+      console.error('Failed to cancel upload on backend:', error);
+      dispatch({ type: 'UPLOAD_SET_ERROR', payload: 'Connection error during cancellation' });
+      dispatch({ type: 'UPLOAD_SET_MESSAGE', payload: null });
+      
+      if (typeof window !== 'undefined') {
+        toast.error('Cancellation Error', { 
+          description: 'Could not reach server to cancel. Upload stopped locally.' 
+        });
+      }
     }
   };
   
