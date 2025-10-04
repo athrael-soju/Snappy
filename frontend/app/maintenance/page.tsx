@@ -138,8 +138,10 @@ export default function MaintenancePage() {
         });
       }
       
-      // Refresh status
+      // Refresh status and clear cache to force refresh on other pages
       await fetchStatus();
+      // Dispatch event to notify other pages
+      window.dispatchEvent(new CustomEvent('systemStatusChanged'));
     } catch (err: unknown) {
       let errorMsg = "Initialization failed";
       if (err instanceof ApiError) {
@@ -173,8 +175,10 @@ export default function MaintenancePage() {
         });
       }
       
-      // Refresh status
+      // Refresh status and clear cache to force refresh on other pages
       await fetchStatus();
+      // Dispatch event to notify other pages
+      window.dispatchEvent(new CustomEvent('systemStatusChanged'));
     } catch (err: unknown) {
       let errorMsg = "Deletion failed";
       if (err instanceof ApiError) {

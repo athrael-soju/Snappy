@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { ApiError, MaintenanceService } from "@/lib/api/generated";
 import "@/lib/api/client";
 import { Label } from "@/components/ui/label";
@@ -44,24 +44,36 @@ export default function UploadPage() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const hasFetchedRef = useRef(false);
 
-  // Fetch system status on mount or when needed
-  useEffect(() => {
-    async function fetchStatus() {
-      if (!systemStatus || needsRefresh) {
-        setStatusLoading(true);
-        try {
-          const status = await MaintenanceService.getStatusStatusGet();
-          setStatus({ ...status, lastChecked: Date.now() });
-        } catch (err) {
-          console.error('Failed to fetch system status:', err);
-        } finally {
-          setStatusLoading(false);
-        }
-      }
+  // Fetch system status function - always fetches fresh when called
+  const fetchSystemStatus = useCallback(async () => {
+    setStatusLoading(true);
+    try {
+      const status = await MaintenanceService.getStatusStatusGet();
+      setStatus({ ...status, lastChecked: Date.now() });
+      hasFetchedRef.current = true;
+    } catch (err) {
+      console.error('Failed to fetch system status:', err);
+    } finally {
+      setStatusLoading(false);
     }
-    fetchStatus();
-  }, [systemStatus, needsRefresh, setStatus]);
+  }, [setStatus]);
+
+  // Fetch system status on mount and listen for changes
+  useEffect(() => {
+    // Only fetch if we haven't fetched yet
+    if (!hasFetchedRef.current) {
+      fetchSystemStatus();
+    }
+
+    // Listen for system status changes from other pages
+    window.addEventListener('systemStatusChanged', fetchSystemStatus);
+    
+    return () => {
+      window.removeEventListener('systemStatusChanged', fetchSystemStatus);
+    };
+  }, [fetchSystemStatus]);
 
   // Clear success/error messages after some time to avoid persistent state
   useEffect(() => {

@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useChat } from "@/lib/hooks/use-chat";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 // Removed Select in favor of a clearer segmented control
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { User, Image as ImageIcon, Loader2, Sparkles, Brain, FileText, BarChart3, MessageSquare, Clock, Trash2 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { User, Image as ImageIcon, Loader2, Sparkles, Brain, FileText, BarChart3, MessageSquare, Clock, Trash2, AlertTriangle, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "@/components/ui/sonner";
 import ImageLightbox from "@/components/lightbox";
@@ -16,6 +16,9 @@ import StarterQuestions from "@/components/chat/StarterQuestions";
 import RecentSearchesChips from "@/components/search/RecentSearchesChips";
 import MarkdownRenderer from "@/components/chat/MarkdownRenderer";
 import { PageHeader } from "@/components/page-header";
+import { MaintenanceService } from "@/lib/api/generated";
+import { useSystemStatus } from "@/stores/app-store";
+import Link from "next/link";
 
 import { BRAIN_PLACEHOLDERS } from "@/lib/utils";
 
@@ -76,6 +79,9 @@ export default function ChatPage() {
   const [brainIdx, setBrainIdx] = useState<number>(0);
   const [sourceInspectorOpen, setSourceInspectorOpen] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const { systemStatus, setStatus, isReady, needsRefresh } = useSystemStatus();
+  const [statusLoading, setStatusLoading] = useState(false);
+  const hasFetchedRef = useRef(false);
   const examples = [
     "Give a high-level overview of my latest project report",
     "What potential risks are highlighted in the compliance policies?",
@@ -94,6 +100,35 @@ export default function ChatPage() {
       });
     }
   };
+
+  // Fetch system status function - always fetches fresh when called
+  const fetchSystemStatus = useCallback(async () => {
+    setStatusLoading(true);
+    try {
+      const status = await MaintenanceService.getStatusStatusGet();
+      setStatus({ ...status, lastChecked: Date.now() });
+      hasFetchedRef.current = true;
+    } catch (err) {
+      console.error('Failed to fetch system status:', err);
+    } finally {
+      setStatusLoading(false);
+    }
+  }, [setStatus]);
+
+  // Fetch system status on mount and listen for changes
+  useEffect(() => {
+    // Only fetch if we haven't fetched yet
+    if (!hasFetchedRef.current) {
+      fetchSystemStatus();
+    }
+
+    // Listen for system status changes from other pages
+    window.addEventListener('systemStatusChanged', fetchSystemStatus);
+    
+    return () => {
+      window.removeEventListener('systemStatusChanged', fetchSystemStatus);
+    };
+  }, [fetchSystemStatus]);
 
   useEffect(() => {
     scrollToBottom();
@@ -120,6 +155,15 @@ export default function ChatPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isSettingsValid || !uiSettingsValid) return;
+    
+    // Check if system is ready
+    if (!isReady) {
+      toast.error('System Not Ready', { 
+        description: 'Initialize collection and bucket before using chat' 
+      });
+      return;
+    }
+    
     const q = input.trim();
     if (!q) return;
     // track start and recent searches
@@ -177,6 +221,21 @@ export default function ChatPage() {
         description="Ask questions about your documents and get AI-powered responses with inline citations"
         icon={Brain}
       />
+
+      {/* System Status Warning */}
+      {systemStatus && !isReady && (
+        <Alert className="border-amber-300 bg-amber-50 mb-4">
+          <AlertTriangle className="h-5 w-5 text-amber-600" />
+          <AlertTitle className="text-amber-900 font-semibold">System Not Initialized</AlertTitle>
+          <AlertDescription className="text-amber-800">
+            The collection and bucket must be initialized before using chat.
+            <Link href="/maintenance" className="inline-flex items-center gap-1 ml-2 text-amber-900 font-medium underline hover:text-amber-950">
+              Go to Data Management
+              <ExternalLink className="w-3 h-3" />
+            </Link>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Chat Messages */}
       <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-2 border-purple-200/50 shadow-xl bg-white">
