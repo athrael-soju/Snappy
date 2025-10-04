@@ -88,6 +88,11 @@ export default function MaintenancePage() {
       const newTotal = prevTotal + 1;
       localStorage.setItem("maintenance_operations", newTotal.toString());
       localStorage.setItem("last_maintenance_action", new Date().toISOString());
+      
+      // Refresh status to show updated data
+      await fetchStatus();
+      // Dispatch event to notify other pages
+      window.dispatchEvent(new CustomEvent('systemStatusChanged'));
     } catch (err: unknown) {
       let errorMsg = "Maintenance action failed";
       if (err instanceof ApiError) {
