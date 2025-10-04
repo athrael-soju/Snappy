@@ -35,10 +35,28 @@ export interface UploadState {
   statusText: string | null;
 }
 
+export interface SystemStatus {
+  collection: {
+    name: string;
+    exists: boolean;
+    vector_count: number;
+    unique_files: number;
+    error: string | null;
+  };
+  bucket: {
+    name: string;
+    exists: boolean;
+    object_count: number;
+    error: string | null;
+  };
+  lastChecked: number | null;
+}
+
 export interface AppState {
   search: SearchState;
   chat: ChatState;
   upload: UploadState;
+  systemStatus: SystemStatus | null;
   lastVisited: {
     search: number | null;
     chat: number | null;
@@ -79,6 +97,10 @@ type AppAction =
   | { type: 'UPLOAD_SET_STATUS_TEXT'; payload: string | null }
   | { type: 'UPLOAD_RESET' }
   
+  // System status actions
+  | { type: 'SYSTEM_SET_STATUS'; payload: SystemStatus }
+  | { type: 'SYSTEM_CLEAR_STATUS' }
+  
   // Global actions
   | { type: 'HYDRATE_FROM_STORAGE'; payload: Partial<AppState> }
   | { type: 'SET_PAGE_VISITED'; payload: { page: 'search' | 'chat' | 'upload'; timestamp: number } };
@@ -111,6 +133,7 @@ const initialState: AppState = {
     jobId: null,
     statusText: null,
   },
+  systemStatus: null,
   lastVisited: {
     search: null,
     chat: null,
@@ -211,6 +234,12 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'UPLOAD_RESET':
       return { ...state, upload: initialState.upload };
 
+    // System status actions
+    case 'SYSTEM_SET_STATUS':
+      return { ...state, systemStatus: action.payload };
+    case 'SYSTEM_CLEAR_STATUS':
+      return { ...state, systemStatus: null };
+
     // Global actions
     case 'HYDRATE_FROM_STORAGE':
       return { ...state, ...action.payload };
@@ -264,6 +293,7 @@ function serializeStateForStorage(state: AppState): any {
       jobId: state.upload.jobId,
       statusText: state.upload.statusText,
     },
+    systemStatus: state.systemStatus,
   };
 }
 
@@ -271,12 +301,18 @@ function serializeStateForStorage(state: AppState): any {
 export function AppStoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const lastProgressTimeRef = useRef<number>(Date.now());
+  const stallCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Function to properly close existing SSE connection
   const closeSSEConnection = useCallback(() => {
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
       eventSourceRef.current = null;
+    }
+    if (stallCheckIntervalRef.current) {
+      clearInterval(stallCheckIntervalRef.current);
+      stallCheckIntervalRef.current = null;
     }
   }, []);
 
@@ -306,6 +342,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       return;
     }
    
+    // Reset last progress time when starting new connection
+    lastProgressTimeRef.current = Date.now();
+    
     const es = new EventSource(`${process.env.NEXT_PUBLIC_API_BASE_URL || ''}/progress/stream/${state.upload.jobId}`);
     eventSourceRef.current = es;
 
@@ -313,6 +352,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       try {
         const data = JSON.parse(ev.data || '{}');
         const pct = Number(data.percent ?? 0);
+        lastProgressTimeRef.current = Date.now(); // Update last progress time
         dispatch({ type: 'UPLOAD_SET_PROGRESS', payload: pct });
         if (data.message) {
           dispatch({ type: 'UPLOAD_SET_STATUS_TEXT', payload: data.message });
@@ -370,13 +410,49 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
     es.addEventListener('error', (e) => {
       console.warn('Global SSE connection error:', e);
-      // Don't immediately fail, let EventSource handle retries
+      // Check if connection is permanently failed (readyState === 2 means CLOSED)
+      if (es.readyState === 2) {
+        console.error('SSE connection permanently closed');
+        setTimeout(() => {
+          // Check if still uploading after a brief delay
+          if (state.upload.uploading && state.upload.jobId) {
+            closeSSEConnection();
+            dispatch({ type: 'UPLOAD_SET_ERROR', payload: 'Connection lost. The collection may have been deleted or the service is unavailable.' });
+            dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: false });
+            dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
+            
+            if (typeof window !== 'undefined') {
+              toast.error('Upload Failed', { 
+                description: 'Connection lost. The collection may have been deleted.' 
+              });
+            }
+          }
+        }, 2000);
+      }
     });
+
+    // Monitor for stalled uploads (no progress for 45 seconds)
+    stallCheckIntervalRef.current = setInterval(() => {
+      const timeSinceLastProgress = Date.now() - lastProgressTimeRef.current;
+      if (timeSinceLastProgress > 45000) { // 45 seconds without progress
+        console.error('Upload stalled - no progress for 45 seconds');
+        closeSSEConnection();
+        dispatch({ type: 'UPLOAD_SET_ERROR', payload: 'Upload stalled. The collection may have been deleted or the service is unavailable.' });
+        dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: false });
+        dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
+        
+        if (typeof window !== 'undefined') {
+          toast.error('Upload Failed', { 
+            description: 'Upload stalled. The collection may have been deleted.' 
+          });
+        }
+      }
+    }, 10000); // Check every 10 seconds
 
     return () => {
       closeSSEConnection();
     };
-  }, [state.upload.jobId, state.upload.uploading, closeSSEConnection]);
+  }, [state.upload.jobId, state.upload.uploading, closeSSEConnection, dispatch]);
 
   // Cleanup SSE connection on unmount
   useEffect(() => {
@@ -461,21 +537,56 @@ export function useUploadStore() {
   
   const cancelUpload = async () => {
     const jobId = state.upload.jobId;
-    if (!jobId) return;
+    
+    if (!jobId) {
+      return;
+    }
+    
+    // First, clear jobId to stop SSE connection (it watches jobId)
+    // This will trigger the SSE cleanup before we change other state
+    dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
+    
+    // Then reset other upload state
+    dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: false });
+    dispatch({ type: 'UPLOAD_SET_PROGRESS', payload: 0 });
+    dispatch({ type: 'UPLOAD_SET_STATUS_TEXT', payload: null });
     
     try {
+      // Call backend to cancel (best effort)
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || ''}/index/cancel/${jobId}`, {
         method: 'POST',
       });
       
-      if (!response.ok) {
-        throw new Error(`Failed to cancel: ${response.statusText}`);
+      if (response.ok) {
+        dispatch({ type: 'UPLOAD_SET_ERROR', payload: null });
+        dispatch({ type: 'UPLOAD_SET_MESSAGE', payload: 'Upload cancelled' });
+        
+        if (typeof window !== 'undefined') {
+          toast.success('Upload Cancelled', { 
+            description: 'The upload has been stopped successfully' 
+          });
+        }
+      } else {
+        console.warn(`Backend cancel failed: ${response.statusText}`);
+        dispatch({ type: 'UPLOAD_SET_ERROR', payload: 'Cancellation may not have completed on server' });
+        dispatch({ type: 'UPLOAD_SET_MESSAGE', payload: null });
+        
+        if (typeof window !== 'undefined') {
+          toast.warning('Upload Stopped', { 
+            description: 'Upload stopped locally, but server may still be processing' 
+          });
+        }
       }      
     } catch (error) {
-      console.error('Failed to cancel upload:', error);
-      toast.error('Cancellation Failed', { 
-        description: error instanceof Error ? error.message : 'Could not cancel upload' 
-      });
+      console.error('Failed to cancel upload on backend:', error);
+      dispatch({ type: 'UPLOAD_SET_ERROR', payload: 'Connection error during cancellation' });
+      dispatch({ type: 'UPLOAD_SET_MESSAGE', payload: null });
+      
+      if (typeof window !== 'undefined') {
+        toast.error('Cancellation Error', { 
+          description: 'Could not reach server to cancel. Upload stopped locally.' 
+        });
+      }
     }
   };
   
@@ -497,5 +608,35 @@ export function useUploadStore() {
       dispatch({ type: 'UPLOAD_SET_STATUS_TEXT', payload: statusText }),
     reset: () => dispatch({ type: 'UPLOAD_RESET' }),
     cancelUpload,
+  };
+}
+
+export function useSystemStatus() {
+  const { state, dispatch } = useAppStore();
+  
+  const setStatus = (status: SystemStatus) => {
+    dispatch({ type: 'SYSTEM_SET_STATUS', payload: status });
+  };
+  
+  const clearStatus = () => {
+    dispatch({ type: 'SYSTEM_CLEAR_STATUS' });
+  };
+  
+  const isReady = () => {
+    return state.systemStatus?.collection.exists && state.systemStatus?.bucket.exists;
+  };
+  
+  const needsRefresh = () => {
+    if (!state.systemStatus?.lastChecked) return true;
+    const fiveMinutes = 5 * 60 * 1000;
+    return Date.now() - state.systemStatus.lastChecked > fiveMinutes;
+  };
+  
+  return {
+    systemStatus: state.systemStatus,
+    setStatus,
+    clearStatus,
+    isReady: isReady(),
+    needsRefresh: needsRefresh(),
   };
 }

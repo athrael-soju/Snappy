@@ -11,12 +11,17 @@ The app is intentionally simple and unauthenticated. Current pages:
 
 - `/` — Home: landing with quick links and overview.
 - `/about` — About: what this project does, what ColPali is, and comparison to traditional text-only RAG.
-- `/upload` — Upload PDFs for indexing. Starts a background job via FastAPI `POST /index` and subscribes to `GET /progress/stream/{job_id}` (SSE) for real-time progress.
+- `/upload` — Upload PDFs for indexing. Starts a background job via FastAPI `POST /index` and subscribes to `GET /progress/stream/{job_id}` (SSE) for real-time progress. Includes upload cancellation support.
 - `/search` — Visual search over indexed pages; returns top-k pages and metadata.
-- `/chat` — AI chat grounded on retrieved page images.
-- `/maintenance` — Two tabs:
-  - **Data Management**: Destructive admin actions (clear Qdrant, clear MinIO, clear all) with confirmations.
+- `/chat` — AI chat grounded on retrieved page images with visual citations.
+- `/maintenance` — System maintenance with two tabs:
   - **Configuration**: Web-based UI for managing backend environment variables at runtime (see Configuration Management below).
+  - **Data Management**: System administration interface with:
+    - Real-time status display showing system readiness, collection stats (vectors, unique files), and bucket stats (object count)
+    - **Initialize System**: Creates Qdrant collection and MinIO bucket. Required before first use.
+    - **Delete System**: Removes collection and bucket completely for configuration changes or fresh start.
+    - **Data Reset**: Clears all data (documents, embeddings, images) while preserving infrastructure.
+    - All operations include confirmation dialogs and status updates across all pages via event system.
 
 Screenshots live in `image/README/` and are referenced from the repo root `README.md`.
 
