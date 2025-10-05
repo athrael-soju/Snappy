@@ -45,11 +45,26 @@ def __getattr__(name: str) -> Any:
             # Handle special cases
             if name == "COLPALI_MODE":
                 return value.lower()
-            elif name == "COLPALI_API_BASE_URL" and not value:
-                mode = __getattr__("COLPALI_MODE")
-                return __getattr__("COLPALI_GPU_URL") if mode == "gpu" else __getattr__("COLPALI_CPU_URL")
             elif name == "MINIO_PUBLIC_URL" and not value:
                 return __getattr__("MINIO_URL")
             return value
     
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+
+
+def get_ingestion_worker_threads() -> int:
+    """Heuristic for PDF conversion worker threads based on CPU count."""
+    cpu = os.cpu_count() or 4
+    return max(2, min(8, cpu))
+
+
+def get_pipeline_max_concurrency() -> int:
+    """Estimate concurrent pipeline batches based on hardware and batch size."""
+    if not __getattr__("ENABLE_PIPELINE_INDEXING"):
+        return 1
+    batch_size = max(1, __getattr__("BATCH_SIZE"))
+    cpu = os.cpu_count() or 4
+    # Aim for at least 2 workers when batches are large enough and hardware permits
+    base = 1 if batch_size < 4 else 2
+    workers = max(base, min(4, cpu // 2))
+    return max(1, workers)

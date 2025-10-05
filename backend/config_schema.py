@@ -67,7 +67,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
         "order": 2,
         "icon": "hard-drive",
         "name": "Document Ingestion",
-        "description": "Controls batching and concurrency for document uploads and indexing.",
+        "description": "Controls batching and pipeline behaviour for document uploads.",
         "settings": [
             {
                 "key": "BATCH_SIZE",
@@ -77,30 +77,8 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "number",
                 "min": 1,
                 "max": 128,
-                "description": "Number of documents to process in parallel",
-                "help_text": "How many documents are processed simultaneously during indexing. Higher values (32-128) speed up bulk uploads but use more memory and GPU/CPU resources. Lower values (4-12) use less resources but take longer. Adjust based on your hardware - GPU systems can handle larger batches."
-            },
-            {
-                "key": "UPLOAD_CHUNK_SIZE_MB",
-                "type": "int",
-                "default": 4,
-                "label": "Upload Chunk Size (MB)",
-                "ui_type": "number",
-                "min": 1,
-                "max": 256,
-                "description": "Chunk size (in megabytes) used when streaming uploaded files to disk",
-                "help_text": "Larger chunks reduce write overhead but increase peak memory usage per upload. Smaller chunks are safer for limited-memory hosts."
-            },
-            {
-                "key": "WORKER_THREADS",
-                "type": "int",
-                "default": 8,
-                "label": "Worker Threads",
-                "ui_type": "number",
-                "min": 1,
-                "max": 32,
-                "description": "Number of worker threads for processing",
-                "help_text": "Controls parallel processing capacity. Set to match your CPU core count for optimal performance. More threads (16-32) speed up processing on powerful systems. Fewer threads (4-8) prevent resource exhaustion on limited hardware. Monitor CPU usage to find your sweet spot."
+                "description": "Number of pages processed per batch",
+                "help_text": "Higher values boost throughput but require more memory. Lower values provide steadier progress feedback and are safer on small machines."
             },
             {
                 "key": "ENABLE_PIPELINE_INDEXING",
@@ -108,20 +86,8 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "default": True,
                 "label": "Enable Pipeline Indexing",
                 "ui_type": "boolean",
-                "description": "Enable parallel pipeline indexing",
-                "help_text": "Enables concurrent processing of multiple document batches in a pipeline. When enabled, documents are embedded and stored in parallel stages, significantly speeding up large uploads. Disable only for debugging or on very resource-constrained systems. Impact: 2-3x faster indexing when enabled."
-            },
-            {
-                "key": "MAX_CONCURRENT_BATCHES",
-                "type": "int",
-                "default": 3,
-                "label": "Max Concurrent Batches",
-                "ui_type": "number",
-                "min": 1,
-                "max": 10,
-                "description": "Maximum number of concurrent batches",
-                "depends_on": {"key": "ENABLE_PIPELINE_INDEXING", "value": True},
-                "help_text": "Limits how many document batches process simultaneously in the pipeline. Higher values (5-10) maximize throughput but require more RAM and processing power. Lower values (1-3) are safer for limited resources. Only applies when pipeline indexing is enabled."
+                "description": "Overlap embedding, storage, and upserts",
+                "help_text": "When enabled the system automatically chooses a safe level of concurrency based on your hardware and batch size. Disable only for debugging or very resource-constrained hosts."
             }
         ]
     },
@@ -158,15 +124,6 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "text",
                 "description": "URL for GPU-based ColPali service",
                 "help_text": "Endpoint for the GPU-accelerated embedding service. Used when COLPALI_MODE is set to 'gpu'. Change this if running the GPU service on a different host or port. Requires NVIDIA GPU with CUDA support on the target machine."
-            },
-            {
-                "key": "COLPALI_API_BASE_URL",
-                "type": "str",
-                "default": "",
-                "label": "API Base URL (Override)",
-                "ui_type": "text",
-                "description": "Override URL (leave empty for auto mode selection)",
-                "help_text": "Advanced: Manually override the embedding service URL, bypassing the CPU/GPU mode selection. Leave empty to use automatic mode-based URL selection. Only set this if you have a custom embedding service deployment that doesn't follow the standard URL scheme."
             },
             {
                 "key": "COLPALI_API_TIMEOUT",

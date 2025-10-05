@@ -27,7 +27,6 @@ from config import (
     MINIO_FAIL_FAST,
     MINIO_PUBLIC_READ,
     MINIO_IMAGE_FMT,
-    MAX_CONCURRENT_BATCHES,
 )
 
 # ---------------------------------------------------------------------------
@@ -72,9 +71,9 @@ class MinioService:
             )
 
             # Configure HTTP connection pool to handle high concurrency
-            # Pool size should accommodate: MINIO_WORKERS x MAX_CONCURRENT_BATCHES + buffer
-            # With MINIO_WORKERS=16 and MAX_CONCURRENT_BATCHES=3, we need ~48+ connections
-            max_pool_connections = max(50, MINIO_WORKERS * MAX_CONCURRENT_BATCHES + 10)  # +10 for overhead
+            # Pool size scales with ingestion concurrency (workers * pipeline batches)
+            # When concurrency grows, bump connections to avoid saturation
+            max_pool_connections = max(50, MINIO_WORKERS * get_pipeline_max_concurrency() + 10)  # +10 for overhead
             http_client = urllib3.PoolManager(
                 maxsize=max_pool_connections,
                 cert_reqs='CERT_REQUIRED' if self.secure else 'CERT_NONE',

@@ -66,9 +66,10 @@ def convert_pdf_paths_to_images(
             while page <= total:
                 last_page = min(page + conversion_batch_size - 1, total)
                 try:
+                    worker_threads = config.get_ingestion_worker_threads()
                     images = convert_from_path(
                         path,
-                        thread_count=int(config.WORKER_THREADS),
+                        thread_count=worker_threads,
                         first_page=page,
                         last_page=last_page,
                     )

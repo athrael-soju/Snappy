@@ -15,6 +15,12 @@ import config  # Import module for dynamic config access
 logger = logging.getLogger(__name__)
 
 
+def _estimate_pipeline_workers() -> int:
+    """Determine pipeline worker count based on config heuristics."""
+    return config.get_pipeline_max_concurrency()
+
+
+
 class DocumentIndexer:
     """Handles document indexing operations."""
 
@@ -314,7 +320,7 @@ class DocumentIndexer:
         total_images: int,
         progress_cb: Optional[Callable[[int, dict | None], None]] = None,
     ) -> str:
-        max_workers = config.MAX_CONCURRENT_BATCHES if config.MAX_CONCURRENT_BATCHES > 0 else 2
+        max_workers = _estimate_pipeline_workers()
         completed_count = 0
         upsert_futures = []
         batch_iterator = self._batch_iterator(images_iter, batch_size)
