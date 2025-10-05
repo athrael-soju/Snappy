@@ -62,7 +62,7 @@ class CollectionManager:
         # Return early if the collection already exists
         try:
             coll = self.service.get_collection(self.collection_name)
-            logger.info("Qdrant collection '%s' exists; checking MUVERA vector space", self.collection_name)
+            logger.info("Qdrant collection '%s' exists", self.collection_name)
             # If MUVERA is enabled, ensure vector exists and has correct size
             if self.muvera_post and self.muvera_post.embedding_size:
                 try:
