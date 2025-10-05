@@ -77,7 +77,7 @@ export default function UploadPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="flex flex-col min-h-0 flex-1"
+      className="page-shell page-section flex flex-col min-h-0 flex-1 space-y-6"
     >
       <PageHeader
         title="Upload Documents"

@@ -171,7 +171,7 @@ export default function SearchPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="space-y-4 min-h-0 flex flex-col flex-1"
+      className="page-shell page-section space-y-6 flex flex-col min-h-0 flex-1"
     >
       <PageHeader
         title="Visual Search"
@@ -195,7 +195,7 @@ export default function SearchPage() {
       )}
 
       {/* Search Form */}
-      <Card className="border-2 border-blue-200/50 shadow-lg bg-gradient-to-br from-blue-500/5 to-cyan-500/5 hover:shadow-xl transition-shadow duration-300">
+      <Card className="card-surface shadow-sm hover:shadow-md transition-shadow duration-300">
         <CardContent className="pt-6 pb-6 space-y-4">
           <SearchBar
             q={q}
@@ -243,7 +243,7 @@ export default function SearchPage() {
       {/* Pre-search Placeholder / Results - Scrollable Container */}
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
         {!hasSearched && !loading && !error && (
-          <Card className="border-2 border-dashed border-muted-foreground/25">
+          <Card className="card-surface border border-dashed border-muted-foreground/40">
             <CardContent className="flex flex-col items-center justify-center py-16 text-center">
               <div className="w-20 h-20 bg-gradient-to-br from-muted/50 to-muted/30 rounded-full flex items-center justify-center mb-6">
                 <Search className="w-10 h-10 text-muted-foreground" />
@@ -300,7 +300,7 @@ export default function SearchPage() {
             </div>
 
             {results.length === 0 ? (
-              <Card className="border-2 border-dashed border-muted-foreground/25">
+              <Card className="card-surface border border-dashed border-muted-foreground/40">
                 <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                   <div className="w-20 h-20 bg-gradient-to-br from-muted/50 to-muted/30 rounded-full flex items-center justify-center mb-6">
                     <ImageIcon className="w-10 h-10 text-muted-foreground" />
@@ -341,7 +341,7 @@ export default function SearchPage() {
               >
               {results.map((item, idx) => (
                   <motion.div key={idx} variants={itemVariants}>
-                    <Card className="h-full group overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-2 border-blue-200/50 hover:border-blue-300 bg-gradient-to-br from-blue-500/5 to-cyan-500/5">
+                    <Card className="card-surface h-full group overflow-hidden transition-all duration-300 hover:-translate-y-1">
                       {item.image_url && (
                         <div
                           className="relative aspect-video overflow-hidden bg-gradient-to-br from-blue-50 to-cyan-50 cursor-zoom-in"

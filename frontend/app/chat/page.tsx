@@ -214,7 +214,7 @@ export default function ChatPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="flex flex-col flex-1 min-h-0"
+      className="page-shell page-section flex flex-col min-h-0 flex-1 space-y-6"
     >
       <PageHeader
         title="AI Chat"
@@ -238,8 +238,8 @@ export default function ChatPage() {
       )}
 
       {/* Chat Messages */}
-      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-2 border-purple-200/50 shadow-xl bg-white">
-        <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 custom-scrollbar bg-gradient-to-br from-blue-50/20 via-white to-purple-50/20">
+      <Card className="card-surface flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 custom-scrollbar bg-transparent">
           <AnimatePresence mode="popLayout">
             {messages.length === 0 ? (
               <motion.div
@@ -361,7 +361,7 @@ export default function ChatPage() {
         </div>
 
         {/* Input Form */}
-        <div className="border-t-2 border-purple-200/50 p-4 bg-gradient-to-r from-blue-50/70 via-purple-50/70 to-cyan-50/70 backdrop-blur-sm">
+        <div className="border-t border-border/60 p-4 bg-white/70 backdrop-blur-sm">
           <ChatInputBar
             input={input}
             setInput={setInput}
