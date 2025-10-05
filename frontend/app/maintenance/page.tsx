@@ -4,6 +4,7 @@ import "@/lib/api/client";
 import { useSearchParams } from "next/navigation";
 import { Settings } from "lucide-react";
 import { motion } from "framer-motion";
+import { defaultPageMotion, sectionVariants } from "@/lib/motion-presets";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ConfigurationPanel } from "@/components/configuration-panel";
 import { PageHeader } from "@/components/page-header";
@@ -41,19 +42,16 @@ export default function MaintenancePage() {
   const isConfigurationView = section !== "data";
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="page-shell page-section flex flex-col min-h-0 flex-1"
-    >
-      <PageHeader
-        title="System Maintenance"
-        description={isConfigurationView ? "Manage runtime configuration options" : "Monitor and manage storage and indexing resources"}
-        icon={Settings}
-      />
+    <motion.div {...defaultPageMotion} className="page-shell page-section flex flex-col min-h-0 flex-1">
+      <motion.section variants={sectionVariants}>
+        <PageHeader
+          title="System Maintenance"
+          description={isConfigurationView ? "Manage runtime configuration options" : "Monitor and manage storage and indexing resources"}
+          icon={Settings}
+        />
+      </motion.section>
 
-      <div className="flex-1 min-h-0 flex flex-col space-y-8 pb-6">
+      <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col space-y-8 pb-6">
         <div className="flex items-center justify-end flex-shrink-0">
           {systemStatus && (
             <SystemStatusBadge
@@ -118,7 +116,7 @@ export default function MaintenancePage() {
             </div>
           </ScrollArea>
         )}
-      </div>
+      </motion.section>
     </motion.div>
   );
 }

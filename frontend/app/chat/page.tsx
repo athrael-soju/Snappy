@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { User, Image as ImageIcon, Loader2, Sparkles, Brain, FileText, BarChart3, MessageSquare, Clock, Trash2, AlertTriangle, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { defaultPageMotion, fadeInPresence, sectionVariants } from "@/lib/motion-presets";
 import { toast } from "@/components/ui/sonner";
 import ImageLightbox from "@/components/lightbox";
 import ChatInputBar from "@/components/chat/ChatInputBar";
@@ -214,19 +215,16 @@ export default function ChatPage() {
   }, [messages, requestStart]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="page-shell page-section flex flex-col min-h-0 flex-1"
-    >
-      <PageHeader
-        title="AI Chat"
-        description="Ask questions about your documents and get AI-powered responses with inline citations"
-        icon={Brain}
-      />
+    <motion.div {...defaultPageMotion} className="page-shell page-section flex flex-col min-h-0 flex-1">
+      <motion.section variants={sectionVariants}>
+        <PageHeader
+          title="AI Chat"
+          description="Ask questions about your documents and get AI-powered responses with inline citations"
+          icon={Brain}
+        />
+      </motion.section>
 
-      <div className="flex-1 min-h-0 flex flex-col space-y-6 pb-6">
+      <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col space-y-6 pb-6">
         {/* System Status Warning */}
         {systemStatus && !isReady && (
           <Alert className="border-amber-300 bg-amber-50">
@@ -423,8 +421,9 @@ export default function ChatPage() {
 
           {error && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
+              variants={fadeInPresence}
+              initial="hidden"
+              animate="visible"
               className="mt-3"
             >
               <Alert variant="destructive">
@@ -434,7 +433,7 @@ export default function ChatPage() {
           )}
         </div>
       </Card>
-      </div>
+      </motion.section>
       <ImageLightbox
         open={lightboxOpen}
         src={lightboxSrc}

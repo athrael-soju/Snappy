@@ -12,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Search, AlertCircle, ImageIcon, Sparkles, Eye, Trash2, AlertTriangle, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { defaultPageMotion, fadeInItemMotion, fadeInPresence, hoverLift, sectionVariants, staggeredListMotion } from "@/lib/motion-presets";
 import { toast } from "@/components/ui/sonner";
 import Image from "next/image";
 import ImageLightbox from "@/components/lightbox";
@@ -148,39 +149,17 @@ export default function SearchPage() {
     }
   }
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.3 }
-    }
-  };
-
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="page-shell page-section flex flex-col min-h-0 flex-1"
-    >
-      <PageHeader
+    <motion.div {...defaultPageMotion} className="page-shell page-section flex flex-col min-h-0 flex-1">
+      <motion.section variants={sectionVariants}>
+        <PageHeader
         title="Visual Search"
         description="Find documents and images using natural language powered by AI vision"
         icon={Search}
       />
+      </motion.section>
 
-      <div className="flex-1 min-h-0 flex flex-col space-y-6 pb-6">
+      <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col space-y-6 pb-6">
         {/* System Status Warning */}
         {systemStatus && !isReady && (
           <Alert className="border-amber-300 bg-amber-50">
@@ -230,9 +209,10 @@ export default function SearchPage() {
       <AnimatePresence>
         {error && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
+            variants={fadeInPresence}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
           >
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -263,9 +243,10 @@ export default function SearchPage() {
         <AnimatePresence>
           {hasSearched && !loading && !error && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              variants={fadeInPresence}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
               className="space-y-4 pb-4"
             >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -337,14 +318,12 @@ export default function SearchPage() {
               </Card>
             ) : (
               <motion.div
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
+                {...staggeredListMotion}
                 className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-6 px-1"
               >
               {results.map((item, idx) => (
-                  <motion.div key={idx} variants={itemVariants}>
-                    <Card className="card-surface h-full group overflow-hidden transition-all duration-300 hover:-translate-y-1">
+                  <motion.div key={idx} {...fadeInItemMotion} {...hoverLift}>
+                    <Card className="card-surface h-full group overflow-hidden transition-all duration-300">
                       {item.image_url && (
                         <div
                           className="relative aspect-video overflow-hidden bg-gradient-to-br from-blue-50 to-cyan-50 cursor-zoom-in"
@@ -401,7 +380,7 @@ export default function SearchPage() {
         </AnimatePresence>
         </div>
       </ScrollArea>
-      </div>
+      </motion.section>
       <ImageLightbox
         open={lightboxOpen}
         src={lightboxSrc}

@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { defaultPageMotion, fadeInItemMotion, hoverLift, sectionVariants, staggeredListMotion } from "@/lib/motion-presets";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowRight, Brain, CloudUpload, Database, Sparkles, Search } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowRight, Brain, CloudUpload, Database, Sparkles } from "lucide-react";
 
 const workflow = [
   {
@@ -28,13 +29,8 @@ const workflow = [
 
 export default function Home() {
   return (
-    <div className="page-shell page-section flex flex-col min-h-0 flex-1">
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="flex flex-col items-center text-center"
-      >
+    <motion.div {...defaultPageMotion} className="page-shell page-section flex flex-col min-h-0 flex-1">
+      <motion.section variants={sectionVariants} className="flex flex-col items-center text-center">
         <PageHeader
           title="ColPali Vision RAG Template"
           description="This starter kit combines a FastAPI backend, Qdrant vector search, and a modern Next.js interface so you can focus on the experience, not the boilerplate."
@@ -56,27 +52,29 @@ export default function Home() {
             </div>
           </div>
         </PageHeader>
-      </motion.div>
+      </motion.section>
 
       <div className="flex-1 min-h-0 flex flex-col pb-10">
         <section className="space-y-8">
-          <div className="grid gap-6 md:grid-cols-3">
+          <motion.div className="grid gap-6 md:grid-cols-3" {...staggeredListMotion}>
             {workflow.map(({ title, description, icon: Icon }) => (
-              <Card key={title} className="card-surface h-full">
-                <CardHeader className="flex flex-row items-center gap-3">
-                  <div className="rounded-2xl bg-primary/10 p-3 text-primary">
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <CardTitle className="text-lg font-semibold">{title}</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground leading-relaxed">
-                  {description}
-                </CardContent>
-              </Card>
+              <motion.div key={title} {...fadeInItemMotion} {...hoverLift}>
+                <Card className="card-surface h-full">
+                  <CardHeader className="flex flex-row items-center gap-3">
+                    <div className="rounded-2xl bg-primary/10 p-3 text-primary">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <CardTitle className="text-lg font-semibold">{title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm text-muted-foreground leading-relaxed">
+                    {description}
+                  </CardContent>
+                </Card>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </section>
       </div>
-    </div>
+    </motion.div>
   );
 }

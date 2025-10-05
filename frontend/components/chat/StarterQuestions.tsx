@@ -2,6 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
+import { fadeInItemMotion, hoverLift, staggeredListMotion } from "@/lib/motion-presets";
 import { Badge } from "@/components/ui/badge";
 import { HelpCircle } from "lucide-react";
 
@@ -23,14 +24,15 @@ export default function StarterQuestions({ questions, onSelect }: StarterQuestio
         <HelpCircle className="w-4 h-4 text-purple-500" />
         <span className="text-xs font-medium text-muted-foreground">Try asking:</span>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+      <motion.div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5" {...staggeredListMotion}>
         {questions.map((question, idx) => {
           const Icon = question.icon;
           return (
             <motion.button
               key={idx}
-              whileHover={{ scale: 1.01, y: -1 }}
-              whileTap={{ scale: 0.99 }}
+              {...fadeInItemMotion}
+              {...hoverLift}
+              type="button"
               onClick={() => onSelect(question.text)}
               className="p-3 text-left rounded-lg border-2 border-dashed border-purple-200/50 hover:border-purple-400 hover:bg-gradient-to-br hover:from-blue-50/50 hover:to-purple-50/50 transition-all duration-300 group shadow-sm hover:shadow-md"
             >
@@ -50,7 +52,7 @@ export default function StarterQuestions({ questions, onSelect }: StarterQuestio
             </motion.button>
           );
         })}
-      </div>
+      </motion.div>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { fadeInPresence } from "@/lib/motion-presets";
 
 interface FileListProps {
   files: FileList | null;
@@ -14,9 +15,10 @@ export function FileList({ files, hasFiles }: FileListProps) {
     <AnimatePresence>
       {hasFiles && files && (
         <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          exit={{ opacity: 0, height: 0 }}
+          variants={fadeInPresence}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
           className="space-y-2"
         >
           <Label className="text-sm font-medium">Selected Files:</Label>

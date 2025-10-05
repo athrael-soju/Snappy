@@ -5,6 +5,7 @@ import { MaintenanceService } from "@/lib/api/generated";
 import "@/lib/api/client";
 import { CloudUpload } from "lucide-react";
 import { motion } from "framer-motion";
+import { defaultPageMotion, sectionVariants } from "@/lib/motion-presets";
 import { useSystemStatus } from "@/stores/app-store";
 import { useFileUpload } from "@/lib/hooks/use-file-upload";
 import { PageHeader } from "@/components/page-header";
@@ -73,21 +74,23 @@ export default function UploadPage() {
   };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+    <motion.div {...defaultPageMotion}
       className="page-shell page-section flex flex-col min-h-0 flex-1 space-y-6"
     >
-      <PageHeader
+      <motion.section variants={sectionVariants}>
+        <PageHeader
         title="Upload Documents"
         description="Drag & drop or select files to add to your visual search index"
         icon={CloudUpload}
       />
+      </motion.section>
 
       <div className="flex-1 min-h-0 flex flex-col space-y-6 pb-6">
+        <motion.section variants={sectionVariants}>
           <SystemStatusWarning isReady={isReady} />
+        </motion.section>
 
+        <motion.section variants={sectionVariants}>
           <FileDropzone
             isDragOver={isDragOver}
             uploading={uploading}
@@ -107,8 +110,11 @@ export default function UploadPage() {
             onSubmit={handleSubmit}
             onCancel={handleCancel}
           />
+        </motion.section>
 
+        <motion.section variants={sectionVariants}>
           <UploadInfoCards />
+        </motion.section>
       </div>
     </motion.div>
   );

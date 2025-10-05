@@ -1,5 +1,6 @@
 import { Progress } from "@/components/ui/progress";
 import { motion, AnimatePresence } from "framer-motion";
+import { fadeInPresence } from "@/lib/motion-presets";
 
 interface UploadProgressProps {
   uploading: boolean;
@@ -13,9 +14,10 @@ export function UploadProgress({ uploading, progress, statusText, jobId }: Uploa
     <AnimatePresence>
       {uploading && (
         <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
+          variants={fadeInPresence}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
           className="space-y-2"
         >
           <div className="flex items-center justify-between text-sm">
