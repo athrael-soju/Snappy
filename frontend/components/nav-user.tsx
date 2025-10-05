@@ -35,8 +35,8 @@ export function NavUser() {
           size="icon"
           aria-label="Open maintenance menu"
           className={cn(
-            "h-9 w-9 sm:h-10 sm:w-10 rounded-full border border-transparent transition-colors",
-            maintenanceActive ? "bg-blue-600 text-white shadow" : "hover:border-blue-200/60 hover:bg-blue-50"
+            "h-9 w-9 sm:h-10 sm:w-10 rounded-full border transition-colors",
+            maintenanceActive ? "bg-blue-600 text-white shadow border-blue-500" : "border-transparent hover:border-blue-200/60 hover:bg-blue-50"
           )}
         >
           <UserCircle className={cn("h-5 w-5", maintenanceActive ? "text-white" : "text-blue-600")} />
@@ -49,7 +49,7 @@ export function NavUser() {
             event.preventDefault();
             navigate("configuration");
           }}
-          className={cn("flex items-center gap-2", section === "configuration" && "font-medium text-blue-600")}
+          className={cn("flex items-center gap-2", section === "configuration" && "font-medium text-blue-600 bg-blue-50/80")}
         >
           <SlidersHorizontal className="h-4 w-4" />
           Configuration
@@ -59,7 +59,7 @@ export function NavUser() {
             event.preventDefault();
             navigate("data");
           }}
-          className={cn("flex items-center gap-2", section === "data" && "font-medium text-blue-600")}
+          className={cn("flex items-center gap-2", section === "data" && "font-medium text-blue-600 bg-blue-50/80")}
         >
           <Database className="h-4 w-4" />
           Data Management

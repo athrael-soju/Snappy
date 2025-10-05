@@ -136,21 +136,6 @@ export function Nav() {
 
           <NavUser />
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Open about page"
-                className="h-9 w-9 sm:h-10 sm:w-10"
-                onClick={() => router.push("/about")}
-              >
-                <HelpCircle className="h-5 w-5 text-blue-600" />
-                <span className="sr-only">About this template</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>About this template</TooltipContent>
-          </Tooltip>
         </div>
       </nav>
     </header>
