@@ -109,6 +109,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
             },
             {
                 "key": "COLPALI_CPU_URL",
+                "ui_hidden": True,
                 "type": "str",
                 "default": "http://localhost:7001",
                 "label": "CPU Service URL",
@@ -118,6 +119,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
             },
             {
                 "key": "COLPALI_GPU_URL",
+                "ui_hidden": True,
                 "type": "str",
                 "default": "http://localhost:7002",
                 "label": "GPU Service URL",
@@ -146,6 +148,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
         "settings": [
             {
                 "key": "QDRANT_URL",
+                "ui_hidden": True,
                 "type": "str",
                 "default": "http://localhost:6333",
                 "label": "Qdrant URL",
@@ -319,6 +322,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
         "settings": [
             {
                 "key": "MINIO_URL",
+                "ui_hidden": True,
                 "type": "str",
                 "default": "http://localhost:9000",
                 "label": "MinIO URL",
@@ -328,6 +332,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
             },
             {
                 "key": "MINIO_PUBLIC_URL",
+                "ui_hidden": True,
                 "type": "str",
                 "default": "http://localhost:9000",
                 "label": "Public MinIO URL",
@@ -337,6 +342,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
             },
             {
                 "key": "MINIO_ACCESS_KEY",
+                "ui_hidden": True,
                 "type": "str",
                 "default": "minioadmin",
                 "label": "Access Key",
@@ -346,6 +352,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
             },
             {
                 "key": "MINIO_SECRET_KEY",
+                "ui_hidden": True,
                 "type": "str",
                 "default": "minioadmin",
                 "label": "Secret Key",

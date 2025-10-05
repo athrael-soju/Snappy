@@ -38,6 +38,7 @@ interface ConfigSetting {
     key: string;
     value: boolean;
   };
+  ui_hidden?: boolean;
 }
 
 interface ConfigCategory {
@@ -234,6 +235,7 @@ export function ConfigurationPanel() {
   }
 
   function isSettingVisible(setting: ConfigSetting): boolean {
+    if (setting.ui_hidden) return false;
     // If no dependency, always visible
     if (!setting.depends_on) return true;
     
