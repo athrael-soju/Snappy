@@ -5,6 +5,7 @@ import { useChat } from "@/lib/hooks/use-chat";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 // Removed Select in favor of a clearer segmented control
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { User, Image as ImageIcon, Loader2, Sparkles, Brain, FileText, BarChart3, MessageSquare, Clock, Trash2, AlertTriangle, ExternalLink } from "lucide-react";
@@ -95,7 +96,10 @@ export default function ChatPage() {
       // Use rAF to ensure DOM has settled before scrolling
       requestAnimationFrame(() => {
         if (messagesContainerRef.current) {
-          messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+          const viewport = messagesContainerRef.current.querySelector('[data-slot="scroll-area-viewport"]');
+          if (viewport) {
+            viewport.scrollTop = viewport.scrollHeight;
+          }
         }
       });
     }
@@ -240,7 +244,8 @@ export default function ChatPage() {
 
         {/* Chat Messages */}
         <Card className="card-surface flex-1 min-h-0 flex flex-col overflow-hidden">
-        <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 custom-scrollbar bg-transparent">
+        <ScrollArea ref={messagesContainerRef} className="flex-1 min-h-0">
+          <div className="p-4 sm:p-6">
           <AnimatePresence mode="popLayout">
             {messages.length === 0 ? (
               <motion.div
@@ -359,7 +364,8 @@ export default function ChatPage() {
             )}
           </AnimatePresence>
           <div ref={messagesEndRef} />
-        </div>
+          </div>
+        </ScrollArea>
 
         {/* Input Form */}
         <div className="border-t border-border/60 p-4 bg-white/70 backdrop-blur-sm">

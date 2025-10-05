@@ -85,8 +85,7 @@ export default function UploadPage() {
         icon={CloudUpload}
       />
 
-      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-        <div className="space-y-6 pb-6">
+      <div className="flex-1 min-h-0 flex flex-col space-y-6 pb-6">
           <SystemStatusWarning isReady={isReady} />
 
           <FileDropzone
@@ -110,7 +109,6 @@ export default function UploadPage() {
           />
 
           <UploadInfoCards />
-        </div>
       </div>
     </motion.div>
   );

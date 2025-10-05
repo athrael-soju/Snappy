@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Search, AlertCircle, ImageIcon, Sparkles, Eye, Trash2, AlertTriangle, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -242,7 +243,8 @@ export default function SearchPage() {
       </AnimatePresence>
 
       {/* Pre-search Placeholder / Results - Scrollable Container */}
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+      <ScrollArea className="flex-1 min-h-0">
+        <div className="pb-6">
         {!hasSearched && !loading && !error && (
           <Card className="card-surface border border-dashed border-muted-foreground/40">
             <CardContent className="flex flex-col items-center justify-center py-16 text-center">
@@ -397,7 +399,8 @@ export default function SearchPage() {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+        </div>
+      </ScrollArea>
       </div>
       <ImageLightbox
         open={lightboxOpen}

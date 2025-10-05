@@ -4,6 +4,7 @@ import "@/lib/api/client";
 import { useSearchParams } from "next/navigation";
 import { Settings } from "lucide-react";
 import { motion } from "framer-motion";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { ConfigurationPanel } from "@/components/configuration-panel";
 import { PageHeader } from "@/components/page-header";
 import { useSystemStatus, useMaintenanceActions, useSystemManagement } from "@/lib/hooks";
@@ -64,14 +65,14 @@ export default function MaintenancePage() {
         </div>
 
         {isConfigurationView ? (
-          <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-2">
-            <div className="space-y-6 pb-4">
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="space-y-6 pb-6 pr-2">
               <ConfigurationPanel />
             </div>
-          </div>
+          </ScrollArea>
         ) : (
-          <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-2">
-            <div className="space-y-6 pb-4">
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="space-y-6 pb-6 pr-2">
               <div className="space-y-4">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <CollectionStatusCard
@@ -117,7 +118,7 @@ export default function MaintenancePage() {
                 </div>
               </div>
             </div>
-          </div>
+          </ScrollArea>
         )}
       </div>
     </motion.div>

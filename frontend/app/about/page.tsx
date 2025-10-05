@@ -2,6 +2,7 @@
 
 import AboutContent from "@/components/about-content";
 import { PageHeader } from "@/components/page-header";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Info } from "lucide-react";
 
 export default function AboutPage() {
@@ -12,9 +13,11 @@ export default function AboutPage() {
         description="A friendly and lightweight knowledge base platform with visual document understanding."
         icon={Info}
       />
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pb-10">
-        <AboutContent />
-      </div>
+      <ScrollArea className="flex-1 min-h-0">
+        <div className="pb-10">
+          <AboutContent />
+        </div>
+      </ScrollArea>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -19,7 +20,8 @@ export function FileList({ files, hasFiles }: FileListProps) {
           className="space-y-2"
         >
           <Label className="text-sm font-medium">Selected Files:</Label>
-          <div className="max-h-32 overflow-y-auto space-y-2 p-3 bg-muted/30 rounded-lg">
+          <ScrollArea className="h-32 w-full rounded-lg">
+            <div className="space-y-2 p-3 bg-muted/30 rounded-lg">
             {Array.from(files).map((file, idx) => (
               <div key={idx} className="flex items-center gap-2 text-sm">
                 <FileText className="w-4 h-4 text-muted-foreground" />
@@ -29,7 +31,8 @@ export function FileList({ files, hasFiles }: FileListProps) {
                 </Badge>
               </div>
             ))}
-          </div>
+            </div>
+          </ScrollArea>
         </motion.div>
       )}
     </AnimatePresence>
