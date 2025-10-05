@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from api.dependencies import (
-    api_client,
+    get_colpali_client,
     get_minio_service,
     get_qdrant_service,
     qdrant_init_error,
@@ -32,7 +32,8 @@ async def health():
     minio_ok = False
     qdrant_ok = False
     try:
-        colpali_ok = bool(api_client.health_check())
+        colpali_client = get_colpali_client()
+        colpali_ok = bool(colpali_client.health_check())
     except Exception:
         colpali_ok = False
     try:

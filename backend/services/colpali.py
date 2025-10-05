@@ -21,7 +21,6 @@ class ColPaliService:
         self.base_url = self.base_url.rstrip("/")
 
         # Logger
-        logging.basicConfig(level=getattr(logging, LOG_LEVEL, logging.INFO))
         self._logger = logging.getLogger(__name__)
 
         # Session with retries/backoff

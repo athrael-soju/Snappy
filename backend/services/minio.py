@@ -33,7 +33,6 @@ from config import (
 # ---------------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------------
-logging.basicConfig(level=getattr(logging, LOG_LEVEL, logging.INFO))
 logger = logging.getLogger(__name__)
 
 
@@ -73,7 +72,7 @@ class MinioService:
             )
 
             # Configure HTTP connection pool to handle high concurrency
-            # Pool size should accommodate: MINIO_WORKERS × MAX_CONCURRENT_BATCHES + buffer
+            # Pool size should accommodate: MINIO_WORKERS x MAX_CONCURRENT_BATCHES + buffer
             # With MINIO_WORKERS=16 and MAX_CONCURRENT_BATCHES=3, we need ~48+ connections
             max_pool_connections = max(50, MINIO_WORKERS * MAX_CONCURRENT_BATCHES + 10)  # +10 for overhead
             http_client = urllib3.PoolManager(

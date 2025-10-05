@@ -121,9 +121,9 @@ export function useFileUpload() {
       
       const startData = await startRes.json();
       const startedJobId: string = startData.job_id;
-      const total: number = startData.total ?? 0;
+      const total: number = Number(startData.total ?? 0);
       setJobId(startedJobId);
-      setStatusText(`Queued ${total} pages`);
+      setStatusText(total > 0 ? `Queued ${total} pages` : 'Preparing documents...');
       
     } catch (err: unknown) {
       setProgress(0);
