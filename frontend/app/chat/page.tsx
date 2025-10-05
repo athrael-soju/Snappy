@@ -23,6 +23,7 @@ import { useSystemStatus } from "@/stores/app-store";
 import Link from "next/link";
 
 import { BRAIN_PLACEHOLDERS } from "@/lib/utils";
+import { SystemStatusWarning } from "@/components/upload";
 
 // Starter questions to help users get started (qualitative phrasing)
 const starterQuestions = [
@@ -225,21 +226,9 @@ export default function ChatPage() {
       </motion.section>
 
       <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col space-y-6 pb-6">
-        {/* System Status Warning */}
-        {systemStatus && !isReady && (
-          <Alert className="border-amber-300 bg-amber-50">
-            <AlertTriangle className="h-5 w-5 text-amber-600" />
-            <AlertTitle className="text-amber-900 font-semibold">System Not Initialized</AlertTitle>
-            <AlertDescription className="text-amber-800">
-              The collection and bucket must be initialized before using chat.
-              <Link href="/maintenance" className="inline-flex items-center gap-1 ml-2 text-amber-900 font-medium underline hover:text-amber-950">
-                Go to Data Management
-                <ExternalLink className="w-3 h-3" />
-              </Link>
-            </AlertDescription>
-          </Alert>
-        )}
 
+        {/* System Status Warning */}
+        <SystemStatusWarning isReady={isReady} />
         {/* Chat Messages */}
         <Card className="card-surface flex-1 min-h-0 flex flex-col overflow-hidden">
         <ScrollArea ref={messagesContainerRef} className="flex-1 min-h-0">

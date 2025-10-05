@@ -21,6 +21,7 @@ import RecentSearchesChips from "@/components/search/RecentSearchesChips";
 import { useSearchStore, useSystemStatus } from "@/stores/app-store";
 import { PageHeader } from "@/components/page-header";
 import Link from "next/link";
+import { SystemStatusWarning } from "@/components/upload";
 
 export default function SearchPage() {
   // Use global search store instead of local state
@@ -160,20 +161,9 @@ export default function SearchPage() {
       </motion.section>
 
       <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col space-y-6 pb-6">
+        
         {/* System Status Warning */}
-        {systemStatus && !isReady && (
-          <Alert className="border-amber-300 bg-amber-50">
-            <AlertTriangle className="h-5 w-5 text-amber-600" />
-            <AlertTitle className="text-amber-900 font-semibold">System Not Initialized</AlertTitle>
-            <AlertDescription className="text-amber-800">
-              The collection and bucket must be initialized before searching.
-              <Link href="/maintenance" className="inline-flex items-center gap-1 ml-2 text-amber-900 font-medium underline hover:text-amber-950">
-                Go to Data Management
-                <ExternalLink className="w-3 h-3" />
-              </Link>
-            </AlertDescription>
-          </Alert>
-        )}
+        <SystemStatusWarning isReady={isReady} />
 
         {/* Search Form */}
         <Card className="card-surface shadow-sm hover:shadow-md transition-shadow duration-300">

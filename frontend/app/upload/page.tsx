@@ -9,17 +9,17 @@ import { defaultPageMotion, sectionVariants } from "@/lib/motion-presets";
 import { useSystemStatus } from "@/stores/app-store";
 import { useFileUpload } from "@/lib/hooks/use-file-upload";
 import { PageHeader } from "@/components/page-header";
-import { 
-  FileDropzone, 
-  SystemStatusWarning, 
-  UploadInfoCards 
+import {
+  FileDropzone,
+  SystemStatusWarning,
+  UploadInfoCards
 } from "@/components/upload";
 
 export default function UploadPage() {
   const { systemStatus, setStatus, isReady: systemReady } = useSystemStatus();
   const [statusLoading, setStatusLoading] = useState(false);
   const hasFetchedRef = useRef(false);
-  
+
   const isReady = !!systemReady;
 
   const {
@@ -62,7 +62,7 @@ export default function UploadPage() {
     }
 
     window.addEventListener('systemStatusChanged', fetchSystemStatus);
-    
+
     return () => {
       window.removeEventListener('systemStatusChanged', fetchSystemStatus);
     };
@@ -79,18 +79,16 @@ export default function UploadPage() {
     >
       <motion.section variants={sectionVariants}>
         <PageHeader
-        title="Upload Documents"
-        description="Drag & drop or select files to add to your visual search index"
-        icon={CloudUpload}
-      />
+          title="Upload Documents"
+          description="Drag & drop or select files to add to your visual search index"
+          icon={CloudUpload}
+        />
       </motion.section>
 
       <div className="flex-1 min-h-0 flex flex-col space-y-6 pb-6">
-        <motion.section variants={sectionVariants}>
+        <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col space-y-6 pb-6">
+          {/* System Status Warning */}
           <SystemStatusWarning isReady={isReady} />
-        </motion.section>
-
-        <motion.section variants={sectionVariants}>
           <FileDropzone
             isDragOver={isDragOver}
             uploading={uploading}
@@ -110,11 +108,9 @@ export default function UploadPage() {
             onSubmit={handleSubmit}
             onCancel={handleCancel}
           />
-        </motion.section>
-
-        <motion.section variants={sectionVariants}>
           <UploadInfoCards />
         </motion.section>
+
       </div>
     </motion.div>
   );
