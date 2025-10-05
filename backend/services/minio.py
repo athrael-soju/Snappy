@@ -27,6 +27,7 @@ from config import (
     MINIO_FAIL_FAST,
     MINIO_PUBLIC_READ,
     MINIO_IMAGE_FMT,
+    get_pipeline_max_concurrency,
 )
 
 # ---------------------------------------------------------------------------
