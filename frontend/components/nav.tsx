@@ -6,13 +6,12 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Home, Eye, CloudUpload, Brain, HelpCircle, Menu } from "lucide-react";
-import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import AboutContent from "@/components/about-content";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/stores/app-store";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
+import { useRouter } from "next/navigation";
 import { NavUser } from "@/components/nav-user";
 
 const links = [
@@ -23,8 +22,8 @@ const links = [
 ];
 
 export function Nav() {
+  const router = useRouter();
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
   const { state } = useAppStore();
   const [showUploadBadge, setShowUploadBadge] = useState(true);
 
@@ -137,28 +136,21 @@ export function Nav() {
 
           <NavUser />
 
-          <Dialog open={open} onOpenChange={setOpen}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DialogTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="About this template"
-                    className="h-9 w-9 sm:h-10 sm:w-10"
-                  >
-                    <HelpCircle className="h-5 w-5 text-blue-600" />
-                    <span className="sr-only">About this template</span>
-                  </Button>
-                </DialogTrigger>
-              </TooltipTrigger>
-              <TooltipContent>About this template</TooltipContent>
-            </Tooltip>
-            <DialogContent className="max-h-[90vh] max-w-[95vw] sm:max-w-4xl overflow-y-auto">
-              <DialogTitle className="flex items-center gap-2 text-lg" />
-              <AboutContent onClose={() => setOpen(false)} />
-            </DialogContent>
-          </Dialog>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Open about page"
+                className="h-9 w-9 sm:h-10 sm:w-10"
+                onClick={() => router.push("/about")}
+              >
+                <HelpCircle className="h-5 w-5 text-blue-600" />
+                <span className="sr-only">About this template</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>About this template</TooltipContent>
+          </Tooltip>
         </div>
       </nav>
     </header>

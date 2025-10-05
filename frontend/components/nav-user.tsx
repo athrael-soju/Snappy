@@ -1,10 +1,17 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { UserCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { UserCircle, SlidersHorizontal, Database, Info } from "lucide-react";
 
 export function NavUser() {
   const router = useRouter();
@@ -32,17 +39,19 @@ export function NavUser() {
             maintenanceActive ? "bg-blue-600 text-white shadow" : "hover:border-blue-200/60 hover:bg-blue-50"
           )}
         >
-          <UserCircle className={cn("h-5 w-5", maintenanceActive ? "text-white" : "text-blue-600") } />
+          <UserCircle className={cn("h-5 w-5", maintenanceActive ? "text-white" : "text-blue-600")} />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
+      <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuLabel className="text-muted-foreground text-xs uppercase tracking-[0.3em]">System</DropdownMenuLabel>
         <DropdownMenuItem
           onSelect={(event) => {
             event.preventDefault();
             navigate("configuration");
           }}
-          className={section === "configuration" ? "font-medium text-blue-600" : ""}
+          className={cn("flex items-center gap-2", section === "configuration" && "font-medium text-blue-600")}
         >
+          <SlidersHorizontal className="h-4 w-4" />
           Configuration
         </DropdownMenuItem>
         <DropdownMenuItem
@@ -50,9 +59,21 @@ export function NavUser() {
             event.preventDefault();
             navigate("data");
           }}
-          className={section === "data" ? "font-medium text-blue-600" : ""}
+          className={cn("flex items-center gap-2", section === "data" && "font-medium text-blue-600")}
         >
+          <Database className="h-4 w-4" />
           Data Management
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onSelect={(event) => {
+            event.preventDefault();
+            router.push("/about");
+          }}
+          className="flex items-center gap-2"
+        >
+          <Info className="h-4 w-4" />
+          About
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
