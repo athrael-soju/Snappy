@@ -9,15 +9,23 @@ from fastapi.responses import StreamingResponse
 
 from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
 
+import config
+
 from api.dependencies import get_qdrant_service, qdrant_init_error
 from api.utils import convert_pdf_paths_to_images
 from api.progress import progress_manager
 
 logger = logging.getLogger(__name__)
 
-UPLOAD_CHUNK_SIZE = 4 * 1024 * 1024  # 4MB chunks keep memory usage reasonable
-
 router = APIRouter(prefix="", tags=["indexing"])
+
+
+def _get_upload_chunk_size() -> int:
+    try:
+        mb = int(config.UPLOAD_CHUNK_SIZE_MB)
+    except Exception:
+        mb = 4
+    return max(1, mb) * 1024 * 1024
 
 
 @router.post("/index")
@@ -29,11 +37,12 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
     original_filenames: dict[str, str] = {}
 
     try:
+        chunk_size = _get_upload_chunk_size()
         for upload in files:
             suffix = os.path.splitext(upload.filename or "")[1] or ".pdf"
             with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
                 while True:
-                    chunk = await upload.read(UPLOAD_CHUNK_SIZE)
+                    chunk = await upload.read(chunk_size)
                     if not chunk:
                         break
                     tmp.write(chunk)

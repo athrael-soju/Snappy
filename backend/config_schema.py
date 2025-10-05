@@ -73,6 +73,17 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "help_text": "How many documents are processed simultaneously during indexing. Higher values (32-128) speed up bulk uploads but use more memory and GPU/CPU resources. Lower values (4-12) use less resources but take longer. Adjust based on your hardware - GPU systems can handle larger batches."
             },
             {
+                "key": "UPLOAD_CHUNK_SIZE_MB",
+                "type": "int",
+                "default": 4,
+                "label": "Upload Chunk Size (MB)",
+                "ui_type": "number",
+                "min": 1,
+                "max": 256,
+                "description": "Chunk size (in megabytes) used when streaming uploaded files to disk",
+                "help_text": "Larger chunks reduce write overhead but increase peak memory usage per upload. Smaller chunks are safer for limited-memory hosts."
+            },
+            {
                 "key": "WORKER_THREADS",
                 "type": "int",
                 "default": 8,
