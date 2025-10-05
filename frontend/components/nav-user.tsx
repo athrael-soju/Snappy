@@ -19,6 +19,8 @@ export function NavUser() {
   const searchParams = useSearchParams();
 
   const maintenanceActive = pathname.startsWith("/maintenance");
+  const aboutActive = pathname.startsWith("/about");
+  const dropdownActive = maintenanceActive || aboutActive;
   const section = searchParams.get("section") === "data" ? "data" : "configuration";
 
   const navigate = (target: "configuration" | "data") => {
@@ -36,10 +38,10 @@ export function NavUser() {
           aria-label="Open maintenance menu"
           className={cn(
             "h-9 w-9 sm:h-10 sm:w-10 rounded-full border transition-colors",
-            maintenanceActive ? "bg-blue-600 text-white shadow border-blue-500" : "border-transparent hover:border-blue-200/60 hover:bg-blue-50"
+            dropdownActive ? "bg-blue-600 text-white shadow border-blue-500" : "border-transparent hover:border-blue-200/60 hover:bg-blue-50"
           )}
         >
-          <UserCircle className={cn("h-5 w-5", maintenanceActive ? "text-white" : "text-blue-600")} />
+          <UserCircle className={cn("h-5 w-5", dropdownActive ? "text-white" : "text-blue-600")} />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
@@ -49,7 +51,10 @@ export function NavUser() {
             event.preventDefault();
             navigate("configuration");
           }}
-          className={cn("flex items-center gap-2", section === "configuration" && "font-medium text-blue-600 bg-blue-50/80")}
+          className={cn(
+            "flex items-center gap-2",
+            maintenanceActive && section === "configuration" && "font-medium text-blue-600 bg-blue-50/80"
+          )}
         >
           <SlidersHorizontal className="h-4 w-4" />
           Configuration
@@ -59,7 +64,10 @@ export function NavUser() {
             event.preventDefault();
             navigate("data");
           }}
-          className={cn("flex items-center gap-2", section === "data" && "font-medium text-blue-600 bg-blue-50/80")}
+          className={cn(
+            "flex items-center gap-2",
+            maintenanceActive && section === "data" && "font-medium text-blue-600 bg-blue-50/80"
+          )}
         >
           <Database className="h-4 w-4" />
           Data Management
@@ -70,7 +78,7 @@ export function NavUser() {
             event.preventDefault();
             router.push("/about");
           }}
-          className="flex items-center gap-2"
+          className={cn("flex items-center gap-2", aboutActive && "font-medium text-blue-600 bg-blue-50/80")}
         >
           <Info className="h-4 w-4" />
           About

@@ -214,7 +214,7 @@ export default function ChatPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="page-shell page-section flex flex-col min-h-0 flex-1 space-y-6"
+      className="page-shell page-section flex flex-col min-h-0 flex-1"
     >
       <PageHeader
         title="AI Chat"
@@ -222,23 +222,24 @@ export default function ChatPage() {
         icon={Brain}
       />
 
-      {/* System Status Warning */}
-      {systemStatus && !isReady && (
-        <Alert className="border-amber-300 bg-amber-50 mb-4">
-          <AlertTriangle className="h-5 w-5 text-amber-600" />
-          <AlertTitle className="text-amber-900 font-semibold">System Not Initialized</AlertTitle>
-          <AlertDescription className="text-amber-800">
-            The collection and bucket must be initialized before using chat.
-            <Link href="/maintenance" className="inline-flex items-center gap-1 ml-2 text-amber-900 font-medium underline hover:text-amber-950">
-              Go to Data Management
-              <ExternalLink className="w-3 h-3" />
-            </Link>
-          </AlertDescription>
-        </Alert>
-      )}
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-6 pb-6 pr-1">
+        {/* System Status Warning */}
+        {systemStatus && !isReady && (
+          <Alert className="border-amber-300 bg-amber-50">
+            <AlertTriangle className="h-5 w-5 text-amber-600" />
+            <AlertTitle className="text-amber-900 font-semibold">System Not Initialized</AlertTitle>
+            <AlertDescription className="text-amber-800">
+              The collection and bucket must be initialized before using chat.
+              <Link href="/maintenance" className="inline-flex items-center gap-1 ml-2 text-amber-900 font-medium underline hover:text-amber-950">
+                Go to Data Management
+                <ExternalLink className="w-3 h-3" />
+              </Link>
+            </AlertDescription>
+          </Alert>
+        )}
 
-      {/* Chat Messages */}
-      <Card className="card-surface flex-1 flex flex-col min-h-0 overflow-hidden">
+        {/* Chat Messages */}
+        <Card className="card-surface flex-1 flex flex-col min-h-0 overflow-hidden">
         <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 custom-scrollbar bg-transparent">
           <AnimatePresence mode="popLayout">
             {messages.length === 0 ? (
@@ -427,6 +428,7 @@ export default function ChatPage() {
           )}
         </div>
       </Card>
+      </div>
       <ImageLightbox
         open={lightboxOpen}
         src={lightboxSrc}

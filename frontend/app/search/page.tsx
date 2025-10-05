@@ -171,7 +171,7 @@ export default function SearchPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="page-shell page-section space-y-6 flex flex-col min-h-0 flex-1"
+      className="page-shell page-section flex flex-col min-h-0 flex-1"
     >
       <PageHeader
         title="Visual Search"
@@ -179,24 +179,25 @@ export default function SearchPage() {
         icon={Search}
       />
 
-      {/* System Status Warning */}
-      {systemStatus && !isReady && (
-        <Alert className="border-amber-300 bg-amber-50">
-          <AlertTriangle className="h-5 w-5 text-amber-600" />
-          <AlertTitle className="text-amber-900 font-semibold">System Not Initialized</AlertTitle>
-          <AlertDescription className="text-amber-800">
-            The collection and bucket must be initialized before searching.
-            <Link href="/maintenance" className="inline-flex items-center gap-1 ml-2 text-amber-900 font-medium underline hover:text-amber-950">
-              Go to Data Management
-              <ExternalLink className="w-3 h-3" />
-            </Link>
-          </AlertDescription>
-        </Alert>
-      )}
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-6 pb-6 pr-1">
+        {/* System Status Warning */}
+        {systemStatus && !isReady && (
+          <Alert className="border-amber-300 bg-amber-50">
+            <AlertTriangle className="h-5 w-5 text-amber-600" />
+            <AlertTitle className="text-amber-900 font-semibold">System Not Initialized</AlertTitle>
+            <AlertDescription className="text-amber-800">
+              The collection and bucket must be initialized before searching.
+              <Link href="/maintenance" className="inline-flex items-center gap-1 ml-2 text-amber-900 font-medium underline hover:text-amber-950">
+                Go to Data Management
+                <ExternalLink className="w-3 h-3" />
+              </Link>
+            </AlertDescription>
+          </Alert>
+        )}
 
-      {/* Search Form */}
-      <Card className="card-surface shadow-sm hover:shadow-md transition-shadow duration-300">
-        <CardContent className="pt-6 pb-6 space-y-4">
+        {/* Search Form */}
+        <Card className="card-surface shadow-sm hover:shadow-md transition-shadow duration-300">
+          <CardContent className="pt-6 pb-6 space-y-4">
           <SearchBar
             q={q}
             setQ={setQ}
@@ -396,6 +397,7 @@ export default function SearchPage() {
             </motion.div>
           )}
         </AnimatePresence>
+      </div>
       </div>
       <ImageLightbox
         open={lightboxOpen}

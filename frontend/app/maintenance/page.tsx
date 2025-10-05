@@ -44,7 +44,7 @@ export default function MaintenancePage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="page-shell page-section flex flex-col min-h-0 space-y-8"
+      className="page-shell page-section flex flex-col min-h-0 flex-1"
     >
       <PageHeader
         title="System Maintenance"
@@ -52,70 +52,72 @@ export default function MaintenancePage() {
         icon={Settings}
       />
 
-      <div className="flex items-center justify-end mb-4">
-        {systemStatus && (
-          <SystemStatusBadge
-            isReady={isSystemReady}
-            isLoading={statusLoading}
-            onRefresh={fetchStatus}
-          />
-        )}
-      </div>
-
-      {isConfigurationView ? (
-        <div className="flex-1 min-h-0 flex flex-col">
-          <ConfigurationPanel />
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-8 pb-6 pr-2">
+        <div className="flex items-center justify-end">
+          {systemStatus && (
+            <SystemStatusBadge
+              isReady={isSystemReady}
+              isLoading={statusLoading}
+              onRefresh={fetchStatus}
+            />
+          )}
         </div>
-      ) : (
-        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-2">
-          <div className="space-y-6 pb-4">
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <CollectionStatusCard
-                  status={systemStatus?.collection || null}
-                  isLoading={statusLoading}
-                />
-                <BucketStatusCard
-                  status={systemStatus?.bucket || null}
-                  isLoading={statusLoading}
-                />
-              </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <InitializeCard
-                  isLoading={initLoading}
-                  isSystemReady={isSystemReady}
-                  isDeleteLoading={deleteLoading}
-                  onInitialize={handleInitialize}
-                />
-
-                <DeleteCard
-                  isLoading={deleteLoading}
-                  isInitLoading={initLoading}
-                  isSystemReady={isSystemReady}
-                  dialogOpen={deleteDialogOpen}
-                  onDialogChange={setDeleteDialogOpen}
-                  onDelete={handleDelete}
-                />
-
-                {criticalActions.map((action) => (
-                  <DataResetCard
-                    key={action.id}
-                    action={action}
-                    isLoading={loading[action.id]}
-                    isInitLoading={initLoading}
-                    isDeleteLoading={deleteLoading}
-                    isSystemReady={isSystemReady}
-                    dialogOpen={dialogOpen === action.id}
-                    onDialogChange={(open) => setDialogOpen(open ? action.id : null)}
-                    onConfirm={runAction}
+        {isConfigurationView ? (
+          <div className="flex-1 min-h-0 flex flex-col">
+            <ConfigurationPanel />
+          </div>
+        ) : (
+          <div className="flex-1 min-h-0 pr-2">
+            <div className="space-y-6 pb-4">
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <CollectionStatusCard
+                    status={systemStatus?.collection || null}
+                    isLoading={statusLoading}
                   />
-                ))}
+                  <BucketStatusCard
+                    status={systemStatus?.bucket || null}
+                    isLoading={statusLoading}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <InitializeCard
+                    isLoading={initLoading}
+                    isSystemReady={isSystemReady}
+                    isDeleteLoading={deleteLoading}
+                    onInitialize={handleInitialize}
+                  />
+
+                  <DeleteCard
+                    isLoading={deleteLoading}
+                    isInitLoading={initLoading}
+                    isSystemReady={isSystemReady}
+                    dialogOpen={deleteDialogOpen}
+                    onDialogChange={setDeleteDialogOpen}
+                    onDelete={handleDelete}
+                  />
+
+                  {criticalActions.map((action) => (
+                    <DataResetCard
+                      key={action.id}
+                      action={action}
+                      isLoading={loading[action.id]}
+                      isInitLoading={initLoading}
+                      isDeleteLoading={deleteLoading}
+                      isSystemReady={isSystemReady}
+                      dialogOpen={dialogOpen === action.id}
+                      onDialogChange={(open) => setDialogOpen(open ? action.id : null)}
+                      onConfirm={runAction}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </motion.div>
   );
 }

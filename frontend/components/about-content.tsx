@@ -4,28 +4,11 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Info, Image as ImageIcon, Layers, Search, GitCompare, Sparkles, Database, Server, Code, Rocket, CloudUpload, Eye, Brain, Shield } from "lucide-react";
+import { Image as ImageIcon, Layers, Search, GitCompare, Sparkles, Database, Server, Code, Rocket, CloudUpload, Eye, Brain, Shield } from "lucide-react";
 
 export default function AboutContent({ onClose }: { onClose?: () => void }) {
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="text-center relative">
-        {/* Background decoration */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-20 w-32 h-32 bg-blue-200/20 rounded-full blur-xl" />
-          <div className="absolute top-10 right-32 w-24 h-24 bg-purple-200/20 rounded-full blur-xl" />
-        </div>
-        
-        <div className="relative z-10 space-y-2">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full flex items-center justify-center mb-4 border-2 border-blue-200/50 shadow-md">
-            <Info className="w-8 h-8 text-blue-500" />
-          </div>
-          <h2 className="text-3xl font-semibold bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">About This Template</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">A friendly and light-weight knowledge base platform with visual document understanding</p>
-        </div>
-      </div>
-
       {/* Progressive disclosure via Accordion */}
       <Accordion type="single" collapsible className="w-full">
         <AccordionItem value="overview">
