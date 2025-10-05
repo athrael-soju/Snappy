@@ -58,7 +58,7 @@ export default function Home() {
         </PageHeader>
       </motion.div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pb-10">
+      <div className="flex-1 min-h-0 flex flex-col pb-10">
         <section className="space-y-8">
           <div className="grid gap-6 md:grid-cols-3">
             {workflow.map(({ title, description, icon: Icon }) => (

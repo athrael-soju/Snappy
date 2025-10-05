@@ -179,7 +179,7 @@ export default function SearchPage() {
         icon={Search}
       />
 
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-6 pb-6 pr-1">
+      <div className="flex-1 min-h-0 flex flex-col space-y-6 pb-6">
         {/* System Status Warning */}
         {systemStatus && !isReady && (
           <Alert className="border-amber-300 bg-amber-50">

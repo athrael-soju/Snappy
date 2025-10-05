@@ -52,8 +52,8 @@ export default function MaintenancePage() {
         icon={Settings}
       />
 
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-8 pb-6 pr-2">
-        <div className="flex items-center justify-end">
+      <div className="flex-1 min-h-0 flex flex-col space-y-8 pb-6">
+        <div className="flex items-center justify-end flex-shrink-0">
           {systemStatus && (
             <SystemStatusBadge
               isReady={isSystemReady}
@@ -64,11 +64,13 @@ export default function MaintenancePage() {
         </div>
 
         {isConfigurationView ? (
-          <div className="flex-1 min-h-0 flex flex-col">
-            <ConfigurationPanel />
+          <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-2">
+            <div className="space-y-6 pb-4">
+              <ConfigurationPanel />
+            </div>
           </div>
         ) : (
-          <div className="flex-1 min-h-0 pr-2">
+          <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-2">
             <div className="space-y-6 pb-4">
               <div className="space-y-4">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

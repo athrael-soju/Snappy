@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -134,7 +134,9 @@ export function Nav() {
             </Sheet>
           </div>
 
-          <NavUser />
+          <Suspense fallback={null}>
+            <NavUser />
+          </Suspense>
 
         </div>
       </nav>

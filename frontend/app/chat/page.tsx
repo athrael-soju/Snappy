@@ -222,7 +222,7 @@ export default function ChatPage() {
         icon={Brain}
       />
 
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-6 pb-6 pr-1">
+      <div className="flex-1 min-h-0 flex flex-col space-y-6 pb-6">
         {/* System Status Warning */}
         {systemStatus && !isReady && (
           <Alert className="border-amber-300 bg-amber-50">
@@ -239,7 +239,7 @@ export default function ChatPage() {
         )}
 
         {/* Chat Messages */}
-        <Card className="card-surface flex-1 flex flex-col min-h-0 overflow-hidden">
+        <Card className="card-surface flex-1 min-h-0 flex flex-col overflow-hidden">
         <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 custom-scrollbar bg-transparent">
           <AnimatePresence mode="popLayout">
             {messages.length === 0 ? (
