@@ -28,25 +28,20 @@ export function NavUser() {
           size="icon"
           aria-label="Open maintenance menu"
           className={cn(
-            "group transition-transform hover:scale-105 h-9 w-9 sm:h-10 sm:w-10 border border-transparent hover:border-blue-200/50",
-            maintenanceActive && "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg"
+            "h-9 w-9 sm:h-10 sm:w-10 rounded-full border border-transparent transition-colors",
+            maintenanceActive ? "bg-blue-600 text-white shadow" : "hover:border-blue-200/60 hover:bg-blue-50"
           )}
         >
-          <UserCircle
-            className={cn(
-              "w-5 h-5 sm:w-5 sm:h-5 transition-colors duration-300",
-              maintenanceActive ? "text-white" : "text-blue-600 group-hover:text-cyan-600"
-            )}
-          />
+          <UserCircle className={cn("h-5 w-5", maintenanceActive ? "text-white" : "text-blue-600") } />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuItem
           onSelect={(event) => {
             event.preventDefault();
             navigate("configuration");
           }}
-          className={section === "configuration" ? "font-semibold" : ""}
+          className={section === "configuration" ? "font-medium text-blue-600" : ""}
         >
           Configuration
         </DropdownMenuItem>
@@ -55,7 +50,7 @@ export function NavUser() {
             event.preventDefault();
             navigate("data");
           }}
-          className={section === "data" ? "font-semibold" : ""}
+          className={section === "data" ? "font-medium text-blue-600" : ""}
         >
           Data Management
         </DropdownMenuItem>

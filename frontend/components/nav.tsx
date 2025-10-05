@@ -5,13 +5,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Home, Eye, CloudUpload, Brain, HelpCircle } from "lucide-react";
+import { Home, Eye, CloudUpload, Brain, HelpCircle, Menu } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import AboutContent from "@/components/about-content";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/stores/app-store";
 import { motion, AnimatePresence } from "framer-motion";
+import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
 import { NavUser } from "@/components/nav-user";
 
 const links = [
@@ -33,7 +34,7 @@ export function Nav() {
     if (!state.upload.uploading && state.upload.uploadProgress >= 100 && !state.upload.jobId) {
       const timer = setTimeout(() => {
         setShowUploadBadge(false);
-      }, 3000);
+      }, 2500);
       return () => clearTimeout(timer);
     } else if (state.upload.uploading || (state.upload.uploadProgress < 100 && state.upload.jobId)) {
       setShowUploadBadge(true);
@@ -52,68 +53,87 @@ export function Nav() {
     return null;
   };
 
+  const renderLink = (link: typeof links[number]) => {
+    const active = link.href === "/" ? pathname === "/" : pathname === link.href || pathname.startsWith(`${link.href}/`);
+    const Icon = link.icon;
+    const uploadIndicator = link.href === "/upload" ? getUploadIndicator() : null;
+
+    return (
+      <Link
+        key={link.href}
+        href={link.href}
+        className={cn(
+          "relative flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors",
+          active
+            ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow"
+            : "text-muted-foreground hover:text-foreground hover:bg-blue-50"
+        )}
+      >
+        <Icon className={cn("h-4 w-4", active ? "text-white" : link.color)} />
+        <span className="hidden md:inline">{link.label}</span>
+        <AnimatePresence>
+          {uploadIndicator && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.3, y: -6 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.3, y: -6 }}
+              transition={{ duration: 0.25, type: "spring", stiffness: 260, damping: 18 }}
+              className={cn(
+                "absolute -top-1 -right-1 flex h-[20px] min-w-[20px] items-center justify-center rounded-full text-[10px] font-bold",
+                uploadIndicator.isActive ? "bg-cyan-500 text-white shadow" : "bg-slate-600 text-white/90"
+              )}
+            >
+              {uploadIndicator.count}%
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Link>
+    );
+  };
+
   return (
-    <header className="sticky top-0 z-50 border-b border-blue-200/20 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 shadow-sm">
-      <nav className="mx-auto flex h-14 sm:h-16 max-w-6xl items-center justify-between gap-2 px-3 sm:px-6">
+    <header className="sticky top-0 z-50 border-b border-blue-200/30 bg-white/85 backdrop-blur supports-[backdrop-filter]:bg-white/65">
+      <nav className="mx-auto flex h-14 sm:h-16 max-w-6xl items-center justify-between px-3 sm:px-6">
         <Link
           href="/"
-          className="flex items-center gap-2 sm:gap-3 font-bold text-base sm:text-lg tracking-tight transition-all duration-300 hover:opacity-80"
+          className="flex items-center gap-2 sm:gap-3 font-semibold text-base sm:text-lg tracking-tight transition-opacity hover:opacity-80"
         >
           <Image
             src="/favicon.png"
             alt="App icon"
             width={32}
             height={32}
-            className="w-8 h-8 sm:w-9 sm:h-9"
+            className="h-8 w-8 sm:h-9 sm:w-9"
             priority
           />
-          <span className="hidden md:inline bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent text-sm sm:text-base md:text-lg">
+          <span className="hidden md:inline bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent text-sm sm:text-base">
             FastAPI / Next.js / ColPali Template
           </span>
         </Link>
 
-        <div className="flex items-center gap-1 sm:gap-3">
-          {links.map((link) => {
-            const active = link.href === "/" ? pathname === "/" : pathname === link.href || pathname.startsWith(`${link.href}/`);
-            const Icon = link.icon;
-            const uploadIndicator = link.href === "/upload" ? getUploadIndicator() : null;
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                aria-label={link.label}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "relative flex items-center gap-1.5 sm:gap-2 rounded-full px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium transition-all",
-                  active
-                    ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow"
-                    : "text-muted-foreground hover:text-foreground hover:bg-blue-50",
-                  uploadIndicator && link.href === "/upload" && "pr-5 sm:pr-8"
-                )}
-              >
-                <Icon className={cn("w-4 h-4 sm:w-4 sm:h-4", active ? "text-white" : link.color)} />
-                <span className="hidden sm:inline">{link.label}</span>
-                <AnimatePresence>
-                  {uploadIndicator && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.3, y: -6 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.3, y: -6 }}
-                      transition={{ duration: 0.25, type: "spring", stiffness: 260, damping: 18 }}
-                      className={cn(
-                        "absolute -top-1 -right-1 flex h-[20px] min-w-[20px] items-center justify-center rounded-full text-[10px] font-bold",
-                        uploadIndicator.isActive
-                          ? "bg-cyan-500 text-white shadow"
-                          : "bg-slate-600 text-white/90"
-                      )}
-                    >
-                      {uploadIndicator.count}%
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </Link>
-            );
-          })}
+        <div className="hidden md:flex items-center gap-2">
+          {links.map(renderLink)}
+        </div>
+
+        <div className="flex items-center gap-1 sm:gap-2">
+          <div className="md:hidden">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" aria-label="Open navigation" className="h-9 w-9">
+                  <Menu className="h-5 w-5 text-blue-600" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-64">
+                <nav className="mt-6 flex flex-col gap-2">
+                  {links.map((link) => (
+                    <div key={link.href}>
+                      {renderLink(link)}
+                    </div>
+                  ))}
+                </nav>
+              </SheetContent>
+            </Sheet>
+          </div>
 
           <NavUser />
 
