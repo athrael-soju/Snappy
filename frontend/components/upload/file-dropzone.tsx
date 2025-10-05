@@ -52,7 +52,7 @@ export function FileDropzone({
     <Card className={`relative border-2 border-dashed transition-all duration-300 group ${
       isDragOver 
         ? 'border-blue-500 bg-blue-500/5 shadow-lg scale-[1.02]' 
-        : 'border-muted-foreground/25 hover:border-blue-400/50 hover:shadow-md'
+        : 'card-surface hover:border-blue-400/50 hover:shadow-md'
     }`}>
       <div 
         onDragOver={onDragOver}

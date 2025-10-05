@@ -547,6 +547,13 @@ export function ConfigurationPanel() {
   }
 
   const sortedCategories = Object.entries(schema).sort(([, a], [, b]) => a.order - b.order);
+  const visibleCategories = sortedCategories.filter(([_, category]) =>
+    category.settings.some(setting => !setting.depends_on && isSettingVisible(setting))
+  );
+  const categoriesToRender = visibleCategories.length > 0 ? visibleCategories : sortedCategories;
+  const activeCategoryKey = categoriesToRender.some(([key]) => key === activeTab)
+    ? activeTab
+    : categoriesToRender[0]?.[0] ?? activeTab;
 
   return (
     <div className="flex flex-col h-full">
@@ -569,9 +576,9 @@ export function ConfigurationPanel() {
           <nav className="w-48 flex-shrink-0">
             <ScrollArea className="h-full">
                 <div className="space-y-1 pr-2">
-                  {sortedCategories.map(([categoryKey, category]) => {
+                  {categoriesToRender.map(([categoryKey, category]) => {
                     const Icon = iconMap[category.icon] || Settings;
-                    const isActive = activeTab === categoryKey;
+                    const isActive = activeCategoryKey === categoryKey;
                     
                     return (
                       <button
@@ -594,8 +601,8 @@ export function ConfigurationPanel() {
 
           {/* Main content area */}
           <div className="flex-1 min-w-0 flex flex-col gap-4">
-            {sortedCategories.map(([categoryKey, category]) => {
-              if (activeTab !== categoryKey) return null;
+            {categoriesToRender.map(([categoryKey, category]) => {
+              if (activeCategoryKey !== categoryKey) return null;
               
               const Icon = iconMap[category.icon] || Settings;
               // Filter to show only top-level settings (exclude nested children with depends_on)
@@ -817,3 +824,4 @@ export function ConfigurationPanel() {
     </div>
   );
 }
+

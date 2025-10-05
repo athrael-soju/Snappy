@@ -99,6 +99,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
         "settings": [
             {
                 "key": "COLPALI_MODE",
+                "ui_hidden": True,
                 "type": "str",
                 "default": "gpu",
                 "label": "Processing Mode",
@@ -493,6 +494,8 @@ def get_api_schema() -> Dict[str, Any]:
                 api_setting["depends_on"] = setting["depends_on"]
             if "help_text" in setting:
                 api_setting["help_text"] = setting["help_text"]
+            if "ui_hidden" in setting:
+                api_setting["ui_hidden"] = setting["ui_hidden"]
             
             api_schema[cat_key]["settings"].append(api_setting)
     
@@ -521,3 +524,4 @@ def get_critical_keys() -> set:
         "QDRANT_USE_BINARY",
         "QDRANT_ON_DISK"
     }
+

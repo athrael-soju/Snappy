@@ -4,7 +4,7 @@ import { FileText, ArrowUpFromLine } from "lucide-react";
 export function UploadInfoCards() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-      <Card className="border-blue-200/50">
+      <Card className="card-surface h-full">
         <CardHeader className="pb-4">
           <div className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-blue-500" />
@@ -35,7 +35,7 @@ export function UploadInfoCards() {
         </CardContent>
       </Card>
       
-      <Card className="border-purple-200/50">
+      <Card className="card-surface h-full">
         <CardHeader className="pb-4">
           <div className="flex items-center gap-2">
             <ArrowUpFromLine className="w-5 h-5 text-purple-500" />
