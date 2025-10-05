@@ -61,6 +61,14 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "description": "Comma-separated list of allowed origins, or * for all",
                 "help_text": "Defines which web domains can access your API via cross-origin requests. Use '*' to allow all origins (development only - NOT recommended for production). In production, specify exact domains (e.g., 'https://example.com,https://app.example.com') to prevent unauthorized access. This is a critical security setting that protects against cross-site request forgery."
             },
+        ]
+    },
+    "ingestion": {
+        "order": 2,
+        "icon": "hard-drive",
+        "name": "Document Ingestion",
+        "description": "Controls batching and concurrency for document uploads and indexing.",
+        "settings": [
             {
                 "key": "BATCH_SIZE",
                 "type": "int",
@@ -118,7 +126,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
         ]
     },
     "colpali": {
-        "order": 2,
+        "order": 3,
         "icon": "brain",
         "name": "Embedding Model",
         "description": "ColPali embedding model configuration",
@@ -174,7 +182,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
         ]
     },
     "qdrant": {
-        "order": 3,
+        "order": 4,
         "icon": "database",
         "name": "Vector Database",
         "description": "Qdrant vector store and retrieval settings",
@@ -347,7 +355,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
         ]
     },
     "storage": {
-        "order": 4,
+        "order": 5,
         "icon": "hard-drive",
         "name": "Object Storage",
         "description": "MinIO object storage configuration",
