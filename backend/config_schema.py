@@ -363,43 +363,47 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
             },
             {
                 "key": "MINIO_BUCKET_NAME",
+                "ui_hidden": True,
                 "type": "str",
-                "default": "documents",
+                "default": "",
                 "label": "Bucket Name",
                 "ui_type": "text",
-                "description": "Name of the storage bucket",
-                "help_text": "Name of the MinIO bucket (container) where uploaded documents are stored. Bucket is automatically created if it doesn't exist. Change to use a different bucket. Useful for separating environments (dev/staging/prod) or different applications."
+                "description": "Name of the storage bucket (auto-derived when empty)",
+                "help_text": "When left blank, the backend derives a MinIO bucket name by slugifying the Qdrant collection name. Override only if you need to target a specific existing bucket."
             },
             {
                 "key": "MINIO_WORKERS",
+                "ui_hidden": True,
                 "type": "int",
                 "default": 12,
                 "label": "Worker Threads",
                 "ui_type": "number",
                 "min": 1,
                 "max": 32,
-                "description": "Number of concurrent upload workers",
-                "help_text": "Number of parallel threads for uploading files to MinIO. Higher values (16-32) speed up bulk uploads but use more network bandwidth and system resources. Lower values (4-8) are safer for limited resources. Adjust based on your network speed and system capacity."
+                "description": "Number of concurrent upload workers (auto-sized)",
+                "help_text": "The backend now sizes this automatically based on CPU cores and pipeline concurrency. Override via environment variables only when you need to cap or increase concurrency manually."
             },
             {
                 "key": "MINIO_RETRIES",
+                "ui_hidden": True,
                 "type": "int",
                 "default": 3,
                 "label": "Retry Attempts",
                 "ui_type": "number",
                 "min": 0,
                 "max": 10,
-                "description": "Number of retry attempts on failure",
-                "help_text": "How many times to retry failed uploads before giving up. Higher values (5-10) improve reliability on unstable networks but longer failure detection. Lower values (1-3) fail fast. Zero disables retries. Default 3 balances reliability and responsiveness."
+                "description": "Number of retry attempts on failure (auto-sized)",
+                "help_text": "The backend derives this from the chosen worker concurrency. Override via environment variables if you need stricter or more lenient retry behaviour."
             },
             {
                 "key": "MINIO_FAIL_FAST",
+                "ui_hidden": True,
                 "type": "bool",
                 "default": False,
                 "label": "Fail Fast",
                 "ui_type": "boolean",
                 "description": "Stop immediately on first error",
-                "help_text": "If enabled (True), stops uploading remaining files immediately when any upload fails. Useful for debugging or when partial uploads are unacceptable. Disable (False, recommended) to continue uploading other files even if some fail, providing better batch upload resilience."
+                "help_text": "Advanced troubleshooting option. When left unset the backend keeps the resilient default (False); override only if you need to abort batches on the first failure."
             },
             {
                 "key": "MINIO_PUBLIC_READ",

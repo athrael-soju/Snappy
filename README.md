@@ -356,7 +356,7 @@ Most defaults are in `config.py`. Key variables:
   - Storage: `QDRANT_ON_DISK` (store vectors on disk), `QDRANT_ON_DISK_PAYLOAD` (store payloads on disk)
   - Binary quantization (optional): `QDRANT_USE_BINARY` (enable), `QDRANT_BINARY_ALWAYS_RAM` (keep quantized codes in RAM)
   - Search tuning (when binary is enabled): `QDRANT_SEARCH_RESCORE`, `QDRANT_SEARCH_OVERSAMPLING`, `QDRANT_SEARCH_IGNORE_QUANT`
-- __MinIO__: `MINIO_URL` (default http://localhost:9000), `MINIO_PUBLIC_URL` (public base for links), `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET_NAME` (documents), `MINIO_WORKERS`, `MINIO_RETRIES`, `MINIO_FAIL_FAST`, `MINIO_PUBLIC_READ` (apply public-read policy automatically), `MINIO_IMAGE_FMT`
+- __MinIO__: `MINIO_URL` (default http://localhost:9000), `MINIO_PUBLIC_URL` (public base for links), `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET_NAME` (auto-derived from collection name unless overridden), `MINIO_WORKERS` (auto-sized), `MINIO_RETRIES` (auto-sized), `MINIO_FAIL_FAST` (advanced toggle), `MINIO_PUBLIC_READ` (apply public-read policy automatically), `MINIO_IMAGE_FMT`
 - __Processing__: `DEFAULT_TOP_K`, `BATCH_SIZE`, `WORKER_THREADS`, `MAX_TOKENS`
 
 See `.env.example` for a minimal starting point. When using Compose, note:
