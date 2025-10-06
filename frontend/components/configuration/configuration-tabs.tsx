@@ -38,11 +38,15 @@ export function ConfigurationTabs({ categories, activeTab, onTabChange }: Config
                 onClick={() => onTabChange(categoryKey)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${
                   isActive
-                    ? 'bg-gradient-to-r from-blue-50 via-purple-50 to-cyan-50 dark:from-blue-900/40 dark:via-purple-900/40 dark:to-blue-900/40 text-blue-800 dark:text-blue-200 border-2 border-blue-300 dark:border-blue-800/50 shadow-lg font-semibold'
-                    : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground border-2 border-transparent hover:border-border/50'
+                    ? 'font-semibold shadow-[var(--nav-pill-shadow)]'
+                    : 'text-[color:var(--nav-pill-inactive-foreground,var(--muted-foreground))] hover:bg-[color:var(--nav-pill-hover)] hover:text-[color:var(--nav-pill-hover-foreground,var(--foreground))]'
                 }`}
+                style={isActive ? {
+                  backgroundImage: 'var(--nav-pill-active)',
+                  color: 'var(--nav-pill-active-foreground, var(--foreground))'
+                } : undefined}
               >
-                <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-blue-600 dark:text-blue-400' : ''}`} />
+                <Icon className="w-4 h-4 flex-shrink-0" />
                 <span className="truncate text-left">{category.name}</span>
               </button>
             );

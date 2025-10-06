@@ -23,12 +23,12 @@ const links = [
 
 const navContainerClasses =
   "rounded-full border border-border/40 bg-card/60 px-1.5 py-1 shadow-[0_2px_18px_rgba(0,0,0,0.12)] backdrop-blur-xl"
-const navLinkClasses = "nav-pill text-muted-foreground/80 hover:text-foreground"
-const navLinkActiveClasses = "nav-pill-active text-white dark:text-foreground font-semibold"
+const navLinkClasses = "nav-pill text-[color:var(--nav-pill-inactive-foreground,var(--muted-foreground))]"
+const navLinkActiveClasses = "nav-pill-active text-[color:var(--nav-pill-active-foreground,var(--foreground))] font-semibold"
 
 const mobileLinkClasses = "nav-pill w-full justify-start text-base"
-const mobileLinkActiveClasses = "nav-pill-active text-white dark:text-foreground font-semibold"
-const mobileLinkInactiveClasses = "text-muted-foreground/80 hover:text-foreground"
+const mobileLinkActiveClasses = "nav-pill-active text-[color:var(--nav-pill-active-foreground,var(--foreground))] font-semibold"
+const mobileLinkInactiveClasses = "text-[color:var(--nav-pill-inactive-foreground,var(--muted-foreground))] hover:text-[color:var(--nav-pill-hover-foreground,var(--foreground))]"
 
 export function Nav() {
   const pathname = usePathname()
@@ -77,7 +77,9 @@ export function Nav() {
         href={link.href}
         className={cn(navLinkClasses, active && navLinkActiveClasses)}
       >
-        <Icon className={cn("h-4 w-4", active ? "text-white dark:text-foreground" : link.color)} />
+        <Icon
+          className={cn("h-4 w-4 transition-colors", active ? "text-[color:var(--nav-pill-active-foreground,var(--foreground))]" : link.color)}
+        />
         <span>{link.label}</span>
         <AnimatePresence>
           {indicator && (
@@ -134,7 +136,7 @@ export function Nav() {
                   variant="ghost"
                   size="icon"
                   aria-label="Open navigation"
-                  className="h-10 w-10 rounded-full border border-border/50 bg-card/80 text-muted-foreground shadow-sm hover:text-foreground"
+                  className="h-10 w-10 rounded-full border border-border/50 bg-card/80 text-[color:var(--nav-pill-inactive-foreground,var(--muted-foreground))] shadow-sm hover:text-[color:var(--nav-pill-hover-foreground,var(--foreground))]"
                 >
                   <Menu className="h-5 w-5" />
                 </Button>
@@ -157,7 +159,9 @@ export function Nav() {
                           active ? mobileLinkActiveClasses : mobileLinkInactiveClasses
                         )}
                       >
-                        <Icon className={cn("h-4 w-4", active ? "text-white dark:text-foreground" : link.color)} />
+                        <Icon
+                          className={cn("h-4 w-4 transition-colors", active ? "text-[color:var(--nav-pill-active-foreground,var(--foreground))]" : link.color)}
+                        />
                         {link.label}
                       </Link>
                     )

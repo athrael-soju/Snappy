@@ -15,18 +15,20 @@ import { cn } from '@/lib/utils'
 import { UserCircle, SlidersHorizontal, Database, Info } from "lucide-react"
 
 const triggerBaseClasses =
-  "group relative h-11 w-11 sm:h-12 sm:w-12 rounded-full border border-border/50 bg-card/80 text-muted-foreground shadow-sm transition-all"
-const triggerActiveClasses = "shadow-lg ring-2 ring-primary/30"
-const triggerHoverClasses = "hover:text-foreground hover:shadow-md"
+  "group relative h-11 w-11 sm:h-12 sm:w-12 rounded-full border border-border/50 bg-card/80 text-[color:var(--nav-pill-inactive-foreground,var(--muted-foreground))] shadow-sm transition-all"
+const triggerActiveClasses = "shadow-lg ring-2 ring-primary/30 text-[color:var(--nav-pill-active-foreground,var(--foreground))]"
+const triggerHoverClasses = "hover:text-[color:var(--nav-pill-hover-foreground,var(--foreground))] hover:shadow-md"
 
 const itemClasses =
-  "mx-1 flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition text-muted-foreground hover:bg-[color:var(--nav-pill-hover)] hover:text-foreground"
+  "mx-1 flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition text-[color:var(--nav-pill-inactive-foreground,var(--muted-foreground))]"
+
+const itemHoverClasses = "hover:bg-[color:var(--nav-pill-hover)] hover:text-[color:var(--nav-pill-hover-foreground,var(--foreground))]"
 
 const menuActiveStyle = (isActive: boolean): CSSProperties | undefined =>
   isActive
     ? {
         backgroundImage: "var(--nav-pill-active)",
-        color: "var(--foreground)",
+        color: "var(--nav-pill-active-foreground, var(--foreground))",
         boxShadow: "var(--nav-pill-shadow)",
       }
     : undefined
@@ -74,10 +76,7 @@ export function NavUser() {
           className={cn(triggerBaseClasses, dropdownActive ? triggerActiveClasses : triggerHoverClasses)}
         >
           <span
-            className={cn(
-              "flex h-full w-full items-center justify-center rounded-full transition-colors",
-              dropdownActive ? "text-white dark:text-foreground" : "bg-transparent"
-            )}
+            className="flex h-full w-full items-center justify-center rounded-full transition-colors text-current"
             style={dropdownActive ? { backgroundImage: "var(--nav-pill-active)" } : undefined}
           >
             <UserCircle className="h-6 w-6" />
@@ -99,10 +98,10 @@ export function NavUser() {
               event.preventDefault()
               item.action()
             }}
-            className={cn(itemClasses, item.isActive && "font-semibold")}
+            className={cn(itemClasses, !item.isActive && itemHoverClasses, item.isActive && "font-semibold")}
             style={menuActiveStyle(item.isActive)}
           >
-            <item.icon className="h-4 w-4" />
+            <item.icon className="h-4 w-4 text-current" />
             {item.label}
           </DropdownMenuItem>
         ))}
@@ -112,10 +111,10 @@ export function NavUser() {
             event.preventDefault()
             router.push("/about")
           }}
-          className={cn(itemClasses, aboutActive && "font-semibold")}
+          className={cn(itemClasses, !aboutActive && itemHoverClasses, aboutActive && "font-semibold")}
           style={menuActiveStyle(aboutActive)}
         >
-          <Info className="h-4 w-4" />
+          <Info className="h-4 w-4 text-current" />
           About this Template
         </DropdownMenuItem>
       </DropdownMenuContent>
