@@ -59,8 +59,7 @@ export default function MaintenancePage() {
 
       <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col space-y-8 pb-6">
         <div className="flex flex-wrap items-center justify-end gap-3 sm:gap-4 flex-shrink-0">
-
-          {systemStatus && (
+          {!isConfigurationView && systemStatus && (
             <SystemStatusBadge
               isReady={isSystemReady}
               isLoading={statusLoading}
@@ -72,8 +71,9 @@ export default function MaintenancePage() {
               <TooltipTrigger asChild>
                 <Button
                   variant="outline"
-                  size="lg"
+                  size="sm"
                   onClick={() => configPanelRef.current?.openResetDialog()}
+                  className="h-10"
                 >
                   <RotateCcw />
                 </Button>

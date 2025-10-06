@@ -1,3 +1,4 @@
+import asyncio
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
@@ -23,7 +24,7 @@ async def search(
             status_code=503,
             detail=f"Service unavailable: {qdrant_init_error or 'Dependency services are down'}",
         )
-    items = svc.search_with_metadata(q, k=k)
+    items = await asyncio.to_thread(svc.search_with_metadata, q, k)
     results: List[SearchItem] = []
     for it in items:
         payload = it.get("payload", {})

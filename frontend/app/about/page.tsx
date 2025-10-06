@@ -12,7 +12,7 @@ export default function AboutPage() {
     <motion.div {...defaultPageMotion} className="page-shell page-section flex flex-col min-h-0 flex-1">
       <motion.section variants={sectionVariants}>
         <PageHeader
-          title="About This Template"
+          title="About the ColPali Template"
           description="A friendly and lightweight knowledge base platform with visual document understanding."
           icon={Info}
         />

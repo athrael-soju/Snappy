@@ -13,7 +13,6 @@ import config
 
 router = APIRouter(prefix="", tags=["maintenance"])
 
-
 @router.post("/clear/qdrant")
 async def clear_qdrant():
     try:
@@ -23,11 +22,10 @@ async def clear_qdrant():
                 status_code=503,
                 detail=f"Service unavailable: {qdrant_init_error or 'Dependency services are down'}",
             )
-        msg = svc.clear_collection()
+        msg = await asyncio.to_thread(svc.clear_collection)
         return {"status": "ok", "message": msg}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/clear/minio")
 async def clear_minio():
@@ -38,7 +36,7 @@ async def clear_minio():
                 status_code=503,
                 detail=f"MinIO unavailable: {minio_init_error or 'Dependency service is down'}",
             )
-        res = msvc.clear_images()
+        res = await asyncio.to_thread(msvc.clear_images)
         return {
             "status": "ok",
             "deleted": res.get("deleted"),
@@ -47,39 +45,15 @@ async def clear_minio():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.post("/clear/all")
 async def clear_all():
     try:
-        # Clear Qdrant (if available)
-        q_msg = ""
         svc = get_qdrant_service()
-        if svc:
-            try:
-                q_msg = svc.clear_collection()
-            except Exception as qe:
-                q_msg = f"Qdrant clear failed: {qe}"
-        else:
-            q_msg = f"Qdrant unavailable: {qdrant_init_error or 'Dependency service is down'}"
-
-        # Clear MinIO (independent of Qdrant)
-        m_msg = ""
         msvc = get_minio_service()
-        if msvc:
-            try:
-                res = msvc.clear_images()
-                m_msg = f"Cleared MinIO images: deleted={res.get('deleted')}, failed={res.get('failed')}"
-            except Exception as me:
-                m_msg = f"MinIO clear failed: {me}"
-        else:
-            m_msg = (
-                f"MinIO unavailable: {minio_init_error or 'Dependency service is down'}"
-            )
-
-        return {"status": "ok", "message": f"{q_msg} {m_msg}".strip()}
+        message = await asyncio.to_thread(_clear_all_sync, svc, msvc)
+        return {"status": "ok", "message": message}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/status")
 async def get_status():
@@ -87,12 +61,10 @@ async def get_status():
     try:
         svc = get_qdrant_service()
         msvc = get_minio_service()
-
         collection_status, bucket_status = await asyncio.gather(
             asyncio.to_thread(_collect_collection_status, svc),
             asyncio.to_thread(_collect_bucket_status, msvc),
         )
-
         return {
             "collection": collection_status,
             "bucket": bucket_status,
@@ -100,6 +72,25 @@ async def get_status():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/initialize")
+async def initialize():
+    """Initialize/create collection and bucket based on current configuration."""
+    try:
+        svc = get_qdrant_service()
+        msvc = get_minio_service()
+        return await asyncio.to_thread(_initialize_sync, svc, msvc)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/delete")
+async def delete_collection_and_bucket():
+    """Delete collection and bucket completely."""
+    try:
+        svc = get_qdrant_service()
+        msvc = get_minio_service()
+        return await asyncio.to_thread(_delete_sync, svc, msvc)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 def _collect_collection_status(svc: Optional[object]) -> dict:
     status = {
@@ -109,16 +100,13 @@ def _collect_collection_status(svc: Optional[object]) -> dict:
         "unique_files": 0,
         "error": None,
     }
-
     if not svc:
         status["error"] = qdrant_init_error or "Service unavailable"
         return status
-
     try:
         collection_info = svc.service.get_collection(config.QDRANT_COLLECTION_NAME)
         status["exists"] = True
         status["vector_count"] = collection_info.points_count or 0
-
         try:
             scroll_result = svc.service.scroll(
                 collection_name=config.QDRANT_COLLECTION_NAME,
@@ -136,13 +124,10 @@ def _collect_collection_status(svc: Optional[object]) -> dict:
         except Exception:
             # Best-effort; leave unique_files at default if scroll fails
             pass
-
     except Exception as exc:
         if "not found" not in str(exc).lower():
             status["error"] = str(exc)
-
     return status
-
 
 def _collect_bucket_status(msvc: Optional[object]) -> dict:
     status = {
@@ -151,15 +136,12 @@ def _collect_bucket_status(msvc: Optional[object]) -> dict:
         "object_count": 0,
         "error": None,
     }
-
     if not msvc:
         status["error"] = minio_init_error or "Service unavailable"
         return status
-
     try:
         bucket_exists = msvc.service.bucket_exists(config.MINIO_BUCKET_NAME)
         status["exists"] = bucket_exists
-
         if bucket_exists:
             objects = list(
                 msvc.service.list_objects(
@@ -170,134 +152,133 @@ def _collect_bucket_status(msvc: Optional[object]) -> dict:
             status["object_count"] = len(objects)
     except Exception as exc:
         status["error"] = str(exc)
-
     return status
 
 
-@router.post("/initialize")
-async def initialize():
-    """Initialize/create collection and bucket based on current configuration."""
-    try:
-        results = {
-            "collection": {"status": "pending", "message": ""},
-            "bucket": {"status": "pending", "message": ""}
-        }
-        
-        # Initialize Qdrant collection
-        svc = get_qdrant_service()
-        if svc:
-            try:
-                svc._create_collection_if_not_exists()
+def _clear_all_sync(svc: Optional[object], msvc: Optional[object]) -> str:
+    if svc:
+        try:
+            q_msg = svc.clear_collection()
+        except Exception as exc:
+            q_msg = f"Qdrant clear failed: {exc}"
+    else:
+        q_msg = f"Qdrant unavailable: {qdrant_init_error or 'Dependency service is down'}"
+    if msvc:
+        try:
+            res = msvc.clear_images()
+            m_msg = (
+                f"Cleared MinIO images: deleted={res.get('deleted')}, "
+                f"failed={res.get('failed')}"
+            )
+        except Exception as exc:
+            m_msg = f"MinIO clear failed: {exc}"
+    else:
+        m_msg = f"MinIO unavailable: {minio_init_error or 'Dependency service is down'}"
+    return f"{q_msg} {m_msg}".strip()
+
+
+def _initialize_sync(svc: Optional[object], msvc: Optional[object]) -> dict:
+    results = {
+        "collection": {"status": "pending", "message": ""},
+        "bucket": {"status": "pending", "message": ""},
+    }
+    if svc:
+        try:
+            svc._create_collection_if_not_exists()
+            results["collection"]["status"] = "success"
+            results["collection"]["message"] = (
+                f"Collection '{config.QDRANT_COLLECTION_NAME}' initialized successfully"
+            )
+        except Exception as exc:
+            results["collection"]["status"] = "error"
+            results["collection"]["message"] = str(exc)
+    else:
+        results["collection"]["status"] = "error"
+        results["collection"]["message"] = qdrant_init_error or "Service unavailable"
+    if msvc:
+        try:
+            msvc._create_bucket_if_not_exists()
+            results["bucket"]["status"] = "success"
+            results["bucket"]["message"] = (
+                f"Bucket '{config.MINIO_BUCKET_NAME}' initialized successfully"
+            )
+        except Exception as exc:
+            results["bucket"]["status"] = "error"
+            results["bucket"]["message"] = str(exc)
+    else:
+        results["bucket"]["status"] = "error"
+        results["bucket"]["message"] = minio_init_error or "Service unavailable"
+    overall_status = "success" if (
+        results["collection"]["status"] == "success"
+        and results["bucket"]["status"] == "success"
+    ) else "partial" if (
+        results["collection"]["status"] == "success"
+        or results["bucket"]["status"] == "success"
+    ) else "error"
+    return {"status": overall_status, "results": results}
+
+
+def _delete_sync(svc: Optional[object], msvc: Optional[object]) -> dict:
+    results = {
+        "collection": {"status": "pending", "message": ""},
+        "bucket": {"status": "pending", "message": ""},
+    }
+    if svc:
+        try:
+            svc.service.delete_collection(collection_name=config.QDRANT_COLLECTION_NAME)
+            results["collection"]["status"] = "success"
+            results["collection"]["message"] = (
+                f"Collection '{config.QDRANT_COLLECTION_NAME}' deleted successfully"
+            )
+        except Exception as exc:
+            if "not found" in str(exc).lower():
                 results["collection"]["status"] = "success"
-                results["collection"]["message"] = f"Collection '{config.QDRANT_COLLECTION_NAME}' initialized successfully"
-            except Exception as e:
+                results["collection"]["message"] = "Collection did not exist"
+            else:
                 results["collection"]["status"] = "error"
-                results["collection"]["message"] = str(e)
-        else:
-            results["collection"]["status"] = "error"
-            results["collection"]["message"] = qdrant_init_error or "Service unavailable"
-        
-        # Initialize MinIO bucket
-        msvc = get_minio_service()
-        if msvc:
-            try:
-                msvc._create_bucket_if_not_exists()
+                results["collection"]["message"] = str(exc)
+    else:
+        results["collection"]["status"] = "error"
+        results["collection"]["message"] = qdrant_init_error or "Service unavailable"
+    if msvc:
+        try:
+            bucket_exists = msvc.service.bucket_exists(config.MINIO_BUCKET_NAME)
+            if bucket_exists:
+                objects = msvc.list_object_names(recursive=True)
+                if objects:
+                    from minio.deleteobjects import DeleteObject
+                    delete_objects = [DeleteObject(name) for name in objects]
+                    errors = list(
+                        msvc.service.remove_objects(
+                            config.MINIO_BUCKET_NAME,
+                            delete_objects,
+                        )
+                    )
+                    if errors:
+                        results["bucket"]["status"] = "error"
+                        results["bucket"]["message"] = (
+                            f"Failed to delete some objects: {len(errors)} errors"
+                        )
+                        return {"status": "error", "results": results}
+                msvc.service.remove_bucket(config.MINIO_BUCKET_NAME)
                 results["bucket"]["status"] = "success"
-                results["bucket"]["message"] = f"Bucket '{config.MINIO_BUCKET_NAME}' initialized successfully"
-            except Exception as e:
-                results["bucket"]["status"] = "error"
-                results["bucket"]["message"] = str(e)
-        else:
+                results["bucket"]["message"] = (
+                    f"Bucket '{config.MINIO_BUCKET_NAME}' deleted successfully"
+                )
+            else:
+                results["bucket"]["status"] = "success"
+                results["bucket"]["message"] = "Bucket did not exist"
+        except Exception as exc:
             results["bucket"]["status"] = "error"
-            results["bucket"]["message"] = minio_init_error or "Service unavailable"
-        
-        # Determine overall status
-        overall_status = "success" if (
-            results["collection"]["status"] == "success" and 
-            results["bucket"]["status"] == "success"
-        ) else "partial" if (
-            results["collection"]["status"] == "success" or 
-            results["bucket"]["status"] == "success"
-        ) else "error"
-        
-        return {
-            "status": overall_status,
-            "results": results
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.delete("/delete")
-async def delete_collection_and_bucket():
-    """Delete collection and bucket completely."""
-    try:
-        results = {
-            "collection": {"status": "pending", "message": ""},
-            "bucket": {"status": "pending", "message": ""}
-        }
-        
-        # Delete Qdrant collection
-        svc = get_qdrant_service()
-        if svc:
-            try:
-                svc.service.delete_collection(collection_name=config.QDRANT_COLLECTION_NAME)
-                results["collection"]["status"] = "success"
-                results["collection"]["message"] = f"Collection '{config.QDRANT_COLLECTION_NAME}' deleted successfully"
-            except Exception as e:
-                if "not found" in str(e).lower():
-                    results["collection"]["status"] = "success"
-                    results["collection"]["message"] = "Collection did not exist"
-                else:
-                    results["collection"]["status"] = "error"
-                    results["collection"]["message"] = str(e)
-        else:
-            results["collection"]["status"] = "error"
-            results["collection"]["message"] = qdrant_init_error or "Service unavailable"
-        
-        # Delete MinIO bucket (remove all objects first)
-        msvc = get_minio_service()
-        if msvc:
-            try:
-                bucket_exists = msvc.service.bucket_exists(config.MINIO_BUCKET_NAME)
-                if bucket_exists:
-                    # Clear all objects first
-                    objects = msvc.list_object_names(recursive=True)
-                    if objects:
-                        from minio.deleteobjects import DeleteObject
-                        delete_objects = [DeleteObject(name) for name in objects]
-                        errors = list(msvc.service.remove_objects(config.MINIO_BUCKET_NAME, delete_objects))
-                        if errors:
-                            results["bucket"]["status"] = "error"
-                            results["bucket"]["message"] = f"Failed to delete some objects: {len(errors)} errors"
-                            return {"status": "error", "results": results}
-                    
-                    # Remove bucket
-                    msvc.service.remove_bucket(config.MINIO_BUCKET_NAME)
-                    results["bucket"]["status"] = "success"
-                    results["bucket"]["message"] = f"Bucket '{config.MINIO_BUCKET_NAME}' deleted successfully"
-                else:
-                    results["bucket"]["status"] = "success"
-                    results["bucket"]["message"] = "Bucket did not exist"
-            except Exception as e:
-                results["bucket"]["status"] = "error"
-                results["bucket"]["message"] = str(e)
-        else:
-            results["bucket"]["status"] = "error"
-            results["bucket"]["message"] = minio_init_error or "Service unavailable"
-        
-        # Determine overall status
-        overall_status = "success" if (
-            results["collection"]["status"] == "success" and 
-            results["bucket"]["status"] == "success"
-        ) else "partial" if (
-            results["collection"]["status"] == "success" or 
-            results["bucket"]["status"] == "success"
-        ) else "error"
-        
-        return {
-            "status": overall_status,
-            "results": results
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+            results["bucket"]["message"] = str(exc)
+    else:
+        results["bucket"]["status"] = "error"
+        results["bucket"]["message"] = minio_init_error or "Service unavailable"
+    overall_status = "success" if (
+        results["collection"]["status"] == "success"
+        and results["bucket"]["status"] == "success"
+    ) else "partial" if (
+        results["collection"]["status"] == "success"
+        or results["bucket"]["status"] == "success"
+    ) else "error"
+    return {"status": overall_status, "results": results}

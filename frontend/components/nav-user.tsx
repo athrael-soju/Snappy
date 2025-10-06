@@ -95,7 +95,7 @@ export function NavUser() {
           )}
         >
           <Info className="h-4 w-4" />
-          About
+          About this Template
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
