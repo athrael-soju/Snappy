@@ -230,9 +230,9 @@ export default function ChatPage() {
         {/* System Status Warning */}
         <SystemStatusWarning isReady={isReady} />
         {/* Chat Messages */}
-        <Card className="card-surface flex-1 min-h-0 flex flex-col overflow-hidden">
+        <Card className="card-surface flex-1 min-h-0 flex flex-col overflow-hidden border-2 shadow-lg">
         <ScrollArea ref={messagesContainerRef} className="flex-1 min-h-0">
-          <div className="p-4 sm:p-6">
+          <div className="p-4 sm:p-6 bg-gradient-to-b from-background/50 to-background">
           <AnimatePresence mode="popLayout">
             {messages.length === 0 ? (
               <motion.div
@@ -276,8 +276,8 @@ export default function ChatPage() {
                   className={`flex gap-3 mb-4 md:mb-5 last:mb-0 ${message.role === "assistant" ? "" : "flex-row-reverse"}`}
                 >
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${message.role === "assistant"
-                    ? "bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-lg border-2 border-purple-200/30"
-                    : "bg-gradient-to-br from-blue-100 to-cyan-100 text-foreground shadow-lg border-2 border-blue-200/50"
+                    ? "bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-lg border-2 border-purple-300/50 dark:border-purple-500/30"
+                    : "bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-lg border-2 border-blue-300/50 dark:border-blue-500/30"
                     }`}>
                     {message.role === "assistant" ? (
                       <Brain className="w-4 h-4" />
@@ -289,8 +289,8 @@ export default function ChatPage() {
                   <div className={`flex-1 max-w-[85%] ${message.role === "user" ? "text-right" : ""
                     }`}>
                     <div className={`inline-block p-4 rounded-2xl shadow-md border-2 ${message.role === "assistant"
-                      ? "bg-gradient-to-br from-blue-50 to-purple-50 text-foreground border-purple-200/50"
-                      : "bg-gradient-to-br from-blue-100 to-cyan-100 text-foreground border-blue-200/50"
+                      ? "bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 text-foreground border-purple-200 dark:border-purple-800/50"
+                      : "bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 text-foreground border-blue-200 dark:border-blue-800/50"
                       }`}>
                       {message.content ? (
                         message.role === "assistant" ? (
@@ -355,7 +355,7 @@ export default function ChatPage() {
         </ScrollArea>
 
         {/* Input Form */}
-        <div className="border-t border-border/60 p-4 backdrop-blur-sm">
+        <div className="border-t-2 border-border/60 p-4 bg-card/50 backdrop-blur-sm">
           <ChatInputBar
             input={input}
             setInput={setInput}

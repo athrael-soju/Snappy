@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
 import { useAppStore } from "@/stores/app-store";
 import { NavUser } from "@/components/nav-user";
+import { ThemeSwitch } from "@/components/theme-switch";
 
 const links = [
   { href: "/", label: "Home", icon: Home, color: "text-primary" },
@@ -58,10 +59,10 @@ export function Nav() {
         href={link.href}
         className={cn(
           "nav-pill text-muted-foreground/80 hover:text-foreground",
-          active && "nav-pill-active"
+          active && "nav-pill-active text-white dark:text-foreground font-semibold"
         )}
       >
-        <Icon className={cn("h-4 w-4 text-current", !active && link.color)} />
+        <Icon className={cn("h-4 w-4", active ? "text-white dark:text-foreground" : link.color)} />
         <span>{link.label}</span>
         <AnimatePresence>
           {indicator && (
@@ -136,11 +137,11 @@ export function Nav() {
                         className={cn(
                           "nav-pill w-full justify-start text-base",
                           active
-                            ? "nav-pill-active"
+                            ? "nav-pill-active text-white dark:text-foreground font-semibold"
                             : "text-muted-foreground/80 hover:text-foreground"
                         )}
                       >
-                        <Icon className={cn("h-4 w-4 text-current", !active && link.color)} />
+                        <Icon className={cn("h-4 w-4", active ? "text-white dark:text-foreground" : link.color)} />
                         {link.label}
                       </Link>
                     );
@@ -148,6 +149,10 @@ export function Nav() {
                 </nav>
               </SheetContent>
             </Sheet>
+          </div>
+
+          <div className="hidden sm:block">
+            <ThemeSwitch />
           </div>
 
           <Suspense fallback={null}>

@@ -28,20 +28,20 @@ export function DataResetCard({
   const Icon = action.icon;
 
   return (
-    <Card className="border-2 border-amber-200/50 bg-gradient-to-br from-amber-500/5 to-orange-500/5">
+    <Card className="border-2 border-amber-200 dark:border-amber-800/50 bg-gradient-to-br from-amber-500/5 to-orange-500/5">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-amber-100 border-2 border-amber-200/50">
-            <Icon className="w-5 h-5 text-amber-600" />
+          <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/40 border-2 border-amber-200 dark:border-amber-800/50">
+            <Icon className="w-5 h-5 text-amber-600 dark:text-amber-400" />
           </div>
           <div>
-            <CardTitle className="text-base font-semibold text-amber-900">{action.title}</CardTitle>
-            <CardDescription className="text-sm">{action.description}</CardDescription>
+            <CardTitle className="text-base font-semibold text-amber-900 dark:text-amber-100">{action.title}</CardTitle>
+            <CardDescription className="text-sm text-muted-foreground">{action.description}</CardDescription>
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-muted-foreground mb-4">
+        <p className="text-sm text-foreground/80 mb-4">
           {action.detailedDescription}
         </p>
         <Dialog open={dialogOpen} onOpenChange={onDialogChange}>

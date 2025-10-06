@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { type CSSProperties } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   DropdownMenu,
@@ -10,30 +10,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { UserCircle, SlidersHorizontal, Database, Info, Moon, Sun } from "lucide-react";
+import { UserCircle, SlidersHorizontal, Database, Info } from "lucide-react";
 
 export function NavUser() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const maintenanceActive = pathname.startsWith("/maintenance");
   const aboutActive = pathname.startsWith("/about");
   const dropdownActive = maintenanceActive || aboutActive;
   const section = searchParams.get("section") === "data" ? "data" : "configuration";
-
-  const isDarkMode = mounted && resolvedTheme === "dark";
-  const ThemeToggleIcon = isDarkMode ? Sun : Moon;
-  const themeToggleLabel = `Switch to ${isDarkMode ? "Light" : "Dark"} Mode`;
 
   const navigate = (target: "configuration" | "data") => {
     const params = new URLSearchParams();
@@ -65,7 +54,7 @@ export function NavUser() {
           <span
             className={cn(
               "flex h-full w-full items-center justify-center rounded-full transition-colors",
-              dropdownActive ? "text-foreground" : "bg-transparent"
+              dropdownActive ? "text-white dark:text-foreground" : "bg-transparent"
             )}
             style={dropdownActive ? { backgroundImage: "var(--nav-pill-active)" } : undefined}
           >
@@ -112,17 +101,6 @@ export function NavUser() {
         >
           <Database className="h-4 w-4" />
           Data Management
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onSelect={(event) => {
-            event.preventDefault();
-            const nextTheme = isDarkMode ? "light" : "dark";
-            setTheme(nextTheme);
-          }}
-          className="mx-1 flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition text-muted-foreground hover:bg-[color:var(--nav-pill-hover)] hover:text-foreground"
-        >
-          <ThemeToggleIcon className="h-4 w-4" />
-          {themeToggleLabel}
         </DropdownMenuItem>
         <DropdownMenuSeparator className="my-2 bg-border/60" />
         <DropdownMenuItem

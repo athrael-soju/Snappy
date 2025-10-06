@@ -91,7 +91,7 @@ export default function MaintenancePage() {
           </div>
         ) : (
           <ScrollArea className="flex-1 min-h-0">
-            <div className="space-y-6 pb-6 pr-2">
+            <div className="space-y-6 pb-8 pr-2">
               <div className="space-y-4">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <CollectionStatusCard

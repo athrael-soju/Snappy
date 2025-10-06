@@ -622,11 +622,11 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                         onClick={() => setActiveTab(categoryKey)}
                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${
                           isActive
-                            ? 'bg-gradient-to-r from-blue-100/80 via-purple-100/80 to-blue-100/80 text-blue-700 border-2 border-blue-200/50 shadow-md'
-                            : 'text-muted-foreground hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/50 hover:text-foreground border-2 border-transparent'
+                            ? 'bg-gradient-to-r from-blue-100 via-purple-100 to-blue-100 dark:from-blue-900/40 dark:via-purple-900/40 dark:to-blue-900/40 text-blue-700 dark:text-blue-200 border-2 border-blue-200 dark:border-blue-800/50 shadow-md'
+                            : 'text-muted-foreground hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-950/30 dark:hover:to-purple-950/30 hover:text-foreground border-2 border-transparent'
                         }`}
                       >
-                        <Icon className="w-4 h-4 flex-shrink-0" />
+                        <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-blue-600 dark:text-blue-400' : ''}`} />
                         <span className="truncate text-left">{category.name}</span>
                       </button>
                     );
@@ -654,16 +654,16 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                   className="flex-1 min-h-0 flex flex-col gap-4"
                 >
                   {/* Settings Card - Scrollable */}
-                  <Card className="card-surface flex flex-col max-h-[600px]">
+                  <Card className="card-surface flex flex-col max-h-[600px] border-2">
                     <CardHeader className="pb-4 flex-shrink-0">
                       <div className="flex items-start justify-between">
                         <div className="flex items-start gap-3">
-                          <div className="p-2 bg-white rounded-xl border-2 border-blue-200/50 shadow-sm">
-                            <Icon className="w-5 h-5 text-blue-500" />
+                          <div className="p-2 bg-white dark:bg-blue-900/40 rounded-xl border-2 border-blue-200 dark:border-blue-800/50 shadow-sm">
+                            <Icon className="w-5 h-5 text-blue-500 dark:text-blue-400" />
                           </div>
                           <div>
-                            <CardTitle className="text-xl font-bold">{category.name}</CardTitle>
-                            <CardDescription className="mt-1 text-base">{category.description}</CardDescription>
+                            <CardTitle className="text-xl font-bold text-foreground">{category.name}</CardTitle>
+                            <CardDescription className="mt-1 text-base text-muted-foreground">{category.description}</CardDescription>
                           </div>
                         </div>
                         <Button

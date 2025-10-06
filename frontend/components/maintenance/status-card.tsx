@@ -39,8 +39,8 @@ export function StatusCard({
               <Icon className={`w-5 h-5 ${iconColor}`} />
             </div>
             <div>
-              <CardTitle className="text-base font-semibold">{title}</CardTitle>
-              <CardDescription className="text-xs">{description}</CardDescription>
+              <CardTitle className="text-base font-semibold text-foreground">{title}</CardTitle>
+              <CardDescription className="text-xs text-muted-foreground">{description}</CardDescription>
             </div>
           </div>
           {status && (

@@ -21,20 +21,20 @@ export function DeleteCard({
   onDelete 
 }: DeleteCardProps) {
   return (
-    <Card className="border-2 border-red-200/50 bg-gradient-to-br from-red-500/5 to-pink-500/5">
+    <Card className="border-2 border-red-200 dark:border-red-800/50 bg-gradient-to-br from-red-500/5 to-pink-500/5">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-red-100 border-2 border-red-200/50">
-            <Trash2 className="w-5 h-5 text-red-600" />
+          <div className="p-2 rounded-xl bg-red-100 dark:bg-red-900/40 border-2 border-red-200 dark:border-red-800/50">
+            <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
           </div>
           <div>
-            <CardTitle className="text-base font-semibold text-red-900">Delete System</CardTitle>
-            <CardDescription className="text-sm">Remove collection and bucket</CardDescription>
+            <CardTitle className="text-base font-semibold text-red-900 dark:text-red-100">Delete System</CardTitle>
+            <CardDescription className="text-sm text-muted-foreground">Remove collection and bucket</CardDescription>
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-muted-foreground mb-4">
+        <p className="text-sm text-foreground/80 mb-4">
           Permanently deletes the Qdrant collection and MinIO bucket including all data. Use this to change configuration or start fresh.
         </p>
         <Dialog open={dialogOpen} onOpenChange={onDialogChange}>
