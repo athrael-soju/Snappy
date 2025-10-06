@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Settings, Save, RotateCcw, AlertTriangle, Loader2, Database, Cpu, Brain, HardDrive, HelpCircle, Clock } from "lucide-react";
@@ -62,7 +62,34 @@ const iconMap: Record<string, any> = {
   "hard-drive": HardDrive,
 };
 
-export function ConfigurationPanel() {
+function formatRelativeTime(date: Date): string {
+  const diffMs = Date.now() - date.getTime();
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  if (diffMs < minute) {
+    return "Last saved moments ago.";
+  }
+  if (diffMs < hour) {
+    const minutes = Math.max(1, Math.round(diffMs / minute));
+    return `Last saved ${minutes} minute${minutes === 1 ? "" : "s"} ago.`;
+  }
+  if (diffMs < day) {
+    const hours = Math.max(1, Math.round(diffMs / hour));
+    return `Last saved ${hours} hour${hours === 1 ? "" : "s"} ago.`;
+  }
+  const days = Math.max(1, Math.round(diffMs / day));
+  return `Last saved ${days} day${days === 1 ? "" : "s"} ago.`;
+}
+
+
+
+export type ConfigurationPanelHandle = {
+  openResetDialog: () => void;
+};
+
+export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, ref) => {
   const [values, setValues] = useState<Record<string, string>>({});
   const [originalValues, setOriginalValues] = useState<Record<string, string>>({});
   const [schema, setSchema] = useState<ConfigSchema | null>(null);
@@ -74,6 +101,10 @@ export function ConfigurationPanel() {
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [resetSectionDialogOpen, setResetSectionDialogOpen] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  
+  useImperativeHandle(ref, () => ({
+    openResetDialog: () => setResetDialogOpen(true),
+  }));
   
   useEffect(() => {
     loadConfiguration();
@@ -547,10 +578,15 @@ export function ConfigurationPanel() {
   }
 
   const sortedCategories = Object.entries(schema).sort(([, a], [, b]) => a.order - b.order);
-  const visibleCategories = sortedCategories.filter(([_, category]) =>
+  const hiddenCategoryTerms = ["core application", "embedding model"];
+  const filteredCategories = sortedCategories.filter(([_, category]) =>
+    !hiddenCategoryTerms.some(term => category.name.toLowerCase().includes(term))
+  );
+  const baseCategories = filteredCategories.length > 0 ? filteredCategories : sortedCategories;
+  const visibleCategories = baseCategories.filter(([_, category]) =>
     category.settings.some(setting => !setting.depends_on && isSettingVisible(setting))
   );
-  const categoriesToRender = visibleCategories.length > 0 ? visibleCategories : sortedCategories;
+  const categoriesToRender = visibleCategories.length > 0 ? visibleCategories : baseCategories;
   const activeCategoryKey = categoriesToRender.some(([key]) => key === activeTab)
     ? activeTab
     : categoriesToRender[0]?.[0] ?? activeTab;
@@ -569,9 +605,9 @@ export function ConfigurationPanel() {
       )}
 
       {/* Main content - scrollable */}
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <ScrollArea className="flex-1 min-h-0">
         {/* Vertical tabs layout */}
-        <div className="flex gap-6 h-full">
+        <div className="flex gap-6 h-full pr-4">
           {/* Left rail navigation */}
           <nav className="w-48 flex-shrink-0">
             <ScrollArea className="h-full">
@@ -618,7 +654,7 @@ export function ConfigurationPanel() {
                   className="flex-1 min-h-0 flex flex-col gap-4"
                 >
                   {/* Settings Card - Scrollable */}
-                  <Card className="flex-1 min-h-0 flex flex-col border-2 border-blue-200/50 bg-gradient-to-br from-blue-500/5 to-purple-500/5 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                  <Card className="card-surface flex flex-col max-h-[600px]">
                     <CardHeader className="pb-4 flex-shrink-0">
                       <div className="flex items-start justify-between">
                         <div className="flex items-start gap-3">
@@ -673,63 +709,12 @@ export function ConfigurationPanel() {
                     </ScrollArea>
                   </Card>
 
-                  {/* Reset All - Compact button */}
-                  <div className="flex justify-end flex-shrink-0">
-                    <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          disabled={saving} 
-                          className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300 transition-all duration-300 rounded-full"
-                        >
-                          <RotateCcw className="w-3.5 h-3.5 mr-2" />
-                          Reset All to Defaults
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle className="flex items-center gap-2">
-                            <AlertTriangle className="w-5 h-5 text-destructive" />
-                            Reset all configuration?
-                          </DialogTitle>
-                          <DialogDescription>
-                            This will reset all configuration settings to their default values. 
-                            Your saved configuration will be cleared from browser storage.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <DialogFooter>
-                          <Button 
-                            variant="outline" 
-                            onClick={() => setResetDialogOpen(false)}
-                            disabled={saving}
-                          >
-                            Cancel
-                          </Button>
-                          <Button 
-                            variant="destructive"
-                            onClick={resetToDefaults}
-                            disabled={saving}
-                          >
-                            {saving ? (
-                              <>
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                Resetting...
-                              </>
-                            ) : (
-                              "Confirm Reset"
-                            )}
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
                 </motion.div>
               );
             })}
           </div>
         </div>
-      </div>
+      </ScrollArea>
 
       <AnimatePresence>
         {hasChanges && (
@@ -737,25 +722,35 @@ export function ConfigurationPanel() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="border-t-2 border-blue-200/50 bg-gradient-to-r from-blue-50/95 via-purple-50/95 to-cyan-50/95 backdrop-blur-sm shadow-2xl"
           >
-            <div className="container max-w-7xl py-4 px-6">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 flex-1">
-                  <div className="p-1.5 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 shadow-md">
-                    <AlertTriangle className="h-3.5 w-3.5 text-white" />
+            <div className="container max-w-7xl py-4 px-4 sm:px-6">
+              <div className="flex flex-col gap-4 rounded-2xl border border-blue-200/70 bg-white/95 p-4 shadow-xl sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 text-white shadow-md">
+                    <AlertTriangle className="h-4 w-4" />
                   </div>
-                  <p className="text-sm font-medium bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">
-                    You have {configStats.modifiedSettings} unsaved change{configStats.modifiedSettings !== 1 ? 's' : ''}
-                  </p>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-slate-900 sm:text-base">
+                        Unsaved configuration changes
+                      </p>
+                      <Badge variant="outline" className="border-blue-300 bg-blue-50 text-blue-700">
+                        {configStats.modifiedSettings}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-slate-600 sm:text-sm">
+                      You have {configStats.modifiedSettings} pending change{configStats.modifiedSettings !== 1 ? 's' : ''}.{' '}
+                      {lastSaved ? formatRelativeTime(lastSaved) : "No previous save recorded yet."}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={resetChanges}
                     disabled={saving}
-                    className="border-blue-200 hover:bg-blue-50 rounded-full"
+                    className="rounded-full border-blue-200 px-4 py-2 hover:bg-blue-50"
                   >
                     Discard
                   </Button>
@@ -763,16 +758,16 @@ export function ConfigurationPanel() {
                     size="sm"
                     onClick={saveChanges}
                     disabled={saving}
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-full"
+                    className="rounded-full bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 text-white shadow-lg transition-all duration-300 hover:from-blue-700 hover:to-purple-700 hover:shadow-xl"
                   >
                     {saving ? (
                       <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Saving...
                       </>
                     ) : (
                       <>
-                        <Save className="w-4 h-4 mr-2" />
+                        <Save className="mr-2 h-4 w-4" />
                         Save {configStats.modifiedSettings} Change{configStats.modifiedSettings !== 1 ? 's' : ''}
                       </>
                     )}
@@ -783,6 +778,44 @@ export function ConfigurationPanel() {
           </motion.div>
         )}
       </AnimatePresence>
+      {/* Reset All Dialog */}
+      <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              Reset all configuration?
+            </DialogTitle>
+            <DialogDescription>
+              This will reset all configuration settings to their default values. Your saved configuration will be cleared from browser storage.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setResetDialogOpen(false)}
+              disabled={saving}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={resetToDefaults}
+              disabled={saving}
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Resetting...
+                </>
+              ) : (
+                "Confirm Reset"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       {/* Section Reset Dialog */}
       <Dialog open={!!resetSectionDialogOpen} onOpenChange={(open) => !open && setResetSectionDialogOpen(null)}>
@@ -823,5 +856,6 @@ export function ConfigurationPanel() {
       </Dialog>
     </div>
   );
-}
+});
 
+ConfigurationPanel.displayName = "ConfigurationPanel";

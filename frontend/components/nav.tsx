@@ -101,9 +101,6 @@ export function Nav() {
               className="h-9 w-9 sm:h-10 sm:w-10 drop-shadow-sm"
               priority
             />
-            <span className="hidden md:inline bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent text-sm sm:text-base font-semibold tracking-tight">
-              FastAPI / Next.js / ColPali Template
-            </span>
           </Link>
         </div>
 

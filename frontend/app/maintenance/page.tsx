@@ -1,12 +1,15 @@
 "use client";
 
 import "@/lib/api/client";
+import { useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import { Settings } from "lucide-react";
+import { Settings, RotateCcw } from "lucide-react";
 import { motion } from "framer-motion";
 import { defaultPageMotion, sectionVariants } from "@/lib/motion-presets";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
 import { ConfigurationPanel } from "@/components/configuration-panel";
+import type { ConfigurationPanelHandle } from "@/components/configuration-panel";
 import { PageHeader } from "@/components/page-header";
 import { useSystemStatus, useMaintenanceActions, useSystemManagement } from "@/lib/hooks";
 import {
@@ -22,6 +25,8 @@ import { MAINTENANCE_ACTIONS } from "@/components/maintenance/constants";
 export default function MaintenancePage() {
   const searchParams = useSearchParams();
   const section = searchParams.get("section") === "data" ? "data" : "configuration";
+
+  const configPanelRef = useRef<ConfigurationPanelHandle>(null);
 
   const { systemStatus, statusLoading, fetchStatus, isSystemReady } = useSystemStatus();
   const { loading, dialogOpen, setDialogOpen, runAction } = useMaintenanceActions({
@@ -52,7 +57,8 @@ export default function MaintenancePage() {
       </motion.section>
 
       <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col space-y-8 pb-6">
-        <div className="flex items-center justify-end flex-shrink-0">
+        <div className="flex flex-wrap items-center justify-end gap-3 sm:gap-4 flex-shrink-0">
+
           {systemStatus && (
             <SystemStatusBadge
               isReady={isSystemReady}
@@ -60,11 +66,20 @@ export default function MaintenancePage() {
               onRefresh={fetchStatus}
             />
           )}
+          {isConfigurationView && (
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => configPanelRef.current?.openResetDialog()}
+            >
+              <RotateCcw />
+            </Button>
+          )}          
         </div>
 
         {isConfigurationView ? (
           <div className="flex-1 min-h-0">
-            <ConfigurationPanel />
+            <ConfigurationPanel ref={configPanelRef} />
           </div>
         ) : (
           <ScrollArea className="flex-1 min-h-0">

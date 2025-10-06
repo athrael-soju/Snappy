@@ -32,12 +32,12 @@ export default function Home() {
     <motion.div {...defaultPageMotion} className="page-shell page-section flex flex-col min-h-0 flex-1">
       <motion.section variants={sectionVariants} className="flex flex-col items-center text-center">
         <PageHeader
-          title="ColPali Vision RAG Template"
+          title="FastAPI / Next.js / ColPali Template"
           description="This starter kit combines a FastAPI backend, Qdrant vector search, and a modern Next.js interface so you can focus on the experience, not the boilerplate."
           icon={Sparkles}
+          badge={<Badge className="rounded-full text-sm">v0.0.4</Badge>}
         >
           <div className="flex flex-col items-center gap-6">
-            <Badge className="rounded-full px-4 py-2 text-sm">v0.0.4</Badge>
             <div className="flex flex-col sm:flex-row items-center gap-4">
               <Button asChild size="lg" className="primary-gradient rounded-full px-8 py-6 text-base shadow-lg">
                 <Link href="/upload">
