@@ -1,5 +1,7 @@
-from fastapi import APIRouter, HTTPException
+import asyncio
 from typing import Optional
+
+from fastapi import APIRouter, HTTPException
 
 from api.dependencies import (
     get_qdrant_service,
@@ -83,75 +85,93 @@ async def clear_all():
 async def get_status():
     """Get the status of collection and bucket including statistics."""
     try:
-        result = {
-            "collection": {
-                "name": config.QDRANT_COLLECTION_NAME,
-                "exists": False,
-                "vector_count": 0,
-                "unique_files": 0,
-                "error": None
-            },
-            "bucket": {
-                "name": config.MINIO_BUCKET_NAME,
-                "exists": False,
-                "object_count": 0,
-                "error": None
-            }
-        }
-        
-        # Check Qdrant collection status
         svc = get_qdrant_service()
-        if svc:
-            try:
-                collection_info = svc.service.get_collection(config.QDRANT_COLLECTION_NAME)
-                result["collection"]["exists"] = True
-                result["collection"]["vector_count"] = collection_info.points_count or 0
-                
-                # Get unique file count by scrolling through payloads
-                try:
-                    scroll_result = svc.service.scroll(
-                        collection_name=config.QDRANT_COLLECTION_NAME,
-                        limit=10000,
-                        with_payload=["filename"],
-                        with_vectors=False
-                    )
-                    points = scroll_result[0] if scroll_result else []
-                    unique_filenames = set()
-                    for point in points:
-                        if point.payload and "filename" in point.payload:
-                            unique_filenames.add(point.payload["filename"])
-                    result["collection"]["unique_files"] = len(unique_filenames)
-                except Exception:
-                    pass
-                    
-            except Exception as e:
-                if "not found" not in str(e).lower():
-                    result["collection"]["error"] = str(e)
-        else:
-            result["collection"]["error"] = qdrant_init_error or "Service unavailable"
-        
-        # Check MinIO bucket status
         msvc = get_minio_service()
-        if msvc:
-            try:
-                bucket_exists = msvc.service.bucket_exists(config.MINIO_BUCKET_NAME)
-                result["bucket"]["exists"] = bucket_exists
-                
-                if bucket_exists:
-                    # Count objects in bucket
-                    objects = list(msvc.service.list_objects(
-                        config.MINIO_BUCKET_NAME,
-                        recursive=True
-                    ))
-                    result["bucket"]["object_count"] = len(objects)
-            except Exception as e:
-                result["bucket"]["error"] = str(e)
-        else:
-            result["bucket"]["error"] = minio_init_error or "Service unavailable"
-        
-        return result
+
+        collection_status, bucket_status = await asyncio.gather(
+            asyncio.to_thread(_collect_collection_status, svc),
+            asyncio.to_thread(_collect_bucket_status, msvc),
+        )
+
+        return {
+            "collection": collection_status,
+            "bucket": bucket_status,
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+def _collect_collection_status(svc: Optional[object]) -> dict:
+    status = {
+        "name": config.QDRANT_COLLECTION_NAME,
+        "exists": False,
+        "vector_count": 0,
+        "unique_files": 0,
+        "error": None,
+    }
+
+    if not svc:
+        status["error"] = qdrant_init_error or "Service unavailable"
+        return status
+
+    try:
+        collection_info = svc.service.get_collection(config.QDRANT_COLLECTION_NAME)
+        status["exists"] = True
+        status["vector_count"] = collection_info.points_count or 0
+
+        try:
+            scroll_result = svc.service.scroll(
+                collection_name=config.QDRANT_COLLECTION_NAME,
+                limit=10000,
+                with_payload=["filename"],
+                with_vectors=False,
+            )
+            points = scroll_result[0] if scroll_result else []
+            unique_filenames = {
+                point.payload["filename"]
+                for point in points
+                if point.payload and "filename" in point.payload
+            }
+            status["unique_files"] = len(unique_filenames)
+        except Exception:
+            # Best-effort; leave unique_files at default if scroll fails
+            pass
+
+    except Exception as exc:
+        if "not found" not in str(exc).lower():
+            status["error"] = str(exc)
+
+    return status
+
+
+def _collect_bucket_status(msvc: Optional[object]) -> dict:
+    status = {
+        "name": config.MINIO_BUCKET_NAME,
+        "exists": False,
+        "object_count": 0,
+        "error": None,
+    }
+
+    if not msvc:
+        status["error"] = minio_init_error or "Service unavailable"
+        return status
+
+    try:
+        bucket_exists = msvc.service.bucket_exists(config.MINIO_BUCKET_NAME)
+        status["exists"] = bucket_exists
+
+        if bucket_exists:
+            objects = list(
+                msvc.service.list_objects(
+                    config.MINIO_BUCKET_NAME,
+                    recursive=True,
+                )
+            )
+            status["object_count"] = len(objects)
+    except Exception as exc:
+        status["error"] = str(exc)
+
+    return status
 
 
 @router.post("/initialize")

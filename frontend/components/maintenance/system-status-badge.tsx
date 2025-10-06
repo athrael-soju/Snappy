@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CheckCircle2, AlertTriangle, RefreshCw, Loader2 } from "lucide-react";
 
 interface SystemStatusBadgeProps {
@@ -21,19 +22,26 @@ export function SystemStatusBadge({ isReady, isLoading, onRefresh }: SystemStatu
           <><AlertTriangle className="w-4 h-4 mr-2" /> Not Initialized</>
         )}
       </Badge>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={onRefresh}
-        disabled={isLoading}
-        className="h-10"
-      >
-        {isLoading ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
-        ) : (
-          <RefreshCw className="w-4 h-4" />
-        )}
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRefresh}
+            disabled={isLoading}
+            className="h-10"
+          >
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4" />
+            )}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent sideOffset={8}>
+          <p>{isLoading ? "Refreshing..." : "Refresh system status"}</p>
+        </TooltipContent>
+      </Tooltip>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { defaultPageMotion, sectionVariants } from "@/lib/motion-presets";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ConfigurationPanel } from "@/components/configuration-panel";
 import type { ConfigurationPanelHandle } from "@/components/configuration-panel";
 import { PageHeader } from "@/components/page-header";
@@ -67,14 +68,21 @@ export default function MaintenancePage() {
             />
           )}
           {isConfigurationView && (
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => configPanelRef.current?.openResetDialog()}
-            >
-              <RotateCcw />
-            </Button>
-          )}          
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => configPanelRef.current?.openResetDialog()}
+                >
+                  <RotateCcw />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent sideOffset={8}>
+                <p>Reset configuration values</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
 
         {isConfigurationView ? (
