@@ -86,7 +86,7 @@ export default function CitationHoverCard({
               }}
               className="w-full flex items-center justify-center gap-2 px-3 py-2 mt-2 text-xs font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md transition-colors"
             >
-              <span>View Image</span>
+              <span>View Citation</span>
               <ExternalLink className="w-3 h-3" />
             </button>
           </div>
