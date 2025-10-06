@@ -355,7 +355,7 @@ export default function ChatPage() {
         </ScrollArea>
 
         {/* Input Form */}
-        <div className="border-t border-border/60 p-4 bg-white/70 backdrop-blur-sm">
+        <div className="border-t border-border/60 p-4 backdrop-blur-sm">
           <ChatInputBar
             input={input}
             setInput={setInput}

@@ -56,6 +56,14 @@
   --shadow-2xl: 3px 3px 0px 0px hsl(325.7800 58.1800% 56.8600% / 2.50);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
+  --app-gradient: radial-gradient(120% 120% at 50% -10%, #f9fbff 0%, #f5f2ff 42%, #fbf7ff 100%);
+  --backdrop-glow: radial-gradient(50% 40% at 20% 10%, rgba(96, 165, 250, 0.16), transparent 75%),
+    radial-gradient(45% 65% at 80% 0%, rgba(168, 85, 247, 0.14), transparent 75%);
+  --nav-pill-active: linear-gradient(120deg, #4f46e5 0%, #9333ea 52%, #06b6d4 100%);
+  --nav-pill-hover: rgba(99, 102, 241, 0.12);
+  --nav-pill-shadow: 0 18px 40px -24px rgba(63, 81, 181, 0.55);
+  --cta-gradient: linear-gradient(120deg, rgba(79, 70, 229, 0.95) 0%, rgba(147, 51, 234, 0.95) 50%, rgba(14, 165, 233, 0.95) 100%);
+  --card-overlay: rgba(255, 255, 255, 0.45);
 }
 
 .dark {
@@ -109,6 +117,15 @@
   --shadow-lg: 3px 3px 0px 0px hsl(206.1538 28.0576% 27.2549% / 1.00), 3px 4px 6px -1px hsl(206.1538 28.0576% 27.2549% / 1.00);
   --shadow-xl: 3px 3px 0px 0px hsl(206.1538 28.0576% 27.2549% / 1.00), 3px 8px 10px -1px hsl(206.1538 28.0576% 27.2549% / 1.00);
   --shadow-2xl: 3px 3px 0px 0px hsl(206.1538 28.0576% 27.2549% / 2.50);
+  --app-gradient: radial-gradient(130% 130% at 50% -10%, #162236 0%, #0e192b 45%, #080f1f 100%);
+  --backdrop-glow: radial-gradient(60% 50% at 18% 12%, rgba(251, 226, 167, 0.16), transparent 70%),
+    radial-gradient(55% 65% at 82% 8%, rgba(228, 66, 177, 0.18), transparent 80%),
+    radial-gradient(45% 60% at 50% 100%, rgba(100, 106, 255, 0.08), transparent 80%);
+  --nav-pill-active: linear-gradient(125deg, #fbe2a7 0%, #e4a2b1 55%, #9a89f7 100%);
+  --nav-pill-hover: rgba(148, 163, 184, 0.12);
+  --nav-pill-shadow: 0 22px 48px -24px rgba(251, 226, 167, 0.55);
+  --cta-gradient: linear-gradient(125deg, rgba(251, 226, 167, 0.92) 0%, rgba(228, 66, 177, 0.92) 46%, rgba(154, 137, 247, 0.88) 100%);
+  --card-overlay: rgba(12, 22, 35, 0.72);
 }
 
 @theme inline {
@@ -171,7 +188,10 @@
   body {
     @apply text-foreground antialiased;
     min-height: 100vh;
-    background: var(--app-gradient);
+    background-color: var(--background);
+    background-image: var(--app-gradient);
+    background-attachment: fixed;
+    color-scheme: light dark;
   }
 }
 
@@ -201,7 +221,27 @@
 @layer utilities {
   .page-shell { @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8; }
   .page-section { @apply py-8 sm:py-12; }
-  .card-surface { @apply rounded-3xl border border-border/60 bg-white/80 backdrop-blur-md shadow-sm transition-shadow hover:shadow-md; }
+  .card-surface { @apply rounded-3xl border border-border/50 bg-card/80 backdrop-blur-xl shadow-md transition-shadow hover:shadow-lg; }
   .muted-heading { @apply text-xs tracking-[0.3em] uppercase text-muted-foreground; }
-  .primary-gradient { @apply bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-500 text-white; }
+  .primary-gradient {
+    background-image: var(--cta-gradient);
+    color: var(--primary-foreground);
+    box-shadow: 0 18px 40px -24px rgba(9, 9, 9, 0.4);
+  }
+  .dark .primary-gradient {
+    color: var(--foreground);
+  }
+  .nav-pill {
+    @apply relative flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30;
+    background-color: transparent;
+    color: inherit;
+  }
+  .nav-pill:hover {
+    background-color: var(--nav-pill-hover);
+  }
+  .nav-pill-active {
+    background-image: var(--nav-pill-active);
+    color: var(--foreground);
+    box-shadow: var(--nav-pill-shadow);
+  }
 }

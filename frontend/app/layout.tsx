@@ -37,10 +37,16 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased relative h-screen flex flex-col overflow-hidden`}
+        className={`${geistSans.variable} ${geistMono.variable} bg-background text-foreground antialiased relative min-h-screen flex flex-col overflow-hidden`}
       >
-        {/* Site-wide background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-b from-blue-50/50 via-purple-50/30 to-cyan-50/50" />
+        {/* Site-wide background glow */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div
+            aria-hidden
+            className="absolute inset-x-0 top-[-10%] h-[60%] opacity-70 blur-3xl transition-opacity duration-500"
+            style={{ background: "var(--backdrop-glow)" }}
+          />
+        </div>
 
         {/* Foreground content */}
         <div className="relative z-10 flex flex-1 flex-col min-h-0 overflow-hidden">

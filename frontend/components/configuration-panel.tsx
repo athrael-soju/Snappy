@@ -724,7 +724,7 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
             exit={{ opacity: 0, y: 10 }}
           >
             <div className="container max-w-7xl py-4 px-4 sm:px-6">
-              <div className="flex flex-col gap-4 rounded-2xl border border-blue-200/70 bg-white/95 p-4 shadow-xl sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-4 rounded-2xl border border-blue-200/70 p-4 shadow-xl sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-start gap-3">
                   <div className="p-2 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 text-white shadow-md">
                     <AlertTriangle className="h-4 w-4" />

@@ -39,14 +39,19 @@ export default function Home() {
         >
           <div className="flex flex-col items-center gap-6">
             <div className="flex flex-col sm:flex-row items-center gap-4">
-              <Button asChild size="lg" className="primary-gradient rounded-full px-8 py-6 text-base shadow-lg">
+              <Button asChild size="lg" className="primary-gradient rounded-full px-8 py-6 text-base shadow-xl">
                 <Link href="/upload">
                   <CloudUpload className="mr-3 h-5 w-5" />
                   Upload your documents
                   <ArrowRight className="ml-3 h-5 w-5" />
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="rounded-full px-6 py-5">
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="rounded-full border-border/60 bg-card/70 px-6 py-5 text-foreground transition hover:border-border hover:bg-card/80"
+              >
                 <Link href="/search">Explore search</Link>
               </Button>
             </div>
@@ -60,13 +65,13 @@ export default function Home() {
             {workflow.map(({ title, description, icon: Icon }) => (
               <motion.div key={title} {...fadeInItemMotion} {...hoverLift}>
                 <Card className="card-surface h-full">
-                  <CardHeader className="flex flex-row items-center gap-3">
-                    <div className="rounded-2xl bg-primary/10 p-3 text-primary">
-                      <Icon className="h-5 w-5" />
+                  <CardHeader className="flex flex-row items-center gap-3 border-b border-border/40 pb-4">
+                    <div className="rounded-2xl border border-border/40 bg-card/70 p-3 text-primary shadow-inner">
+                      <Icon className="h-5 w-5 text-current" />
                     </div>
                     <CardTitle className="text-lg font-semibold">{title}</CardTitle>
                   </CardHeader>
-                  <CardContent className="text-sm text-muted-foreground leading-relaxed">
+                  <CardContent className="pt-4 text-sm leading-relaxed text-muted-foreground/90">
                     {description}
                   </CardContent>
                 </Card>

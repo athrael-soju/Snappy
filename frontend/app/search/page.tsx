@@ -332,7 +332,7 @@ export default function SearchPage() {
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                           <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Badge className="bg-white/90 text-black shadow-md">
+                            <Badge className="text-black shadow-md">
                               <Eye className="w-3 h-3 mr-1" />
                               View
                             </Badge>
