@@ -2,44 +2,21 @@
 
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Settings, Save, RotateCcw, AlertTriangle, Loader2, Database, Cpu, Brain, HardDrive, HelpCircle, Clock } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Settings, RotateCcw, AlertTriangle, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { ConfigurationService, ApiError } from "@/lib/api/generated";
 import "@/lib/api/client";
 import { saveConfigToStorage, mergeWithStoredConfig, clearConfigFromStorage } from "@/lib/config/config-store";
-
-// Types for configuration schema
-interface ConfigSetting {
-  key: string;
-  label: string;
-  type: "text" | "number" | "boolean" | "select" | "password";
-  options?: string[];
-  default: string;
-  description: string;
-  help_text?: string;
-  min?: number;
-  max?: number;
-  step?: number;
-  depends_on?: {
-    key: string;
-    value: boolean;
-  };
-  ui_hidden?: boolean;
-}
+import { ConfigurationTabs } from "@/components/configuration/configuration-tabs";
+import { UnsavedChangesBar } from "@/components/configuration/unsaved-changes-bar";
+import { SettingRenderer, type ConfigSetting } from "@/components/configuration/setting-renderer";
 
 interface ConfigCategory {
   name: string;
@@ -52,37 +29,6 @@ interface ConfigCategory {
 interface ConfigSchema {
   [categoryKey: string]: ConfigCategory;
 }
-
-// Icon mapping
-const iconMap: Record<string, any> = {
-  settings: Settings,
-  cpu: Cpu,
-  brain: Brain,
-  database: Database,
-  "hard-drive": HardDrive,
-};
-
-function formatRelativeTime(date: Date): string {
-  const diffMs = Date.now() - date.getTime();
-  const minute = 60 * 1000;
-  const hour = 60 * minute;
-  const day = 24 * hour;
-
-  if (diffMs < minute) {
-    return "Last saved moments ago.";
-  }
-  if (diffMs < hour) {
-    const minutes = Math.max(1, Math.round(diffMs / minute));
-    return `Last saved ${minutes} minute${minutes === 1 ? "" : "s"} ago.`;
-  }
-  if (diffMs < day) {
-    const hours = Math.max(1, Math.round(diffMs / hour));
-    return `Last saved ${hours} hour${hours === 1 ? "" : "s"} ago.`;
-  }
-  const days = Math.max(1, Math.round(diffMs / day));
-  return `Last saved ${days} day${days === 1 ? "" : "s"} ago.`;
-}
-
 
 
 export type ConfigurationPanelHandle = {
@@ -277,289 +223,6 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
     return parentBool === setting.depends_on.value;
   }
 
-  function renderSetting(setting: ConfigSetting, isNested: boolean = false) {
-    const currentValue = values[setting.key] || setting.default;
-
-    // Nested settings have compact styling
-    if (isNested) {
-      switch (setting.type) {
-        case "boolean":
-          return (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-4">
-                <Label htmlFor={setting.key} className="text-xs font-medium flex items-center gap-1.5">
-                  {setting.label}
-                  {setting.help_text && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-xs">
-                          <p className="text-xs">{setting.help_text}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
-                </Label>
-                <Switch
-                  id={setting.key}
-                  checked={currentValue.toLowerCase() === "true"}
-                  onCheckedChange={(checked) => handleValueChange(setting.key, checked ? "True" : "False")}
-                  disabled={saving}
-                  className="scale-90"
-                />
-              </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">{setting.description}</p>
-            </div>
-          );
-        case "number":
-          const numValue = parseFloat(currentValue) || parseFloat(setting.default);
-          const min = setting.min ?? 0;
-          const max = setting.max ?? 100;
-          const step = setting.step ?? 1;
-          
-          return (
-            <div className="space-y-2.5">
-              <Label htmlFor={setting.key} className="text-xs font-medium flex items-center gap-1.5">
-                {setting.label}
-                {setting.help_text && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p className="text-xs">{setting.help_text}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-              </Label>
-              <div className="flex items-center gap-3">
-                <Slider
-                  id={setting.key}
-                  value={[numValue]}
-                  min={min}
-                  max={max}
-                  step={step}
-                  onValueChange={(vals) => handleValueChange(setting.key, vals[0].toString())}
-                  disabled={saving}
-                  className="flex-1"
-                />
-                <Input
-                  type="number"
-                  value={currentValue}
-                  onChange={(e) => handleValueChange(setting.key, e.target.value)}
-                  min={min}
-                  max={max}
-                  step={step}
-                  disabled={saving}
-                  className="w-20 h-9 text-sm"
-                />
-              </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">{setting.description}</p>
-            </div>
-          );
-        default:
-          return null;
-      }
-    }
-
-    // Two-column layout: label+description left, control right
-    switch (setting.type) {
-      case "boolean":
-        return (
-          <div className="py-4 space-y-2">
-            <div className="flex items-center justify-between gap-8">
-              <Label htmlFor={setting.key} className="text-sm font-medium flex items-center gap-1.5">
-                {setting.label}
-                {setting.help_text && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p className="text-sm">{setting.help_text}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-              </Label>
-              <Switch
-                id={setting.key}
-                checked={currentValue.toLowerCase() === "true"}
-                onCheckedChange={(checked) => handleValueChange(setting.key, checked ? "True" : "False")}
-                disabled={saving}
-              />
-            </div>
-            <p className="text-sm text-muted-foreground">{setting.description}</p>
-          </div>
-        );
-
-      case "select":
-        return (
-          <div className="grid grid-cols-[1fr,280px] gap-8 items-start py-4">
-            <div className="space-y-0.5">
-              <Label htmlFor={setting.key} className="text-sm font-medium flex items-center gap-1.5">
-                {setting.label}
-                {setting.help_text && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p className="text-sm">{setting.help_text}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-              </Label>
-              <p className="text-sm text-muted-foreground">{setting.description}</p>
-            </div>
-            <Select
-              value={currentValue}
-              onValueChange={(value) => handleValueChange(setting.key, value)}
-              disabled={saving}
-            >
-              <SelectTrigger id={setting.key}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {setting.options?.map(option => (
-                  <SelectItem key={option} value={option}>
-                    {option}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        );
-
-      case "number":
-        const numValue = parseFloat(currentValue) || parseFloat(setting.default);
-        const min = setting.min ?? 0;
-        const max = setting.max ?? 100;
-        const step = setting.step ?? 1;
-
-        return (
-          <div className="grid grid-cols-[1fr,280px] gap-8 items-start py-4">
-            <div className="space-y-0.5">
-              <Label htmlFor={setting.key} className="text-sm font-medium flex items-center gap-1.5">
-                {setting.label}
-                {setting.help_text && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p className="text-sm">{setting.help_text}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                {setting.description}
-                {(min !== undefined || max !== undefined) && (
-                  <span className="ml-1 text-xs">
-                    ({min}–{max})
-                  </span>
-                )}
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <Slider
-                id={setting.key}
-                value={[numValue]}
-                min={min}
-                max={max}
-                step={step}
-                onValueChange={(vals) => handleValueChange(setting.key, vals[0].toString())}
-                disabled={saving}
-                className="flex-1"
-              />
-              <Input
-                type="number"
-                value={currentValue}
-                onChange={(e) => handleValueChange(setting.key, e.target.value)}
-                min={min}
-                max={max}
-                step={step}
-                disabled={saving}
-                className="w-20"
-              />
-            </div>
-          </div>
-        );
-
-      case "password":
-        return (
-          <div className="grid grid-cols-[1fr,280px] gap-8 items-start py-4">
-            <div className="space-y-0.5">
-              <Label htmlFor={setting.key} className="text-sm font-medium flex items-center gap-1.5">
-                {setting.label}
-                {setting.help_text && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p className="text-sm">{setting.help_text}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-              </Label>
-              <p className="text-sm text-muted-foreground">{setting.description}</p>
-            </div>
-            <Input
-              id={setting.key}
-              type="password"
-              value={currentValue}
-              onChange={(e) => handleValueChange(setting.key, e.target.value)}
-              disabled={saving}
-              autoComplete="off"
-            />
-          </div>
-        );
-
-      default: // text
-        return (
-          <div className="grid grid-cols-[1fr,280px] gap-8 items-start py-4">
-            <div className="space-y-0.5">
-              <Label htmlFor={setting.key} className="text-sm font-medium flex items-center gap-1.5">
-                {setting.label}
-                {setting.help_text && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p className="text-sm">{setting.help_text}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-              </Label>
-              <p className="text-sm text-muted-foreground">{setting.description}</p>
-            </div>
-            <Input
-              id={setting.key}
-              type="text"
-              value={currentValue}
-              onChange={(e) => handleValueChange(setting.key, e.target.value)}
-              disabled={saving}
-            />
-          </div>
-        );
-    }
-  }
 
   if (loading) {
     return (
@@ -604,43 +267,20 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
         </div>
       )}
 
-      {/* Main content - scrollable */}
-      <ScrollArea className="flex-1 min-h-0">
-        {/* Vertical tabs layout */}
-        <div className="flex gap-6 h-full pr-4">
+      {/* Main content - with proper height constraints */}
+      <div className="flex-1 min-h-0 flex gap-6 pr-4">
           {/* Left rail navigation */}
-          <nav className="w-48 flex-shrink-0">
-            <ScrollArea className="h-full">
-                <div className="space-y-1 pr-2">
-                  {categoriesToRender.map(([categoryKey, category]) => {
-                    const Icon = iconMap[category.icon] || Settings;
-                    const isActive = activeCategoryKey === categoryKey;
-                    
-                    return (
-                      <button
-                        key={categoryKey}
-                        onClick={() => setActiveTab(categoryKey)}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${
-                          isActive
-                            ? 'bg-gradient-to-r from-blue-100 via-purple-100 to-blue-100 dark:from-blue-900/40 dark:via-purple-900/40 dark:to-blue-900/40 text-blue-700 dark:text-blue-200 border-2 border-blue-200 dark:border-blue-800/50 shadow-md'
-                            : 'text-muted-foreground hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-950/30 dark:hover:to-purple-950/30 hover:text-foreground border-2 border-transparent'
-                        }`}
-                      >
-                        <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-blue-600 dark:text-blue-400' : ''}`} />
-                        <span className="truncate text-left">{category.name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </ScrollArea>
-            </nav>
+          <ConfigurationTabs
+            categories={categoriesToRender}
+            activeTab={activeCategoryKey}
+            onTabChange={setActiveTab}
+          />
 
           {/* Main content area */}
           <div className="flex-1 min-w-0 flex flex-col gap-4">
             {categoriesToRender.map(([categoryKey, category]) => {
               if (activeCategoryKey !== categoryKey) return null;
               
-              const Icon = iconMap[category.icon] || Settings;
               // Filter to show only top-level settings (exclude nested children with depends_on)
               const visibleSettings = category.settings.filter(s => isSettingVisible(s) && !s.depends_on);
               
@@ -654,12 +294,12 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                   className="flex-1 min-h-0 flex flex-col gap-4"
                 >
                   {/* Settings Card - Scrollable */}
-                  <Card className="card-surface flex flex-col max-h-[600px] border-2">
+                  <Card className="card-surface flex flex-col h-full border-2">
                     <CardHeader className="pb-4 flex-shrink-0">
                       <div className="flex items-start justify-between">
                         <div className="flex items-start gap-3">
                           <div className="p-2 bg-white dark:bg-blue-900/40 rounded-xl border-2 border-blue-200 dark:border-blue-800/50 shadow-sm">
-                            <Icon className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+                            <Settings className="w-5 h-5 text-blue-500 dark:text-blue-400" />
                           </div>
                           <div>
                             <CardTitle className="text-xl font-bold text-foreground">{category.name}</CardTitle>
@@ -690,14 +330,25 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                           return (
                             <div key={setting.key}>
                               {index > 0 && <Separator className="my-3" />}
-                              {renderSetting(setting)}
+                              <SettingRenderer
+                                setting={setting}
+                                value={values[setting.key]}
+                                saving={saving}
+                                onChange={handleValueChange}
+                              />
                               
                               {/* Nested child settings */}
                               {hasChildren && (
-                                <div className="mt-4 ml-8 pl-5 border-l-2 border-blue-300/40 space-y-4 pb-2">
+                                <div className="mt-4 ml-8 pl-5 border-l-2 border-blue-300/40 dark:border-blue-800/40 space-y-4 pb-2">
                                   {childSettings.map(childSetting => (
                                     <div key={childSetting.key}>
-                                      {renderSetting(childSetting, true)}
+                                      <SettingRenderer
+                                        setting={childSetting}
+                                        value={values[childSetting.key]}
+                                        saving={saving}
+                                        isNested={true}
+                                        onChange={handleValueChange}
+                                      />
                                     </div>
                                   ))}
                                 </div>
@@ -714,70 +365,15 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
             })}
           </div>
         </div>
-      </ScrollArea>
 
-      <AnimatePresence>
-        {hasChanges && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-          >
-            <div className="container max-w-7xl py-4 px-4 sm:px-6">
-              <div className="flex flex-col gap-4 rounded-2xl border border-blue-200/70 p-4 shadow-xl sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 text-white shadow-md">
-                    <AlertTriangle className="h-4 w-4" />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-slate-900 sm:text-base">
-                        Unsaved configuration changes
-                      </p>
-                      <Badge variant="outline" className="border-blue-300 bg-blue-50 text-blue-700">
-                        {configStats.modifiedSettings}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-slate-600 sm:text-sm">
-                      You have {configStats.modifiedSettings} pending change{configStats.modifiedSettings !== 1 ? 's' : ''}.{' '}
-                      {lastSaved ? formatRelativeTime(lastSaved) : "No previous save recorded yet."}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={resetChanges}
-                    disabled={saving}
-                    className="rounded-full border-blue-200 px-4 py-2 hover:bg-blue-50"
-                  >
-                    Discard
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={saveChanges}
-                    disabled={saving}
-                    className="rounded-full bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 text-white shadow-lg transition-all duration-300 hover:from-blue-700 hover:to-purple-700 hover:shadow-xl"
-                  >
-                    {saving ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        Save {configStats.modifiedSettings} Change{configStats.modifiedSettings !== 1 ? 's' : ''}
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <UnsavedChangesBar
+        hasChanges={hasChanges}
+        saving={saving}
+        modifiedCount={configStats.modifiedSettings}
+        lastSaved={lastSaved}
+        onSave={saveChanges}
+        onDiscard={resetChanges}
+      />
       {/* Reset All Dialog */}
       <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
         <DialogContent>

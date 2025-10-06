@@ -1,66 +1,81 @@
-"use client";
+"use client"
 
-import { Suspense, useState, useEffect } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { usePathname } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
-import { Home, Eye, CloudUpload, Brain, Menu } from "lucide-react";
+import { Suspense, useState, useEffect } from "react"
+import Link from "next/link"
+import Image from "next/image"
+import { usePathname } from "next/navigation"
+import { motion, AnimatePresence } from "framer-motion"
+import { Home, Eye, CloudUpload, Brain, Menu } from "lucide-react"
 
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
-import { useAppStore } from "@/stores/app-store";
-import { NavUser } from "@/components/nav-user";
-import { ThemeSwitch } from "@/components/theme-switch";
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Sheet, SheetTrigger, SheetContent } from '@/components/ui/sheet'
+import { useAppStore } from '@/stores/app-store'
+import { NavUser } from '@/components/nav-user'
+import { ThemeSwitch } from '@/components/theme-switch'
 
 const links = [
   { href: "/", label: "Home", icon: Home, color: "text-primary" },
   { href: "/search", label: "Search", icon: Eye, color: "text-secondary" },
   { href: "/upload", label: "Upload", icon: CloudUpload, color: "text-accent" },
   { href: "/chat", label: "Chat", icon: Brain, color: "text-destructive" },
-];
+] as const
+
+const navContainerClasses =
+  "rounded-full border border-border/40 bg-card/60 px-1.5 py-1 shadow-[0_2px_18px_rgba(0,0,0,0.12)] backdrop-blur-xl"
+const navLinkClasses = "nav-pill text-muted-foreground/80 hover:text-foreground"
+const navLinkActiveClasses = "nav-pill-active text-white dark:text-foreground font-semibold"
+
+const mobileLinkClasses = "nav-pill w-full justify-start text-base"
+const mobileLinkActiveClasses = "nav-pill-active text-white dark:text-foreground font-semibold"
+const mobileLinkInactiveClasses = "text-muted-foreground/80 hover:text-foreground"
 
 export function Nav() {
-  const pathname = usePathname();
-  const { state } = useAppStore();
-  const [showUploadBadge, setShowUploadBadge] = useState(true);
+  const pathname = usePathname()
+  const { state } = useAppStore()
+  const [showUploadBadge, setShowUploadBadge] = useState(true)
 
-  const hasUploadProgress = state.upload.uploading || (state.upload.uploadProgress > 0 && state.upload.jobId);
+  const hasUploadProgress =
+    state.upload.uploading || (state.upload.uploadProgress > 0 && state.upload.jobId)
 
   useEffect(() => {
     if (!state.upload.uploading && state.upload.uploadProgress >= 100 && !state.upload.jobId) {
-      const timer = setTimeout(() => setShowUploadBadge(false), 2400);
-      return () => clearTimeout(timer);
+      const timer = setTimeout(() => setShowUploadBadge(false), 2400)
+      return () => clearTimeout(timer)
     }
 
     if (state.upload.uploading || (state.upload.uploadProgress < 100 && state.upload.jobId)) {
-      setShowUploadBadge(true);
+      setShowUploadBadge(true)
     } else if (!state.upload.jobId && state.upload.uploadProgress === 0) {
-      setShowUploadBadge(false);
+      setShowUploadBadge(false)
     }
-  }, [state.upload.uploading, state.upload.uploadProgress, state.upload.jobId]);
+  }, [state.upload.uploading, state.upload.uploadProgress, state.upload.jobId])
 
   const uploadIndicator = () => {
     if (hasUploadProgress && showUploadBadge) {
-      return { count: Math.round(state.upload.uploadProgress), isActive: state.upload.uploading };
+      return {
+        count: Math.round(state.upload.uploadProgress),
+        isActive: state.upload.uploading,
+      }
     }
-    return null;
-  };
 
-  const renderLink = (link: typeof links[number]) => {
-    const active = link.href === "/" ? pathname === "/" : pathname === link.href || pathname.startsWith(link.href + "/");
-    const Icon = link.icon;
-    const indicator = link.href === "/upload" ? uploadIndicator() : null;
+    return null
+  }
+
+  const renderLink = (link: (typeof links)[number]) => {
+    const active =
+      link.href === "/"
+        ? pathname === "/"
+        : pathname === link.href || pathname.startsWith(`${link.href}/`)
+
+    const Icon = link.icon
+    const indicator = link.href === "/upload" ? uploadIndicator() : null
 
     return (
       <Link
         key={link.href}
         href={link.href}
-        className={cn(
-          "nav-pill text-muted-foreground/80 hover:text-foreground",
-          active && "nav-pill-active text-white dark:text-foreground font-semibold"
-        )}
+        className={cn(navLinkClasses, active && navLinkActiveClasses)}
       >
         <Icon className={cn("h-4 w-4", active ? "text-white dark:text-foreground" : link.color)} />
         <span>{link.label}</span>
@@ -81,8 +96,8 @@ export function Nav() {
           )}
         </AnimatePresence>
       </Link>
-    );
-  };
+    )
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 supports-[backdrop-filter]:backdrop-blur-2xl">
@@ -104,7 +119,7 @@ export function Nav() {
         </div>
 
         <div className="hidden md:flex flex-none items-center justify-center">
-          <div className="rounded-full border border-border/40 bg-card/60 px-1.5 py-1 shadow-[0_2px_18px_rgba(0,0,0,0.12)] backdrop-blur-xl">
+          <div className={navContainerClasses}>
             <div className="flex items-center gap-1">
               {links.map(renderLink)}
             </div>
@@ -127,24 +142,25 @@ export function Nav() {
               <SheetContent side="left" className="w-64 border-border/40 bg-background/95">
                 <nav className="mt-6 flex flex-col gap-2">
                   {links.map((link) => {
-                    const Icon = link.icon;
-                    const active = link.href === "/" ? pathname === "/" : pathname === link.href || pathname.startsWith(link.href + "/");
+                    const Icon = link.icon
+                    const active =
+                      link.href === "/"
+                        ? pathname === "/"
+                        : pathname === link.href || pathname.startsWith(`${link.href}/`)
 
                     return (
                       <Link
                         key={link.href}
                         href={link.href}
                         className={cn(
-                          "nav-pill w-full justify-start text-base",
-                          active
-                            ? "nav-pill-active text-white dark:text-foreground font-semibold"
-                            : "text-muted-foreground/80 hover:text-foreground"
+                          mobileLinkClasses,
+                          active ? mobileLinkActiveClasses : mobileLinkInactiveClasses
                         )}
                       >
                         <Icon className={cn("h-4 w-4", active ? "text-white dark:text-foreground" : link.color)} />
                         {link.label}
                       </Link>
-                    );
+                    )
                   })}
                 </nav>
               </SheetContent>
@@ -161,5 +177,5 @@ export function Nav() {
         </div>
       </nav>
     </header>
-  );
+  )
 }
