@@ -18,8 +18,8 @@ export function AnimatedBackground({ children }: { children?: React.ReactNode })
 
   // Light mode colors - vibrant and bright
   const lightModeColors = {
-    gradientBackgroundStart: "rgb(255, 255, 255)",
-    gradientBackgroundEnd: "rgb(240, 242, 255)",
+    gradientBackgroundStart: "rgb(250, 245, 235)", // Warm linen
+    gradientBackgroundEnd: "rgb(255, 244, 230)", // Soft peach cream
     firstColor: "79, 70, 229", // Indigo
     secondColor: "147, 51, 234", // Purple
     thirdColor: "14, 165, 233", // Sky blue

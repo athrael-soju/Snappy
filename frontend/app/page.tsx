@@ -36,13 +36,10 @@ export default function Home() {
           title="FastAPI / Next.js / ColPali Template"
           icon={Sparkles}
           badge={<Badge className="rounded-full text-sm">v0.0.4</Badge>}
-          tooltip="This starter kit combines a FastAPI backend, Qdrant vector search, and a modern Next.js interface so you can focus on the experience, not the boilerplate"
+          tooltip="This starter kit combines a FastAPI backend, Qdrant vector search, and a modern Next.js interface so you can focus on the experience, not the configuration"
         >
           <div className="flex flex-col items-center gap-5">
             <div className="flex flex-col items-center gap-3 text-sm max-w-2xl">
-              <p className="text-base text-foreground font-medium">
-                Spin up ingestion, visual search, and chat workflows in minutes with opinionated defaults and accessible UI patterns.
-              </p>
             </div>
             <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-4">
               <Button

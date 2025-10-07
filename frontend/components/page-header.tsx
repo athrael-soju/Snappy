@@ -38,7 +38,7 @@ export function PageHeader({ title, description, icon: Icon, children, badge, to
           </div>
         )}
         <div className="flex flex-wrap items-center justify-center gap-3">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-background/60 dark:bg-background/40 backdrop-blur-md border border-border/30 shadow-lg">
             <h1
               className="text-balance text-4xl font-semibold tracking-tight bg-clip-text text-transparent"
               style={{ backgroundImage: "var(--nav-pill-active)" }}
@@ -65,7 +65,7 @@ export function PageHeader({ title, description, icon: Icon, children, badge, to
         </div>
       </div>
       {description && (
-        <p className="relative z-10 mx-auto max-w-2xl text-balance text-sm text-foreground/85 sm:text-base">
+        <p className="relative z-10 mx-auto max-w-2xl text-balance text-sm text-foreground/85 sm:text-base px-4 py-2 rounded-lg bg-background/50 dark:bg-background/30 backdrop-blur-sm">
           {description}
         </p>
       )}

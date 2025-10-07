@@ -355,21 +355,21 @@
 }
 
 .animate-first {
-  animation: first 30s ease infinite;
+  animation: first 60s ease infinite;
 }
 
 .animate-second {
-  animation: second 20s ease-in-out infinite reverse;
+  animation: second 40s ease-in-out infinite reverse;
 }
 
 .animate-third {
-  animation: third 40s linear infinite;
+  animation: third 80s linear infinite;
 }
 
 .animate-fourth {
-  animation: fourth 25s ease infinite;
+  animation: fourth 50s ease infinite;
 }
 
 .animate-fifth {
-  animation: fifth 35s linear infinite reverse;
+  animation: fifth 70s linear infinite reverse;
 }
