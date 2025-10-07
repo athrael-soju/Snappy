@@ -58,7 +58,7 @@ export default function MaintenancePage() {
 
       <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col gap-6 pb-6 sm:pb-8">
         {isConfigurationView ? (
-          <div className="flex-1 min-h-0 flex flex-col gap-3">
+          <div className="mx-auto flex w-full max-w-6xl flex-1 min-h-0 flex-col gap-3">
             <div className="flex justify-end">
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -69,7 +69,6 @@ export default function MaintenancePage() {
                     className="h-12 w-12"
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
-                    <span className="text-xs font-medium">Reset All</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground">
@@ -82,9 +81,9 @@ export default function MaintenancePage() {
             </div>
           </div>
         ) : (
-          <div className="flex-1 min-h-0 flex gap-6">
-            <ScrollArea className="custom-scrollbar flex-1 h-[calc(100vh-14rem)]">
-              <div className="flex flex-col gap-6 p-4 max-w-7xl mx-auto">
+          <div className="mx-auto flex w-full max-w-6xl flex-1 min-h-0 gap-6">
+            <ScrollArea>
+              <div className="flex w-full flex-col gap-6 p-4">
                 <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
                   <CollectionStatusCard
                     status={systemStatus?.collection || null}

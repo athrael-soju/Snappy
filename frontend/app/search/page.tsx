@@ -225,9 +225,10 @@ export default function SearchPage() {
       </motion.section>
 
       <motion.section variants={sectionVariants} className="flex min-h-0 flex-1 flex-col gap-6 pb-6 sm:pb-8">
-        <SystemStatusWarning isReady={isReady} />
+        <div className="mx-auto flex h-full w-full max-w-6xl flex-1 flex-col gap-6">
+          <SystemStatusWarning isReady={isReady} />
 
-        <div className="sticky top-[5.25rem] z-30">
+          <div className="sticky top-[5.25rem] z-30">
           <Card className="card-surface shadow-none">
             <CardContent className="space-y-4 py-5">
               <SearchBar
@@ -261,8 +262,8 @@ export default function SearchPage() {
           )}
         </AnimatePresence>
 
-        <ScrollArea className="custom-scrollbar h-[calc(100vh-30rem)]">
-          <div className="space-y-6 p-4 pb-10">
+          <ScrollArea>
+            <div className="space-y-6 p-4 pb-10">
             {!hasSearched && !loading && !error ? (
               <Card className="card-surface border border-dashed border-muted/60 text-center">
                 <CardContent className="flex flex-col items-center gap-6 py-16">
@@ -420,7 +421,8 @@ export default function SearchPage() {
               </AnimatePresence>
             )}
           </div>
-        </ScrollArea>
+          </ScrollArea>
+        </div>
       </motion.section>
 
       <ImageLightbox open={lightboxOpen} src={lightboxSrc} alt={lightboxAlt} onOpenChange={setLightboxOpen} />

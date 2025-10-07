@@ -25,8 +25,8 @@ const iconMap: Record<string, any> = {
 
 export function ConfigurationTabs({ categories, activeTab, onTabChange }: ConfigurationTabsProps) {
   return (
-    <nav className="w-48 flex-shrink-0">
-      <ScrollArea className="h-[calc(100vh-36rem)]">
+    <nav className="w-48 flex-shrink-0 min-h-0 flex flex-col">
+      <ScrollArea>
         <div className="space-y-1 pr-2">
           {categories.map(([categoryKey, category]) => {
             const Icon = iconMap[category.icon] || Settings;

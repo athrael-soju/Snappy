@@ -227,16 +227,19 @@ export default function ChatPage() {
           tooltip="Ask questions about your documents and get AI-powered responses with inline citations"
         />
       </motion.section>
-      <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col gap-6 pb-6 sm:pb-8">
+      <motion.section variants={sectionVariants} className="flex-1 min-h-0 pb-6 sm:pb-8">
+        <div className="mx-auto flex h-full w-full max-w-5xl flex-1 flex-col gap-6">
 
-        {/* System Status Warning */}
-        <SystemStatusWarning isReady={isReady} />
-        {/* Chat Messages */}
-        <Card className="card-surface flex-1 min-h-0 flex flex-col overflow-hidden">
-        <ScrollArea ref={messagesContainerRef} className="custom-scrollbar h-[calc(100vh-30rem)]">
-          <div className="space-y-6 p-3 sm:p-4">
-          <AnimatePresence mode="popLayout">
-            {messages.length === 0 ? (
+          {/* System Status Warning */}
+          <SystemStatusWarning isReady={isReady} />
+          {/* Chat Messages */}
+          <Card className="card-surface mx-auto w-full max-w-4xl flex min-h-0 flex-1 flex-col overflow-hidden">
+            <ScrollArea
+              ref={messagesContainerRef}
+              className="custom-scrollbar">
+              <div className="space-y-6 p-3 sm:p-4">
+                <AnimatePresence mode="popLayout">
+                {messages.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -264,7 +267,7 @@ export default function ChatPage() {
                   />
                 </div>
               </motion.div>
-            ) : (
+                ) : (
               messages.map((message, idx) => (
                 <motion.div
                   key={message.id || idx}
@@ -377,11 +380,11 @@ export default function ChatPage() {
                   </div>
                 </motion.div>
               ))
-            )}
-          </AnimatePresence>
-          <div ref={messagesEndRef} />
-          </div>
-        </ScrollArea>
+                )}
+                </AnimatePresence>
+                <div ref={messagesEndRef} />
+              </div>
+            </ScrollArea>
 
         {/* Input Form */}
         <div className="sticky bottom-0 left-0 right-0 border-t border-divider/50 bg-[color:var(--surface-0)]/95 px-4 py-3.5 backdrop-blur-lg supports-[backdrop-filter]:backdrop-blur">
@@ -450,7 +453,8 @@ export default function ChatPage() {
             </motion.div>
           )}
         </div>
-      </Card>
+          </Card>
+        </div>
       </motion.section>
       <ImageLightbox
         open={lightboxOpen}

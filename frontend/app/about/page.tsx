@@ -18,9 +18,9 @@ export default function AboutPage() {
           tooltip="A friendly and lightweight knowledge base platform with visual document understanding"
         />
       </motion.section>
-      <motion.section variants={sectionVariants} className="flex-1 min-h-0 pb-6 sm:pb-8">
-        <Card className="card-surface h-full overflow-hidden border-border/50 shadow-lg">
-          <ScrollArea className="custom-scrollbar h-[calc(100vh-18rem)]">
+      <motion.section variants={sectionVariants} className="flex-1 min-h-0 pb-6 sm:pb-8 flex">
+        <Card className="card-surface mx-auto w-full max-w-4xl flex min-h-0 flex-1 flex-col overflow-hidden border-border/50 shadow-lg">
+          <ScrollArea>
             <div className="p-8">
               <AboutContent />
             </div>

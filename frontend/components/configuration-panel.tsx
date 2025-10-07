@@ -295,7 +295,7 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                 className="flex-1 min-h-0 flex gap-3"
               >
                 {/* Settings Card - Scrollable */}
-                <Card className="card-surface flex flex-col flex-1 border-2">
+                <Card className="card-surface flex flex-1 min-h-0 flex-col border-2">
                   <CardHeader className="pb-4 flex-shrink-0">
                     <div className="flex items-start gap-3">
                       <div className="p-2 bg-white dark:bg-blue-900/40 rounded-xl border-2 border-blue-200 dark:border-blue-800/50 shadow-sm">
@@ -307,7 +307,7 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                       </div>
                     </div>
                   </CardHeader>
-                  <ScrollArea className="h-[calc(100vh-35rem)]">
+                  <ScrollArea>
                     <CardContent className="pr-4 py-4">
                       {visibleSettings.map((setting, index) => {
                         // Check for nested settings

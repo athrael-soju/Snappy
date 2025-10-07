@@ -69,10 +69,10 @@ export default function Home() {
         </PageHeader>
       </motion.section>
 
-      <section className="flex-1 min-h-0 pb-6 sm:pb-8">
-        <ScrollArea className="custom-scrollbar h-[calc(100vh-26rem)]">
-          <div className="px-4 py-6">
-            <motion.div className="grid gap-6 md:grid-cols-3 max-w-7xl mx-auto" {...staggeredListMotion}>
+      <motion.section variants={sectionVariants} className="flex-1 min-h-0 pb-6 sm:pb-8 flex">
+        <ScrollArea>
+          <div className="mx-auto max-w-6xl px-4 py-6">
+            <motion.div className="grid gap-6 md:grid-cols-3" {...staggeredListMotion}>
           {workflow.map(({ title, description, icon: Icon }) => (
             <motion.div key={title} {...fadeInItemMotion} {...hoverLift}>
               <Card className="card-surface h-full hover:shadow-xl transition-all duration-300 border-border/50">
@@ -91,7 +91,7 @@ export default function Home() {
             </motion.div>
           </div>
         </ScrollArea>
-      </section>
+      </motion.section>
     </motion.div>
   );
 }

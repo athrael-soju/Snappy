@@ -86,9 +86,9 @@ export default function UploadPage() {
         />
       </motion.section>
 
-      <motion.section variants={sectionVariants} className="flex-1 min-h-0 pb-6 sm:pb-8">
-        <ScrollArea className="custom-scrollbar h-[calc(100vh-20rem)]">
-          <div className="flex flex-col gap-6 p-4">
+      <motion.section variants={sectionVariants} className="flex-1 min-h-0 pb-6 sm:pb-8 flex">
+        <ScrollArea>
+          <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-4">
             {/* System Status Warning */}
             <SystemStatusWarning isReady={isReady} />
             <FileDropzone
