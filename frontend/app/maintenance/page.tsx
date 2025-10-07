@@ -48,8 +48,8 @@ export default function MaintenancePage() {
   const isConfigurationView = section !== "data";
 
   return (
-    <motion.div {...defaultPageMotion} className="page-shell flex min-h-0 flex-1 flex-col gap-6">
-      <motion.section variants={sectionVariants} className="pt-6 sm:pt-8">
+    <motion.div {...defaultPageMotion}>
+      <motion.section variants={sectionVariants} className="flex flex-col items-center text-center gap-6 pt-6 sm:pt-8">
         <PageHeader
           title="System Maintenance"
           tooltip={isConfigurationView ? "Manage runtime configuration options" : "Monitor and manage storage and indexing resources"}
@@ -82,7 +82,7 @@ export default function MaintenancePage() {
           </div>
         ) : (
           <div className="mx-auto flex w-full max-w-6xl flex-1 min-h-0 gap-6">
-            <ScrollArea>
+            <ScrollArea className="h-[calc(100vh-15rem)] rounded-xl">
               <div className="flex w-full flex-col gap-6 p-4">
                 <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
                   <CollectionStatusCard
@@ -130,7 +130,7 @@ export default function MaintenancePage() {
             </ScrollArea>
 
             {/* System Status Badge - Right Side */}
-            {systemStatus && (
+            {/* {systemStatus && (
               <div className="flex flex-col justify-start pt-4 w-52 flex-shrink-0">
                 <SystemStatusBadge
                   isReady={isSystemReady}
@@ -138,7 +138,7 @@ export default function MaintenancePage() {
                   onRefresh={fetchStatus}
                 />
               </div>
-            )}
+            )} */}
           </div>
         )}
       </motion.section>

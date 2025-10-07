@@ -220,23 +220,22 @@ export default function ChatPage() {
 
   return (
     <motion.div {...defaultPageMotion} className="page-shell flex flex-col min-h-0 flex-1 gap-6">
-      <motion.section variants={sectionVariants} className="pt-6 sm:pt-8">
-        <PageHeader
+      <motion.section variants={sectionVariants} className="flex flex-col items-center text-center gap-6 pt-6 sm:pt-8">
+      <PageHeader
           title="AI Chat"
           icon={Brain}
           tooltip="Ask questions about your documents and get AI-powered responses with inline citations"
         />
       </motion.section>
-      <motion.section variants={sectionVariants} className="flex-1 min-h-0 pb-6 sm:pb-8">
+      <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col gap-6 pb-6 sm:pb-8">
         <div className="mx-auto flex h-full w-full max-w-5xl flex-1 flex-col gap-6">
-
           {/* System Status Warning */}
           <SystemStatusWarning isReady={isReady} />
           {/* Chat Messages */}
           <Card className="card-surface mx-auto w-full max-w-4xl flex min-h-0 flex-1 flex-col overflow-hidden">
             <ScrollArea
               ref={messagesContainerRef}
-              className="custom-scrollbar">
+              className="h-[calc(100vh-25rem)] rounded-xl">
               <div className="space-y-6 p-3 sm:p-4">
                 <AnimatePresence mode="popLayout">
                 {messages.length === 0 ? (

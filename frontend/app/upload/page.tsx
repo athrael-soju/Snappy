@@ -78,7 +78,8 @@ export default function UploadPage() {
     <motion.div {...defaultPageMotion}
       className="page-shell flex min-h-0 flex-1 flex-col gap-6"
     >
-      <motion.section variants={sectionVariants} className="pt-6 sm:pt-8">
+      <motion.section variants={sectionVariants} className="flex flex-col items-center text-center gap-6 pt-6 sm:pt-8">
+
         <PageHeader
           title="Upload Documents"
           icon={CloudUpload}
@@ -86,8 +87,8 @@ export default function UploadPage() {
         />
       </motion.section>
 
-      <motion.section variants={sectionVariants} className="flex-1 min-h-0 pb-6 sm:pb-8 flex">
-        <ScrollArea>
+      <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col gap-6 pb-6 sm:pb-8">
+        <ScrollArea className="h-[calc(100vh-12rem)] rounded-xl">
           <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-4">
             {/* System Status Warning */}
             <SystemStatusWarning isReady={isReady} />

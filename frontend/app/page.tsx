@@ -70,7 +70,7 @@ export default function Home() {
       </motion.section>
 
       <motion.section variants={sectionVariants} className="flex-1 min-h-0 pb-6 sm:pb-8 flex">
-        <ScrollArea>
+        <ScrollArea className="h-[calc(100vh-12rem)] rounded-xl">
           <div className="mx-auto max-w-6xl px-4 py-6">
             <motion.div className="grid gap-6 md:grid-cols-3" {...staggeredListMotion}>
           {workflow.map(({ title, description, icon: Icon }) => (

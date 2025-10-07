@@ -279,6 +279,7 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
 
         {/* Main content area */}
         <div className="flex-1 min-w-0 flex flex-col gap-4">
+        <ScrollArea className="h-[calc(100vh-15rem)] rounded-xl">          
           {categoriesToRender.map(([categoryKey, category]) => {
             if (activeCategoryKey !== categoryKey) return null;
 
@@ -307,7 +308,7 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                       </div>
                     </div>
                   </CardHeader>
-                  <ScrollArea>
+
                     <CardContent className="pr-4 py-4">
                       {visibleSettings.map((setting, index) => {
                         // Check for nested settings
@@ -346,7 +347,7 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                         );
                       })}
                     </CardContent>
-                  </ScrollArea>
+
                 </Card>
 
                 {/* Reset Section Button - Right side of card */}
@@ -372,6 +373,7 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
               </motion.div>
             );
           })}
+          </ScrollArea>
         </div>
       </div>
 

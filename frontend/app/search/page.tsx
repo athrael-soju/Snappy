@@ -216,15 +216,15 @@ export default function SearchPage() {
 
   return (
     <motion.div {...defaultPageMotion} className="page-shell flex min-h-0 flex-1 flex-col gap-6">
-      <motion.section variants={sectionVariants} className="pt-6 sm:pt-8">
-        <PageHeader
+      <motion.section variants={sectionVariants} className="flex flex-col items-center text-center gap-6 pt-6 sm:pt-8">
+      <PageHeader
           title="Visual Search"
           icon={Search}
           tooltip="Find documents and images using natural language powered by AI vision"
         />
       </motion.section>
 
-      <motion.section variants={sectionVariants} className="flex min-h-0 flex-1 flex-col gap-6 pb-6 sm:pb-8">
+      <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col gap-6 pb-6 sm:pb-8">
         <div className="mx-auto flex h-full w-full max-w-6xl flex-1 flex-col gap-6">
           <SystemStatusWarning isReady={isReady} />
 
@@ -262,11 +262,11 @@ export default function SearchPage() {
           )}
         </AnimatePresence>
 
-          <ScrollArea>
-            <div className="space-y-6 p-4 pb-10">
+          <ScrollArea className="h-[calc(100vh-30rem)] rounded-xl">
+
             {!hasSearched && !loading && !error ? (
               <Card className="card-surface border border-dashed border-muted/60 text-center">
-                <CardContent className="flex flex-col items-center gap-6 py-16">
+                <CardContent className="flex flex-col items-center gap-6 py-20">
                   <div className="flex size-20 items-center justify-center rounded-full bg-[color:var(--surface-2)] text-primary">
                     <Search className="h-9 w-9" />
                   </div>
@@ -420,7 +420,7 @@ export default function SearchPage() {
                 )}
               </AnimatePresence>
             )}
-          </div>
+
           </ScrollArea>
         </div>
       </motion.section>
