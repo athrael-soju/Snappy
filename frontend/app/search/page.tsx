@@ -358,9 +358,10 @@ export default function SearchPage() {
                               <h3 className="line-clamp-2 text-base font-semibold text-foreground group-hover:text-primary">
                                 {item.label ?? `Result ${idx + 1}`}
                               </h3>
-                              {item.metadata?.description && (
-                                <p className="line-clamp-2 text-sm text-muted-foreground">
-                                  {item.metadata.description}
+                              {item.payload?.filename && (
+                                <p className="line-clamp-1 text-xs text-muted-foreground">
+                                  {item.payload.filename}
+                                  {item.payload?.pdf_page_index !== undefined && ` • Page ${item.payload.pdf_page_index + 1}`}
                                 </p>
                               )}
                             </div>
@@ -376,17 +377,6 @@ export default function SearchPage() {
                                   </Badge>
                                 )}
                               </div>
-                              {item.url && (
-                                <Link
-                                  href={item.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 font-medium text-foreground hover:text-primary"
-                                >
-                                  Open
-                                  <ExternalLink className="h-3.5 w-3.5" />
-                                </Link>
-                              )}
                             </div>
                           </CardContent>
                         </Card>
