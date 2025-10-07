@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import Image from "next/image";
 import {
   HoverCard,
   HoverCardContent,
@@ -28,10 +29,12 @@ export default function CitationHoverCard({
   onOpen,
   children
 }: CitationHoverCardProps) {
-  // Extract document title and page from label (e.g., "Human-Nutrition-2020-Edition-1598491725_print.pdf — Page 51 of 1208")
-  const parts = label.split('—').map(p => p.trim());
-  const docTitle = parts[0] || 'Document';
-  const pageInfo = parts[1] || label;
+  // Extract document title and page info heuristically
+  const delimiterIndex = label.toLowerCase().indexOf("page ");
+  const docTitle = delimiterIndex >= 0
+    ? label.slice(0, delimiterIndex).trim().replace(/["']+$/, "")
+    : label;
+  const pageInfo = delimiterIndex >= 0 ? label.slice(delimiterIndex).trim() : label;
 
   return (
     <HoverCard openDelay={200} closeDelay={100}>
@@ -52,10 +55,13 @@ export default function CitationHoverCard({
         <div className="flex flex-col">
           {/* Preview Image */}
           <div className="relative w-full h-[120px] bg-gray-100 overflow-hidden border-b">
-            <img
+            <Image
               src={imageUrl}
               alt={label}
-              className="w-full h-full object-contain"
+              fill
+              sizes="320px"
+              className="object-contain"
+              unoptimized
             />
           </div>
           

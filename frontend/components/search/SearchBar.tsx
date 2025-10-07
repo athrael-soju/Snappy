@@ -17,27 +17,43 @@ export interface SearchBarProps {
   topK?: number;
   setTopK?: (v: number) => void;
   onClear: () => void;
-  hasResults?: boolean; // Whether there are actual results to clear
+  hasResults?: boolean;
+  inputRef?: React.RefObject<HTMLInputElement>;
+  filtersSlot?: React.ReactNode;
 }
 
-export default function SearchBar({ q, setQ, loading, onSubmit, k, setK, topK = 16, setTopK, onClear, hasResults = false }: SearchBarProps) {
+export default function SearchBar({
+  q,
+  setQ,
+  loading,
+  onSubmit,
+  k,
+  setK,
+  topK = 16,
+  setTopK,
+  onClear,
+  hasResults = false,
+  inputRef,
+  filtersSlot,
+}: SearchBarProps) {
   return (
-    <form onSubmit={onSubmit} className="space-y-4 mx-auto max-w-4xl">
-      <div className="space-y-3">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex-1 relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-6 h-6 text-muted-foreground" />
-            <Input
-              placeholder="Search by text or even describe the image/document you need."
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              required
-              disabled={loading}
-              aria-label="Search query"
-              className="text-base sm:text-lg pl-14 h-14 sm:h-16 rounded-2xl border-2 shadow-md bg-white placeholder:text-muted-foreground/80 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:border-blue-500 focus:shadow-lg"
-            />
-          </div>
-          <div className="flex items-center gap-2">
+    <form onSubmit={onSubmit} className="flex flex-col gap-4" aria-labelledby="search-heading">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            ref={inputRef}
+            placeholder="Describe the document or image you need..."
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            required
+            disabled={loading}
+            aria-label="Search query"
+            className="h-14 rounded-2xl border border-muted bg-[color:var(--surface-0)]/95 pl-12 pr-24 text-base shadow-[var(--shadow-1)] transition focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--surface-0)] disabled:opacity-70"
+          />
+        </div>
+        <div className="flex items-stretch justify-end gap-2 self-stretch">
+          <div className="flex items-center gap-2 rounded-2xl border border-muted bg-[color:var(--surface-1)]/80 px-2 py-1 shadow-[var(--shadow-1)]">
             <Tooltip>
               <TooltipTrigger asChild>
                 <div>
@@ -45,38 +61,16 @@ export default function SearchBar({ q, setQ, loading, onSubmit, k, setK, topK = 
                     k={k}
                     setK={setK}
                     loading={loading}
-                    className="h-14 w-14"
+                    className="h-12 w-12"
                     topK={topK}
                     setTopK={setTopK}
                     showMaxTokens={false}
                   />
                 </div>
               </TooltipTrigger>
-              <TooltipContent>
-                <p>Search settings</p>
-              </TooltipContent>
+              <TooltipContent sideOffset={8}>Search settings</TooltipContent>
             </Tooltip>
-            
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="submit"
-                  disabled={loading || !q.trim()}
-                  size="icon"
-                  className="h-14 w-14 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  {loading ? (
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                  ) : (
-                    <Search className="w-6 h-6" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{loading ? 'Searching...' : 'Search documents'}</p>
-              </TooltipContent>
-            </Tooltip>
-            
+
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -84,19 +78,44 @@ export default function SearchBar({ q, setQ, loading, onSubmit, k, setK, topK = 
                   onClick={onClear}
                   disabled={loading || !hasResults}
                   size="icon"
-                  variant="outline"
-                  className="h-14 w-14 rounded-2xl border-2 border-blue-200/50 hover:border-blue-400 hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 text-muted-foreground hover:text-blue-600 transition-all duration-300 shadow-md hover:shadow-lg disabled:opacity-50"
+                  variant="ghost"
+                  className="h-12 w-12 rounded-xl text-muted-foreground hover:bg-[color:var(--surface-2)] hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40 disabled:opacity-50"
                 >
-                  <Trash2 className="w-5 h-5" />
+                  <Trash2 className="h-5 w-5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>
-                <p>{hasResults ? 'Clear search results' : 'No results to clear'}</p>
+              <TooltipContent sideOffset={8}>
+                <p>{hasResults ? "Clear results" : "No results to clear"}</p>
               </TooltipContent>
             </Tooltip>
           </div>
+
+          <Button
+            type="submit"
+            disabled={loading || !q.trim()}
+            className="h-14 rounded-2xl bg-primary px-5 text-base font-semibold text-primary-foreground shadow-[var(--shadow-2)] transition hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--surface-0)] disabled:opacity-70"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Searching
+              </>
+            ) : (
+              <>
+                <Search className="mr-2 h-5 w-5" />
+                Search
+              </>
+            )}
+          </Button>
         </div>
       </div>
+
+      {filtersSlot && (
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Search filters">
+          {filtersSlot}
+        </div>
+      )}
     </form>
   );
 }
+

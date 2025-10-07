@@ -22,8 +22,8 @@ export function FileList({ files, hasFiles }: FileListProps) {
           className="space-y-2"
         >
           <Label className="text-sm font-medium">Selected Files:</Label>
-          <ScrollArea className="h-32 w-full rounded-lg">
-            <div className="space-y-2 p-3 bg-muted/30 rounded-lg">
+          <ScrollArea className="custom-scrollbar h-32 w-full rounded-xl border border-muted bg-[color:var(--surface-1)]/80">
+            <div className="space-y-2 rounded-xl bg-[color:var(--surface-2)]/70 p-3">
             {Array.from(files).map((file, idx) => (
               <div key={idx} className="flex items-center gap-2 text-sm">
                 <FileText className="w-4 h-4 text-muted-foreground" />
@@ -40,3 +40,4 @@ export function FileList({ files, hasFiles }: FileListProps) {
     </AnimatePresence>
   );
 }
+

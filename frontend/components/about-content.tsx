@@ -233,7 +233,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
                   <ul className="space-y-1 ml-4">
                     <li className="flex items-start gap-2"><span>•</span><span>Documents are clean, digital-native (blogs, code, markdown)</span></li>
                     <li className="flex items-start gap-2"><span>•</span><span>Storage and compute constraints are tight</span></li>
-                    <li className="flex items-start gap-2"><span>•</span><span>Visual layout and formatting don't matter</span></li>
+                    <li className="flex items-start gap-2"><span>•</span><span>Visual layout and formatting do not matter</span></li>
                   </ul>
                 </div>
                 <div className="space-y-2">

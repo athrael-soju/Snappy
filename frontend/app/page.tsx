@@ -29,17 +29,26 @@ const workflow = [
 
 export default function Home() {
   return (
-    <motion.div {...defaultPageMotion} className="page-shell page-section flex flex-col min-h-0 flex-1">
-      <motion.section variants={sectionVariants} className="flex flex-col items-center text-center">
+    <motion.div {...defaultPageMotion} className="page-shell page-section flex min-h-0 flex-1 flex-col gap-12">
+      <motion.section variants={sectionVariants} className="flex flex-col items-center text-center gap-8">
         <PageHeader
           title="FastAPI / Next.js / ColPali Template"
           description="This starter kit combines a FastAPI backend, Qdrant vector search, and a modern Next.js interface so you can focus on the experience, not the boilerplate."
           icon={Sparkles}
           badge={<Badge className="rounded-full text-sm">v0.0.4</Badge>}
         >
-          <div className="flex flex-col items-center gap-6">
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <Button asChild size="lg" className="primary-gradient rounded-full px-8 py-6 text-base shadow-xl">
+          <div className="flex flex-col items-center gap-5">
+            <div className="flex flex-col items-center gap-3 text-sm text-muted-foreground max-w-2xl">
+              <p className="text-base text-foreground/90">
+                Spin up ingestion, visual search, and chat workflows in minutes with opinionated defaults and accessible UI patterns.
+              </p>
+            </div>
+            <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-4">
+              <Button
+                asChild
+                size="lg"
+                className="primary-gradient rounded-full px-7 py-4 text-base shadow-lg transition-transform focus-visible:ring-4 focus-visible:ring-ring/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--surface-0)] hover:-translate-y-0.5"
+              >
                 <Link href="/upload">
                   <CloudUpload className="mr-3 h-5 w-5" />
                   Upload your documents
@@ -50,7 +59,7 @@ export default function Home() {
                 asChild
                 variant="outline"
                 size="lg"
-                className="rounded-full border-border/60 bg-card/70 px-6 py-5 text-foreground transition hover:border-border hover:bg-card/80"
+                className="rounded-full border-muted bg-[color:var(--surface-0)]/80 px-6 py-[0.875rem] text-base text-foreground transition hover:bg-[color:var(--surface-1)] focus-visible:ring-2 focus-visible:ring-ring/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--surface-0)]"
               >
                 <Link href="/search">Explore search</Link>
               </Button>
@@ -59,27 +68,25 @@ export default function Home() {
         </PageHeader>
       </motion.section>
 
-      <div className="flex-1 min-h-0 flex flex-col pb-10">
-        <section className="space-y-8">
-          <motion.div className="grid gap-6 md:grid-cols-3" {...staggeredListMotion}>
-            {workflow.map(({ title, description, icon: Icon }) => (
-              <motion.div key={title} {...fadeInItemMotion} {...hoverLift}>
-                <Card className="card-surface h-full">
-                  <CardHeader className="flex flex-row items-center gap-3 border-b border-border/40 pb-4">
-                    <div className="rounded-2xl border border-border/40 bg-card/70 p-3 text-primary shadow-inner">
-                      <Icon className="h-5 w-5 text-current" />
-                    </div>
-                    <CardTitle className="text-lg font-semibold">{title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-4 text-sm leading-relaxed text-muted-foreground/90">
-                    {description}
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </motion.div>
-        </section>
-      </div>
+      <section className="flex-1 space-y-10 pb-10">
+        <motion.div className="grid gap-6 md:grid-cols-3" {...staggeredListMotion}>
+          {workflow.map(({ title, description, icon: Icon }) => (
+            <motion.div key={title} {...fadeInItemMotion} {...hoverLift}>
+              <Card className="card-surface h-full">
+                <CardHeader className="flex flex-row items-center gap-4 border-b border-divider pb-4">
+                  <div className="flex size-12 items-center justify-center rounded-xl border border-muted bg-[color:var(--surface-2)] text-primary">
+                    <Icon className="h-5 w-5" strokeWidth={2.2} />
+                  </div>
+                  <CardTitle className="text-xl font-semibold text-foreground">{title}</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4 text-sm leading-relaxed text-muted-foreground">
+                  {description}
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </motion.div>
+      </section>
     </motion.div>
   );
 }

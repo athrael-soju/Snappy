@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useChat } from "@/lib/hooks/use-chat";
@@ -7,8 +7,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 // Removed Select in favor of a clearer segmented control
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { User, Image as ImageIcon, Loader2, Sparkles, Brain, FileText, BarChart3, MessageSquare, Clock, Trash2, AlertTriangle, ExternalLink } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { User, Image as ImageIcon, Loader2, Sparkles, Brain, FileText, BarChart3, MessageSquare, Clock, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { defaultPageMotion, fadeInPresence, sectionVariants } from "@/lib/motion-presets";
 import { toast } from "@/components/ui/sonner";
@@ -21,6 +21,7 @@ import { PageHeader } from "@/components/page-header";
 import { MaintenanceService } from "@/lib/api/generated";
 import { useSystemStatus } from "@/stores/app-store";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 import { BRAIN_PLACEHOLDERS } from "@/lib/utils";
 import { SystemStatusWarning } from "@/components/upload";
@@ -47,6 +48,13 @@ const starterQuestions = [
     text: "Find slide decks that outline product vision and strategy",
     category: "Business"
   }
+];
+
+const CHAT_PLACEHOLDER_EXAMPLES = [
+  "Give a high-level overview of my latest project report",
+  "What potential risks are highlighted in the compliance policies?",
+  "Show conceptual diagrams about AI systems from the design docs",
+  "Which vendor contracts discuss obligations?"
 ];
 
 export default function ChatPage() {
@@ -85,12 +93,6 @@ export default function ChatPage() {
   const { systemStatus, setStatus, isReady, needsRefresh } = useSystemStatus();
   const [statusLoading, setStatusLoading] = useState(false);
   const hasFetchedRef = useRef(false);
-  const examples = [
-    "Give a high-level overview of my latest project report",
-    "What potential risks are highlighted in the compliance policies?",
-    "Show conceptual diagrams about AI systems from the design docs",
-    "Which vendor contracts discuss obligations?"
-  ];
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
 
   const scrollToBottom = () => {
@@ -141,7 +143,7 @@ export default function ChatPage() {
   }, [messages]);
 
   useEffect(() => {
-    const id = setInterval(() => setPlaceholderIdx((i) => (i + 1) % examples.length), 5000);
+    const id = setInterval(() => setPlaceholderIdx((i) => (i + 1) % CHAT_PLACEHOLDER_EXAMPLES.length), 5000);
     return () => clearInterval(id);
   }, []);
 
@@ -230,9 +232,9 @@ export default function ChatPage() {
         {/* System Status Warning */}
         <SystemStatusWarning isReady={isReady} />
         {/* Chat Messages */}
-        <Card className="card-surface flex-1 min-h-0 flex flex-col overflow-hidden border-2 shadow-lg">
-        <ScrollArea ref={messagesContainerRef} className="flex-1 min-h-0">
-          <div className="p-4 sm:p-6 bg-gradient-to-b from-background/50 to-background">
+        <Card className="card-surface flex-1 min-h-0 flex flex-col overflow-hidden">
+        <ScrollArea ref={messagesContainerRef} className="custom-scrollbar flex-1 min-h-0">
+          <div className="space-y-6 p-4 sm:p-6">
           <AnimatePresence mode="popLayout">
             {messages.length === 0 ? (
               <motion.div
@@ -275,23 +277,30 @@ export default function ChatPage() {
                   }}
                   className={`flex gap-3 mb-4 md:mb-5 last:mb-0 ${message.role === "assistant" ? "" : "flex-row-reverse"}`}
                 >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${message.role === "assistant"
-                    ? "bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-lg border-2 border-purple-300/50 dark:border-purple-500/30"
-                    : "bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-lg border-2 border-blue-300/50 dark:border-blue-500/30"
-                    }`}>
+                  <div
+                    className={cn(
+                      "flex size-9 items-center justify-center rounded-full border text-sm font-semibold shadow-[var(--shadow-1)]",
+                      message.role === "assistant"
+                        ? "bg-[color:var(--surface-1)] border-muted text-primary"
+                        : "bg-primary/15 border-primary/40 text-primary"
+                    )}
+                  >
                     {message.role === "assistant" ? (
-                      <Brain className="w-4 h-4" />
+                      <Brain className="h-4 w-4" />
                     ) : (
-                      <User className="w-4 h-4" />
+                      <User className="h-4 w-4" />
                     )}
                   </div>
 
-                  <div className={`flex-1 max-w-[85%] ${message.role === "user" ? "text-right" : ""
-                    }`}>
-                    <div className={`inline-block p-4 rounded-2xl shadow-md border-2 ${message.role === "assistant"
-                      ? "bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 text-foreground border-purple-200 dark:border-purple-800/50"
-                      : "bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 text-foreground border-blue-200 dark:border-blue-800/50"
-                      }`}>
+                  <div className={cn("flex-1 max-w-[85%]", message.role === "user" && "text-right")}>
+                    <div
+                      className={cn(
+                        "inline-block max-w-2xl rounded-2xl border px-4 py-3 text-left shadow-[var(--shadow-1)]",
+                        message.role === "assistant"
+                          ? "bg-[color:var(--surface-1)] border-muted"
+                          : "bg-primary/10 border-primary/40 text-foreground"
+                      )}
+                    >
                       {message.content ? (
                         message.role === "assistant" ? (
                           <div className="text-[15px] leading-7">
@@ -355,11 +364,11 @@ export default function ChatPage() {
         </ScrollArea>
 
         {/* Input Form */}
-        <div className="border-t-2 border-border/60 p-4 bg-card/50 backdrop-blur-sm">
+        <div className="sticky bottom-0 left-0 right-0 border-t border-divider bg-[color:var(--surface-0)]/92 px-4 py-4 backdrop-blur supports-[backdrop-filter]:backdrop-blur">
           <ChatInputBar
             input={input}
             setInput={setInput}
-            placeholder={`Ask anything about your documents... e.g., "${examples[placeholderIdx]}"`}
+            placeholder={`Ask anything about your documents... e.g., "${CHAT_PLACEHOLDER_EXAMPLES[placeholderIdx]}"`}
             loading={loading}
             isSettingsValid={isSettingsValid}
             uiSettingsValid={uiSettingsValid}

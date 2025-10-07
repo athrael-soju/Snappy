@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import {
   Dialog,
   DialogContent,
@@ -24,12 +26,20 @@ export default function ImageLightbox({ open, src, alt, onOpenChange }: ImageLig
           <DialogDescription>Full size image view</DialogDescription>
         </DialogHeader>
 
-        <div className="relative flex items-center justify-center bg-background">
-          <img
-            src={src}
-            alt={alt || "Full image"}
-            className="max-w-[92vw] max-h-[88vh] w-auto h-auto object-contain"
-          />
+        <div className="flex items-center justify-center bg-background">
+          <div
+            className="relative"
+            style={{ width: "92vw", height: "88vh", maxWidth: "1024px", maxHeight: "1024px" }}
+          >
+            <Image
+              src={src}
+              alt={alt || "Full image"}
+              fill
+              sizes="(max-width: 1024px) 90vw, 1024px"
+              className="object-contain"
+              unoptimized
+            />
+          </div>
         </div>
 
         {alt && (

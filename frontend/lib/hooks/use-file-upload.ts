@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+﻿import { useState, useRef, useCallback, useEffect } from "react";
 import { useUploadStore } from "@/stores/app-store";
 import { ApiError } from "@/lib/api/generated";
 import { toast } from "@/components/ui/sonner";
@@ -140,7 +140,7 @@ export function useFileUpload() {
       });
       setUploading(false);
     }
-  }, [files, uploading, setFiles, setUploading, setProgress, setMessage, setError, setJobId, setStatusText]);
+  }, [files, uploading, setUploading, setProgress, setMessage, setError, setJobId, setStatusText]);
 
   const handleCancel = useCallback(() => {
     isCancellingRef.current = true;
@@ -172,3 +172,4 @@ export function useFileUpload() {
     handleCancel,
   };
 }
+

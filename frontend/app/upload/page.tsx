@@ -75,7 +75,7 @@ export default function UploadPage() {
 
   return (
     <motion.div {...defaultPageMotion}
-      className="page-shell page-section flex flex-col min-h-0 flex-1 space-y-6"
+      className="page-shell page-section flex min-h-0 flex-1 flex-col gap-10"
     >
       <motion.section variants={sectionVariants}>
         <PageHeader
@@ -85,8 +85,8 @@ export default function UploadPage() {
         />
       </motion.section>
 
-      <div className="flex-1 min-h-0 flex flex-col space-y-6 pb-6">
-        <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col space-y-6 pb-6">
+      <div className="flex-1 min-h-0 flex flex-col gap-8 pb-10">
+        <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col gap-8 pb-10">
           {/* System Status Warning */}
           <SystemStatusWarning isReady={isReady} />
           <FileDropzone
@@ -115,3 +115,5 @@ export default function UploadPage() {
     </motion.div>
   );
 }
+
+

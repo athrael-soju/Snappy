@@ -102,7 +102,7 @@ export default function RecentSearchesChips({ recentSearches, loading, visible =
             aria-label="Previous"
             onClick={() => scrollByPage(-1)}
             disabled={currentPage === 0}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-md bg-card/80 backdrop-blur-sm text-muted-foreground hover:text-foreground hover:bg-muted shadow ring-1 ring-border disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 rounded-md border border-muted bg-[color:var(--surface-0)]/90 p-1.5 text-muted-foreground transition hover:bg-[color:var(--surface-2)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
@@ -113,7 +113,7 @@ export default function RecentSearchesChips({ recentSearches, loading, visible =
             aria-label="Next"
             onClick={() => scrollByPage(1)}
             disabled={currentPage >= pages.length - 1}
-            className="absolute right-1 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-md bg-card/80 backdrop-blur-sm text-muted-foreground hover:text-foreground hover:bg-muted shadow ring-1 ring-border disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="absolute right-1 top-1/2 -translate-y-1/2 z-10 rounded-md border border-muted bg-[color:var(--surface-0)]/90 p-1.5 text-muted-foreground transition hover:bg-[color:var(--surface-2)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -131,7 +131,7 @@ export default function RecentSearchesChips({ recentSearches, loading, visible =
                         key={`${pIdx}-${idx}`}
                         whileHover={{ scale: 1.02, y: -2 }}
                         whileTap={{ scale: 0.98 }}
-                        className="relative flex-1 min-w-0 p-3 text-sm rounded-xl border-2 border-dashed border-border hover:border-foreground/40 hover:bg-muted hover:shadow-sm transition-all group min-h-[3rem] transform-gpu will-change-transform"
+                        className="relative flex-1 min-w-0 rounded-xl border border-muted bg-[color:var(--surface-1)]/70 p-3 text-sm transition-all group min-h-[3.25rem] transform-gpu will-change-transform hover:border-primary/40 hover:bg-primary/10 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-ring/30"
                       >
                         <button
                           onClick={() => onSelect(search)}
@@ -160,7 +160,7 @@ export default function RecentSearchesChips({ recentSearches, loading, visible =
                         <button
                           aria-label={`Remove ${search}`}
                           onClick={() => onRemove(search)}
-                          className="absolute top-1 right-1 rounded-full hover:bg-muted p-0.5"
+                          className="absolute top-1 right-1 rounded-full p-0.5 text-muted-foreground transition hover:bg-[color:var(--surface-2)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
                           disabled={!!loading}
                         >
                           <X className="w-3.5 h-3.5 text-muted-foreground" />
@@ -181,13 +181,13 @@ export default function RecentSearchesChips({ recentSearches, loading, visible =
           {!atStart && (
             <div
               aria-hidden
-              className="pointer-events-none absolute left-0 top-0 h-full w-8 from-background to-transparent"
+              className="pointer-events-none absolute left-0 top-0 h-full w-8 bg-gradient-to-r from-[color:var(--surface-0)] to-transparent"
             />
           )}
           {!atEnd && (
             <div
               aria-hidden
-              className="pointer-events-none absolute right-0 top-0 h-full w-8 from-background to-transparent"
+              className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-[color:var(--surface-0)] to-transparent"
             />
           )}
 
@@ -211,3 +211,4 @@ export default function RecentSearchesChips({ recentSearches, loading, visible =
     </AnimatePresence>
   );
 }
+
