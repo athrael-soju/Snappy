@@ -66,7 +66,7 @@ export default function MaintenancePage() {
                     variant="outline"
                     size="sm"
                     onClick={() => configPanelRef.current?.openResetDialog()}
-                    className="h-8 px-3 gap-1.5 rounded-lg border-2 border-muted bg-card text-foreground hover:bg-destructive hover:border-destructive hover:text-destructive-foreground shadow-sm transition-all"
+                    className="h-12 w-12"
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
                     <span className="text-xs font-medium">Reset All</span>
@@ -129,7 +129,7 @@ export default function MaintenancePage() {
                 </div>
               </div>
             </ScrollArea>
-            
+
             {/* System Status Badge - Right Side */}
             {systemStatus && (
               <div className="flex flex-col justify-start pt-4 w-52 flex-shrink-0">

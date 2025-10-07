@@ -48,11 +48,11 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [resetSectionDialogOpen, setResetSectionDialogOpen] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  
+
   useImperativeHandle(ref, () => ({
     openResetDialog: () => setResetDialogOpen(true),
   }));
-  
+
   useEffect(() => {
     loadConfiguration();
   }, []);
@@ -94,12 +94,12 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
         ConfigurationService.getConfigSchemaConfigSchemaGet(),
         ConfigurationService.getConfigValuesConfigValuesGet()
       ]);
-      
+
       setSchema(schemaData as ConfigSchema);
-      
+
       // Merge with localStorage (localStorage takes precedence)
       const mergedValues = mergeWithStoredConfig(valuesData);
-      
+
       setValues(mergedValues);
       setOriginalValues(mergedValues);
     } catch (err) {
@@ -114,10 +114,10 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
   async function saveChanges() {
     setSaving(true);
     setError(null);
-    
+
     try {
       const changedKeys = Object.keys(values).filter(key => values[key] !== originalValues[key]);
-      
+
       // Update backend
       for (const key of changedKeys) {
         await ConfigurationService.updateConfigConfigUpdatePost({
@@ -125,14 +125,14 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
           value: values[key]
         });
       }
-      
+
       // Save to localStorage for persistence
       saveConfigToStorage(values);
 
       setOriginalValues({ ...values });
       setLastSaved(new Date());
-      toast.success("Configuration saved", { 
-        description: `${changedKeys.length} setting${changedKeys.length !== 1 ? 's' : ''} updated` 
+      toast.success("Configuration saved", {
+        description: `${changedKeys.length} setting${changedKeys.length !== 1 ? 's' : ''} updated`
       });
     } catch (err) {
       const errorMsg = err instanceof ApiError ? err.message : "Failed to save configuration";
@@ -151,14 +151,14 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
 
   async function resetSection(categoryKey: string) {
     if (!schema || !schema[categoryKey]) return;
-    
+
     setSaving(true);
     setResetSectionDialogOpen(null);
-    
+
     try {
       const category = schema[categoryKey];
       const defaultValues: Record<string, string> = {};
-      
+
       for (const setting of category.settings) {
         defaultValues[setting.key] = setting.default;
         await ConfigurationService.updateConfigConfigUpdatePost({
@@ -166,13 +166,13 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
           value: setting.default
         });
       }
-      
+
       setValues(prev => ({ ...prev, ...defaultValues }));
       setOriginalValues(prev => ({ ...prev, ...defaultValues }));
       saveConfigToStorage({ ...values, ...defaultValues });
-      
-      toast.success("Section reset", { 
-        description: `${category.name} settings restored to defaults` 
+
+      toast.success("Section reset", {
+        description: `${category.name} settings restored to defaults`
       });
     } catch (err) {
       const errorMsg = err instanceof ApiError ? err.message : "Failed to reset section";
@@ -190,14 +190,14 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
     try {
       // Clear localStorage
       clearConfigFromStorage();
-      
+
       // Reset backend to defaults
       await ConfigurationService.resetConfigConfigResetPost();
-      
+
       // Reload configuration
       await loadConfiguration();
       setLastSaved(new Date());
-      
+
       toast.success("Configuration reset", { description: "All settings restored to defaults" });
     } catch (err) {
       const errorMsg = err instanceof ApiError ? err.message : "Failed to reset configuration";
@@ -216,11 +216,11 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
     if (setting.ui_hidden) return false;
     // If no dependency, always visible
     if (!setting.depends_on) return true;
-    
+
     // Check if parent setting has the required value
     const parentValue = values[setting.depends_on.key] || "";
     const parentBool = parentValue.toLowerCase() === "true";
-    
+
     return parentBool === setting.depends_on.value;
   }
 
@@ -270,110 +270,110 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
 
       {/* Main content - with proper height constraints */}
       <div className="flex-1 min-h-0 flex gap-6 pr-4">
-          {/* Left rail navigation */}
-          <ConfigurationTabs
-            categories={categoriesToRender}
-            activeTab={activeCategoryKey}
-            onTabChange={setActiveTab}
-          />
+        {/* Left rail navigation */}
+        <ConfigurationTabs
+          categories={categoriesToRender}
+          activeTab={activeCategoryKey}
+          onTabChange={setActiveTab}
+        />
 
-          {/* Main content area */}
-          <div className="flex-1 min-w-0 flex flex-col gap-4">
-            {categoriesToRender.map(([categoryKey, category]) => {
-              if (activeCategoryKey !== categoryKey) return null;
-              
-              // Filter to show only top-level settings (exclude nested children with depends_on)
-              const visibleSettings = category.settings.filter(s => isSettingVisible(s) && !s.depends_on);
-              
-              return (
-                <motion.div
-                  key={categoryKey}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.2 }}
-                  className="flex-1 min-h-0 flex gap-3"
-                >
-                  {/* Settings Card - Scrollable */}
-                  <Card className="card-surface flex flex-col flex-1 border-2">
-                    <CardHeader className="pb-4 flex-shrink-0">
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 bg-white dark:bg-blue-900/40 rounded-xl border-2 border-blue-200 dark:border-blue-800/50 shadow-sm">
-                          <Settings className="w-5 h-5 text-blue-500 dark:text-blue-400" />
-                        </div>
-                        <div>
-                          <CardTitle className="text-xl font-bold text-foreground">{category.name}</CardTitle>
-                          <CardDescription className="mt-1 text-base text-muted-foreground">{category.description}</CardDescription>
-                        </div>
+        {/* Main content area */}
+        <div className="flex-1 min-w-0 flex flex-col gap-4">
+          {categoriesToRender.map(([categoryKey, category]) => {
+            if (activeCategoryKey !== categoryKey) return null;
+
+            // Filter to show only top-level settings (exclude nested children with depends_on)
+            const visibleSettings = category.settings.filter(s => isSettingVisible(s) && !s.depends_on);
+
+            return (
+              <motion.div
+                key={categoryKey}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
+                className="flex-1 min-h-0 flex gap-3"
+              >
+                {/* Settings Card - Scrollable */}
+                <Card className="card-surface flex flex-col flex-1 border-2">
+                  <CardHeader className="pb-4 flex-shrink-0">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-white dark:bg-blue-900/40 rounded-xl border-2 border-blue-200 dark:border-blue-800/50 shadow-sm">
+                        <Settings className="w-5 h-5 text-blue-500 dark:text-blue-400" />
                       </div>
-                    </CardHeader>
-                    <ScrollArea className="h-[calc(100vh-35rem)]">
-                      <CardContent className="pr-4 py-4">
-                        {visibleSettings.map((setting, index) => {
-                          // Check for nested settings
-                          const childSettings = category.settings.filter(
-                            s => s.depends_on?.key === setting.key && isSettingVisible(s)
-                          );
-                          const hasChildren = childSettings.length > 0;
-                          
-                          return (
-                            <div key={setting.key}>
-                              {index > 0 && <Separator className="my-3" />}
-                              <SettingRenderer
-                                setting={setting}
-                                value={values[setting.key]}
-                                saving={saving}
-                                onChange={handleValueChange}
-                              />
-                              
-                              {/* Nested child settings */}
-                              {hasChildren && (
-                                <div className="mt-4 ml-8 pl-5 border-l-2 border-blue-300/40 dark:border-blue-800/40 space-y-4 pb-2">
-                                  {childSettings.map(childSetting => (
-                                    <div key={childSetting.key}>
-                                      <SettingRenderer
-                                        setting={childSetting}
-                                        value={values[childSetting.key]}
-                                        saving={saving}
-                                        isNested={true}
-                                        onChange={handleValueChange}
-                                      />
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </CardContent>
-                    </ScrollArea>
-                  </Card>
+                      <div>
+                        <CardTitle className="text-xl font-bold text-foreground">{category.name}</CardTitle>
+                        <CardDescription className="mt-1 text-base text-muted-foreground">{category.description}</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <ScrollArea className="h-[calc(100vh-35rem)]">
+                    <CardContent className="pr-4 py-4">
+                      {visibleSettings.map((setting, index) => {
+                        // Check for nested settings
+                        const childSettings = category.settings.filter(
+                          s => s.depends_on?.key === setting.key && isSettingVisible(s)
+                        );
+                        const hasChildren = childSettings.length > 0;
 
-                  {/* Reset Section Button - Right side of card */}
-                  <div className="flex flex-col justify-start pt-1">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setResetSectionDialogOpen(categoryKey)}
-                          disabled={saving}
-                          className="h-8 w-8 p-0 border-muted bg-card text-foreground hover:bg-destructive hover:border-destructive hover:text-destructive-foreground shadow-sm transition-all"
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right" sideOffset={8} className="bg-popover text-popover-foreground">
-                        <p>Reset this section</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
+                        return (
+                          <div key={setting.key}>
+                            {index > 0 && <Separator className="my-3" />}
+                            <SettingRenderer
+                              setting={setting}
+                              value={values[setting.key]}
+                              saving={saving}
+                              onChange={handleValueChange}
+                            />
 
-                </motion.div>
-              );
-            })}
-          </div>
+                            {/* Nested child settings */}
+                            {hasChildren && (
+                              <div className="mt-4 ml-8 pl-5 border-l-2 border-blue-300/40 dark:border-blue-800/40 space-y-4 pb-2">
+                                {childSettings.map(childSetting => (
+                                  <div key={childSetting.key}>
+                                    <SettingRenderer
+                                      setting={childSetting}
+                                      value={values[childSetting.key]}
+                                      saving={saving}
+                                      isNested={true}
+                                      onChange={handleValueChange}
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </CardContent>
+                  </ScrollArea>
+                </Card>
+
+                {/* Reset Section Button - Right side of card */}
+                <div className="flex flex-col justify-start pt-1">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setResetSectionDialogOpen(categoryKey)}
+                        disabled={saving}
+                        className="h-12 w-12"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" sideOffset={8} className="bg-popover text-popover-foreground">
+                      <p>Reset this section</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+
+              </motion.div>
+            );
+          })}
         </div>
+      </div>
 
       <UnsavedChangesBar
         hasChanges={hasChanges}
@@ -396,14 +396,14 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setResetDialogOpen(false)}
               disabled={saving}
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               variant="destructive"
               onClick={resetToDefaults}
               disabled={saving}
@@ -435,14 +435,14 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setResetSectionDialogOpen(null)}
               disabled={saving}
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               variant="destructive"
               onClick={() => resetSectionDialogOpen && resetSection(resetSectionDialogOpen)}
               disabled={saving}
