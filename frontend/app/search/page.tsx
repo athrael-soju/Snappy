@@ -267,23 +267,23 @@ export default function SearchPage() {
             {!hasSearched && !loading && !error ? (
               <Card className="card-surface border border-dashed border-muted/60 text-center">
                 <CardContent className="flex flex-col items-center gap-6 py-20">
-                  <div className="flex size-20 items-center justify-center rounded-full bg-[color:var(--surface-2)] text-primary">
+                  <div className="flex size-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary">
                     <Search className="h-9 w-9" />
                   </div>
                   <div className="space-y-3 max-w-2xl">
                     <h3 className="text-2xl font-semibold text-foreground">Search across documents, slides, and imagery</h3>
-                    <p className="text-base text-muted-foreground">
-                      This is a simple search interface to return similar documents.
+                    <p className="text-base leading-relaxed text-muted-foreground">
+                      Find documents using natural language. Try one of the examples below to get started.
                     </p>
                   </div>
-                  <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="grid gap-3 sm:grid-cols-2">
                     {exampleQueries.map((example) => (
                       <Button
                         key={example}
                         type="button"
                         variant="outline"
                         onClick={() => setQ(example)}
-                        className="justify-start rounded-xl border-muted px-4 py-3 text-left text-sm text-muted-foreground hover:border-primary/40 hover:bg-primary/10 hover:text-foreground"
+                        className="justify-start rounded-xl px-4 py-3 text-left text-base hover:border-primary/40 hover:bg-primary/10"
                       >
                         {example}
                       </Button>
@@ -318,7 +318,7 @@ export default function SearchPage() {
                   >
                     {results.map((item, idx) => (
                       <motion.div key={idx} {...fadeInItemMotion} {...hoverLift}>
-                        <Card className="group flex h-full flex-col overflow-hidden border border-muted bg-[color:var(--surface-1)] shadow-[var(--shadow-1)] transition will-change-transform hover:-translate-y-1 hover:shadow-[var(--shadow-2)]">
+                        <Card className="card-surface group flex h-full flex-col overflow-hidden cursor-pointer">
                           {item.image_url ? (
                             <button
                               type="button"
@@ -349,24 +349,24 @@ export default function SearchPage() {
 
                           <CardContent className="flex flex-1 flex-col gap-4 p-4">
                             <div className="space-y-1">
-                              <h3 className="line-clamp-2 text-base font-semibold text-foreground group-hover:text-primary">
+                              <h3 className="line-clamp-2 text-base font-semibold text-foreground group-hover:text-primary transition-colors">
                                 {item.label ?? `Result ${idx + 1}`}
                               </h3>
                               {item.payload?.filename && (
-                                <p className="line-clamp-1 text-xs text-muted-foreground">
+                                <p className="line-clamp-1 text-sm text-muted-foreground">
                                   {item.payload.filename}
                                   {item.payload?.pdf_page_index !== undefined && ` • Page ${item.payload.pdf_page_index + 1}`}
                                 </p>
                               )}
                             </div>
 
-                            <div className="mt-auto flex items-center justify-between border-t border-divider pt-3 text-xs text-muted-foreground">
+                            <div className="mt-auto flex items-center justify-between border-t border-divider pt-3 text-sm text-muted-foreground">
                               <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="border-muted bg-[color:var(--surface-0)]/70 text-xs font-medium">
+                                <Badge variant="outline" className="text-xs font-medium">
                                   #{idx + 1}
                                 </Badge>
                                 {typeof item.score === "number" && (
-                                  <Badge variant="outline" className="border-muted bg-[color:var(--surface-0)]/70 text-xs font-medium">
+                                  <Badge variant="outline" className="text-xs font-medium">
                                     Score {Math.round(item.score * 100)}
                                   </Badge>
                                 )}
@@ -387,16 +387,16 @@ export default function SearchPage() {
                   >
                     <Card className="card-surface">
                       <CardContent className="flex flex-col items-center gap-6 py-14 text-center">
-                        <div className="flex size-20 items-center justify-center rounded-full bg-[color:var(--surface-2)]">
+                        <div className="flex size-20 items-center justify-center rounded-2xl bg-gradient-to-br from-muted/30 to-muted/10">
                           <ImageIcon className="h-10 w-10 text-muted-foreground" />
                         </div>
                         <div className="space-y-3 max-w-xl">
                           <h3 className="text-xl font-semibold text-foreground">No matches found</h3>
-                          <p className="text-base text-muted-foreground">
+                          <p className="text-base leading-relaxed text-muted-foreground">
                             We could not find results for <span className="font-medium text-foreground">{q}</span>. Adjust your search terms, broaden filters, or upload additional documents to improve coverage.
                           </p>
                         </div>
-                        <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
+                        <div className="grid gap-3 text-base text-muted-foreground sm:grid-cols-2">
                           <div className="flex items-start gap-2">
                             <span className="mt-1 size-1.5 rounded-full bg-foreground/70" />
                             Try pairing a document title with a visual clue.

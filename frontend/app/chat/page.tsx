@@ -235,7 +235,7 @@ export default function ChatPage() {
           <Card className="card-surface mx-auto w-full max-w-4xl flex min-h-0 flex-1 flex-col overflow-hidden">
             <ScrollArea
               ref={messagesContainerRef}
-              className="h-[calc(100vh-25rem)] rounded-xl">
+              className="h-[calc(100vh-30rem)] rounded-xl">
               <div className="space-y-6 p-3 sm:p-4">
                 <AnimatePresence mode="popLayout">
                 {messages.length === 0 ? (
@@ -298,15 +298,15 @@ export default function ChatPage() {
                   <div className={cn("flex-1 max-w-[85%]", message.role === "user" && "text-right")}>
                     <div
                       className={cn(
-                        "inline-block max-w-2xl rounded-2xl border px-5 py-3.5 text-left shadow-[var(--shadow-2)]",
+                        "inline-block max-w-2xl rounded-2xl border px-5 py-3.5 text-left shadow-sm",
                         message.role === "assistant"
-                          ? "bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-cyan-500/5 border-muted/60 backdrop-blur-sm"
-                          : "bg-gradient-to-br from-primary/15 to-primary/10 border-primary/30 text-foreground"
+                          ? "bg-card border-border text-foreground"
+                          : "bg-primary/10 border-primary/30 text-foreground"
                       )}
                     >
                       {message.content ? (
                         message.role === "assistant" ? (
-                          <div className="text-[15px] leading-7">
+                          <div className="text-base leading-relaxed">
                             <MarkdownRenderer 
                               content={message.content}
                               images={message.citations || []}
@@ -318,7 +318,7 @@ export default function ChatPage() {
                             />
                           </div>
                         ) : (
-                          <div className="whitespace-pre-wrap text-[15px] leading-7">{message.content}</div>
+                          <div className="whitespace-pre-wrap text-base leading-relaxed">{message.content}</div>
                         )
                       ) : (
                         loading && message.role === "assistant" ? (

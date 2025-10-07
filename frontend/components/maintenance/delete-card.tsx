@@ -21,20 +21,16 @@ export function DeleteCard({
   onDelete 
 }: DeleteCardProps) {
   return (
-    <Card className="border-red-200/70 dark:border-red-800/60 transition-all duration-300 hover:shadow-lg hover:border-red-300 dark:hover:border-red-700">
+    <Card className="card-surface min-h-[240px] border-red-200/70 dark:border-red-800/60 hover:border-red-300 dark:hover:border-red-700">
       <CardHeader className="pb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-red-100 to-rose-50 dark:from-red-900/40 dark:to-rose-900/30 border-2 border-red-200 dark:border-red-800/50 shadow-sm">
-            <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
-          </div>
-          <div>
-            <CardTitle className="text-base font-bold text-red-900 dark:text-red-100">Delete System</CardTitle>
-            <CardDescription className="text-xs text-muted-foreground">Remove collection and bucket</CardDescription>
-          </div>
+        <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-red-500/10 to-red-500/5 text-red-600 dark:text-red-400 mb-3">
+          <Trash2 className="w-6 h-6" />
         </div>
+        <CardTitle className="text-xl font-semibold text-foreground">Delete System</CardTitle>
+        <CardDescription className="text-base leading-relaxed text-muted-foreground">Remove collection and bucket</CardDescription>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-foreground/85 mb-5 leading-relaxed">
+        <p className="text-base text-muted-foreground mb-5 leading-relaxed">
           Permanently deletes the Qdrant collection and MinIO bucket including all data. Use this to change configuration or start fresh.
         </p>
         <Dialog open={dialogOpen} onOpenChange={onDialogChange}>
@@ -42,7 +38,7 @@ export function DeleteCard({
             <Button
               variant="destructive"
               disabled={isLoading || isInitLoading || !isSystemReady}
-              className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold"
+              className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:shadow-lg disabled:opacity-50 transition-all font-semibold rounded-full"
             >
               {isLoading ? (
                 <>
@@ -67,10 +63,10 @@ export function DeleteCard({
                 This will permanently delete the Qdrant collection and MinIO bucket, including all vectors, files, and metadata. This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
-            <div className="bg-red-50 p-4 rounded-lg border-l-4 border-red-400">
+            <div className="bg-red-50 dark:bg-red-950/20 p-4 rounded-lg border-l-4 border-red-400">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
-                <p className="text-sm text-red-800">
+                <p className="text-base text-red-800 dark:text-red-200 leading-relaxed">
                   <strong>Warning:</strong> All uploaded documents, embeddings, and search indices will be permanently lost.
                 </p>
               </div>

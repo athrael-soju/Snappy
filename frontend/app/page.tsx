@@ -45,21 +45,21 @@ export default function Home() {
               <Button
                 asChild
                 size="lg"
-                className="primary-gradient rounded-full px-7 py-4 text-base shadow-lg transition-transform focus-visible:ring-4 focus-visible:ring-ring/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--surface-0)] hover:-translate-y-0.5"
+                className="primary-gradient rounded-full px-8 py-6 text-base font-semibold shadow-lg transition-all hover:shadow-xl hover:scale-105 focus-visible:ring-4 focus-visible:ring-ring/35 focus-visible:ring-offset-2"
               >
                 <Link href="/upload">
-                  <CloudUpload className="mr-3 h-5 w-5" />
-                  Upload your documents
-                  <ArrowRight className="ml-3 h-5 w-5" />
+                  <CloudUpload className="mr-2 h-5 w-5" />
+                  Upload Documents
+                  <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
               <Button
                 asChild
                 variant="outline"
                 size="lg"
-                className="rounded-full border-2 border-border bg-card px-6 py-[0.875rem] text-base text-foreground font-medium transition hover:bg-[color:var(--surface-2)] hover:border-border-strong focus-visible:ring-2 focus-visible:ring-ring/35 focus-visible:ring-offset-2"
+                className="rounded-full px-6 py-6 text-base font-medium"
               >
-                <Link href="/search">Explore search</Link>
+                <Link href="/search">Explore Search</Link>
               </Button>
             </div>
           </div>
@@ -72,14 +72,14 @@ export default function Home() {
             <motion.div className="grid gap-6 md:grid-cols-3" {...staggeredListMotion}>
           {workflow.map(({ title, description, icon: Icon }) => (
             <motion.div key={title} {...fadeInItemMotion} {...hoverLift}>
-              <Card className="card-surface h-full hover:shadow-xl transition-all duration-300 border-border/50">
-                <CardHeader className="flex flex-row items-center gap-4 border-b border-divider pb-5">
-                  <div className="flex size-14 items-center justify-center rounded-xl border-2 border-primary/20 bg-gradient-to-br from-primary/10 to-primary/5 text-primary shadow-sm">
+              <Card className="card-surface h-full min-h-[180px] cursor-pointer group">
+                <CardHeader className="pb-4">
+                  <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary group-hover:from-primary/20 group-hover:to-primary/10 transition-colors">
                     <Icon className="h-6 w-6" strokeWidth={2.2} />
                   </div>
-                  <CardTitle className="text-xl font-bold text-foreground tracking-tight">{title}</CardTitle>
+                  <CardTitle className="text-xl font-semibold text-foreground mt-3">{title}</CardTitle>
                 </CardHeader>
-                <CardContent className="pt-5 text-sm leading-relaxed text-foreground/90 font-medium">
+                <CardContent className="text-base leading-relaxed text-muted-foreground">
                   {description}
                 </CardContent>
               </Card>

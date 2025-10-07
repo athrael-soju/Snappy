@@ -89,8 +89,8 @@ export function FileDropzone({
             <CardTitle className="text-2xl font-semibold text-foreground">
               {isDragOver ? "Release to upload" : "Drag files here"}
             </CardTitle>
-            <CardDescription className="mx-auto max-w-xl text-base text-muted-foreground">
-              Drop PDFs, images, or office documents to add them to your ColPali index. You can also browse from your device and track progress in real time.
+            <CardDescription className="mx-auto max-w-xl text-base leading-relaxed text-muted-foreground">
+              Drop PDFs, images, or office documents to add them to your ColPali index. You can also browse from your device.
             </CardDescription>
           </div>
         </CardHeader>
@@ -149,10 +149,10 @@ export function FileDropzone({
                   type={uploading ? "button" : "submit"}
                   disabled={!uploading && (!hasFiles || !isReady)}
                   className={cn(
-                    "h-12 flex-1 rounded-xl px-6 text-base font-semibold shadow-[var(--shadow-2)] transition",
+                    "h-12 flex-1 rounded-full px-8 text-base font-semibold shadow-lg transition-all",
                     uploading
                       ? "bg-destructive text-white hover:bg-destructive/90"
-                      : "primary-gradient hover:-translate-y-0.5"
+                      : "primary-gradient hover:shadow-xl hover:scale-105"
                   )}
                   onClick={uploading ? onCancel : undefined}
                   title={!isReady && !uploading ? "System must be initialized before uploading" : undefined}
@@ -160,7 +160,7 @@ export function FileDropzone({
                   {uploading ? (
                     <>
                       <XCircle className="mr-2 h-5 w-5" />
-                      Cancel upload
+                      Cancel Upload
                     </>
                   ) : (
                     <>

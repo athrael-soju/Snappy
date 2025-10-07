@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Moon, Sun } from "lucide-react";
+import { Monitor, Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function ThemeSwitch() {
-  const { resolvedTheme, setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -19,23 +19,37 @@ export function ThemeSwitch() {
     return null;
   }
 
-  const isDarkMode = resolvedTheme === "dark";
+  const options = [
+    { value: "light", icon: Sun, label: "Light" },
+    { value: "system", icon: Monitor, label: "Auto" },
+    { value: "dark", icon: Moon, label: "Dark" },
+  ] as const;
 
   return (
-    <div className="flex items-center gap-2">
-      <Label htmlFor="theme-switch" className="sr-only">
-        Toggle theme
-      </Label>
-      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border/50 bg-card/80 shadow-sm">
-        <Sun className={cn("w-4 h-4 transition-colors", isDarkMode ? "text-muted-foreground" : "text-amber-500")} />
-        <Switch
-          id="theme-switch"
-          checked={isDarkMode}
-          onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
-          aria-label="Toggle theme"
-        />
-        <Moon className={cn("w-4 h-4 transition-colors", isDarkMode ? "text-blue-400" : "text-muted-foreground")} />
-      </div>
+    <div className="flex items-center gap-1 rounded-full border border-border/50 bg-card/80 shadow-sm p-1">
+      {options.map(({ value, icon: Icon, label }) => (
+        <Tooltip key={value}>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setTheme(value)}
+              className={cn(
+                "h-7 w-7 rounded-full transition-all",
+                theme === value
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "hover:bg-muted"
+              )}
+              aria-label={`Switch to ${label} theme`}
+            >
+              <Icon className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" sideOffset={8}>
+            {label}
+          </TooltipContent>
+        </Tooltip>
+      ))}
     </div>
   );
 }

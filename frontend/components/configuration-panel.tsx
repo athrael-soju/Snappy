@@ -296,15 +296,15 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                 className="flex-1 min-h-0 flex gap-3"
               >
                 {/* Settings Card - Scrollable */}
-                <Card className="card-surface flex flex-1 min-h-0 flex-col border-2">
+                <Card className="card-surface flex flex-1 min-h-0 flex-col">
                   <CardHeader className="pb-4 flex-shrink-0">
                     <div className="flex items-start gap-3">
-                      <div className="p-2 bg-white dark:bg-blue-900/40 rounded-xl border-2 border-blue-200 dark:border-blue-800/50 shadow-sm">
-                        <Settings className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+                      <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 text-blue-500">
+                        <Settings className="w-6 h-6" />
                       </div>
                       <div>
-                        <CardTitle className="text-xl font-bold text-foreground">{category.name}</CardTitle>
-                        <CardDescription className="mt-1 text-base text-muted-foreground">{category.description}</CardDescription>
+                        <CardTitle className="text-xl font-semibold text-foreground">{category.name}</CardTitle>
+                        <CardDescription className="mt-1 text-base leading-relaxed text-muted-foreground">{category.description}</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
