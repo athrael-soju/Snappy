@@ -135,44 +135,44 @@ Screenshots of the current UI:
     <tr>
       <td align="center">
         <strong>Home</strong><br/>
-        ![alt text](image-1.png)
-        ![alt text](image-8.png)
+        <img src="image/README/image-1.png" alt="Home screen" width="520" />
+        <img src="image/README/image-8.png" alt="Home screen" width="520" />
       </td>
       <td align="center">
         <strong>Upload</strong><br/>
-        ![alt text](image-3.png)
-        ![alt text](image-10.png)
+        <img src="image/README/image-3.png" alt="Upload screen" width="520" />
+        <img src="image/README/image-10.png" alt="Upload screen" width="520" />
       </td>
     </tr>
     <tr>
       <td align="center">
         <strong>Search</strong><br/>
-        ![alt text](image-2.png)
-        ![alt text](image-9.png)
+        <img src="image/README/image-2.png" alt="Search screen" width="520" />
+        <img src="image/README/image-9.png" alt="Search screen" width="520" />
       </td>
       <td align="center">
         <strong>Chat</strong><br/>
-        ![alt text](image-4.png)
-        ![alt text](image-11.png)
+        <img src="image/README/image-4.png" alt="Chat screen" width="520" />
+        <img src="image/README/image-11.png" alt="Chat screen" width="520" />
       </td>
     </tr>
     <tr>
       <td align="center">
         <strong>System (Configuration)</strong><br/>
-        ![alt text](image-5.png)
-        ![alt text](image-12.png)
+        <img src="image/README/image-5.png" alt="Configuration screen" width="520" />
+        <img src="image/README/image-12.png" alt="Configuration screen" width="520" />
       </td>
       <td align="center">
         <strong>System (Maintenance)</strong><br/>
-        ![alt text](image-6.png)
-        ![alt text](image-13.png)
+        <img src="image/README/image-6.png" alt="Maintenance screen" width="520" />
+        <img src="image/README/image-13.png" alt="Maintenance screen" width="520" />
       </td>      
     </tr>
     <tr>    
       <td align="center">
          <strong>About</strong><br/>
-         ![alt text](image-7.png)
-         ![alt text](image-14.png)
+         <img src="image/README/image-7.png" alt="About screen" width="520" />
+         <img src="image/README/image-14.png" alt="About screen" width="520" />
       </td>
     </tr>      
   </table>
