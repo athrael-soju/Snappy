@@ -9,7 +9,7 @@ import { Home, Eye, CloudUpload, Brain, Menu } from "lucide-react"
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Sheet, SheetTrigger, SheetContent } from '@/components/ui/sheet'
+import { Sheet, SheetTrigger, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { useAppStore } from '@/stores/app-store'
 import { NavUser } from '@/components/nav-user'
 import { ThemeSwitch } from '@/components/theme-switch'
@@ -142,6 +142,7 @@ export function Nav() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-64 border-border/40 bg-background/95">
+                <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                 <nav className="mt-6 flex flex-col gap-2">
                   {links.map((link) => {
                     const Icon = link.icon
