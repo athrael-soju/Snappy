@@ -286,8 +286,8 @@ MinIO stores document images and provides public URLs for retrieval.
 
 #### `MINIO_BUCKET_NAME`
 - **Type**: String
-- **Default**: `documents`
-- **Description**: Name of the MinIO bucket where images are stored. The bucket is created automatically if it doesn't exist.
+- **Default**: *(derived from `QDRANT_COLLECTION_NAME`)*
+- **Description**: Name of the MinIO bucket where images are stored. When left unset the backend slugifies `QDRANT_COLLECTION_NAME` to build the bucket name and creates it automatically if it does not exist.
 
 #### `MINIO_PUBLIC_READ`
 - **Type**: Boolean
@@ -312,31 +312,21 @@ MinIO stores document images and provides public URLs for retrieval.
 
 #### `MINIO_WORKERS`
 - **Type**: Integer
-- **Default**: `12`
-- **Recommended**:
-  - **Consumer**: `4-8` (standard CPU, HDD/SATA SSD)
-  - **High-end**: `12` (high-core-count CPU, NVMe SSD, fast network)
-  - **Enterprise**: `16-32` (server-grade hardware)
-- **Description**: Number of concurrent threads for uploading images to MinIO within each batch. Higher values maximize throughput when you have fast CPU and I/O.
-- **Performance Impact**: Directly affects MinIO upload speed. Each thread handles one image upload at a time.
-- **Bottleneck Check**: Monitor CPU and network usage. If neither is saturated, increase this value.
-- **Note**: HTTP connection pool is automatically sized to `MINIO_WORKERS × MAX_CONCURRENT_BATCHES + 10` to prevent connection exhaustion
-
+- **Default**: *auto (CPU cores x pipeline concurrency)*
+- **Description**: Auto-sized concurrency for MinIO uploads. The backend inspects available CPU cores and pipeline concurrency to choose a safe level.
+- **Manual Override**: Set via environment variable when you need to cap concurrency for bandwidth-limited or shared clusters.
+- **Performance Impact**: Each worker handles one upload at a time; higher values use more network and CPU.
+- **Note**: HTTP connection pool is automatically sized to `MINIO_WORKERS x MAX_CONCURRENT_BATCHES + 10` to prevent connection exhaustion
 #### `MINIO_RETRIES`
 - **Type**: Integer
-- **Default**: `3`
-- **Recommended**:
-  - **Local/LAN**: `2-3` (reliable network)
-  - **Remote/WAN**: `3-5` (higher latency, more packet loss)
-- **Description**: Number of retry attempts for failed MinIO operations (total attempts = retries + 1).
-- **Use Case**: Higher concurrency (large `MINIO_WORKERS`) increases chance of transient failures, so more retries help reliability.
-
+- **Default**: *auto (derived from worker concurrency)*
+- **Description**: Retry attempts for failed MinIO operations (total attempts = retries + 1). Auto-sizing increases retries when concurrency is high to smooth over transient failures.
+- **Manual Override**: Adjust via environment variables when operating across unreliable links or when strict failure detection is preferred.
 #### `MINIO_FAIL_FAST`
 - **Type**: Boolean
 - **Default**: `False`
-- **Description**: Stop entire batch upload on first failure. When `False`, continues uploading remaining images even if some fail.
-- **Recommendation**: Keep `False` for better resilience.
-
+- **Description**: Stop entire batch upload on first failure. Leave disabled unless you are debugging a failure mode that needs immediate aborts.
+- **Manual Override**: Hidden from the default UI; toggle via environment variables only for diagnostics.
 ---
 
 ## MUVERA (Optional)
@@ -430,7 +420,6 @@ QDRANT_MEAN_POOLING_ENABLED=False
 # MinIO
 MINIO_IMAGE_FMT=JPEG
 MINIO_IMAGE_QUALITY=75
-MINIO_WORKERS=12
 MINIO_PUBLIC_URL=https://storage.yourdomain.com
 
 # MUVERA (for large collections)

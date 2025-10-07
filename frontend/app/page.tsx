@@ -1,126 +1,130 @@
 "use client";
 
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Search, Upload, MessageSquare, Zap, Shield, Sparkles, ArrowRight, Eye, Brain, CloudUpload, Database } from "lucide-react";
 import { motion } from "framer-motion";
+import { defaultPageMotion, fadeInItemMotion, hoverLift, sectionVariants, staggeredListMotion } from "@/lib/motion-presets";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { PageHeader } from "@/components/page-header";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ArrowRight, Brain, CloudUpload, Database, Sparkles } from "lucide-react";
+import { FeatureCard } from "@/components/ui/feature-card";
 
 const workflow = [
-  { step: 1, title: "Upload", description: "Drag & drop your documents", icon: CloudUpload, color: "text-blue-600" },
-  { step: 2, title: "Process", description: "AI analyzes visual content", icon: Database, color: "text-purple-600" },
-  { step: 3, title: "Search & Chat", description: "Find and discuss your documents", icon: Brain, color: "text-green-600" }
+  {
+    title: "Upload & Ingest",
+    description: "Effortlessly bring your documents into the system with intelligent processing",
+    icon: CloudUpload,
+    href: "/upload",
+    badges: ["PDF", "Images", "Multi-page"],
+    features: [
+      "Drag-and-drop interface with batch upload",
+      "Automatic format detection and validation",
+      "Real-time progress tracking and status",
+      "Secure storage with metadata extraction",
+    ],
+  },
+  {
+    title: "Visual Embeddings",
+    description: "ColPali transforms documents into searchable visual representations",
+    icon: Database,
+    href: "/maintenance?section=configuration",
+    badges: ["AI-Powered", "Qdrant", "GPU Ready"],
+    features: [
+      "Vision-language model for deep understanding",
+      "Page-level embeddings for precise retrieval",
+      "Vector database with similarity search",
+      "Configurable processing pipeline",
+    ],
+  },
+  {
+    title: "Search & Chat",
+    description: "Interact naturally with your documents using AI-powered search and conversation",
+    icon: Brain,
+    href: "/search",
+    badges: ["RAG", "Multi-modal", "Real-time"],
+    features: [
+      "Natural language queries with context awareness",
+      "Visual similarity search across documents",
+      "AI chat with document citations and sources",
+      "Instant results with relevance scoring",
+    ],
+  },
 ];
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1
-    }
-  }
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.5
-    }
-  }
-};
 
 export default function Home() {
   return (
-    <div className="space-y-16 pb-16">
-      {/* Hero Section */}
-      <section className="text-center py-16 sm:py-24 relative overflow-hidden">
-        {/* Background decoration */}
-        <div className="absolute inset-0">
-          <div className="absolute top-20 left-20 w-32 h-32 bg-blue-200/20 rounded-full blur-xl" />
-          <div className="absolute top-40 right-32 w-24 h-24 bg-purple-200/20 rounded-full blur-xl" />
-          <div className="absolute bottom-32 left-1/3 w-40 h-40 bg-cyan-200/20 rounded-full blur-xl" />
-        </div>
+    <motion.div {...defaultPageMotion} className="page-shell flex min-h-0 flex-1 flex-col">
+      <motion.section variants={sectionVariants} className="flex flex-col items-center text-center gap-6 pt-6 sm:pt-8">
+        <PageHeader
+          title="FastAPI / Next.js / ColPali Template"
+          icon={Sparkles}
+          badge={<Badge className="rounded-full text-sm">v0.0.4</Badge>}
+          tooltip="This starter kit combines a FastAPI backend, Qdrant vector search, and a modern Next.js interface so you can focus on the experience, not the configuration"
+        />
+      </motion.section>
 
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="max-w-5xl mx-auto relative z-10"
-        >
-          <div className="mb-6">
-            <Badge variant="secondary" className="mb-4 px-4 py-2 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border-blue-200">
-              <Sparkles className="w-4 h-4 mr-2" />
-              Powered by the ColPali Vision
-            </Badge>
-          </div>
-
-          <h1 className="text-5xl sm:text-6xl font-semibold mb-6">
-            <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">
-              FastAPI / Next.js / ColPali Template
-            </span>
-          </h1>
-
-          <p className="text-xl text-muted-foreground mb-3 max-w-3xl mx-auto leading-relaxed">
-            A lightweight, end-to-end template for knowledge retrieval, using ColPali
-          </p>
-          <p className="text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed">
-            Upload documents, search using natural language, and chat with an AI assistant
-          </p>
-
-          {/* Single primary CTA */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-            <Button
-              asChild
-              size="lg"
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 h-14 px-8 text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 rounded-full"
-            >
-              <Link href="/upload">
-                <CloudUpload className="mr-3 h-6 w-6" />
-                Start with Your Documents
-                <ArrowRight className="ml-3 h-5 w-5" />
-              </Link>
-            </Button>
-
-            <div className="text-muted-foreground">
-              or
-              <Link href="/search" className="ml-2 text-blue-600 hover:text-blue-700 font-medium hover:underline">
-                explore search →
-              </Link>
+      <motion.section variants={sectionVariants} className="flex-1 min-h-0 pb-6 sm:pb-8 flex">
+        <ScrollArea className="h-[calc(100vh-12rem)] rounded-xl">
+          <div className="mx-auto max-w-6xl px-4 py-6">
+            {/* Hero copy */}
+            <div className="flex flex-col items-center text-center gap-6 mb-8">
+              <div className="space-y-3 max-w-3xl">
+                <p className="text-lg text-foreground/90 leading-relaxed font-medium">
+                  Spin up document ingestion, visual search, and AI chat in minutes with this production-ready template.
+                </p>
+                <p className="text-sm text-foreground/70 font-medium">
+                  Powered by <span className="font-semibold text-primary hover:text-primary/80 transition-colors">ColPali</span>, <span className="font-semibold text-primary hover:text-primary/80 transition-colors">Qdrant</span>, and modern web technologies
+                </p>
+              </div>
+              
+              {/* Primary CTA above the grid */}
+              <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-4">
+                <Button
+                  asChild
+                  size="lg"
+                  className="primary-gradient rounded-full px-8 py-6 text-base font-semibold shadow-lg transition-all hover:shadow-xl hover:scale-105 focus-visible:ring-4 focus-visible:ring-ring/35 focus-visible:ring-offset-2"
+                >
+                  <Link href="/upload">
+                    <CloudUpload className="mr-2 h-5 w-5" />
+                    Upload Documents
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  size="lg"
+                  className="rounded-full px-6 py-6 text-base font-medium"
+                >
+                  <Link href="/search">Explore Search</Link>
+                </Button>
+              </div>
             </div>
-          </div>
 
-          {/* Quick workflow preview */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            className="flex justify-center items-center gap-6 text-muted-foreground"
-          >
-            {workflow.map((step, idx) => {
-              const StepIcon = step.icon;
-              return (
-                <div key={idx} className="flex items-center gap-3">
-                  <div className={`p-2 rounded-full bg-white border-2 ${step.color.replace('text-', 'border-').replace('-600', '-200')}`}>
-                    <StepIcon className={`w-4 h-4 ${step.color}`} />
-                  </div>
-                  <div className="text-left">
-                    <div className="font-medium text-foreground">{step.title}</div>
-                    <div className="text-sm">{step.description}</div>
-                  </div>
-                  {idx < workflow.length - 1 && (
-                    <ArrowRight className="w-4 h-4 text-muted-foreground/50 ml-2" />
-                  )}
-                </div>
-              );
-            })}
-          </motion.div>
-        </motion.div>
-      </section>
-    </div>
+            {/* 3-card grid */}
+            <motion.div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" {...staggeredListMotion}>
+              {workflow.map(({ title, description, icon, href, badges, features }) => (
+                <motion.div key={title} {...fadeInItemMotion} {...hoverLift}>
+                  <Link
+                    href={href}
+                    className="block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-2xl"
+                  >
+                    <FeatureCard
+                      icon={icon}
+                      title={title}
+                      description={description}
+                      badges={badges}
+                      features={features}
+                      glass
+                    />
+                  </Link>
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
+        </ScrollArea>
+      </motion.section>
+    </motion.div>
   );
 }

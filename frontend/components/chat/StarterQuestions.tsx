@@ -2,6 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
+import { fadeInItemMotion, hoverLift, staggeredListMotion } from "@/lib/motion-presets";
 import { Badge } from "@/components/ui/badge";
 import { HelpCircle } from "lucide-react";
 
@@ -18,31 +19,28 @@ export interface StarterQuestionsProps {
 
 export default function StarterQuestions({ questions, onSelect }: StarterQuestionsProps) {
   return (
-    <div className="w-full max-w-3xl space-y-3">
-      <div className="flex items-center gap-2 mb-2">
-        <HelpCircle className="w-4 h-4 text-purple-500" />
-        <span className="text-xs font-medium text-muted-foreground">Try asking:</span>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+    <div className="w-full space-y-3">
+      <motion.div className="grid grid-cols-1 sm:grid-cols-2 gap-3" {...staggeredListMotion}>
         {questions.map((question, idx) => {
           const Icon = question.icon;
           return (
             <motion.button
               key={idx}
-              whileHover={{ scale: 1.01, y: -1 }}
-              whileTap={{ scale: 0.99 }}
+              {...fadeInItemMotion}
+              {...hoverLift}
+              type="button"
               onClick={() => onSelect(question.text)}
-              className="p-3 text-left rounded-lg border-2 border-dashed border-purple-200/50 hover:border-purple-400 hover:bg-gradient-to-br hover:from-blue-50/50 hover:to-purple-50/50 transition-all duration-300 group shadow-sm hover:shadow-md"
+              className="flex w-full items-start gap-3 rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm p-3.5 text-left transition-all duration-200 group hover:border-primary/50 hover:bg-card/80 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
             >
-              <div className="flex items-start gap-2.5">
-                <div className="p-1.5 bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg group-hover:from-blue-200 group-hover:to-purple-200 transition-all duration-300 shadow-sm flex-shrink-0">
-                  <Icon className="w-3.5 h-3.5 text-purple-600" />
+              <div className="flex items-start gap-3 w-full">
+                <div className="flex-shrink-0 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 p-2 transition-transform group-hover:scale-105">
+                  <Icon className="w-4 h-4 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-foreground group-hover:text-purple-700 transition-colors leading-snug line-clamp-2">
+                  <p className="text-sm font-medium text-foreground transition-colors group-hover:text-primary line-clamp-2 leading-relaxed">
                     {question.text}
                   </p>
-                  <Badge variant="outline" className="text-[10px] mt-1.5 border-purple-200/50 group-hover:border-purple-300 group-hover:bg-purple-50/50 px-1.5 py-0">
+                  <Badge variant="outline" className="mt-2 border-border/50 bg-background/50 px-2 py-0.5 text-xs font-medium text-muted-foreground group-hover:border-primary/50 group-hover:text-primary">
                     {question.category}
                   </Badge>
                 </div>
@@ -50,7 +48,8 @@ export default function StarterQuestions({ questions, onSelect }: StarterQuestio
             </motion.button>
           );
         })}
-      </div>
+      </motion.div>
     </div>
   );
 }
+

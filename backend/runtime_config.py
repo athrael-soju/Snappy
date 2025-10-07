@@ -46,6 +46,12 @@ class RuntimeConfig:
         except (ValueError, TypeError):
             return default
     
+    def has(self, key: str) -> bool:
+        """Return True if the key has been explicitly set."""
+        with self._lock:
+            return key in self._config
+
+
     def get_bool(self, key: str, default: bool = False) -> bool:
         """Get a configuration value as boolean."""
         value = self.get(key, str(default))

@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { FileText, ExternalLink } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { FileText, ExternalLink, Copy, Check } from 'lucide-react';
 import Image from 'next/image';
 import CitationHoverCard from './CitationHoverCard';
 
@@ -16,6 +17,50 @@ interface MarkdownRendererProps {
   content: string;
   images?: ImageData[];
   onImageClick?: (url: string, label?: string) => void;
+}
+
+// Code block component with copy button
+function CodeBlock({ code, language }: { code: string; language: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="relative group my-4">
+      <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleCopy}
+          className="h-7 px-2 bg-background/50 backdrop-blur-sm hover:bg-background/80"
+        >
+          {copied ? (
+            <>
+              <Check className="h-3.5 w-3.5 mr-1 text-green-500" />
+              <span className="text-xs">Copied!</span>
+            </>
+          ) : (
+            <>
+              <Copy className="h-3.5 w-3.5 mr-1" />
+              <span className="text-xs">Copy</span>
+            </>
+          )}
+        </Button>
+      </div>
+      <pre className="bg-muted/50 rounded-lg p-4 overflow-x-auto border max-w-full">
+        {language && (
+          <div className="text-xs text-muted-foreground mb-2 font-medium">{language}</div>
+        )}
+        <code className="text-sm font-mono text-foreground block">
+          {code}
+        </code>
+      </pre>
+    </div>
+  );
 }
 
 /**
@@ -77,11 +122,11 @@ export default function MarkdownRenderer({ content, images = [], onImageClick }:
         } else {
           // End code block
           elements.push(
-            <pre key={`code-${lineIdx}`} className="bg-muted/50 rounded-lg p-4 my-3 overflow-x-auto border">
-              <code className="text-sm font-mono text-foreground">
-                {codeBlockContent.join('\n')}
-              </code>
-            </pre>
+            <CodeBlock
+              key={`code-${lineIdx}`}
+              code={codeBlockContent.join('\n')}
+              language={codeBlockLang}
+            />
           );
           inCodeBlock = false;
           codeBlockContent = [];

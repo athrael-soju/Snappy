@@ -1,4 +1,4 @@
-// frontend/lib/hooks/use-chat.ts
+﻿// frontend/lib/hooks/use-chat.ts
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
@@ -44,24 +44,31 @@ export function useChat() {
   const [input, setInput] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [timeToFirstTokenMs, setTimeToFirstTokenMs] = useState<number | null>(null)
+  const hasHydratedRef = useRef(false)
 
   // Handle incomplete messages on mount (after page refresh)
   useEffect(() => {
+    if (hasHydratedRef.current) {
+      return;
+    }
+
     const lastMessage = messages[messages.length - 1];
-    
-    // If there's an incomplete assistant message, add an interrupted message
-    if (lastMessage && 
-        lastMessage.role === 'assistant' && 
-        lastMessage.content === '') {
-      // Add helpful message to the interrupted assistant message
+
+    if (
+      lastMessage &&
+      lastMessage.role === 'assistant' &&
+      lastMessage.content === ''
+    ) {
       const updatedMessages = [...messages];
       updatedMessages[updatedMessages.length - 1] = {
         ...lastMessage,
-        content: "*Assistant response was interrupted.*"
+        content: "*Assistant response was interrupted.*",
       };
       setMessages(updatedMessages);
     }
-  }, []); // Only run on mount
+
+    hasHydratedRef.current = true;
+  }, [messages, setMessages]);
 
   // Keep all images keyed by assistant message id to avoid mixing across turns
   const imagesByMessageRef = useRef<Record<string, Array<{ url: string | null; label: string | null; score: number | null }>>>({})
@@ -221,3 +228,4 @@ export function useChat() {
     reset,
   }
 }
+

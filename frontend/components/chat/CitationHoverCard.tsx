@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import Image from "next/image";
 import {
   HoverCard,
   HoverCardContent,
@@ -28,52 +29,57 @@ export default function CitationHoverCard({
   onOpen,
   children
 }: CitationHoverCardProps) {
-  // Extract document title and page from label (e.g., "Human-Nutrition-2020-Edition-1598491725_print.pdf — Page 51 of 1208")
-  const parts = label.split('—').map(p => p.trim());
-  const docTitle = parts[0] || 'Document';
-  const pageInfo = parts[1] || label;
+  // Extract document title and page info heuristically
+  const delimiterIndex = label.toLowerCase().indexOf("page ");
+  const docTitle = delimiterIndex >= 0
+    ? label.slice(0, delimiterIndex).trim().replace(/["']+$/, "")
+    : label;
+  const pageInfo = delimiterIndex >= 0 ? label.slice(delimiterIndex).trim() : label;
 
   return (
     <HoverCard openDelay={200} closeDelay={100}>
       <HoverCardTrigger asChild>
         {children || (
           <sup
-            className="inline-flex items-center justify-center w-5 h-5 text-[10px] font-semibold text-purple-700 bg-purple-100 border border-purple-300 rounded cursor-pointer hover:bg-purple-200 hover:border-purple-400 transition-all ml-0.5"
+            className="inline-flex items-center justify-center w-5 h-5 text-[10px] font-semibold text-primary bg-primary/10 border border-primary/30 rounded cursor-pointer hover:bg-primary/20 hover:border-primary/50 transition-all ml-0.5"
           >
             {number}
           </sup>
         )}
       </HoverCardTrigger>
       <HoverCardContent 
-        className="w-80 p-0 overflow-hidden" 
+        className="w-80 p-0 overflow-hidden border-border" 
         side="top"
         align="center"
       >
         <div className="flex flex-col">
           {/* Preview Image */}
-          <div className="relative w-full h-[120px] bg-gray-100 overflow-hidden border-b">
-            <img
+          <div className="relative w-full h-[120px] bg-muted/30 overflow-hidden border-b border-border">
+            <Image
               src={imageUrl}
               alt={label}
-              className="w-full h-full object-contain"
+              fill
+              sizes="320px"
+              className="object-contain"
+              unoptimized
             />
           </div>
           
           {/* Content */}
-          <div className="p-3 space-y-2">
+          <div className="p-3 space-y-2 bg-popover">
             {/* Document title */}
-            <div className="text-xs font-medium text-gray-900 line-clamp-1" title={docTitle}>
+            <div className="text-xs font-semibold text-foreground line-clamp-1" title={docTitle}>
               {docTitle}
             </div>
             
             {/* Page info */}
-            <div className="text-xs text-gray-600">
+            <div className="text-xs text-muted-foreground">
               {pageInfo}
             </div>
             
             {/* Score if available */}
             {score !== undefined && score !== null && (
-              <div className="text-xs text-purple-600 font-medium">
+              <div className="text-xs text-primary font-medium">
                 {score.toFixed(2)}% relevance
               </div>
             )}
@@ -84,9 +90,9 @@ export default function CitationHoverCard({
                 e.preventDefault();
                 onOpen();
               }}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 mt-2 text-xs font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 mt-2 text-xs font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors"
             >
-              <span>Open in context</span>
+              <span>View Citation</span>
               <ExternalLink className="w-3 h-3" />
             </button>
           </div>

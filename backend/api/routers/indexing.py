@@ -18,84 +18,102 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="", tags=["indexing"])
 
 
+UPLOAD_CHUNK_SIZE_BYTES = 4 * 1024 * 1024  # 4MB streaming chunks
+
+
 @router.post("/index")
 async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = File(...)):
     if not files:
         raise HTTPException(status_code=400, detail="No files uploaded")
 
     temp_paths: List[str] = []
-    original_filenames: dict[str, str] = {}  # Map temp path -> original filename
-    try:
-        for uf in files:
-            suffix = os.path.splitext(uf.filename or "")[1] or ".pdf"
-            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-                data = await uf.read()
-                tmp.write(data)
-                temp_paths.append(tmp.name)
-                # Store original filename
-                original_filenames[tmp.name] = uf.filename or "document.pdf"
+    original_filenames: dict[str, str] = {}
 
-        images_with_meta = convert_pdf_paths_to_images(temp_paths, original_filenames)
-        svc = get_qdrant_service()
-        if not svc:
+    try:
+        chunk_size = UPLOAD_CHUNK_SIZE_BYTES
+        for upload in files:
+            suffix = os.path.splitext(upload.filename or "")[1] or ".pdf"
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                while True:
+                    chunk = await upload.read(chunk_size)
+                    if not chunk:
+                        break
+                    tmp.write(chunk)
+                temp_paths.append(tmp.name)
+                original_filenames[tmp.name] = upload.filename or "document.pdf"
+            await upload.close()
+
+        # Fail fast if dependencies are unavailable
+        if not get_qdrant_service():
             raise HTTPException(
                 status_code=503,
                 detail=f"Service unavailable: {qdrant_init_error or 'Dependency services are down'}",
             )
 
         job_id = str(uuid.uuid4())
-        total = len(images_with_meta)
-        progress_manager.create(job_id, total=total)
+        progress_manager.create(job_id, total=0)
         progress_manager.start(job_id)
 
         class CancellationError(Exception):
-            """Custom exception for job cancellation"""
-            pass
+            """Raised when a job is cancelled mid-flight."""
 
-        def progress_cb(current: int, info: dict | None = None):
-            # Check for cancellation before updating progress
-            if progress_manager.is_cancelled(job_id):
-                raise CancellationError("Job cancelled by user")
-            
-            # Skip updating progress for cancellation checks only
-            if info and info.get("stage") == "check_cancel":
-                return
-            
-            msg = None
-            if info and "stage" in info:
-                msg = f"{info['stage']} {current}/{info.get('total', total)}"
-            progress_manager.update(job_id, current=current, message=msg)
-
-        def run_job(paths: List[str]):
+        def run_job(paths: List[str], filenames: dict[str, str]):
             try:
-                msg = svc.index_documents(images_with_meta, progress_cb=progress_cb)
-                # Check if job was cancelled during execution
                 if progress_manager.is_cancelled(job_id):
-                    # Already marked as cancelled, no need to complete
-                    pass
-                else:
-                    progress_manager.complete(job_id, message=msg)
-            except CancellationError as e:
-                # Cancellation - already marked by progress_manager.cancel()
-                logger.info(f"Job {job_id} was cancelled: {e}")
-                pass
-            except Exception as e:
-                # Only mark as failed if not already cancelled
+                    raise CancellationError("Job cancelled before processing started")
+
+                progress_manager.update(job_id, current=0, message="converting documents")
+
+                total_images, image_iterator = convert_pdf_paths_to_images(paths, filenames)
+                progress_manager.set_total(job_id, total_images)
+
+                svc = get_qdrant_service()
+                if not svc:
+                    raise RuntimeError(qdrant_init_error or "Dependency services are down")
+
+                def progress_cb(current: int, info: dict | None = None):
+                    if progress_manager.is_cancelled(job_id):
+                        raise CancellationError("Job cancelled by user")
+
+                    if info and info.get("stage") == "check_cancel":
+                        return
+
+                    message = None
+                    if info and "stage" in info:
+                        total_hint = info.get("total") or total_images
+                        message = f"{info['stage']} {current}/{total_hint or '?'}"
+                    progress_manager.update(job_id, current=current, message=message)
+
+                progress_manager.update(job_id, current=0, message="indexing")
+                msg = svc.index_documents(
+                    image_iterator,
+                    total_images=total_images,
+                    progress_cb=progress_cb,
+                )
+
+                if progress_manager.is_cancelled(job_id):
+                    raise CancellationError("Job cancelled after indexing")
+
+                progress_manager.complete(job_id, message=msg)
+            except CancellationError as exc:
+                logger.info("Job %s cancelled: %s", job_id, exc)
+            except Exception as exc:
                 if not progress_manager.is_cancelled(job_id):
-                    progress_manager.fail(job_id, error=str(e))
+                    progress_manager.fail(job_id, error=str(exc))
+                    logger.exception("Job %s failed", job_id)
             finally:
-                for p in paths:
+                for path in paths:
                     try:
-                        os.unlink(p)
+                        os.unlink(path)
                     except Exception:
                         pass
 
-        background_tasks.add_task(run_job, list(temp_paths))
-        return {"status": "started", "job_id": job_id, "total": total}
+        background_tasks.add_task(run_job, list(temp_paths), dict(original_filenames))
+        return {"status": "started", "job_id": job_id, "total": 0}
     except Exception:
-        for p in temp_paths:
+        for path in temp_paths:
             try:
-                os.unlink(p)
+                os.unlink(path)
             except Exception:
                 pass
         raise
@@ -113,7 +131,7 @@ async def cancel_upload(job_id: str):
             raise HTTPException(status_code=404, detail="Job not found")
         else:
             raise HTTPException(
-                status_code=400, 
+                status_code=400,
                 detail=f"Cannot cancel job in status: {job_data.get('status')}"
             )
 
@@ -123,18 +141,18 @@ async def stream_progress(job_id: str):
     async def event_stream():
         last_current = None
         last_status = None
-        # Send an initial snapshot if available
         while True:
             data = progress_manager.get(job_id)
             if not data:
-                # Emit a terminal not_found event and stop
                 yield f"event: not_found\n" + f"data: {json.dumps({'job_id': job_id})}\n\n"
                 return
+
             total = max(1, int(data.get("total") or 0))
             try:
                 pct = int(round(((int(data.get("current") or 0) / total) * 100))) if data.get("total") else 0
             except Exception:
                 pct = 0
+
             payload = {
                 "job_id": data.get("job_id"),
                 "status": data.get("status"),
@@ -145,7 +163,6 @@ async def stream_progress(job_id: str):
                 "error": data.get("error"),
             }
 
-            # Emit only on change or periodically as heartbeat
             changed = (payload["current"] != (last_current if last_current is not None else -1)) or (
                 payload["status"] != last_status
             )
@@ -154,10 +171,8 @@ async def stream_progress(job_id: str):
                 last_current = payload["current"]
                 last_status = payload["status"]
             else:
-                # Heartbeat every 5 seconds to keep the connection alive
                 yield "event: heartbeat\n" + "data: {}\n\n"
 
-            # Stop on terminal states
             if payload["status"] in ("completed", "failed", "cancelled"):
                 return
 

@@ -61,6 +61,14 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "description": "Comma-separated list of allowed origins, or * for all",
                 "help_text": "Defines which web domains can access your API via cross-origin requests. Use '*' to allow all origins (development only - NOT recommended for production). In production, specify exact domains (e.g., 'https://example.com,https://app.example.com') to prevent unauthorized access. This is a critical security setting that protects against cross-site request forgery."
             },
+        ]
+    },
+    "ingestion": {
+        "order": 2,
+        "icon": "hard-drive",
+        "name": "Document Ingestion",
+        "description": "Controls batching and pipeline behaviour for document uploads.",
+        "settings": [
             {
                 "key": "BATCH_SIZE",
                 "type": "int",
@@ -69,19 +77,8 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "number",
                 "min": 1,
                 "max": 128,
-                "description": "Number of documents to process in parallel",
-                "help_text": "How many documents are processed simultaneously during indexing. Higher values (32-128) speed up bulk uploads but use more memory and GPU/CPU resources. Lower values (4-12) use less resources but take longer. Adjust based on your hardware - GPU systems can handle larger batches."
-            },
-            {
-                "key": "WORKER_THREADS",
-                "type": "int",
-                "default": 8,
-                "label": "Worker Threads",
-                "ui_type": "number",
-                "min": 1,
-                "max": 32,
-                "description": "Number of worker threads for processing",
-                "help_text": "Controls parallel processing capacity. Set to match your CPU core count for optimal performance. More threads (16-32) speed up processing on powerful systems. Fewer threads (4-8) prevent resource exhaustion on limited hardware. Monitor CPU usage to find your sweet spot."
+                "description": "Number of pages processed per batch",
+                "help_text": "Higher values boost throughput but require more memory. Lower values provide steadier progress feedback and are safer on small machines."
             },
             {
                 "key": "ENABLE_PIPELINE_INDEXING",
@@ -89,31 +86,20 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "default": True,
                 "label": "Enable Pipeline Indexing",
                 "ui_type": "boolean",
-                "description": "Enable parallel pipeline indexing",
-                "help_text": "Enables concurrent processing of multiple document batches in a pipeline. When enabled, documents are embedded and stored in parallel stages, significantly speeding up large uploads. Disable only for debugging or on very resource-constrained systems. Impact: 2-3x faster indexing when enabled."
-            },
-            {
-                "key": "MAX_CONCURRENT_BATCHES",
-                "type": "int",
-                "default": 3,
-                "label": "Max Concurrent Batches",
-                "ui_type": "number",
-                "min": 1,
-                "max": 10,
-                "description": "Maximum number of concurrent batches",
-                "depends_on": {"key": "ENABLE_PIPELINE_INDEXING", "value": True},
-                "help_text": "Limits how many document batches process simultaneously in the pipeline. Higher values (5-10) maximize throughput but require more RAM and processing power. Lower values (1-3) are safer for limited resources. Only applies when pipeline indexing is enabled."
+                "description": "Overlap embedding, storage, and upserts",
+                "help_text": "When enabled the system automatically chooses a safe level of concurrency based on your hardware and batch size. Disable only for debugging or very resource-constrained hosts."
             }
         ]
     },
     "colpali": {
-        "order": 2,
+        "order": 3,
         "icon": "brain",
         "name": "Embedding Model",
         "description": "ColPali embedding model configuration",
         "settings": [
             {
                 "key": "COLPALI_MODE",
+                "ui_hidden": True,
                 "type": "str",
                 "default": "gpu",
                 "label": "Processing Mode",
@@ -124,6 +110,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
             },
             {
                 "key": "COLPALI_CPU_URL",
+                "ui_hidden": True,
                 "type": "str",
                 "default": "http://localhost:7001",
                 "label": "CPU Service URL",
@@ -133,21 +120,13 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
             },
             {
                 "key": "COLPALI_GPU_URL",
+                "ui_hidden": True,
                 "type": "str",
                 "default": "http://localhost:7002",
                 "label": "GPU Service URL",
                 "ui_type": "text",
                 "description": "URL for GPU-based ColPali service",
                 "help_text": "Endpoint for the GPU-accelerated embedding service. Used when COLPALI_MODE is set to 'gpu'. Change this if running the GPU service on a different host or port. Requires NVIDIA GPU with CUDA support on the target machine."
-            },
-            {
-                "key": "COLPALI_API_BASE_URL",
-                "type": "str",
-                "default": "",
-                "label": "API Base URL (Override)",
-                "ui_type": "text",
-                "description": "Override URL (leave empty for auto mode selection)",
-                "help_text": "Advanced: Manually override the embedding service URL, bypassing the CPU/GPU mode selection. Leave empty to use automatic mode-based URL selection. Only set this if you have a custom embedding service deployment that doesn't follow the standard URL scheme."
             },
             {
                 "key": "COLPALI_API_TIMEOUT",
@@ -163,13 +142,14 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
         ]
     },
     "qdrant": {
-        "order": 3,
+        "order": 4,
         "icon": "database",
         "name": "Vector Database",
         "description": "Qdrant vector store and retrieval settings",
         "settings": [
             {
                 "key": "QDRANT_URL",
+                "ui_hidden": True,
                 "type": "str",
                 "default": "http://localhost:6333",
                 "label": "Qdrant URL",
@@ -336,13 +316,14 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
         ]
     },
     "storage": {
-        "order": 4,
+        "order": 5,
         "icon": "hard-drive",
         "name": "Object Storage",
         "description": "MinIO object storage configuration",
         "settings": [
             {
                 "key": "MINIO_URL",
+                "ui_hidden": True,
                 "type": "str",
                 "default": "http://localhost:9000",
                 "label": "MinIO URL",
@@ -352,6 +333,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
             },
             {
                 "key": "MINIO_PUBLIC_URL",
+                "ui_hidden": True,
                 "type": "str",
                 "default": "http://localhost:9000",
                 "label": "Public MinIO URL",
@@ -361,6 +343,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
             },
             {
                 "key": "MINIO_ACCESS_KEY",
+                "ui_hidden": True,
                 "type": "str",
                 "default": "minioadmin",
                 "label": "Access Key",
@@ -370,6 +353,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
             },
             {
                 "key": "MINIO_SECRET_KEY",
+                "ui_hidden": True,
                 "type": "str",
                 "default": "minioadmin",
                 "label": "Secret Key",
@@ -379,43 +363,47 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
             },
             {
                 "key": "MINIO_BUCKET_NAME",
+                "ui_hidden": True,
                 "type": "str",
-                "default": "documents",
+                "default": "",
                 "label": "Bucket Name",
                 "ui_type": "text",
-                "description": "Name of the storage bucket",
-                "help_text": "Name of the MinIO bucket (container) where uploaded documents are stored. Bucket is automatically created if it doesn't exist. Change to use a different bucket. Useful for separating environments (dev/staging/prod) or different applications."
+                "description": "Name of the storage bucket (auto-derived when empty)",
+                "help_text": "When left blank, the backend derives a MinIO bucket name by slugifying the Qdrant collection name. Override only if you need to target a specific existing bucket."
             },
             {
                 "key": "MINIO_WORKERS",
+                "ui_hidden": True,
                 "type": "int",
                 "default": 12,
                 "label": "Worker Threads",
                 "ui_type": "number",
                 "min": 1,
                 "max": 32,
-                "description": "Number of concurrent upload workers",
-                "help_text": "Number of parallel threads for uploading files to MinIO. Higher values (16-32) speed up bulk uploads but use more network bandwidth and system resources. Lower values (4-8) are safer for limited resources. Adjust based on your network speed and system capacity."
+                "description": "Number of concurrent upload workers (auto-sized)",
+                "help_text": "The backend now sizes this automatically based on CPU cores and pipeline concurrency. Override via environment variables only when you need to cap or increase concurrency manually."
             },
             {
                 "key": "MINIO_RETRIES",
+                "ui_hidden": True,
                 "type": "int",
                 "default": 3,
                 "label": "Retry Attempts",
                 "ui_type": "number",
                 "min": 0,
                 "max": 10,
-                "description": "Number of retry attempts on failure",
-                "help_text": "How many times to retry failed uploads before giving up. Higher values (5-10) improve reliability on unstable networks but longer failure detection. Lower values (1-3) fail fast. Zero disables retries. Default 3 balances reliability and responsiveness."
+                "description": "Number of retry attempts on failure (auto-sized)",
+                "help_text": "The backend derives this from the chosen worker concurrency. Override via environment variables if you need stricter or more lenient retry behaviour."
             },
             {
                 "key": "MINIO_FAIL_FAST",
+                "ui_hidden": True,
                 "type": "bool",
                 "default": False,
                 "label": "Fail Fast",
                 "ui_type": "boolean",
                 "description": "Stop immediately on first error",
-                "help_text": "If enabled (True), stops uploading remaining files immediately when any upload fails. Useful for debugging or when partial uploads are unacceptable. Disable (False, recommended) to continue uploading other files even if some fail, providing better batch upload resilience."
+                "help_text": "Advanced troubleshooting option. When left unset the backend keeps the resilient default (False); override only if you need to abort batches on the first failure."
             },
             {
                 "key": "MINIO_PUBLIC_READ",
@@ -510,6 +498,8 @@ def get_api_schema() -> Dict[str, Any]:
                 api_setting["depends_on"] = setting["depends_on"]
             if "help_text" in setting:
                 api_setting["help_text"] = setting["help_text"]
+            if "ui_hidden" in setting:
+                api_setting["ui_hidden"] = setting["ui_hidden"]
             
             api_schema[cat_key]["settings"].append(api_setting)
     
@@ -538,3 +528,4 @@ def get_critical_keys() -> set:
         "QDRANT_USE_BINARY",
         "QDRANT_ON_DISK"
     }
+

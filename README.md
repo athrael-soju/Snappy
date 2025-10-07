@@ -135,37 +135,44 @@ Screenshots of the current UI:
     <tr>
       <td align="center">
         <strong>Home</strong><br/>
-        <img src="image/README/496753022-a0db1883-e5d2-426d-b7eb-0e1d379c859e.png" alt="Home screen" width="520" />
+        <img src="image/README/image-1.png" alt="Home screen" width="520" />
+        <img src="image/README/image-8.png" alt="Home screen" width="520" />
       </td>
       <td align="center">
         <strong>Upload</strong><br/>
-        <img src="image/README/496759948-9470fc82-6d73-46ba-ad23-13fe671a0cf0.png" alt="Upload screen" width="520" />
+        <img src="image/README/image-3.png" alt="Upload screen" width="520" />
+        <img src="image/README/image-10.png" alt="Upload screen" width="520" />
       </td>
     </tr>
     <tr>
       <td align="center">
         <strong>Search</strong><br/>
-        <img src="image/README/496753458-d7e3dc5b-03cb-4ccf-bcd1-5049c9fedc0b.png" alt="Visual Search screen" width="520" />
+        <img src="image/README/image-2.png" alt="Search screen" width="520" />
+        <img src="image/README/image-9.png" alt="Search screen" width="520" />
       </td>
       <td align="center">
         <strong>Chat</strong><br/>
-        <img src="image/README/496754339-cdb7f4a9-4015-4910-b85c-071db52ef8ff.png" alt="AI Chat screen" width="520" />
+        <img src="image/README/image-4.png" alt="Chat screen" width="520" />
+        <img src="image/README/image-11.png" alt="Chat screen" width="520" />
       </td>
     </tr>
     <tr>
       <td align="center">
-        <strong>Maintenance (Data Management)</strong><br/>
-        <img src="image/README/496754595-e7145d9d-a650-4388-8e3e-4dff79d28a35.png" alt="Data Management screen" width="520" />
+        <strong>System (Configuration)</strong><br/>
+        <img src="image/README/image-5.png" alt="Configuration screen" width="520" />
+        <img src="image/README/image-12.png" alt="Configuration screen" width="520" />
       </td>
       <td align="center">
-        <strong>Maintenance (Configuration)</strong><br/>
-        <img src="image/README/496754869-0b82f6b1-2631-4741-8cad-79185f400e76.png" alt="Configuration screen" width="520" />
+        <strong>System (Maintenance)</strong><br/>
+        <img src="image/README/image-6.png" alt="Maintenance screen" width="520" />
+        <img src="image/README/image-13.png" alt="Maintenance screen" width="520" />
       </td>      
     </tr>
     <tr>    
       <td align="center">
          <strong>About</strong><br/>
-         <img src="image/README/496773757-af0cdf48-ddd2-453f-a9bd-af2eeb374850.png" alt="About screen" width="520" />
+         <img src="image/README/image-7.png" alt="About screen" width="520" />
+         <img src="image/README/image-14.png" alt="About screen" width="520" />
       </td>
     </tr>      
   </table>
@@ -356,7 +363,7 @@ Most defaults are in `config.py`. Key variables:
   - Storage: `QDRANT_ON_DISK` (store vectors on disk), `QDRANT_ON_DISK_PAYLOAD` (store payloads on disk)
   - Binary quantization (optional): `QDRANT_USE_BINARY` (enable), `QDRANT_BINARY_ALWAYS_RAM` (keep quantized codes in RAM)
   - Search tuning (when binary is enabled): `QDRANT_SEARCH_RESCORE`, `QDRANT_SEARCH_OVERSAMPLING`, `QDRANT_SEARCH_IGNORE_QUANT`
-- __MinIO__: `MINIO_URL` (default http://localhost:9000), `MINIO_PUBLIC_URL` (public base for links), `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET_NAME` (documents), `MINIO_WORKERS`, `MINIO_RETRIES`, `MINIO_FAIL_FAST`, `MINIO_PUBLIC_READ` (apply public-read policy automatically), `MINIO_IMAGE_FMT`
+- __MinIO__: `MINIO_URL` (default http://localhost:9000), `MINIO_PUBLIC_URL` (public base for links), `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET_NAME` (auto-derived from collection name unless overridden), `MINIO_WORKERS` (auto-sized), `MINIO_RETRIES` (auto-sized), `MINIO_FAIL_FAST` (advanced toggle), `MINIO_PUBLIC_READ` (apply public-read policy automatically), `MINIO_IMAGE_FMT`
 - __Processing__: `DEFAULT_TOP_K`, `BATCH_SIZE`, `WORKER_THREADS`, `MAX_TOKENS`
 
 See `.env.example` for a minimal starting point. When using Compose, note:

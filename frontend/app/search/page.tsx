@@ -1,27 +1,53 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { SearchItem } from "@/lib/api/generated";
 import { RetrievalService, ApiError, MaintenanceService } from "@/lib/api/generated";
 import "@/lib/api/client";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Search, AlertCircle, ImageIcon, Sparkles, Eye, Trash2, AlertTriangle, ExternalLink } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Search, AlertCircle, ImageIcon, Eye, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { defaultPageMotion, fadeInItemMotion, fadeInPresence, hoverLift, sectionVariants, staggeredListMotion } from "@/lib/motion-presets";
 import { toast } from "@/components/ui/sonner";
+import { GlassPanel } from "@/components/ui/glass-panel";
 import Image from "next/image";
 import ImageLightbox from "@/components/lightbox";
 import SearchBar from "@/components/search/SearchBar";
-import RecentSearchesChips from "@/components/search/RecentSearchesChips";
 import { useSearchStore, useSystemStatus } from "@/stores/app-store";
 import { PageHeader } from "@/components/page-header";
-import Link from "next/link";
+import { SystemStatusWarning } from "@/components/upload";
+
+
+const exampleQueries = [
+  "Show pitch decks with charts on revenue targets",
+  "Contracts mentioning service level agreements",
+  "Images that include architectural diagrams",
+  "Team updates from the past quarter",
+];
+
+const fileTypeOptions = ["All types", "Documents", "Images"];
+const dateRangeOptions = ["Any time", "Past week", "Past month", "Past year"];
+const sourceOptions = ["All sources", "Uploads", "External"];
+
+type FilterState = {
+  fileType: number;
+  dateRange: number;
+  source: number;
+  hasImages: boolean;
+};
+
+const defaultFilters: FilterState = {
+  fileType: 0,
+  dateRange: 0,
+  source: 0,
+  hasImages: false,
+};
 
 export default function SearchPage() {
-  // Use global search store instead of local state
   const {
     query: q,
     results,
@@ -36,11 +62,8 @@ export default function SearchPage() {
     setTopK,
     reset,
   } = useSearchStore();
+  const { setStatus, isReady } = useSystemStatus();
 
-  // Use system status
-  const { systemStatus, setStatus, isReady, needsRefresh } = useSystemStatus();
-
-  // Local state for UI interactions only
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusLoading, setStatusLoading] = useState(false);
@@ -48,9 +71,13 @@ export default function SearchPage() {
   const [lightboxSrc, setLightboxSrc] = useState("");
   const [lightboxAlt, setLightboxAlt] = useState<string | undefined>(undefined);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  const hasFetchedRef = useRef(false);
+  const [filters, setFilters] = useState<FilterState>(defaultFilters);
 
-  // Fetch system status function - always fetches fresh when called
+  const hasFetchedRef = useRef(false);
+  const searchInputRef = useRef<HTMLInputElement>(null!);
+
+  const hasResults = hasSearched && results.length > 0;
+
   const fetchSystemStatus = useCallback(async () => {
     setStatusLoading(true);
     try {
@@ -58,64 +85,104 @@ export default function SearchPage() {
       setStatus({ ...status, lastChecked: Date.now() });
       hasFetchedRef.current = true;
     } catch (err) {
-      console.error('Failed to fetch system status:', err);
+      console.error("Failed to fetch system status:", err);
     } finally {
       setStatusLoading(false);
     }
   }, [setStatus]);
 
-  // Fetch system status on mount and listen for changes
   useEffect(() => {
-    // Only fetch if we haven't fetched yet
     if (!hasFetchedRef.current) {
       fetchSystemStatus();
     }
 
-    // Listen for system status changes from other pages
-    window.addEventListener('systemStatusChanged', fetchSystemStatus);
-    
+    window.addEventListener("systemStatusChanged", fetchSystemStatus);
     return () => {
-      window.removeEventListener('systemStatusChanged', fetchSystemStatus);
+      window.removeEventListener("systemStatusChanged", fetchSystemStatus);
     };
   }, [fetchSystemStatus]);
 
-  // Load recent searches from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('colpali-recent-searches');
+    const saved = localStorage.getItem("colpali-recent-searches");
     if (saved) {
       try {
         setRecentSearches(JSON.parse(saved));
       } catch {
-        // Ignore parse errors
+        // ignore parse errors
       }
     }
   }, []);
 
-  const addToRecentSearches = (query: string) => {
-    const updated = [query, ...recentSearches.filter(s => s !== query)].slice(0, 5);
+  const addToRecentSearches = useCallback((query: string) => {
+    const updated = [query, ...recentSearches.filter((s) => s !== query)].slice(0, 5);
     setRecentSearches(updated);
-    localStorage.setItem('colpali-recent-searches', JSON.stringify(updated));
-  };
+    localStorage.setItem("colpali-recent-searches", JSON.stringify(updated));
+  }, [recentSearches]);
 
-  const removeFromRecentSearches = (query: string) => {
-    const updated = recentSearches.filter(s => s !== query);
+  const removeFromRecentSearches = useCallback((query: string) => {
+    const updated = recentSearches.filter((s) => s !== query);
     setRecentSearches(updated);
-    localStorage.setItem('colpali-recent-searches', JSON.stringify(updated));
-  };
+    localStorage.setItem("colpali-recent-searches", JSON.stringify(updated));
+  }, [recentSearches]);
 
-  const handleExampleClick = (example: string) => {
-    setQ(example);
-  };
+  const handleClearSearch = useCallback(() => {
+    reset();
+    setError(null);
+    toast.success("Search results cleared");
+  }, [reset]);
+
+  const cycleFilter = useCallback((key: keyof FilterState) => {
+    setFilters((prev) => {
+      if (key === "hasImages") {
+        return { ...prev, hasImages: !prev.hasImages };
+      }
+
+      const max = key === "fileType" ? fileTypeOptions.length : key === "dateRange" ? dateRangeOptions.length : sourceOptions.length;
+      const nextIndex = (prev[key] as number + 1) % max;
+      return { ...prev, [key]: nextIndex } as FilterState;
+    });
+  }, []);
+
+  const filterSummary = useMemo(() => {
+    const summary: string[] = [];
+    if (filters.fileType !== 0) summary.push(fileTypeOptions[filters.fileType]);
+    if (filters.dateRange !== 0) summary.push(dateRangeOptions[filters.dateRange]);
+    if (filters.source !== 0) summary.push(sourceOptions[filters.source]);
+    if (filters.hasImages) summary.push("Has images");
+    return summary.join(" � ");
+  }, [filters]);
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === "/" && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+      }
+
+      if (event.key === "Escape") {
+        if (loading) return;
+        if (document.activeElement === searchInputRef.current && q) {
+          setQ("");
+          return;
+        }
+        if (hasResults) {
+          handleClearSearch();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [handleClearSearch, hasResults, loading, q, setQ]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     const query = q.trim();
     if (!query) return;
 
-    // Check if system is ready
     if (!isReady) {
-      toast.error('System Not Ready', { 
-        description: 'Initialize collection and bucket before searching' 
+      toast.error("System Not Ready", {
+        description: "Initialize collection and bucket before searching",
       });
       return;
     }
@@ -123,8 +190,6 @@ export default function SearchPage() {
     setLoading(true);
     setError(null);
     setHasSearched(true);
-
-    // Add to recent searches
     addToRecentSearches(query);
 
     try {
@@ -132,7 +197,10 @@ export default function SearchPage() {
       const data = await RetrievalService.searchSearchGet(query, k);
       const end = performance.now();
       setResults(data, end - start);
-      toast.success(`Found ${data.length} results for "${query}"`);
+
+      toast.success(`Found ${data.length} ${data.length === 1 ? "result" : "results"}`, {
+        description: filterSummary ? `Filters active: ${filterSummary}` : undefined,
+      });
     } catch (err: unknown) {
       let errorMsg = "Search failed";
       if (err instanceof ApiError) {
@@ -147,262 +215,213 @@ export default function SearchPage() {
     }
   }
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.3 }
-    }
-  };
-
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="space-y-4 min-h-0 flex flex-col flex-1"
-    >
-      <PageHeader
-        title="Visual Search"
-        description="Find documents and images using natural language powered by AI vision"
-        icon={Search}
-      />
+    <motion.div {...defaultPageMotion} className="page-shell flex min-h-0 flex-1 flex-col gap-6">
+      <motion.section variants={sectionVariants} className="flex flex-col items-center text-center gap-6 pt-6 sm:pt-8">
+        <PageHeader
+          title="Visual Search"
+          icon={Search}
+          tooltip="Find documents and images using natural language powered by AI vision"
+        />
+      </motion.section>
 
-      {/* System Status Warning */}
-      {systemStatus && !isReady && (
-        <Alert className="border-amber-300 bg-amber-50">
-          <AlertTriangle className="h-5 w-5 text-amber-600" />
-          <AlertTitle className="text-amber-900 font-semibold">System Not Initialized</AlertTitle>
-          <AlertDescription className="text-amber-800">
-            The collection and bucket must be initialized before searching.
-            <Link href="/maintenance" className="inline-flex items-center gap-1 ml-2 text-amber-900 font-medium underline hover:text-amber-950">
-              Go to Data Management
-              <ExternalLink className="w-3 h-3" />
-            </Link>
-          </AlertDescription>
-        </Alert>
-      )}
+      <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col gap-6 pb-6 sm:pb-8">
+        <div className="mx-auto flex h-full w-full max-w-6xl flex-1 flex-col gap-6">
+          <SystemStatusWarning isReady={isReady} />
 
-      {/* Search Form */}
-      <Card className="border-2 border-blue-200/50 shadow-lg bg-gradient-to-br from-blue-500/5 to-cyan-500/5 hover:shadow-xl transition-shadow duration-300">
-        <CardContent className="pt-6 pb-6 space-y-4">
-          <SearchBar
-            q={q}
-            setQ={setQ}
-            loading={loading}
-            onSubmit={onSubmit}
-            k={k}
-            setK={setK}
-            topK={topK}
-            setTopK={setTopK}
-            hasResults={hasSearched && results.length > 0}
-            onClear={() => {
-              reset();
-              setError(null);
-              toast.success('Search results cleared');
-            }}
-          />
+          <div className="sticky top-[5.25rem] z-30">
+            <GlassPanel className="p-5 overflow-visible">
+              <SearchBar
+                q={q}
+                setQ={setQ}
+                loading={loading}
+                onSubmit={onSubmit}
+                k={k}
+                setK={setK}
+                topK={topK}
+                setTopK={setTopK}
+                hasResults={hasResults}
+                onClear={handleClearSearch}
+                inputRef={searchInputRef}
+                recentSearches={recentSearches}
+                onSelectRecent={setQ}
+                onRemoveRecent={removeFromRecentSearches}
+              />
+            </GlassPanel>
+          </div>
 
-          <RecentSearchesChips
-            recentSearches={recentSearches}
-            loading={loading}
-            visible={!hasSearched}
-            onSelect={(s) => setQ(s)}
-            onRemove={removeFromRecentSearches}
-          />
-        </CardContent>
-      </Card>
-
-      {/* Error State */}
-      <AnimatePresence>
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-          >
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Pre-search Placeholder / Results - Scrollable Container */}
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
-        {!hasSearched && !loading && !error && (
-          <Card className="border-2 border-dashed border-muted-foreground/25">
-            <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="w-20 h-20 bg-gradient-to-br from-muted/50 to-muted/30 rounded-full flex items-center justify-center mb-6">
-                <Search className="w-10 h-10 text-muted-foreground" />
-              </div>
-              <h3 className="text-xl font-medium mb-2">Your results will appear here</h3>
-              <p className="text-muted-foreground max-w-md leading-relaxed">
-                Use natural language to find documents and images instantly.
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Results */}
-        <AnimatePresence>
-          {hasSearched && !loading && !error && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="space-y-4 pb-4"
-            >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <h2 className="text-2xl font-semibold">
-                  {results.length > 0 ? (
-                    <>
-                      {`Found ${results.length} result${results.length !== 1 ? 's' : ''}`}
-                      {typeof searchDurationMs === 'number' && (
-                        <span className="text-base font-normal text-muted-foreground ml-2">
-                          in {(searchDurationMs / 1000).toFixed(2)}s
-                        </span>
-                      )}
-                    </>
-                  ) : (
-                    ""
-                  )}
-                </h2>
-                {results.length > 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    Showing visual matches for your search
-                  </p>
-                )}
-              </div>
-              {results.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-sm px-3 py-1">
-                    "{q}"
-                  </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    {k} results
-                  </Badge>
-                </div>
-              )}
-            </div>
-
-            {results.length === 0 ? (
-              <Card className="border-2 border-dashed border-muted-foreground/25">
-                <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="w-20 h-20 bg-gradient-to-br from-muted/50 to-muted/30 rounded-full flex items-center justify-center mb-6">
-                    <ImageIcon className="w-10 h-10 text-muted-foreground" />
-                  </div>
-                  <h3 className="text-xl font-medium mb-3">No matches found</h3>
-                  <p className="text-muted-foreground max-w-md mb-6 leading-relaxed">
-                    We couldn't find any visual content matching "<span className="font-medium text-foreground">{q}</span>". Try rephrasing your query or check if documents are uploaded.
-                  </p>
-                  <div className="space-y-3">
-                    <p className="text-sm font-medium text-muted-foreground">Suggestions:</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                      <div className="flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                        <span className="text-muted-foreground">Try simpler, more descriptive terms</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                        <span className="text-muted-foreground">Check spelling and grammar</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                        <span className="text-muted-foreground">Upload more diverse content</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                        <span className="text-muted-foreground">Try the example queries above</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <motion.div
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-6 px-1"
-              >
-              {results.map((item, idx) => (
-                  <motion.div key={idx} variants={itemVariants}>
-                    <Card className="h-full group overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-2 border-blue-200/50 hover:border-blue-300 bg-gradient-to-br from-blue-500/5 to-cyan-500/5">
-                      {item.image_url && (
-                        <div
-                          className="relative aspect-video overflow-hidden bg-gradient-to-br from-blue-50 to-cyan-50 cursor-zoom-in"
-                          onClick={() => {
-                            setLightboxSrc(item.image_url!);
-                            setLightboxAlt(item.label ?? `Result ${idx + 1}`);
-                            setLightboxOpen(true);
-                          }}
-                        >
-                          <Image
-                            src={item.image_url}
-                            alt={item.label ?? `Result ${idx + 1}`}
-                            fill
-                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                            className="object-cover group-hover:scale-110 transition-transform duration-500"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Badge className="bg-white/90 text-black shadow-md">
-                              <Eye className="w-3 h-3 mr-1" />
-                              View
-                            </Badge>
-                          </div>
-                        </div>
-                      )}
-                      <CardContent className="p-4 space-y-3">
-                        {item.label && (
-                          <div className="space-y-1">
-                            <h3 className="text-base font-medium text-foreground line-clamp-2 group-hover:text-blue-600 transition-colors">
-                              {item.label}
-                            </h3>
-                          </div>
-                        )}
-                        <div className="flex items-center justify-between pt-2 border-t border-blue-200/30">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs font-medium border-blue-200/50">
-                              #{idx + 1}
-                            </Badge>
-                            {typeof item.score === "number" && (
-                              <Badge variant="outline" className="text-xs font-medium border-blue-200/50">
-                                Score {Math.round(item.score * 100)}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-              ))}
+          <AnimatePresence>
+            {error && (
+              <motion.div variants={fadeInPresence} initial="hidden" animate="visible" exit="exit">
+                <Alert variant="destructive" className="border-strong bg-destructive/10 text-foreground">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
               </motion.div>
             )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-      <ImageLightbox
-        open={lightboxOpen}
-        src={lightboxSrc}
-        alt={lightboxAlt}
-        onOpenChange={setLightboxOpen}
-      />
+          </AnimatePresence>
+
+          <ScrollArea className="h-[calc(100vh-30rem)]">
+            <div className="px-1 py-2 pr-4">
+              {!hasSearched && !loading && !error ? (
+                <GlassPanel className="p-20 text-center">
+                  <div className="flex size-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary">
+                    <Search className="h-9 w-9" />
+                  </div>
+                  <div className="space-y-3 max-w-2xl">
+                    <h3 className="text-2xl font-semibold text-foreground">Search across documents, slides, and imagery</h3>
+                    <p className="text-base leading-relaxed text-muted-foreground">
+                      Find documents using natural language. Try one of the examples below to get started.
+                    </p>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {exampleQueries.map((example) => (
+                      <Button
+                        key={example}
+                        type="button"
+                        variant="outline"
+                        onClick={() => setQ(example)}
+                        className="justify-start rounded-xl px-4 py-3 text-left text-base hover:border-primary/40 hover:bg-primary/10"
+                      >
+                        {example}
+                      </Button>
+                    ))}
+                  </div>
+                </GlassPanel>
+              ) : (
+                <AnimatePresence mode="wait">
+                  {loading ? (
+                    <motion.div
+                      key="skeleton"
+                      {...staggeredListMotion}
+                      className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+                    >
+                      {Array.from({ length: 8 }).map((_, idx) => (
+                        <motion.div key={idx} {...fadeInItemMotion} className="card-surface h-full animate-pulse space-y-3 p-4">
+                          <div className="aspect-video rounded-xl bg-[color:var(--surface-2)]" />
+                          <div className="space-y-2">
+                            <div className="h-4 w-3/4 rounded bg-[color:var(--surface-2)]" />
+                            <div className="h-3 w-2/3 rounded bg-[color:var(--surface-2)]" />
+                          </div>
+                          <div className="h-3 w-1/3 rounded bg-[color:var(--surface-2)]" />
+                        </motion.div>
+                      ))}
+                    </motion.div>
+                  ) : hasResults ? (
+                    <motion.div
+                      key="results"
+                      {...staggeredListMotion}
+                      className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+                    >
+                      {results.map((item, idx) => (
+                        <motion.div key={idx} {...fadeInItemMotion} {...hoverLift}>
+                          <Card className="card-surface group flex h-full flex-col overflow-hidden cursor-pointer hover:shadow-xl transition-all border-border/50">
+                            {item.image_url ? (
+                              <button
+                                type="button"
+                                className="relative aspect-video overflow-hidden text-left"
+                                onClick={() => {
+                                  setLightboxSrc(item.image_url!);
+                                  setLightboxAlt(item.label ?? `Result ${idx + 1}`);
+                                  setLightboxOpen(true);
+                                }}
+                              >
+                                <Image
+                                  src={item.image_url}
+                                  alt={item.label ?? `Result ${idx + 1}`}
+                                  fill
+                                  sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 25vw"
+                                  className="object-cover transition duration-500 group-hover:scale-110"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                                <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/95 backdrop-blur-sm px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-lg opacity-0 group-hover:opacity-100 transition-all">
+                                  <Eye className="h-3.5 w-3.5" /> View
+                                </span>
+                              </button>
+                            ) : (
+                              <div className="flex aspect-video items-center justify-center bg-[color:var(--surface-2)]">
+                                <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                              </div>
+                            )}
+
+                            <CardContent className="flex flex-1 flex-col gap-4 p-4">
+                              <div className="space-y-2">
+                                <h3 className="line-clamp-2 text-base font-semibold text-foreground group-hover:text-primary transition-colors">
+                                  {item.label ?? `Result ${idx + 1}`}
+                                </h3>
+                                {item.payload?.filename && (
+                                  <p className="line-clamp-1 text-sm text-muted-foreground">
+                                    {item.payload.filename}
+                                    {item.payload?.pdf_page_index !== undefined && ` • Page ${item.payload.pdf_page_index + 1}`}
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="mt-auto flex items-center gap-2 border-t border-divider pt-3 text-xs">
+                                <Badge variant="secondary" className="text-xs font-medium rounded-full">
+                                  #{idx + 1}
+                                </Badge>
+                                {typeof item.score === "number" && (
+                                  <Badge variant="outline" className="text-xs font-medium rounded-full border-primary/30 text-primary">
+                                    {Math.round(item.score * 100)}%
+                                  </Badge>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      ))}
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="empty"
+                      variants={fadeInPresence}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                    >
+                      <GlassPanel className="p-14">
+                        <div className="flex flex-col items-center gap-6 text-center">
+                          <div className="flex size-20 items-center justify-center rounded-2xl bg-gradient-to-br from-muted/30 to-muted/10">
+                            <ImageIcon className="h-10 w-10 text-muted-foreground" />
+                          </div>
+                          <div className="space-y-3 max-w-xl">
+                            <h3 className="text-xl font-semibold text-foreground">No matches found</h3>
+                            <p className="text-base leading-relaxed text-muted-foreground">
+                              We could not find results for <span className="font-medium text-foreground">{q}</span>. Adjust your search terms, broaden filters, or upload additional documents to improve coverage.
+                            </p>
+                          </div>
+                          <div className="grid gap-3 text-base text-muted-foreground sm:grid-cols-2">
+                            <div className="flex items-start gap-2">
+                              <span className="mt-1 size-1.5 rounded-full bg-foreground/70" />
+                              Try pairing a document title with a visual clue.
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <span className="mt-1 size-1.5 rounded-full bg-foreground/70" />
+                              Check spelling or use broader keywords.
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <span className="mt-1 size-1.5 rounded-full bg-foreground/70" />
+                              Narrow filters or reset them to defaults.
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <span className="mt-1 size-1.5 rounded-full bg-foreground/70" />
+                              Upload more visuals for richer retrieval.
+                            </div>
+                          </div>
+                        </div>
+                      </GlassPanel>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              )}
+
+            </div>
+          </ScrollArea>
+        </div>
+      </motion.section>
+
+      <ImageLightbox open={lightboxOpen} src={lightboxSrc} alt={lightboxAlt} onOpenChange={setLightboxOpen} />
     </motion.div>
   );
 }

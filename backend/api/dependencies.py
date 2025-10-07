@@ -1,84 +1,115 @@
+from __future__ import annotations
+
+from functools import lru_cache
+import logging
 from typing import Optional
 
-from services.colpali import ColPaliService
-from services.qdrant import QdrantService, MuveraPostprocessor
-from services.minio import MinioService
 import config
-import logging
+from services.colpali import ColPaliService
+from services.minio import MinioService
+from services.qdrant import MuveraPostprocessor, QdrantService
+
 logger = logging.getLogger(__name__)
 
-# Singleton-style dependencies with lazy initialization and error capture
-api_client = ColPaliService()
-muvera_post: Optional[MuveraPostprocessor] = None
-
-qdrant_service: Optional[QdrantService] = None
 qdrant_init_error: Optional[str] = None
-
-minio_service: Optional[MinioService] = None
 minio_init_error: Optional[str] = None
 
 
+@lru_cache(maxsize=1)
+def _get_colpali_client_cached() -> ColPaliService:
+    return ColPaliService()
+
+
+def get_colpali_client() -> ColPaliService:
+    """Return the cached ColPali service instance."""
+    return _get_colpali_client_cached()
+
+
+class _ColPaliClientProxy:
+    """Proxy to preserve existing attribute-style access to the ColPali client."""
+
+    def __getattr__(self, name: str):
+        return getattr(get_colpali_client(), name)
+
+
+api_client = _ColPaliClientProxy()
+
+
+@lru_cache(maxsize=1)
+def _get_muvera_postprocessor_cached() -> Optional[MuveraPostprocessor]:
+    if not config.MUVERA_ENABLED:
+        return None
+
+    info = get_colpali_client().get_info() or {}
+    dim = int(info.get("dim", 0) or 0)
+    if dim <= 0:
+        raise RuntimeError("ColPali /info did not provide a valid 'dim' for MUVERA")
+
+    logger.info("Initializing MUVERA postprocessor with input_dim=%s", dim)
+    return MuveraPostprocessor(input_dim=dim)
+
+
+@lru_cache(maxsize=1)
+def _get_minio_service_cached() -> MinioService:
+    return MinioService()
+
+
 def get_minio_service() -> Optional[MinioService]:
-    global minio_service, minio_init_error
-    if minio_service is None:
+    """Return the cached MinIO service, capturing initialization errors."""
+    global minio_init_error
+    try:
+        service = _get_minio_service_cached()
+        minio_init_error = None
+        return service
+    except Exception as exc:  # pragma: no cover - defensive guard
+        logger.error("Failed to initialize MinIO service: %s", exc)
+        minio_init_error = str(exc)
+        _get_minio_service_cached.cache_clear()
+        return None
+
+
+@lru_cache(maxsize=1)
+def _get_qdrant_service_cached() -> QdrantService:
+    minio_service = get_minio_service()
+    if not minio_service:
+        raise RuntimeError("MinIO service not available")
+
+    muvera_post = None
+    if config.MUVERA_ENABLED:
         try:
-            minio_service = MinioService()
-            minio_init_error = None
-        except Exception as e:
-            minio_service = None
-            minio_init_error = str(e)
-    return minio_service
+            muvera_post = _get_muvera_postprocessor_cached()
+        except Exception as exc:  # pragma: no cover - defensive guard
+            logger.exception("Failed to initialize MUVERA; continuing without it: %s", exc)
+            _get_muvera_postprocessor_cached.cache_clear()
+            muvera_post = None
+
+    return QdrantService(
+        api_client=get_colpali_client(),
+        minio_service=minio_service,
+        muvera_post=muvera_post,
+    )
 
 
 def get_qdrant_service() -> Optional[QdrantService]:
-    global qdrant_service, qdrant_init_error, muvera_post
-    
-    # Check if service exists but has stale MUVERA configuration
-    if qdrant_service is not None:
-        service_has_muvera = qdrant_service.muvera_post is not None
-        config_wants_muvera = config.MUVERA_ENABLED
-        
-        if service_has_muvera != config_wants_muvera:
-            logger.info("MUVERA config changed (was=%s, now=%s), recreating service", service_has_muvera, config_wants_muvera)
-            qdrant_service = None
-            muvera_post = None
-    
-    if qdrant_service is None:
-        try:
-            # Initialize MUVERA if enabled and input dim is available
-            if config.MUVERA_ENABLED:
-                if muvera_post is None:
-                    try:
-                        info = api_client.get_info() or {}
-                        dim = int(info.get("dim", 0))
-                        if dim > 0:
-                            logger.info("Initializing MUVERA with input_dim=%s", dim)
-                            muvera_post = MuveraPostprocessor(input_dim=dim)
-                        else:
-                            logger.warning("MUVERA enabled but ColPali /info returned invalid dim: %s", dim)
-                    except Exception:
-                        logger.exception("Failed to initialize MUVERA from ColPali /info; continuing without MUVERA")
-                        muvera_post = None
-            else:
-                muvera_post = None  # Clear MUVERA if disabled
-
-            qdrant_service = QdrantService(
-                api_client=api_client,
-                minio_service=get_minio_service(),
-                muvera_post=muvera_post,
-            )
-            logger.info("QdrantService initialized (muvera_enabled=%s, muvera_dim=%s)", bool(muvera_post), getattr(muvera_post, 'embedding_size', None) if muvera_post else None)
-            qdrant_init_error = None
-        except Exception as e:
-            qdrant_service = None
-            qdrant_init_error = str(e)
-    return qdrant_service
+    """Return the cached Qdrant service, capturing initialization errors."""
+    global qdrant_init_error
+    try:
+        service = _get_qdrant_service_cached()
+        qdrant_init_error = None
+        return service
+    except Exception as exc:  # pragma: no cover - defensive guard
+        logger.error("Failed to initialize Qdrant service: %s", exc)
+        qdrant_init_error = str(exc)
+        _get_qdrant_service_cached.cache_clear()
+        return None
 
 
 def invalidate_services():
-    """Invalidate service singletons to force re-initialization with new config."""
-    global qdrant_service, muvera_post, minio_service
-    logger.info("Invalidating service singletons to apply new configuration")
-    qdrant_service = None
-    muvera_post = None
-    # Note: minio_service can be kept as it doesn't change based on runtime config typically
+    """Invalidate cached services so they are recreated on next access."""
+    global qdrant_init_error, minio_init_error
+    logger.info("Invalidating cached services to apply new configuration")
+    qdrant_init_error = None
+    minio_init_error = None
+    _get_qdrant_service_cached.cache_clear()
+    _get_muvera_postprocessor_cached.cache_clear()
+    _get_minio_service_cached.cache_clear()

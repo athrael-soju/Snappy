@@ -4,28 +4,11 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Info, Image as ImageIcon, Layers, Search, GitCompare, Sparkles, Database, Server, Code, Rocket, CloudUpload, Eye, Brain, Shield } from "lucide-react";
+import { Image as ImageIcon, Layers, Search, GitCompare, Sparkles, Database, Server, Code, Rocket, CloudUpload, Eye, Brain, Shield } from "lucide-react";
 
 export default function AboutContent({ onClose }: { onClose?: () => void }) {
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="text-center relative">
-        {/* Background decoration */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-20 w-32 h-32 bg-blue-200/20 rounded-full blur-xl" />
-          <div className="absolute top-10 right-32 w-24 h-24 bg-purple-200/20 rounded-full blur-xl" />
-        </div>
-        
-        <div className="relative z-10 space-y-2">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full flex items-center justify-center mb-4 border-2 border-blue-200/50 shadow-md">
-            <Info className="w-8 h-8 text-blue-500" />
-          </div>
-          <h2 className="text-3xl font-semibold bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">About This Template</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">A friendly and light-weight knowledge base platform with visual document understanding</p>
-        </div>
-      </div>
-
       {/* Progressive disclosure via Accordion */}
       <Accordion type="single" collapsible className="w-full">
         <AccordionItem value="overview">
@@ -36,7 +19,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
             </div>
           </AccordionTrigger>
           <AccordionContent>
-            <Card className="border-2 border-blue-200/50 bg-gradient-to-br from-blue-500/5 to-cyan-500/5 shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <Card className="border-blue-200/70 dark:border-blue-900/60 shadow-lg hover:shadow-xl transition-shadow duration-300">
               <CardHeader className="pb-3">
                 <CardDescription className="max-w-prose leading-relaxed">
                   A full-stack multimodal RAG system combining FastAPI, Next.js, and ColQwen2.5 for visual document understanding. Optimized for scanned documents, forms, tables, and complex layouts where traditional text-only RAG falls short.
@@ -44,27 +27,27 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid sm:grid-cols-2 gap-3 text-sm text-muted-foreground">
-                {[{
-                  icon: Database, text: "Qdrant with binary quantization, multi-vector search, and optional MUVERA"
-                },{
-                  icon: Server, text: "MinIO with parallel uploads (12 workers), JPEG quality control, and public URLs"
-                },{
-                  icon: Layers, text: "FastAPI with pipelined indexing (3-batch concurrency), SSE progress streaming"
-                },{
-                  icon: Search, text: "Next.js 15 with Edge Runtime chat, localStorage config, and real-time UI"
-                },{
-                  icon: ImageIcon, text: "ColQwen2.5 multi-vector embeddings with mean pooling for rows/cols"
-                },{
-                  icon: Sparkles, text: "Runtime configuration UI, health checks, and maintenance endpoints"
-                }].map((item, i) => {
-                  const I = item.icon;
-                  return (
-                    <div key={i} className="flex items-start gap-2">
-                      <I className="w-4 h-4 text-blue-600 mt-0.5" />
-                      <span>{item.text}</span>
-                    </div>
-                  );
-                })}
+                  {[{
+                    icon: Database, text: "Qdrant with binary quantization, multi-vector search, and optional MUVERA"
+                  }, {
+                    icon: Server, text: "MinIO with parallel uploads (12 workers), JPEG quality control, and public URLs"
+                  }, {
+                    icon: Layers, text: "FastAPI with pipelined indexing (3-batch concurrency), SSE progress streaming"
+                  }, {
+                    icon: Search, text: "Next.js 15 with Edge Runtime chat, localStorage config, and real-time UI"
+                  }, {
+                    icon: ImageIcon, text: "ColQwen2.5 multi-vector embeddings with mean pooling for rows/cols"
+                  }, {
+                    icon: Sparkles, text: "Runtime configuration UI, health checks, and maintenance endpoints"
+                  }].map((item, i) => {
+                    const I = item.icon;
+                    return (
+                      <div key={i} className="flex items-start gap-2">
+                        <I className="w-4 h-4 text-blue-600 mt-0.5" />
+                        <span>{item.text}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
@@ -79,7 +62,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
             </div>
           </AccordionTrigger>
           <AccordionContent>
-            <Card className="border-2 border-cyan-200/50 bg-gradient-to-br from-cyan-500/5 to-blue-500/5 shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <Card className="border-cyan-200/70 dark:border-cyan-900/60 shadow-lg hover:shadow-xl transition-shadow duration-300">
               <CardContent className="pt-4 text-muted-foreground space-y-3 max-w-prose">
                 <p className="leading-relaxed">
                   <strong className="text-foreground">ColPali</strong> (Contextualized Late Interaction over PaliGemma) is a state-of-the-art visual document retrieval method that treats entire page images as multi-vector embeddings. This template uses <strong className="text-foreground">ColQwen2.5</strong>, a 7B parameter vision-language model fine-tuned for document understanding.
@@ -107,7 +90,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
           </AccordionTrigger>
           <AccordionContent>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <Card className="border-2 border-amber-200/50 bg-gradient-to-br from-amber-500/5 to-orange-500/5 shadow-md hover:shadow-lg transition-shadow duration-300">
+              <Card className="border-cyan-200/70 dark:border-cyan-900/60 shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -127,7 +110,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
                   </ul>
                 </CardContent>
               </Card>
-              <Card className="border-2 border-emerald-200/50 bg-gradient-to-br from-emerald-500/5 to-green-500/5 shadow-md hover:shadow-lg transition-shadow duration-300">
+              <Card className="border-cyan-200/70 dark:border-cyan-900/60 shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -160,7 +143,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
           </AccordionTrigger>
           <AccordionContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-2">
-              <Card className="border-2 border-violet-200/50 bg-gradient-to-br from-violet-500/5 to-purple-500/5 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
+              <Card className="border-cyan-200/70 dark:border-cyan-900/60 shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <CardHeader className="pb-2">
                   <div className="flex items-center gap-2">
                     <Server className="w-5 h-5 text-violet-600" />
@@ -178,7 +161,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
                 </CardContent>
               </Card>
 
-              <Card className="border-2 border-blue-200/50 bg-gradient-to-br from-blue-500/5 to-cyan-500/5 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
+              <Card className="border-cyan-200/70 dark:border-cyan-900/60 shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <CardHeader className="pb-2">
                   <div className="flex items-center gap-2">
                     <Code className="w-5 h-5 text-blue-600" />
@@ -196,7 +179,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
                 </CardContent>
               </Card>
 
-              <Card className="border-2 border-emerald-200/50 bg-gradient-to-br from-emerald-500/5 to-green-500/5 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
+              <Card className="border-cyan-200/70 dark:border-cyan-900/60 shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <CardHeader className="pb-2">
                   <div className="flex items-center gap-2">
                     <Database className="w-5 h-5 text-emerald-600" />
@@ -214,7 +197,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
                 </CardContent>
               </Card>
 
-              <Card className="border-2 border-amber-200/50 bg-gradient-to-br from-amber-500/5 to-orange-500/5 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
+              <Card className="border-cyan-200/70 dark:border-cyan-900/60 shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <CardHeader className="pb-2">
                   <div className="flex items-center gap-2">
                     <Layers className="w-5 h-5 text-amber-600" />
@@ -243,14 +226,14 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
             </div>
           </AccordionTrigger>
           <AccordionContent>
-            <Card className="border-2 border-purple-200/50 bg-gradient-to-br from-purple-500/5 to-pink-500/5 shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <Card className="border-cyan-200/70 dark:border-cyan-900/60 shadow-lg hover:shadow-xl transition-shadow duration-300">
               <CardContent className="pt-4 text-muted-foreground space-y-3 max-w-prose">
                 <div className="space-y-2">
                   <p className="leading-relaxed"><strong className="text-foreground">Choose Text-only RAG when:</strong></p>
                   <ul className="space-y-1 ml-4">
                     <li className="flex items-start gap-2"><span>•</span><span>Documents are clean, digital-native (blogs, code, markdown)</span></li>
                     <li className="flex items-start gap-2"><span>•</span><span>Storage and compute constraints are tight</span></li>
-                    <li className="flex items-start gap-2"><span>•</span><span>Visual layout and formatting don't matter</span></li>
+                    <li className="flex items-start gap-2"><span>•</span><span>Visual layout and formatting do not matter</span></li>
                   </ul>
                 </div>
                 <div className="space-y-2">
@@ -282,7 +265,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-2">
                 {/* Step 1: Upload */}
-                <Card className="border-2 border-blue-200/50 bg-gradient-to-br from-blue-500/5 to-purple-500/5 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
+                <Card className="border-blue-200/70 dark:border-blue-900/60 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between mb-2">
                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-white flex items-center justify-center font-bold text-sm">1</div>
@@ -303,7 +286,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
                 </Card>
 
                 {/* Step 2: Search */}
-                <Card className="border-2 border-cyan-200/50 bg-gradient-to-br from-cyan-500/5 to-blue-500/5 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
+                <Card className="border-cyan-200/70 dark:border-cyan-900/60 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between mb-2">
                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 text-white flex items-center justify-center font-bold text-sm">2</div>
@@ -315,7 +298,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Button asChild variant="outline" className="w-full border-2 border-cyan-200/50 hover:border-cyan-400 hover:bg-gradient-to-r hover:from-cyan-50 hover:to-blue-50 rounded-full h-9 text-sm">
+                    <Button asChild variant="outline" className="w-full border-2 border-cyan-200/50 hover:border-cyan-400 hover:bg-cyan-500/10 dark:hover:bg-cyan-500/20 rounded-full h-9 text-sm">
                       <Link href="/search" onClick={() => onClose?.()}>
                         Try Search
                       </Link>
@@ -324,7 +307,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
                 </Card>
 
                 {/* Step 3: Chat */}
-                <Card className="border-2 border-purple-200/50 bg-gradient-to-br from-purple-500/5 to-pink-500/5 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
+                <Card className="border-purple-200/70 dark:border-purple-900/60 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between mb-2">
                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-white flex items-center justify-center font-bold text-sm">3</div>
@@ -336,7 +319,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Button asChild variant="outline" className="w-full border-2 border-purple-200/50 hover:border-purple-400 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 rounded-full h-9 text-sm">
+                    <Button asChild variant="outline" className="w-full border-2 border-purple-200/50 hover:border-purple-400 hover:bg-purple-500/10 dark:hover:bg-purple-500/20 rounded-full h-9 text-sm">
                       <Link href="/chat" onClick={() => onClose?.()}>
                         Start Chatting
                       </Link>
@@ -345,7 +328,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
                 </Card>
 
                 {/* Step 4: Maintenance */}
-                <Card className="border-2 border-red-200/50 bg-gradient-to-br from-red-500/5 to-orange-500/5 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
+                <Card className="border-red-200/70 dark:border-red-900/60 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between mb-2">
                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-orange-500 text-white flex items-center justify-center font-bold text-sm">4</div>
@@ -357,7 +340,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Button asChild variant="outline" className="w-full border-2 border-red-200/50 hover:border-red-400 hover:bg-gradient-to-r hover:from-red-50 hover:to-orange-50 rounded-full h-9 text-sm">
+                    <Button asChild variant="outline" className="w-full border-2 border-red-200/50 hover:border-red-400 hover:bg-red-500/10 dark:hover:bg-red-500/20 rounded-full h-9 text-sm">
                       <Link href="/maintenance" onClick={() => onClose?.()}>
                         Maintenance
                       </Link>
@@ -365,11 +348,11 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
                   </CardContent>
                 </Card>
               </div>
-              
+
               <div className="pt-2 border-t">
                 <Button asChild variant="ghost" className="text-muted-foreground hover:text-blue-600 rounded-full w-full">
                   <Link href="https://github.com/athrael-soju/fastapi-nextjs-colpali-template" target="_blank" rel="noreferrer">
-                    View Documentation on GitHub →
+                    View Documentation on GitHub â†’
                   </Link>
                 </Button>
               </div>

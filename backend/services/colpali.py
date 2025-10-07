@@ -7,21 +7,21 @@ import numpy as np
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from config import COLPALI_API_BASE_URL, COLPALI_API_TIMEOUT, LOG_LEVEL
+from config import COLPALI_MODE, COLPALI_CPU_URL, COLPALI_GPU_URL, COLPALI_API_TIMEOUT, LOG_LEVEL
 
 
 class ColPaliService:
     """Client for ColPali Embedding API"""
 
     def __init__(self, base_url: str = None, timeout: int = None):
-        self.base_url = base_url or COLPALI_API_BASE_URL
+        default_base = COLPALI_GPU_URL if COLPALI_MODE == "gpu" else COLPALI_CPU_URL
+        self.base_url = base_url or default_base
         self.timeout = timeout or COLPALI_API_TIMEOUT
 
         # Remove trailing slash
         self.base_url = self.base_url.rstrip("/")
 
         # Logger
-        logging.basicConfig(level=getattr(logging, LOG_LEVEL, logging.INFO))
         self._logger = logging.getLogger(__name__)
 
         # Session with retries/backoff

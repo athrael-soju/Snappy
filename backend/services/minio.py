@@ -27,13 +27,12 @@ from config import (
     MINIO_FAIL_FAST,
     MINIO_PUBLIC_READ,
     MINIO_IMAGE_FMT,
-    MAX_CONCURRENT_BATCHES,
+    get_pipeline_max_concurrency,
 )
 
 # ---------------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------------
-logging.basicConfig(level=getattr(logging, LOG_LEVEL, logging.INFO))
 logger = logging.getLogger(__name__)
 
 
@@ -73,9 +72,9 @@ class MinioService:
             )
 
             # Configure HTTP connection pool to handle high concurrency
-            # Pool size should accommodate: MINIO_WORKERS × MAX_CONCURRENT_BATCHES + buffer
-            # With MINIO_WORKERS=16 and MAX_CONCURRENT_BATCHES=3, we need ~48+ connections
-            max_pool_connections = max(50, MINIO_WORKERS * MAX_CONCURRENT_BATCHES + 10)  # +10 for overhead
+            # Pool size scales with ingestion concurrency (workers * pipeline batches)
+            # When concurrency grows, bump connections to avoid saturation
+            max_pool_connections = max(50, MINIO_WORKERS * get_pipeline_max_concurrency() + 10)  # +10 for overhead
             http_client = urllib3.PoolManager(
                 maxsize=max_pool_connections,
                 cert_reqs='CERT_REQUIRED' if self.secure else 'CERT_NONE',
@@ -307,7 +306,11 @@ class MinioService:
         This uses the original MINIO_URL's scheme/host and preserves any path
         prefix (e.g., if you're serving MinIO behind a reverse proxy at /minio).
         """
-        return f"{self._public_base_url}/{self.bucket_name}/{object_name}"
+        base = self._public_base_url.rstrip("/")
+        bucket_suffix = f"/{self.bucket_name}"
+        if base.endswith(bucket_suffix):
+            return f"{base}/{object_name}"
+        return f"{base}{bucket_suffix}/{object_name}"
 
     def _extract_object_name_from_url(self, image_url: str) -> str:
         """

@@ -5,10 +5,13 @@ import { useChat } from "@/lib/hooks/use-chat";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 // Removed Select in favor of a clearer segmented control
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { User, Image as ImageIcon, Loader2, Sparkles, Brain, FileText, BarChart3, MessageSquare, Clock, Trash2, AlertTriangle, ExternalLink } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { User, Image as ImageIcon, Loader2, Sparkles, Brain, FileText, BarChart3, MessageSquare, Clock, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { defaultPageMotion, fadeInPresence, sectionVariants } from "@/lib/motion-presets";
 import { toast } from "@/components/ui/sonner";
 import ImageLightbox from "@/components/lightbox";
 import ChatInputBar from "@/components/chat/ChatInputBar";
@@ -19,8 +22,10 @@ import { PageHeader } from "@/components/page-header";
 import { MaintenanceService } from "@/lib/api/generated";
 import { useSystemStatus } from "@/stores/app-store";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 import { BRAIN_PLACEHOLDERS } from "@/lib/utils";
+import { SystemStatusWarning } from "@/components/upload";
 
 // Starter questions to help users get started (qualitative phrasing)
 const starterQuestions = [
@@ -44,6 +49,13 @@ const starterQuestions = [
     text: "Find slide decks that outline product vision and strategy",
     category: "Business"
   }
+];
+
+const CHAT_PLACEHOLDER_EXAMPLES = [
+  "Give a high-level overview of my latest project report",
+  "What potential risks are highlighted in the compliance policies?",
+  "Show conceptual diagrams about AI systems from the design docs",
+  "Which vendor contracts discuss obligations?"
 ];
 
 export default function ChatPage() {
@@ -82,20 +94,25 @@ export default function ChatPage() {
   const { systemStatus, setStatus, isReady, needsRefresh } = useSystemStatus();
   const [statusLoading, setStatusLoading] = useState(false);
   const hasFetchedRef = useRef(false);
-  const examples = [
-    "Give a high-level overview of my latest project report",
-    "What potential risks are highlighted in the compliance policies?",
-    "Show conceptual diagrams about AI systems from the design docs",
-    "Which vendor contracts discuss obligations?"
-  ];
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
+
+  const removeFromRecentSearches = (q: string) => {
+    setRecentSearches((prev) => {
+      const updated = prev.filter((s) => s !== q);
+      localStorage.setItem("colpali-chat-recent", JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
       // Use rAF to ensure DOM has settled before scrolling
       requestAnimationFrame(() => {
         if (messagesContainerRef.current) {
-          messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+          const viewport = messagesContainerRef.current.querySelector('[data-slot="scroll-area-viewport"]');
+          if (viewport) {
+            viewport.scrollTop = viewport.scrollHeight;
+          }
         }
       });
     }
@@ -135,7 +152,7 @@ export default function ChatPage() {
   }, [messages]);
 
   useEffect(() => {
-    const id = setInterval(() => setPlaceholderIdx((i) => (i + 1) % examples.length), 5000);
+    const id = setInterval(() => setPlaceholderIdx((i) => (i + 1) % CHAT_PLACEHOLDER_EXAMPLES.length), 5000);
     return () => clearInterval(id);
   }, []);
 
@@ -210,65 +227,58 @@ export default function ChatPage() {
   }, [messages, requestStart]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="flex flex-col flex-1 min-h-0"
-    >
+    <motion.div {...defaultPageMotion} className="page-shell flex flex-col min-h-0 flex-1 gap-6">
+      <motion.section variants={sectionVariants} className="flex flex-col items-center text-center gap-6 pt-6 sm:pt-8">
       <PageHeader
-        title="AI Chat"
-        description="Ask questions about your documents and get AI-powered responses with inline citations"
-        icon={Brain}
-      />
-
-      {/* System Status Warning */}
-      {systemStatus && !isReady && (
-        <Alert className="border-amber-300 bg-amber-50 mb-4">
-          <AlertTriangle className="h-5 w-5 text-amber-600" />
-          <AlertTitle className="text-amber-900 font-semibold">System Not Initialized</AlertTitle>
-          <AlertDescription className="text-amber-800">
-            The collection and bucket must be initialized before using chat.
-            <Link href="/maintenance" className="inline-flex items-center gap-1 ml-2 text-amber-900 font-medium underline hover:text-amber-950">
-              Go to Data Management
-              <ExternalLink className="w-3 h-3" />
-            </Link>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Chat Messages */}
-      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-2 border-purple-200/50 shadow-xl bg-white">
-        <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 custom-scrollbar bg-gradient-to-br from-blue-50/20 via-white to-purple-50/20">
-          <AnimatePresence mode="popLayout">
-            {messages.length === 0 ? (
+          title="AI Chat"
+          icon={Brain}
+          tooltip="Ask questions about your documents and get AI-powered responses with inline citations"
+        />
+      </motion.section>
+      <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col gap-6 pb-6 sm:pb-8">
+        <div className="mx-auto flex h-full w-full max-w-5xl flex-1 flex-col gap-6">
+          {/* System Status Warning */}
+          <SystemStatusWarning isReady={isReady} />
+          {/* Chat Messages */}
+          <div className="flex min-h-0 flex-1 flex-col">
+            <ScrollArea
+              ref={messagesContainerRef}
+              className="h-[calc(100vh-20rem)] rounded-xl">
+              <div className="mx-auto w-full max-w-3xl px-4 py-6">
+                <AnimatePresence mode="popLayout">
+                {messages.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="flex flex-col items-center justify-center h-full text-center py-6"
+                className="flex flex-col items-center justify-center min-h-[400px] text-center"
               >
+                {/* Frosted glass panel inspired by reference image */}
+                <div className="w-full max-w-2xl rounded-3xl border border-border/50 bg-card/40 backdrop-blur-xl p-8 shadow-2xl">
+                  <div className="mb-6">
+                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500 shadow-lg">
+                      <Brain className="h-7 w-7 text-white" />
+                    </div>
+                    <h2 className="text-2xl font-semibold text-foreground mb-2">Start Your Conversation</h2>
+                    <p className="text-base text-muted-foreground">Ask questions about your documents and get AI-powered responses</p>
+                  </div>
 
-                <h2 className="text-2xl font-semibold mb-3 bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">Start Your Conversation</h2>
-                <p className="text-muted-foreground max-w-lg mb-6 leading-relaxed">
-                  Ask questions about your uploaded documents and get intelligent responses with visual proof from your content.
-                </p>
-
-                {/* Starter Questions */}
-                <StarterQuestions questions={starterQuestions} onSelect={(t) => setInput(t)} />
-                <div className="mt-4 w-full max-w-2xl">
-                  <RecentSearchesChips
-                    recentSearches={recentSearches}
-                    visible
-                    onSelect={(q) => setInput(q)}
-                    onRemove={(q) => {
-                      const updated = recentSearches.filter((s) => s !== q);
-                      setRecentSearches(updated);
-                      localStorage.setItem("colpali-chat-recent", JSON.stringify(updated));
-                    }}
-                  />
+                  {/* Starter Questions */}
+                  <StarterQuestions questions={starterQuestions} onSelect={(t) => setInput(t)} />
+                  
+                  {/* Recent Searches - Using RecentSearchesChips component */}
+                  {recentSearches.length > 0 && (
+                    <div className="mt-6 pt-6 border-t border-border/50">
+                      <RecentSearchesChips
+                        recentSearches={recentSearches}
+                        loading={loading}
+                        onSelect={(q) => setInput(q)}
+                        onRemove={removeFromRecentSearches}
+                      />
+                    </div>
+                  )}
                 </div>
               </motion.div>
-            ) : (
+                ) : (
               messages.map((message, idx) => (
                 <motion.div
                   key={message.id || idx}
@@ -280,28 +290,35 @@ export default function ChatPage() {
                     duration: 0.3,
                     delay: isClearing ? idx * 0.08 : 0,
                   }}
-                  className={`flex gap-3 mb-4 md:mb-5 last:mb-0 ${message.role === "assistant" ? "" : "flex-row-reverse"}`}
+                  className={`flex gap-4 mb-6 last:mb-0 ${message.role === "assistant" ? "" : "flex-row-reverse"}`}
                 >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${message.role === "assistant"
-                    ? "bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-lg border-2 border-purple-200/30"
-                    : "bg-gradient-to-br from-blue-100 to-cyan-100 text-foreground shadow-lg border-2 border-blue-200/50"
-                    }`}>
+                  <div
+                    className={cn(
+                      "flex size-10 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold shadow-lg",
+                      message.role === "assistant"
+                        ? "bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500 border-transparent text-white"
+                        : "bg-gradient-to-br from-primary/90 to-primary border-transparent text-primary-foreground"
+                    )}
+                  >
                     {message.role === "assistant" ? (
-                      <Brain className="w-4 h-4" />
+                      <Brain className="h-5 w-5" />
                     ) : (
-                      <User className="w-4 h-4" />
+                      <User className="h-5 w-5" />
                     )}
                   </div>
 
-                  <div className={`flex-1 max-w-[85%] ${message.role === "user" ? "text-right" : ""
-                    }`}>
-                    <div className={`inline-block p-4 rounded-2xl shadow-md border-2 ${message.role === "assistant"
-                      ? "bg-gradient-to-br from-blue-50 to-purple-50 text-foreground border-purple-200/50"
-                      : "bg-gradient-to-br from-blue-100 to-cyan-100 text-foreground border-blue-200/50"
-                      }`}>
+                  <div className={cn("flex-1", message.role === "user" && "flex justify-end")}>
+                    <div
+                      className={cn(
+                        "inline-block max-w-[640px] rounded-2xl border px-5 py-3.5 text-left shadow-md transition-colors",
+                        message.role === "assistant"
+                          ? "bg-card/95 backdrop-blur-md border-border text-foreground dark:bg-surface-2/95 dark:border-border-muted"
+                          : "bg-primary/90 border-primary text-primary-foreground dark:bg-purple-600/85 dark:border-purple-500/50 dark:text-white"
+                      )}
+                    >
                       {message.content ? (
                         message.role === "assistant" ? (
-                          <div className="text-[15px] leading-7">
+                          <div className="text-base leading-relaxed">
                             <MarkdownRenderer 
                               content={message.content}
                               images={message.citations || []}
@@ -313,12 +330,17 @@ export default function ChatPage() {
                             />
                           </div>
                         ) : (
-                          <div className="whitespace-pre-wrap text-[15px] leading-7">{message.content}</div>
+                          <div className="whitespace-pre-wrap text-base leading-relaxed">{message.content}</div>
                         )
                       ) : (
                         loading && message.role === "assistant" ? (
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <Loader2 className="w-4 h-4 animate-spin text-purple-500" />
+                          <div className="flex items-center gap-3 text-muted-foreground dark:text-text-subtle">
+                            <div className="relative">
+                              <Loader2 className="w-5 h-5 animate-spin text-purple-500 dark:text-purple-400" />
+                              <div className="absolute inset-0 blur-sm">
+                                <Loader2 className="w-5 h-5 animate-spin text-purple-400 dark:text-purple-300" />
+                              </div>
+                            </div>
                             <AnimatePresence mode="wait" initial={false}>
                               <motion.span
                                 key={brainIdx}
@@ -326,7 +348,7 @@ export default function ChatPage() {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -4 }}
                                 transition={{ duration: 0.2 }}
-                                className="text-sm"
+                                className="text-sm font-medium"
                               >
                                 {BRAIN_PLACEHOLDERS[brainIdx]}
                               </motion.span>
@@ -336,36 +358,51 @@ export default function ChatPage() {
                       )}
                     </div>
 
-                    {message.role === "assistant" && (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2 ml-2">
-                        <Brain className="w-3 h-3 text-purple-500" />
-                        <span>AI Assistant</span>
-                        <div className="flex">
-                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { /* TODO: thumbs up handler */ }}>
-                            <span aria-hidden>👍</span>
-                            <span className="sr-only">Mark helpful</span>
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { /* TODO: thumbs down handler */ }}>
-                            <span aria-hidden>👎</span>
-                            <span className="sr-only">Mark unhelpful</span>
-                          </Button>
+                    {message.role === "assistant" && message.content && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2.5 ml-1">
+                        <div className="flex items-center gap-1.5">
+                          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500">
+                            <Brain className="h-3 w-3 text-white" />
+                          </div>
+                          <span className="font-medium">AI Assistant</span>
+                        </div>
+                        <div className="flex gap-0.5 ml-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-green-500/10 hover:text-green-600 transition-colors" onClick={() => { /* TODO: thumbs up handler */ }}>
+                                <span aria-hidden className="text-sm">👍</span>
+                                <span className="sr-only">Mark helpful</span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Mark as helpful</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-red-500/10 hover:text-red-600 transition-colors" onClick={() => { /* TODO: thumbs down handler */ }}>
+                                <span aria-hidden className="text-sm">👎</span>
+                                <span className="sr-only">Mark unhelpful</span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Mark as unhelpful</TooltipContent>
+                          </Tooltip>
                         </div>
                       </div>
                     )}
                   </div>
                 </motion.div>
               ))
-            )}
-          </AnimatePresence>
-          <div ref={messagesEndRef} />
-        </div>
+                )}
+                </AnimatePresence>
+                <div ref={messagesEndRef} />
+              </div>
+            </ScrollArea>
 
         {/* Input Form */}
-        <div className="border-t-2 border-purple-200/50 p-4 bg-gradient-to-r from-blue-50/70 via-purple-50/70 to-cyan-50/70 backdrop-blur-sm">
+        <div className="sticky bottom-0 left-0 right-0 border-divider/50 px-4 py-3.5">
           <ChatInputBar
             input={input}
             setInput={setInput}
-            placeholder={`Ask anything about your documents... e.g., "${examples[placeholderIdx]}"`}
+            placeholder="Ask anything about your documents… Press ⏎ to send"
             loading={loading}
             isSettingsValid={isSettingsValid}
             uiSettingsValid={uiSettingsValid}
@@ -401,23 +438,24 @@ export default function ChatPage() {
           />
 
           {/* Tips below input */}
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-purple-500" />
-              <span>AI-powered responses with inline citations</span>
+          <div className="mt-2.5 flex flex-wrap items-center gap-3 text-xs text-muted-foreground/80">
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-purple-500" />
+              <span>AI-powered with inline citations</span>
             </div>
             {timeToFirstTokenMs !== null && (
-              <div className="flex items-center gap-1">
-                <Clock className="w-3 h-3 text-muted-foreground" />
-                <span>First token in {(timeToFirstTokenMs / 1000).toFixed(2)}s</span>
+              <div className="flex items-center gap-1.5 rounded-full bg-[color:var(--surface-1)] px-2 py-0.5 border border-muted/40">
+                <Clock className="w-3 h-3 text-green-500" />
+                <span className="font-medium">{(timeToFirstTokenMs / 1000).toFixed(2)}s</span>
               </div>
             )}
           </div>
 
           {error && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
+              variants={fadeInPresence}
+              initial="hidden"
+              animate="visible"
               className="mt-3"
             >
               <Alert variant="destructive">
@@ -426,7 +464,9 @@ export default function ChatPage() {
             </motion.div>
           )}
         </div>
-      </Card>
+          </div>
+        </div>
+      </motion.section>
       <ImageLightbox
         open={lightboxOpen}
         src={lightboxSrc}

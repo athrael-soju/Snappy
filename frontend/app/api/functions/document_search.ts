@@ -1,5 +1,3 @@
-import { NextRequest } from 'next/server';
-
 export const documentSearchTool = {
   type: "function" as const,
   strict: false,

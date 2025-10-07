@@ -1,33 +1,63 @@
-import { LucideIcon } from "lucide-react";
+import { LucideIcon, HelpCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
+import type { ReactNode } from "react";
 
 interface PageHeaderProps {
   title: string;
   description?: string;
   icon?: LucideIcon;
-  children?: React.ReactNode;
+  children?: ReactNode;
+  badge?: ReactNode;
+  tooltip?: string;
 }
 
-export function PageHeader({ title, description, icon: Icon, children }: PageHeaderProps) {
+export function PageHeader({ title, description, icon: Icon, children, badge, tooltip }: PageHeaderProps) {
   return (
-    <div className="space-y-3 mb-6 text-center relative">
-      {/* Background decoration */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-20 w-32 h-32 bg-blue-200/20 rounded-full blur-xl" />
-        <div className="absolute top-10 right-32 w-24 h-24 bg-purple-200/20 rounded-full blur-xl" />
+    <div className="relative space-y-3 text-center">
+      {/* Subtle background accent - only on top */}
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div
+          className="absolute left-1/2 top-[-18%] h-56 w-56 -translate-x-1/2 rounded-full opacity-20 blur-3xl"
+          style={{ background: "radial-gradient(circle, rgba(251, 226, 167, 0.35) 0%, transparent 70%)" }}
+        />
       </div>
-      
-      <div className="flex items-center justify-center gap-3 mb-2 relative z-10">
+
+      <div className="relative z-10 flex flex-wrap items-center justify-center gap-3">
         {Icon && (
-          <div className="p-2.5 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl border-2 border-blue-200/50 shadow-sm">
-            <Icon className="w-6 h-6 text-blue-500" />
+          <div className="rounded-2xl border border-border bg-card p-2.5 shadow-sm">
+            <Icon className="h-6 w-6 text-primary" />
           </div>
         )}
-        <h1 className="text-4xl font-semibold bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">
-          {title}
-        </h1>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <div className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-card/90 backdrop-blur-sm border border-border shadow-sm">
+            <h1
+              className="text-balance text-4xl font-semibold tracking-tight bg-clip-text text-transparent"
+              style={{ backgroundImage: "var(--nav-pill-active)" }}
+            >
+              {title}
+            </h1>
+            {tooltip && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center rounded-full border border-border bg-card/80 p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                  >
+                    <HelpCircle className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs text-base bg-popover text-popover-foreground" sideOffset={8}>
+                  {tooltip}
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
+          {badge && <div className="flex items-center text-sm">{badge}</div>}
+        </div>
       </div>
       {description && (
-        <p className="text-muted-foreground leading-relaxed max-w-2xl mx-auto relative z-10">
+        <p className="relative z-10 mx-auto max-w-2xl text-balance text-base text-muted-foreground px-4 py-2 rounded-lg bg-card/50 backdrop-blur-sm">
           {description}
         </p>
       )}

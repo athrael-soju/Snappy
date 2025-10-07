@@ -42,7 +42,7 @@ This document analyzes the current system implemented in this repository and com
   - Calls `ColPaliService.get_patches(...)` to obtain the patch grid (`n_patches_x`, `n_patches_y`)
   - Mean-pools the image patch tokens into two variants: by rows and by columns, preserving prefix/postfix tokens via parallelized pooling operations
   - Produces three multivectors per page: `original`, `mean_pooling_rows`, `mean_pooling_columns`
-- __Image persistence__: `MinioService.store_images_batch(...)` uploads images concurrently with internal thread pool (`MINIO_WORKERS` threads, default: 12). HTTP connection pool is automatically sized to match concurrency (`MINIO_WORKERS × MAX_CONCURRENT_BATCHES + 10`) to prevent connection exhaustion.
+- __Image persistence__: `MinioService.store_images_batch(...)` uploads images concurrently with internal thread pool (`MINIO_WORKERS` threads, auto-sized). HTTP connection pool is automatically sized to match concurrency (`MINIO_WORKERS x MAX_CONCURRENT_BATCHES + 10`) to prevent connection exhaustion.
 - __Upsert to Qdrant__: Non-blocking upserts submitted to separate executor, allowing next batch to start embedding immediately. The `/index` route starts this as a background job and you can poll `/progress/{job_id}` for status.
 
 Notes:
