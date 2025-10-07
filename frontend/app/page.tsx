@@ -70,19 +70,19 @@ export default function Home() {
       </motion.section>
 
       <section className="flex-1 min-h-0 pb-6 sm:pb-8">
-        <ScrollArea className="custom-scrollbar h-[calc(100vh-30rem)]">
-          <div className="p-4">
-            <motion.div className="grid gap-6 md:grid-cols-3" {...staggeredListMotion}>
+        <ScrollArea className="custom-scrollbar h-[calc(100vh-26rem)]">
+          <div className="px-4 py-6">
+            <motion.div className="grid gap-6 md:grid-cols-3 max-w-7xl mx-auto" {...staggeredListMotion}>
           {workflow.map(({ title, description, icon: Icon }) => (
             <motion.div key={title} {...fadeInItemMotion} {...hoverLift}>
-              <Card className="card-surface h-full">
-                <CardHeader className="flex flex-row items-center gap-4 border-b border-divider pb-4">
-                  <div className="flex size-12 items-center justify-center rounded-xl border border-muted bg-[color:var(--surface-2)] text-primary">
-                    <Icon className="h-5 w-5" strokeWidth={2.2} />
+              <Card className="card-surface h-full hover:shadow-xl transition-all duration-300 border-border/50">
+                <CardHeader className="flex flex-row items-center gap-4 border-b border-divider pb-5">
+                  <div className="flex size-14 items-center justify-center rounded-xl border-2 border-primary/20 bg-gradient-to-br from-primary/10 to-primary/5 text-primary shadow-sm">
+                    <Icon className="h-6 w-6" strokeWidth={2.2} />
                   </div>
-                  <CardTitle className="text-xl font-semibold text-foreground">{title}</CardTitle>
+                  <CardTitle className="text-xl font-bold text-foreground tracking-tight">{title}</CardTitle>
                 </CardHeader>
-                <CardContent className="pt-4 text-sm leading-relaxed text-foreground/80">
+                <CardContent className="pt-5 text-sm leading-relaxed text-foreground/90 font-medium">
                   {description}
                 </CardContent>
               </Card>

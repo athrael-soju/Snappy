@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Settings, RotateCcw, AlertTriangle, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -291,31 +292,19 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.2 }}
-                  className="flex-1 min-h-0 flex flex-col gap-4"
+                  className="flex-1 min-h-0 flex gap-3"
                 >
                   {/* Settings Card - Scrollable */}
-                  <Card className="card-surface flex flex-col h-full border-2">
+                  <Card className="card-surface flex flex-col flex-1 border-2">
                     <CardHeader className="pb-4 flex-shrink-0">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3">
-                          <div className="p-2 bg-white dark:bg-blue-900/40 rounded-xl border-2 border-blue-200 dark:border-blue-800/50 shadow-sm">
-                            <Settings className="w-5 h-5 text-blue-500 dark:text-blue-400" />
-                          </div>
-                          <div>
-                            <CardTitle className="text-xl font-bold text-foreground">{category.name}</CardTitle>
-                            <CardDescription className="mt-1 text-base text-muted-foreground">{category.description}</CardDescription>
-                          </div>
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-white dark:bg-blue-900/40 rounded-xl border-2 border-blue-200 dark:border-blue-800/50 shadow-sm">
+                          <Settings className="w-5 h-5 text-blue-500 dark:text-blue-400" />
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setResetSectionDialogOpen(categoryKey)}
-                          disabled={saving}
-                          className="text-muted-foreground hover:text-blue-600 hover:bg-blue-50"
-                        >
-                          <RotateCcw className="w-4 h-4 mr-2" />
-                          Reset section
-                        </Button>
+                        <div>
+                          <CardTitle className="text-xl font-bold text-foreground">{category.name}</CardTitle>
+                          <CardDescription className="mt-1 text-base text-muted-foreground">{category.description}</CardDescription>
+                        </div>
                       </div>
                     </CardHeader>
                     <ScrollArea className="h-[calc(100vh-35rem)]">
@@ -359,6 +348,26 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                       </CardContent>
                     </ScrollArea>
                   </Card>
+
+                  {/* Reset Section Button - Right side of card */}
+                  <div className="flex flex-col justify-start pt-1">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setResetSectionDialogOpen(categoryKey)}
+                          disabled={saving}
+                          className="h-8 w-8 p-0 border-muted bg-card text-foreground hover:bg-destructive hover:border-destructive hover:text-destructive-foreground shadow-sm transition-all"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" sideOffset={8} className="bg-popover text-popover-foreground">
+                        <p>Reset this section</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
 
                 </motion.div>
               );

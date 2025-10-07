@@ -11,15 +11,15 @@ interface SystemStatusBadgeProps {
 
 export function SystemStatusBadge({ isReady, isLoading, onRefresh }: SystemStatusBadgeProps) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-3">
       <Badge 
         variant={isReady ? "default" : "secondary"}
-        className={`h-10 px-4 ${isReady ? 'bg-green-600 hover:bg-green-700' : 'bg-amber-500 hover:bg-amber-600'} text-white`}
+        className={`h-12 px-5 justify-center font-semibold text-base shadow-md ${isReady ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700' : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600'} text-white transition-all duration-200`}
       >
         {isReady ? (
-          <><CheckCircle2 className="w-4 h-4 mr-2" /> Ready</>
+          <><CheckCircle2 className="w-5 h-5 mr-2" /> Ready</>
         ) : (
-          <><AlertTriangle className="w-4 h-4 mr-2" /> Not Initialized</>
+          <><AlertTriangle className="w-5 h-5 mr-2" /> Not Ready</>
         )}
       </Badge>
       <Tooltip>
@@ -29,16 +29,16 @@ export function SystemStatusBadge({ isReady, isLoading, onRefresh }: SystemStatu
             size="sm"
             onClick={onRefresh}
             disabled={isLoading}
-            className="h-10"
+            className="h-11 w-full border-2 border-muted bg-card text-foreground hover:bg-primary/10 hover:border-primary hover:text-primary hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium"
           >
             {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="w-5 h-5" />
             )}
           </Button>
         </TooltipTrigger>
-        <TooltipContent sideOffset={8}>
+        <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground">
           <p>{isLoading ? "Refreshing..." : "Refresh system status"}</p>
         </TooltipContent>
       </Tooltip>

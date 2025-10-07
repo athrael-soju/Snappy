@@ -19,9 +19,9 @@ export default function AboutPage() {
         />
       </motion.section>
       <motion.section variants={sectionVariants} className="flex-1 min-h-0 pb-6 sm:pb-8">
-        <Card className="card-surface h-full overflow-hidden">
-          <ScrollArea className="custom-scrollbar h-[calc(100vh-20rem)]">
-            <div className="p-6">
+        <Card className="card-surface h-full overflow-hidden border-border/50 shadow-lg">
+          <ScrollArea className="custom-scrollbar h-[calc(100vh-18rem)]">
+            <div className="p-8">
               <AboutContent />
             </div>
           </ScrollArea>

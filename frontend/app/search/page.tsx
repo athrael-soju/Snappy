@@ -272,7 +272,7 @@ export default function SearchPage() {
                   <div className="space-y-3 max-w-2xl">
                     <h3 className="text-2xl font-semibold text-foreground">Search across documents, slides, and imagery</h3>
                     <p className="text-base text-muted-foreground">
-                      Describe what you are looking for, combine visual details with text cues, and refine faster with filters and keyboard shortcuts.
+                      This is a simple search interface to return similar documents.
                     </p>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">

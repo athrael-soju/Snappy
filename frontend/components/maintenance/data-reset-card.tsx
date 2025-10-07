@@ -1,4 +1,4 @@
-﻿import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertTriangle, Loader2 } from "lucide-react";
@@ -28,20 +28,20 @@ export function DataResetCard({
   const Icon = action.icon;
 
   return (
-    <Card className="border-amber-200/70 dark:border-amber-800/60 transition-shadow hover:shadow-md">
-      <CardHeader className="pb-3">
+    <Card className="border-amber-200/70 dark:border-amber-800/60 transition-all duration-300 hover:shadow-lg hover:border-amber-300 dark:hover:border-amber-700">
+      <CardHeader className="pb-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/40 border-2 border-amber-200 dark:border-amber-800/50">
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-100 to-orange-50 dark:from-amber-900/40 dark:to-orange-900/30 border-2 border-amber-200 dark:border-amber-800/50 shadow-sm">
             <Icon className="w-5 h-5 text-amber-600 dark:text-amber-400" />
           </div>
           <div>
-            <CardTitle className="text-base font-semibold text-amber-900 dark:text-amber-100">{action.title}</CardTitle>
-            <CardDescription className="text-sm text-muted-foreground">{action.description}</CardDescription>
+            <CardTitle className="text-base font-bold text-amber-900 dark:text-amber-100">{action.title}</CardTitle>
+            <CardDescription className="text-xs text-muted-foreground">{action.description}</CardDescription>
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-foreground/80 mb-4">
+        <p className="text-sm text-foreground/85 mb-5 leading-relaxed">
           {action.detailedDescription}
         </p>
         <Dialog open={dialogOpen} onOpenChange={onDialogChange}>
@@ -49,7 +49,7 @@ export function DataResetCard({
             <Button
               variant="destructive"
               disabled={isInitLoading || isDeleteLoading || !isSystemReady}
-              className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700"
+              className="w-full bg-gradient-to-r from-amber-600 to-orange-600 text-white hover:from-amber-700 hover:to-orange-700 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold"
             >
               {isLoading ? (
                 <>
@@ -87,6 +87,7 @@ export function DataResetCard({
                 variant="outline"
                 onClick={() => onDialogChange(false)}
                 disabled={isLoading}
+                className="border-muted bg-card text-foreground hover:bg-muted hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Cancel
               </Button>
@@ -94,7 +95,7 @@ export function DataResetCard({
                 variant="destructive"
                 onClick={() => onConfirm(action.id)}
                 disabled={isLoading}
-                className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700"
+                className="bg-gradient-to-r from-amber-600 to-orange-600 text-white hover:from-amber-700 hover:to-orange-700 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               >
                 {isLoading ? (
                   <>

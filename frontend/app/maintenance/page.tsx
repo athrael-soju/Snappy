@@ -52,48 +52,40 @@ export default function MaintenancePage() {
       <motion.section variants={sectionVariants} className="pt-6 sm:pt-8">
         <PageHeader
           title="System Maintenance"
-          icon={Settings}
           tooltip={isConfigurationView ? "Manage runtime configuration options" : "Monitor and manage storage and indexing resources"}
         />
       </motion.section>
 
       <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col gap-6 pb-6 sm:pb-8">
-        {!isConfigurationView && systemStatus && (
-          <div className="flex items-center">
-            <SystemStatusBadge
-              isReady={isSystemReady}
-              isLoading={statusLoading}
-              onRefresh={fetchStatus}
-            />
-          </div>
-        )}
-
         {isConfigurationView ? (
-          <div className="flex-1 min-h-0 relative">
-            <div className="absolute top-0 right-0 z-10">
+          <div className="flex-1 min-h-0 flex flex-col gap-3">
+            <div className="flex justify-end">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => configPanelRef.current?.openResetDialog()}
-                    className="h-9 w-9 p-0 rounded-lg border-2 bg-card/80 backdrop-blur-sm hover:bg-card shadow-sm"
+                    className="h-8 px-3 gap-1.5 rounded-lg border-2 border-muted bg-card text-foreground hover:bg-destructive hover:border-destructive hover:text-destructive-foreground shadow-sm transition-all"
                   >
-                    <RotateCcw className="h-4 w-4" />
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    <span className="text-xs font-medium">Reset All</span>
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent sideOffset={8}>
-                  <p>Reset all configuration</p>
+                <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground">
+                  <p>Reset all configuration to defaults</p>
                 </TooltipContent>
               </Tooltip>
             </div>
-            <ConfigurationPanel ref={configPanelRef} />
+            <div className="flex-1 min-h-0">
+              <ConfigurationPanel ref={configPanelRef} />
+            </div>
           </div>
         ) : (
-          <ScrollArea className="custom-scrollbar h-[calc(100vh-30rem)]">
-            <div className="flex flex-col gap-6 p-4">
-              <div className="flex flex-col gap-4">
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="flex-1 min-h-0 flex gap-6">
+            <ScrollArea className="custom-scrollbar flex-1 h-[calc(100vh-14rem)]">
+              <div className="flex flex-col gap-6 p-4 max-w-7xl mx-auto">
+                <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
                   <CollectionStatusCard
                     status={systemStatus?.collection || null}
                     isLoading={statusLoading}
@@ -104,7 +96,7 @@ export default function MaintenancePage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
                   <InitializeCard
                     isLoading={initLoading}
                     isSystemReady={isSystemReady}
@@ -136,8 +128,19 @@ export default function MaintenancePage() {
                   ))}
                 </div>
               </div>
-            </div>
-          </ScrollArea>
+            </ScrollArea>
+            
+            {/* System Status Badge - Right Side */}
+            {systemStatus && (
+              <div className="flex flex-col justify-start pt-4 w-52 flex-shrink-0">
+                <SystemStatusBadge
+                  isReady={isSystemReady}
+                  isLoading={statusLoading}
+                  onRefresh={fetchStatus}
+                />
+              </div>
+            )}
+          </div>
         )}
       </motion.section>
     </motion.div>
