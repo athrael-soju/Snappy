@@ -217,8 +217,8 @@ export default function SearchPage() {
   }
 
   return (
-    <motion.div {...defaultPageMotion} className="page-shell page-section flex min-h-0 flex-1 flex-col gap-8">
-      <motion.section variants={sectionVariants}>
+    <motion.div {...defaultPageMotion} className="page-shell flex min-h-0 flex-1 flex-col gap-8">
+      <motion.section variants={sectionVariants} className="pt-8 sm:pt-12">
         <PageHeader
           title="Visual Search"
           description="Find documents and images using natural language powered by AI vision."
@@ -226,7 +226,7 @@ export default function SearchPage() {
         />
       </motion.section>
 
-      <motion.section variants={sectionVariants} className="flex min-h-0 flex-1 flex-col gap-6 pb-8">
+      <motion.section variants={sectionVariants} className="flex min-h-0 flex-1 flex-col gap-6 pb-8 sm:pb-12">
         <SystemStatusWarning isReady={isReady} />
 
         <div className="sticky top-[5.25rem] z-30 space-y-3">
@@ -268,8 +268,8 @@ export default function SearchPage() {
           )}
         </AnimatePresence>
 
-        <ScrollArea className="custom-scrollbar flex-1">
-          <div className="space-y-6 pb-10">
+        <ScrollArea className="custom-scrollbar flex-1 min-h-0 overflow-hidden">
+          <div className="space-y-6 p-4 pb-10">
             {!hasSearched && !loading && !error ? (
               <Card className="card-surface border border-dashed border-muted/60 text-center">
                 <CardContent className="flex flex-col items-center gap-6 py-16">

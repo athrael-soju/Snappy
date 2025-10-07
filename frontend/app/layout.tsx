@@ -35,9 +35,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="h-full">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} bg-background text-foreground antialiased relative min-h-screen flex flex-col overflow-hidden`}
+        className={`${geistSans.variable} ${geistMono.variable} bg-background text-foreground antialiased relative h-full flex flex-col overflow-hidden`}
       >
         {/* Site-wide background glow */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">

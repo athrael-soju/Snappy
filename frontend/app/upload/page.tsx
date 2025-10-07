@@ -6,6 +6,7 @@ import "@/lib/api/client";
 import { CloudUpload } from "lucide-react";
 import { motion } from "framer-motion";
 import { defaultPageMotion, sectionVariants } from "@/lib/motion-presets";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSystemStatus } from "@/stores/app-store";
 import { useFileUpload } from "@/lib/hooks/use-file-upload";
 import { PageHeader } from "@/components/page-header";
@@ -75,9 +76,9 @@ export default function UploadPage() {
 
   return (
     <motion.div {...defaultPageMotion}
-      className="page-shell page-section flex min-h-0 flex-1 flex-col gap-10"
+      className="page-shell flex min-h-0 flex-1 flex-col gap-10"
     >
-      <motion.section variants={sectionVariants}>
+      <motion.section variants={sectionVariants} className="pt-8 sm:pt-12">
         <PageHeader
           title="Upload Documents"
           description="Drag & drop or select files to add to your visual search index"
@@ -85,11 +86,12 @@ export default function UploadPage() {
         />
       </motion.section>
 
-      <div className="flex-1 min-h-0 flex flex-col gap-8 pb-10">
-        <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col gap-8 pb-10">
-          {/* System Status Warning */}
-          <SystemStatusWarning isReady={isReady} />
-          <FileDropzone
+        <motion.section variants={sectionVariants} className="flex-1 min-h-0 pb-8 sm:pb-12">
+          <ScrollArea className="h-full overflow-hidden">
+            <div className="flex flex-col gap-8 p-4">
+              {/* System Status Warning */}
+              <SystemStatusWarning isReady={isReady} />
+              <FileDropzone
             isDragOver={isDragOver}
             uploading={uploading}
             files={files}
@@ -107,11 +109,11 @@ export default function UploadPage() {
             onFileSelect={handleFileSelect}
             onSubmit={handleSubmit}
             onCancel={handleCancel}
-          />
-          <UploadInfoCards />
+              />
+              <UploadInfoCards />
+            </div>
+          </ScrollArea>
         </motion.section>
-
-      </div>
     </motion.div>
   );
 }

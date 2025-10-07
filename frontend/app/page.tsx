@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { defaultPageMotion, fadeInItemMotion, hoverLift, sectionVariants, staggeredListMotion } from "@/lib/motion-presets";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,8 +30,8 @@ const workflow = [
 
 export default function Home() {
   return (
-    <motion.div {...defaultPageMotion} className="page-shell page-section flex min-h-0 flex-1 flex-col gap-12">
-      <motion.section variants={sectionVariants} className="flex flex-col items-center text-center gap-8">
+    <motion.div {...defaultPageMotion} className="page-shell flex min-h-0 flex-1 flex-col">
+      <motion.section variants={sectionVariants} className="flex flex-col items-center text-center gap-8 pt-8 sm:pt-12">
         <PageHeader
           title="FastAPI / Next.js / ColPali Template"
           description="This starter kit combines a FastAPI backend, Qdrant vector search, and a modern Next.js interface so you can focus on the experience, not the boilerplate."
@@ -68,8 +69,10 @@ export default function Home() {
         </PageHeader>
       </motion.section>
 
-      <section className="flex-1 space-y-10 pb-10">
-        <motion.div className="grid gap-6 md:grid-cols-3" {...staggeredListMotion}>
+      <section className="flex-1 min-h-0 pb-8 sm:pb-12">
+        <ScrollArea className="h-full overflow-hidden">
+          <div className="p-4">
+            <motion.div className="grid gap-6 md:grid-cols-3" {...staggeredListMotion}>
           {workflow.map(({ title, description, icon: Icon }) => (
             <motion.div key={title} {...fadeInItemMotion} {...hoverLift}>
               <Card className="card-surface h-full">
@@ -85,7 +88,9 @@ export default function Home() {
               </Card>
             </motion.div>
           ))}
-        </motion.div>
+            </motion.div>
+          </div>
+        </ScrollArea>
       </section>
     </motion.div>
   );

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useChat } from "@/lib/hooks/use-chat";
@@ -218,8 +218,8 @@ export default function ChatPage() {
   }, [messages, requestStart]);
 
   return (
-    <motion.div {...defaultPageMotion} className="page-shell page-section flex flex-col min-h-0 flex-1">
-      <motion.section variants={sectionVariants}>
+    <motion.div {...defaultPageMotion} className="page-shell flex flex-col min-h-0 flex-1">
+      <motion.section variants={sectionVariants} className="pt-8 sm:pt-12">
         <PageHeader
           title="AI Chat"
           description="Ask questions about your documents and get AI-powered responses with inline citations"
@@ -227,13 +227,13 @@ export default function ChatPage() {
         />
       </motion.section>
 
-      <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col space-y-6 pb-6">
+      <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col space-y-6 pb-8 sm:pb-12">
 
         {/* System Status Warning */}
         <SystemStatusWarning isReady={isReady} />
         {/* Chat Messages */}
         <Card className="card-surface flex-1 min-h-0 flex flex-col overflow-hidden">
-        <ScrollArea ref={messagesContainerRef} className="custom-scrollbar flex-1 min-h-0">
+        <ScrollArea ref={messagesContainerRef} className="custom-scrollbar flex-1 min-h-0 overflow-hidden">
           <div className="space-y-6 p-4 sm:p-6">
           <AnimatePresence mode="popLayout">
             {messages.length === 0 ? (
