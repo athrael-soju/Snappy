@@ -311,10 +311,10 @@ export default function ChatPage() {
                   <div className={cn("flex-1", message.role === "user" && "flex justify-end")}>
                     <div
                       className={cn(
-                        "inline-block max-w-[640px] rounded-2xl border px-5 py-3.5 text-left shadow-md",
+                        "inline-block max-w-[640px] rounded-2xl border px-5 py-3.5 text-left shadow-md transition-colors",
                         message.role === "assistant"
-                          ? "bg-card/95 backdrop-blur-md border-border text-foreground"
-                          : "bg-primary/90 border-primary text-primary-foreground"
+                          ? "bg-card/95 backdrop-blur-md border-border text-foreground dark:bg-surface-2/95 dark:border-border-muted"
+                          : "bg-primary/90 border-primary text-primary-foreground dark:bg-purple-600/85 dark:border-purple-500/50 dark:text-white"
                       )}
                     >
                       {message.content ? (
@@ -335,11 +335,11 @@ export default function ChatPage() {
                         )
                       ) : (
                         loading && message.role === "assistant" ? (
-                          <div className="flex items-center gap-3 text-muted-foreground">
+                          <div className="flex items-center gap-3 text-muted-foreground dark:text-text-subtle">
                             <div className="relative">
-                              <Loader2 className="w-5 h-5 animate-spin text-purple-500" />
+                              <Loader2 className="w-5 h-5 animate-spin text-purple-500 dark:text-purple-400" />
                               <div className="absolute inset-0 blur-sm">
-                                <Loader2 className="w-5 h-5 animate-spin text-purple-400" />
+                                <Loader2 className="w-5 h-5 animate-spin text-purple-400 dark:text-purple-300" />
                               </div>
                             </div>
                             <AnimatePresence mode="wait" initial={false}>
