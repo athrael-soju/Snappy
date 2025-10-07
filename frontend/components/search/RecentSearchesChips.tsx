@@ -160,10 +160,10 @@ export default function RecentSearchesChips({ recentSearches, loading, visible =
                         <button
                           aria-label={`Remove ${search}`}
                           onClick={() => onRemove(search)}
-                          className="absolute top-1 right-1 rounded-full p-0.5 text-muted-foreground transition hover:bg-[color:var(--surface-2)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+                          className="absolute top-1 right-1 rounded-full p-1 opacity-0 group-hover:opacity-100 bg-destructive/10 hover:bg-destructive/20 text-destructive transition-all duration-200 hover:scale-110 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/50"
                           disabled={!!loading}
                         >
-                          <X className="w-3.5 h-3.5 text-muted-foreground" />
+                          <X className="w-3.5 h-3.5" />
                         </button>
                       </motion.div>
                     ))}
