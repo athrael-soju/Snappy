@@ -13,6 +13,7 @@ import { Search, AlertCircle, ImageIcon, Eye, ExternalLink } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion";
 import { defaultPageMotion, fadeInItemMotion, fadeInPresence, hoverLift, sectionVariants, staggeredListMotion } from "@/lib/motion-presets";
 import { toast } from "@/components/ui/sonner";
+import { GlassPanel } from "@/components/ui/glass-panel";
 import Image from "next/image";
 import ImageLightbox from "@/components/lightbox";
 import SearchBar from "@/components/search/SearchBar";
@@ -229,8 +230,7 @@ export default function SearchPage() {
           <SystemStatusWarning isReady={isReady} />
 
           <div className="sticky top-[5.25rem] z-30">
-          <Card className="card-surface shadow-none">
-            <CardContent className="space-y-4 py-5">
+          <GlassPanel className="p-5">
               <SearchBar
                 q={q}
                 setQ={setQ}
@@ -247,8 +247,7 @@ export default function SearchPage() {
                 onSelectRecent={setQ}
                 onRemoveRecent={removeFromRecentSearches}
               />
-            </CardContent>
-          </Card>
+          </GlassPanel>
         </div>
 
         <AnimatePresence>
@@ -265,8 +264,7 @@ export default function SearchPage() {
           <ScrollArea className="h-[calc(100vh-30rem)] rounded-xl">
 
             {!hasSearched && !loading && !error ? (
-              <Card className="card-surface border border-dashed border-muted/60 text-center">
-                <CardContent className="flex flex-col items-center gap-6 py-20">
+              <GlassPanel className="p-20 text-center">
                   <div className="flex size-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary">
                     <Search className="h-9 w-9" />
                   </div>
@@ -289,8 +287,7 @@ export default function SearchPage() {
                       </Button>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
+              </GlassPanel>
             ) : (
               <AnimatePresence mode="wait">
                 {loading ? (
@@ -318,7 +315,7 @@ export default function SearchPage() {
                   >
                     {results.map((item, idx) => (
                       <motion.div key={idx} {...fadeInItemMotion} {...hoverLift}>
-                        <Card className="card-surface group flex h-full flex-col overflow-hidden cursor-pointer">
+                        <Card className="card-surface group flex h-full flex-col overflow-hidden cursor-pointer hover:shadow-xl transition-all border-border/50">
                           {item.image_url ? (
                             <button
                               type="button"
@@ -334,10 +331,10 @@ export default function SearchPage() {
                                 alt={item.label ?? `Result ${idx + 1}`}
                                 fill
                                 sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 25vw"
-                                className="object-cover transition duration-500 group-hover:scale-105"
+                                className="object-cover transition duration-500 group-hover:scale-110"
                               />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                              <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-transparent bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                              <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/95 backdrop-blur-sm px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-lg opacity-0 group-hover:opacity-100 transition-all">
                                 <Eye className="h-3.5 w-3.5" /> View
                               </span>
                             </button>
@@ -348,7 +345,7 @@ export default function SearchPage() {
                           )}
 
                           <CardContent className="flex flex-1 flex-col gap-4 p-4">
-                            <div className="space-y-1">
+                            <div className="space-y-2">
                               <h3 className="line-clamp-2 text-base font-semibold text-foreground group-hover:text-primary transition-colors">
                                 {item.label ?? `Result ${idx + 1}`}
                               </h3>
@@ -360,17 +357,15 @@ export default function SearchPage() {
                               )}
                             </div>
 
-                            <div className="mt-auto flex items-center justify-between border-t border-divider pt-3 text-sm text-muted-foreground">
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="text-xs font-medium">
-                                  #{idx + 1}
+                            <div className="mt-auto flex items-center gap-2 border-t border-divider pt-3 text-xs">
+                              <Badge variant="secondary" className="text-xs font-medium rounded-full">
+                                #{idx + 1}
+                              </Badge>
+                              {typeof item.score === "number" && (
+                                <Badge variant="outline" className="text-xs font-medium rounded-full border-primary/30 text-primary">
+                                  {Math.round(item.score * 100)}%
                                 </Badge>
-                                {typeof item.score === "number" && (
-                                  <Badge variant="outline" className="text-xs font-medium">
-                                    Score {Math.round(item.score * 100)}
-                                  </Badge>
-                                )}
-                              </div>
+                              )}
                             </div>
                           </CardContent>
                         </Card>
@@ -385,8 +380,8 @@ export default function SearchPage() {
                     animate="visible"
                     exit="exit"
                   >
-                    <Card className="card-surface">
-                      <CardContent className="flex flex-col items-center gap-6 py-14 text-center">
+                    <GlassPanel className="p-14">
+                      <div className="flex flex-col items-center gap-6 text-center">
                         <div className="flex size-20 items-center justify-center rounded-2xl bg-gradient-to-br from-muted/30 to-muted/10">
                           <ImageIcon className="h-10 w-10 text-muted-foreground" />
                         </div>
@@ -414,8 +409,8 @@ export default function SearchPage() {
                             Upload more visuals for richer retrieval.
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </GlassPanel>
                   </motion.div>
                 )}
               </AnimatePresence>

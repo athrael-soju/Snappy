@@ -3,6 +3,8 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { GlassPanel } from "@/components/ui/glass-panel";
+import { BottomActionBar } from "@/components/ui/bottom-action-bar";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -279,7 +281,7 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
 
         {/* Main content area */}
         <div className="flex-1 min-w-0 flex flex-col gap-4">
-        <ScrollArea className="h-[calc(100vh-15rem)] rounded-xl">          
+        <ScrollArea className="h-[calc(100vh-20rem)] rounded-xl">          
           {categoriesToRender.map(([categoryKey, category]) => {
             if (activeCategoryKey !== categoryKey) return null;
 
@@ -293,23 +295,41 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.2 }}
-                className="flex-1 min-h-0 flex gap-3"
+                className="flex-1 min-h-0"
               >
                 {/* Settings Card - Scrollable */}
-                <Card className="card-surface flex flex-1 min-h-0 flex-col">
-                  <CardHeader className="pb-4 flex-shrink-0">
-                    <div className="flex items-start gap-3">
-                      <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 text-blue-500">
-                        <Settings className="w-6 h-6" />
+                <GlassPanel className="flex flex-1 min-h-0 flex-col p-6">
+                  <CardHeader className="pb-4 flex-shrink-0 px-0 pt-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 text-blue-500">
+                          <Settings className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-xl font-semibold text-foreground">{category.name}</CardTitle>
+                          <CardDescription className="mt-1 text-base leading-relaxed text-muted-foreground">{category.description}</CardDescription>
+                        </div>
                       </div>
-                      <div>
-                        <CardTitle className="text-xl font-semibold text-foreground">{category.name}</CardTitle>
-                        <CardDescription className="mt-1 text-base leading-relaxed text-muted-foreground">{category.description}</CardDescription>
-                      </div>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setResetSectionDialogOpen(categoryKey)}
+                            disabled={saving}
+                            className="h-9 w-9 shrink-0"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent sideOffset={8} side="right" className="bg-popover text-popover-foreground">
+                        <p>Reset this section</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                   </CardHeader>
 
-                    <CardContent className="pr-4 py-4">
+                    <CardContent className="flex-1 min-h-0 overflow-y-auto space-y-6 px-0 pb-0">
                       {visibleSettings.map((setting, index) => {
                         // Check for nested settings
                         const childSettings = category.settings.filter(
@@ -348,27 +368,7 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                       })}
                     </CardContent>
 
-                </Card>
-
-                {/* Reset Section Button - Right side of card */}
-                <div className="flex flex-col justify-start pt-1">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setResetSectionDialogOpen(categoryKey)}
-                        disabled={saving}
-                        className="h-12 w-12"
-                      >
-                        <RotateCcw className="w-3.5 h-3.5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right" sideOffset={8} className="bg-popover text-popover-foreground">
-                      <p>Reset this section</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
+                </GlassPanel>
 
               </motion.div>
             );

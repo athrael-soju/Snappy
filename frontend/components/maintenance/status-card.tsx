@@ -1,7 +1,8 @@
-﻿import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, XCircle, Loader2, LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { GlassPanel } from "@/components/ui/glass-panel";
 import type { CollectionStatus, BucketStatus } from "./types";
 
 type AccentColor = "blue" | "orange";
@@ -59,8 +60,8 @@ export function StatusCard({
   const accent = accentStyles[accentColor] ?? accentStyles.blue;
 
   return (
-    <Card className={cn("transition-shadow hover:shadow-md", accent.cardBorder)}>
-      <CardHeader className="pb-3">
+    <GlassPanel className={cn("transition-shadow hover:shadow-lg p-6")}>
+      <CardHeader className="pb-3 px-0 pt-0">
         <div className="mb-2 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className={cn("rounded-xl border p-2", iconBg, accent.iconBorder)}>
@@ -86,7 +87,7 @@ export function StatusCard({
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 px-0 pb-0">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className={cn("h-6 w-6 animate-spin", accent.loader)} />
@@ -112,6 +113,6 @@ export function StatusCard({
           <p className="text-sm text-muted-foreground">No status available</p>
         )}
       </CardContent>
-    </Card>
+    </GlassPanel>
   );
 }

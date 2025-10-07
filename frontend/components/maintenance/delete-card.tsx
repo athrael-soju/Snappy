@@ -1,7 +1,8 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Trash2, AlertTriangle, Loader2 } from "lucide-react";
+import { GlassPanel } from "@/components/ui/glass-panel";
 
 interface DeleteCardProps {
   isLoading: boolean;
@@ -21,15 +22,15 @@ export function DeleteCard({
   onDelete 
 }: DeleteCardProps) {
   return (
-    <Card className="card-surface min-h-[240px] border-red-200/70 dark:border-red-800/60 hover:border-red-300 dark:hover:border-red-700">
-      <CardHeader className="pb-4">
+    <GlassPanel className="min-h-[240px] hover:shadow-lg transition-all p-6">
+      <CardHeader className="pb-4 px-0 pt-0">
         <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-red-500/10 to-red-500/5 text-red-600 dark:text-red-400 mb-3">
           <Trash2 className="w-6 h-6" />
         </div>
         <CardTitle className="text-xl font-semibold text-foreground">Delete System</CardTitle>
         <CardDescription className="text-base leading-relaxed text-muted-foreground">Remove collection and bucket</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-0 pb-0">
         <p className="text-base text-muted-foreground mb-5 leading-relaxed">
           Permanently deletes the Qdrant collection and MinIO bucket including all data. Use this to change configuration or start fresh.
         </p>
@@ -91,6 +92,6 @@ export function DeleteCard({
           </DialogContent>
         </Dialog>
       </CardContent>
-    </Card>
+    </GlassPanel>
   );
 }

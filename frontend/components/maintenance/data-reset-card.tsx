@@ -1,7 +1,8 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertTriangle, Loader2 } from "lucide-react";
+import { GlassPanel } from "@/components/ui/glass-panel";
 import type { MaintenanceAction, ActionType } from "./types";
 
 interface DataResetCardProps {
@@ -28,15 +29,15 @@ export function DataResetCard({
   const Icon = action.icon;
 
   return (
-    <Card className="card-surface min-h-[240px] border-amber-200/70 dark:border-amber-800/60 hover:border-amber-300 dark:hover:border-amber-700">
-      <CardHeader className="pb-4">
+    <GlassPanel className="min-h-[240px] hover:shadow-lg transition-all p-6">
+      <CardHeader className="pb-4 px-0 pt-0">
         <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500/10 to-amber-500/5 text-amber-600 dark:text-amber-400 mb-3">
           <Icon className="w-6 h-6" />
         </div>
         <CardTitle className="text-xl font-semibold text-foreground">{action.title}</CardTitle>
         <CardDescription className="text-base leading-relaxed text-muted-foreground">{action.description}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-0 pb-0">
         <p className="text-base text-muted-foreground mb-5 leading-relaxed">
           {action.detailedDescription}
         </p>
@@ -109,6 +110,6 @@ export function DataResetCard({
           </DialogContent>
         </Dialog>
       </CardContent>
-    </Card>
+    </GlassPanel>
   );
 }

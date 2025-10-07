@@ -51,7 +51,7 @@ export default function MaintenancePage() {
     <motion.div {...defaultPageMotion}>
       <motion.section variants={sectionVariants} className="flex flex-col items-center text-center gap-6 pt-6 sm:pt-8">
         <PageHeader
-          title="System Maintenance"
+          title={isConfigurationView ? "System Configuration" : "System Maintenance"}
           tooltip={isConfigurationView ? "Manage runtime configuration options" : "Monitor and manage storage and indexing resources"}
         />
       </motion.section>
