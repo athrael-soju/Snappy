@@ -280,98 +280,100 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
 
         {/* Main content area */}
         <div className="flex-1 min-w-0 flex flex-col gap-4">
-        <ScrollArea className="h-[calc(100vh-20rem)]">          
-          {categoriesToRender.map(([categoryKey, category]) => {
-            if (activeCategoryKey !== categoryKey) return null;
+          <ScrollArea className="h-[calc(100vh-20rem)]">
+            <div className="px-1 py-2 pr-4">
+              {categoriesToRender.map(([categoryKey, category]) => {
+                if (activeCategoryKey !== categoryKey) return null;
 
-            // Filter to show only top-level settings (exclude nested children with depends_on)
-            const visibleSettings = category.settings.filter(s => isSettingVisible(s) && !s.depends_on);
+                // Filter to show only top-level settings (exclude nested children with depends_on)
+                const visibleSettings = category.settings.filter(s => isSettingVisible(s) && !s.depends_on);
 
-            return (
-              <motion.div
-                key={categoryKey}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.2 }}
-                className="flex-1 min-h-0"
-              >
-                {/* Settings Card - Scrollable */}
-                <GlassPanel className="flex flex-1 min-h-0 flex-col p-6 overflow-hidden">
-                  <CardHeader className="pb-4 flex-shrink-0 px-0 pt-0">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-3">
-                        <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 text-blue-500">
-                          <Settings className="w-6 h-6" />
-                        </div>
-                        <div>
-                          <CardTitle className="text-xl font-semibold text-foreground">{category.name}</CardTitle>
-                          <CardDescription className="mt-1 text-base leading-relaxed text-muted-foreground">{category.description}</CardDescription>
-                        </div>
-                      </div>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setResetSectionDialogOpen(categoryKey)}
-                            disabled={saving}
-                            className="h-9 w-9 shrink-0"
-                          >
-                            <RotateCcw className="w-4 h-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent sideOffset={8} side="right" className="bg-popover text-popover-foreground">
-                        <p>Reset this section</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </CardHeader>
-
-                    <CardContent className="flex-1 min-h-0 overflow-y-auto space-y-6 px-0 pb-0 rounded-3xl">
-                      {visibleSettings.map((setting, index) => {
-                        // Check for nested settings
-                        const childSettings = category.settings.filter(
-                          s => s.depends_on?.key === setting.key && isSettingVisible(s)
-                        );
-                        const hasChildren = childSettings.length > 0;
-
-                        return (
-                          <div key={setting.key}>
-                            {index > 0 && <Separator className="my-3" />}
-                            <SettingRenderer
-                              setting={setting}
-                              value={values[setting.key]}
-                              saving={saving}
-                              onChange={handleValueChange}
-                            />
-
-                            {/* Nested child settings */}
-                            {hasChildren && (
-                              <div className="mt-4 ml-8 pl-5 border-l-2 border-blue-300/40 dark:border-blue-800/40 space-y-4 pb-2">
-                                {childSettings.map(childSetting => (
-                                  <div key={childSetting.key}>
-                                    <SettingRenderer
-                                      setting={childSetting}
-                                      value={values[childSetting.key]}
-                                      saving={saving}
-                                      isNested={true}
-                                      onChange={handleValueChange}
-                                    />
-                                  </div>
-                                ))}
-                              </div>
-                            )}
+                return (
+                  <motion.div
+                    key={categoryKey}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex-1 min-h-0"
+                  >
+                    {/* Settings Card - Scrollable */}
+                    <GlassPanel className="flex flex-1 min-h-0 flex-col p-6 overflow-hidden">
+                      <CardHeader className="pb-4 flex-shrink-0 px-0 pt-0">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-3">
+                            <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 text-blue-500">
+                              <Settings className="w-6 h-6" />
+                            </div>
+                            <div>
+                              <CardTitle className="text-xl font-semibold text-foreground">{category.name}</CardTitle>
+                              <CardDescription className="mt-1 text-base leading-relaxed text-muted-foreground">{category.description}</CardDescription>
+                            </div>
                           </div>
-                        );
-                      })}
-                    </CardContent>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setResetSectionDialogOpen(categoryKey)}
+                                disabled={saving}
+                                className="h-9 w-9 shrink-0"
+                              >
+                                <RotateCcw className="w-4 h-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent sideOffset={8} side="right" className="bg-popover text-popover-foreground">
+                              <p>Reset this section</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </CardHeader>
 
-                </GlassPanel>
+                      <CardContent className="flex-1 min-h-0 overflow-y-auto space-y-6 px-0 pb-0 rounded-3xl">
+                        {visibleSettings.map((setting, index) => {
+                          // Check for nested settings
+                          const childSettings = category.settings.filter(
+                            s => s.depends_on?.key === setting.key && isSettingVisible(s)
+                          );
+                          const hasChildren = childSettings.length > 0;
 
-              </motion.div>
-            );
-          })}
+                          return (
+                            <div key={setting.key}>
+                              {index > 0 && <Separator className="my-3" />}
+                              <SettingRenderer
+                                setting={setting}
+                                value={values[setting.key]}
+                                saving={saving}
+                                onChange={handleValueChange}
+                              />
+
+                              {/* Nested child settings */}
+                              {hasChildren && (
+                                <div className="mt-4 ml-8 pl-5 border-l-2 border-blue-300/40 dark:border-blue-800/40 space-y-4 pb-2">
+                                  {childSettings.map(childSetting => (
+                                    <div key={childSetting.key}>
+                                      <SettingRenderer
+                                        setting={childSetting}
+                                        value={values[childSetting.key]}
+                                        saving={saving}
+                                        isNested={true}
+                                        onChange={handleValueChange}
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </CardContent>
+
+                    </GlassPanel>
+
+                  </motion.div>
+                );
+              })}
+            </div>
           </ScrollArea>
         </div>
       </div>

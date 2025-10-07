@@ -218,7 +218,7 @@ export default function SearchPage() {
   return (
     <motion.div {...defaultPageMotion} className="page-shell flex min-h-0 flex-1 flex-col gap-6">
       <motion.section variants={sectionVariants} className="flex flex-col items-center text-center gap-6 pt-6 sm:pt-8">
-      <PageHeader
+        <PageHeader
           title="Visual Search"
           icon={Search}
           tooltip="Find documents and images using natural language powered by AI vision"
@@ -230,7 +230,7 @@ export default function SearchPage() {
           <SystemStatusWarning isReady={isReady} />
 
           <div className="sticky top-[5.25rem] z-30">
-          <GlassPanel className="p-5 overflow-visible">
+            <GlassPanel className="p-5 overflow-visible">
               <SearchBar
                 q={q}
                 setQ={setQ}
@@ -247,24 +247,24 @@ export default function SearchPage() {
                 onSelectRecent={setQ}
                 onRemoveRecent={removeFromRecentSearches}
               />
-          </GlassPanel>
-        </div>
+            </GlassPanel>
+          </div>
 
-        <AnimatePresence>
-          {error && (
-            <motion.div variants={fadeInPresence} initial="hidden" animate="visible" exit="exit">
-              <Alert variant="destructive" className="border-strong bg-destructive/10 text-foreground">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            </motion.div>
-          )}
-        </AnimatePresence>
+          <AnimatePresence>
+            {error && (
+              <motion.div variants={fadeInPresence} initial="hidden" animate="visible" exit="exit">
+                <Alert variant="destructive" className="border-strong bg-destructive/10 text-foreground">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <ScrollArea className="h-[calc(100vh-30rem)]">
-
-            {!hasSearched && !loading && !error ? (
-              <GlassPanel className="p-20 text-center">
+            <div className="px-1 py-2 pr-4">
+              {!hasSearched && !loading && !error ? (
+                <GlassPanel className="p-20 text-center">
                   <div className="flex size-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary">
                     <Search className="h-9 w-9" />
                   </div>
@@ -287,135 +287,136 @@ export default function SearchPage() {
                       </Button>
                     ))}
                   </div>
-              </GlassPanel>
-            ) : (
-              <AnimatePresence mode="wait">
-                {loading ? (
-                  <motion.div
-                    key="skeleton"
-                    {...staggeredListMotion}
-                    className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
-                  >
-                    {Array.from({ length: 8 }).map((_, idx) => (
-                      <motion.div key={idx} {...fadeInItemMotion} className="card-surface h-full animate-pulse space-y-3 p-4">
-                        <div className="aspect-video rounded-xl bg-[color:var(--surface-2)]" />
-                        <div className="space-y-2">
-                          <div className="h-4 w-3/4 rounded bg-[color:var(--surface-2)]" />
-                          <div className="h-3 w-2/3 rounded bg-[color:var(--surface-2)]" />
-                        </div>
-                        <div className="h-3 w-1/3 rounded bg-[color:var(--surface-2)]" />
-                      </motion.div>
-                    ))}
-                  </motion.div>
-                ) : hasResults ? (
-                  <motion.div
-                    key="results"
-                    {...staggeredListMotion}
-                    className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
-                  >
-                    {results.map((item, idx) => (
-                      <motion.div key={idx} {...fadeInItemMotion} {...hoverLift}>
-                        <Card className="card-surface group flex h-full flex-col overflow-hidden cursor-pointer hover:shadow-xl transition-all border-border/50">
-                          {item.image_url ? (
-                            <button
-                              type="button"
-                              className="relative aspect-video overflow-hidden text-left"
-                              onClick={() => {
-                                setLightboxSrc(item.image_url!);
-                                setLightboxAlt(item.label ?? `Result ${idx + 1}`);
-                                setLightboxOpen(true);
-                              }}
-                            >
-                              <Image
-                                src={item.image_url}
-                                alt={item.label ?? `Result ${idx + 1}`}
-                                fill
-                                sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 25vw"
-                                className="object-cover transition duration-500 group-hover:scale-110"
-                              />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                              <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/95 backdrop-blur-sm px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-lg opacity-0 group-hover:opacity-100 transition-all">
-                                <Eye className="h-3.5 w-3.5" /> View
-                              </span>
-                            </button>
-                          ) : (
-                            <div className="flex aspect-video items-center justify-center bg-[color:var(--surface-2)]">
-                              <ImageIcon className="h-8 w-8 text-muted-foreground" />
-                            </div>
-                          )}
+                </GlassPanel>
+              ) : (
+                <AnimatePresence mode="wait">
+                  {loading ? (
+                    <motion.div
+                      key="skeleton"
+                      {...staggeredListMotion}
+                      className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+                    >
+                      {Array.from({ length: 8 }).map((_, idx) => (
+                        <motion.div key={idx} {...fadeInItemMotion} className="card-surface h-full animate-pulse space-y-3 p-4">
+                          <div className="aspect-video rounded-xl bg-[color:var(--surface-2)]" />
+                          <div className="space-y-2">
+                            <div className="h-4 w-3/4 rounded bg-[color:var(--surface-2)]" />
+                            <div className="h-3 w-2/3 rounded bg-[color:var(--surface-2)]" />
+                          </div>
+                          <div className="h-3 w-1/3 rounded bg-[color:var(--surface-2)]" />
+                        </motion.div>
+                      ))}
+                    </motion.div>
+                  ) : hasResults ? (
+                    <motion.div
+                      key="results"
+                      {...staggeredListMotion}
+                      className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+                    >
+                      {results.map((item, idx) => (
+                        <motion.div key={idx} {...fadeInItemMotion} {...hoverLift}>
+                          <Card className="card-surface group flex h-full flex-col overflow-hidden cursor-pointer hover:shadow-xl transition-all border-border/50">
+                            {item.image_url ? (
+                              <button
+                                type="button"
+                                className="relative aspect-video overflow-hidden text-left"
+                                onClick={() => {
+                                  setLightboxSrc(item.image_url!);
+                                  setLightboxAlt(item.label ?? `Result ${idx + 1}`);
+                                  setLightboxOpen(true);
+                                }}
+                              >
+                                <Image
+                                  src={item.image_url}
+                                  alt={item.label ?? `Result ${idx + 1}`}
+                                  fill
+                                  sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 25vw"
+                                  className="object-cover transition duration-500 group-hover:scale-110"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                                <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/95 backdrop-blur-sm px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-lg opacity-0 group-hover:opacity-100 transition-all">
+                                  <Eye className="h-3.5 w-3.5" /> View
+                                </span>
+                              </button>
+                            ) : (
+                              <div className="flex aspect-video items-center justify-center bg-[color:var(--surface-2)]">
+                                <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                              </div>
+                            )}
 
-                          <CardContent className="flex flex-1 flex-col gap-4 p-4">
-                            <div className="space-y-2">
-                              <h3 className="line-clamp-2 text-base font-semibold text-foreground group-hover:text-primary transition-colors">
-                                {item.label ?? `Result ${idx + 1}`}
-                              </h3>
-                              {item.payload?.filename && (
-                                <p className="line-clamp-1 text-sm text-muted-foreground">
-                                  {item.payload.filename}
-                                  {item.payload?.pdf_page_index !== undefined && ` • Page ${item.payload.pdf_page_index + 1}`}
-                                </p>
-                              )}
-                            </div>
+                            <CardContent className="flex flex-1 flex-col gap-4 p-4">
+                              <div className="space-y-2">
+                                <h3 className="line-clamp-2 text-base font-semibold text-foreground group-hover:text-primary transition-colors">
+                                  {item.label ?? `Result ${idx + 1}`}
+                                </h3>
+                                {item.payload?.filename && (
+                                  <p className="line-clamp-1 text-sm text-muted-foreground">
+                                    {item.payload.filename}
+                                    {item.payload?.pdf_page_index !== undefined && ` • Page ${item.payload.pdf_page_index + 1}`}
+                                  </p>
+                                )}
+                              </div>
 
-                            <div className="mt-auto flex items-center gap-2 border-t border-divider pt-3 text-xs">
-                              <Badge variant="secondary" className="text-xs font-medium rounded-full">
-                                #{idx + 1}
-                              </Badge>
-                              {typeof item.score === "number" && (
-                                <Badge variant="outline" className="text-xs font-medium rounded-full border-primary/30 text-primary">
-                                  {Math.round(item.score * 100)}%
+                              <div className="mt-auto flex items-center gap-2 border-t border-divider pt-3 text-xs">
+                                <Badge variant="secondary" className="text-xs font-medium rounded-full">
+                                  #{idx + 1}
                                 </Badge>
-                              )}
+                                {typeof item.score === "number" && (
+                                  <Badge variant="outline" className="text-xs font-medium rounded-full border-primary/30 text-primary">
+                                    {Math.round(item.score * 100)}%
+                                  </Badge>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      ))}
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="empty"
+                      variants={fadeInPresence}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                    >
+                      <GlassPanel className="p-14">
+                        <div className="flex flex-col items-center gap-6 text-center">
+                          <div className="flex size-20 items-center justify-center rounded-2xl bg-gradient-to-br from-muted/30 to-muted/10">
+                            <ImageIcon className="h-10 w-10 text-muted-foreground" />
+                          </div>
+                          <div className="space-y-3 max-w-xl">
+                            <h3 className="text-xl font-semibold text-foreground">No matches found</h3>
+                            <p className="text-base leading-relaxed text-muted-foreground">
+                              We could not find results for <span className="font-medium text-foreground">{q}</span>. Adjust your search terms, broaden filters, or upload additional documents to improve coverage.
+                            </p>
+                          </div>
+                          <div className="grid gap-3 text-base text-muted-foreground sm:grid-cols-2">
+                            <div className="flex items-start gap-2">
+                              <span className="mt-1 size-1.5 rounded-full bg-foreground/70" />
+                              Try pairing a document title with a visual clue.
                             </div>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
-                    ))}
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="empty"
-                    variants={fadeInPresence}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                  >
-                    <GlassPanel className="p-14">
-                      <div className="flex flex-col items-center gap-6 text-center">
-                        <div className="flex size-20 items-center justify-center rounded-2xl bg-gradient-to-br from-muted/30 to-muted/10">
-                          <ImageIcon className="h-10 w-10 text-muted-foreground" />
-                        </div>
-                        <div className="space-y-3 max-w-xl">
-                          <h3 className="text-xl font-semibold text-foreground">No matches found</h3>
-                          <p className="text-base leading-relaxed text-muted-foreground">
-                            We could not find results for <span className="font-medium text-foreground">{q}</span>. Adjust your search terms, broaden filters, or upload additional documents to improve coverage.
-                          </p>
-                        </div>
-                        <div className="grid gap-3 text-base text-muted-foreground sm:grid-cols-2">
-                          <div className="flex items-start gap-2">
-                            <span className="mt-1 size-1.5 rounded-full bg-foreground/70" />
-                            Try pairing a document title with a visual clue.
-                          </div>
-                          <div className="flex items-start gap-2">
-                            <span className="mt-1 size-1.5 rounded-full bg-foreground/70" />
-                            Check spelling or use broader keywords.
-                          </div>
-                          <div className="flex items-start gap-2">
-                            <span className="mt-1 size-1.5 rounded-full bg-foreground/70" />
-                            Narrow filters or reset them to defaults.
-                          </div>
-                          <div className="flex items-start gap-2">
-                            <span className="mt-1 size-1.5 rounded-full bg-foreground/70" />
-                            Upload more visuals for richer retrieval.
+                            <div className="flex items-start gap-2">
+                              <span className="mt-1 size-1.5 rounded-full bg-foreground/70" />
+                              Check spelling or use broader keywords.
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <span className="mt-1 size-1.5 rounded-full bg-foreground/70" />
+                              Narrow filters or reset them to defaults.
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <span className="mt-1 size-1.5 rounded-full bg-foreground/70" />
+                              Upload more visuals for richer retrieval.
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </GlassPanel>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            )}
+                      </GlassPanel>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              )}
 
+            </div>
           </ScrollArea>
         </div>
       </motion.section>
