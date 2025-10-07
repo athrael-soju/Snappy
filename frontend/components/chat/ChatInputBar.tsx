@@ -52,64 +52,69 @@ export default function ChatInputBar({
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-3" aria-label="Chat composer">
-      <div className="flex items-end gap-2.5">
+      <div className="flex items-end gap-3">
         <div className="relative flex-1">
-          <MessageSquare className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+          <MessageSquare className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground z-10" />
           <Input
             placeholder={placeholder}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={loading}
             aria-label="Chat input"
-            className="h-12 rounded-2xl border border-muted/60 bg-[color:var(--surface-0)] pl-12 pr-4 text-[15px] shadow-sm transition focus-visible:border-purple-500/50 focus-visible:ring-2 focus-visible:ring-purple-500/20 focus-visible:ring-offset-1 focus-visible:ring-offset-[color:var(--surface-0)] disabled:opacity-70"
+            className="h-11 rounded-2xl border-2 border-border bg-background/95 backdrop-blur-md pl-12 pr-4 text-base shadow-sm transition-all focus-visible:border-primary/50 focus-visible:bg-background focus-visible:ring-4 focus-visible:ring-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
           />
         </div>
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div>
-              <ChatSettings
-                k={k}
-                setK={setK}
-                loading={loading}
-                onValidityChange={setUiSettingsValid}
-                toolCallingEnabled={toolCallingEnabled}
-                setToolCallingEnabled={setToolCallingEnabled}
-                topK={topK}
-                setTopK={setTopK}
-                maxTokens={maxTokens}
-                setMaxTokens={setMaxTokens}
-                className="h-10 w-10"
-              />
-            </div>
-          </TooltipTrigger>
-          <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground">Chat settings</TooltipContent>
-        </Tooltip>
+        {/* Button Group: Settings + Clear */}
+        <div className="flex items-center rounded-xl border-2 border-border bg-background/95 backdrop-blur-md overflow-hidden">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div>
+                <ChatSettings
+                  k={k}
+                  setK={setK}
+                  loading={loading}
+                  onValidityChange={setUiSettingsValid}
+                  toolCallingEnabled={toolCallingEnabled}
+                  setToolCallingEnabled={setToolCallingEnabled}
+                  topK={topK}
+                  setTopK={setTopK}
+                  maxTokens={maxTokens}
+                  setMaxTokens={setMaxTokens}
+                  className="h-9 w-9 rounded-none border-0 hover:bg-muted/50 transition-colors"
+                />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent sideOffset={8}>Chat settings</TooltipContent>
+          </Tooltip>
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              type="button"
-              onClick={onClear}
-              disabled={loading || !hasMessages}
-              size="icon"
-              variant="ghost"
-              className="h-10 w-10 rounded-xl border border-muted/60 bg-[color:var(--surface-0)] text-muted-foreground transition hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive focus-visible:ring-2 focus-visible:ring-destructive/20 disabled:opacity-50"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground">
-            <p>{hasMessages ? "Clear conversation" : "No messages to clear"}</p>
-          </TooltipContent>
-        </Tooltip>
+          <div className="w-px h-5 bg-border" />
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                onClick={onClear}
+                disabled={loading || !hasMessages}
+                size="icon"
+                variant="ghost"
+                className="h-9 w-9 rounded-none border-0 hover:bg-muted/50 transition-colors"
+                >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent sideOffset={8}>
+              <p>{hasMessages ? "Clear conversation" : "No messages to clear"}</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
 
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               type="submit"
               disabled={disableSend}
-              className="primary-gradient h-12 rounded-2xl px-6 text-[15px] font-semibold shadow-lg transition hover:shadow-xl hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-purple-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--surface-0)] disabled:opacity-70 disabled:hover:translate-y-0"
+              className="primary-gradient h-11 rounded-2xl px-5 text-base font-semibold shadow-lg transition-all hover:shadow-xl hover:scale-[1.02] focus-visible:ring-4 focus-visible:ring-primary/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               {loading ? (
                 <>

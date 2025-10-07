@@ -232,38 +232,51 @@ export default function ChatPage() {
           {/* System Status Warning */}
           <SystemStatusWarning isReady={isReady} />
           {/* Chat Messages */}
-          <Card className="card-surface mx-auto w-full max-w-4xl flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="flex min-h-0 flex-1 flex-col">
             <ScrollArea
               ref={messagesContainerRef}
-              className="h-[calc(100vh-30rem)] rounded-xl">
-              <div className="space-y-6 p-3 sm:p-4">
+              className="h-[calc(100vh-20rem)] rounded-xl">
+              <div className="mx-auto w-full max-w-3xl px-4 py-6">
                 <AnimatePresence mode="popLayout">
                 {messages.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="flex flex-col items-center justify-center h-full text-center py-2"
+                className="flex flex-col items-center justify-center min-h-[400px] text-center"
               >
-                <div className="mb-4">
-                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500 shadow-lg">
-                    <Brain className="h-6 w-6 text-white" />
+                {/* Frosted glass panel inspired by reference image */}
+                <div className="w-full max-w-2xl rounded-3xl border border-border/50 bg-card/40 backdrop-blur-xl p-8 shadow-2xl">
+                  <div className="mb-6">
+                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500 shadow-lg">
+                      <Brain className="h-7 w-7 text-white" />
+                    </div>
+                    <h2 className="text-2xl font-semibold text-foreground mb-2">Start Your Conversation</h2>
+                    <p className="text-base text-muted-foreground">Ask questions about your documents and get AI-powered responses</p>
                   </div>
-                  <h2 className="text-xl font-semibold bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">Start Your Conversation</h2>
-                </div>
 
-                {/* Starter Questions */}
-                <StarterQuestions questions={starterQuestions} onSelect={(t) => setInput(t)} />
-                <div className="mt-3 w-full max-w-2xl">
-                  <RecentSearchesChips
-                    recentSearches={recentSearches}
-                    visible
-                    onSelect={(q) => setInput(q)}
-                    onRemove={(q) => {
-                      const updated = recentSearches.filter((s) => s !== q);
-                      setRecentSearches(updated);
-                      localStorage.setItem("colpali-chat-recent", JSON.stringify(updated));
-                    }}
-                  />
+                  {/* Starter Questions */}
+                  <StarterQuestions questions={starterQuestions} onSelect={(t) => setInput(t)} />
+                  
+                  {/* Recent Searches - Horizontal Scrollable */}
+                  {recentSearches.length > 0 && (
+                    <div className="mt-6 pt-6 border-t border-border/50">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <h3 className="text-sm font-medium text-muted-foreground">Recent searches:</h3>
+                      </div>
+                      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
+                        {recentSearches.map((search, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setInput(search)}
+                            className="flex-shrink-0 rounded-full border border-border/50 bg-card/50 px-4 py-1.5 text-sm text-foreground hover:bg-card hover:border-primary/50 transition-all"
+                          >
+                            {search}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </motion.div>
                 ) : (
@@ -295,13 +308,13 @@ export default function ChatPage() {
                     )}
                   </div>
 
-                  <div className={cn("flex-1 max-w-[85%]", message.role === "user" && "text-right")}>
+                  <div className={cn("flex-1", message.role === "user" && "flex justify-end")}>
                     <div
                       className={cn(
-                        "inline-block max-w-2xl rounded-2xl border px-5 py-3.5 text-left shadow-sm",
+                        "inline-block max-w-[640px] rounded-2xl border px-5 py-3.5 text-left shadow-md",
                         message.role === "assistant"
-                          ? "bg-card border-border text-foreground"
-                          : "bg-primary/10 border-primary/30 text-foreground"
+                          ? "bg-card/95 backdrop-blur-md border-border text-foreground"
+                          : "bg-primary/90 border-primary text-primary-foreground"
                       )}
                     >
                       {message.content ? (
@@ -386,11 +399,11 @@ export default function ChatPage() {
             </ScrollArea>
 
         {/* Input Form */}
-        <div className="sticky bottom-0 left-0 right-0 border-t border-divider/50 bg-[color:var(--surface-0)]/95 px-4 py-3.5 backdrop-blur-lg supports-[backdrop-filter]:backdrop-blur">
+        <div className="sticky bottom-0 left-0 right-0 border-divider/50 px-4 py-3.5">
           <ChatInputBar
             input={input}
             setInput={setInput}
-            placeholder={`Ask anything about your documents... e.g., "${CHAT_PLACEHOLDER_EXAMPLES[placeholderIdx]}"`}
+            placeholder="Ask anything about your documents… Press ⏎ to send"
             loading={loading}
             isSettingsValid={isSettingsValid}
             uiSettingsValid={uiSettingsValid}
@@ -452,7 +465,7 @@ export default function ChatPage() {
             </motion.div>
           )}
         </div>
-          </Card>
+          </div>
         </div>
       </motion.section>
       <ImageLightbox
