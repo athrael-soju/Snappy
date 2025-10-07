@@ -59,7 +59,7 @@ export function NavUser() {
     },
     {
       key: "data",
-      label: "Data Management",
+      label: "Maintenance",
       icon: Database,
       isActive: maintenanceActive && section === "data",
       action: () => navigate("data"),

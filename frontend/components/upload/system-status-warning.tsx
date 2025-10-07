@@ -16,7 +16,7 @@ export function SystemStatusWarning({ isReady }: SystemStatusWarningProps) {
       <AlertDescription className="text-amber-800">
         The collection and bucket must be initialized before uploading files.
         <Link href="/maintenance?section=data" className="inline-flex items-center gap-1 ml-2 text-amber-900 font-medium underline hover:text-amber-950">
-          Go to Data Management
+          Go to Maintenance
           <ExternalLink className="w-3 h-3" />
         </Link>
       </AlertDescription>

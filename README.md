@@ -135,37 +135,44 @@ Screenshots of the current UI:
     <tr>
       <td align="center">
         <strong>Home</strong><br/>
-        <img src="image/README/496753022-a0db1883-e5d2-426d-b7eb-0e1d379c859e.png" alt="Home screen" width="520" />
+        ![alt text](image-1.png)
+        ![alt text](image-8.png)
       </td>
       <td align="center">
         <strong>Upload</strong><br/>
-        <img src="image/README/496759948-9470fc82-6d73-46ba-ad23-13fe671a0cf0.png" alt="Upload screen" width="520" />
+        ![alt text](image-3.png)
+        ![alt text](image-10.png)
       </td>
     </tr>
     <tr>
       <td align="center">
         <strong>Search</strong><br/>
-        <img src="image/README/496753458-d7e3dc5b-03cb-4ccf-bcd1-5049c9fedc0b.png" alt="Visual Search screen" width="520" />
+        ![alt text](image-2.png)
+        ![alt text](image-9.png)
       </td>
       <td align="center">
         <strong>Chat</strong><br/>
-        <img src="image/README/496754339-cdb7f4a9-4015-4910-b85c-071db52ef8ff.png" alt="AI Chat screen" width="520" />
+        ![alt text](image-4.png)
+        ![alt text](image-11.png)
       </td>
     </tr>
     <tr>
       <td align="center">
-        <strong>Maintenance (Data Management)</strong><br/>
-        <img src="image/README/496754595-e7145d9d-a650-4388-8e3e-4dff79d28a35.png" alt="Data Management screen" width="520" />
+        <strong>System (Configuration)</strong><br/>
+        ![alt text](image-5.png)
+        ![alt text](image-12.png)
       </td>
       <td align="center">
-        <strong>Maintenance (Configuration)</strong><br/>
-        <img src="image/README/496754869-0b82f6b1-2631-4741-8cad-79185f400e76.png" alt="Configuration screen" width="520" />
+        <strong>System (Maintenance)</strong><br/>
+        ![alt text](image-6.png)
+        ![alt text](image-13.png)
       </td>      
     </tr>
     <tr>    
       <td align="center">
          <strong>About</strong><br/>
-         <img src="image/README/496773757-af0cdf48-ddd2-453f-a9bd-af2eeb374850.png" alt="About screen" width="520" />
+         ![alt text](image-7.png)
+         ![alt text](image-14.png)
       </td>
     </tr>      
   </table>

@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { LucideIcon } from "lucide-react";
 import { ReactNode } from "react";
 
@@ -10,6 +11,9 @@ interface FeatureCardProps {
   href?: string;
   className?: string;
   children?: ReactNode;
+  glass?: boolean;
+  features?: string[];
+  badges?: string[];
 }
 
 export function FeatureCard({
@@ -19,11 +23,17 @@ export function FeatureCard({
   href,
   className,
   children,
+  glass = false,
+  features,
+  badges,
 }: FeatureCardProps) {
   const content = (
     <Card
       className={cn(
-        "card-surface h-full min-h-[200px] cursor-pointer group transition-all hover:shadow-lg border-border/50",
+        "h-full cursor-pointer group transition-all border-border/50",
+        glass 
+          ? "bg-card/40 backdrop-blur-xl shadow-lg hover:shadow-xl hover:bg-card/50" 
+          : "card-surface hover:shadow-lg",
         className
       )}
     >
@@ -34,9 +44,28 @@ export function FeatureCard({
         <CardTitle className="text-lg font-semibold text-foreground mt-4 group-hover:text-primary transition-colors">
           {title}
         </CardTitle>
+        {badges && badges.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 justify-center mt-3">
+            {badges.map((badge, idx) => (
+              <Badge key={idx} variant="secondary" className="text-xs px-2 py-0.5">
+                {badge}
+              </Badge>
+            ))}
+          </div>
+        )}
       </CardHeader>
-      <CardContent className="text-sm leading-relaxed text-muted-foreground text-center px-4">
-        {description}
+      <CardContent className="text-center px-6 pb-6 space-y-4">
+        <p className="text-sm font-medium text-foreground/80 leading-relaxed">{description}</p>
+        {features && features.length > 0 && (
+          <ul className="text-xs space-y-2 text-left text-muted-foreground">
+            {features.map((feature, idx) => (
+              <li key={idx} className="flex items-start gap-2">
+                <span className="text-primary mt-0.5 flex-shrink-0">✓</span>
+                <span className="leading-snug">{feature}</span>
+              </li>
+            ))}
+          </ul>
+        )}
         {children}
       </CardContent>
     </Card>
