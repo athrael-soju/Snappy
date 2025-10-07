@@ -83,7 +83,7 @@ export default function ChatInputBar({
               />
             </div>
           </TooltipTrigger>
-          <TooltipContent sideOffset={8}>Chat settings</TooltipContent>
+          <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground">Chat settings</TooltipContent>
         </Tooltip>
 
         <Tooltip>
@@ -99,7 +99,7 @@ export default function ChatInputBar({
               <Trash2 className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent sideOffset={8}>
+          <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground">
             <p>{hasMessages ? "Clear conversation" : "No messages to clear"}</p>
           </TooltipContent>
         </Tooltip>
