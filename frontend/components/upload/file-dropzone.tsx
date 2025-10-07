@@ -9,7 +9,6 @@ import { UploadProgress } from "./upload-progress";
 import { UploadStatusAlerts } from "./upload-status-alerts";
 import { cn } from "@/lib/utils";
 import { GlassPanel } from "@/components/ui/glass-panel";
-import { BottomActionBar } from "@/components/ui/bottom-action-bar";
 
 interface FileDropzoneProps {
   isDragOver: boolean;
@@ -105,7 +104,7 @@ export function FileDropzone({
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-12 justify-center rounded-xl border border-muted text-foreground hover:border-primary/40 hover:bg-primary/10 focus-visible:ring-2 focus-visible:ring-ring/40"
+                  className="h-12 justify-center rounded-xl border border-border/50 bg-card/40 backdrop-blur-sm text-foreground hover:border-primary/50 hover:bg-primary/10 hover:scale-[1.02] transition-all duration-200 focus-visible:ring-2 focus-visible:ring-ring/40"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading}
                 >
@@ -114,8 +113,8 @@ export function FileDropzone({
                 </Button>
 
                 {hasFiles && (
-                  <div className="flex items-center justify-center gap-2 rounded-xl border border-muted bg-[color:var(--surface-2)] px-4 py-2 text-sm font-medium text-foreground">
-                    <FileText className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  <div className="flex items-center justify-center gap-2 rounded-xl border border-border/50 bg-primary/5 backdrop-blur-sm px-4 py-2 text-sm font-semibold text-primary">
+                    <FileText className="h-4 w-4" aria-hidden="true" />
                     {fileCount} file{fileCount !== 1 ? "s" : ""} selected
                   </div>
                 )}
@@ -144,25 +143,23 @@ export function FileDropzone({
           </form>
 
           <UploadStatusAlerts message={message} error={error} />
-          </div>
-        </div>
 
-        <BottomActionBar environment="Local">
-          {!isReady && !uploading && (
-            <p className="text-sm text-muted-foreground">
-              Initialize collections before uploading new content.
-            </p>
-          )}
-          <div className="flex w-full gap-2 sm:w-auto ml-auto">
+          {/* Action Section */}
+          <div className="space-y-3 pt-4 border-t border-border/30">
+            {!isReady && !uploading && (
+              <p className="text-sm text-center text-muted-foreground">
+                Initialize collections before uploading new content.
+              </p>
+            )}
             <Button
               type={uploading ? "button" : "submit"}
               disabled={!uploading && (!hasFiles || !isReady)}
               form="upload-form"
               className={cn(
-                "h-12 flex-1 rounded-full px-8 text-base font-semibold shadow-lg transition-all",
+                "h-12 w-full rounded-full px-8 text-base font-semibold shadow-lg transition-all duration-200",
                 uploading
-                  ? "bg-destructive text-white hover:bg-destructive/90"
-                  : "primary-gradient hover:shadow-xl hover:scale-105"
+                  ? "bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:scale-[1.02]"
+                  : "primary-gradient hover:shadow-xl hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
               )}
               onClick={uploading ? onCancel : undefined}
               title={!isReady && !uploading ? "System must be initialized before uploading" : undefined}
@@ -180,7 +177,8 @@ export function FileDropzone({
               )}
             </Button>
           </div>
-        </BottomActionBar>
+          </div>
+        </div>
       </GlassPanel>
     </MotionDiv>
   );

@@ -1,20 +1,21 @@
 import { motion } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fadeInItemMotion, hoverLift, staggeredListMotion } from "@/lib/motion-presets";
 import { FileText, ArrowUpFromLine } from "lucide-react";
+import { GlassPanel } from "@/components/ui/glass-panel";
 
 export function UploadInfoCards() {
   return (
     <motion.div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6" {...staggeredListMotion}>
       <motion.div {...fadeInItemMotion} {...hoverLift}>
-        <Card className="card-surface h-full min-h-[180px]">
-          <CardHeader className="pb-4">
+        <GlassPanel className="h-full min-h-[180px] p-6">
+          <CardHeader className="pb-4 px-0 pt-0">
             <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 text-blue-500 mb-3">
               <FileText className="w-6 h-6" />
             </div>
             <CardTitle className="text-xl font-semibold">Supported Formats</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-0 pb-0">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <div className="font-medium text-foreground flex items-center gap-2">
@@ -32,18 +33,18 @@ export function UploadInfoCards() {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </GlassPanel>
       </motion.div>
 
       <motion.div {...fadeInItemMotion} {...hoverLift}>
-        <Card className="card-surface h-full min-h-[180px]">
-          <CardHeader className="pb-4">
+        <GlassPanel className="h-full min-h-[180px] p-6">
+          <CardHeader className="pb-4 px-0 pt-0">
             <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500/10 to-purple-500/5 text-purple-500 mb-3">
               <ArrowUpFromLine className="w-6 h-6" />
             </div>
             <CardTitle className="text-xl font-semibold">Quick Tips</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-0 pb-0">
             <div className="space-y-3 text-base">
               <div className="flex items-start gap-2">
                 <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
@@ -59,7 +60,7 @@ export function UploadInfoCards() {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </GlassPanel>
       </motion.div>
     </motion.div>
   );
