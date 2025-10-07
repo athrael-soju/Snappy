@@ -46,7 +46,7 @@ export function DataResetCard({
             <Button
               variant="destructive"
               disabled={isInitLoading || isDeleteLoading || !isSystemReady}
-              className="w-full bg-gradient-to-r from-amber-600 to-orange-600 text-white hover:from-amber-700 hover:to-orange-700 hover:shadow-lg disabled:opacity-50 transition-all font-semibold rounded-full"
+              className="w-full bg-gradient-to-r from-amber-600 to-orange-600 text-white hover:from-amber-700 hover:to-orange-700 hover:shadow-xl hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 transition-all duration-200 font-semibold rounded-full"
             >
               {isLoading ? (
                 <>

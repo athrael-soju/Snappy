@@ -281,7 +281,7 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
 
         {/* Main content area */}
         <div className="flex-1 min-w-0 flex flex-col gap-4">
-        <ScrollArea className="h-[calc(100vh-20rem)] rounded-xl">          
+        <ScrollArea className="h-[calc(100vh-20rem)]">          
           {categoriesToRender.map(([categoryKey, category]) => {
             if (activeCategoryKey !== categoryKey) return null;
 
@@ -298,7 +298,7 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                 className="flex-1 min-h-0"
               >
                 {/* Settings Card - Scrollable */}
-                <GlassPanel className="flex flex-1 min-h-0 flex-col p-6">
+                <GlassPanel className="flex flex-1 min-h-0 flex-col p-6 overflow-hidden">
                   <CardHeader className="pb-4 flex-shrink-0 px-0 pt-0">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3">
@@ -329,7 +329,7 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                     </div>
                   </CardHeader>
 
-                    <CardContent className="flex-1 min-h-0 overflow-y-auto space-y-6 px-0 pb-0">
+                    <CardContent className="flex-1 min-h-0 overflow-y-auto space-y-6 px-0 pb-0 rounded-3xl">
                       {visibleSettings.map((setting, index) => {
                         // Check for nested settings
                         const childSettings = category.settings.filter(

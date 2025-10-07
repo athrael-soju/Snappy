@@ -39,7 +39,7 @@ export function DeleteCard({
             <Button
               variant="destructive"
               disabled={isLoading || isInitLoading || !isSystemReady}
-              className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:shadow-lg disabled:opacity-50 transition-all font-semibold rounded-full"
+              className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:shadow-xl hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 transition-all duration-200 font-semibold rounded-full"
             >
               {isLoading ? (
                 <>

@@ -176,21 +176,6 @@ export default function RecentSearchesChips({ recentSearches, loading, visible =
               ))}
             </div>
           </div>
-
-          {/* Edge gradients as scroll hints */}
-          {!atStart && (
-            <div
-              aria-hidden
-              className="pointer-events-none absolute left-0 top-0 h-full w-8 bg-gradient-to-r from-[color:var(--surface-0)] to-transparent"
-            />
-          )}
-          {!atEnd && (
-            <div
-              aria-hidden
-              className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-[color:var(--surface-0)] to-transparent"
-            />
-          )}
-
         </div>
 
         {/* Pagination dots */}

@@ -230,7 +230,7 @@ export default function SearchPage() {
           <SystemStatusWarning isReady={isReady} />
 
           <div className="sticky top-[5.25rem] z-30">
-          <GlassPanel className="p-5">
+          <GlassPanel className="p-5 overflow-visible">
               <SearchBar
                 q={q}
                 setQ={setQ}
@@ -261,7 +261,7 @@ export default function SearchPage() {
           )}
         </AnimatePresence>
 
-          <ScrollArea className="h-[calc(100vh-30rem)] rounded-xl">
+          <ScrollArea className="h-[calc(100vh-30rem)]">
 
             {!hasSearched && !loading && !error ? (
               <GlassPanel className="p-20 text-center">

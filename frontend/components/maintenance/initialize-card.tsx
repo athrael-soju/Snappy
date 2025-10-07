@@ -27,7 +27,7 @@ export function InitializeCard({ isLoading, isSystemReady, isDeleteLoading, onIn
         <Button
           onClick={onInitialize}
           disabled={isLoading || isDeleteLoading || isSystemReady}
-          className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 hover:shadow-lg disabled:opacity-50 transition-all font-semibold rounded-full"
+          className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 hover:shadow-xl hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 transition-all duration-200 font-semibold rounded-full"
         >
           {isLoading ? (
             <>

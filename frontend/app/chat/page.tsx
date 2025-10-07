@@ -96,6 +96,14 @@ export default function ChatPage() {
   const hasFetchedRef = useRef(false);
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
 
+  const removeFromRecentSearches = (q: string) => {
+    setRecentSearches((prev) => {
+      const updated = prev.filter((s) => s !== q);
+      localStorage.setItem("colpali-chat-recent", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
       // Use rAF to ensure DOM has settled before scrolling
@@ -257,24 +265,15 @@ export default function ChatPage() {
                   {/* Starter Questions */}
                   <StarterQuestions questions={starterQuestions} onSelect={(t) => setInput(t)} />
                   
-                  {/* Recent Searches - Horizontal Scrollable */}
+                  {/* Recent Searches - Using RecentSearchesChips component */}
                   {recentSearches.length > 0 && (
                     <div className="mt-6 pt-6 border-t border-border/50">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <h3 className="text-sm font-medium text-muted-foreground">Recent searches:</h3>
-                      </div>
-                      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
-                        {recentSearches.map((search, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => setInput(search)}
-                            className="flex-shrink-0 rounded-full border border-border/50 bg-card/50 px-4 py-1.5 text-sm text-foreground hover:bg-card hover:border-primary/50 transition-all"
-                          >
-                            {search}
-                          </button>
-                        ))}
-                      </div>
+                      <RecentSearchesChips
+                        recentSearches={recentSearches}
+                        loading={loading}
+                        onSelect={(q) => setInput(q)}
+                        onRemove={removeFromRecentSearches}
+                      />
                     </div>
                   )}
                 </div>

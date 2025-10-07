@@ -82,8 +82,8 @@ export default function MaintenancePage() {
           </div>
         ) : (
           <div className="mx-auto flex w-full max-w-6xl flex-1 min-h-0 gap-6">
-            <ScrollArea className="h-[calc(100vh-15rem)] rounded-xl">
-              <div className="flex w-full flex-col gap-6 p-4">
+            <ScrollArea className="h-[calc(100vh-15rem)]">
+              <div className="flex w-full flex-col gap-6 p-4 pb-8">
                 <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
                   <CollectionStatusCard
                     status={systemStatus?.collection || null}
