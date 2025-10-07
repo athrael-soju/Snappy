@@ -85,7 +85,9 @@ export default function ChatInputBar({
                 />
               </div>
             </TooltipTrigger>
-            <TooltipContent sideOffset={8}>Chat settings</TooltipContent>
+            <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
+              Chat settings
+            </TooltipContent>
           </Tooltip>
 
           <div className="w-px h-5 bg-border" />
@@ -103,8 +105,8 @@ export default function ChatInputBar({
                 <Trash2 className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent sideOffset={8}>
-              <p>{hasMessages ? "Clear conversation" : "No messages to clear"}</p>
+            <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
+              {hasMessages ? "Clear conversation" : "No messages to clear"}
             </TooltipContent>
           </Tooltip>
         </div>
@@ -129,8 +131,8 @@ export default function ChatInputBar({
               )}
             </Button>
           </TooltipTrigger>
-          <TooltipContent sideOffset={8}>
-            <p>{disableSend ? "Enter a message to send" : "Send message"}</p>
+          <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
+            {disableSend ? "Enter a message to send" : "Send message"}
           </TooltipContent>
         </Tooltip>
       </div>
