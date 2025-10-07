@@ -1,4 +1,4 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+﻿import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Trash2, AlertTriangle, Loader2 } from "lucide-react";
@@ -21,7 +21,7 @@ export function DeleteCard({
   onDelete 
 }: DeleteCardProps) {
   return (
-    <Card className="border-2 border-red-200 dark:border-red-800/50 bg-gradient-to-br from-red-500/5 to-pink-500/5">
+    <Card className="border-red-200/70 dark:border-red-800/60 transition-shadow hover:shadow-md">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-red-100 dark:bg-red-900/40 border-2 border-red-200 dark:border-red-800/50">

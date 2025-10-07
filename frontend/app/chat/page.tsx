@@ -226,14 +226,13 @@ export default function ChatPage() {
           icon={Brain}
         />
       </motion.section>
-
       <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col space-y-6 pb-8 sm:pb-12">
 
         {/* System Status Warning */}
         <SystemStatusWarning isReady={isReady} />
         {/* Chat Messages */}
         <Card className="card-surface flex-1 min-h-0 flex flex-col overflow-hidden">
-        <ScrollArea ref={messagesContainerRef} className="custom-scrollbar flex-1 min-h-0 overflow-hidden">
+        <ScrollArea ref={messagesContainerRef} className="custom-scrollbar h-[calc(100vh-30rem)]">
           <div className="space-y-6 p-4 sm:p-6">
           <AnimatePresence mode="popLayout">
             {messages.length === 0 ? (

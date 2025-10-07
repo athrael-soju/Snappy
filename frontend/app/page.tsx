@@ -39,8 +39,8 @@ export default function Home() {
           badge={<Badge className="rounded-full text-sm">v0.0.4</Badge>}
         >
           <div className="flex flex-col items-center gap-5">
-            <div className="flex flex-col items-center gap-3 text-sm text-muted-foreground max-w-2xl">
-              <p className="text-base text-foreground/90">
+            <div className="flex flex-col items-center gap-3 text-sm max-w-2xl">
+              <p className="text-base text-foreground font-medium">
                 Spin up ingestion, visual search, and chat workflows in minutes with opinionated defaults and accessible UI patterns.
               </p>
             </div>
@@ -60,7 +60,7 @@ export default function Home() {
                 asChild
                 variant="outline"
                 size="lg"
-                className="rounded-full border-muted bg-[color:var(--surface-0)]/80 px-6 py-[0.875rem] text-base text-foreground transition hover:bg-[color:var(--surface-1)] focus-visible:ring-2 focus-visible:ring-ring/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--surface-0)]"
+                className="rounded-full border-2 border-border bg-card px-6 py-[0.875rem] text-base text-foreground font-medium transition hover:bg-[color:var(--surface-2)] hover:border-border-strong focus-visible:ring-2 focus-visible:ring-ring/35 focus-visible:ring-offset-2"
               >
                 <Link href="/search">Explore search</Link>
               </Button>
@@ -70,7 +70,7 @@ export default function Home() {
       </motion.section>
 
       <section className="flex-1 min-h-0 pb-8 sm:pb-12">
-        <ScrollArea className="h-full overflow-hidden">
+        <ScrollArea className="custom-scrollbar h-[calc(100vh-30rem)]">
           <div className="p-4">
             <motion.div className="grid gap-6 md:grid-cols-3" {...staggeredListMotion}>
           {workflow.map(({ title, description, icon: Icon }) => (
@@ -82,7 +82,7 @@ export default function Home() {
                   </div>
                   <CardTitle className="text-xl font-semibold text-foreground">{title}</CardTitle>
                 </CardHeader>
-                <CardContent className="pt-4 text-sm leading-relaxed text-muted-foreground">
+                <CardContent className="pt-4 text-sm leading-relaxed text-foreground/80">
                   {description}
                 </CardContent>
               </Card>

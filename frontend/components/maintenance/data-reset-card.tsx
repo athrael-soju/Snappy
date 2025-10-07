@@ -1,4 +1,4 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+﻿import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertTriangle, Loader2 } from "lucide-react";
@@ -28,7 +28,7 @@ export function DataResetCard({
   const Icon = action.icon;
 
   return (
-    <Card className="border-2 border-amber-200 dark:border-amber-800/50 bg-gradient-to-br from-amber-500/5 to-orange-500/5">
+    <Card className="border-amber-200/70 dark:border-amber-800/60 transition-shadow hover:shadow-md">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/40 border-2 border-amber-200 dark:border-amber-800/50">

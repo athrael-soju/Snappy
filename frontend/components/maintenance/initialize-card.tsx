@@ -1,4 +1,4 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+﻿import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlayCircle, Loader2 } from "lucide-react";
 
@@ -11,7 +11,7 @@ interface InitializeCardProps {
 
 export function InitializeCard({ isLoading, isSystemReady, isDeleteLoading, onInitialize }: InitializeCardProps) {
   return (
-    <Card className="border-2 border-green-200 dark:border-green-800/50 bg-gradient-to-br from-green-500/5 to-emerald-500/5">
+    <Card className="border-green-200/70 dark:border-green-800/60 transition-shadow hover:shadow-md">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-green-100 dark:bg-green-900/40 border-2 border-green-200 dark:border-green-800/50">

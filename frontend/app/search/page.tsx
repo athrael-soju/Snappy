@@ -16,12 +16,10 @@ import { toast } from "@/components/ui/sonner";
 import Image from "next/image";
 import ImageLightbox from "@/components/lightbox";
 import SearchBar from "@/components/search/SearchBar";
-import RecentSearchesChips from "@/components/search/RecentSearchesChips";
 import { useSearchStore, useSystemStatus } from "@/stores/app-store";
 import { PageHeader } from "@/components/page-header";
-import Link from "next/link";
 import { SystemStatusWarning } from "@/components/upload";
-import { cn } from "@/lib/utils";
+
 
 const exampleQueries = [
   "Show pitch decks with charts on revenue targets",
@@ -229,7 +227,7 @@ export default function SearchPage() {
       <motion.section variants={sectionVariants} className="flex min-h-0 flex-1 flex-col gap-6 pb-8 sm:pb-12">
         <SystemStatusWarning isReady={isReady} />
 
-        <div className="sticky top-[5.25rem] z-30 space-y-3">
+        <div className="sticky top-[5.25rem] z-30">
           <Card className="card-surface shadow-none">
             <CardContent className="space-y-4 py-5">
               <SearchBar
@@ -243,18 +241,13 @@ export default function SearchPage() {
                 setTopK={setTopK}
                 hasResults={hasResults}
                 onClear={handleClearSearch}
-                inputRef={searchInputRef}                
+                inputRef={searchInputRef}
+                recentSearches={recentSearches}
+                onSelectRecent={setQ}
+                onRemoveRecent={removeFromRecentSearches}
               />
             </CardContent>
           </Card>
-
-          <RecentSearchesChips
-            recentSearches={recentSearches}
-            loading={loading}
-            visible={!hasResults}
-            onSelect={setQ}
-            onRemove={removeFromRecentSearches}
-          />
         </div>
 
         <AnimatePresence>
@@ -268,7 +261,7 @@ export default function SearchPage() {
           )}
         </AnimatePresence>
 
-        <ScrollArea className="custom-scrollbar flex-1 min-h-0 overflow-hidden">
+        <ScrollArea className="custom-scrollbar h-[calc(100vh-30rem)]">
           <div className="space-y-6 p-4 pb-10">
             {!hasSearched && !loading && !error ? (
               <Card className="card-surface border border-dashed border-muted/60 text-center">

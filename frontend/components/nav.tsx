@@ -22,7 +22,7 @@ const links = [
 ] as const
 
 const navContainerClasses =
-  "rounded-full border border-border/40 bg-card/60 px-1.5 py-1 shadow-[0_2px_18px_rgba(0,0,0,0.12)] backdrop-blur-xl"
+  "rounded-full border border-white/10 bg-white/5 dark:bg-black/10 px-1.5 py-1 shadow-[0_2px_24px_rgba(0,0,0,0.1)] backdrop-blur-xl"
 const navLinkClasses = "nav-pill text-[color:var(--nav-pill-inactive-foreground,var(--muted-foreground))]"
 const navLinkActiveClasses = "nav-pill-active text-[color:var(--nav-pill-active-foreground,var(--foreground))] font-semibold"
 
@@ -102,7 +102,7 @@ export function Nav() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 supports-[backdrop-filter]:backdrop-blur-2xl">
+    <header className="sticky top-0 z-50 border-b border-border/40 dark:border-white/10 bg-gradient-to-b from-background/80 via-background/60 to-background/40 supports-[backdrop-filter]:backdrop-blur-2xl shadow-[0_8px_16px_-8px_rgba(0,0,0,0.1)] dark:shadow-[0_8px_16px_-8px_rgba(0,0,0,0.4)]">
       <nav className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-3 sm:px-6">
         <div className="flex flex-1 items-center justify-start min-w-0">
           <Link
@@ -136,14 +136,14 @@ export function Nav() {
                   variant="ghost"
                   size="icon"
                   aria-label="Open navigation"
-                  className="h-10 w-10 rounded-full border border-border/50 bg-card/80 text-[color:var(--nav-pill-inactive-foreground,var(--muted-foreground))] shadow-sm hover:text-[color:var(--nav-pill-hover-foreground,var(--foreground))]"
+                  className="h-10 w-10 rounded-full border border-white/10 bg-white/5 dark:bg-black/10 text-[color:var(--nav-pill-inactive-foreground,var(--muted-foreground))] shadow-sm backdrop-blur-xl hover:text-[color:var(--nav-pill-hover-foreground,var(--foreground))]"
                 >
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
               <SheetContent 
                 side="left" 
-                className="w-72 border-border/40 bg-background/98 backdrop-blur-xl p-0 flex flex-col"
+                className="w-72 border-white/10 bg-background/40 backdrop-blur-3xl p-0 flex flex-col"
               >
                 <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                 
@@ -216,7 +216,7 @@ export function Nav() {
                 </nav>
 
                 {/* Footer Section */}
-                <div className="px-4 py-4 border-t border-border/40 space-y-3 bg-card/30">
+                <div className="px-4 py-4 border-t border-white/10 space-y-3 bg-white/5 dark:bg-black/10">
                   <div className="flex items-center justify-between px-2">
                     <span className="text-sm font-medium text-muted-foreground">Theme</span>
                     <ThemeSwitch />

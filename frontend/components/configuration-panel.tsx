@@ -318,7 +318,7 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                         </Button>
                       </div>
                     </CardHeader>
-                    <ScrollArea className="flex-1 min-h-0">
+                    <ScrollArea className="h-[calc(100vh-35rem)]">
                       <CardContent className="pr-4 py-4">
                         {visibleSettings.map((setting, index) => {
                           // Check for nested settings

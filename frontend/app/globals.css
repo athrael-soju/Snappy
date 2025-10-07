@@ -196,13 +196,14 @@
     @apply text-foreground antialiased;
     min-height: 100vh;
     background-color: var(--background);
-    background-image: var(--app-gradient);
-    background-attachment: fixed;
     color-scheme: light dark;
     font-feature-settings: "liga" 1, "kern" 1;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-semibold tracking-tight text-foreground;
+  }
+  p {
+    color: var(--foreground);
   }
   small {
     color: var(--text-muted);
@@ -249,13 +250,13 @@
   }
   .card-surface {
     border-radius: var(--radius-lg);
-    background: color-mix(in oklab, var(--card) 96%, transparent);
+    background: var(--card);
     border: 1px solid var(--border-muted);
-    box-shadow: var(--shadow-1);
+    box-shadow: var(--shadow-2);
     transition: box-shadow 200ms ease, transform 200ms ease;
   }
   .card-surface:hover {
-    box-shadow: var(--shadow-2);
+    box-shadow: var(--shadow-3);
     transform: translateY(-2px);
   }
   .muted-heading {
@@ -305,4 +306,70 @@
   .text-subtle {
     color: var(--text-subtle);
   }
+}
+
+/* Gradient Animation Keyframes */
+@keyframes first {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes second {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes third {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fourth {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fifth {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-first {
+  animation: first 30s ease infinite;
+}
+
+.animate-second {
+  animation: second 20s ease-in-out infinite reverse;
+}
+
+.animate-third {
+  animation: third 40s linear infinite;
+}
+
+.animate-fourth {
+  animation: fourth 25s ease infinite;
+}
+
+.animate-fifth {
+  animation: fifth 35s linear infinite reverse;
 }

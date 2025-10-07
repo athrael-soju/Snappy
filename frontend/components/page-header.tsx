@@ -31,7 +31,7 @@ export function PageHeader({ title, description, icon: Icon, children, badge }: 
 
       <div className="relative z-10 mb-2 flex flex-wrap items-center justify-center gap-3">
         {Icon && (
-          <div className="rounded-2xl border border-border/50 bg-card/70 p-2.5 shadow-[0_16px_30px_-24px_rgba(251,226,167,0.75)]">
+          <div className="rounded-2xl border border-border/50 bg-card p-2.5 shadow-[0_16px_30px_-24px_rgba(251,226,167,0.75)]">
             <Icon className="h-6 w-6 text-primary" />
           </div>
         )}
@@ -46,7 +46,7 @@ export function PageHeader({ title, description, icon: Icon, children, badge }: 
         </div>
       </div>
       {description && (
-        <p className="relative z-10 mx-auto max-w-2xl text-balance text-sm text-muted-foreground/90 sm:text-base">
+        <p className="relative z-10 mx-auto max-w-2xl text-balance text-sm text-foreground/85 sm:text-base">
           {description}
         </p>
       )}
