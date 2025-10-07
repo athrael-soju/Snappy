@@ -63,12 +63,6 @@ export default function ChatInputBar({
             aria-label="Chat input"
             className="h-14 rounded-2xl border border-muted bg-[color:var(--surface-0)]/95 pl-12 pr-24 text-base shadow-[var(--shadow-1)] transition focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--surface-0)] disabled:opacity-70"
           />
-          <div className="pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 items-center gap-1 rounded-full bg-[color:var(--surface-2)]/80 px-3 py-1 text-xs font-medium text-muted-foreground sm:flex">
-            <kbd className="rounded-md bg-[color:var(--surface-0)] px-1.5 py-0.5 text-[10px] font-semibold text-foreground/80 shadow-sm">Shift</kbd>
-            +
-            <kbd className="rounded-md bg-[color:var(--surface-0)] px-1.5 py-0.5 text-[10px] font-semibold text-foreground/80 shadow-sm">Enter</kbd>
-            <span>newline</span>
-          </div>
         </div>
 
         <Tooltip>
