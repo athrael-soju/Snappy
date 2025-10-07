@@ -298,7 +298,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Button asChild variant="outline" className="w-full border-2 border-cyan-200/50 hover:border-cyan-400 hover:bg-gradient-to-r hover:from-cyan-50 hover:to-blue-50 rounded-full h-9 text-sm">
+                    <Button asChild variant="outline" className="w-full border-2 border-cyan-200/50 hover:border-cyan-400 hover:bg-cyan-500/10 dark:hover:bg-cyan-500/20 rounded-full h-9 text-sm">
                       <Link href="/search" onClick={() => onClose?.()}>
                         Try Search
                       </Link>
@@ -319,7 +319,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Button asChild variant="outline" className="w-full border-2 border-purple-200/50 hover:border-purple-400 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 rounded-full h-9 text-sm">
+                    <Button asChild variant="outline" className="w-full border-2 border-purple-200/50 hover:border-purple-400 hover:bg-purple-500/10 dark:hover:bg-purple-500/20 rounded-full h-9 text-sm">
                       <Link href="/chat" onClick={() => onClose?.()}>
                         Start Chatting
                       </Link>
@@ -340,7 +340,7 @@ export default function AboutContent({ onClose }: { onClose?: () => void }) {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Button asChild variant="outline" className="w-full border-2 border-red-200/50 hover:border-red-400 hover:bg-gradient-to-r hover:from-red-50 hover:to-orange-50 rounded-full h-9 text-sm">
+                    <Button asChild variant="outline" className="w-full border-2 border-red-200/50 hover:border-red-400 hover:bg-red-500/10 dark:hover:bg-red-500/20 rounded-full h-9 text-sm">
                       <Link href="/maintenance" onClick={() => onClose?.()}>
                         Maintenance
                       </Link>

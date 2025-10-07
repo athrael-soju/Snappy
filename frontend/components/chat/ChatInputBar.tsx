@@ -52,7 +52,7 @@ export default function ChatInputBar({
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-3" aria-label="Chat composer">
-      <div className="flex items-end gap-3">
+      <div className="flex items-end gap-2.5">
         <div className="relative flex-1">
           <MessageSquare className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -61,7 +61,7 @@ export default function ChatInputBar({
             onChange={(e) => setInput(e.target.value)}
             disabled={loading}
             aria-label="Chat input"
-            className="h-14 rounded-2xl border border-muted bg-[color:var(--surface-0)]/95 pl-12 pr-24 text-base shadow-[var(--shadow-1)] transition focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--surface-0)] disabled:opacity-70"
+            className="h-12 rounded-2xl border border-muted/60 bg-[color:var(--surface-0)] pl-12 pr-4 text-[15px] shadow-sm transition focus-visible:border-purple-500/50 focus-visible:ring-2 focus-visible:ring-purple-500/20 focus-visible:ring-offset-1 focus-visible:ring-offset-[color:var(--surface-0)] disabled:opacity-70"
           />
         </div>
 
@@ -79,7 +79,7 @@ export default function ChatInputBar({
                 setTopK={setTopK}
                 maxTokens={maxTokens}
                 setMaxTokens={setMaxTokens}
-                className="h-12 w-12"
+                className="h-10 w-10"
               />
             </div>
           </TooltipTrigger>
@@ -94,9 +94,9 @@ export default function ChatInputBar({
               disabled={loading || !hasMessages}
               size="icon"
               variant="ghost"
-              className="h-12 w-12 rounded-xl border border-muted bg-[color:var(--surface-1)]/80 text-muted-foreground transition hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring/40"
+              className="h-10 w-10 rounded-xl border border-muted/60 bg-[color:var(--surface-0)] text-muted-foreground transition hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive focus-visible:ring-2 focus-visible:ring-destructive/20 disabled:opacity-50"
             >
-              <Trash2 className="h-5 w-5" />
+              <Trash2 className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent sideOffset={8}>
@@ -109,16 +109,16 @@ export default function ChatInputBar({
             <Button
               type="submit"
               disabled={disableSend}
-              className="primary-gradient h-14 rounded-2xl px-6 text-base font-semibold shadow-[var(--shadow-2)] transition hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--surface-0)] disabled:opacity-70"
+              className="primary-gradient h-12 rounded-2xl px-6 text-[15px] font-semibold shadow-lg transition hover:shadow-xl hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-purple-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--surface-0)] disabled:opacity-70 disabled:hover:translate-y-0"
             >
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Sending
                 </>
               ) : (
                 <>
-                  <Send className="mr-2 h-5 w-5" />
+                  <Send className="mr-2 h-4 w-4" />
                   Send
                 </>
               )}

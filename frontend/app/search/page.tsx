@@ -215,16 +215,16 @@ export default function SearchPage() {
   }
 
   return (
-    <motion.div {...defaultPageMotion} className="page-shell flex min-h-0 flex-1 flex-col gap-8">
-      <motion.section variants={sectionVariants} className="pt-8 sm:pt-12">
+    <motion.div {...defaultPageMotion} className="page-shell flex min-h-0 flex-1 flex-col gap-6">
+      <motion.section variants={sectionVariants} className="pt-6 sm:pt-8">
         <PageHeader
           title="Visual Search"
-          description="Find documents and images using natural language powered by AI vision."
           icon={Search}
+          tooltip="Find documents and images using natural language powered by AI vision"
         />
       </motion.section>
 
-      <motion.section variants={sectionVariants} className="flex min-h-0 flex-1 flex-col gap-6 pb-8 sm:pb-12">
+      <motion.section variants={sectionVariants} className="flex min-h-0 flex-1 flex-col gap-6 pb-6 sm:pb-8">
         <SystemStatusWarning isReady={isReady} />
 
         <div className="sticky top-[5.25rem] z-30">

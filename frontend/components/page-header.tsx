@@ -1,4 +1,5 @@
-import { LucideIcon } from "lucide-react";
+import { LucideIcon, HelpCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 import type { ReactNode } from "react";
 
@@ -8,11 +9,12 @@ interface PageHeaderProps {
   icon?: LucideIcon;
   children?: ReactNode;
   badge?: ReactNode;
+  tooltip?: string;
 }
 
-export function PageHeader({ title, description, icon: Icon, children, badge }: PageHeaderProps) {
+export function PageHeader({ title, description, icon: Icon, children, badge, tooltip }: PageHeaderProps) {
   return (
-    <div className="relative mb-6 space-y-4 text-center">
+    <div className="relative space-y-3 text-center">
       {/* Background decoration */}
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div
@@ -29,19 +31,36 @@ export function PageHeader({ title, description, icon: Icon, children, badge }: 
         />
       </div>
 
-      <div className="relative z-10 mb-2 flex flex-wrap items-center justify-center gap-3">
+      <div className="relative z-10 flex flex-wrap items-center justify-center gap-3">
         {Icon && (
           <div className="rounded-2xl border border-border/50 bg-card p-2.5 shadow-[0_16px_30px_-24px_rgba(251,226,167,0.75)]">
             <Icon className="h-6 w-6 text-primary" />
           </div>
         )}
         <div className="flex flex-wrap items-center justify-center gap-3">
-          <h1
-            className="text-balance text-4xl font-semibold tracking-tight bg-clip-text text-transparent"
-            style={{ backgroundImage: "var(--nav-pill-active)" }}
-          >
-            {title}
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1
+              className="text-balance text-4xl font-semibold tracking-tight bg-clip-text text-transparent"
+              style={{ backgroundImage: "var(--nav-pill-active)" }}
+            >
+              {title}
+            </h1>
+            {tooltip && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center rounded-full border border-muted/60 bg-[color:var(--surface-1)]/80 p-1.5 text-muted-foreground transition-colors hover:bg-[color:var(--surface-2)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                  >
+                    <HelpCircle className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs text-sm" sideOffset={8}>
+                  {tooltip}
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
           {badge && <div className="flex items-center text-sm">{badge}</div>}
         </div>
       </div>

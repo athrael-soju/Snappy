@@ -31,12 +31,12 @@ const workflow = [
 export default function Home() {
   return (
     <motion.div {...defaultPageMotion} className="page-shell flex min-h-0 flex-1 flex-col">
-      <motion.section variants={sectionVariants} className="flex flex-col items-center text-center gap-8 pt-8 sm:pt-12">
+      <motion.section variants={sectionVariants} className="flex flex-col items-center text-center gap-6 pt-6 sm:pt-8">
         <PageHeader
           title="FastAPI / Next.js / ColPali Template"
-          description="This starter kit combines a FastAPI backend, Qdrant vector search, and a modern Next.js interface so you can focus on the experience, not the boilerplate."
           icon={Sparkles}
           badge={<Badge className="rounded-full text-sm">v0.0.4</Badge>}
+          tooltip="This starter kit combines a FastAPI backend, Qdrant vector search, and a modern Next.js interface so you can focus on the experience, not the boilerplate"
         >
           <div className="flex flex-col items-center gap-5">
             <div className="flex flex-col items-center gap-3 text-sm max-w-2xl">
@@ -69,7 +69,7 @@ export default function Home() {
         </PageHeader>
       </motion.section>
 
-      <section className="flex-1 min-h-0 pb-8 sm:pb-12">
+      <section className="flex-1 min-h-0 pb-6 sm:pb-8">
         <ScrollArea className="custom-scrollbar h-[calc(100vh-30rem)]">
           <div className="p-4">
             <motion.div className="grid gap-6 md:grid-cols-3" {...staggeredListMotion}>

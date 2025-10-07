@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 // Removed Select in favor of a clearer segmented control
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { User, Image as ImageIcon, Loader2, Sparkles, Brain, FileText, BarChart3, MessageSquare, Clock, ExternalLink } from "lucide-react";
@@ -218,38 +219,39 @@ export default function ChatPage() {
   }, [messages, requestStart]);
 
   return (
-    <motion.div {...defaultPageMotion} className="page-shell flex flex-col min-h-0 flex-1">
-      <motion.section variants={sectionVariants} className="pt-8 sm:pt-12">
+    <motion.div {...defaultPageMotion} className="page-shell flex flex-col min-h-0 flex-1 gap-6">
+      <motion.section variants={sectionVariants} className="pt-6 sm:pt-8">
         <PageHeader
           title="AI Chat"
-          description="Ask questions about your documents and get AI-powered responses with inline citations"
           icon={Brain}
+          tooltip="Ask questions about your documents and get AI-powered responses with inline citations"
         />
       </motion.section>
-      <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col space-y-6 pb-8 sm:pb-12">
+      <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col gap-6 pb-6 sm:pb-8">
 
         {/* System Status Warning */}
         <SystemStatusWarning isReady={isReady} />
         {/* Chat Messages */}
         <Card className="card-surface flex-1 min-h-0 flex flex-col overflow-hidden">
         <ScrollArea ref={messagesContainerRef} className="custom-scrollbar h-[calc(100vh-30rem)]">
-          <div className="space-y-6 p-4 sm:p-6">
+          <div className="space-y-6 p-3 sm:p-4">
           <AnimatePresence mode="popLayout">
             {messages.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="flex flex-col items-center justify-center h-full text-center py-6"
+                className="flex flex-col items-center justify-center h-full text-center py-2"
               >
-
-                <h2 className="text-2xl font-semibold mb-3 bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">Start Your Conversation</h2>
-                <p className="text-muted-foreground max-w-lg mb-6 leading-relaxed">
-                  Ask questions about your uploaded documents and get intelligent responses with visual proof from your content.
-                </p>
+                <div className="mb-4">
+                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500 shadow-lg">
+                    <Brain className="h-6 w-6 text-white" />
+                  </div>
+                  <h2 className="text-xl font-semibold bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">Start Your Conversation</h2>
+                </div>
 
                 {/* Starter Questions */}
                 <StarterQuestions questions={starterQuestions} onSelect={(t) => setInput(t)} />
-                <div className="mt-4 w-full max-w-2xl">
+                <div className="mt-3 w-full max-w-2xl">
                   <RecentSearchesChips
                     recentSearches={recentSearches}
                     visible
@@ -274,30 +276,30 @@ export default function ChatPage() {
                     duration: 0.3,
                     delay: isClearing ? idx * 0.08 : 0,
                   }}
-                  className={`flex gap-3 mb-4 md:mb-5 last:mb-0 ${message.role === "assistant" ? "" : "flex-row-reverse"}`}
+                  className={`flex gap-4 mb-6 last:mb-0 ${message.role === "assistant" ? "" : "flex-row-reverse"}`}
                 >
                   <div
                     className={cn(
-                      "flex size-9 items-center justify-center rounded-full border text-sm font-semibold shadow-[var(--shadow-1)]",
+                      "flex size-10 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold shadow-lg",
                       message.role === "assistant"
-                        ? "bg-[color:var(--surface-1)] border-muted text-primary"
-                        : "bg-primary/15 border-primary/40 text-primary"
+                        ? "bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500 border-transparent text-white"
+                        : "bg-gradient-to-br from-primary/90 to-primary border-transparent text-primary-foreground"
                     )}
                   >
                     {message.role === "assistant" ? (
-                      <Brain className="h-4 w-4" />
+                      <Brain className="h-5 w-5" />
                     ) : (
-                      <User className="h-4 w-4" />
+                      <User className="h-5 w-5" />
                     )}
                   </div>
 
                   <div className={cn("flex-1 max-w-[85%]", message.role === "user" && "text-right")}>
                     <div
                       className={cn(
-                        "inline-block max-w-2xl rounded-2xl border px-4 py-3 text-left shadow-[var(--shadow-1)]",
+                        "inline-block max-w-2xl rounded-2xl border px-5 py-3.5 text-left shadow-[var(--shadow-2)]",
                         message.role === "assistant"
-                          ? "bg-[color:var(--surface-1)] border-muted"
-                          : "bg-primary/10 border-primary/40 text-foreground"
+                          ? "bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-cyan-500/5 border-muted/60 backdrop-blur-sm"
+                          : "bg-gradient-to-br from-primary/15 to-primary/10 border-primary/30 text-foreground"
                       )}
                     >
                       {message.content ? (
@@ -318,8 +320,13 @@ export default function ChatPage() {
                         )
                       ) : (
                         loading && message.role === "assistant" ? (
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <Loader2 className="w-4 h-4 animate-spin text-purple-500" />
+                          <div className="flex items-center gap-3 text-muted-foreground">
+                            <div className="relative">
+                              <Loader2 className="w-5 h-5 animate-spin text-purple-500" />
+                              <div className="absolute inset-0 blur-sm">
+                                <Loader2 className="w-5 h-5 animate-spin text-purple-400" />
+                              </div>
+                            </div>
                             <AnimatePresence mode="wait" initial={false}>
                               <motion.span
                                 key={brainIdx}
@@ -327,7 +334,7 @@ export default function ChatPage() {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -4 }}
                                 transition={{ duration: 0.2 }}
-                                className="text-sm"
+                                className="text-sm font-medium"
                               >
                                 {BRAIN_PLACEHOLDERS[brainIdx]}
                               </motion.span>
@@ -337,19 +344,33 @@ export default function ChatPage() {
                       )}
                     </div>
 
-                    {message.role === "assistant" && (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2 ml-2">
-                        <Brain className="w-3 h-3 text-purple-500" />
-                        <span>AI Assistant</span>
-                        <div className="flex">
-                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { /* TODO: thumbs up handler */ }}>
-                            <span aria-hidden>👍</span>
-                            <span className="sr-only">Mark helpful</span>
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { /* TODO: thumbs down handler */ }}>
-                            <span aria-hidden>👎</span>
-                            <span className="sr-only">Mark unhelpful</span>
-                          </Button>
+                    {message.role === "assistant" && message.content && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2.5 ml-1">
+                        <div className="flex items-center gap-1.5">
+                          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500">
+                            <Brain className="h-3 w-3 text-white" />
+                          </div>
+                          <span className="font-medium">AI Assistant</span>
+                        </div>
+                        <div className="flex gap-0.5 ml-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-green-500/10 hover:text-green-600 transition-colors" onClick={() => { /* TODO: thumbs up handler */ }}>
+                                <span aria-hidden className="text-sm">👍</span>
+                                <span className="sr-only">Mark helpful</span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Mark as helpful</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-red-500/10 hover:text-red-600 transition-colors" onClick={() => { /* TODO: thumbs down handler */ }}>
+                                <span aria-hidden className="text-sm">👎</span>
+                                <span className="sr-only">Mark unhelpful</span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Mark as unhelpful</TooltipContent>
+                          </Tooltip>
                         </div>
                       </div>
                     )}
@@ -363,7 +384,7 @@ export default function ChatPage() {
         </ScrollArea>
 
         {/* Input Form */}
-        <div className="sticky bottom-0 left-0 right-0 border-t border-divider bg-[color:var(--surface-0)]/92 px-4 py-4 backdrop-blur supports-[backdrop-filter]:backdrop-blur">
+        <div className="sticky bottom-0 left-0 right-0 border-t border-divider/50 bg-[color:var(--surface-0)]/95 px-4 py-3.5 backdrop-blur-lg supports-[backdrop-filter]:backdrop-blur">
           <ChatInputBar
             input={input}
             setInput={setInput}
@@ -403,15 +424,15 @@ export default function ChatPage() {
           />
 
           {/* Tips below input */}
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-purple-500" />
-              <span>AI-powered responses with inline citations</span>
+          <div className="mt-2.5 flex flex-wrap items-center gap-3 text-xs text-muted-foreground/80">
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-purple-500" />
+              <span>AI-powered with inline citations</span>
             </div>
             {timeToFirstTokenMs !== null && (
-              <div className="flex items-center gap-1">
-                <Clock className="w-3 h-3 text-muted-foreground" />
-                <span>First token in {(timeToFirstTokenMs / 1000).toFixed(2)}s</span>
+              <div className="flex items-center gap-1.5 rounded-full bg-[color:var(--surface-1)] px-2 py-0.5 border border-muted/40">
+                <Clock className="w-3 h-3 text-green-500" />
+                <span className="font-medium">{(timeToFirstTokenMs / 1000).toFixed(2)}s</span>
               </div>
             )}
           </div>

@@ -76,17 +76,17 @@ export default function UploadPage() {
 
   return (
     <motion.div {...defaultPageMotion}
-      className="page-shell flex min-h-0 flex-1 flex-col gap-10"
+      className="page-shell flex min-h-0 flex-1 flex-col gap-6"
     >
-      <motion.section variants={sectionVariants} className="pt-8 sm:pt-12">
+      <motion.section variants={sectionVariants} className="pt-6 sm:pt-8">
         <PageHeader
           title="Upload Documents"
-          description="Drag & drop or select files to add to your visual search index"
           icon={CloudUpload}
+          tooltip="Drag & drop or select files to add to your visual search index"
         />
       </motion.section>
 
-      <motion.section variants={sectionVariants} className="flex-1 min-h-0 pb-8 sm:pb-12">
+      <motion.section variants={sectionVariants} className="flex-1 min-h-0 pb-6 sm:pb-8">
         <ScrollArea className="custom-scrollbar h-[calc(100vh-20rem)]">
           <div className="flex flex-col gap-6 p-4">
             {/* System Status Warning */}
@@ -110,7 +110,7 @@ export default function UploadPage() {
               onSubmit={handleSubmit}
               onCancel={handleCancel}
             />
-            <UploadInfoCards />
+            {!hasFiles && <UploadInfoCards />}
           </div>
         </ScrollArea>
       </motion.section>

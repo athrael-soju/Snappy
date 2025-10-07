@@ -48,45 +48,45 @@ export default function MaintenancePage() {
   const isConfigurationView = section !== "data";
 
   return (
-    <motion.div {...defaultPageMotion} className="page-shell flex min-h-0 flex-1 flex-col gap-10">
-      <motion.section variants={sectionVariants} className="pt-8 sm:pt-12">
+    <motion.div {...defaultPageMotion} className="page-shell flex min-h-0 flex-1 flex-col gap-6">
+      <motion.section variants={sectionVariants} className="pt-6 sm:pt-8">
         <PageHeader
           title="System Maintenance"
-          description={isConfigurationView ? "Manage runtime configuration options" : "Monitor and manage storage and indexing resources"}
           icon={Settings}
+          tooltip={isConfigurationView ? "Manage runtime configuration options" : "Monitor and manage storage and indexing resources"}
         />
       </motion.section>
 
-      <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col gap-8 pb-8 sm:pb-12">
-        <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
-          {!isConfigurationView && systemStatus && (
+      <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col gap-6 pb-6 sm:pb-8">
+        {!isConfigurationView && systemStatus && (
+          <div className="flex items-center">
             <SystemStatusBadge
               isReady={isSystemReady}
               isLoading={statusLoading}
               onRefresh={fetchStatus}
             />
-          )}
-          {isConfigurationView && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => configPanelRef.current?.openResetDialog()}
-                  className="h-10"
-                >
-                  <RotateCcw />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent sideOffset={8}>
-                <p>Reset configuration values</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
-        </div>
+          </div>
+        )}
 
         {isConfigurationView ? (
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 relative">
+            <div className="absolute top-0 right-0 z-10">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => configPanelRef.current?.openResetDialog()}
+                    className="h-9 w-9 p-0 rounded-lg border-2 bg-card/80 backdrop-blur-sm hover:bg-card shadow-sm"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent sideOffset={8}>
+                  <p>Reset all configuration</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
             <ConfigurationPanel ref={configPanelRef} />
           </div>
         ) : (
