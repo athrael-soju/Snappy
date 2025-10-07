@@ -87,6 +87,21 @@ docker compose up -d --build
 - `POST /config/update` — Update a configuration value at runtime
 - `POST /config/reset` — Reset all configuration to defaults
 
-## Chat and visual citations (context)
+## Chat and Visual Citations (Context)
 
-The chat streaming endpoint is implemented in the frontend at `frontend/app/api/chat/route.ts` using the OpenAI Responses API. It may perform document search via this backend's `GET /search` and, when images are used, the frontend emits a custom SSE event `kb.images` to the browser. The UI shows a glowing "Visual citations included" chip and an image gallery when such events are received.
+The chat streaming endpoint is implemented in the frontend at `frontend/app/api/chat/route.ts` using **Edge Runtime** for optimized streaming performance. The route calls OpenAI's Responses API and streams Server-Sent Events (SSE) to the browser.
+
+- When tool calling is disabled, the backend performs document search unconditionally via `GET /search`
+- When tool calling is enabled, the model may call the `document_search` tool
+- The frontend emits a custom SSE event `kb.images` when visual citations are available
+- The UI displays a "Visual citations included" chip and image gallery accordingly
+
+## Configuration Management
+
+The `/maintenance` page includes a **Configuration** tab providing a web-based interface for managing backend environment variables at runtime. See [backend/docs/configuration.md](docs/configuration.md) for detailed setting documentation and [backend/CONFIGURATION_GUIDE.md](CONFIGURATION_GUIDE.md) for system architecture details.
+
+**Important Notes:**
+- Configuration changes update the backend runtime environment immediately
+- Changes are not persisted to the `.env` file and will be lost on container restart
+- For permanent changes, manually update your `.env` file
+- Critical settings (e.g., API URLs, collection settings) trigger service invalidation and re-initialization

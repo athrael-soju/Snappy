@@ -121,11 +121,13 @@ __Retrieval flow__:
 
 A modern Next.js 15 UI with server-side streaming, real-time progress updates, and visual citations. Features include:
 
-- **Home** (`/`) — Landing page with quick navigation and system overview
-- **Upload** (`/upload`) — PDF upload with real-time progress tracking via SSE and cancellation support
-- **Search** (`/search`) — Visual search interface with image lightbox and recent searches
-- **Chat** (`/chat`) — AI assistant with tool calling, visual citations, and conversation management
-- **Maintenance** (`/maintenance`) — System administration with configuration management and data operations
+- **Home** (`/`) — Landing page with feature cards showcasing the workflow: Upload & Ingest, Visual Embeddings, and Search & Chat
+- **Upload** (`/upload`) — PDF upload with drag-and-drop interface, real-time progress tracking via SSE, and cancellation support
+- **Search** (`/search`) — Visual search interface with image lightbox, relevance scoring, and recent searches
+- **Chat** (`/chat`) — AI assistant with tool calling, visual citations, conversation management, and streaming responses
+- **Maintenance** (`/maintenance`) — System administration with two tabs:
+  - **Configuration**: Web-based UI for managing backend environment variables at runtime
+  - **Maintenance**: System operations (Initialize System, Delete System, Data Reset) with real-time status display
 - **About** (`/about`) — Project information and ColPali explanation
 
 Screenshots of the current UI:

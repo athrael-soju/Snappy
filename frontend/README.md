@@ -16,7 +16,7 @@ The app is intentionally simple and unauthenticated. Current pages:
 - `/chat` — AI chat grounded on retrieved page images with visual citations.
 - `/maintenance` — System maintenance with two tabs:
   - **Configuration**: Web-based UI for managing backend environment variables at runtime (see Configuration Management below).
-  - **Data Management**: System administration interface with:
+  - **Maintenance**: System administration interface with:
     - Real-time status display showing system readiness, collection stats (vectors, unique files), and bucket stats (object count)
     - **Initialize System**: Creates Qdrant collection and MinIO bucket. Required before first use.
     - **Delete System**: Removes collection and bucket completely for configuration changes or fresh start.
