@@ -141,15 +141,42 @@ export function Nav() {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-64 border-border/40 bg-background/95">
+              <SheetContent 
+                side="left" 
+                className="w-72 border-border/40 bg-background/98 backdrop-blur-xl p-0 flex flex-col"
+              >
                 <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-                <nav className="mt-6 flex flex-col gap-2">
+                
+                {/* Header Section */}
+                <div className="px-6 pt-8 pb-6 border-b border-border/40">
+                  <Link
+                    href="/"
+                    className="flex items-center gap-3 group"
+                  >
+                    <Image
+                      src="/favicon.png"
+                      alt="App icon"
+                      width={48}
+                      height={48}
+                      className="h-12 w-12 drop-shadow-lg transition-transform group-hover:scale-105"
+                      priority
+                    />
+                    <div className="flex flex-col">
+                      <span className="text-base font-semibold text-foreground">ColPali</span>
+                      <span className="text-xs text-muted-foreground">Visual Document Search</span>
+                    </div>
+                  </Link>
+                </div>
+
+                {/* Navigation Links */}
+                <nav className="flex-1 px-4 py-6 flex flex-col gap-1.5 overflow-y-auto custom-scrollbar">
                   {links.map((link) => {
                     const Icon = link.icon
                     const active =
                       link.href === "/"
                         ? pathname === "/"
                         : pathname === link.href || pathname.startsWith(`${link.href}/`)
+                    const indicator = link.href === "/upload" ? uploadIndicator() : null
 
                     return (
                       <Link
@@ -157,17 +184,47 @@ export function Nav() {
                         href={link.href}
                         className={cn(
                           mobileLinkClasses,
+                          "h-12 text-base gap-3 relative",
                           active ? mobileLinkActiveClasses : mobileLinkInactiveClasses
                         )}
                       >
                         <Icon
-                          className={cn("h-4 w-4 transition-colors", active ? "text-[color:var(--nav-pill-active-foreground,var(--foreground))]" : link.color)}
+                          className={cn("h-5 w-5 transition-colors", active ? "text-[color:var(--nav-pill-active-foreground,var(--foreground))]" : link.color)}
                         />
-                        {link.label}
+                        <span className="flex-1">{link.label}</span>
+                        <AnimatePresence>
+                          {indicator && (
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.4, x: 8 }}
+                              animate={{ opacity: 1, scale: 1, x: 0 }}
+                              exit={{ opacity: 0, scale: 0.4, x: 8 }}
+                              transition={{ duration: 0.25, type: "spring", stiffness: 280, damping: 20 }}
+                              className={cn(
+                                "flex h-6 min-w-[40px] items-center justify-center rounded-full border text-xs font-semibold backdrop-blur px-2",
+                                indicator.isActive 
+                                  ? "bg-primary/90 text-primary-foreground border-primary/40 shadow-sm" 
+                                  : "bg-muted text-muted-foreground border-border/60"
+                              )}
+                            >
+                              {indicator.count}%
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </Link>
                     )
                   })}
                 </nav>
+
+                {/* Footer Section */}
+                <div className="px-4 py-4 border-t border-border/40 space-y-3 bg-card/30">
+                  <div className="flex items-center justify-between px-2">
+                    <span className="text-sm font-medium text-muted-foreground">Theme</span>
+                    <ThemeSwitch />
+                  </div>
+                  <div className="pt-2">
+                    <NavUser />
+                  </div>
+                </div>
               </SheetContent>
             </Sheet>
           </div>
