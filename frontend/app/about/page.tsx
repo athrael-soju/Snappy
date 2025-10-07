@@ -3,10 +3,10 @@
 import AboutContent from "@/components/about-content";
 import { PageHeader } from "@/components/page-header";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card } from "@/components/ui/card";
 import { Info } from "lucide-react";
 import { motion } from "framer-motion";
 import { defaultPageMotion, sectionVariants } from "@/lib/motion-presets";
+import { GlassPanel } from "@/components/ui/glass-panel";
 
 export default function AboutPage() {
   return (
@@ -19,13 +19,13 @@ export default function AboutPage() {
         />
       </motion.section>
       <motion.section variants={sectionVariants} className="flex-1 min-h-0 pb-6 sm:pb-8 flex">
-        <Card className="card-surface mx-auto w-full max-w-4xl flex min-h-0 flex-1 flex-col overflow-hidden border-border/50 shadow-lg">
+        <GlassPanel className="mx-auto w-full max-w-4xl flex min-h-0 flex-1 flex-col overflow-hidden">
           <ScrollArea className="h-[calc(100vh-20rem)] rounded-xl">
             <div className="p-8">
               <AboutContent />
             </div>
           </ScrollArea>
-        </Card>
+        </GlassPanel>
       </motion.section>
     </motion.div>
   );
