@@ -48,6 +48,24 @@ export function chatReducer(state: AppState, action: AppAction): AppState | null
     
     case 'CHAT_SET_MAX_TOKENS':
       return { ...state, chat: { ...state.chat, maxTokens: action.payload } };
+
+    case 'CHAT_REMOVE_EMPTY_ASSISTANT': {
+      const messages = state.chat.messages;
+      if (messages.length === 0) {
+        return state;
+      }
+      const last = messages[messages.length - 1];
+      if (last.role !== 'assistant' || (last.content ?? '').trim().length > 0) {
+        return state;
+      }
+      return {
+        ...state,
+        chat: {
+          ...state.chat,
+          messages: messages.slice(0, -1),
+        },
+      };
+    }
     
     case 'CHAT_RESET':
       // Preserve user settings when clearing conversation

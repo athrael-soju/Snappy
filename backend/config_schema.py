@@ -61,6 +61,15 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "description": "Comma-separated list of allowed origins, or * for all",
                 "help_text": "Defines which web domains can access your API via cross-origin requests. Use '*' to allow all origins (development only - NOT recommended for production). In production, specify exact domains (e.g., 'https://example.com,https://app.example.com') to prevent unauthorized access. This is a critical security setting that protects against cross-site request forgery."
             },
+            {
+                "key": "UVICORN_RELOAD",
+                "type": "bool",
+                "default": True,
+                "label": "Enable Auto Reload",
+                "ui_type": "boolean",
+                "description": "Automatically reload the API when files change",
+                "help_text": "When enabled the development server watches for file changes and reloads automatically. This is convenient locally but should stay off in production to avoid the extra file-watcher overhead."
+            },
         ]
     },
     "ingestion": {
@@ -163,7 +172,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "default": "documents",
                 "label": "Collection Name",
                 "ui_type": "text",
-                "description": "Name of the Qdrant collection",
+                "description": "Name of the Qdrant collection (Also used for MinIO bucket)",
                 "help_text": "Name of the Qdrant collection storing your document embeddings. Think of it as a database table. Changing this creates/uses a different collection. Useful for testing or separating data by environment (dev/staging/prod). Requires restart to take effect."
             },
             {

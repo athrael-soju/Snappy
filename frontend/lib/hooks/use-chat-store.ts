@@ -26,6 +26,8 @@ export function useChatStore() {
       dispatch({ type: 'CHAT_SET_LOADING', payload: loading }),
     setTopK: (topK: number) => dispatch({ type: 'CHAT_SET_TOP_K', payload: topK }),
     setMaxTokens: (maxTokens: number) => dispatch({ type: 'CHAT_SET_MAX_TOKENS', payload: maxTokens }),
+    removeEmptyAssistantPlaceholder: () => 
+      dispatch({ type: 'CHAT_REMOVE_EMPTY_ASSISTANT' }),
     reset: () => dispatch({ type: 'CHAT_RESET' }),
   };
 }

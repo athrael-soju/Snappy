@@ -113,3 +113,4 @@ def invalidate_services():
     _get_qdrant_service_cached.cache_clear()
     _get_muvera_postprocessor_cached.cache_clear()
     _get_minio_service_cached.cache_clear()
+    _get_colpali_client_cached.cache_clear()

@@ -9,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 // Removed Select in favor of a clearer segmented control
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { User, Image as ImageIcon, Loader2, Sparkles, Brain, FileText, BarChart3, MessageSquare, Clock, ExternalLink } from "lucide-react";
+import { User, Image as ImageIcon, Loader2, Sparkles, Brain, FileText, BarChart3, MessageSquare, Clock, ExternalLink, ThumbsUp, ThumbsDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { defaultPageMotion, fadeInPresence, sectionVariants } from "@/lib/motion-presets";
 import { toast } from "@/components/ui/sonner";
@@ -370,7 +370,7 @@ export default function ChatPage() {
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-green-500/10 hover:text-green-600 transition-colors" onClick={() => { /* TODO: thumbs up handler */ }}>
-                                <span aria-hidden className="text-sm">👍</span>
+                                <ThumbsUp className="h-3.5 w-3.5" aria-hidden />
                                 <span className="sr-only">Mark helpful</span>
                               </Button>
                             </TooltipTrigger>
@@ -379,7 +379,7 @@ export default function ChatPage() {
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-red-500/10 hover:text-red-600 transition-colors" onClick={() => { /* TODO: thumbs down handler */ }}>
-                                <span aria-hidden className="text-sm">👎</span>
+                                <ThumbsDown className="h-3.5 w-3.5" aria-hidden />
                                 <span className="sr-only">Mark unhelpful</span>
                               </Button>
                             </TooltipTrigger>
@@ -402,7 +402,7 @@ export default function ChatPage() {
           <ChatInputBar
             input={input}
             setInput={setInput}
-            placeholder="Ask anything about your documents… Press ⏎ to send"
+            placeholder="Ask anything about your documents. Press Enter to send"
             loading={loading}
             isSettingsValid={isSettingsValid}
             uiSettingsValid={uiSettingsValid}

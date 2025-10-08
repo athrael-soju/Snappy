@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { MaintenanceService, ApiError } from "@/lib/api/generated";
 import { toast } from "@/components/ui/sonner";
 import type { SystemStatus } from "@/components/maintenance/types";
@@ -19,15 +19,17 @@ export function useSystemStatus() {
     dispatch({ type: 'SYSTEM_CLEAR_STATUS' });
   }, [dispatch]);
   
-  const isReady = useCallback(() => {
-    return !!(state.systemStatus?.collection.exists && state.systemStatus?.bucket.exists);
-  }, [state.systemStatus]);
-  
-  const needsRefresh = useCallback(() => {
-    if (!state.systemStatus?.lastChecked) return true;
+  const systemStatus = state.systemStatus;
+
+  const isReady = useMemo(() => {
+    return !!(systemStatus?.collection.exists && systemStatus?.bucket.exists);
+  }, [systemStatus]);
+
+  const needsRefresh = useMemo(() => {
+    if (!systemStatus?.lastChecked) return true;
     const fiveMinutes = 5 * 60 * 1000;
-    return Date.now() - state.systemStatus.lastChecked > fiveMinutes;
-  }, [state.systemStatus]);
+    return Date.now() - systemStatus.lastChecked > fiveMinutes;
+  }, [systemStatus]);
 
   const fetchStatus = useCallback(async () => {
     setStatusLoading(true);
@@ -57,17 +59,14 @@ export function useSystemStatus() {
     return () => window.removeEventListener('systemStatusChanged', handler);
   }, [fetchStatus]);
 
-  const systemStatus = state.systemStatus;
-  const isSystemReady = !!(systemStatus?.collection.exists && systemStatus?.bucket.exists);
-
   return {
     systemStatus,
     setStatus,
     clearStatus,
     statusLoading,
     fetchStatus,
-    isReady: isReady(),
-    needsRefresh: needsRefresh(),
-    isSystemReady,
+    isReady,
+    needsRefresh,
+    isSystemReady: isReady,
   };
 }
