@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Save, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -48,9 +49,10 @@ export function UnsavedChangesBar({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 10 }}
+          className="fixed bottom-0 left-0 right-0 z-50 pb-4 px-4 sm:px-6"
         >
-          <div className="container max-w-7xl py-4 px-4 sm:px-6">
-            <div className="flex flex-col gap-4 rounded-2xl border border-blue-200/70 dark:border-blue-800/50 bg-card/80 p-4 shadow-xl sm:flex-row sm:items-center sm:justify-between">
+          <div className="container max-w-7xl mx-auto">
+            <div className="flex flex-col gap-4 rounded-2xl border border-blue-200/70 dark:border-blue-800/50 bg-card/95 backdrop-blur-lg p-4 shadow-xl sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-start gap-3">
                 <div className="p-2 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 text-white shadow-md">
                   <AlertTriangle className="h-4 w-4" />
@@ -70,13 +72,13 @@ export function UnsavedChangesBar({
                   </p>
                 </div>
               </div>
-              <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+              <ButtonGroup className="w-full h-full [&>*]:flex-1 sm:w-auto">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={onDiscard}
                   disabled={saving}
-                  className="rounded-full border-blue-200 dark:border-blue-800 px-4 py-2 hover:bg-blue-50 dark:hover:bg-blue-950/50"
+                  className="border-blue-200 dark:border-blue-800 px-4 py-2 hover:bg-blue-50 dark:hover:bg-blue-950/50 h-full"
                 >
                   Discard
                 </Button>
@@ -84,7 +86,7 @@ export function UnsavedChangesBar({
                   size="sm"
                   onClick={onSave}
                   disabled={saving}
-                  className="rounded-full bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 text-white shadow-lg transition-all duration-300 hover:from-blue-700 hover:to-purple-700 hover:shadow-xl"
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 text-white shadow-lg transition-all duration-300 hover:from-blue-700 hover:to-purple-700 hover:shadow-xl h-full"
                 >
                   {saving ? (
                     <>
@@ -98,7 +100,7 @@ export function UnsavedChangesBar({
                     </>
                   )}
                 </Button>
-              </div>
+              </ButtonGroup>
             </div>
           </div>
         </motion.div>

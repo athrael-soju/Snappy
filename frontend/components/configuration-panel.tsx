@@ -3,6 +3,7 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ButtonGroup, ButtonGroupSeparator } from "@/components/ui/button-group";
 import { GlassPanel } from "@/components/ui/glass-panel";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -10,7 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Settings, RotateCcw, AlertTriangle, Loader2 } from "lucide-react";
+import { Settings, RotateCcw, AlertTriangle, Loader2, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { ConfigurationService, ApiError } from "@/lib/api/generated";
@@ -49,6 +50,7 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [resetSectionDialogOpen, setResetSectionDialogOpen] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [optimizing, setOptimizing] = useState(false);
 
   useImperativeHandle(ref, () => ({
     openResetDialog: () => setResetDialogOpen(true),
@@ -209,6 +211,39 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
     }
   }
 
+  async function optimizeForSystem() {
+    if (hasChanges) {
+      toast.info("Save changes first", { description: "Please save or discard edits before optimizing." });
+      return;
+    }
+
+    setOptimizing(true);
+    setError(null);
+
+    try {
+      const result = await ConfigurationService.optimizeConfigConfigOptimizePost();
+      clearConfigFromStorage();
+      await loadConfiguration();
+      setLastSaved(new Date());
+
+      const appliedCount = Object.keys(result.applied ?? {}).length;
+      const description =
+        result.message ||
+        (appliedCount
+          ? `Applied ${appliedCount} setting${appliedCount !== 1 ? "s" : ""}.`
+          : "Your configuration already matched the recommended profile.");
+
+      const notify = appliedCount > 0 ? toast.success : toast.info;
+      notify("Optimization complete", { description });
+    } catch (err) {
+      const errorMsg = err instanceof ApiError ? err.message : "Failed to optimize configuration";
+      setError(errorMsg);
+      toast.error("Optimization failed", { description: errorMsg });
+    } finally {
+      setOptimizing(false);
+    }
+  }
+
   function handleValueChange(key: string, value: string) {
     setValues(prev => ({ ...prev, [key]: value }));
   }
@@ -279,7 +314,79 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
         />
 
         {/* Main content area */}
-        <div className="flex-1 min-w-0 flex flex-col gap-4">
+        <div className="flex-1 min-w-0 flex flex-col gap-6">
+          {/* Action Button Group */}
+          <GlassPanel className="overflow-hidden">
+            <ButtonGroup className="shadow-sm !w-full [&>*]:flex-1 [&>*]:h-12">
+              <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setResetSectionDialogOpen(activeCategoryKey)}
+                      disabled={saving}
+                      className="gap-2 px-4 border-0 !rounded-none"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      Reset Section
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
+                    <p>Reset current section to defaults</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <ButtonGroupSeparator />
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={optimizeForSystem}
+                      disabled={saving || optimizing}
+                      className="gap-2 px-4 border-0 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 !rounded-none"
+                    >
+                      {optimizing ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Optimizing...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4" />
+                          Optimize
+                        </>
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
+                    <p>Detect this server&apos;s hardware and apply recommended settings</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <ButtonGroupSeparator />
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setResetDialogOpen(true)}
+                      disabled={saving}
+                      className="gap-2 px-4 border-0 text-destructive hover:text-destructive/90 !rounded-none"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      Reset All
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
+                    <p>Reset all configuration to defaults</p>
+                  </TooltipContent>
+                </Tooltip>
+              </ButtonGroup>
+          </GlassPanel>
+
           <ScrollArea className="h-[calc(100vh-20rem)]">
             <div className="px-1 py-2 pr-4">
               {categoriesToRender.map(([categoryKey, category]) => {
@@ -300,32 +407,14 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                     {/* Settings Card - Scrollable */}
                     <GlassPanel className="flex flex-1 min-h-0 flex-col p-6 overflow-hidden">
                       <CardHeader className="pb-4 flex-shrink-0 px-0 pt-0">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-start gap-3">
-                            <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 text-blue-500">
-                              <Settings className="w-6 h-6" />
-                            </div>
-                            <div>
-                              <CardTitle className="text-xl font-semibold text-foreground">{category.name}</CardTitle>
-                              <CardDescription className="mt-1 text-base leading-relaxed text-muted-foreground">{category.description}</CardDescription>
-                            </div>
+                        <div className="flex items-start gap-3">
+                          <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 text-blue-500">
+                            <Settings className="w-6 h-6" />
                           </div>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setResetSectionDialogOpen(categoryKey)}
-                                disabled={saving}
-                                className="h-9 w-9 shrink-0"
-                              >
-                                <RotateCcw className="w-4 h-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent sideOffset={8} side="right" className="bg-popover text-popover-foreground">
-                              <p>Reset this section</p>
-                            </TooltipContent>
-                          </Tooltip>
+                          <div>
+                            <CardTitle className="text-xl font-semibold text-foreground">{category.name}</CardTitle>
+                            <CardDescription className="mt-1 text-base leading-relaxed text-muted-foreground">{category.description}</CardDescription>
+                          </div>
                         </div>
                       </CardHeader>
 
