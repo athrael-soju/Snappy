@@ -4,7 +4,7 @@ import os
 import uvicorn
 
 from api.app import create_app
-from config import LOG_LEVEL
+from config import LOG_LEVEL, UVICORN_RELOAD
 
 
 def _configure_logging() -> None:
@@ -28,7 +28,12 @@ def run() -> None:
         raise ValueError("Invalid PORT") from exc
 
     log_level = os.getenv("LOG_LEVEL", str(LOG_LEVEL)).lower()
-    uvicorn.run("main:app", host=host, port=port, log_level=log_level, reload=True)
+    reload_override = os.getenv("UVICORN_RELOAD")
+    if reload_override is not None:
+        reload_enabled = reload_override.strip().lower() in {"1", "true", "yes"}
+    else:
+        reload_enabled = bool(UVICORN_RELOAD)
+    uvicorn.run("main:app", host=host, port=port, log_level=log_level, reload=reload_enabled)
 
 
 if __name__ == "__main__":

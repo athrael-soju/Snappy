@@ -1,7 +1,7 @@
 ﻿// frontend/lib/hooks/use-chat.ts
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { toast } from '@/components/ui/sonner'
 import {
   chatRequest,
@@ -37,6 +37,7 @@ export function useChat() {
     setLoading,
     setTopK,
     setMaxTokens,
+    removeEmptyAssistantPlaceholder,
     reset,
   } = useChatStore();
 
@@ -84,30 +85,32 @@ export function useChat() {
   // Derived validity for UI to disable send when settings are invalid
   const isSettingsValid = kSchema.safeParse(k).success
 
+  const persistSetting = useCallback((key: string, value: string) => {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(key, value)
+      }
+    } catch {
+      // ignore persistence failures (private browsing, quotas, etc.)
+    }
+  }, [])
+
   // persist preferences
   useEffect(() => {
-    try {
-      localStorage.setItem('k', String(k))
-    } catch { }
-  }, [k])
+    persistSetting('k', String(k))
+  }, [k, persistSetting])
 
   useEffect(() => {
-    try {
-      localStorage.setItem('tool-calling-enabled', String(toolCallingEnabled))
-    } catch { }
-  }, [toolCallingEnabled])
+    persistSetting('tool-calling-enabled', String(toolCallingEnabled))
+  }, [toolCallingEnabled, persistSetting])
 
   useEffect(() => {
-    try {
-      localStorage.setItem('topK', String(topK))
-    } catch { }
-  }, [topK])
+    persistSetting('topK', String(topK))
+  }, [topK, persistSetting])
 
   useEffect(() => {
-    try {
-      localStorage.setItem('maxTokens', String(maxTokens))
-    } catch { }
-  }, [maxTokens])
+    persistSetting('maxTokens', String(maxTokens))
+  }, [maxTokens, persistSetting])
 
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault()
@@ -191,13 +194,7 @@ export function useChat() {
       toast.error('Chat Failed', { description: errorMsg })
       // Remove the assistant placeholder message that was added before streaming
       // to avoid showing a lingering loading bubble on the next message
-      const currentMessages = messages;
-      if (currentMessages.length > 0) {
-        const last = currentMessages[currentMessages.length - 1]
-        if (last.role === 'assistant' && last.content === '') {
-          setMessages(currentMessages.slice(0, -1));
-        }
-      }
+      removeEmptyAssistantPlaceholder();
       // Clear request timestamp on error
     } finally {
       setLoading(false)

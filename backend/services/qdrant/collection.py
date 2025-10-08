@@ -84,7 +84,7 @@ class CollectionManager:
                                 "muvera_fde": models.VectorParams(
                                     size=int(self.muvera_post.embedding_size),
                                     distance=models.Distance.COSINE,
-                                    on_disk=QDRANT_ON_DISK,
+                                    on_disk=config.QDRANT_ON_DISK,
                                 )
                             },
                         )

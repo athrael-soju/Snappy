@@ -16,30 +16,42 @@ export function useMaintenanceActions({ onSuccess }: UseMaintenanceActionsOption
   const [loading, setLoading] = useState<LoadingState>({ q: false, m: false, all: false });
   const [dialogOpen, setDialogOpen] = useState<ActionType | null>(null);
 
+  const actionHandlers: Record<ActionType, () => Promise<unknown>> = {
+    q: () => MaintenanceService.clearQdrantClearQdrantPost(),
+    m: () => MaintenanceService.clearMinioClearMinioPost(),
+    all: () => MaintenanceService.clearAllClearAllPost(),
+  };
+
   const runAction = async (action: ActionType) => {
     const actionConfig = MAINTENANCE_ACTIONS.find(a => a.id === action);
     if (!actionConfig) return;
+
+    const handler = actionHandlers[action];
+    if (!handler) return;
 
     setLoading((s) => ({ ...s, [action]: true }));
     setDialogOpen(null);
 
     try {
-      let res: any;
-      if (action === "q") res = await MaintenanceService.clearQdrantClearQdrantPost();
-      else if (action === "m") res = await MaintenanceService.clearMinioClearMinioPost();
-      else res = await MaintenanceService.clearAllClearAllPost();
+      const res = await handler();
 
       const msg = typeof res === "object" && res !== null
-        ? (res.message ?? JSON.stringify(res))
+        ? ('message' in res && typeof res.message === 'string' ? res.message : JSON.stringify(res))
         : String(res ?? "Operation completed successfully");
 
       toast.success(actionConfig.successMsg, { description: msg });
 
       // Update stats
-      const prevTotal = parseInt(localStorage.getItem("maintenance_operations") || "0");
-      const newTotal = prevTotal + 1;
-      localStorage.setItem("maintenance_operations", newTotal.toString());
-      localStorage.setItem("last_maintenance_action", new Date().toISOString());
+      try {
+        if (typeof localStorage !== "undefined") {
+          const prevTotal = Number.parseInt(localStorage.getItem("maintenance_operations") ?? "0", 10) || 0;
+          const newTotal = prevTotal + 1;
+          localStorage.setItem("maintenance_operations", newTotal.toString());
+          localStorage.setItem("last_maintenance_action", new Date().toISOString());
+        }
+      } catch {
+        // Swallow storage exceptions so the action can still complete
+      }
       
       // Notify success callback
       onSuccess?.();

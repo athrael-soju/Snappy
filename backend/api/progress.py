@@ -51,6 +51,7 @@ class ProgressManager:
                 self._jobs[job_id]["finished_at"] = time.time()
                 if message is not None:
                     self._jobs[job_id]["message"] = message
+        self._schedule_cleanup(job_id)
 
     def fail(self, job_id: str, error: str):
         with self._lock:
@@ -58,6 +59,7 @@ class ProgressManager:
                 self._jobs[job_id]["status"] = "failed"
                 self._jobs[job_id]["finished_at"] = time.time()
                 self._jobs[job_id]["error"] = error
+        self._schedule_cleanup(job_id)
 
     def get(self, job_id: str) -> Optional[Dict]:
         with self._lock:
@@ -65,6 +67,7 @@ class ProgressManager:
 
     def cancel(self, job_id: str) -> bool:
         """Request cancellation of a job. Returns True if job exists and can be cancelled."""
+        cancelled = False
         with self._lock:
             if job_id in self._jobs:
                 status = self._jobs[job_id]["status"]
@@ -74,8 +77,10 @@ class ProgressManager:
                     self._jobs[job_id]["status"] = "cancelled"
                     self._jobs[job_id]["finished_at"] = time.time()
                     self._jobs[job_id]["message"] = "Upload cancelled by user"
-                    return True
-            return False
+                    cancelled = True
+        if cancelled:
+            self._schedule_cleanup(job_id)
+        return cancelled
 
     def is_cancelled(self, job_id: str) -> bool:
         """Check if a job has been cancelled."""
@@ -87,6 +92,12 @@ class ProgressManager:
         with self._lock:
             self._jobs.pop(job_id, None)
             self._cancel_flags.pop(job_id, None)
+
+    def _schedule_cleanup(self, job_id: str, delay: float = 300.0):
+        """Schedule cleanup after a delay to allow clients to read final status."""
+        timer = threading.Timer(delay, self.cleanup, args=(job_id,))
+        timer.daemon = True
+        timer.start()
 
 
 progress_manager = ProgressManager()
