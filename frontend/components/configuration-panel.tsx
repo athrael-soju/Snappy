@@ -336,7 +336,6 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                 </TooltipContent>
               </Tooltip>
 
-
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
