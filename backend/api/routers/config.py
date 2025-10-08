@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from runtime_config import get_runtime_config
 from api.dependencies import invalidate_services
 from config_schema import get_api_schema, get_all_config_keys, get_critical_keys
+from services.system_optimizer import optimize_runtime_config
 
 
 router = APIRouter(prefix="/config", tags=["configuration"])
@@ -23,6 +24,25 @@ class ConfigUpdate(BaseModel):
     key: str = Field(..., description="Environment variable name")
     value: str = Field(..., description="New value")
 
+
+class HardwareSnapshot(BaseModel):
+    cpu_cores: int
+    cpu_model: str | None = None
+    cpu_frequency_ghz: float | None = None
+    total_ram_gb: float | None = None
+    nvidia_gpu_count: int
+    nvidia_gpu_names: List[str] | None = None
+    profile: str
+
+
+class ConfigOptimizationResponse(BaseModel):
+    status: str
+    message: str
+    profile: str
+    applied: Dict[str, str]
+    unchanged: List[str]
+    detection: HardwareSnapshot
+    services_invalidated: bool
 
 # Get configuration schema from single source of truth
 _API_SCHEMA = get_api_schema()
@@ -113,4 +133,40 @@ async def reset_config() -> Dict[str, Any]:
         "status": "ok",
         "message": f"Reset {reset_count} configuration values to defaults",
         "services_invalidated": True
+    }
+
+
+@router.post("/optimize", response_model=ConfigOptimizationResponse)
+async def optimize_config() -> Dict[str, Any]:
+    """
+    Optimise configuration for the current host hardware.
+
+    Runs hardware detection (CPU, memory, GPU) and applies recommended
+    runtime configuration values. Returns a summary of applied settings.
+    """
+    result = optimize_runtime_config()
+    services_invalidated = False
+    if result["applied"]:
+        invalidate_services()
+        services_invalidated = True
+
+    detection = result["detection"]
+    snapshot = {
+        "cpu_cores": detection.get("cpu_cores", 0),
+        "cpu_model": detection.get("cpu_model"),
+        "cpu_frequency_ghz": detection.get("cpu_frequency_ghz"),
+        "total_ram_gb": detection.get("total_ram_gb"),
+        "nvidia_gpu_count": detection.get("nvidia_gpu_count", 0),
+        "nvidia_gpu_names": detection.get("nvidia_gpu_names"),
+        "profile": detection.get("profile", "unknown"),
+    }
+
+    return {
+        "status": "ok",
+        "message": result["message"],
+        "profile": result["profile"],
+        "applied": result["applied"],
+        "unchanged": result["unchanged"],
+        "detection": snapshot,
+        "services_invalidated": services_invalidated,
     }

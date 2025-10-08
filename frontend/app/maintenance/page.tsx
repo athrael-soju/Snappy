@@ -56,29 +56,10 @@ export default function MaintenancePage() {
         />
       </motion.section>
 
-      <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col gap-6 pb-6 sm:pb-8">
+      <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col gap-6 pb-6 sm:pb-8 pt-8">
         {isConfigurationView ? (
-          <div className="mx-auto flex w-full max-w-6xl flex-1 min-h-0 flex-col gap-3">
-            <div className="flex justify-end">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => configPanelRef.current?.openResetDialog()}
-                    className="h-12 w-12"
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground">
-                  <p>Reset all configuration to defaults</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-            <div className="flex-1 min-h-0">
-              <ConfigurationPanel ref={configPanelRef} />
-            </div>
+          <div className="mx-auto flex w-full max-w-6xl flex-1 min-h-0 flex-col">
+            <ConfigurationPanel ref={configPanelRef} />
           </div>
         ) : (
           <div className="mx-auto flex w-full max-w-6xl flex-1 min-h-0 gap-6">

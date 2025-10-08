@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { ConfigOptimizationResponse } from '../models/ConfigOptimizationResponse';
 import type { ConfigUpdate } from '../models/ConfigUpdate';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -66,6 +67,21 @@ export class ConfigurationService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/config/reset',
+        });
+    }
+    /**
+     * Optimize Config
+     * Optimise configuration for the current host hardware.
+     *
+     * Runs hardware detection (CPU, memory, GPU) and applies recommended
+     * runtime configuration values. Returns a summary of applied settings.
+     * @returns ConfigOptimizationResponse Successful Response
+     * @throws ApiError
+     */
+    public static optimizeConfigConfigOptimizePost(): CancelablePromise<ConfigOptimizationResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/config/optimize',
         });
     }
 }

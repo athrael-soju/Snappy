@@ -27,6 +27,28 @@ const Body_index_index_post = z
 const ConfigUpdate = z
   .object({ key: z.string(), value: z.string() })
   .passthrough();
+const HardwareSnapshot = z
+  .object({
+    cpu_cores: z.number().int(),
+    cpu_model: z.union([z.string(), z.null()]).optional(),
+    cpu_frequency_ghz: z.union([z.number(), z.null()]).optional(),
+    total_ram_gb: z.union([z.number(), z.null()]).optional(),
+    nvidia_gpu_count: z.number().int(),
+    nvidia_gpu_names: z.union([z.array(z.string()), z.null()]).optional(),
+    profile: z.string(),
+  })
+  .passthrough();
+const ConfigOptimizationResponse = z
+  .object({
+    status: z.string(),
+    message: z.string(),
+    profile: z.string(),
+    applied: z.record(z.string()),
+    unchanged: z.array(z.string()),
+    detection: HardwareSnapshot,
+    services_invalidated: z.boolean(),
+  })
+  .passthrough();
 
 export const schemas = {
   k,
@@ -35,6 +57,8 @@ export const schemas = {
   HTTPValidationError,
   Body_index_index_post,
   ConfigUpdate,
+  HardwareSnapshot,
+  ConfigOptimizationResponse,
 };
 
 const endpoints = makeApi([
@@ -65,6 +89,17 @@ const endpoints = makeApi([
     alias: "clear_qdrant_clear_qdrant_post",
     requestFormat: "json",
     response: z.unknown(),
+  },
+  {
+    method: "post",
+    path: "/config/optimize",
+    alias: "optimize_config_config_optimize_post",
+    description: `Optimise configuration for the current host hardware.
+
+Runs hardware detection (CPU, memory, GPU) and applies recommended
+runtime configuration values. Returns a summary of applied settings.`,
+    requestFormat: "json",
+    response: ConfigOptimizationResponse,
   },
   {
     method: "post",

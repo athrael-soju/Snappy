@@ -306,6 +306,16 @@
   .text-subtle {
     color: var(--text-subtle);
   }
+  /* Tooltip bubble sizing */
+  [data-slot="tooltip-content"] {
+    min-width: 8rem;
+    max-width: 20rem;
+    padding: 0.5rem 0.5rem;
+    line-height: 1.5;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+  }
 }
 
 /* Gradient Animation Keyframes */

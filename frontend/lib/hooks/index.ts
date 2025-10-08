@@ -5,3 +5,4 @@ export { useSystemStatus } from './use-system-status';
 export { useUploadSSE } from './use-upload-sse';
 export { useMaintenanceActions } from './use-maintenance-actions';
 export { useSystemManagement } from './use-system-management';
+export { useConfigurationPanel } from './use-configuration-panel';
