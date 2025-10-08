@@ -83,16 +83,30 @@ Notes
 
 ## Backend API surface used by the frontend
 
-- `/` → root listing (see `api/routers/meta.py`).
-- `/health` → service health (ColPali, MinIO, Qdrant).
-- `/index` (POST multipart) → start background indexing job; responds with `{ status, job_id, total }`.
-- `/progress/stream/{job_id}` (GET) → push indexing status via Server‑Sent Events.
-- `/search` (GET q, k) → semantic search results (see `api/routers/retrieval.py`).
-- `/clear/qdrant`, `/clear/minio`, `/clear/all` → maintenance endpoints.
-- `/config/schema` (GET) → retrieve configuration schema with categories and settings.
-- `/config/values` (GET) → get current runtime configuration values.
-- `/config/update` (POST) → update a configuration value at runtime.
-- `/config/reset` (POST) → reset all configuration to defaults.
+### Health & Meta
+- `GET /health` → service health check (ColPali, MinIO, Qdrant status)
+
+### Indexing
+- `POST /index` (multipart) → start background indexing job; responds with `{ status, job_id, total }`
+- `GET /progress/stream/{job_id}` → push indexing status via Server‑Sent Events
+- `POST /index/cancel/{job_id}` → cancel an in-progress indexing job
+
+### Retrieval
+- `GET /search?q=...&k=5` → semantic search results (see `api/routers/retrieval.py`)
+
+### Maintenance
+- `GET /status` → get collection and bucket status with statistics (vector count, object count, exists flags)
+- `POST /initialize` → create/initialize collection and bucket based on current configuration
+- `DELETE /delete` → delete collection and bucket completely
+- `POST /clear/qdrant` → clear all data from Qdrant collection (data reset)
+- `POST /clear/minio` → clear all objects from MinIO bucket (data reset)
+- `POST /clear/all` → clear all data from both systems (complete data reset)
+
+### Configuration
+- `GET /config/schema` → retrieve configuration schema with categories and settings
+- `GET /config/values` → get current runtime configuration values
+- `POST /config/update` → update a configuration value at runtime
+- `POST /config/reset` → reset all configuration to defaults
 
 Chat streaming is not proxied by the backend. It is implemented in the Next.js API route at `frontend/app/api/chat/route.ts` using **Edge Runtime** for optimized streaming performance. The route calls OpenAI's Responses API and streams Server-Sent Events (SSE) to the browser.
 
@@ -100,7 +114,6 @@ Chat streaming is not proxied by the backend. It is implemented in the Next.js A
 
 - __Spec location__: `frontend/docs/openapi.json` (current file in repo).
 - __Codegen scripts__: see `frontend/package.json` `gen:sdk` and `gen:zod`.
-  - They already point to `./docs/openapi.json` (when run from `frontend/`). If you relocate the spec, update these paths accordingly.
 - __Generated clients__: emitted to `frontend/lib/api/generated` and `frontend/lib/api/zod` and consumed by pages via `ChatService`, `RetrievalService`, `IndexingService`.
 
 ## CORS and connectivity
