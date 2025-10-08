@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
+import { useState, forwardRef, useImperativeHandle } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ButtonGroup, ButtonGroupSeparator } from "@/components/ui/button-group";
+import { ButtonGroup } from "@/components/ui/button-group";
 import { GlassPanel } from "@/components/ui/glass-panel";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -13,255 +13,45 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Settings, RotateCcw, AlertTriangle, Loader2, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
-import { ConfigurationService, ApiError } from "@/lib/api/generated";
-import "@/lib/api/client";
-import { saveConfigToStorage, mergeWithStoredConfig, clearConfigFromStorage } from "@/lib/config/config-store";
 import { ConfigurationTabs } from "@/components/configuration/configuration-tabs";
 import { UnsavedChangesBar } from "@/components/configuration/unsaved-changes-bar";
-import { SettingRenderer, type ConfigSetting } from "@/components/configuration/setting-renderer";
-
-interface ConfigCategory {
-  name: string;
-  description: string;
-  order: number;
-  icon: string;
-  settings: ConfigSetting[];
-}
-
-interface ConfigSchema {
-  [categoryKey: string]: ConfigCategory;
-}
-
+import { SettingRenderer } from "@/components/configuration/setting-renderer";
+import { useConfigurationPanel } from "@/lib/hooks/use-configuration-panel";
 
 export type ConfigurationPanelHandle = {
   openResetDialog: () => void;
 };
 
 export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, ref) => {
-  const [values, setValues] = useState<Record<string, string>>({});
-  const [originalValues, setOriginalValues] = useState<Record<string, string>>({});
-  const [schema, setSchema] = useState<ConfigSchema | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("application");
+  const {
+    schema,
+    loading,
+    saving,
+    hasChanges,
+    error,
+    activeTab,
+    setActiveTab,
+    values,
+    configStats,
+    lastSaved,
+    optimizing,
+    saveChanges,
+    resetChanges,
+    resetSection,
+    resetToDefaults,
+    optimizeForSystem,
+    handleValueChange,
+    isSettingVisible,
+  } = useConfigurationPanel();
+
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [resetSectionDialogOpen, setResetSectionDialogOpen] = useState<string | null>(null);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [optimizing, setOptimizing] = useState(false);
 
   useImperativeHandle(ref, () => ({
     openResetDialog: () => setResetDialogOpen(true),
   }));
 
-  useEffect(() => {
-    loadConfiguration();
-  }, []);
-
-  useEffect(() => {
-    // Check if there are any changes
-    const changed = Object.keys(values).some(key => values[key] !== originalValues[key]);
-    setHasChanges(changed);
-  }, [values, originalValues]);
-
-  // Calculate stats for overview cards
-  const configStats = {
-    totalSettings: Object.keys(values).length,
-    modifiedSettings: Object.keys(values).filter(key => values[key] !== originalValues[key]).length,
-    enabledFeatures: [
-      values.MUVERA_ENABLED === "True" ? "MUVERA" : null,
-      values.QDRANT_MEAN_POOLING_ENABLED === "True" ? "Mean Pooling" : null,
-      values.ENABLE_PIPELINE_INDEXING === "True" ? "Pipeline Indexing" : null,
-      values.QDRANT_USE_BINARY === "True" ? "Binary Quantization" : null,
-    ].filter(Boolean),
-    currentMode: values.COLPALI_MODE || "gpu",
-  };
-
-  // Return early if schema not loaded
-  if (!schema) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  async function loadConfiguration() {
-    setLoading(true);
-    setError(null);
-    try {
-      // Load schema and values from backend
-      const [schemaData, valuesData] = await Promise.all([
-        ConfigurationService.getConfigSchemaConfigSchemaGet(),
-        ConfigurationService.getConfigValuesConfigValuesGet()
-      ]);
-
-      setSchema(schemaData as ConfigSchema);
-
-      // Merge with localStorage (localStorage takes precedence)
-      const mergedValues = mergeWithStoredConfig(valuesData);
-
-      setValues(mergedValues);
-      setOriginalValues(mergedValues);
-    } catch (err) {
-      const errorMsg = err instanceof ApiError ? err.message : "Failed to load configuration";
-      setError(errorMsg);
-      toast.error("Configuration Error", { description: errorMsg });
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function saveChanges() {
-    setSaving(true);
-    setError(null);
-
-    try {
-      const changedKeys = Object.keys(values).filter(key => values[key] !== originalValues[key]);
-
-      // Update backend
-      for (const key of changedKeys) {
-        await ConfigurationService.updateConfigConfigUpdatePost({
-          key,
-          value: values[key]
-        });
-      }
-
-      // Save to localStorage for persistence
-      saveConfigToStorage(values);
-
-      setOriginalValues({ ...values });
-      setLastSaved(new Date());
-      toast.success("Configuration saved", {
-        description: `${changedKeys.length} setting${changedKeys.length !== 1 ? 's' : ''} updated`
-      });
-    } catch (err) {
-      const errorMsg = err instanceof ApiError ? err.message : "Failed to save configuration";
-      setError(errorMsg);
-      toast.error("Save failed", { description: errorMsg });
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function resetChanges() {
-    setValues({ ...originalValues });
-    setError(null);
-    toast.info("Changes discarded");
-  }
-
-  async function resetSection(categoryKey: string) {
-    if (!schema || !schema[categoryKey]) return;
-
-    setSaving(true);
-    setResetSectionDialogOpen(null);
-
-    try {
-      const category = schema[categoryKey];
-      const defaultValues: Record<string, string> = {};
-
-      for (const setting of category.settings) {
-        defaultValues[setting.key] = setting.default;
-        await ConfigurationService.updateConfigConfigUpdatePost({
-          key: setting.key,
-          value: setting.default
-        });
-      }
-
-      setValues(prev => ({ ...prev, ...defaultValues }));
-      setOriginalValues(prev => ({ ...prev, ...defaultValues }));
-      saveConfigToStorage({ ...values, ...defaultValues });
-
-      toast.success("Section reset", {
-        description: `${category.name} settings restored to defaults`
-      });
-    } catch (err) {
-      const errorMsg = err instanceof ApiError ? err.message : "Failed to reset section";
-      toast.error("Reset failed", { description: errorMsg });
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function resetToDefaults() {
-    setSaving(true);
-    setError(null);
-    setResetDialogOpen(false);
-
-    try {
-      // Clear localStorage
-      clearConfigFromStorage();
-
-      // Reset backend to defaults
-      await ConfigurationService.resetConfigConfigResetPost();
-
-      // Reload configuration
-      await loadConfiguration();
-      setLastSaved(new Date());
-
-      toast.success("Configuration reset", { description: "All settings restored to defaults" });
-    } catch (err) {
-      const errorMsg = err instanceof ApiError ? err.message : "Failed to reset configuration";
-      setError(errorMsg);
-      toast.error("Reset failed", { description: errorMsg });
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function optimizeForSystem() {
-    if (hasChanges) {
-      toast.info("Save changes first", { description: "Please save or discard edits before optimizing." });
-      return;
-    }
-
-    setOptimizing(true);
-    setError(null);
-
-    try {
-      const result = await ConfigurationService.optimizeConfigConfigOptimizePost();
-      clearConfigFromStorage();
-      await loadConfiguration();
-      setLastSaved(new Date());
-
-      const appliedCount = Object.keys(result.applied ?? {}).length;
-      const description =
-        result.message ||
-        (appliedCount
-          ? `Applied ${appliedCount} setting${appliedCount !== 1 ? "s" : ""}.`
-          : "Your configuration already matched the recommended profile.");
-
-      const notify = appliedCount > 0 ? toast.success : toast.info;
-      notify("Optimization complete", { description });
-    } catch (err) {
-      const errorMsg = err instanceof ApiError ? err.message : "Failed to optimize configuration";
-      setError(errorMsg);
-      toast.error("Optimization failed", { description: errorMsg });
-    } finally {
-      setOptimizing(false);
-    }
-  }
-
-  function handleValueChange(key: string, value: string) {
-    setValues(prev => ({ ...prev, [key]: value }));
-  }
-
-  function isSettingVisible(setting: ConfigSetting): boolean {
-    if (setting.ui_hidden) return false;
-    // If no dependency, always visible
-    if (!setting.depends_on) return true;
-
-    // Check if parent setting has the required value
-    const parentValue = values[setting.depends_on.key] || "";
-    const parentBool = parentValue.toLowerCase() === "true";
-
-    return parentBool === setting.depends_on.value;
-  }
-
-
-  if (loading) {
+  if (loading && schema) {
     return (
       <div className="container max-w-7xl py-8 space-y-4">
         <Skeleton className="h-8 w-48" />
@@ -273,6 +63,14 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
             <Skeleton className="h-24 w-full" />
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (!schema) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -493,7 +291,10 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
             </Button>
             <Button
               variant="destructive"
-              onClick={resetToDefaults}
+              onClick={() => {
+                setResetDialogOpen(false);
+                void resetToDefaults();
+              }}
               disabled={saving}
             >
               {saving ? (
@@ -532,7 +333,12 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
             </Button>
             <Button
               variant="destructive"
-              onClick={() => resetSectionDialogOpen && resetSection(resetSectionDialogOpen)}
+              onClick={() => {
+                if (!resetSectionDialogOpen) return;
+                const sectionKey = resetSectionDialogOpen;
+                setResetSectionDialogOpen(null);
+                void resetSection(sectionKey);
+              }}
               disabled={saving}
             >
               {saving ? (
