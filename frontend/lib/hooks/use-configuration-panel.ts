@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { ConfigurationService, ApiError } from "@/lib/api/generated";
 import "@/lib/api/client";
 import { saveConfigToStorage, mergeWithStoredConfig, clearConfigFromStorage } from "@/lib/config/config-store";
+import { parseOptimizationResponse } from "@/lib/api/runtime";
 import type { ConfigSetting } from "@/components/configuration/setting-renderer";
 
 export interface ConfigCategory {
@@ -205,13 +206,14 @@ export function useConfigurationPanel() {
 
     try {
       const result = await ConfigurationService.optimizeConfigConfigOptimizePost();
+      const optimization = parseOptimizationResponse(result);
       clearConfigFromStorage();
       await loadConfiguration();
       setLastSaved(new Date());
 
-      const appliedCount = Object.keys(result.applied ?? {}).length;
+      const appliedCount = Object.keys(optimization.applied ?? {}).length;
       const description =
-        result.message ||
+        optimization.message ||
         (appliedCount
           ? `Applied ${appliedCount} setting${appliedCount !== 1 ? "s" : ""}.`
           : "Your configuration already matched the recommended profile.");

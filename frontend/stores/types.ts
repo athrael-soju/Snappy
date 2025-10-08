@@ -1,4 +1,4 @@
-import type { SearchItem } from "@/lib/api/generated";
+import type { SearchItem } from "@/lib/api/runtime";
 import type { ChatMessage } from "@/lib/hooks/use-chat";
 
 // State Types
