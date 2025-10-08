@@ -319,72 +319,69 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
           <GlassPanel className="overflow-hidden">
             <ButtonGroup className="shadow-sm !w-full [&>*]:flex-1 [&>*]:h-12">
               <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setResetSectionDialogOpen(activeCategoryKey)}
-                      disabled={saving}
-                      className="gap-2 px-4 border-0 !rounded-none"
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                      Reset Section
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
-                    <p>Reset current section to defaults</p>
-                  </TooltipContent>
-                </Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setResetSectionDialogOpen(activeCategoryKey)}
+                    disabled={saving}
+                    className="gap-2 px-4 border-0 !rounded-none"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Reset Section
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
+                  <p>Reset current section to defaults</p>
+                </TooltipContent>
+              </Tooltip>
 
-                <ButtonGroupSeparator />
 
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={optimizeForSystem}
-                      disabled={saving || optimizing}
-                      className="gap-2 px-4 border-0 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 !rounded-none"
-                    >
-                      {optimizing ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Optimizing...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-4 h-4" />
-                          Optimize
-                        </>
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
-                    <p>Detect this server&apos;s hardware and apply recommended settings</p>
-                  </TooltipContent>
-                </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={optimizeForSystem}
+                    disabled={saving || optimizing}
+                    className="gap-2 px-4 border-0 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 !rounded-none"
+                  >
+                    {optimizing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Optimizing...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        Optimize
+                      </>
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
+                  <p>Detect this server&apos;s hardware and apply recommended settings</p>
+                </TooltipContent>
+              </Tooltip>
 
-                <ButtonGroupSeparator />
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setResetDialogOpen(true)}
-                      disabled={saving}
-                      className="gap-2 px-4 border-0 text-destructive hover:text-destructive/90 !rounded-none"
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                      Reset All
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
-                    <p>Reset all configuration to defaults</p>
-                  </TooltipContent>
-                </Tooltip>
-              </ButtonGroup>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setResetDialogOpen(true)}
+                    disabled={saving}
+                    className="gap-2 px-4 border-0 text-destructive hover:text-destructive/90 !rounded-none"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Reset All
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
+                  <p>Reset all configuration to defaults</p>
+                </TooltipContent>
+              </Tooltip>
+            </ButtonGroup>
           </GlassPanel>
 
           <ScrollArea className="h-[calc(100vh-20rem)]">
