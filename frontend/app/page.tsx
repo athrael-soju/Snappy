@@ -8,9 +8,19 @@ import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Brain, CloudUpload, Database, Sparkles } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { FeatureCard } from "@/components/ui/feature-card";
+import type { GlassDepth } from "@/components/ui/glass-panel";
 
-const workflow = [
+const workflow: Array<{
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  href: string;
+  badges: string[];
+  features: string[];
+  depth: GlassDepth;
+}> = [
   {
     title: "Upload & Ingest",
     description: "Effortlessly bring your documents into the system with intelligent processing",
@@ -23,6 +33,7 @@ const workflow = [
       "Real-time progress tracking and status",
       "Secure storage with metadata extraction",
     ],
+    depth: "overlay",
   },
   {
     title: "Visual Embeddings",
@@ -36,6 +47,7 @@ const workflow = [
       "Vector database with similarity search",
       "Configurable processing pipeline",
     ],
+    depth: "surface",
   },
   {
     title: "Search & Chat",
@@ -49,6 +61,7 @@ const workflow = [
       "AI chat with document citations and sources",
       "Instant results with relevance scoring",
     ],
+    depth: "background",
   },
 ];
 
@@ -83,7 +96,7 @@ export default function Home() {
                 <Button
                   asChild
                   size="lg"
-                  className="primary-gradient rounded-full px-8 py-6 text-base font-semibold shadow-lg transition-all hover:shadow-xl hover:scale-105 focus-visible:ring-4 focus-visible:ring-ring/35 focus-visible:ring-offset-2"
+                  className="primary-gradient motion-cta rounded-full px-8 py-6 text-base font-semibold focus-visible:ring-4 focus-visible:ring-ring/35 focus-visible:ring-offset-2"
                 >
                   <Link href="/upload">
                     <CloudUpload className="mr-2 h-5 w-5" />
@@ -104,7 +117,7 @@ export default function Home() {
 
             {/* 3-card grid */}
             <motion.div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" {...staggeredListMotion}>
-              {workflow.map(({ title, description, icon, href, badges, features }) => (
+              {workflow.map(({ title, description, icon, href, badges, features, depth }) => (
                 <motion.div key={title} {...fadeInItemMotion} {...hoverLift}>
                   <Link
                     href={href}
@@ -117,6 +130,7 @@ export default function Home() {
                       badges={badges}
                       features={features}
                       glass
+                      glassDepth={depth}
                     />
                   </Link>
                 </motion.div>

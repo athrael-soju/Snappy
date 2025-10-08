@@ -70,6 +70,14 @@
   --space-5: 1.50rem;
   --space-6: 2.00rem;
 
+  --motion-cta-hover-scale: 1.045;
+  --motion-cta-active-scale: 0.97;
+  --motion-cta-hover-raise: -2px;
+  --motion-cta-duration: 220ms;
+  --motion-cta-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-cta-hover-shadow: var(--shadow-3);
+  --motion-cta-active-shadow: var(--shadow-2);
+
   --app-gradient: radial-gradient(120% 120% at 50% -10%, rgba(248, 250, 255, 1) 0%, rgba(244, 244, 250, 1) 45%, rgba(250, 247, 255, 1) 100%);
   --backdrop-glow: radial-gradient(50% 40% at 20% 10%, rgba(96, 165, 250, 0.18), transparent 75%), radial-gradient(45% 65% at 80% 0%, rgba(168, 85, 247, 0.14), transparent 75%);
   --nav-pill-active: linear-gradient(122deg, #4f46e5 10%, #9333ea 52%, #0ea5e9 95%);
@@ -122,6 +130,8 @@
   --shadow-1: 0 1px 2px rgba(2, 6, 23, 0.65), 0 1px 3px rgba(2, 6, 23, 0.50);
   --shadow-2: 0 14px 28px -18px rgba(2, 6, 23, 0.64), 0 8px 18px -12px rgba(2, 6, 23, 0.52);
   --shadow-3: 0 28px 48px -26px rgba(2, 6, 23, 0.60), 0 18px 32px -16px rgba(2, 6, 23, 0.50);
+  --motion-cta-hover-shadow: 0 36px 62px -26px rgba(129, 140, 248, 0.5), 0 18px 30px -18px rgba(14, 165, 233, 0.36);
+  --motion-cta-active-shadow: 0 20px 32px -18px rgba(79, 70, 229, 0.4);
 
   --chart-1: var(--primary);
   --chart-2: var(--secondary);
@@ -248,6 +258,77 @@
     box-shadow: var(--shadow-2);
     border-radius: var(--radius-lg);
   }
+  .glass-surface {
+    --glass-blur: 16px;
+    --glass-shadow: var(--shadow-2);
+    --glass-shadow-hover: var(--shadow-3);
+    --glass-glare: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    background: color-mix(in oklab, var(--card) 36%, transparent);
+    border: 1px solid color-mix(in oklab, var(--border-muted) 68%, transparent);
+    box-shadow: var(--glass-shadow), var(--glass-glare);
+    backdrop-filter: blur(var(--glass-blur)) saturate(125%);
+    transition: border-color 220ms ease, background-color 220ms ease, box-shadow 220ms ease, transform 180ms ease;
+  }
+  .glass-surface::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.15' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E");
+    background-size: 120px 120px;
+    mix-blend-mode: soft-light;
+    opacity: 0.06;
+    border-radius: inherit;
+  }
+  .dark .glass-surface::before {
+    opacity: 0.1;
+  }
+  .glass-surface::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background: radial-gradient(120% 70% at 50% 0%, rgba(255, 255, 255, 0.35), transparent 60%);
+    opacity: 0.45;
+  }
+  .dark .glass-surface::after {
+    opacity: 0.22;
+    background: radial-gradient(120% 70% at 50% 0%, rgba(255, 255, 255, 0.22), transparent 65%);
+  }
+  .glass-surface[data-glass-depth="background"] {
+    --glass-blur: 10px;
+    --glass-shadow: var(--shadow-1);
+    --glass-shadow-hover: var(--shadow-2);
+    --glass-glare: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    background: color-mix(in oklab, var(--card) 30%, transparent);
+    border-color: color-mix(in oklab, var(--border-muted) 55%, transparent);
+  }
+  .glass-surface[data-glass-depth="surface"] {
+    --glass-blur: 16px;
+    --glass-shadow: 0 24px 44px -28px rgba(76, 29, 149, 0.35), 0 12px 22px -14px rgba(37, 99, 235, 0.25);
+    --glass-shadow-hover: 0 32px 56px -26px rgba(76, 29, 149, 0.38), 0 16px 26px -16px rgba(37, 99, 235, 0.3);
+    --glass-glare: inset 0 1px 0 rgba(255, 255, 255, 0.24);
+    background: color-mix(in oklab, var(--card) 36%, transparent);
+    border-color: color-mix(in oklab, var(--border-muted) 68%, transparent);
+  }
+  .glass-surface[data-glass-depth="overlay"] {
+    --glass-blur: 22px;
+    --glass-shadow: 0 32px 60px -26px rgba(91, 33, 182, 0.45), 0 20px 30px -16px rgba(15, 118, 110, 0.32);
+    --glass-shadow-hover: 0 42px 72px -24px rgba(91, 33, 182, 0.52), 0 24px 34px -16px rgba(15, 118, 110, 0.38);
+    --glass-glare: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+    background: color-mix(in oklab, var(--card) 42%, transparent);
+    border-color: color-mix(in oklab, var(--border-muted) 85%, transparent);
+  }
+  .glass-surface:hover {
+    box-shadow: var(--glass-shadow-hover), var(--glass-glare);
+  }
+  .dark .glass-surface[data-glass-depth="overlay"] {
+    border-color: color-mix(in oklab, var(--border-strong) 60%, transparent);
+  }
   .card-surface {
     border-radius: var(--radius-lg);
     background: var(--card);
@@ -271,6 +352,38 @@
   }
   .dark .primary-gradient {
     color: var(--foreground);
+  }
+  .motion-cta {
+    box-shadow: var(--motion-cta-active-shadow);
+    transition: transform var(--motion-cta-duration) var(--motion-cta-ease),
+      box-shadow var(--motion-cta-duration) ease,
+      filter var(--motion-cta-duration) ease;
+    will-change: transform;
+  }
+  .motion-cta:hover,
+  .motion-cta:focus-visible {
+    transform: translateY(var(--motion-cta-hover-raise)) scale(var(--motion-cta-hover-scale));
+    box-shadow: var(--motion-cta-hover-shadow);
+    filter: saturate(1.05);
+  }
+  .motion-cta:active {
+    transform: scale(var(--motion-cta-active-scale));
+    box-shadow: var(--motion-cta-active-shadow);
+    filter: saturate(0.98);
+  }
+  .dark .motion-cta:hover,
+  .dark .motion-cta:focus-visible {
+    filter: saturate(1.08);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .motion-cta,
+    .motion-cta:hover,
+    .motion-cta:focus-visible,
+    .motion-cta:active {
+      transition-duration: 0ms;
+      transform: none !important;
+      filter: none !important;
+    }
   }
   .nav-pill {
     @apply relative flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none;
