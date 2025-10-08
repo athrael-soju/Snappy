@@ -50,7 +50,6 @@ export function AnimatedBackground({ children }: { children?: React.ReactNode })
 
   return (
     <BackgroundGradientAnimation
-      key={resolvedTheme} // Force re-render on theme change
       {...colors}
       size="80%"
       blendingValue="hard-light"
