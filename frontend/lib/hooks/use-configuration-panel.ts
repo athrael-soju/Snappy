@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
-import { ConfigurationService, ApiError } from "@/lib/api/generated";
-import "@/lib/api/client";
+import { zodClient } from "@/lib/api/client";
 import { saveConfigToStorage, mergeWithStoredConfig, clearConfigFromStorage } from "@/lib/config/config-store";
 import type { ConfigSetting } from "@/components/configuration/setting-renderer";
 
@@ -42,8 +41,8 @@ export function useConfigurationPanel() {
 
     try {
       const [schemaData, valuesData] = await Promise.all([
-        ConfigurationService.getConfigSchemaConfigSchemaGet(),
-        ConfigurationService.getConfigValuesConfigValuesGet(),
+        zodClient.get("/config/schema"),
+        zodClient.get("/config/values"),
       ]);
 
       setSchema(schemaData as ConfigSchema);
@@ -52,7 +51,7 @@ export function useConfigurationPanel() {
       setValues(mergedValues);
       setOriginalValues(mergedValues);
     } catch (err) {
-      const errorMsg = err instanceof ApiError ? err.message : "Failed to load configuration";
+      const errorMsg = err instanceof Error ? err.message : "Failed to load configuration";
       setError(errorMsg);
       toast.error("Configuration Error", { description: errorMsg });
     } finally {
@@ -109,9 +108,11 @@ export function useConfigurationPanel() {
       const changedKeys = Object.keys(values).filter(key => values[key] !== originalValues[key]);
 
       for (const key of changedKeys) {
-        await ConfigurationService.updateConfigConfigUpdatePost({
-          key,
-          value: values[key],
+        await zodClient.post("/config/update", {
+          body: {
+            key,
+            value: values[key],
+          },
         });
       }
 
@@ -122,7 +123,7 @@ export function useConfigurationPanel() {
         description: `${changedKeys.length} setting${changedKeys.length !== 1 ? "s" : ""} updated`,
       });
     } catch (err) {
-      const errorMsg = err instanceof ApiError ? err.message : "Failed to save configuration";
+      const errorMsg = err instanceof Error ? err.message : "Failed to save configuration";
       setError(errorMsg);
       toast.error("Save failed", { description: errorMsg });
     } finally {
@@ -149,9 +150,11 @@ export function useConfigurationPanel() {
 
         for (const setting of category.settings) {
           defaultValues[setting.key] = setting.default;
-          await ConfigurationService.updateConfigConfigUpdatePost({
-            key: setting.key,
-            value: setting.default,
+          await zodClient.post("/config/update", {
+            body: {
+              key: setting.key,
+              value: setting.default,
+            },
           });
         }
 
@@ -164,7 +167,7 @@ export function useConfigurationPanel() {
           description: `${category.name} settings restored to defaults`,
         });
       } catch (err) {
-        const errorMsg = err instanceof ApiError ? err.message : "Failed to reset section";
+        const errorMsg = err instanceof Error ? err.message : "Failed to reset section";
         setError(errorMsg);
         toast.error("Reset failed", { description: errorMsg });
       } finally {
@@ -180,13 +183,13 @@ export function useConfigurationPanel() {
 
     try {
       clearConfigFromStorage();
-      await ConfigurationService.resetConfigConfigResetPost();
+      await zodClient.post("/config/reset");
       await loadConfiguration();
       setLastSaved(new Date());
 
       toast.success("Configuration reset", { description: "All settings restored to defaults" });
     } catch (err) {
-      const errorMsg = err instanceof ApiError ? err.message : "Failed to reset configuration";
+      const errorMsg = err instanceof Error ? err.message : "Failed to reset configuration";
       setError(errorMsg);
       toast.error("Reset failed", { description: errorMsg });
     } finally {
@@ -204,7 +207,7 @@ export function useConfigurationPanel() {
     setError(null);
 
     try {
-      const result = await ConfigurationService.optimizeConfigConfigOptimizePost();
+      const result = await zodClient.post("/config/optimize");
       clearConfigFromStorage();
       await loadConfiguration();
       setLastSaved(new Date());
@@ -219,7 +222,7 @@ export function useConfigurationPanel() {
       const notify = appliedCount > 0 ? toast.success : toast.info;
       notify("Optimization complete", { description });
     } catch (err) {
-      const errorMsg = err instanceof ApiError ? err.message : "Failed to optimize configuration";
+      const errorMsg = err instanceof Error ? err.message : "Failed to optimize configuration";
       setError(errorMsg);
       toast.error("Optimization failed", { description: errorMsg });
     } finally {

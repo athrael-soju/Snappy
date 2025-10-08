@@ -1,8 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useCallback, useState } from "react";
-import { MaintenanceService } from "@/lib/api/generated";
-import "@/lib/api/client";
+import { zodClient } from "@/lib/api/client";
 import { CloudUpload } from "lucide-react";
 import { motion } from "framer-motion";
 import { defaultPageMotion, sectionVariants } from "@/lib/motion-presets";
@@ -15,6 +14,7 @@ import {
   SystemStatusWarning,
   UploadInfoCards
 } from "@/components/upload";
+import type { SystemStatus } from "@/components/maintenance/types";
 
 export default function UploadPage() {
   const { systemStatus, setStatus, isReady: systemReady } = useSystemStatus();
@@ -46,11 +46,11 @@ export default function UploadPage() {
   const fetchSystemStatus = useCallback(async () => {
     setStatusLoading(true);
     try {
-      const status = await MaintenanceService.getStatusStatusGet();
-      setStatus({ ...status, lastChecked: Date.now() });
+      const status = await zodClient.get("/status");
+      setStatus({ ...(status as SystemStatus), lastChecked: Date.now() });
       hasFetchedRef.current = true;
     } catch (err) {
-      console.error('Failed to fetch system status:', err);
+      console.error("Failed to fetch system status:", err);
     } finally {
       setStatusLoading(false);
     }

@@ -19,13 +19,14 @@ import StarterQuestions from "@/components/chat/StarterQuestions";
 import RecentSearchesChips from "@/components/search/RecentSearchesChips";
 import MarkdownRenderer from "@/components/chat/MarkdownRenderer";
 import { PageHeader } from "@/components/page-header";
-import { MaintenanceService } from "@/lib/api/generated";
+import { zodClient } from "@/lib/api/client";
 import { useSystemStatus } from "@/stores/app-store";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 import { BRAIN_PLACEHOLDERS } from "@/lib/utils";
 import { SystemStatusWarning } from "@/components/upload";
+import type { SystemStatus } from "@/components/maintenance/types";
 
 // Starter questions to help users get started (qualitative phrasing)
 const starterQuestions = [
@@ -122,11 +123,11 @@ export default function ChatPage() {
   const fetchSystemStatus = useCallback(async () => {
     setStatusLoading(true);
     try {
-      const status = await MaintenanceService.getStatusStatusGet();
-      setStatus({ ...status, lastChecked: Date.now() });
+      const status = await zodClient.get("/status");
+      setStatus({ ...(status as SystemStatus), lastChecked: Date.now() });
       hasFetchedRef.current = true;
     } catch (err) {
-      console.error('Failed to fetch system status:', err);
+      console.error("Failed to fetch system status:", err);
     } finally {
       setStatusLoading(false);
     }

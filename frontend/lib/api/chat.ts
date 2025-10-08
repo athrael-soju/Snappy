@@ -1,29 +1,42 @@
 // frontend/lib/api/chat.ts
-import { baseUrl } from '@/lib/api/client'
+import { baseUrl, zodClient } from '@/lib/api/client';
+import type { SearchItem } from '@/lib/api/zod-types';
 
 export type ChatMessage = {
-  role: 'user' | 'assistant'
-  content: string
-}
+  role: 'user' | 'assistant';
+  content: string;
+};
 
 export type RetrievedImage = {
-  image_url?: string | null
-  label?: string | null
-  score?: number | null
-}
+  image_url?: string | null;
+  label?: string | null;
+  score?: number | null;
+};
 
 export async function searchDocuments(query: string, k: number): Promise<RetrievedImage[]> {
-  const res = await fetch(`${baseUrl}/search?q=${encodeURIComponent(query)}&k=${k}`)
-  if (!res.ok) return []
-  const data = await res.json()
-  return Array.isArray(data) ? data : []
+  try {
+    const data = await zodClient.get('/search', {
+      queries: {
+        q: query,
+        k,
+      },
+    });
+    return (data as SearchItem[]).map(({ image_url, label, score }) => ({
+      image_url,
+      label,
+      score,
+    }));
+  } catch (err) {
+    console.error('Chat search failed:', err);
+    return [];
+  }
 }
 
 export type ChatRequest = {
-  message: string
-  k: number
-  toolCallingEnabled: boolean
-}
+  message: string;
+  k: number;
+  toolCallingEnabled: boolean;
+};
 
 export async function chatRequest(req: ChatRequest): Promise<Response> {
   return fetch('/api/chat', {

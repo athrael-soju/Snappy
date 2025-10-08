@@ -20,6 +20,7 @@ export interface BucketStatus {
 export interface SystemStatus {
   collection: CollectionStatus;
   bucket: BucketStatus;
+  lastChecked: number | null;
 }
 
 export interface MaintenanceAction {

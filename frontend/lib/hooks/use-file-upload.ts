@@ -1,7 +1,8 @@
 ﻿import { useState, useRef, useCallback, useEffect } from "react";
 import { useUploadStore } from "@/stores/app-store";
-import { ApiError } from "@/lib/api/generated";
 import { toast } from "@/components/ui/sonner";
+import { baseUrl } from "@/lib/api/client";
+import { getErrorMessage } from "@/lib/api/errors";
 
 export function useFileUpload() {
   const {
@@ -109,7 +110,8 @@ export function useFileUpload() {
       const formData = new FormData();
       Array.from(files).forEach((f) => formData.append("files", f));
 
-      const startRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || ''}/index`, {
+      const endpoint = new URL("/index", baseUrl).toString();
+      const startRes = await fetch(endpoint, {
         method: "POST",
         body: formData,
       });
@@ -128,12 +130,7 @@ export function useFileUpload() {
     } catch (err: unknown) {
       setProgress(0);
       
-      let errorMsg = "Upload failed";
-      if (err instanceof ApiError) {
-        errorMsg = `${err.status}: ${err.message}`;
-      } else if (err instanceof Error) {
-        errorMsg = err.message;
-      }
+      const errorMsg = getErrorMessage(err, "Upload failed");
       setError(errorMsg);
       toast.error("Upload Failed", { 
         description: errorMsg 

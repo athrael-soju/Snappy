@@ -1,2 +1,3 @@
 frontend/lib/api/generated/
 frontend/lib/api/zod/
+frontend/lib/api/zod.ts

@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { MaintenanceService, ApiError } from "@/lib/api/generated";
 import { toast } from "@/components/ui/sonner";
+import { zodClient } from "@/lib/api/client";
+import { getErrorMessage } from "@/lib/api/errors";
 import { ActionType, LoadingState } from "@/components/maintenance/types";
 import { MAINTENANCE_ACTIONS } from "@/components/maintenance/constants";
 
@@ -17,9 +18,9 @@ export function useMaintenanceActions({ onSuccess }: UseMaintenanceActionsOption
   const [dialogOpen, setDialogOpen] = useState<ActionType | null>(null);
 
   const actionHandlers: Record<ActionType, () => Promise<unknown>> = {
-    q: () => MaintenanceService.clearQdrantClearQdrantPost(),
-    m: () => MaintenanceService.clearMinioClearMinioPost(),
-    all: () => MaintenanceService.clearAllClearAllPost(),
+    q: () => zodClient.post("/clear/qdrant"),
+    m: () => zodClient.post("/clear/minio"),
+    all: () => zodClient.post("/clear/all"),
   };
 
   const runAction = async (action: ActionType) => {
@@ -59,12 +60,7 @@ export function useMaintenanceActions({ onSuccess }: UseMaintenanceActionsOption
       // Dispatch event to notify other pages
       window.dispatchEvent(new CustomEvent('systemStatusChanged'));
     } catch (err: unknown) {
-      let errorMsg = "Maintenance action failed";
-      if (err instanceof ApiError) {
-        errorMsg = `${err.status}: ${err.message}`;
-      } else if (err instanceof Error) {
-        errorMsg = err.message;
-      }
+      const errorMsg = getErrorMessage(err, "Maintenance action failed");
       toast.error("Action failed", { description: errorMsg });
     } finally {
       setLoading((s) => ({ ...s, [action]: false }));

@@ -1,5 +1,5 @@
 import { useAppStore } from '@/stores/app-store';
-import type { SearchItem } from "@/lib/api/generated";
+import type { SearchItem } from "@/lib/api/zod-types";
 
 /**
  * Hook for accessing and managing search state

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import type { SearchItem } from "@/lib/api/generated";
-import { RetrievalService, ApiError, MaintenanceService } from "@/lib/api/generated";
-import "@/lib/api/client";
+import { zodClient } from "@/lib/api/client";
+import type { SearchItem } from "@/lib/api/zod-types";
+import { getErrorMessage } from "@/lib/api/errors";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ import SearchBar from "@/components/search/SearchBar";
 import { useSearchStore, useSystemStatus } from "@/stores/app-store";
 import { PageHeader } from "@/components/page-header";
 import { SystemStatusWarning } from "@/components/upload";
+import type { SystemStatus } from "@/components/maintenance/types";
 
 
 const exampleQueries = [
@@ -81,8 +82,8 @@ export default function SearchPage() {
   const fetchSystemStatus = useCallback(async () => {
     setStatusLoading(true);
     try {
-      const status = await MaintenanceService.getStatusStatusGet();
-      setStatus({ ...status, lastChecked: Date.now() });
+      const status = await zodClient.get("/status");
+      setStatus({ ...(status as SystemStatus), lastChecked: Date.now() });
       hasFetchedRef.current = true;
     } catch (err) {
       console.error("Failed to fetch system status:", err);
@@ -194,20 +195,20 @@ export default function SearchPage() {
 
     try {
       const start = performance.now();
-      const data = await RetrievalService.searchSearchGet(query, k);
+      const data = await zodClient.get("/search", {
+        queries: {
+          q: query,
+          k,
+        },
+      });
       const end = performance.now();
-      setResults(data, end - start);
+      setResults(data as SearchItem[], end - start);
 
       toast.success(`Found ${data.length} ${data.length === 1 ? "result" : "results"}`, {
         description: filterSummary ? `Filters active: ${filterSummary}` : undefined,
       });
     } catch (err: unknown) {
-      let errorMsg = "Search failed";
-      if (err instanceof ApiError) {
-        errorMsg = `${err.status}: ${err.message}`;
-      } else if (err instanceof Error) {
-        errorMsg = err.message;
-      }
+      const errorMsg = getErrorMessage(err, "Search failed");
       setError(errorMsg);
       toast.error("Search Failed", { description: errorMsg });
     } finally {

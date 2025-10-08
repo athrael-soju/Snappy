@@ -1,6 +1,4 @@
 "use client";
-
-import "@/lib/api/client";
 import { useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Settings, RotateCcw } from "lucide-react";

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { MaintenanceService, ApiError } from "@/lib/api/generated";
 import { toast } from "@/components/ui/sonner";
+import { zodClient } from "@/lib/api/client";
+import { getErrorMessage } from "@/lib/api/errors";
 import type { SystemStatus } from "@/components/maintenance/types";
 import { useAppStore } from "@/stores/app-store";
 
@@ -34,15 +35,10 @@ export function useSystemStatus() {
   const fetchStatus = useCallback(async () => {
     setStatusLoading(true);
     try {
-      const status = await MaintenanceService.getStatusStatusGet();
+      const status = await zodClient.get("/status");
       setStatus(status as SystemStatus);
     } catch (err: unknown) {
-      let errorMsg = "Failed to fetch status";
-      if (err instanceof ApiError) {
-        errorMsg = `${err.status}: ${err.message}`;
-      } else if (err instanceof Error) {
-        errorMsg = err.message;
-      }
+      const errorMsg = getErrorMessage(err, "Failed to fetch status");
       toast.error("Status Check Failed", { description: errorMsg });
     } finally {
       setStatusLoading(false);
