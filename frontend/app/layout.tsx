@@ -21,12 +21,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FastAPI / Next.js / ColPali Template",
-  description: "Search, upload and chat with your visual documents",
+  title: "Snappy!",
+  description: "Snappy helps teams see their documents clearly with friendly visual search and chat.",
   icons: {
-    icon: "/favicon.png",
-    shortcut: "/favicon.png",
-    apple: "/favicon.png",
+    icon: [
+      { url: "/Snappy/snappy_light_nobg_resized.png", media: "(prefers-color-scheme: light)" },
+      { url: "/Snappy/snappy_dark_nobg_resized.png", media: "(prefers-color-scheme: dark)" },
+    ],
+    shortcut: "/Snappy/snappy_light_nobg_resized.png",
+    apple: "/Snappy/snappy_light_nobg_resized.png",
   },
 };
 
@@ -45,23 +48,23 @@ export default function RootLayout({
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
-          storageKey="colpali-theme"
+          storageKey="snappy-theme"
         >
-          {/* Animated gradient background */}
-          <AnimatedBackground>
-            <div className="relative z-10 flex flex-1 flex-col min-h-0 h-full">
-              <NextTopLoader showSpinner={false} />
-              <Toaster richColors position="top-right" />
-              <AppStoreProvider>
+          <AppStoreProvider>
+            {/* Animated gradient background */}
+            <AnimatedBackground>
+              <div className="relative z-10 flex flex-1 flex-col min-h-0 h-full">
+                <NextTopLoader showSpinner={false} />
+                <Toaster richColors position="top-right" />
                 <TooltipProvider>
                   <Nav />
                   <main className="flex-1 min-h-0 w-full flex flex-col">
                     {children}
                   </main>
                 </TooltipProvider>
-              </AppStoreProvider>
-            </div>
-          </AnimatedBackground>
+              </div>
+            </AnimatedBackground>
+          </AppStoreProvider>
         </ThemeProvider>
       </body>
     </html>

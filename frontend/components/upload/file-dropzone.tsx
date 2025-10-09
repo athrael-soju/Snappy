@@ -92,7 +92,7 @@ export function FileDropzone({
                 {isDragOver ? "Release to upload" : "Drag files here"}
               </h2>
               <p className="mx-auto max-w-xl text-base leading-relaxed text-muted-foreground">
-                Drop PDFs, images, or office documents to add them to your ColPali index. You can also browse from your device.
+                Drop PDFs, images, or office documents to add them to your Snappy library. You can also browse from your device.
               </p>
             </div>
           </div>

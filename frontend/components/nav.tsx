@@ -13,16 +13,17 @@ import { Sheet, SheetTrigger, SheetContent, SheetTitle } from '@/components/ui/s
 import { useAppStore } from '@/stores/app-store'
 import { NavUser } from '@/components/nav-user'
 import { ThemeSwitch } from '@/components/theme-switch'
+import { BackgroundAnimationToggle } from '@/components/background-animation-toggle'
 
 const links = [
-  { href: "/", label: "Home", icon: Home, color: "text-primary" },
-  { href: "/search", label: "Search", icon: Eye, color: "text-secondary" },
-  { href: "/upload", label: "Upload", icon: CloudUpload, color: "text-accent" },
-  { href: "/chat", label: "Chat", icon: Brain, color: "text-destructive" },
+  { href: "/", label: "Home", icon: Home },
+  { href: "/search", label: "Retrieve", icon: Eye },
+  { href: "/upload", label: "Add Docs", icon: CloudUpload },
+  { href: "/chat", label: "Chat", icon: Brain },
 ] as const
 
 const navContainerClasses =
-  "rounded-full border border-white/10 bg-white/5 dark:bg-black/10 px-1.5 py-1 shadow-[0_2px_24px_rgba(0,0,0,0.1)] backdrop-blur-xl"
+  "rounded-full border border-border/60 bg-card/70 dark:bg-card/40 px-2 py-1 shadow-sm backdrop-blur-xl"
 const navLinkClasses = "nav-pill text-[color:var(--nav-pill-inactive-foreground,var(--muted-foreground))]"
 const navLinkActiveClasses = "nav-pill-active text-[color:var(--nav-pill-active-foreground,var(--foreground))] font-semibold"
 
@@ -78,7 +79,10 @@ export function Nav() {
         className={cn(navLinkClasses, active && navLinkActiveClasses)}
       >
         <Icon
-          className={cn("h-4 w-4 transition-colors", active ? "text-[color:var(--nav-pill-active-foreground,var(--foreground))]" : link.color)}
+          className={cn(
+            "h-4 w-4 transition-colors text-muted-foreground",
+            active && "text-[color:var(--nav-pill-active-foreground,var(--foreground))]"
+          )}
         />
         <span>{link.label}</span>
         <AnimatePresence>
@@ -89,7 +93,7 @@ export function Nav() {
               exit={{ opacity: 0, scale: 0.4, y: -8 }}
               transition={{ duration: 0.25, type: "spring", stiffness: 280, damping: 20 }}
               className={cn(
-                "absolute -top-2 -right-2 flex h-[20px] min-w-[20px] items-center justify-center rounded-full border border-white/60 text-[10px] font-bold backdrop-blur",
+                "absolute -top-2 -right-2 flex h-[20px] min-w-[20px] items-center justify-center rounded-full border border-border/60 text-[10px] font-bold backdrop-blur",
                 indicator.isActive ? "bg-primary text-primary-foreground shadow" : "bg-card text-foreground/90"
               )}
             >
@@ -102,21 +106,31 @@ export function Nav() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/40 dark:border-white/10 bg-gradient-to-b from-background/80 via-background/60 to-background/40 supports-[backdrop-filter]:backdrop-blur-2xl shadow-[0_8px_16px_-8px_rgba(0,0,0,0.1)] dark:shadow-[0_8px_16px_-8px_rgba(0,0,0,0.4)]">
-      <nav className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-3 sm:px-6">
+    <header className="sticky top-0 z-50 border-b border-border/60 bg-background/95 supports-[backdrop-filter]:backdrop-blur-xl">
+      <nav className="mx-auto flex h-16 max-w-5xl items-center gap-3 px-3 sm:px-6">
         <div className="flex flex-1 items-center justify-start min-w-0">
           <Link
             href="/"
-            className="group flex items-center gap-2 sm:gap-3 rounded-full px-2 py-1 transition hover:bg-[color:var(--nav-pill-hover)]"
+            className="group flex items-center gap-3 rounded-full px-2 py-1 transition hover:bg-muted/40"
           >
-            <Image
-              src="/favicon.png"
-              alt="App icon"
-              width={40}
-              height={40}
-              className="h-9 w-9 sm:h-10 sm:w-10 drop-shadow-sm"
-              priority
-            />
+            <span className="relative flex h-9 w-9 items-center justify-center sm:h-10 sm:w-10">
+              <Image
+                src="/Snappy/snappy_light_nobg_resized.png"
+                alt="Snappy mascot"
+                width={40}
+                height={40}
+                className="block h-full w-full drop-shadow-sm transition-transform group-hover:scale-105 dark:hidden"
+                priority
+              />
+              <Image
+                src="/Snappy/snappy_dark_nobg_resized.png"
+                alt="Snappy mascot"
+                width={40}
+                height={40}
+                className="hidden h-full w-full drop-shadow-sm transition-transform group-hover:scale-105 dark:block"
+                priority
+              />
+            </span>
           </Link>
         </div>
 
@@ -136,14 +150,14 @@ export function Nav() {
                   variant="ghost"
                   size="icon"
                   aria-label="Open navigation"
-                  className="h-10 w-10 rounded-full border border-white/10 bg-white/5 dark:bg-black/10 text-[color:var(--nav-pill-inactive-foreground,var(--muted-foreground))] shadow-sm backdrop-blur-xl hover:text-[color:var(--nav-pill-hover-foreground,var(--foreground))]"
+                  className="h-10 w-10 rounded-full border border-border/60 bg-card/70 text-[color:var(--nav-pill-inactive-foreground,var(--muted-foreground))] shadow-sm backdrop-blur-xl hover:text-[color:var(--nav-pill-hover-foreground,var(--foreground))]"
                 >
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent 
-                side="left" 
-                className="w-72 border-white/10 bg-background/40 backdrop-blur-3xl p-0 flex flex-col"
+              <SheetContent
+                side="left"
+                className="w-72 border-border/60 bg-background/90 backdrop-blur-2xl p-0 flex flex-col"
               >
                 <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                 
@@ -153,18 +167,24 @@ export function Nav() {
                     href="/"
                     className="flex items-center gap-3 group"
                   >
-                    <Image
-                      src="/favicon.png"
-                      alt="App icon"
-                      width={48}
-                      height={48}
-                      className="h-12 w-12 drop-shadow-lg transition-transform group-hover:scale-105"
-                      priority
-                    />
-                    <div className="flex flex-col">
-                      <span className="text-base font-semibold text-foreground">ColPali</span>
-                      <span className="text-xs text-muted-foreground">Visual Document Search</span>
-                    </div>
+                    <span className="relative flex h-12 w-12 items-center justify-center">
+                      <Image
+                        src="/Snappy/snappy_light_nobg_resized.png"
+                        alt="Snappy mascot"
+                        width={48}
+                        height={48}
+                        className="block h-full w-full drop-shadow-lg transition-transform group-hover:scale-105 dark:hidden"
+                        priority
+                      />
+                      <Image
+                        src="/Snappy/snappy_dark_nobg_resized.png"
+                        alt="Snappy mascot"
+                        width={48}
+                        height={48}
+                        className="hidden h-full w-full drop-shadow-lg transition-transform group-hover:scale-105 dark:block"
+                        priority
+                      />
+                    </span>
                   </Link>
                 </div>
 
@@ -189,7 +209,10 @@ export function Nav() {
                         )}
                       >
                         <Icon
-                          className={cn("h-5 w-5 transition-colors", active ? "text-[color:var(--nav-pill-active-foreground,var(--foreground))]" : link.color)}
+                          className={cn(
+                            "h-5 w-5 transition-colors text-muted-foreground",
+                            active && "text-[color:var(--nav-pill-active-foreground,var(--foreground))]"
+                          )}
                         />
                         <span className="flex-1">{link.label}</span>
                         <AnimatePresence>
@@ -216,7 +239,16 @@ export function Nav() {
                 </nav>
 
                 {/* Footer Section */}
-                <div className="px-4 py-4 border-t border-white/10 space-y-3 bg-white/5 dark:bg-black/10">
+                <div className="px-4 py-4 border-t border-border/60 space-y-3 bg-card/70 dark:bg-card/30">
+                  <div className="flex items-center justify-between px-2">
+                    <label
+                      htmlFor="snappy-bg-toggle-mobile"
+                      className="text-sm font-medium text-muted-foreground"
+                    >
+                      Glow background
+                    </label>
+                    <BackgroundAnimationToggle id="snappy-bg-toggle-mobile" />
+                  </div>
                   <div className="flex items-center justify-between px-2">
                     <span className="text-sm font-medium text-muted-foreground">Theme</span>
                     <ThemeSwitch />
@@ -229,7 +261,16 @@ export function Nav() {
             </Sheet>
           </div>
 
-          <div className="hidden sm:block">
+          <div className="hidden sm:flex items-center gap-3">
+            <div className="flex items-center gap-2 rounded-full border border-border/60 bg-card/60 px-2 py-1">
+              <label
+                htmlFor="snappy-bg-toggle-desktop"
+                className="text-xs font-semibold text-muted-foreground"
+              >
+                Glow
+              </label>
+              <BackgroundAnimationToggle id="snappy-bg-toggle-desktop" />
+            </div>
             <ThemeSwitch />
           </div>
 

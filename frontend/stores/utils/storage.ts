@@ -1,6 +1,6 @@
 import type { AppState } from '../types';
 
-const STORAGE_KEY = 'colpali-app-state';
+const STORAGE_KEY = 'snappy-app-state';
 
 /**
  * Serialize state for localStorage, excluding non-serializable data like FileList
@@ -35,6 +35,7 @@ export function serializeStateForStorage(state: AppState): any {
       statusText: state.upload.statusText,
     },
     systemStatus: state.systemStatus,
+    preferences: state.preferences,
   };
 }
 

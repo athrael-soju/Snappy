@@ -13,9 +13,9 @@ export default function AboutPage() {
     <motion.div {...defaultPageMotion} className="page-shell flex flex-col min-h-0 flex-1 gap-6">
       <motion.section variants={sectionVariants} className="flex flex-col items-center text-center gap-6 pt-6 sm:pt-8">
         <PageHeader
-          title="About the ColPali Template"
+          title="About Snappy"
           icon={Info}
-          tooltip="A friendly and lightweight knowledge base platform with visual document understanding"
+          tooltip="Snappy brings visual retrieval, search, and chat together so teams can see their knowledge clearly."
         />
       </motion.section>
       <motion.section variants={sectionVariants} className="flex-1 min-h-0 pb-6 sm:pb-8 flex">

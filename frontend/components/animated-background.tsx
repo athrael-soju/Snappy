@@ -3,6 +3,7 @@
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { BackgroundGradientAnimation } from "@/components/ui/shadcn-io/background-gradient-animation";
+import { useAppStore } from "@/stores/app-store";
 
 /**
  * Theme-aware gradient background animation
@@ -11,6 +12,8 @@ import { BackgroundGradientAnimation } from "@/components/ui/shadcn-io/backgroun
 export function AnimatedBackground({ children }: { children?: React.ReactNode }) {
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const { state } = useAppStore();
+  const animationEnabled = state.preferences.animatedBackground;
 
   useEffect(() => {
     setMounted(true);
@@ -45,6 +48,10 @@ export function AnimatedBackground({ children }: { children?: React.ReactNode })
 
   // Don't render until mounted to avoid hydration issues
   if (!mounted) {
+    return <div className="fixed inset-0 bg-background">{children}</div>;
+  }
+
+  if (!animationEnabled) {
     return <div className="fixed inset-0 bg-background">{children}</div>;
   }
 

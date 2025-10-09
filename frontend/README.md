@@ -1,6 +1,6 @@
-# Vision RAG Frontend (Next.js 15)
+# Snappy Frontend (Next.js 15)
 
-Next.js App Router UI for upload/indexing, search, and chat.
+Next.js App Router UI for Snappy—upload, retrieval, and chat wrapped in a friendly shell.
 
 - Codegen: `openapi-typescript-codegen` + `openapi-zod-client`
 - Generated SDK wired via `frontend/lib/api/client.ts`
@@ -9,12 +9,12 @@ Next.js App Router UI for upload/indexing, search, and chat.
 
 The app is intentionally simple and unauthenticated. Current pages:
 
-- `/` — Home: landing with quick links and overview.
-- `/about` — About: what this project does, what ColPali is, and comparison to traditional text-only RAG.
-- `/upload` — Upload PDFs for indexing. Starts a background job via FastAPI `POST /index` and subscribes to `GET /progress/stream/{job_id}` (SSE) for real-time progress. Includes upload cancellation support.
-- `/search` — Visual search over indexed pages; returns top-k pages and metadata.
-- `/chat` — AI chat grounded on retrieved page images with visual citations.
-- `/maintenance` — System maintenance with two tabs:
+- `/` - Home: landing with quick links, highlights, and CTAs.
+- `/about` - About: overview of Snappy, how vision retrieval works, and comparison to traditional text-only RAG.
+- `/upload` - Upload PDFs for indexing. Starts a background job via FastAPI `POST /index` and subscribes to `GET /progress/stream/{job_id}` (SSE) for real-time progress. Includes upload cancellation support.
+- `/search` - Visual search over indexed pages; returns top-k pages and metadata.
+- `/chat` - AI chat grounded on retrieved page images with visual citations.
+- `/maintenance` - System maintenance with two tabs:
   - **Configuration**: Web-based UI for managing backend environment variables at runtime (see Configuration Management below).
   - **Maintenance**: System administration interface with:
     - Real-time status display showing system readiness, collection stats (vectors, unique files), and bucket stats (object count)
@@ -27,7 +27,7 @@ Screenshots live in `image/README/` and are referenced from the repo root `READM
 
 ## Requirements
 - Node.js 22 (matches Dockerfile)
-- Yarn Classic (v1) — auto-enabled by `corepack` in Docker. Locally you can use Yarn or npm.
+- Yarn Classic (v1) - auto-enabled by `corepack` in Docker. Locally you can use Yarn or npm.
 
 ## Install
 ```bash
@@ -44,7 +44,7 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ```
 `frontend/lib/api/client.ts` falls back to `http://localhost:8000` if the env var is not set. The Upload page uses `fetch` for `POST /index` and `EventSource` for `GET /progress/stream/{job_id}`.
 
-OpenAI for chat (SSE) — set on the frontend (server runtime):
+OpenAI for chat (SSE) - set on the frontend (server runtime):
 ```bash
 # frontend/.env.local
 OPENAI_API_KEY=sk-your-key
@@ -53,7 +53,7 @@ OPENAI_MODEL=gpt-5-mini   # optional override
 OPENAI_TEMPERATURE=1
 OPENAI_MAX_TOKENS=1500
 ```
-The chat endpoint `frontend/app/api/chat/route.ts` uses these to call OpenAI Responses API and stream tokens via Server‑Sent Events (SSE) to the browser.
+The chat endpoint `frontend/app/api/chat/route.ts` uses these to call OpenAI Responses API and stream tokens via Server-Sent Events (SSE) to the browser.
 
 ## Develop
 ```bash
@@ -87,8 +87,8 @@ yarn gen:sdk && yarn gen:zod
   }
   ```
 - Response: `text/event-stream` (SSE). Events include:
-  - `response.output_text.delta` — incremental assistant text tokens `{ event, data: { delta: string } }`
-  - `kb.images` — visual citations used by the model `{ event, data: { items: [{ image_url, label, score }] } }`
+  - `response.output_text.delta` - incremental assistant text tokens `{ event, data: { delta: string } }`
+  - `kb.images` - visual citations used by the model `{ event, data: { items: [{ image_url, label, score }] } }`
   - Other OpenAI event passthroughs are sent with `{ event: <type>, data: <raw> }` and are ignored by the UI
 
 Notes:
@@ -113,12 +113,12 @@ Testing
 1) Visit `/chat`
 2) Toggle Tool Calling in the settings chip
 3) OFF: ask a grounded question (e.g. "What are the key risks?") and observe the citations chip + gallery
-4) ON: ask a retrieval question to induce a tool call (e.g. "Find diagrams about AI architecture"). Also try a generic question where the tool is not needed — no images should appear
+4) ON: ask a retrieval question to induce a tool call (e.g. "Find diagrams about AI architecture"). Also try a generic question where the tool is not needed - no images should appear
 
 Deterministic behavior
 
 - Disable tools via the UI or set `localStorage['tool-calling-enabled'] = 'false'`
-- Adjust top‑K via the K control (persists to `localStorage['k']`)
+- Adjust top-K via the K control (persists to `localStorage['k']`)
 
 ## Configuration Management
 
@@ -126,7 +126,7 @@ The `/maintenance` page includes a **Configuration** tab providing a web-based i
 
 ### Features
 - **Live editing**: Modify all backend configuration values through an intuitive UI
-- **Categorized settings**: Organized by Application, Processing, ColPali API, Qdrant, MinIO, and MUVERA
+- **Categorized settings**: Organized by Application, Processing, Vision Retrieval API, Qdrant, MinIO, and MUVERA
 - **Smart controls**: Sliders for numeric values, toggles for booleans, dropdowns for enums
 - **Real-time validation**: Input constraints, min/max ranges, and tooltips
 - **Conditional visibility**: Dependent settings show/hide based on parent values
@@ -134,10 +134,10 @@ The `/maintenance` page includes a **Configuration** tab providing a web-based i
 - **Reset options**: Reset individual sections or all settings to defaults
 
 ### API Endpoints Used
-- `GET /config/schema` — retrieves configuration schema with metadata
-- `GET /config/values` — fetches current runtime values
-- `POST /config/update` — updates individual settings
-- `POST /config/reset` — resets all settings to defaults
+- `GET /config/schema` - retrieves configuration schema with metadata
+- `GET /config/values` - fetches current runtime values
+- `POST /config/update` - updates individual settings
+- `POST /config/reset` - resets all settings to defaults
 
 ### Important Notes
 - Configuration changes update the backend **runtime environment** immediately
