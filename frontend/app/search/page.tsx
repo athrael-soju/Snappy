@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import type { SearchItem } from "@/lib/api/generated";
+import { parseSearchResults, type SearchItem } from "@/lib/api/runtime";
 import { RetrievalService, ApiError, MaintenanceService } from "@/lib/api/generated";
 import "@/lib/api/client";
 import { Button } from "@/components/ui/button";
@@ -194,7 +194,8 @@ export default function SearchPage() {
 
     try {
       const start = performance.now();
-      const data = await RetrievalService.searchSearchGet(query, k);
+      const rawData = await RetrievalService.searchSearchGet(query, k);
+      const data = parseSearchResults(rawData);
       const end = performance.now();
       setResults(data, end - start);
 

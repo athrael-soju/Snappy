@@ -10,7 +10,7 @@
     "predev": "yarn gen:sdk && yarn gen:zod",
     "prebuild": "yarn gen:sdk && yarn gen:zod",
     "gen:sdk": "openapi --input ./docs/openapi.json --output lib/api/generated --client fetch --useUnionTypes",
-    "gen:zod": "openapi-zod-client ./docs/openapi.json -o lib/api/zod"
+    "gen:zod": "openapi-zod-client ./docs/openapi.json -o lib/api/zod.ts"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
@@ -30,6 +30,7 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@tabler/icons-react": "^3.35.0",
+    "@zodios/core": "^10.9.6",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.22",
@@ -42,7 +43,7 @@
     "react-dom": "19.1.0",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1",
-    "zod": "^4.0.17"
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

@@ -1,3 +1,5 @@
+import { parseSearchResults } from "@/lib/api/runtime";
+
 export const documentSearchTool = {
   type: "function" as const,
   strict: false,
@@ -30,15 +32,10 @@ export async function executeDocumentSearch(query: string, k: number) {
     }
 
     const data = await response.json();
-
-    // Backend returns array of SearchItem directly
-    const imageUrls = data.map((result: any) => result.image_url).filter(Boolean);
-    const results = data.map((result: any) => ({
-      image_url: result.image_url,
-      label: result.label,
-      score: result.score,
-      payload: result.payload
-    }));
+    const results = parseSearchResults(data);
+    const imageUrls = results
+      .map((result) => result.image_url)
+      .filter((url): url is string => typeof url === "string" && url.length > 0);
 
     return {
       success: true,

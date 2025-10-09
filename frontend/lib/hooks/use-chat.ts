@@ -156,10 +156,10 @@ export function useChat() {
         setTimeToFirstTokenMs(performance.now() - start)
       }, (items) => {
         // Populate from SSE regardless of tool setting; server only emits when images are actually used
-        const mapped = (Array.isArray(items) ? items : []).map((it) => ({
-          url: (it as any).image_url ?? null,
-          label: (it as any).label ?? null,
-          score: typeof (it as any).score === 'number' ? (it as any).score : null,
+        const mapped = items.map((it) => ({
+          url: it.image_url ?? null,
+          label: it.label ?? null,
+          score: typeof it.score === 'number' ? it.score : null,
         }))
         if (mapped.length > 0) {
           const msgId = currentAssistantIdRef.current

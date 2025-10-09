@@ -1,22 +1,21 @@
 // frontend/lib/api/chat.ts
 import { baseUrl } from '@/lib/api/client'
+import {
+  parseKnowledgeBaseItems,
+  parseSearchResults,
+  type SearchItem,
+} from '@/lib/api/runtime'
 
 export type ChatMessage = {
   role: 'user' | 'assistant'
   content: string
 }
 
-export type RetrievedImage = {
-  image_url?: string | null
-  label?: string | null
-  score?: number | null
-}
-
-export async function searchDocuments(query: string, k: number): Promise<RetrievedImage[]> {
+export async function searchDocuments(query: string, k: number): Promise<SearchItem[]> {
   const res = await fetch(`${baseUrl}/search?q=${encodeURIComponent(query)}&k=${k}`)
   if (!res.ok) return []
   const data = await res.json()
-  return Array.isArray(data) ? data : []
+  return parseSearchResults(data)
 }
 
 export type ChatRequest = {
@@ -37,7 +36,7 @@ export async function streamAssistant(
   res: Response,
   onDelta: (chunk: string) => void,
   onFirstChunk?: () => void,
-  onKbImages?: (items: Array<{ image_url?: string | null; label?: string | null; score?: number | null }>) => void
+  onKbImages?: (items: SearchItem[]) => void
 ): Promise<void> {
   if (!res.ok || !res.body) {
     throw new Error(`Failed to stream chat: ${res.status}`)
@@ -80,8 +79,10 @@ export async function streamAssistant(
             }
             onDelta(String(data.delta))
           } else if (eventType === 'kb.images') {
-            const items = Array.isArray(data?.items) ? data.items : []
-            onKbImages?.(items)
+            const items = parseKnowledgeBaseItems(data?.items)
+            if (items.length > 0) {
+              onKbImages?.(items)
+            }
           }
         } catch {
           // ignore malformed event
