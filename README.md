@@ -1,4 +1,8 @@
-# Vision RAG Template (FastAPI · Next.js · ColPali)
+# The Most Beautiful Rag - FastAPI / Next.js / ColPali Template
+
+<center>
+<img width="100%" alt="image" src="image/README/1755459651164.png" />
+</center>
 
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688)](https://fastapi.tiangolo.com/)
 [![Qdrant](https://img.shields.io/badge/VectorDB-Qdrant-ff6b6b)](https://qdrant.tech/)
@@ -75,6 +79,60 @@ walkthrough of the indexing and retrieval flows.
 - **Docker-first** – root `docker-compose.yml` spins up Qdrant, MinIO, backend,
   frontend, and the ColPali embedding API services (CPU and GPU variants
   available under `colpali/docker-compose.yml`).
+
+---
+
+## UI / UX
+
+A modern Next.js 15 UI with server-side streaming, real-time progress updates, and visual citations.
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <strong>Home</strong><br/>
+        <img src="image/README/image-1.png" alt="Home screen" width="520" />
+        <img src="image/README/image-8.png" alt="Home screen" width="520" />
+      </td>
+      <td align="center">
+        <strong>Upload</strong><br/>
+        <img src="image/README/image-3.png" alt="Upload screen" width="520" />
+        <img src="image/README/image-10.png" alt="Upload screen" width="520" />
+      </td>
+    </tr>
+    <tr>
+      <td align="center">
+        <strong>Search</strong><br/>
+        <img src="image/README/image-2.png" alt="Search screen" width="520" />
+        <img src="image/README/image-9.png" alt="Search screen" width="520" />
+      </td>
+      <td align="center">
+        <strong>Chat</strong><br/>
+        <img src="image/README/image-4.png" alt="Chat screen" width="520" />
+        <img src="image/README/image-11.png" alt="Chat screen" width="520" />
+      </td>
+    </tr>
+    <tr>
+      <td align="center">
+        <strong>System (Configuration)</strong><br/>
+        <img src="image/README/image-5.png" alt="Configuration screen" width="520" />
+        <img src="image/README/image-12.png" alt="Configuration screen" width="520" />
+      </td>
+      <td align="center">
+        <strong>System (Maintenance)</strong><br/>
+        <img src="image/README/image-6.png" alt="Maintenance screen" width="520" />
+        <img src="image/README/image-13.png" alt="Maintenance screen" width="520" />
+      </td>      
+    </tr>
+    <tr>    
+      <td align="center">
+         <strong>About</strong><br/>
+         <img src="image/README/image-7.png" alt="About screen" width="520" />
+         <img src="image/README/image-14.png" alt="About screen" width="520" />
+      </td>
+    </tr>      
+  </table>
+</div>
 
 ---
 
