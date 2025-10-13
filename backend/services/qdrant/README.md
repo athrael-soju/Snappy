@@ -69,18 +69,20 @@ All configuration is loaded from environment variables (no hardcoded fallbacks):
 
 ### Optional Variables
 - `BATCH_SIZE` - Batch size for processing (default: 12)
-- `QDRANT_SEARCH_LIMIT` - Search result limit (default: 20)
 - `QDRANT_PREFETCH_LIMIT` - Prefetch limit for multi-vector search (default: 200)
 - `QDRANT_ON_DISK` - Store vectors on disk (default: True)
 - `QDRANT_ON_DISK_PAYLOAD` - Store payloads on disk (default: True)
-- `QDRANT_USE_BINARY` - Enable binary quantization (default: True)
+- `QDRANT_USE_BINARY` - Enable binary quantization (default: False)
 - `QDRANT_BINARY_ALWAYS_RAM` - Keep binary quantization in RAM (default: True)
 - `QDRANT_SEARCH_IGNORE_QUANT` - Ignore quantization during search (default: False)
 - `QDRANT_SEARCH_RESCORE` - Rescore results (default: True)
 - `QDRANT_SEARCH_OVERSAMPLING` - Oversampling factor (default: 2.0)
 - `ENABLE_PIPELINE_INDEXING` - Enable pipelined processing (default: True)
-- `MAX_CONCURRENT_BATCHES` - Max concurrent batches in pipeline (default: 3)
-- `IMAGE_QUALITY` - JPEG quality for stored images (default: 85)
+- `IMAGE_FORMAT` - Stored image format (`JPEG`, `PNG`, `WEBP`, default: `JPEG`)
+- `IMAGE_QUALITY` - JPEG/WEBP quality for stored images (default: 75)
+
+Pipeline concurrency and MinIO worker counts are derived automatically from CPU
+cores via helpers in `config.py`; no extra environment variable is required.
 
 ## Usage
 

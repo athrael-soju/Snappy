@@ -35,14 +35,14 @@ This document analyzes the current system implemented in this repository and com
 - __PDF to images__: The API route uses `api/utils.py::convert_pdf_paths_to_images(...)` (via the `/index` endpoint). Each page becomes one PIL image with payload metadata: `filename`, `pdf_page_index`, `page_width_px`, `page_height_px`, etc.
 - __Pipelined processing__: `DocumentIndexer._index_documents_pipelined(...)` (in `services/qdrant/indexing.py`, when `ENABLE_PIPELINE_INDEXING=True`)
   - Uses dual thread pools: one for batch processing (embedding + MinIO upload), one for Qdrant upserts
-  - Controlled parallelism via `MAX_CONCURRENT_BATCHES` (default: 3 batches in parallel)
+  - Concurrency is derived from hardware via `config.get_pipeline_max_concurrency()`
   - Allows embedding, MinIO uploads, and Qdrant upserts to overlap for maximum throughput
 - __Embeddings__: `EmbeddingProcessor` (in `services/qdrant/embedding.py`)
   - Calls `ColPaliService.embed_images(...)` to get image patch embeddings (image encoding parallelized for high-CPU systems)
   - Calls `ColPaliService.get_patches(...)` to obtain the patch grid (`n_patches_x`, `n_patches_y`)
   - Mean-pools the image patch tokens into two variants: by rows and by columns, preserving prefix/postfix tokens via parallelized pooling operations
   - Produces three multivectors per page: `original`, `mean_pooling_rows`, `mean_pooling_columns`
-- __Image persistence__: `MinioService.store_images_batch(...)` uploads images concurrently with internal thread pool (`MINIO_WORKERS` threads, auto-sized). HTTP connection pool is automatically sized to match concurrency (`MINIO_WORKERS x MAX_CONCURRENT_BATCHES + 10`) to prevent connection exhaustion.
+- __Image persistence__: `MinioService.store_images_batch(...)` uploads images concurrently with an internal thread pool (`MINIO_WORKERS` threads). Worker counts and retry attempts are auto-sized based on CPU cores and pipeline concurrency.
 - __Upsert to Qdrant__: Non-blocking upserts submitted to separate executor, allowing next batch to start embedding immediately. The `/index` route starts this as a background job and you can poll `/progress/{job_id}` for status.
 
 Notes:
@@ -129,7 +129,7 @@ Notes:
 - __Citations__: Include bounding boxes or page regions; overlay highlights in the gallery.
 - __Auth and privacy__: Replace public-read MinIO with signed URLs; add auth to Qdrant/minio in `docker-compose.yml`.
 - __Observability__: Log query/latency metrics and retrieval traces; add evaluation harness and reproducible benchmarks.
-- __Resource tuning__: Adjust HNSW and quantization configs per vector field; right-size `prefetch_limit`/`search_limit`.
+- __Resource tuning__: Adjust HNSW and quantization configs per vector field; tune `QDRANT_PREFETCH_LIMIT` and the client `k` parameter to balance latency and recall.
 
 ---
 

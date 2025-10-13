@@ -32,11 +32,8 @@ In the repo root `.env` (consumed by backend):
 COLPALI_MODE=cpu
 COLPALI_CPU_URL=http://localhost:7001
 COLPALI_GPU_URL=http://localhost:7002
-
-# Option B: override explicitly
-# COLPALI_API_BASE_URL=http://localhost:7001
 ```
-The backend will pick `COLPALI_API_BASE_URL` if set; otherwise it uses `COLPALI_MODE` to choose CPU/GPU URL.
+The backend uses `COLPALI_MODE` to choose between the CPU and GPU URLs.
 
 ## Local (no Docker)
 ```bash
