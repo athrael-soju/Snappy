@@ -32,7 +32,7 @@ export function DeleteCard({
       </CardHeader>
       <CardContent className="px-0 pb-0">
         <p className="text-base text-muted-foreground mb-5 leading-relaxed">
-          Permanently removes the Qdrant collection and, if enabled, the MinIO bucket including all data. Use this to change configuration or start fresh.
+          Permanently removes the Qdrant collection and, if enabled, the MinIO bucket. Use this to change configuration or start fresh.
         </p>
         <Dialog open={dialogOpen} onOpenChange={onDialogChange}>
           <DialogTrigger asChild>
@@ -61,7 +61,7 @@ export function DeleteCard({
                 Delete Collection and Storage?
               </DialogTitle>
               <DialogDescription className="pt-2">
-                This will permanently delete the Qdrant collection and, when enabled, the MinIO bucket — including all vectors, files, and metadata. This action cannot be undone.
+                This will permanently delete the Qdrant collection and, when enabled, the MinIO bucket, including all vectors, files, and metadata. This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
             <div className="bg-red-50 dark:bg-red-950/20 p-4 rounded-lg border-l-4 border-red-400">
