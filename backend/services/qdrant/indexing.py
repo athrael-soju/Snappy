@@ -9,10 +9,9 @@ from datetime import datetime
 from itertools import islice
 from typing import Callable, Dict, Iterable, Iterator, List, Optional, Tuple
 
+import config  # Import module for dynamic config access
 from PIL import Image
 from qdrant_client import models
-
-import config  # Import module for dynamic config access
 
 logger = logging.getLogger(__name__)
 

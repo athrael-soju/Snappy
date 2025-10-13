@@ -1,0 +1,23 @@
+repos:
+  - repo: https://github.com/PyCQA/autoflake
+    rev: v2.3.1
+    hooks:
+      - id: autoflake
+        args: [--in-place, --remove-all-unused-imports, --remove-unused-variables]
+
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ["--profile", "black"]
+
+  - repo: https://github.com/psf/black
+    rev: 24.4.2
+    hooks:
+      - id: black
+
+  # ✅ Pyright mirror for pre-commit
+  - repo: https://github.com/ComPWA/pyright-pre-commit
+    rev: ""           # leave empty; we'll pin it next
+    hooks:
+      - id: pyright

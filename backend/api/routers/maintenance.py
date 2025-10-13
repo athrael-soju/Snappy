@@ -1,14 +1,13 @@
 import asyncio
 from typing import TYPE_CHECKING, Optional
 
-from fastapi import APIRouter, HTTPException
-
 from api.dependencies import (
     get_minio_service,
     get_qdrant_service,
     minio_init_error,
     qdrant_init_error,
 )
+from fastapi import APIRouter, HTTPException
 
 try:  # pragma: no cover - tooling support
     import config  # type: ignore

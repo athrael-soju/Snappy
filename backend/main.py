@@ -2,7 +2,6 @@ import logging
 import os
 
 import uvicorn
-
 from api.app import create_app
 
 try:  # pragma: no cover - tooling support

@@ -10,9 +10,8 @@ import os
 import re
 from typing import Any
 
-from dotenv import load_dotenv
-
 from config_schema import get_config_defaults
+from dotenv import load_dotenv
 from runtime_config import get_runtime_config
 
 load_dotenv()
