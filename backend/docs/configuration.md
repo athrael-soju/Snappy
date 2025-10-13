@@ -163,6 +163,13 @@ Qdrant stores document embeddings and enables semantic search.
 - **Default**: `http://localhost:6333`
 - **Description**: URL of the Qdrant vector database service.
 
+#### `QDRANT_EMBEDDED`
+- **Type**: Boolean
+- **Default**: `True`
+- **Description**: Run an embedded, in-memory Qdrant instance managed by the backend. Great for local development and quick demos.
+- **When to disable**: Disable when you want persistence across backend restarts or when connecting to an external Qdrant deployment (Docker/Kubernetes/etc.) via `QDRANT_URL`.
+- **Trade-offs**: Embedded mode stores data only in memory; all data is lost when the backend stops.
+
 #### `QDRANT_COLLECTION_NAME`
 - **Type**: String
 - **Default**: `documents`
@@ -178,7 +185,7 @@ Qdrant stores document embeddings and enables semantic search.
 #### `QDRANT_PREFETCH_LIMIT`
 - **Type**: Integer
 - **Default**: `200`
-- **Description**: Number of candidates to retrieve in the first stage of multi-vector search before reranking. Higher values improve recall but increase latency.
+- **Description**: Number of candidates fetched for multivector reranking when mean pooling is enabled. Higher values improve recall but increase latency.
 - **Performance**: Increase if you notice relevant results being missed.
 
 ### Storage Optimization
