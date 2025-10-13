@@ -1,10 +1,11 @@
 """Embedding and pooling operations for image processing."""
 
 import logging
-import numpy as np
-from typing import List, Tuple, Optional
-from PIL import Image
 from concurrent.futures import ThreadPoolExecutor
+from typing import List, Optional, Tuple
+
+import numpy as np
+from PIL import Image
 
 import config  # Import module for dynamic config access
 
@@ -16,7 +17,7 @@ class EmbeddingProcessor:
 
     def __init__(self, api_client=None):
         """Initialize embedding processor.
-        
+
         Args:
             api_client: ColPali client for embedding operations
         """
@@ -115,7 +116,7 @@ class EmbeddingProcessor:
         """
         Embed images via API and create mean pooled representations using explicit
         image-token boundaries provided by the API (no midpoint guessing).
-        
+
         Pooling operations are parallelized for better CPU utilization on high-core-count systems.
         If QDRANT_MEAN_POOLING_ENABLED is False, pooling is skipped and empty lists are returned.
         """
@@ -132,7 +133,7 @@ class EmbeddingProcessor:
                 raise Exception(
                     "embed_images() returned embeddings without proper format"
                 )
-        
+
         # If mean pooling is disabled, return empty pooled batches
         if not config.QDRANT_MEAN_POOLING_ENABLED:
             logger.debug("Mean pooling disabled, skipping pooling operations")
@@ -147,15 +148,17 @@ class EmbeddingProcessor:
         # Parallelize pooling operations to maximize CPU utilization
         pooled_by_rows_batch = []
         pooled_by_columns_batch = []
-        
+
         # For batches larger than 2, use parallel pooling
         if len(api_items) > 2:
             with ThreadPoolExecutor(max_workers=min(8, len(api_items))) as executor:
-                results = list(executor.map(
-                    lambda args: self.pool_single_image(args[0], args[1], args[2]),
-                    zip(api_items, image_batch, patch_results)
-                ))
-                
+                results = list(
+                    executor.map(
+                        lambda args: self.pool_single_image(args[0], args[1], args[2]),
+                        zip(api_items, image_batch, patch_results),
+                    )
+                )
+
             for orig, rows, cols in results:
                 pooled_by_rows_batch.append(rows)
                 pooled_by_columns_batch.append(cols)
@@ -229,13 +232,19 @@ class MuveraPostprocessor:
     def embedding_size(self) -> Optional[int]:
         return self._embedding_size
 
-    def process_document(self, multivectors: List[List[float]]) -> Optional[List[float]]:
+    def process_document(
+        self, multivectors: List[List[float]]
+    ) -> Optional[List[float]]:
         """
         Compute document FDE from multi-vector embedding.
         multivectors: shape (n_tokens, dim)
         """
         if not self.enabled or self._muvera is None:
-            logger.debug("MUVERA.process_document skipped (enabled=%s, has_impl=%s)", self.enabled, self._muvera is not None)
+            logger.debug(
+                "MUVERA.process_document skipped (enabled=%s, has_impl=%s)",
+                self.enabled,
+                self._muvera is not None,
+            )
             return None
         if not multivectors:
             logger.debug("MUVERA.process_document received empty multivectors")
@@ -253,7 +262,11 @@ class MuveraPostprocessor:
         multivectors: shape (n_tokens, dim)
         """
         if not self.enabled or self._muvera is None:
-            logger.debug("MUVERA.process_query skipped (enabled=%s, has_impl=%s)", self.enabled, self._muvera is not None)
+            logger.debug(
+                "MUVERA.process_query skipped (enabled=%s, has_impl=%s)",
+                self.enabled,
+                self._muvera is not None,
+            )
             return None
         if not multivectors:
             logger.debug("MUVERA.process_query received empty multivectors")

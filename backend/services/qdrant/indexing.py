@@ -2,12 +2,12 @@
 
 import base64
 import io
-import uuid
 import logging
+import uuid
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from datetime import datetime
 from itertools import islice
 from typing import Callable, Dict, Iterable, Iterator, List, Optional, Tuple
-from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 
 from PIL import Image
 from qdrant_client import models
@@ -20,7 +20,6 @@ logger = logging.getLogger(__name__)
 def _estimate_pipeline_workers() -> int:
     """Determine pipeline worker count based on config heuristics."""
     return config.get_pipeline_max_concurrency()
-
 
 
 class DocumentIndexer:
@@ -56,7 +55,10 @@ class DocumentIndexer:
         try:
             progress_cb(current, info)
         except Exception as exc:  # pragma: no cover - defensive guard
-            if "cancelled" in str(exc).lower() or exc.__class__.__name__ == "CancellationError":
+            if (
+                "cancelled" in str(exc).lower()
+                or exc.__class__.__name__ == "CancellationError"
+            ):
                 raise
             logger.debug("Progress callback raised %s (ignored)", exc)
 
@@ -270,7 +272,9 @@ class DocumentIndexer:
         image_batch, meta_batch = self._split_batch(batch)
 
         if skip_progress:
-            self._call_progress(progress_cb, batch_start, {"stage": "check_cancel"}, skip_updates=True)
+            self._call_progress(
+                progress_cb, batch_start, {"stage": "check_cancel"}, skip_updates=True
+            )
         else:
             self._call_progress(
                 progress_cb,
@@ -283,10 +287,14 @@ class DocumentIndexer:
                 },
             )
 
-        original_batch, pooled_by_rows_batch, pooled_by_columns_batch = self._embed_batch(image_batch)
+        original_batch, pooled_by_rows_batch, pooled_by_columns_batch = (
+            self._embed_batch(image_batch)
+        )
 
         if skip_progress:
-            self._call_progress(progress_cb, batch_start, {"stage": "check_cancel"}, skip_updates=True)
+            self._call_progress(
+                progress_cb, batch_start, {"stage": "check_cancel"}, skip_updates=True
+            )
         else:
             self._call_progress(
                 progress_cb,
@@ -300,7 +308,9 @@ class DocumentIndexer:
             )
 
         if skip_progress:
-            self._call_progress(progress_cb, batch_start, {"stage": "check_cancel"}, skip_updates=True)
+            self._call_progress(
+                progress_cb, batch_start, {"stage": "check_cancel"}, skip_updates=True
+            )
 
         try:
             image_ids, image_records = self._store_images(batch_start, image_batch)
@@ -343,9 +353,13 @@ class DocumentIndexer:
             image_iter = iter(images)
 
         if config.ENABLE_PIPELINE_INDEXING and total > batch_size:
-            return self._index_documents_pipelined(image_iter, batch_size, total, progress_cb)
+            return self._index_documents_pipelined(
+                image_iter, batch_size, total, progress_cb
+            )
 
-        return self._index_documents_sequential(image_iter, batch_size, total, progress_cb)
+        return self._index_documents_sequential(
+            image_iter, batch_size, total, progress_cb
+        )
 
     def _index_documents_sequential(
         self,
@@ -376,7 +390,9 @@ class DocumentIndexer:
                 ) from exc
 
             completed += current_batch_size
-            progress_value = min(completed, total_images) if total_images > 0 else completed
+            progress_value = (
+                min(completed, total_images) if total_images > 0 else completed
+            )
             self._call_progress(
                 progress_cb,
                 progress_value,
@@ -403,7 +419,11 @@ class DocumentIndexer:
         upsert_futures = []
         batch_iterator = self._batch_iterator(images_iter, batch_size)
 
-        with ThreadPoolExecutor(max_workers=max_workers) as process_executor, ThreadPoolExecutor(max_workers=max_workers) as upsert_executor:
+        with ThreadPoolExecutor(
+            max_workers=max_workers
+        ) as process_executor, ThreadPoolExecutor(
+            max_workers=max_workers
+        ) as upsert_executor:
             process_futures = {}
 
             def submit_next_batch() -> bool:
@@ -438,10 +458,16 @@ class DocumentIndexer:
                             collection_name=self.collection_name,
                             points=points,
                         )
-                        upsert_futures.append((upsert_future, batch_start, batch_len, idx))
+                        upsert_futures.append(
+                            (upsert_future, batch_start, batch_len, idx)
+                        )
 
                         completed_count += batch_len
-                        progress_value = min(completed_count, total_images) if total_images > 0 else completed_count
+                        progress_value = (
+                            min(completed_count, total_images)
+                            if total_images > 0
+                            else completed_count
+                        )
                         self._call_progress(
                             progress_cb,
                             progress_value,
@@ -464,8 +490,13 @@ class DocumentIndexer:
                         ) from exc
 
             except Exception as exc:
-                if "cancelled" in str(exc).lower() or exc.__class__.__name__ == "CancellationError":
-                    logger.info("Cancelling remaining batches due to cancellation request")
+                if (
+                    "cancelled" in str(exc).lower()
+                    or exc.__class__.__name__ == "CancellationError"
+                ):
+                    logger.info(
+                        "Cancelling remaining batches due to cancellation request"
+                    )
                 for future in process_futures:
                     future.cancel()
                 for upsert_future, *_ in upsert_futures:

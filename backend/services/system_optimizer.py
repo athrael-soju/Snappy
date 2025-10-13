@@ -20,7 +20,9 @@ def _get_total_memory_gb() -> float | None:
 
     if psutil:
         try:
-            candidates.append(round(float(psutil.virtual_memory().total) / (1024**3), 1))
+            candidates.append(
+                round(float(psutil.virtual_memory().total) / (1024**3), 1)
+            )
         except Exception as exc:  # pragma: no cover - best effort
             logger.debug("psutil failed to report memory: %s", exc)
 
@@ -201,12 +203,18 @@ def build_recommendations() -> Dict[str, Any]:
         if gpu_names:
             gpu_list = ", ".join(gpu_names[:2])
             extra = "" if gpu_count <= 2 else f" (+{gpu_count - 2} more)"
-            summary_parts.append(f"{gpu_count} NVIDIA GPU{'s' if gpu_count != 1 else ''} ({gpu_list}{extra})")
+            summary_parts.append(
+                f"{gpu_count} NVIDIA GPU{'s' if gpu_count != 1 else ''} ({gpu_list}{extra})"
+            )
         else:
-            summary_parts.append(f"{gpu_count} NVIDIA GPU{'s' if gpu_count != 1 else ''}")
+            summary_parts.append(
+                f"{gpu_count} NVIDIA GPU{'s' if gpu_count != 1 else ''}"
+            )
 
     summary = "; ".join(summary_parts)
-    message = f"Optimised configuration for {profile.replace('_', ' ')} profile ({summary})."
+    message = (
+        f"Optimised configuration for {profile.replace('_', ' ')} profile ({summary})."
+    )
 
     return {
         "recommendations": recommendations,

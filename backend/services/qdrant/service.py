@@ -3,13 +3,18 @@
 import base64
 import io
 import logging
-from typing import Iterable, Optional, Callable
+from typing import TYPE_CHECKING, Callable, Iterable, Optional
+
 from PIL import Image
 
 from .collection import CollectionManager
-from .embedding import EmbeddingProcessor
+from .embedding import EmbeddingProcessor, MuveraPostprocessor
 from .indexing import DocumentIndexer
 from .search import SearchManager
+
+if TYPE_CHECKING:
+    from services.colpali import ColPaliService
+    from services.minio import MinioService
 
 logger = logging.getLogger(__name__)
 
@@ -19,12 +24,12 @@ class QdrantService:
 
     def __init__(
         self,
-        api_client=None,
-        minio_service=None,
-        muvera_post: Optional[object] = None,
+        api_client: Optional["ColPaliService"] = None,
+        minio_service: Optional["MinioService"] = None,
+        muvera_post: Optional[MuveraPostprocessor] = None,
     ):
         """Initialize Qdrant service with all subcomponents.
-        
+
         Args:
             api_client: ColPali client for embeddings
             minio_service: MinIO service for image storage
@@ -129,7 +134,7 @@ class QdrantService:
     # Image retrieval
     def get_image_from_url(self, image_url: str) -> Image.Image:
         """Fetch a PIL Image from MinIO by URL.
-        
+
         Use this when you need the actual image object (e.g., for server-side processing).
         The main search flow returns URLs to avoid unnecessary downloads.
         """

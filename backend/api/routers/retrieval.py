@@ -3,9 +3,9 @@ from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
+import config  # Import module for dynamic config access
 from api.dependencies import get_qdrant_service, qdrant_init_error
 from api.models import SearchItem
-import config  # Import module for dynamic config access
 
 router = APIRouter(prefix="", tags=["retrieval"])
 

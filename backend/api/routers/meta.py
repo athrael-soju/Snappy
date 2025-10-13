@@ -7,8 +7,8 @@ from api.dependencies import (
     get_colpali_client,
     get_minio_service,
     get_qdrant_service,
-    qdrant_init_error,
     minio_init_error,
+    qdrant_init_error,
 )
 
 router = APIRouter(tags=["meta"])

@@ -1,13 +1,14 @@
-import requests
 import io
 import logging
-from typing import List, Union, Optional
-from PIL import Image
+from typing import List, Optional, Union
+
 import numpy as np
+import requests
+from PIL import Image
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from config import COLPALI_MODE, COLPALI_CPU_URL, COLPALI_GPU_URL, COLPALI_API_TIMEOUT
+from config import COLPALI_API_TIMEOUT, COLPALI_CPU_URL, COLPALI_GPU_URL, COLPALI_MODE
 
 
 class ColPaliService:
@@ -101,7 +102,9 @@ class ColPaliService:
             response.raise_for_status()
             result = response.json()
             if "embeddings" not in result:
-                raise KeyError("Missing 'embeddings' in ColPali /embed/queries response")
+                raise KeyError(
+                    "Missing 'embeddings' in ColPali /embed/queries response"
+                )
             return result["embeddings"]
         except Exception as e:
             self._logger.error(f"Failed to embed queries: {e}")
@@ -127,11 +130,14 @@ class ColPaliService:
         try:
             # Parallelize image encoding to maximize CPU utilization
             from concurrent.futures import ThreadPoolExecutor
+
             with ThreadPoolExecutor(max_workers=min(8, len(images))) as executor:
-                files = list(executor.map(
-                    lambda args: self._encode_image_to_bytes(args[1], args[0]),
-                    enumerate(images)
-                ))
+                files = list(
+                    executor.map(
+                        lambda args: self._encode_image_to_bytes(args[1], args[0]),
+                        enumerate(images),
+                    )
+                )
 
             response = self.session.post(
                 f"{self.base_url}/embed/images", files=files, timeout=self.timeout

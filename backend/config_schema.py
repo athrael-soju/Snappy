@@ -9,8 +9,7 @@ This module defines:
 Both config.py and the API router import from here to ensure consistency.
 """
 
-from typing import Dict, Any, List, Tuple, Literal
-
+from typing import Any, Dict, List, Literal, Tuple
 
 # Type definitions
 ConfigType = Literal["str", "int", "float", "bool", "list"]
@@ -27,7 +26,7 @@ def _infer_ui_type(config_type: ConfigType, has_options: bool = False) -> Config
         "int": "number",
         "float": "number",
         "bool": "boolean",
-        "list": "text"
+        "list": "text",
     }
     return mapping[config_type]
 
@@ -50,7 +49,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "select",
                 "options": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
                 "description": "Logging verbosity level",
-                "help_text": "Controls the amount of detail in application logs. DEBUG shows all messages including detailed debugging info which is useful during development. INFO shows general informational messages about application flow. WARNING, ERROR, and CRITICAL show progressively fewer messages, only logging issues. Lower verbosity (ERROR/CRITICAL) improves performance but reduces troubleshooting capability."
+                "help_text": "Controls the amount of detail in application logs. DEBUG shows all messages including detailed debugging info which is useful during development. INFO shows general informational messages about application flow. WARNING, ERROR, and CRITICAL show progressively fewer messages, only logging issues. Lower verbosity (ERROR/CRITICAL) improves performance but reduces troubleshooting capability.",
             },
             {
                 "key": "ALLOWED_ORIGINS",
@@ -59,7 +58,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "label": "Allowed CORS Origins",
                 "ui_type": "text",
                 "description": "Comma-separated list of allowed origins, or * for all",
-                "help_text": "Defines which web domains can access your API via cross-origin requests. Use '*' to allow all origins (development only - NOT recommended for production). In production, specify exact domains (e.g., 'https://example.com,https://app.example.com') to prevent unauthorized access. This is a critical security setting that protects against cross-site request forgery."
+                "help_text": "Defines which web domains can access your API via cross-origin requests. Use '*' to allow all origins (development only - NOT recommended for production). In production, specify exact domains (e.g., 'https://example.com,https://app.example.com') to prevent unauthorized access. This is a critical security setting that protects against cross-site request forgery.",
             },
             {
                 "key": "UVICORN_RELOAD",
@@ -68,9 +67,9 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "label": "Enable Auto Reload",
                 "ui_type": "boolean",
                 "description": "Automatically reload the API when files change",
-                "help_text": "When enabled the development server watches for file changes and reloads automatically. This is convenient locally but should stay off in production to avoid the extra file-watcher overhead."
+                "help_text": "When enabled the development server watches for file changes and reloads automatically. This is convenient locally but should stay off in production to avoid the extra file-watcher overhead.",
             },
-        ]
+        ],
     },
     "ingestion": {
         "order": 2,
@@ -87,7 +86,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "min": 1,
                 "max": 128,
                 "description": "Number of pages processed per batch",
-                "help_text": "Higher values boost throughput but require more memory. Lower values provide steadier progress feedback and are safer on small machines."
+                "help_text": "Higher values boost throughput but require more memory. Lower values provide steadier progress feedback and are safer on small machines.",
             },
             {
                 "key": "ENABLE_PIPELINE_INDEXING",
@@ -96,9 +95,9 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "label": "Enable Pipeline Indexing",
                 "ui_type": "boolean",
                 "description": "Overlap embedding, storage, and upserts",
-                "help_text": "When enabled the system automatically chooses a safe level of concurrency based on your hardware and batch size. Disable only for debugging or very resource-constrained hosts."
-            }
-        ]
+                "help_text": "When enabled the system automatically chooses a safe level of concurrency based on your hardware and batch size. Disable only for debugging or very resource-constrained hosts.",
+            },
+        ],
     },
     "colpali": {
         "order": 3,
@@ -115,7 +114,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "select",
                 "options": ["cpu", "gpu"],
                 "description": "Use CPU or GPU for embeddings",
-                "help_text": "Selects the hardware for generating document embeddings. GPU mode is 10-50x faster and recommended for production with NVIDIA GPUs. CPU mode works on any hardware but is much slower. Choose CPU only if you don't have a compatible GPU. This setting determines which service URL is used."
+                "help_text": "Selects the hardware for generating document embeddings. GPU mode is 10-50x faster and recommended for production with NVIDIA GPUs. CPU mode works on any hardware but is much slower. Choose CPU only if you don't have a compatible GPU. This setting determines which service URL is used.",
             },
             {
                 "key": "COLPALI_CPU_URL",
@@ -125,7 +124,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "label": "CPU Service URL",
                 "ui_type": "text",
                 "description": "URL for CPU-based ColPali service",
-                "help_text": "Endpoint for the CPU-based embedding service. Used when COLPALI_MODE is set to 'cpu'. Change this if running the CPU service on a different host or port. Format: http://hostname:port. Must be accessible from the backend application."
+                "help_text": "Endpoint for the CPU-based embedding service. Used when COLPALI_MODE is set to 'cpu'. Change this if running the CPU service on a different host or port. Format: http://hostname:port. Must be accessible from the backend application.",
             },
             {
                 "key": "COLPALI_GPU_URL",
@@ -135,7 +134,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "label": "GPU Service URL",
                 "ui_type": "text",
                 "description": "URL for GPU-based ColPali service",
-                "help_text": "Endpoint for the GPU-accelerated embedding service. Used when COLPALI_MODE is set to 'gpu'. Change this if running the GPU service on a different host or port. Requires NVIDIA GPU with CUDA support on the target machine."
+                "help_text": "Endpoint for the GPU-accelerated embedding service. Used when COLPALI_MODE is set to 'gpu'. Change this if running the GPU service on a different host or port. Requires NVIDIA GPU with CUDA support on the target machine.",
             },
             {
                 "key": "COLPALI_API_TIMEOUT",
@@ -146,9 +145,9 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "min": 10,
                 "max": 600,
                 "description": "Request timeout for ColPali API",
-                "help_text": "Maximum time to wait for embedding generation requests before timing out. Large documents or CPU mode may need higher values (300-600s). GPU mode with small batches can use lower values (60-120s). Increase if you see timeout errors during document processing."
-            }
-        ]
+                "help_text": "Maximum time to wait for embedding generation requests before timing out. Large documents or CPU mode may need higher values (300-600s). GPU mode with small batches can use lower values (60-120s). Increase if you see timeout errors during document processing.",
+            },
+        ],
     },
     "qdrant": {
         "order": 4,
@@ -164,7 +163,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "label": "Qdrant URL",
                 "ui_type": "text",
                 "description": "URL for Qdrant vector database",
-                "help_text": "Connection endpoint for the Qdrant vector database service. Default port is 6333. Change if Qdrant runs on a different host or port. Format: http://hostname:port. Ensure the backend can reach this URL and that Qdrant is running."
+                "help_text": "Connection endpoint for the Qdrant vector database service. Default port is 6333. Change if Qdrant runs on a different host or port. Format: http://hostname:port. Ensure the backend can reach this URL and that Qdrant is running.",
             },
             {
                 "key": "QDRANT_EMBEDDED",
@@ -173,7 +172,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "label": "Run Embedded Qdrant",
                 "ui_type": "boolean",
                 "description": "Use an embedded (in-memory) Qdrant instance",
-                "help_text": "When enabled the backend starts an in-memory Qdrant instance (no external service required). Disable to connect to an external Qdrant deployment via QDRANT_URL."
+                "help_text": "When enabled the backend starts an in-memory Qdrant instance (no external service required). Disable to connect to an external Qdrant deployment via QDRANT_URL.",
             },
             {
                 "key": "QDRANT_COLLECTION_NAME",
@@ -182,7 +181,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "label": "Collection Name",
                 "ui_type": "text",
                 "description": "Name of the Qdrant collection (Also used for MinIO bucket)",
-                "help_text": "Name of the Qdrant collection storing your document embeddings. Think of it as a database table. Changing this creates/uses a different collection. Useful for testing or separating data by environment (dev/staging/prod). Requires restart to take effect."
+                "help_text": "Name of the Qdrant collection storing your document embeddings. Think of it as a database table. Changing this creates/uses a different collection. Useful for testing or separating data by environment (dev/staging/prod). Requires restart to take effect.",
             },
             {
                 "key": "QDRANT_PREFETCH_LIMIT",
@@ -194,7 +193,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "max": 1000,
                 "description": "Number of candidates to prefetch",
                 "help_text": "When mean pooling reranking is enabled, this many multivector candidates are prefetched before final ranking. Should be higher than SEARCH_LIMIT to ensure good recall. Higher values (200-1000) improve accuracy but slow queries. Has no effect when mean pooling is disabled.",
-                "depends_on": {"key": "QDRANT_MEAN_POOLING_ENABLED", "value": True}
+                "depends_on": {"key": "QDRANT_MEAN_POOLING_ENABLED", "value": True},
             },
             {
                 "key": "QDRANT_ON_DISK",
@@ -203,7 +202,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "label": "Store Vectors on Disk",
                 "ui_type": "boolean",
                 "description": "Store vectors on disk instead of RAM",
-                "help_text": "Stores vector embeddings on disk rather than keeping them all in RAM. Enable (True) to save memory and support larger datasets. Disable (False) for maximum search speed with sufficient RAM. Disk storage uses memory-mapped files, offering good performance with lower memory usage. Recommended for most deployments."
+                "help_text": "Stores vector embeddings on disk rather than keeping them all in RAM. Enable (True) to save memory and support larger datasets. Disable (False) for maximum search speed with sufficient RAM. Disk storage uses memory-mapped files, offering good performance with lower memory usage. Recommended for most deployments.",
             },
             {
                 "key": "QDRANT_ON_DISK_PAYLOAD",
@@ -212,7 +211,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "label": "Store Payload on Disk",
                 "ui_type": "boolean",
                 "description": "Store payload data on disk",
-                "help_text": "Stores document metadata (IDs, filenames, etc.) on disk instead of RAM. Similar to ON_DISK but for metadata. Enable (True) to reduce memory usage. Payload access is still fast via memory-mapped files. Recommended to keep enabled unless you need absolute maximum metadata retrieval speed."
+                "help_text": "Stores document metadata (IDs, filenames, etc.) on disk instead of RAM. Similar to ON_DISK but for metadata. Enable (True) to reduce memory usage. Payload access is still fast via memory-mapped files. Recommended to keep enabled unless you need absolute maximum metadata retrieval speed.",
             },
             {
                 "key": "QDRANT_USE_BINARY",
@@ -221,7 +220,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "label": "Use Binary Quantization",
                 "ui_type": "boolean",
                 "description": "Enable binary quantization for vectors",
-                "help_text": "Compresses vector embeddings to binary format (1-bit per dimension) reducing memory usage by 32x. Speeds up search while maintaining good accuracy. Enable for large datasets. Disable for maximum accuracy. When enabled, full-precision vectors are kept for rescoring. Recommended for production."
+                "help_text": "Compresses vector embeddings to binary format (1-bit per dimension) reducing memory usage by 32x. Speeds up search while maintaining good accuracy. Enable for large datasets. Disable for maximum accuracy. When enabled, full-precision vectors are kept for rescoring. Recommended for production.",
             },
             {
                 "key": "QDRANT_BINARY_ALWAYS_RAM",
@@ -231,7 +230,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "boolean",
                 "description": "Always keep binary vectors in RAM",
                 "depends_on": {"key": "QDRANT_USE_BINARY", "value": True},
-                "help_text": "When binary quantization is enabled, keeps the compressed vectors in RAM for fastest search. Binary vectors are small (~32x smaller), so RAM usage is minimal. Disable only on extremely memory-constrained systems. Only applies when USE_BINARY is enabled."
+                "help_text": "When binary quantization is enabled, keeps the compressed vectors in RAM for fastest search. Binary vectors are small (~32x smaller), so RAM usage is minimal. Disable only on extremely memory-constrained systems. Only applies when USE_BINARY is enabled.",
             },
             {
                 "key": "QDRANT_SEARCH_IGNORE_QUANT",
@@ -241,7 +240,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "boolean",
                 "description": "Disable quantization during search",
                 "depends_on": {"key": "QDRANT_USE_BINARY", "value": True},
-                "help_text": "Forces search to use full-precision vectors even when quantization is enabled. Slower but more accurate initial search. Only useful for debugging quantization issues. Keep disabled (False) for normal operation. When False, quantized vectors are used for fast initial search followed by rescoring."
+                "help_text": "Forces search to use full-precision vectors even when quantization is enabled. Slower but more accurate initial search. Only useful for debugging quantization issues. Keep disabled (False) for normal operation. When False, quantized vectors are used for fast initial search followed by rescoring.",
             },
             {
                 "key": "QDRANT_SEARCH_RESCORE",
@@ -251,7 +250,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "boolean",
                 "description": "Rescore results with full precision",
                 "depends_on": {"key": "QDRANT_USE_BINARY", "value": True},
-                "help_text": "After initial search with quantized vectors, recalculates scores using full-precision vectors for better accuracy. Recommended to keep enabled (True). Slight performance cost but significantly improves result quality. Only relevant when using quantization."
+                "help_text": "After initial search with quantized vectors, recalculates scores using full-precision vectors for better accuracy. Recommended to keep enabled (True). Slight performance cost but significantly improves result quality. Only relevant when using quantization.",
             },
             {
                 "key": "QDRANT_SEARCH_OVERSAMPLING",
@@ -264,7 +263,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "step": 0.1,
                 "description": "Oversampling factor for search",
                 "depends_on": {"key": "QDRANT_USE_BINARY", "value": True},
-                "help_text": "Multiplier for initial search candidates when using quantization. Factor of 2.0 means searching 2x more candidates before rescoring. Higher values (3-5) improve recall but slower. Lower values (1-2) are faster. Balance between accuracy and speed. Only applies with quantization + rescoring enabled."
+                "help_text": "Multiplier for initial search candidates when using quantization. Factor of 2.0 means searching 2x more candidates before rescoring. Higher values (3-5) improve recall but slower. Lower values (1-2) are faster. Balance between accuracy and speed. Only applies with quantization + rescoring enabled.",
             },
             {
                 "key": "QDRANT_MEAN_POOLING_ENABLED",
@@ -273,7 +272,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "label": "Enable Mean Pooling",
                 "ui_type": "boolean",
                 "description": "Use mean pooling for embeddings",
-                "help_text": "Aggregates multi-vector document embeddings into single vectors using mean pooling. Reduces storage and speeds up search but loses fine-grained information. Enable for memory-constrained systems or very large datasets. Disable (recommended) to preserve full multi-vector representation quality. Requires service restart."
+                "help_text": "Aggregates multi-vector document embeddings into single vectors using mean pooling. Reduces storage and speeds up search but loses fine-grained information. Enable for memory-constrained systems or very large datasets. Disable (recommended) to preserve full multi-vector representation quality. Requires service restart.",
             },
             {
                 "key": "MUVERA_ENABLED",
@@ -282,7 +281,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "label": "Enable MUVERA",
                 "ui_type": "boolean",
                 "description": "Multi-Vector Embedding Retrieval Augmentation for faster initial retrieval",
-                "help_text": "Advanced: Enables MUVERA (Multi-Vector Embedding Retrieval Augmentation) for faster initial document retrieval. Creates additional compressed representations for speed. Increases indexing time and storage but accelerates search. Experimental feature - test thoroughly before production use. Requires service restart."
+                "help_text": "Advanced: Enables MUVERA (Multi-Vector Embedding Retrieval Augmentation) for faster initial document retrieval. Creates additional compressed representations for speed. Increases indexing time and storage but accelerates search. Experimental feature - test thoroughly before production use. Requires service restart.",
             },
             {
                 "key": "MUVERA_K_SIM",
@@ -294,7 +293,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "max": 20,
                 "description": "Number of similar vectors to consider",
                 "depends_on": {"key": "MUVERA_ENABLED", "value": True},
-                "help_text": "Number of similar document patches to aggregate during MUVERA search. Higher values (10-20) improve accuracy but slower. Lower values (3-6) are faster. Typically 6 provides good balance. Only used when MUVERA is enabled."
+                "help_text": "Number of similar document patches to aggregate during MUVERA search. Higher values (10-20) improve accuracy but slower. Lower values (3-6) are faster. Typically 6 provides good balance. Only used when MUVERA is enabled.",
             },
             {
                 "key": "MUVERA_DIM_PROJ",
@@ -306,7 +305,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "max": 128,
                 "description": "Dimensionality of projection space",
                 "depends_on": {"key": "MUVERA_ENABLED", "value": True},
-                "help_text": "Dimensionality of MUVERA's compressed representation space. Higher values (64-128) preserve more information but use more storage. Lower values (8-32) are more compact but may lose accuracy. Default 32 balances compression and quality. Only used when MUVERA is enabled."
+                "help_text": "Dimensionality of MUVERA's compressed representation space. Higher values (64-128) preserve more information but use more storage. Lower values (8-32) are more compact but may lose accuracy. Default 32 balances compression and quality. Only used when MUVERA is enabled.",
             },
             {
                 "key": "MUVERA_R_REPS",
@@ -318,7 +317,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "max": 100,
                 "description": "Number of repetitions",
                 "help_text": "Number of random projection repetitions used by MUVERA for redundancy. More repetitions (20-50) improve recall but increase storage and search time. Fewer (5-10) save resources. Default 20 provides reliable performance. Only used when MUVERA is enabled.",
-                "depends_on": {"key": "MUVERA_ENABLED", "value": True}
+                "depends_on": {"key": "MUVERA_ENABLED", "value": True},
             },
             {
                 "key": "MUVERA_RANDOM_SEED",
@@ -330,9 +329,9 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "max": 9999,
                 "description": "Random seed for reproducibility",
                 "depends_on": {"key": "MUVERA_ENABLED", "value": True},
-                "help_text": "Seed for MUVERA's random number generator to ensure reproducible projections. Same seed produces same projections across runs. Change only if you need different projection patterns. Default 42 is fine for most uses. Only used when MUVERA is enabled."
-            }
-        ]
+                "help_text": "Seed for MUVERA's random number generator to ensure reproducible projections. Same seed produces same projections across runs. Change only if you need different projection patterns. Default 42 is fine for most uses. Only used when MUVERA is enabled.",
+            },
+        ],
     },
     "storage": {
         "order": 5,
@@ -347,7 +346,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "label": "Enable MinIO Object Storage",
                 "ui_type": "boolean",
                 "description": "Use MinIO to store extracted page images",
-                "help_text": "When enabled the backend uploads rendered document pages to MinIO. Disable to embed the images directly in the Qdrant payload (simpler for local setups, but stores data inside Qdrant)."
+                "help_text": "When enabled the backend uploads rendered document pages to MinIO. Disable to embed the images directly in the Qdrant payload (simpler for local setups, but stores data inside Qdrant).",
             },
             {
                 "key": "MINIO_URL",
@@ -358,7 +357,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "text",
                 "description": "Internal MinIO service URL",
                 "help_text": "Internal endpoint for the MinIO object storage service. Used by the backend to upload files. Default port is 9000. Change if MinIO runs on a different host or port. Format: http://hostname:port. Must be accessible from the backend application.",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True}
+                "depends_on": {"key": "MINIO_ENABLED", "value": True},
             },
             {
                 "key": "MINIO_PUBLIC_URL",
@@ -369,7 +368,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "text",
                 "description": "Public-facing MinIO URL",
                 "help_text": "Public endpoint for accessing stored files from browsers/clients. Can differ from MINIO_URL if using a reverse proxy or load balancer. In production, use your domain (e.g., https://storage.example.com). In development, same as MINIO_URL is fine.",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True}
+                "depends_on": {"key": "MINIO_ENABLED", "value": True},
             },
             {
                 "key": "MINIO_ACCESS_KEY",
@@ -380,7 +379,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "password",
                 "description": "MinIO access key (username)",
                 "help_text": "MinIO access key (similar to username) for authentication. Default 'minioadmin' is for development only. In production, create a dedicated access key with appropriate permissions. Never use default credentials in production - security risk!",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True}
+                "depends_on": {"key": "MINIO_ENABLED", "value": True},
             },
             {
                 "key": "MINIO_SECRET_KEY",
@@ -391,7 +390,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "password",
                 "description": "MinIO secret key (password)",
                 "help_text": "MinIO secret key (similar to password) for authentication. Default 'minioadmin' is for development only. In production, use a strong, randomly generated secret. Store securely in environment variables. Critical security setting - never expose publicly!",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True}
+                "depends_on": {"key": "MINIO_ENABLED", "value": True},
             },
             {
                 "key": "MINIO_BUCKET_NAME",
@@ -402,7 +401,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "text",
                 "description": "Name of the storage bucket (auto-derived when empty)",
                 "help_text": "When left blank, the backend derives a MinIO bucket name by slugifying the Qdrant collection name. Override only if you need to target a specific existing bucket.",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True}
+                "depends_on": {"key": "MINIO_ENABLED", "value": True},
             },
             {
                 "key": "MINIO_WORKERS",
@@ -415,7 +414,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "max": 32,
                 "description": "Number of concurrent upload workers (auto-sized)",
                 "help_text": "The backend now sizes this automatically based on CPU cores and pipeline concurrency. Override via environment variables only when you need to cap or increase concurrency manually.",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True}
+                "depends_on": {"key": "MINIO_ENABLED", "value": True},
             },
             {
                 "key": "MINIO_RETRIES",
@@ -428,7 +427,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "max": 10,
                 "description": "Number of retry attempts on failure (auto-sized)",
                 "help_text": "The backend derives this from the chosen worker concurrency. Override via environment variables if you need stricter or more lenient retry behaviour.",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True}
+                "depends_on": {"key": "MINIO_ENABLED", "value": True},
             },
             {
                 "key": "MINIO_FAIL_FAST",
@@ -439,7 +438,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "boolean",
                 "description": "Stop immediately on first error",
                 "help_text": "Advanced troubleshooting option. When left unset the backend keeps the resilient default (False); override only if you need to abort batches on the first failure.",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True}
+                "depends_on": {"key": "MINIO_ENABLED", "value": True},
             },
             {
                 "key": "MINIO_PUBLIC_READ",
@@ -449,7 +448,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "boolean",
                 "description": "Allow public read access to files",
                 "help_text": "Makes uploaded files publicly accessible without authentication. Enable (True) for public applications where anyone can view documents. Disable (False) for private/internal applications requiring access control. Consider your security requirements carefully.",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True}
+                "depends_on": {"key": "MINIO_ENABLED", "value": True},
             },
             {
                 "key": "IMAGE_FORMAT",
@@ -459,7 +458,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "select",
                 "options": ["JPEG", "PNG", "WEBP"],
                 "description": "Image format for stored files",
-                "help_text": "Format for storing processed document images, whether saved to MinIO or embedded inline within Qdrant. JPEG offers best compression with small quality loss (recommended). PNG is lossless but larger files. WEBP provides better compression than JPEG but may have compatibility issues with older systems. Choose based on storage space vs quality needs."
+                "help_text": "Format for storing processed document images, whether saved to MinIO or embedded inline within Qdrant. JPEG offers best compression with small quality loss (recommended). PNG is lossless but larger files. WEBP provides better compression than JPEG but may have compatibility issues with older systems. Choose based on storage space vs quality needs.",
             },
             {
                 "key": "IMAGE_QUALITY",
@@ -470,17 +469,17 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "min": 1,
                 "max": 100,
                 "description": "Image compression quality (1-100)",
-                "help_text": "Compression quality for JPEG/WEBP images (1-100). Higher values (85-95) preserve more detail but larger files. Lower values (50-75) save storage but may reduce visual quality. Default 75 balances quality and file size well. Applied both to MinIO uploads and inline Qdrant payload storage. PNG ignores this setting as it's lossless."
-            }
-        ]
-    }
+                "help_text": "Compression quality for JPEG/WEBP images (1-100). Higher values (85-95) preserve more detail but larger files. Lower values (50-75) save storage but may reduce visual quality. Default 75 balances quality and file size well. Applied both to MinIO uploads and inline Qdrant payload storage. PNG ignores this setting as it's lossless.",
+            },
+        ],
+    },
 }
 
 
 def get_config_defaults() -> Dict[str, Tuple[ConfigType, Any]]:
     """
     Extract type information and defaults for config.py.
-    
+
     Returns:
         Dict mapping config key to (type, default_value)
         Example: {"LOG_LEVEL": ("str", "INFO"), "BATCH_SIZE": ("int", 12)}
@@ -499,7 +498,7 @@ def get_api_schema() -> Dict[str, Any]:
     """
     Convert schema to API format for frontend consumption.
     All numeric defaults converted to strings for UI compatibility.
-    
+
     Returns:
         Schema dict with string defaults suitable for API responses
     """
@@ -510,18 +509,20 @@ def get_api_schema() -> Dict[str, Any]:
             "description": category["description"],
             "order": category.get("order", 99),
             "icon": category.get("icon", "settings"),
-            "settings": []
+            "settings": [],
         }
-        
+
         for setting in category["settings"]:
             api_setting = {
                 "key": setting["key"],
                 "label": setting["label"],
-                "type": setting.get("ui_type", _infer_ui_type(setting["type"], "options" in setting)),
+                "type": setting.get(
+                    "ui_type", _infer_ui_type(setting["type"], "options" in setting)
+                ),
                 "default": str(setting["default"]),  # Convert to string for UI
-                "description": setting["description"]
+                "description": setting["description"],
             }
-            
+
             # Add optional fields
             if "options" in setting:
                 api_setting["options"] = setting["options"]
@@ -537,9 +538,9 @@ def get_api_schema() -> Dict[str, Any]:
                 api_setting["help_text"] = setting["help_text"]
             if "ui_hidden" in setting:
                 api_setting["ui_hidden"] = setting["ui_hidden"]
-            
+
             api_schema[cat_key]["settings"].append(api_setting)
-    
+
     return api_schema
 
 
@@ -565,6 +566,5 @@ def get_critical_keys() -> set:
         "QDRANT_MEAN_POOLING_ENABLED",
         "QDRANT_URL",
         "QDRANT_USE_BINARY",
-        "QDRANT_ON_DISK"
+        "QDRANT_ON_DISK",
     }
-

@@ -1,8 +1,9 @@
 """Search operations for Qdrant."""
 
 import logging
-import numpy as np
 from typing import List, Optional
+
+import numpy as np
 from qdrant_client import models
 
 import config  # Import module for dynamic config access
@@ -22,7 +23,7 @@ class SearchManager:
         muvera_post=None,
     ):
         """Initialize search manager.
-        
+
         Args:
             qdrant_client: Qdrant client instance
             collection_name: Name of the collection
@@ -42,7 +43,7 @@ class SearchManager:
         qdrant_filter: Optional[models.Filter] = None,
     ):
         """Perform two-stage retrieval with MUVERA-first (if enabled) and multivector rerank.
-        
+
         If QDRANT_MEAN_POOLING_ENABLED is False, performs simple single-vector search.
         """
         # Use config defaults if not specified
@@ -50,7 +51,7 @@ class SearchManager:
             search_limit = config.QDRANT_SEARCH_LIMIT
         if prefetch_limit is None:
             prefetch_limit = config.QDRANT_PREFETCH_LIMIT
-            
+
         # Optional quantization-aware search params
         params = None
         if config.QDRANT_USE_BINARY:
@@ -67,8 +68,13 @@ class SearchManager:
             muvera_query = None
             if self.muvera_post and self.muvera_post.enabled:
                 try:
-                    muvera_query = self.muvera_post.process_query(query_embedding.tolist())
-                    logger.debug("MUVERA query FDE generated: len=%s", len(muvera_query) if muvera_query else None)
+                    muvera_query = self.muvera_post.process_query(
+                        query_embedding.tolist()
+                    )
+                    logger.debug(
+                        "MUVERA query FDE generated: len=%s",
+                        len(muvera_query) if muvera_query else None,
+                    )
                 except Exception as e:
                     logger.warning("MUVERA query FDE failed, falling back: %s", e)
                     muvera_query = None
@@ -124,7 +130,9 @@ class SearchManager:
                 )
             else:
                 # Fallback: original multivector pipeline
-                logger.info("Search using multivector-only pipeline (MUVERA unavailable)")
+                logger.info(
+                    "Search using multivector-only pipeline (MUVERA unavailable)"
+                )
                 req = models.QueryRequest(
                     query=query_embedding.tolist(),
                     prefetch=[
@@ -187,13 +195,11 @@ class SearchManager:
         items = []
         if search_results and search_results[0].points:
             for i, point in enumerate(search_results[0].points[:k]):
-                image_url = (
-                    point.payload.get("image_url") if point.payload else None
-                )
+                image_url = point.payload.get("image_url") if point.payload else None
                 if not image_url:
                     logger.warning(f"Point {i} missing image_url in payload")
                     continue
-                
+
                 items.append(
                     {
                         "payload": point.payload,

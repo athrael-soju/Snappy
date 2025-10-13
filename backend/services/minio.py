@@ -1,31 +1,31 @@
 import io
 import json
-import uuid
-import time
-import random
 import logging
+import random
+import time
+import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import timedelta
-from typing import Iterable, Tuple, Dict, List, Optional
+from typing import Dict, Iterable, List, Optional, Tuple
 from urllib.parse import urlparse
 
-from minio import Minio
-from minio.error import S3Error
-from minio.deleteobjects import DeleteObject
-from PIL import Image
 import urllib3
+from minio import Minio
+from minio.deleteobjects import DeleteObject
+from minio.error import S3Error
+from PIL import Image
 
 from config import (
-    MINIO_URL,
-    MINIO_PUBLIC_URL,
+    IMAGE_FORMAT,
     MINIO_ACCESS_KEY,
-    MINIO_SECRET_KEY,
     MINIO_BUCKET_NAME,
-    MINIO_WORKERS,
-    MINIO_RETRIES,
     MINIO_FAIL_FAST,
     MINIO_PUBLIC_READ,
-    IMAGE_FORMAT,
+    MINIO_PUBLIC_URL,
+    MINIO_RETRIES,
+    MINIO_SECRET_KEY,
+    MINIO_URL,
+    MINIO_WORKERS,
     get_pipeline_max_concurrency,
 )
 
@@ -73,17 +73,19 @@ class MinioService:
             # Configure HTTP connection pool to handle high concurrency
             # Pool size scales with ingestion concurrency (workers * pipeline batches)
             # When concurrency grows, bump connections to avoid saturation
-            max_pool_connections = max(50, MINIO_WORKERS * get_pipeline_max_concurrency() + 10)  # +10 for overhead
+            max_pool_connections = max(
+                50, MINIO_WORKERS * get_pipeline_max_concurrency() + 10
+            )  # +10 for overhead
             http_client = urllib3.PoolManager(
                 maxsize=max_pool_connections,
-                cert_reqs='CERT_REQUIRED' if self.secure else 'CERT_NONE',
+                cert_reqs="CERT_REQUIRED" if self.secure else "CERT_NONE",
                 timeout=urllib3.Timeout.DEFAULT_TIMEOUT,
                 retries=urllib3.Retry(
                     total=0,  # Retries handled by our logic
                     connect=None,
                     read=False,
                     redirect=False,
-                )
+                ),
             )
 
             self.service = Minio(

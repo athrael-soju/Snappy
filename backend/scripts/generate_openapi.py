@@ -31,7 +31,9 @@ def main() -> int:
     sys.path.insert(0, str(backend_path))
 
     # Parse args
-    parser = argparse.ArgumentParser(description="Generate OpenAPI JSON for FastAPI app")
+    parser = argparse.ArgumentParser(
+        description="Generate OpenAPI JSON for FastAPI app"
+    )
     parser.add_argument(
         "--out",
         dest="out_path",
