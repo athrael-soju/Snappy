@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from functools import lru_cache
 import logging
+from functools import lru_cache
 from typing import Optional
 
 import config
@@ -88,7 +88,9 @@ def _get_qdrant_service_cached() -> QdrantService:
         try:
             muvera_post = _get_muvera_postprocessor_cached()
         except Exception as exc:  # pragma: no cover - defensive guard
-            logger.exception("Failed to initialize MUVERA; continuing without it: %s", exc)
+            logger.exception(
+                "Failed to initialize MUVERA; continuing without it: %s", exc
+            )
             _get_muvera_postprocessor_cached.cache_clear()
             muvera_post = None
 

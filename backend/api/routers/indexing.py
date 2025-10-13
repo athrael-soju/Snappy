@@ -1,17 +1,17 @@
+import asyncio
+import json
+import logging
 import os
 import tempfile
 import uuid
 from typing import List
-import asyncio
-import json
-import logging
+
+from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 
-from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
-
 from api.dependencies import get_qdrant_service, qdrant_init_error
-from api.utils import convert_pdf_paths_to_images
 from api.progress import progress_manager
+from api.utils import convert_pdf_paths_to_images
 
 logger = logging.getLogger(__name__)
 
@@ -62,14 +62,20 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
                 if progress_manager.is_cancelled(job_id):
                     raise CancellationError("Job cancelled before processing started")
 
-                progress_manager.update(job_id, current=0, message="converting documents")
+                progress_manager.update(
+                    job_id, current=0, message="converting documents"
+                )
 
-                total_images, image_iterator = convert_pdf_paths_to_images(paths, filenames)
+                total_images, image_iterator = convert_pdf_paths_to_images(
+                    paths, filenames
+                )
                 progress_manager.set_total(job_id, total_images)
 
                 svc = get_qdrant_service()
                 if not svc:
-                    raise RuntimeError(qdrant_init_error or "Dependency services are down")
+                    raise RuntimeError(
+                        qdrant_init_error or "Dependency services are down"
+                    )
 
                 def progress_cb(current: int, info: dict | None = None):
                     if progress_manager.is_cancelled(job_id):
@@ -124,7 +130,11 @@ async def cancel_upload(job_id: str):
     """Cancel an ongoing upload/indexing job."""
     success = progress_manager.cancel(job_id)
     if success:
-        return {"status": "cancelled", "job_id": job_id, "message": "Upload cancelled successfully"}
+        return {
+            "status": "cancelled",
+            "job_id": job_id,
+            "message": "Upload cancelled successfully",
+        }
     else:
         job_data = progress_manager.get(job_id)
         if not job_data:
@@ -132,7 +142,7 @@ async def cancel_upload(job_id: str):
         else:
             raise HTTPException(
                 status_code=400,
-                detail=f"Cannot cancel job in status: {job_data.get('status')}"
+                detail=f"Cannot cancel job in status: {job_data.get('status')}",
             )
 
 
@@ -149,7 +159,11 @@ async def stream_progress(job_id: str):
 
             total = max(1, int(data.get("total") or 0))
             try:
-                pct = int(round(((int(data.get("current") or 0) / total) * 100))) if data.get("total") else 0
+                pct = (
+                    int(round(((int(data.get("current") or 0) / total) * 100)))
+                    if data.get("total")
+                    else 0
+                )
             except Exception:
                 pct = 0
 
@@ -163,9 +177,9 @@ async def stream_progress(job_id: str):
                 "error": data.get("error"),
             }
 
-            changed = (payload["current"] != (last_current if last_current is not None else -1)) or (
-                payload["status"] != last_status
-            )
+            changed = (
+                payload["current"] != (last_current if last_current is not None else -1)
+            ) or (payload["status"] != last_status)
             if changed:
                 yield "event: progress\n" + f"data: {json.dumps(payload)}\n\n"
                 last_current = payload["current"]

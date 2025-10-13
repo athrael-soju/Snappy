@@ -63,7 +63,8 @@ class ProgressManager:
 
     def get(self, job_id: str) -> Optional[Dict]:
         with self._lock:
-            return dict(self._jobs.get(job_id)) if job_id in self._jobs else None
+            job = self._jobs.get(job_id)
+            return job.copy() if job is not None else None
 
     def cancel(self, job_id: str) -> bool:
         """Request cancellation of a job. Returns True if job exists and can be cancelled."""

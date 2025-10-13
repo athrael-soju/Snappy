@@ -4,7 +4,11 @@ import os
 import uvicorn
 
 from api.app import create_app
-from config import LOG_LEVEL, UVICORN_RELOAD
+
+try:  # pragma: no cover - tooling support
+    from config import LOG_LEVEL, UVICORN_RELOAD  # type: ignore
+except ModuleNotFoundError:  # pragma: no cover
+    from backend.config import LOG_LEVEL, UVICORN_RELOAD  # type: ignore
 
 
 def _configure_logging() -> None:
@@ -33,7 +37,9 @@ def run() -> None:
         reload_enabled = reload_override.strip().lower() in {"1", "true", "yes"}
     else:
         reload_enabled = bool(UVICORN_RELOAD)
-    uvicorn.run("main:app", host=host, port=port, log_level=log_level, reload=reload_enabled)
+    uvicorn.run(
+        "main:app", host=host, port=port, log_level=log_level, reload=reload_enabled
+    )
 
 
 if __name__ == "__main__":

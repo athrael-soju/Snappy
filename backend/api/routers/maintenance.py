@@ -1,19 +1,23 @@
 import asyncio
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from fastapi import APIRouter, HTTPException
 
 from api.dependencies import (
-    get_qdrant_service,
     get_minio_service,
-    qdrant_init_error,
+    get_qdrant_service,
     minio_init_error,
+    qdrant_init_error,
 )
-import config
+
+try:  # pragma: no cover - tooling support
+    import config  # type: ignore
+except ModuleNotFoundError:  # pragma: no cover
+    from backend import config as config  # type: ignore
 
 if TYPE_CHECKING:
-    from services.qdrant import QdrantService
     from services.minio import MinioService
+    from services.qdrant import QdrantService
 
 _get_config = getattr  # alias for static analysis friendliness
 
@@ -29,7 +33,9 @@ def _collection_name() -> str:
 def _bucket_name() -> str:
     return str(getattr(config, "MINIO_BUCKET_NAME", ""))
 
+
 router = APIRouter(prefix="", tags=["maintenance"])
+
 
 @router.post("/clear/qdrant")
 async def clear_qdrant():
@@ -44,6 +50,7 @@ async def clear_qdrant():
         return {"status": "ok", "message": msg}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/clear/minio")
 async def clear_minio():
@@ -68,6 +75,7 @@ async def clear_minio():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.post("/clear/all")
 async def clear_all():
     try:
@@ -77,6 +85,7 @@ async def clear_all():
         return {"status": "ok", "message": message}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/status")
 async def get_status():
@@ -95,6 +104,7 @@ async def get_status():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.post("/initialize")
 async def initialize():
     """Initialize/create collection and bucket based on current configuration."""
@@ -104,6 +114,7 @@ async def initialize():
         return await asyncio.to_thread(_initialize_sync, svc, msvc)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.delete("/delete")
 async def delete_collection_and_bucket():
@@ -159,6 +170,7 @@ def _collect_collection_status(svc: Optional["QdrantService"]) -> dict:
             status["error"] = str(exc)
     return status
 
+
 def _collect_bucket_status(msvc: Optional["MinioService"]) -> dict:
     bucket_name = _bucket_name()
     minio_enabled = _is_minio_enabled()
@@ -194,7 +206,7 @@ def _collect_bucket_status(msvc: Optional["MinioService"]) -> dict:
 def _clear_all_sync(
     svc: Optional["QdrantService"], msvc: Optional["MinioService"]
 ) -> str:
-    collection_name = _collection_name()
+    _collection_name()
     minio_enabled = _is_minio_enabled()
     if svc:
         try:
@@ -202,7 +214,9 @@ def _clear_all_sync(
         except Exception as exc:
             q_msg = f"Qdrant clear failed: {exc}"
     else:
-        q_msg = f"Qdrant unavailable: {qdrant_init_error or 'Dependency service is down'}"
+        q_msg = (
+            f"Qdrant unavailable: {qdrant_init_error or 'Dependency service is down'}"
+        )
     if not minio_enabled:
         m_msg = "MinIO disabled via configuration"
     elif msvc:
@@ -234,9 +248,9 @@ def _initialize_sync(
         try:
             svc._create_collection_if_not_exists()
             results["collection"]["status"] = "success"
-            results["collection"]["message"] = (
-                f"Collection '{collection_name}' initialized successfully"
-            )
+            results["collection"][
+                "message"
+            ] = f"Collection '{collection_name}' initialized successfully"
         except Exception as exc:
             results["collection"]["status"] = "error"
             results["collection"]["message"] = str(exc)
@@ -250,22 +264,30 @@ def _initialize_sync(
         try:
             msvc._create_bucket_if_not_exists()
             results["bucket"]["status"] = "success"
-            results["bucket"]["message"] = (
-                f"Bucket '{bucket_name}' initialized successfully"
-            )
+            results["bucket"][
+                "message"
+            ] = f"Bucket '{bucket_name}' initialized successfully"
         except Exception as exc:
             results["bucket"]["status"] = "error"
             results["bucket"]["message"] = str(exc)
     else:
         results["bucket"]["status"] = "error"
         results["bucket"]["message"] = minio_init_error or "Service unavailable"
-    overall_status = "success" if (
-        results["collection"]["status"] == "success"
-        and results["bucket"]["status"] == "success"
-    ) else "partial" if (
-        results["collection"]["status"] == "success"
-        or results["bucket"]["status"] == "success"
-    ) else "error"
+    overall_status = (
+        "success"
+        if (
+            results["collection"]["status"] == "success"
+            and results["bucket"]["status"] == "success"
+        )
+        else (
+            "partial"
+            if (
+                results["collection"]["status"] == "success"
+                or results["bucket"]["status"] == "success"
+            )
+            else "error"
+        )
+    )
     return {"status": overall_status, "results": results}
 
 
@@ -284,9 +306,9 @@ def _delete_sync(
         try:
             svc.service.delete_collection(collection_name=collection_name)
             results["collection"]["status"] = "success"
-            results["collection"]["message"] = (
-                f"Collection '{collection_name}' deleted successfully"
-            )
+            results["collection"][
+                "message"
+            ] = f"Collection '{collection_name}' deleted successfully"
         except Exception as exc:
             if "not found" in str(exc).lower():
                 results["collection"]["status"] = "success"
@@ -307,6 +329,7 @@ def _delete_sync(
                 objects = msvc.list_object_names(recursive=True)
                 if objects:
                     from minio.deleteobjects import DeleteObject
+
                     delete_objects = [DeleteObject(name) for name in objects]
                     errors = list(
                         msvc.service.remove_objects(
@@ -316,15 +339,15 @@ def _delete_sync(
                     )
                     if errors:
                         results["bucket"]["status"] = "error"
-                        results["bucket"]["message"] = (
-                            f"Failed to delete some objects: {len(errors)} errors"
-                        )
+                        results["bucket"][
+                            "message"
+                        ] = f"Failed to delete some objects: {len(errors)} errors"
                         return {"status": "error", "results": results}
                 msvc.service.remove_bucket(bucket_name)
                 results["bucket"]["status"] = "success"
-                results["bucket"]["message"] = (
-                    f"Bucket '{bucket_name}' deleted successfully"
-                )
+                results["bucket"][
+                    "message"
+                ] = f"Bucket '{bucket_name}' deleted successfully"
             else:
                 results["bucket"]["status"] = "success"
                 results["bucket"]["message"] = "Bucket did not exist"
@@ -334,11 +357,19 @@ def _delete_sync(
     else:
         results["bucket"]["status"] = "error"
         results["bucket"]["message"] = minio_init_error or "Service unavailable"
-    overall_status = "success" if (
-        results["collection"]["status"] == "success"
-        and results["bucket"]["status"] == "success"
-    ) else "partial" if (
-        results["collection"]["status"] == "success"
-        or results["bucket"]["status"] == "success"
-    ) else "error"
+    overall_status = (
+        "success"
+        if (
+            results["collection"]["status"] == "success"
+            and results["bucket"]["status"] == "success"
+        )
+        else (
+            "partial"
+            if (
+                results["collection"]["status"] == "success"
+                or results["bucket"]["status"] == "success"
+            )
+            else "error"
+        )
+    )
     return {"status": overall_status, "results": results}

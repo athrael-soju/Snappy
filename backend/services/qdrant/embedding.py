@@ -1,12 +1,20 @@
 """Embedding and pooling operations for image processing."""
 
+import importlib
 import logging
-import numpy as np
-from typing import List, Tuple, Optional
-from PIL import Image
 from concurrent.futures import ThreadPoolExecutor
+from typing import Any, List, Optional, Tuple, TYPE_CHECKING, cast
 
-import config  # Import module for dynamic config access
+import numpy as np
+from PIL import Image
+
+if TYPE_CHECKING:
+    from backend import config as config  # type: ignore
+    from services.colpali import ColPaliService
+else:  # pragma: no cover - runtime import for application execution
+    import config  # type: ignore
+
+MuveraLike = Any
 
 logger = logging.getLogger(__name__)
 
@@ -14,21 +22,27 @@ logger = logging.getLogger(__name__)
 class EmbeddingProcessor:
     """Handles embedding and pooling operations for images."""
 
-    def __init__(self, api_client=None):
+    def __init__(self, api_client: Optional["ColPaliService"] = None) -> None:
         """Initialize embedding processor.
-        
+
         Args:
             api_client: ColPali client for embedding operations
         """
         self.api_client = api_client
 
+    def _require_client(self) -> "ColPaliService":
+        if self.api_client is None:
+            raise ValueError("ColPali API client is not initialized")
+        return self.api_client
+
     def get_patches(self, image_size: Tuple[int, int]) -> Tuple[int, int]:
         """Get number of patches for image using API."""
+        api_client = self._require_client()
         width, height = image_size
         dimensions = [{"width": width, "height": height}]
-        results = self.api_client.get_patches(dimensions)
+        results = api_client.get_patches(dimensions)
         result = results[0]  # Get first (and only) result
-        return result["n_patches_x"], result["n_patches_y"]
+        return int(result["n_patches_x"]), int(result["n_patches_y"])
 
     @staticmethod
     def pool_image_tokens(
@@ -38,12 +52,7 @@ class EmbeddingProcessor:
         x_patches: int,
         y_patches: int,
     ) -> Tuple[List[List[float]], List[List[float]]]:
-        """
-        Mean-pool image tokens by rows and columns, preserving prefix/postfix tokens.
-
-        Returns:
-            pooled_by_rows, pooled_by_columns
-        """
+        """Mean-pool image tokens by rows and columns, preserving prefix/postfix tokens."""
         total_tokens = image_embedding_np.shape[0]
 
         if start < 0 or patch_len <= 0:
@@ -92,9 +101,12 @@ class EmbeddingProcessor:
             start = item.get("image_patch_start", -1)
             patch_len = item.get("image_patch_len", 0)
         else:
-            raise Exception(
+            raise ValueError(
                 "embed_images() returned embeddings without image-token boundaries"
             )
+
+        if embedding_list is None:
+            raise ValueError("Embedding list missing from API response")
 
         image_embedding_np = np.asarray(embedding_list, dtype=np.float32)
         x_patches = patch_result["n_patches_x"]
@@ -112,50 +124,54 @@ class EmbeddingProcessor:
         return image_embedding_np.tolist(), pooled_by_rows, pooled_by_columns
 
     def embed_and_mean_pool_batch(self, image_batch: List[Image.Image]):
-        """
-        Embed images via API and create mean pooled representations using explicit
-        image-token boundaries provided by the API (no midpoint guessing).
-        
-        Pooling operations are parallelized for better CPU utilization on high-core-count systems.
-        If QDRANT_MEAN_POOLING_ENABLED is False, pooling is skipped and empty lists are returned.
-        """
+        """Embed images via API and optionally perform mean pooling."""
+        api_client = self._require_client()
         # API returns per-image dicts: {embedding, image_patch_start, image_patch_len}
-        api_items = self.api_client.embed_images(image_batch)
+        api_items_raw = api_client.embed_images(image_batch)
+        api_items: List[dict[str, Any]] = []
+        for raw_item in api_items_raw:
+            if not isinstance(raw_item, dict):
+                raise ValueError("embed_images() returned non-dict response")
+            api_items.append(raw_item)
 
         # Extract original embeddings
         original_batch = []
         for item in api_items:
-            if isinstance(item, dict):
-                embedding_list = item.get("embedding")
-                original_batch.append(embedding_list)
+            if isinstance(item, dict) and "embedding" in item:
+                original_batch.append(item["embedding"])
             else:
-                raise Exception(
-                    "embed_images() returned embeddings without proper format"
+                raise ValueError(
+                    "embed_images() returned data without embedding entries"
                 )
-        
-        # If mean pooling is disabled, return empty pooled batches
-        if not config.QDRANT_MEAN_POOLING_ENABLED:
-            logger.debug("Mean pooling disabled, skipping pooling operations")
+
+        # Skip pooling entirely if disabled
+        if not bool(config.QDRANT_MEAN_POOLING_ENABLED):
             return original_batch, [], []
 
-        # Batch get patches for all images
         dimensions = [
-            {"width": image.size[0], "height": image.size[1]} for image in image_batch
+            {"width": image.width, "height": image.height}
+            for image in image_batch
         ]
-        patch_results = self.api_client.get_patches(dimensions)
+        patch_results_raw = api_client.get_patches(dimensions)
+        patch_results: List[dict[str, Any]] = []
+        for patch in patch_results_raw:
+            if not isinstance(patch, dict):
+                raise ValueError("get_patches() returned non-dict response")
+            patch_results.append(patch)
 
-        # Parallelize pooling operations to maximize CPU utilization
         pooled_by_rows_batch = []
         pooled_by_columns_batch = []
-        
+
         # For batches larger than 2, use parallel pooling
         if len(api_items) > 2:
             with ThreadPoolExecutor(max_workers=min(8, len(api_items))) as executor:
-                results = list(executor.map(
-                    lambda args: self.pool_single_image(args[0], args[1], args[2]),
-                    zip(api_items, image_batch, patch_results)
-                ))
-                
+                results = list(
+                    executor.map(
+                        lambda args: self.pool_single_image(args[0], args[1], args[2]),
+                        zip(api_items, image_batch, patch_results),
+                    )
+                )
+
             for orig, rows, cols in results:
                 pooled_by_rows_batch.append(rows)
                 pooled_by_columns_batch.append(cols)
@@ -169,23 +185,18 @@ class EmbeddingProcessor:
         return original_batch, pooled_by_rows_batch, pooled_by_columns_batch
 
     def batch_embed_query(self, query_batch: List[str]) -> np.ndarray:
-        """Embed query batch using API (returns the first, since we submit one)."""
-        query_embeddings = self.api_client.embed_queries(
-            query_batch
-        )  # List[List[List[float]]]
+        """Embed a batch of queries using the API."""
+        api_client = self._require_client()
+        query_embeddings = api_client.embed_queries(query_batch)
         return np.array(query_embeddings[0]) if query_embeddings else np.array([])
 
 
 class MuveraPostprocessor:
-    """
-    Thin wrapper around fastembed.postprocess.Muvera for transforming
-    multi-vector embeddings (e.g., ColPali/ColBERT-style) into a single-vector
-    Fixed Dimensional Encoding (FDE) for fast initial retrieval.
-    """
+    """Wrapper around fastembed.postprocess.Muvera."""
 
-    def __init__(self, input_dim: int):
+    def __init__(self, input_dim: int) -> None:
         self.enabled = bool(config.MUVERA_ENABLED)
-        self._muvera = None
+        self._muvera: Optional[MuveraLike] = None
         self._embedding_size: Optional[int] = None
 
         if not self.enabled:
@@ -193,23 +204,23 @@ class MuveraPostprocessor:
             return
 
         try:
-            # Lazy import to avoid dependency issues if disabled
-            from fastembed.postprocess import Muvera as _Muvera
+            module = importlib.import_module("fastembed.postprocess")
+            muvera_cls = getattr(module, "Muvera")
 
             k_sim = int(config.MUVERA_K_SIM)
             dim_proj = int(config.MUVERA_DIM_PROJ)
             r_reps = int(config.MUVERA_R_REPS)
             random_seed = int(config.MUVERA_RANDOM_SEED)
 
-            self._muvera = _Muvera(
+            muvera = muvera_cls(
                 dim=input_dim,
                 k_sim=k_sim,
                 dim_proj=dim_proj,
                 r_reps=r_reps,
                 random_seed=random_seed,
             )
-            # Determine output dimension (fde size)
-            self._embedding_size = int(self._muvera.embedding_size)
+            self._muvera = muvera
+            self._embedding_size = int(muvera.embedding_size)
             logger.info(
                 "Initialized MUVERA: input_dim=%s, k_sim=%s, dim_proj=%s, r_reps=%s, fde_dim=%s",
                 input_dim,
@@ -218,9 +229,8 @@ class MuveraPostprocessor:
                 r_reps,
                 self._embedding_size,
             )
-        except Exception as e:
-            logger.error("Failed to initialize MUVERA: %s", e)
-            # Disable if initialization fails
+        except Exception as exc:  # pragma: no cover - best effort
+            logger.error("Failed to initialize MUVERA: %s", exc)
             self.enabled = False
             self._muvera = None
             self._embedding_size = None
@@ -229,38 +239,41 @@ class MuveraPostprocessor:
     def embedding_size(self) -> Optional[int]:
         return self._embedding_size
 
-    def process_document(self, multivectors: List[List[float]]) -> Optional[List[float]]:
-        """
-        Compute document FDE from multi-vector embedding.
-        multivectors: shape (n_tokens, dim)
-        """
+    def _require_impl(self) -> MuveraLike:
         if not self.enabled or self._muvera is None:
-            logger.debug("MUVERA.process_document skipped (enabled=%s, has_impl=%s)", self.enabled, self._muvera is not None)
-            return None
+            raise RuntimeError("MUVERA postprocessor is not available")
+        return self._muvera
+
+    def process_document(
+        self, multivectors: List[List[float]]
+    ) -> Optional[List[float]]:
         if not multivectors:
             logger.debug("MUVERA.process_document received empty multivectors")
             return None
+        try:
+            muvera = self._require_impl()
+        except RuntimeError:
+            return None
         arr = np.asarray(multivectors, dtype=np.float32)
         logger.debug("MUVERA.process_document input shape: %s", arr.shape)
-        fde = self._muvera.process_document(arr)
-        out = fde.astype(np.float32).tolist()
+        fde = muvera.process_document(arr)
+        out = cast(np.ndarray, fde).astype(np.float32).tolist()
         logger.debug("MUVERA.process_document output length: %d", len(out))
         return out
 
-    def process_query(self, multivectors: List[List[float]]) -> Optional[List[float]]:
-        """
-        Compute query FDE from multi-vector embedding.
-        multivectors: shape (n_tokens, dim)
-        """
-        if not self.enabled or self._muvera is None:
-            logger.debug("MUVERA.process_query skipped (enabled=%s, has_impl=%s)", self.enabled, self._muvera is not None)
-            return None
+    def process_query(
+        self, multivectors: List[List[float]]
+    ) -> Optional[List[float]]:
         if not multivectors:
             logger.debug("MUVERA.process_query received empty multivectors")
             return None
+        try:
+            muvera = self._require_impl()
+        except RuntimeError:
+            return None
         arr = np.asarray(multivectors, dtype=np.float32)
         logger.debug("MUVERA.process_query input shape: %s", arr.shape)
-        fde = self._muvera.process_query(arr)
-        out = fde.astype(np.float32).tolist()
+        fde = muvera.process_query(arr)
+        out = cast(np.ndarray, fde).astype(np.float32).tolist()
         logger.debug("MUVERA.process_query output length: %d", len(out))
         return out

@@ -9,9 +9,11 @@ Defaults and types are defined in config_schema.py (single source of truth).
 import os
 import re
 from typing import Any
+
 from dotenv import load_dotenv
-from runtime_config import get_runtime_config
+
 from config_schema import get_config_defaults
+from runtime_config import get_runtime_config
 
 load_dotenv()
 
@@ -23,13 +25,13 @@ _CONFIG_DEFAULTS = get_config_defaults()
 
 
 def _slugify_bucket_name(name: str) -> str:
-    sanitized = re.sub(r'[^a-z0-9-]+', '-', name.lower())
-    sanitized = re.sub(r'-{2,}', '-', sanitized).strip('-')
-    return sanitized or 'documents'
+    sanitized = re.sub(r"[^a-z0-9-]+", "-", name.lower())
+    sanitized = re.sub(r"-{2,}", "-", sanitized).strip("-")
+    return sanitized or "documents"
 
 
 def _get_auto_bucket_name() -> str:
-    base = __getattr__('QDRANT_COLLECTION_NAME')
+    base = __getattr__("QDRANT_COLLECTION_NAME")
     return _slugify_bucket_name(base)
 
 
@@ -58,7 +60,6 @@ def _get_auto_minio_retries(workers: int) -> int:
     return 2
 
 
-
 def __getattr__(name: str) -> Any:
     """
     Dynamically retrieve configuration values.
@@ -66,7 +67,7 @@ def __getattr__(name: str) -> Any:
     """
     if name in _CONFIG_DEFAULTS:
         type_str, default = _CONFIG_DEFAULTS[name]
-        
+
         if type_str == "int":
             if name == "MINIO_WORKERS":
                 if _runtime.has(name):
@@ -97,7 +98,7 @@ def __getattr__(name: str) -> Any:
             if name == "MINIO_BUCKET_NAME" and not value.strip():
                 return _get_auto_bucket_name()
             return value
-    
+
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 

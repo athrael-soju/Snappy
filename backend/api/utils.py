@@ -1,5 +1,5 @@
-import os
 import logging
+import os
 from typing import Dict, Iterator, List, Tuple
 
 from fastapi import HTTPException
@@ -80,7 +80,9 @@ def convert_pdf_paths_to_images(
 
                 for offset, img in enumerate(images):
                     width, height = (
-                        (img.size[0], img.size[1]) if hasattr(img, "size") else (None, None)
+                        (img.size[0], img.size[1])
+                        if hasattr(img, "size")
+                        else (None, None)
                     )
                     yield {
                         "image": img,

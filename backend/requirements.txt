@@ -11,3 +11,8 @@ uvicorn[standard]
 python-multipart
 fastembed
 psutil
+
+autoflake
+black
+isort
+pyright
