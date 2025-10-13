@@ -22,14 +22,14 @@ def _infer_ui_type(config_type: ConfigType, has_options: bool = False) -> Config
     """Infer UI input type from config type."""
     if has_options:
         return "select"
-    mapping = {
+    mapping: Dict[ConfigType, ConfigUIType] = {
         "str": "text",
         "int": "number",
         "float": "number",
         "bool": "boolean",
         "list": "text"
     }
-    return mapping.get(config_type, "text")
+    return mapping[config_type]
 
 
 # Complete configuration schema with all metadata
@@ -167,6 +167,15 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "help_text": "Connection endpoint for the Qdrant vector database service. Default port is 6333. Change if Qdrant runs on a different host or port. Format: http://hostname:port. Ensure the backend can reach this URL and that Qdrant is running."
             },
             {
+                "key": "QDRANT_EMBEDDED",
+                "type": "bool",
+                "default": True,
+                "label": "Run Embedded Qdrant",
+                "ui_type": "boolean",
+                "description": "Use an embedded (in-memory) Qdrant instance",
+                "help_text": "When enabled the backend starts an in-memory Qdrant instance (no external service required). Disable to connect to an external Qdrant deployment via QDRANT_URL."
+            },
+            {
                 "key": "QDRANT_COLLECTION_NAME",
                 "type": "str",
                 "default": "documents",
@@ -184,7 +193,8 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "min": 10,
                 "max": 1000,
                 "description": "Number of candidates to prefetch",
-                "help_text": "When using MUVERA or quantization, this many candidates are prefetched before final ranking. Should be higher than SEARCH_LIMIT to ensure good recall. Higher values (200-1000) improve accuracy but slow queries. Only relevant when using advanced retrieval features."
+                "help_text": "When mean pooling reranking is enabled, this many multivector candidates are prefetched before final ranking. Should be higher than SEARCH_LIMIT to ensure good recall. Higher values (200-1000) improve accuracy but slow queries. Has no effect when mean pooling is disabled.",
+                "depends_on": {"key": "QDRANT_MEAN_POOLING_ENABLED", "value": True}
             },
             {
                 "key": "QDRANT_ON_DISK",
@@ -550,6 +560,7 @@ def get_critical_keys() -> set:
     return {
         "MUVERA_ENABLED",
         "MINIO_ENABLED",
+        "QDRANT_EMBEDDED",
         "QDRANT_COLLECTION_NAME",
         "QDRANT_MEAN_POOLING_ENABLED",
         "QDRANT_URL",

@@ -46,6 +46,7 @@ export default function MaintenancePage() {
 
   const criticalActions = MAINTENANCE_ACTIONS.filter(a => a.severity === "critical");
   const isConfigurationView = section !== "data";
+  const bucketDisabled = systemStatus?.bucket?.disabled === true;
 
   return (
     <motion.div {...defaultPageMotion}>
@@ -65,15 +66,17 @@ export default function MaintenancePage() {
           <div className="mx-auto flex w-full max-w-6xl flex-1 min-h-0 gap-6">
             <ScrollArea className="h-[calc(100vh-15rem)]">
               <div className="flex w-full flex-col gap-6 p-4 pb-8">
-                <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                <div className={`grid grid-cols-1 gap-5 ${bucketDisabled ? "" : "lg:grid-cols-2"}`}>
                   <CollectionStatusCard
                     status={systemStatus?.collection || null}
                     isLoading={statusLoading}
                   />
-                  <BucketStatusCard
-                    status={systemStatus?.bucket || null}
-                    isLoading={statusLoading}
-                  />
+                  {!bucketDisabled && (
+                    <BucketStatusCard
+                      status={systemStatus?.bucket || null}
+                      isLoading={statusLoading}
+                    />
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">

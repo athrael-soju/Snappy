@@ -38,6 +38,8 @@ export interface SystemStatus {
     vector_count: number;
     unique_files: number;
     error: string | null;
+    embedded?: boolean;
+    image_store_mode?: "inline" | "minio" | string;
   };
   bucket: {
     name: string;

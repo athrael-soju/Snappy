@@ -78,7 +78,10 @@ def _get_qdrant_service_cached() -> QdrantService:
     if config.MINIO_ENABLED:
         minio_service = get_minio_service()
         if not minio_service:
-            raise RuntimeError("MinIO service not available")
+            logger.warning(
+                "MinIO is enabled but unavailable; falling back to inline image storage."
+            )
+            minio_service = None
 
     muvera_post = None
     if config.MUVERA_ENABLED:

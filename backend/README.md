@@ -28,7 +28,7 @@ copy .env.example .env
 ```
 - Key variables (see `backend/config.py` and `.env.example`):
   - ColPali: `COLPALI_MODE`, `COLPALI_CPU_URL`, `COLPALI_GPU_URL`, or `COLPALI_API_BASE_URL`
-  - Qdrant: `QDRANT_URL`
+  - Qdrant: `QDRANT_EMBEDDED`, `QDRANT_URL`
   - MinIO: `MINIO_URL`, `MINIO_PUBLIC_URL`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`
 - Local defaults expect services at:
   - Qdrant: `http://localhost:6333`
