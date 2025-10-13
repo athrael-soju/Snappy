@@ -3,6 +3,7 @@ import { MaintenanceService, ApiError } from "@/lib/api/generated";
 import { toast } from "@/components/ui/sonner";
 import { ActionType, LoadingState } from "@/components/maintenance/types";
 import { MAINTENANCE_ACTIONS } from "@/components/maintenance/constants";
+import { useAppStore } from "@/stores/app-store";
 
 
 interface UseMaintenanceActionsOptions {
@@ -15,6 +16,8 @@ interface UseMaintenanceActionsOptions {
 export function useMaintenanceActions({ onSuccess }: UseMaintenanceActionsOptions = {}) {
   const [loading, setLoading] = useState<LoadingState>({ q: false, m: false, all: false });
   const [dialogOpen, setDialogOpen] = useState<ActionType | null>(null);
+  const { state } = useAppStore();
+  const isMinioDisabled = state.systemStatus?.bucket?.disabled === true;
 
   const actionHandlers: Record<ActionType, () => Promise<unknown>> = {
     q: () => MaintenanceService.clearQdrantClearQdrantPost(),
@@ -28,6 +31,14 @@ export function useMaintenanceActions({ onSuccess }: UseMaintenanceActionsOption
 
     const handler = actionHandlers[action];
     if (!handler) return;
+
+    if (action === "m" && isMinioDisabled) {
+      toast.info("MinIO Disabled", {
+        description: "MinIO is disabled via configuration; there is nothing to clear.",
+      });
+      setDialogOpen(null);
+      return;
+    }
 
     setLoading((s) => ({ ...s, [action]: true }));
     setDialogOpen(null);

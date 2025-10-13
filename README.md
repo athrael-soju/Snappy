@@ -8,7 +8,7 @@
 
 A lightweight, end-to-end template for page-level retrieval over PDFs using a ColPali-like approach:
 
-- __Storage__: page images in MinIO, multivector embeddings in Qdrant
+- __Storage__: page images in MinIO (or inline inside Qdrant when MinIO is disabled), multivector embeddings in Qdrant
 - __Retrieval__: two-stage reranking with pooled image-token vectors; optional MUVERA-first stage when enabled
 - __Generation__: Next.js chat API streams OpenAI Responses with multimodal context (retrieved page images)
 - __API__: FastAPI service exposing endpoints for indexing, search, and maintenance
@@ -99,14 +99,14 @@ __Indexing flow__:
 
 1) PDF -> images via `pdf2image.convert_from_path`
 2) Images -> embeddings via external ColPali API
-3) Images saved to MinIO (public URL)
+3) Images stored via MinIO (public URL) or embedded inline in the Qdrant payload when MinIO is disabled
 4) Embeddings (original + mean-pooled rows/cols) upserted to Qdrant with payload metadata
 
 __Retrieval flow__:
 
 1) Query -> embedding (ColPali API)
 2) Qdrant multivector prefetch (rows/cols) + re-ranking using `using="original"`; if MUVERA is enabled, the service performs a first-stage search on `muvera_fde` and prefetches multivectors for rerank
-3) Fetch images from MinIO for top-k pages
+3) Fetch images via MinIO or read inline payload data for top-k pages
 4) Frontend chat API streams OpenAI Responses conditioned on user text + page images
 
 ## Features
@@ -365,7 +365,7 @@ Most defaults are in `config.py`. Key variables:
   - Storage: `QDRANT_ON_DISK` (store vectors on disk), `QDRANT_ON_DISK_PAYLOAD` (store payloads on disk)
   - Binary quantization (optional): `QDRANT_USE_BINARY` (enable), `QDRANT_BINARY_ALWAYS_RAM` (keep quantized codes in RAM)
   - Search tuning (when binary is enabled): `QDRANT_SEARCH_RESCORE`, `QDRANT_SEARCH_OVERSAMPLING`, `QDRANT_SEARCH_IGNORE_QUANT`
-- __MinIO__: `MINIO_URL` (default http://localhost:9000), `MINIO_PUBLIC_URL` (public base for links), `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET_NAME` (auto-derived from collection name unless overridden), `MINIO_WORKERS` (auto-sized), `MINIO_RETRIES` (auto-sized), `MINIO_FAIL_FAST` (advanced toggle), `MINIO_PUBLIC_READ` (apply public-read policy automatically), `MINIO_IMAGE_FMT`
+- __Object storage__: `MINIO_ENABLED` (set False to store images directly in Qdrant payloads), `MINIO_URL` (default http://localhost:9000), `MINIO_PUBLIC_URL` (public base for links), `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET_NAME` (auto-derived from collection name unless overridden), `MINIO_WORKERS` (auto-sized), `MINIO_RETRIES` (auto-sized), `MINIO_FAIL_FAST` (advanced toggle), `MINIO_PUBLIC_READ` (apply public-read policy automatically), `IMAGE_FORMAT`
 - __Processing__: `DEFAULT_TOP_K`, `BATCH_SIZE`, `WORKER_THREADS`, `MAX_TOKENS`
 
 See `.env.example` for a minimal starting point. When using Compose, note:
@@ -466,7 +466,7 @@ This template supports binary quantization for Qdrant to reduce memory usage and
 - __OpenAI key/model (frontend)__: If AI responses show an error, verify `frontend/.env.local` has `OPENAI_API_KEY` and `OPENAI_MODEL` (and that the Next.js API route has access to them in its environment).
 - __ColPali API health__: On start, `QdrantService` checks `GET /health`. Ensure your server is reachable at `COLPALI_API_BASE_URL`.
 - __Patch metadata mismatch__: If you see an error like "embed_images() returned embeddings without image-token boundaries", update your embedding server/client to include `image_patch_start` and `image_patch_len` per image.
-- __MinIO access__: The app sets a public-read bucket policy. For production, lock this down. If images fail to upload, check MinIO logs and credentials.
+- __MinIO access__: The app sets a public-read bucket policy. For production, lock this down. If images fail to upload, check MinIO logs and credentials. (When `MINIO_ENABLED=False`, images are served directly from Qdrant payloads and this does not apply.)
 - __Poppler on Windows__: Install Poppler (e.g., download a release, extract, add `poppler-*/bin` to PATH). `pdf2image` must find `pdftoppm`.
 - __Ports already in use__: Change `PORT` (app), `QDRANT_URL`, `MINIO_URL`, or Docker port mappings.
 

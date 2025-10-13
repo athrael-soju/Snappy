@@ -14,28 +14,55 @@ export function useSystemManagement({ onSuccess }: UseSystemManagementOptions = 
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
+  const isBucketSkipped = (result: any): boolean => {
+    const bucketResult = result?.results?.bucket;
+    if (!bucketResult) return false;
+    if (bucketResult.status && typeof bucketResult.status === "string") {
+      if (bucketResult.status.toLowerCase() === "skipped") return true;
+    }
+    if (bucketResult.disabled === true) return true;
+    const message: unknown = bucketResult.message;
+    if (typeof message === "string" && message.toLowerCase().includes("minio disabled")) {
+      return true;
+    }
+    return false;
+  };
+
+  const buildSuccessDescription = (result: any, fallback: string) => {
+    const bucketSkipped = isBucketSkipped(result);
+    if (!bucketSkipped) return fallback;
+    const message = result?.results?.bucket?.message;
+    if (typeof message === "string" && message.length > 0) {
+      return message;
+    }
+    return "Collection ready; MinIO is disabled via configuration.";
+  };
+
   const handleInitialize = async () => {
     setInitLoading(true);
     try {
       const result = await MaintenanceService.initializeInitializePost();
-      
-      if (result.status === "success") {
-        toast.success("Initialization Complete", { 
-          description: "Collection and bucket are ready to use" 
+
+      const status: string | undefined = typeof result?.status === "string" ? result.status : undefined;
+      const bucketSkipped = isBucketSkipped(result);
+
+      if (status === "success" || (status === "partial" && bucketSkipped)) {
+        toast.success("Initialization Complete", {
+          description: buildSuccessDescription(result, "Collection is ready (and MinIO bucket if enabled)"),
         });
-      } else if (result.status === "partial") {
-        toast.warning("Partial Initialization", { 
-          description: "Some components failed to initialize. Check details." 
+      } else if (status === "partial") {
+        toast.warning("Partial Initialization", {
+          description: "Some components failed to initialize. Check details.",
         });
       } else {
-        toast.error("Initialization Failed", { 
-          description: "Failed to initialize collection and bucket" 
+        toast.error("Initialization Failed", {
+          description: "Failed to initialize required storage components",
         });
       }
-      
+
       // Notify success callback
       onSuccess?.();
-      
+
       // Dispatch event to notify other pages
       window.dispatchEvent(new CustomEvent('systemStatusChanged'));
     } catch (err: unknown) {
@@ -56,24 +83,27 @@ export function useSystemManagement({ onSuccess }: UseSystemManagementOptions = 
     setDeleteDialogOpen(false);
     try {
       const result = await MaintenanceService.deleteCollectionAndBucketDeleteDelete();
-      
-      if (result.status === "success") {
-        toast.success("Deletion Complete", { 
-          description: "Collection and bucket have been deleted" 
+
+      const status: string | undefined = typeof result?.status === "string" ? result.status : undefined;
+      const bucketSkipped = isBucketSkipped(result);
+
+      if (status === "success" || (status === "partial" && bucketSkipped)) {
+        toast.success("Deletion Complete", {
+          description: buildSuccessDescription(result, "Collection removed (and MinIO bucket if enabled)"),
         });
-      } else if (result.status === "partial") {
-        toast.warning("Partial Deletion", { 
-          description: "Some components failed to delete. Check details." 
+      } else if (status === "partial") {
+        toast.warning("Partial Deletion", {
+          description: "Some components failed to delete. Check details.",
         });
       } else {
-        toast.error("Deletion Failed", { 
-          description: "Failed to delete collection and bucket" 
+        toast.error("Deletion Failed", {
+          description: "Failed to delete required storage components",
         });
       }
-      
+
       // Notify success callback
       onSuccess?.();
-      
+
       // Dispatch event to notify other pages
       window.dispatchEvent(new CustomEvent('systemStatusChanged'));
     } catch (err: unknown) {

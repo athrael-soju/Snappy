@@ -1,10 +1,12 @@
 """Document indexing operations for Qdrant."""
 
+import base64
+import io
 import uuid
 import logging
 from datetime import datetime
 from itertools import islice
-from typing import Callable, Iterable, Iterator, List, Optional, Tuple
+from typing import Callable, Dict, Iterable, Iterator, List, Optional, Tuple
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 
 from PIL import Image
@@ -91,32 +93,81 @@ class DocumentIndexer:
         except Exception as exc:
             raise Exception(f"Error during embed: {exc}") from exc
 
+    @staticmethod
+    def _encode_inline_image(image: Image.Image) -> Dict[str, object]:
+        fmt = (config.IMAGE_FORMAT or "PNG").upper()
+        quality = int(config.IMAGE_QUALITY)
+        save_kwargs: Dict[str, object] = {}
+        inline_image = image
+
+        if fmt == "JPEG":
+            inline_image = image.convert("RGB")
+            save_kwargs["quality"] = quality
+            save_kwargs["optimize"] = True
+        elif fmt == "WEBP":
+            save_kwargs["quality"] = quality
+            save_kwargs.setdefault("method", 6)
+
+        buffer = io.BytesIO()
+        inline_image.save(buffer, format=fmt, **save_kwargs)
+        data = buffer.getvalue()
+        mime = {
+            "PNG": "image/png",
+            "JPEG": "image/jpeg",
+            "WEBP": "image/webp",
+        }.get(fmt, "application/octet-stream")
+        encoded = base64.b64encode(data).decode("ascii")
+        data_url = f"data:{mime};base64,{encoded}"
+        record: Dict[str, object] = {
+            "image_url": data_url,
+            "image_inline": True,
+            "image_storage": "qdrant_inline",
+            "image_format": fmt,
+            "image_mime_type": mime,
+            "image_size_bytes": len(data),
+        }
+        if fmt in {"JPEG", "WEBP"}:
+            record["image_quality"] = quality
+        return record
+
     def _store_images(
         self,
         batch_start: int,
         image_batch: List[Image.Image],
-    ) -> Tuple[List[str], List[str]]:
-        if not self.minio_service:
-            raise Exception("MinIO service not available")
-
+    ) -> Tuple[List[str], List[Dict[str, object]]]:
+        use_minio = bool(self.minio_service and config.MINIO_ENABLED)
         image_ids = [str(uuid.uuid4()) for _ in image_batch]
-        try:
-            image_url_map = self.minio_service.store_images_batch(
-                image_batch,
-                image_ids=image_ids,
-                quality=config.MINIO_IMAGE_QUALITY,
-            )
-        except Exception as exc:
-            raise Exception(
-                f"Error storing images in MinIO for batch starting at {batch_start}: {exc}"
-            ) from exc
 
-        image_urls = [image_url_map.get(image_id) for image_id in image_ids]
-        if any(url is None for url in image_urls):
-            raise Exception(
-                f"Image upload failed for batch starting at {batch_start}: missing URLs"
-            )
-        return image_ids, image_urls
+        if use_minio:
+            try:
+                image_url_map = self.minio_service.store_images_batch(
+                    image_batch,
+                    image_ids=image_ids,
+                    quality=config.IMAGE_QUALITY,
+                )
+            except Exception as exc:
+                raise Exception(
+                    f"Error storing images in MinIO for batch starting at {batch_start}: {exc}"
+                ) from exc
+
+            records: List[Dict[str, object]] = []
+            for image_id in image_ids:
+                image_url = image_url_map.get(image_id)
+                if image_url is None:
+                    raise Exception(
+                        f"Image upload failed for batch starting at {batch_start}: missing URL for {image_id}"
+                    )
+                records.append(
+                    {
+                        "image_url": image_url,
+                        "image_inline": False,
+                        "image_storage": "minio",
+                    }
+                )
+            return image_ids, records
+
+        records = [self._encode_inline_image(image) for image in image_batch]
+        return image_ids, records
 
     def _build_points(
         self,
@@ -125,14 +176,14 @@ class DocumentIndexer:
         pooled_by_rows_batch,
         pooled_by_columns_batch,
         image_ids: List[str],
-        image_urls: List[str],
+        image_records: List[Dict[str, object]],
         meta_batch: List[dict],
     ) -> List[models.PointStruct]:
         points: List[models.PointStruct] = []
         use_mean_pooling = bool(config.QDRANT_MEAN_POOLING_ENABLED)
 
-        for offset, (orig, doc_id, image_url, meta) in enumerate(
-            zip(original_batch, image_ids, image_urls, meta_batch)
+        for offset, (orig, doc_id, image_info, meta) in enumerate(
+            zip(original_batch, image_ids, image_records, meta_batch)
         ):
             rows = None
             cols = None
@@ -141,9 +192,28 @@ class DocumentIndexer:
                 cols = pooled_by_columns_batch[offset]
 
             now_iso = datetime.now().isoformat() + "Z"
+            image_url = None
+            image_inline = False
+            image_storage = None
+            image_mime = None
+            image_format = None
+            image_size_bytes = None
+            image_quality = None
+
+            if isinstance(image_info, dict):
+                image_url = image_info.get("image_url")
+                image_inline = bool(image_info.get("image_inline"))
+                image_storage = image_info.get("image_storage")
+                image_mime = image_info.get("image_mime_type")
+                image_format = image_info.get("image_format")
+                image_size_bytes = image_info.get("image_size_bytes")
+                image_quality = image_info.get("image_quality")
+
             payload = {
                 "index": batch_start + offset,
                 "image_url": image_url,
+                "image_inline": image_inline,
+                "image_storage": image_storage,
                 "document_id": doc_id,
                 "filename": meta.get("filename"),
                 "file_size_bytes": meta.get("file_size_bytes"),
@@ -151,6 +221,14 @@ class DocumentIndexer:
                 "total_pages": meta.get("total_pages"),
                 "indexed_at": now_iso,
             }
+            if image_mime:
+                payload["image_mime_type"] = image_mime
+            if image_format:
+                payload["image_format"] = image_format
+            if image_size_bytes is not None:
+                payload["image_size_bytes"] = image_size_bytes
+            if image_quality is not None:
+                payload["image_quality"] = image_quality
 
             vectors = {"original": orig}
             if use_mean_pooling and rows is not None and cols is not None:
@@ -225,7 +303,7 @@ class DocumentIndexer:
             self._call_progress(progress_cb, batch_start, {"stage": "check_cancel"}, skip_updates=True)
 
         try:
-            image_ids, image_urls = self._store_images(batch_start, image_batch)
+            image_ids, image_records = self._store_images(batch_start, image_batch)
 
             points = self._build_points(
                 batch_start,
@@ -233,7 +311,7 @@ class DocumentIndexer:
                 pooled_by_rows_batch,
                 pooled_by_columns_batch,
                 image_ids,
-                image_urls,
+                image_records,
                 meta_batch,
             )
         finally:

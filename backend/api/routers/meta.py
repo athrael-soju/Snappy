@@ -2,6 +2,7 @@ import asyncio
 
 from fastapi import APIRouter
 
+import config
 from api.dependencies import (
     get_colpali_client,
     get_minio_service,
@@ -59,6 +60,8 @@ def _check_colpali() -> bool:
 
 def _check_minio() -> bool:
     try:
+        if not config.MINIO_ENABLED:
+            return True
         svc = get_minio_service()
         return bool(svc and svc.health_check())
     except Exception:

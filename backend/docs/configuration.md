@@ -99,7 +99,7 @@ This document provides detailed explanations for all configuration options avail
 - **Memory Impact**: Each concurrent batch holds `BATCH_SIZE` images in RAM during processing. Formula: `~200MB × BATCH_SIZE × MAX_CONCURRENT_BATCHES`
 - **Example**: `BATCH_SIZE=16, MAX_CONCURRENT_BATCHES=3` → ~9.6GB RAM for image buffers
 
-### `MINIO_IMAGE_QUALITY`
+### `IMAGE_QUALITY`
 - **Type**: Integer
 - **Default**: `75`
 - **Range**: `1-100`
@@ -255,6 +255,20 @@ Binary quantization compresses vectors to 1-bit representations, reducing memory
 
 MinIO stores document images and provides public URLs for retrieval.
 
+### Toggle
+
+#### `MINIO_ENABLED`
+- **Type**: Boolean
+- **Default**: `False`
+- **Description**: Enable MinIO for page-image storage. When set to `False`, the backend skips MinIO entirely and embeds rendered page images directly into each Qdrant payload (as base64 data URLs).
+- **When to disable**:
+  - Simple local deployments where running MinIO is unnecessary overhead
+  - Environments that prefer a single dependency (Qdrant) for both vectors and payloads
+- **Trade-offs**:
+  - Inline storage increases Qdrant payload size (larger backups, responses)
+  - No external object storage; payload data is returned directly by Qdrant queries
+- **Recommendation**: Keep enabled (`True`) for scalable deployments that benefit from external object storage, disable for lightweight experimentation.
+
 ### Connection
 
 #### `MINIO_URL`
@@ -297,16 +311,16 @@ MinIO stores document images and provides public URLs for retrieval.
 
 ### Image Processing
 
-#### `MINIO_IMAGE_FMT`
+#### `IMAGE_FORMAT`
 - **Type**: String
 - **Default**: `JPEG` (optimized for balance of quality and compression)
 - **Options**: `PNG`, `JPEG`, `WEBP`
-- **Description**: Image format for storing document pages.
+- **Description**: Image format for storing document pages, regardless of whether they are saved to MinIO or embedded inline in Qdrant payloads.
 - **Recommendations**:
   - **PNG**: Lossless, larger files (~500KB per page), best quality - use when file size isn't a concern
   - **JPEG**: Lossy, smaller files (~80-200KB per page depending on quality), excellent visual quality - **recommended for most use cases**
   - **WEBP**: Modern format, best compression, may have compatibility issues with older browsers
-- **Note**: When using JPEG, adjust `MINIO_IMAGE_QUALITY` (75=good balance, 90-95=near-lossless quality)
+- **Note**: When using JPEG, adjust `IMAGE_QUALITY` (75=good balance, 90-95=near-lossless quality)
 
 ### Performance Tuning
 
@@ -391,8 +405,8 @@ COLPALI_API_TIMEOUT=300
 QDRANT_MEAN_POOLING_ENABLED=False
 
 # Storage
-MINIO_IMAGE_FMT=JPEG
-MINIO_IMAGE_QUALITY=75
+IMAGE_FORMAT=JPEG
+IMAGE_QUALITY=75
 ```
 
 ### Production (GPU, Large Collections)
@@ -418,8 +432,8 @@ QDRANT_SEARCH_RESCORE=True
 QDRANT_MEAN_POOLING_ENABLED=False
 
 # MinIO
-MINIO_IMAGE_FMT=JPEG
-MINIO_IMAGE_QUALITY=75
+IMAGE_FORMAT=JPEG
+IMAGE_QUALITY=75
 MINIO_PUBLIC_URL=https://storage.yourdomain.com
 
 # MUVERA (for large collections)
@@ -430,7 +444,7 @@ MUVERA_ENABLED=True
 
 ```bash
 # Prioritize quality over storage/speed
-MINIO_IMAGE_FMT=PNG  # Lossless
+IMAGE_FORMAT=PNG  # Lossless
 BATCH_SIZE=2
 QDRANT_USE_BINARY=False  # No quantization
 QDRANT_SEARCH_RESCORE=True
@@ -448,7 +462,7 @@ QDRANT_MEAN_POOLING_ENABLED=False
 3. **Increase batch size**: `BATCH_SIZE=12-16` (GPU only)
 4. **Enable pipelining**: `ENABLE_PIPELINE_INDEXING=True` (already default)
 5. **More concurrent batches**: `MAX_CONCURRENT_BATCHES=3-4`
-6. **Lower image quality**: `MINIO_IMAGE_QUALITY=75` (already default)
+6. **Lower image quality**: `IMAGE_QUALITY=75` (already default)
 
 ### For Lower Memory Usage
 
@@ -470,7 +484,7 @@ QDRANT_MEAN_POOLING_ENABLED=False
 1. **Enable MUVERA**: `MUVERA_ENABLED=True`
 2. **Use binary quantization**: `QDRANT_USE_BINARY=True` (already default)
 3. **Disk storage**: `QDRANT_ON_DISK=True` (already default)
-4. **Lower image quality**: `MINIO_IMAGE_QUALITY=75` (already default)
+4. **Lower image quality**: `IMAGE_QUALITY=75` (already default)
 
 ---
 

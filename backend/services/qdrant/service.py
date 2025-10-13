@@ -1,5 +1,7 @@
 """Main Qdrant service that orchestrates all operations."""
 
+import base64
+import io
 import logging
 from typing import Iterable, List, Optional, Callable
 from PIL import Image
@@ -33,6 +35,7 @@ class QdrantService:
             self.api_client = api_client
             self.minio_service = minio_service
             self.muvera_post = muvera_post
+            self.inline_storage = minio_service is None
 
             # Initialize subcomponents
             self.collection_manager = CollectionManager(
@@ -130,6 +133,18 @@ class QdrantService:
         Use this when you need the actual image object (e.g., for server-side processing).
         The main search flow returns URLs to avoid unnecessary downloads.
         """
+        if not image_url:
+            raise Exception("No image reference provided")
+        if image_url.startswith("data:"):
+            try:
+                _, encoded = image_url.split(",", 1)
+            except ValueError as exc:
+                raise Exception("Invalid inline image data URL") from exc
+            try:
+                binary = base64.b64decode(encoded)
+            except Exception as exc:  # pragma: no cover - defensive guard
+                raise Exception("Failed to decode inline image payload") from exc
+            return Image.open(io.BytesIO(binary))
         if not self.minio_service:
             raise Exception("MinIO service not available")
         return self.minio_service.get_image(image_url)

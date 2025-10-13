@@ -121,24 +121,6 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setResetSectionDialogOpen(activeCategoryKey)}
-                    disabled={saving}
-                    className="gap-2 px-4 border-0 !rounded-none"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    Reset Section
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
-                  <p>Reset current section to defaults</p>
-                </TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
                     onClick={optimizeForSystem}
                     disabled={saving || optimizing}
                     className="gap-2 px-4 border-0 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 !rounded-none"
@@ -160,7 +142,23 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                   <p>Detect this server&apos;s hardware and apply recommended settings</p>
                 </TooltipContent>
               </Tooltip>
-
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setResetSectionDialogOpen(activeCategoryKey)}
+                    disabled={saving}
+                    className="gap-2 px-4 border-0 !rounded-none"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Reset Section
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
+                  <p>Reset current section to defaults</p>
+                </TooltipContent>
+              </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button

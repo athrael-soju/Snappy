@@ -80,7 +80,7 @@ All configuration is loaded from environment variables (no hardcoded fallbacks):
 - `QDRANT_SEARCH_OVERSAMPLING` - Oversampling factor (default: 2.0)
 - `ENABLE_PIPELINE_INDEXING` - Enable pipelined processing (default: True)
 - `MAX_CONCURRENT_BATCHES` - Max concurrent batches in pipeline (default: 3)
-- `MINIO_IMAGE_QUALITY` - JPEG quality for stored images (default: 85)
+- `IMAGE_QUALITY` - JPEG quality for stored images (default: 85)
 
 ## Usage
 

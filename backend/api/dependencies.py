@@ -57,6 +57,10 @@ def _get_minio_service_cached() -> MinioService:
 def get_minio_service() -> Optional[MinioService]:
     """Return the cached MinIO service, capturing initialization errors."""
     global minio_init_error
+    if not config.MINIO_ENABLED:
+        minio_init_error = None
+        _get_minio_service_cached.cache_clear()
+        return None
     try:
         service = _get_minio_service_cached()
         minio_init_error = None
@@ -70,9 +74,11 @@ def get_minio_service() -> Optional[MinioService]:
 
 @lru_cache(maxsize=1)
 def _get_qdrant_service_cached() -> QdrantService:
-    minio_service = get_minio_service()
-    if not minio_service:
-        raise RuntimeError("MinIO service not available")
+    minio_service: Optional[MinioService] = None
+    if config.MINIO_ENABLED:
+        minio_service = get_minio_service()
+        if not minio_service:
+            raise RuntimeError("MinIO service not available")
 
     muvera_post = None
     if config.MUVERA_ENABLED:
