@@ -13,7 +13,6 @@ import { Sheet, SheetTrigger, SheetContent, SheetTitle } from '@/components/ui/s
 import { useAppStore } from '@/stores/app-store'
 import { NavUser } from '@/components/nav-user'
 import { ThemeSwitch } from '@/components/theme-switch'
-import { BackgroundAnimationToggle } from '@/components/background-animation-toggle'
 
 const links = [
   { href: "/", label: "Home", icon: Home },
@@ -116,7 +115,7 @@ export function Nav() {
             <span className="relative flex h-9 w-9 items-center justify-center sm:h-10 sm:w-10">
               <Image
                 src="/Snappy/snappy_light_nobg_resized.png"
-                alt="Snappy mascot"
+                alt="Snappy logo"
                 width={40}
                 height={40}
                 className="block h-full w-full drop-shadow-sm transition-transform group-hover:scale-105 dark:hidden"
@@ -124,7 +123,7 @@ export function Nav() {
               />
               <Image
                 src="/Snappy/snappy_dark_nobg_resized.png"
-                alt="Snappy mascot"
+                alt="Snappy logo"
                 width={40}
                 height={40}
                 className="hidden h-full w-full drop-shadow-sm transition-transform group-hover:scale-105 dark:block"
@@ -170,7 +169,7 @@ export function Nav() {
                     <span className="relative flex h-12 w-12 items-center justify-center">
                       <Image
                         src="/Snappy/snappy_light_nobg_resized.png"
-                        alt="Snappy mascot"
+                        alt="Snappy logo"
                         width={48}
                         height={48}
                         className="block h-full w-full drop-shadow-lg transition-transform group-hover:scale-105 dark:hidden"
@@ -178,7 +177,7 @@ export function Nav() {
                       />
                       <Image
                         src="/Snappy/snappy_dark_nobg_resized.png"
-                        alt="Snappy mascot"
+                        alt="Snappy logo"
                         width={48}
                         height={48}
                         className="hidden h-full w-full drop-shadow-lg transition-transform group-hover:scale-105 dark:block"
@@ -241,15 +240,6 @@ export function Nav() {
                 {/* Footer Section */}
                 <div className="px-4 py-4 border-t border-border/60 space-y-3 bg-card/70 dark:bg-card/30">
                   <div className="flex items-center justify-between px-2">
-                    <label
-                      htmlFor="snappy-bg-toggle-mobile"
-                      className="text-sm font-medium text-muted-foreground"
-                    >
-                      Glow background
-                    </label>
-                    <BackgroundAnimationToggle id="snappy-bg-toggle-mobile" />
-                  </div>
-                  <div className="flex items-center justify-between px-2">
                     <span className="text-sm font-medium text-muted-foreground">Theme</span>
                     <ThemeSwitch />
                   </div>
@@ -262,15 +252,6 @@ export function Nav() {
           </div>
 
           <div className="hidden sm:flex items-center gap-3">
-            <div className="flex items-center gap-2 rounded-full border border-border/60 bg-card/60 px-2 py-1">
-              <label
-                htmlFor="snappy-bg-toggle-desktop"
-                className="text-xs font-semibold text-muted-foreground"
-              >
-                Glow
-              </label>
-              <BackgroundAnimationToggle id="snappy-bg-toggle-desktop" />
-            </div>
             <ThemeSwitch />
           </div>
 

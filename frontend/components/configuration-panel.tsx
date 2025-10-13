@@ -129,7 +129,7 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                     Reset Section
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
+                <TooltipContent sideOffset={8}>
                   <p>Reset current section to defaults</p>
                 </TooltipContent>
               </Tooltip>
@@ -156,7 +156,7 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                     )}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
+                <TooltipContent sideOffset={8}>
                   <p>Detect this server&apos;s hardware and apply recommended settings</p>
                 </TooltipContent>
               </Tooltip>
@@ -174,7 +174,7 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                     Reset All
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
+                <TooltipContent sideOffset={8}>
                   <p>Reset all configuration to defaults</p>
                 </TooltipContent>
               </Tooltip>

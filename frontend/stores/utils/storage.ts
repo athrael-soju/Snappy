@@ -35,7 +35,6 @@ export function serializeStateForStorage(state: AppState): any {
       statusText: state.upload.statusText,
     },
     systemStatus: state.systemStatus,
-    preferences: state.preferences,
   };
 }
 
@@ -46,7 +45,11 @@ export function loadStateFromStorage(): Partial<AppState> | null {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      return JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+      if (parsed && typeof parsed === 'object' && 'preferences' in parsed) {
+        delete parsed.preferences;
+      }
+      return parsed;
     }
   } catch (error) {
     console.warn('Failed to load app state from localStorage:', error);

@@ -38,7 +38,7 @@ export function SystemStatusBadge({ isReady, isLoading, onRefresh }: SystemStatu
             )}
           </Button>
         </TooltipTrigger>
-        <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground">
+        <TooltipContent sideOffset={8}>
           <p>{isLoading ? "Refreshing..." : "Refresh system status"}</p>
         </TooltipContent>
       </Tooltip>

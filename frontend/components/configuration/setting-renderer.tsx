@@ -50,7 +50,7 @@ export function SettingRenderer({ setting, value, saving, isNested = false, onCh
                       <TooltipTrigger asChild>
                         <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
                       </TooltipTrigger>
-                      <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
+                      <TooltipContent sideOffset={8}>
                         <p className="text-xs">{setting.help_text}</p>
                       </TooltipContent>
                     </Tooltip>
@@ -84,7 +84,7 @@ export function SettingRenderer({ setting, value, saving, isNested = false, onCh
                     <TooltipTrigger asChild>
                       <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
-                    <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
+                    <TooltipContent sideOffset={8}>
                       <p className="text-xs">{setting.help_text}</p>
                     </TooltipContent>
                   </Tooltip>
@@ -135,7 +135,7 @@ export function SettingRenderer({ setting, value, saving, isNested = false, onCh
                     <TooltipTrigger asChild>
                       <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
-                    <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
+                    <TooltipContent sideOffset={8}>
                       <p className="text-sm">{setting.help_text}</p>
                     </TooltipContent>
                   </Tooltip>
@@ -165,7 +165,7 @@ export function SettingRenderer({ setting, value, saving, isNested = false, onCh
                     <TooltipTrigger asChild>
                       <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
-                    <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
+                    <TooltipContent sideOffset={8}>
                       <p className="text-sm">{setting.help_text}</p>
                     </TooltipContent>
                   </Tooltip>
@@ -210,7 +210,7 @@ export function SettingRenderer({ setting, value, saving, isNested = false, onCh
                     <TooltipTrigger asChild>
                       <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
-                    <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
+                    <TooltipContent sideOffset={8}>
                       <p className="text-sm">{setting.help_text}</p>
                     </TooltipContent>
                   </Tooltip>
@@ -221,7 +221,7 @@ export function SettingRenderer({ setting, value, saving, isNested = false, onCh
               {setting.description}
               {(min !== undefined || max !== undefined) && (
                 <span className="ml-1 text-xs">
-                  ({min}–{max})
+                  ({min}-{max})
                 </span>
               )}
             </p>
@@ -263,7 +263,7 @@ export function SettingRenderer({ setting, value, saving, isNested = false, onCh
                     <TooltipTrigger asChild>
                       <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
-                    <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
+                    <TooltipContent sideOffset={8}>
                       <p className="text-sm">{setting.help_text}</p>
                     </TooltipContent>
                   </Tooltip>
@@ -295,7 +295,7 @@ export function SettingRenderer({ setting, value, saving, isNested = false, onCh
                     <TooltipTrigger asChild>
                       <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
-                    <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
+                    <TooltipContent sideOffset={8}>
                       <p className="text-sm">{setting.help_text}</p>
                     </TooltipContent>
                   </Tooltip>
@@ -315,3 +315,4 @@ export function SettingRenderer({ setting, value, saving, isNested = false, onCh
       );
   }
 }
+

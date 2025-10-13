@@ -48,10 +48,6 @@ export interface SystemStatus {
   lastChecked: number | null;
 }
 
-export interface PreferencesState {
-  animatedBackground: boolean;
-}
-
 export interface AppState {
   search: SearchState;
   chat: ChatState;
@@ -62,7 +58,6 @@ export interface AppState {
     chat: number | null;
     upload: number | null;
   };
-  preferences: PreferencesState;
 }
 
 // Action Types
@@ -105,8 +100,7 @@ export type AppAction =
   
   // Global actions
   | { type: 'HYDRATE_FROM_STORAGE'; payload: Partial<AppState> }
-  | { type: 'SET_PAGE_VISITED'; payload: { page: 'search' | 'chat' | 'upload'; timestamp: number } }
-  | { type: 'SET_ANIMATED_BACKGROUND'; payload: boolean };
+  | { type: 'SET_PAGE_VISITED'; payload: { page: 'search' | 'chat' | 'upload'; timestamp: number } };
 
 // Initial State
 export const initialState: AppState = {
@@ -141,8 +135,5 @@ export const initialState: AppState = {
     search: null,
     chat: null,
     upload: null,
-  },
-  preferences: {
-    animatedBackground: true,
   },
 };

@@ -77,7 +77,7 @@ export default function SearchBar({
                   />
                 </div>
               </TooltipTrigger>
-              <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground">Search settings</TooltipContent>
+              <TooltipContent sideOffset={8}>Search settings</TooltipContent>
             </Tooltip>
 
             <Tooltip>
@@ -93,7 +93,7 @@ export default function SearchBar({
                   <Trash2 className="h-5 w-5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground">
+              <TooltipContent sideOffset={8}>
                 <p>{hasResults ? "Clear results" : "No results to clear"}</p>
               </TooltipContent>
             </Tooltip>

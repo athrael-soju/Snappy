@@ -47,7 +47,7 @@ export function PageHeader({ title, description, icon: Icon, children, badge, to
                     <HelpCircle className="h-4 w-4" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent className="max-w-xs text-base bg-popover text-popover-foreground" sideOffset={8}>
+                <TooltipContent sideOffset={8}>
                   {tooltip}
                 </TooltipContent>
               </Tooltip>
