@@ -361,7 +361,7 @@ Most defaults are in `config.py`. Key variables:
   - `COLPALI_GPU_URL` (default `http://localhost:7002`)
   - `COLPALI_API_BASE_URL` (if set, overrides the above and is used as-is)
   - `COLPALI_API_TIMEOUT`
-- __Qdrant__: `QDRANT_EMBEDDED` (default True for in-memory), `QDRANT_URL` (default http://localhost:6333 when using external service), `QDRANT_COLLECTION_NAME` (documents), `QDRANT_SEARCH_LIMIT`, `QDRANT_PREFETCH_LIMIT`
+- __Qdrant__: `QDRANT_EMBEDDED` (default True for in-memory; data resets when the backend restarts), `QDRANT_URL` (http://localhost:6333 for external deployments), `QDRANT_COLLECTION_NAME` (documents), `QDRANT_SEARCH_LIMIT`, `QDRANT_PREFETCH_LIMIT`
   - Storage: `QDRANT_ON_DISK` (store vectors on disk), `QDRANT_ON_DISK_PAYLOAD` (store payloads on disk)
   - Binary quantization (optional): `QDRANT_USE_BINARY` (enable), `QDRANT_BINARY_ALWAYS_RAM` (keep quantized codes in RAM)
   - Search tuning (when binary is enabled): `QDRANT_SEARCH_RESCORE`, `QDRANT_SEARCH_OVERSAMPLING`, `QDRANT_SEARCH_IGNORE_QUANT`

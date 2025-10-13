@@ -22,14 +22,14 @@ def _infer_ui_type(config_type: ConfigType, has_options: bool = False) -> Config
     """Infer UI input type from config type."""
     if has_options:
         return "select"
-    mapping = {
+    mapping: Dict[ConfigType, ConfigUIType] = {
         "str": "text",
         "int": "number",
         "float": "number",
         "bool": "boolean",
         "list": "text"
     }
-    return mapping.get(config_type, "text")
+    return mapping[config_type]
 
 
 # Complete configuration schema with all metadata

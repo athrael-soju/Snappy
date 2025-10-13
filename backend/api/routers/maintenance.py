@@ -104,6 +104,8 @@ def _collect_collection_status(svc: Optional[object]) -> dict:
         "vector_count": 0,
         "unique_files": 0,
         "error": None,
+        "embedded": getattr(config, "QDRANT_EMBEDDED", False),
+        "image_store_mode": "minio" if config.MINIO_ENABLED else "inline",
     }
     if not svc:
         status["error"] = qdrant_init_error or "Service unavailable"
