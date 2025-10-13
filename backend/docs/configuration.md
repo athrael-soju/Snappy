@@ -255,6 +255,20 @@ Binary quantization compresses vectors to 1-bit representations, reducing memory
 
 MinIO stores document images and provides public URLs for retrieval.
 
+### Toggle
+
+#### `MINIO_ENABLED`
+- **Type**: Boolean
+- **Default**: `False`
+- **Description**: Enable MinIO for page-image storage. When set to `False`, the backend skips MinIO entirely and embeds rendered page images directly into each Qdrant payload (as base64 data URLs).
+- **When to disable**:
+  - Simple local deployments where running MinIO is unnecessary overhead
+  - Environments that prefer a single dependency (Qdrant) for both vectors and payloads
+- **Trade-offs**:
+  - Inline storage increases Qdrant payload size (larger backups, responses)
+  - No external object storage; payload data is returned directly by Qdrant queries
+- **Recommendation**: Keep enabled (`True`) for scalable deployments that benefit from external object storage, disable for lightweight experimentation.
+
 ### Connection
 
 #### `MINIO_URL`

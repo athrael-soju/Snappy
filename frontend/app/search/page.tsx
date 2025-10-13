@@ -314,25 +314,31 @@ export default function SearchPage() {
                       {...staggeredListMotion}
                       className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
                     >
-                      {results.map((item, idx) => (
-                        <motion.div key={idx} {...fadeInItemMotion} {...hoverLift}>
-                          <Card className="card-surface group flex h-full flex-col overflow-hidden cursor-pointer hover:shadow-xl transition-all border-border/50">
-                            {item.image_url ? (
-                              <button
-                                type="button"
-                                className="relative aspect-video overflow-hidden text-left"
+                      {results.map((item, idx) => {
+                        const imageSrc = item.image_url ?? "";
+                        const hasImage = imageSrc.length > 0;
+                        const isInlineImage = hasImage && imageSrc.startsWith("data:");
+
+                        return (
+                          <motion.div key={idx} {...fadeInItemMotion} {...hoverLift}>
+                            <Card className="card-surface group flex h-full flex-col overflow-hidden cursor-pointer hover:shadow-xl transition-all border-border/50">
+                              {hasImage ? (
+                                <button
+                                  type="button"
+                                  className="relative aspect-video overflow-hidden text-left"
                                 onClick={() => {
-                                  setLightboxSrc(item.image_url!);
+                                  setLightboxSrc(imageSrc);
                                   setLightboxAlt(item.label ?? `Result ${idx + 1}`);
                                   setLightboxOpen(true);
                                 }}
                               >
                                 <Image
-                                  src={item.image_url}
+                                  src={imageSrc}
                                   alt={item.label ?? `Result ${idx + 1}`}
                                   fill
                                   sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 25vw"
                                   className="object-cover transition duration-500 group-hover:scale-110"
+                                  unoptimized={isInlineImage}
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                                 <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/95 backdrop-blur-sm px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-lg opacity-0 group-hover:opacity-100 transition-all">
@@ -371,7 +377,8 @@ export default function SearchPage() {
                             </CardContent>
                           </Card>
                         </motion.div>
-                      ))}
+                      );
+                      })}
                     </motion.div>
                   ) : (
                     <motion.div

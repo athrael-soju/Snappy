@@ -116,6 +116,73 @@ export function SettingRenderer({ setting, value, saving, isNested = false, onCh
             <p className="text-xs text-muted-foreground leading-relaxed">{setting.description}</p>
           </div>
         );
+      case "text":
+      case "password":
+        return (
+          <div className="space-y-2">
+            <Label htmlFor={setting.key} className="text-xs font-medium flex items-center gap-1.5">
+              {setting.label}
+              {setting.help_text && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
+                      <p className="text-xs">{setting.help_text}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </Label>
+            <Input
+              id={setting.key}
+              type={setting.type === "password" ? "password" : "text"}
+              value={currentValue}
+              onChange={(e) => onChange(setting.key, e.target.value)}
+              disabled={saving}
+              className="h-9 text-sm"
+            />
+            <p className="text-xs text-muted-foreground leading-relaxed">{setting.description}</p>
+          </div>
+        );
+      case "select":
+        return (
+          <div className="space-y-2">
+            <Label htmlFor={setting.key} className="text-xs font-medium flex items-center gap-1.5">
+              {setting.label}
+              {setting.help_text && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
+                      <p className="text-xs">{setting.help_text}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </Label>
+            <Select
+              value={currentValue}
+              onValueChange={(val) => onChange(setting.key, val)}
+              disabled={saving}
+            >
+              <SelectTrigger className="h-9 text-sm">
+                <SelectValue placeholder={setting.label} />
+              </SelectTrigger>
+              <SelectContent>
+                {(setting.options ?? []).map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground leading-relaxed">{setting.description}</p>
+          </div>
+        );
       default:
         return null;
     }

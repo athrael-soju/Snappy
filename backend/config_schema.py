@@ -328,8 +328,17 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
         "order": 5,
         "icon": "hard-drive",
         "name": "Object Storage",
-        "description": "MinIO object storage configuration",
+        "description": "Configure where extracted page images are stored.",
         "settings": [
+            {
+                "key": "MINIO_ENABLED",
+                "type": "bool",
+                "default": False,
+                "label": "Enable MinIO Object Storage",
+                "ui_type": "boolean",
+                "description": "Use MinIO to store extracted page images",
+                "help_text": "When enabled the backend uploads rendered document pages to MinIO. Disable to embed the images directly in the Qdrant payload (simpler for local setups, but stores data inside Qdrant)."
+            },
             {
                 "key": "MINIO_URL",
                 "ui_hidden": True,
@@ -421,7 +430,8 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "label": "Public Read Access",
                 "ui_type": "boolean",
                 "description": "Allow public read access to files",
-                "help_text": "Makes uploaded files publicly accessible without authentication. Enable (True) for public applications where anyone can view documents. Disable (False) for private/internal applications requiring access control. Consider your security requirements carefully."
+                "help_text": "Makes uploaded files publicly accessible without authentication. Enable (True) for public applications where anyone can view documents. Disable (False) for private/internal applications requiring access control. Consider your security requirements carefully.",
+                "depends_on": {"key": "MINIO_ENABLED", "value": True}
             },
             {
                 "key": "MINIO_IMAGE_FMT",
@@ -431,7 +441,8 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "select",
                 "options": ["JPEG", "PNG", "WEBP"],
                 "description": "Image format for stored files",
-                "help_text": "Format for storing processed document images. JPEG offers best compression with small quality loss (recommended). PNG is lossless but larger files. WEBP provides better compression than JPEG but may have compatibility issues with older systems. Choose based on storage space vs quality needs."
+                "help_text": "Format for storing processed document images. JPEG offers best compression with small quality loss (recommended). PNG is lossless but larger files. WEBP provides better compression than JPEG but may have compatibility issues with older systems. Choose based on storage space vs quality needs.",
+                "depends_on": {"key": "MINIO_ENABLED", "value": True}
             },
             {
                 "key": "MINIO_IMAGE_QUALITY",
@@ -442,7 +453,8 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "min": 1,
                 "max": 100,
                 "description": "Image compression quality (1-100)",
-                "help_text": "Compression quality for JPEG/WEBP images (1-100). Higher values (85-95) preserve more detail but larger files. Lower values (50-75) save storage but may reduce visual quality. Default 75 balances quality and file size well. PNG ignores this setting as it's lossless."
+                "help_text": "Compression quality for JPEG/WEBP images (1-100). Higher values (85-95) preserve more detail but larger files. Lower values (50-75) save storage but may reduce visual quality. Default 75 balances quality and file size well. PNG ignores this setting as it's lossless.",
+                "depends_on": {"key": "MINIO_ENABLED", "value": True}
             }
         ]
     }
@@ -531,6 +543,7 @@ def get_critical_keys() -> set:
     """
     return {
         "MUVERA_ENABLED",
+        "MINIO_ENABLED",
         "QDRANT_COLLECTION_NAME",
         "QDRANT_MEAN_POOLING_ENABLED",
         "QDRANT_URL",
