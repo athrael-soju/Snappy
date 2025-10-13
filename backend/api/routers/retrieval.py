@@ -16,15 +16,14 @@ async def search(
     k: Optional[int] = Query(None, ge=1, le=50),
 ):
     # Use config default if not provided
-    if k is None:
-        k = config.DEFAULT_TOP_K
+    top_k: int = int(k) if k is not None else int(getattr(config, 'DEFAULT_TOP_K', 10))
     svc = get_qdrant_service()
     if not svc:
         raise HTTPException(
             status_code=503,
             detail=f"Service unavailable: {qdrant_init_error or 'Dependency services are down'}",
         )
-    items = await asyncio.to_thread(svc.search_with_metadata, q, k)
+    items = await asyncio.to_thread(svc.search_with_metadata, q, top_k)
     results: List[SearchItem] = []
     for it in items:
         payload = it.get("payload", {})

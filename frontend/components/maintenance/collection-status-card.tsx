@@ -13,8 +13,8 @@ export function CollectionStatusCard({ status, isLoading }: CollectionStatusCard
     status?.image_store_mode === "minio"
       ? "MinIO URLs"
       : status?.image_store_mode === "inline"
-      ? "Base64 payloads"
-      : "Unknown";
+        ? "Base64 payloads"
+        : "Unknown";
 
   const details = status ? (
     <div className="space-y-2 text-sm">
@@ -44,7 +44,7 @@ export function CollectionStatusCard({ status, isLoading }: CollectionStatusCard
   const features = [
     "Document embeddings and vector representations",
     "Search indices for visual content retrieval",
-    "AI-generated semantic understanding data",
+    "Supports image storage via MinIO or inline encoding",
   ];
 
   return (

@@ -1,9 +1,10 @@
 """Collection management for Qdrant vector database."""
 
 import logging
-from typing import TYPE_CHECKING, Mapping, Optional
+from typing import TYPE_CHECKING, Mapping, Optional, cast
 
 from qdrant_client import QdrantClient, models
+from qdrant_client.conversions import common_types as qtypes
 
 if TYPE_CHECKING:
     from backend import config as config  # type: ignore
@@ -80,7 +81,6 @@ class CollectionManager:
             # If MUVERA is enabled, ensure vector exists and has correct size
             if self.muvera_post and self.muvera_post.embedding_size:
                 try:
-                    coll.vectors_count or {}
                     # Try to fetch current vector config
                     coll_info = self.service.get_collection(self.collection_name)
                     # If 'muvera_fde' is missing, add it via update
@@ -93,13 +93,13 @@ class CollectionManager:
                             int(self.muvera_post.embedding_size),
                         )
                         muvera_dim = int(self.muvera_post.embedding_size)
-                        update_config: Mapping[str, models.VectorParamsDiff] = {
-                            "muvera_fde": models.VectorParamsDiff(
+                        update_config = cast(qtypes.VectorsConfigDiff, {
+                            "muvera_fde": models.VectorParams(
                                 size=muvera_dim,
                                 distance=models.Distance.COSINE,
                                 on_disk=config.QDRANT_ON_DISK,
                             )
-                        }
+                        })
                         self.service.update_collection(
                             collection_name=self.collection_name,
                             vectors_config=update_config,

@@ -137,12 +137,12 @@ class DocumentIndexer:
         batch_start: int,
         image_batch: List[Image.Image],
     ) -> Tuple[List[str], List[Dict[str, object]]]:
-        use_minio = bool(self.minio_service and config.MINIO_ENABLED)
         image_ids = [str(uuid.uuid4()) for _ in image_batch]
 
-        if use_minio:
+        minio_service = self.minio_service
+        if minio_service is not None and config.MINIO_ENABLED:
             try:
-                image_url_map = self.minio_service.store_images_batch(
+                image_url_map = minio_service.store_images_batch(
                     image_batch,
                     image_ids=image_ids,
                     quality=config.IMAGE_QUALITY,

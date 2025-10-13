@@ -6,7 +6,7 @@ import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import timedelta
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import urllib3
@@ -285,12 +285,20 @@ class MinioService:
         if not objects:
             return result
 
-        errors = self.service.remove_objects(self.bucket_name, objects)
-        failed = set()
-        for err in errors:  # generator yields failures
-            url = mapping.get(err.object_name, err.object_name)
-            result[url] = f"error: {err}"
-            failed.add(url)
+        errors_iter: Iterable[Any] = self.service.remove_objects(
+            self.bucket_name, objects
+        )
+        failed: set[str] = set()
+        for err in errors_iter:  # generator yields failures
+            object_name = getattr(err, "object_name", None)
+            mapped_url = (
+                mapping.get(object_name) if isinstance(object_name, str) else None
+            )
+            key = mapped_url or (
+                str(object_name) if object_name is not None else str(err)
+            )
+            result[key] = f"error: {err}"
+            failed.add(key)
 
         for u in list(result.keys()):
             if result[u] == "pending" and u not in failed:
@@ -391,7 +399,12 @@ class MinioService:
             objs = self.service.list_objects(
                 self.bucket_name, prefix=prefix or None, recursive=recursive
             )
-            return [o.object_name for o in objs]
+            names: List[str] = []
+            for obj in objs:
+                object_name = getattr(obj, "object_name", None)
+                if isinstance(object_name, str):
+                    names.append(object_name)
+            return names
         except Exception as e:
             raise Exception(f"Error listing objects with prefix='{prefix}': {e}") from e
 
@@ -402,13 +415,17 @@ class MinioService:
             return {"deleted": 0, "failed": 0}
 
         objects = [DeleteObject(n) for n in names]
-        errors = list(self.service.remove_objects(self.bucket_name, objects))
+        errors_iter: Iterable[Any] = self.service.remove_objects(
+            self.bucket_name, objects
+        )
+        errors = list(errors_iter)
         failed = len(errors)
         deleted = max(0, len(names) - failed)
 
         if failed:
             for err in errors:
-                logger.error(f"Failed to delete {err.object_name}: {err}")
+                object_name = getattr(err, "object_name", "<unknown>")
+                logger.error(f"Failed to delete {object_name}: {err}")
 
         logger.info(
             f"Cleared prefix '{prefix}' in bucket '{self.bucket_name}': deleted={deleted}, failed={failed}"
