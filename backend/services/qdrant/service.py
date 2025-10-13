@@ -3,7 +3,7 @@
 import base64
 import io
 import logging
-from typing import Iterable, List, Optional, Callable
+from typing import Iterable, Optional, Callable
 from PIL import Image
 
 from .collection import CollectionManager

@@ -194,7 +194,7 @@ def _collect_bucket_status(msvc: Optional["MinioService"]) -> dict:
 def _clear_all_sync(
     svc: Optional["QdrantService"], msvc: Optional["MinioService"]
 ) -> str:
-    collection_name = _collection_name()
+    _collection_name()
     minio_enabled = _is_minio_enabled()
     if svc:
         try:

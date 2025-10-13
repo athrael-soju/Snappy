@@ -1,5 +1,4 @@
 """Configuration management API endpoints."""
-import os
 from typing import Dict, Any, List
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field

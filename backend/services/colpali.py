@@ -1,19 +1,19 @@
 import requests
 import io
 import logging
-from typing import List, Union
+from typing import List, Union, Optional
 from PIL import Image
 import numpy as np
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from config import COLPALI_MODE, COLPALI_CPU_URL, COLPALI_GPU_URL, COLPALI_API_TIMEOUT, LOG_LEVEL
+from config import COLPALI_MODE, COLPALI_CPU_URL, COLPALI_GPU_URL, COLPALI_API_TIMEOUT
 
 
 class ColPaliService:
     """Client for ColPali Embedding API"""
 
-    def __init__(self, base_url: str = None, timeout: int = None):
+    def __init__(self, base_url: Optional[str] = None, timeout: Optional[int] = None):
         default_base = COLPALI_GPU_URL if COLPALI_MODE == "gpu" else COLPALI_CPU_URL
         self.base_url = base_url or default_base
         self.timeout = timeout or COLPALI_API_TIMEOUT

@@ -7,7 +7,7 @@ reflected across the application.
 """
 
 import os
-from typing import Dict, Any
+from typing import Dict
 from threading import Lock
 
 

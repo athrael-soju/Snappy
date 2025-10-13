@@ -67,9 +67,9 @@ class CollectionManager:
             coll = self.service.get_collection(self.collection_name)
             logger.info("Using existing Qdrant collection '%s'", self.collection_name)
             # If MUVERA is enabled, ensure vector exists and has correct size
-            if self.muvera_post and self.muvera_post.embedding_size:
+            if self.muvera_post and hasattr(self.muvera_post, 'embedding_size') and self.muvera_post.embedding_size:
                 try:
-                    vectors = coll.vectors_count or {}
+                    coll.vectors_count or {}
                     # Try to fetch current vector config
                     coll_info = self.service.get_collection(self.collection_name)
                     # If 'muvera_fde' is missing, add it via update
@@ -94,7 +94,6 @@ class CollectionManager:
                 except Exception:
                     # Best-effort; if we can't introspect, proceed
                     logger.warning("Could not verify or add MUVERA vector space; proceeding without update")
-                    pass
             return
         except Exception:
             pass
@@ -132,7 +131,7 @@ class CollectionManager:
                 vector_config["mean_pooling_rows"] = _vp()
 
             # Add MUVERA single-vector space if enabled
-            if self.muvera_post and self.muvera_post.embedding_size:
+            if self.muvera_post and hasattr(self.muvera_post, 'embedding_size') and self.muvera_post.embedding_size:
                 logger.info("Adding MUVERA vector space 'muvera_fde' with dim=%s", int(self.muvera_post.embedding_size))
                 vector_config["muvera_fde"] = models.VectorParams(
                     size=int(self.muvera_post.embedding_size),

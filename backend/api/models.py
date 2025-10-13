@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 from pydantic import BaseModel
 class RetrievedPage(BaseModel):
     image_url: Optional[str]
