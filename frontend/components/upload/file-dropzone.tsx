@@ -81,7 +81,7 @@ export function FileDropzone({
           <div className="flex flex-col items-center gap-4 py-10 px-6 text-center">
             <div
               className={cn(
-                "flex size-16 items-center justify-center rounded-full border border-muted bg-gradient-to-br from-primary/10 to-primary/5 text-primary transition-all",
+                "flex size-16 items-center justify-center rounded-full bg-gradient-to-br from-primary/10 to-primary/5 text-primary transition-all",
                 isDragOver && "scale-105 border-primary/60"
               )}
             >
