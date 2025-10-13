@@ -15,6 +15,7 @@ export interface BucketStatus {
   exists: boolean;
   object_count: number;
   error: string | null;
+  disabled?: boolean;
 }
 
 export interface SystemStatus {

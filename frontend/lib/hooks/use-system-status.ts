@@ -22,7 +22,10 @@ export function useSystemStatus() {
   const systemStatus = state.systemStatus;
 
   const isReady = useMemo(() => {
-    return !!(systemStatus?.collection.exists && systemStatus?.bucket.exists);
+    const collectionReady = !!systemStatus?.collection.exists;
+    const bucketStatus = systemStatus?.bucket;
+    const bucketReady = bucketStatus ? (bucketStatus.disabled ? true : bucketStatus.exists) : false;
+    return collectionReady && bucketReady;
   }, [systemStatus]);
 
   const needsRefresh = useMemo(() => {

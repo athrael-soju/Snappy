@@ -143,7 +143,6 @@ def _collect_bucket_status(msvc: Optional[object]) -> dict:
         "error": None,
     }
     if not config.MINIO_ENABLED:
-        status["error"] = "MinIO disabled via configuration"
         return status
     if not msvc:
         status["error"] = minio_init_error or "Service unavailable"

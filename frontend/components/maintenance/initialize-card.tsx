@@ -18,11 +18,11 @@ export function InitializeCard({ isLoading, isSystemReady, isDeleteLoading, onIn
           <PlayCircle className="w-6 h-6" />
         </div>
         <CardTitle className="text-xl font-semibold text-foreground">Initialize System</CardTitle>
-        <CardDescription className="text-base leading-relaxed text-muted-foreground">Create collection and bucket</CardDescription>
+        <CardDescription className="text-base leading-relaxed text-muted-foreground">Create collection and storage</CardDescription>
       </CardHeader>
       <CardContent className="px-0 pb-0">
         <p className="text-base text-muted-foreground mb-5 leading-relaxed">
-          Creates the Qdrant collection and MinIO bucket based on your configuration. Required before uploading files.
+          Creates the Qdrant collection and, if enabled, provisions the MinIO bucket. Required before uploading files.
         </p>
         <Button
           onClick={onInitialize}

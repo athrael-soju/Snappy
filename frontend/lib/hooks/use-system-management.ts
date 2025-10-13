@@ -21,7 +21,7 @@ export function useSystemManagement({ onSuccess }: UseSystemManagementOptions = 
       
       if (result.status === "success") {
         toast.success("Initialization Complete", { 
-          description: "Collection and bucket are ready to use" 
+          description: "Collection is ready (and MinIO bucket if enabled)" 
         });
       } else if (result.status === "partial") {
         toast.warning("Partial Initialization", { 
@@ -29,7 +29,7 @@ export function useSystemManagement({ onSuccess }: UseSystemManagementOptions = 
         });
       } else {
         toast.error("Initialization Failed", { 
-          description: "Failed to initialize collection and bucket" 
+          description: "Failed to initialize required storage components" 
         });
       }
       
@@ -59,7 +59,7 @@ export function useSystemManagement({ onSuccess }: UseSystemManagementOptions = 
       
       if (result.status === "success") {
         toast.success("Deletion Complete", { 
-          description: "Collection and bucket have been deleted" 
+          description: "Collection removed (and MinIO bucket if enabled)" 
         });
       } else if (result.status === "partial") {
         toast.warning("Partial Deletion", { 
@@ -67,7 +67,7 @@ export function useSystemManagement({ onSuccess }: UseSystemManagementOptions = 
         });
       } else {
         toast.error("Deletion Failed", { 
-          description: "Failed to delete collection and bucket" 
+          description: "Failed to delete required storage components" 
         });
       }
       

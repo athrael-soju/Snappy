@@ -58,7 +58,7 @@ def get_minio_service() -> Optional[MinioService]:
     """Return the cached MinIO service, capturing initialization errors."""
     global minio_init_error
     if not config.MINIO_ENABLED:
-        minio_init_error = "MinIO disabled via configuration"
+        minio_init_error = None
         _get_minio_service_cached.cache_clear()
         return None
     try:

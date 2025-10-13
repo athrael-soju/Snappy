@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, XCircle, Loader2, LucideIcon } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, LucideIcon, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GlassPanel } from "@/components/ui/glass-panel";
 import type { CollectionStatus, BucketStatus } from "./types";
@@ -58,6 +58,7 @@ export function StatusCard({
   features,
 }: StatusCardProps) {
   const accent = accentStyles[accentColor] ?? accentStyles.blue;
+  const isDisabled = !!(status && "disabled" in status && (status as BucketStatus).disabled);
 
   return (
     <GlassPanel className={cn("transition-shadow hover:shadow-lg p-6")}>
@@ -73,7 +74,12 @@ export function StatusCard({
             </div>
           </div>
           {status && (
-            exists ? (
+            isDisabled ? (
+              <Badge className="border-blue-300 bg-blue-100 text-blue-700">
+                <Ban className="mr-1 h-3 w-3" />
+                Disabled
+              </Badge>
+            ) : exists ? (
               <Badge className="border-green-300 bg-green-100 text-green-700">
                 <CheckCircle2 className="mr-1 h-3 w-3" />
                 Active
@@ -95,7 +101,7 @@ export function StatusCard({
         ) : status ? (
           <>
             {details}
-            {status.error && (
+            {status.error && !isDisabled && (
               <div className="rounded border border-red-200 bg-red-50 p-2 text-xs text-red-700">
                 Error: {status.error}
               </div>
