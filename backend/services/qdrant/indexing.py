@@ -95,8 +95,8 @@ class DocumentIndexer:
 
     @staticmethod
     def _encode_inline_image(image: Image.Image) -> Dict[str, object]:
-        fmt = (config.MINIO_IMAGE_FMT or "PNG").upper()
-        quality = int(config.MINIO_IMAGE_QUALITY)
+        fmt = (config.IMAGE_FORMAT or "PNG").upper()
+        quality = int(config.IMAGE_QUALITY)
         save_kwargs: Dict[str, object] = {}
         inline_image = image
 
@@ -143,7 +143,7 @@ class DocumentIndexer:
                 image_url_map = self.minio_service.store_images_batch(
                     image_batch,
                     image_ids=image_ids,
-                    quality=config.MINIO_IMAGE_QUALITY,
+                    quality=config.IMAGE_QUALITY,
                 )
             except Exception as exc:
                 raise Exception(

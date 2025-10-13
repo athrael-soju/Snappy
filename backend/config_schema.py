@@ -328,7 +328,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
         "order": 5,
         "icon": "hard-drive",
         "name": "Object Storage",
-        "description": "Configure where extracted page images are stored.",
+        "description": "Configure how extracted page images are stored.",
         "settings": [
             {
                 "key": "MINIO_ENABLED",
@@ -347,7 +347,8 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "label": "MinIO URL",
                 "ui_type": "text",
                 "description": "Internal MinIO service URL",
-                "help_text": "Internal endpoint for the MinIO object storage service. Used by the backend to upload files. Default port is 9000. Change if MinIO runs on a different host or port. Format: http://hostname:port. Must be accessible from the backend application."
+                "help_text": "Internal endpoint for the MinIO object storage service. Used by the backend to upload files. Default port is 9000. Change if MinIO runs on a different host or port. Format: http://hostname:port. Must be accessible from the backend application.",
+                "depends_on": {"key": "MINIO_ENABLED", "value": True}
             },
             {
                 "key": "MINIO_PUBLIC_URL",
@@ -357,7 +358,8 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "label": "Public MinIO URL",
                 "ui_type": "text",
                 "description": "Public-facing MinIO URL",
-                "help_text": "Public endpoint for accessing stored files from browsers/clients. Can differ from MINIO_URL if using a reverse proxy or load balancer. In production, use your domain (e.g., https://storage.example.com). In development, same as MINIO_URL is fine."
+                "help_text": "Public endpoint for accessing stored files from browsers/clients. Can differ from MINIO_URL if using a reverse proxy or load balancer. In production, use your domain (e.g., https://storage.example.com). In development, same as MINIO_URL is fine.",
+                "depends_on": {"key": "MINIO_ENABLED", "value": True}
             },
             {
                 "key": "MINIO_ACCESS_KEY",
@@ -367,7 +369,8 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "label": "Access Key",
                 "ui_type": "password",
                 "description": "MinIO access key (username)",
-                "help_text": "MinIO access key (similar to username) for authentication. Default 'minioadmin' is for development only. In production, create a dedicated access key with appropriate permissions. Never use default credentials in production - security risk!"
+                "help_text": "MinIO access key (similar to username) for authentication. Default 'minioadmin' is for development only. In production, create a dedicated access key with appropriate permissions. Never use default credentials in production - security risk!",
+                "depends_on": {"key": "MINIO_ENABLED", "value": True}
             },
             {
                 "key": "MINIO_SECRET_KEY",
@@ -377,7 +380,8 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "label": "Secret Key",
                 "ui_type": "password",
                 "description": "MinIO secret key (password)",
-                "help_text": "MinIO secret key (similar to password) for authentication. Default 'minioadmin' is for development only. In production, use a strong, randomly generated secret. Store securely in environment variables. Critical security setting - never expose publicly!"
+                "help_text": "MinIO secret key (similar to password) for authentication. Default 'minioadmin' is for development only. In production, use a strong, randomly generated secret. Store securely in environment variables. Critical security setting - never expose publicly!",
+                "depends_on": {"key": "MINIO_ENABLED", "value": True}
             },
             {
                 "key": "MINIO_BUCKET_NAME",
@@ -387,7 +391,8 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "label": "Bucket Name",
                 "ui_type": "text",
                 "description": "Name of the storage bucket (auto-derived when empty)",
-                "help_text": "When left blank, the backend derives a MinIO bucket name by slugifying the Qdrant collection name. Override only if you need to target a specific existing bucket."
+                "help_text": "When left blank, the backend derives a MinIO bucket name by slugifying the Qdrant collection name. Override only if you need to target a specific existing bucket.",
+                "depends_on": {"key": "MINIO_ENABLED", "value": True}
             },
             {
                 "key": "MINIO_WORKERS",
@@ -399,7 +404,8 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "min": 1,
                 "max": 32,
                 "description": "Number of concurrent upload workers (auto-sized)",
-                "help_text": "The backend now sizes this automatically based on CPU cores and pipeline concurrency. Override via environment variables only when you need to cap or increase concurrency manually."
+                "help_text": "The backend now sizes this automatically based on CPU cores and pipeline concurrency. Override via environment variables only when you need to cap or increase concurrency manually.",
+                "depends_on": {"key": "MINIO_ENABLED", "value": True}
             },
             {
                 "key": "MINIO_RETRIES",
@@ -411,7 +417,8 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "min": 0,
                 "max": 10,
                 "description": "Number of retry attempts on failure (auto-sized)",
-                "help_text": "The backend derives this from the chosen worker concurrency. Override via environment variables if you need stricter or more lenient retry behaviour."
+                "help_text": "The backend derives this from the chosen worker concurrency. Override via environment variables if you need stricter or more lenient retry behaviour.",
+                "depends_on": {"key": "MINIO_ENABLED", "value": True}
             },
             {
                 "key": "MINIO_FAIL_FAST",
@@ -421,7 +428,8 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "label": "Fail Fast",
                 "ui_type": "boolean",
                 "description": "Stop immediately on first error",
-                "help_text": "Advanced troubleshooting option. When left unset the backend keeps the resilient default (False); override only if you need to abort batches on the first failure."
+                "help_text": "Advanced troubleshooting option. When left unset the backend keeps the resilient default (False); override only if you need to abort batches on the first failure.",
+                "depends_on": {"key": "MINIO_ENABLED", "value": True}
             },
             {
                 "key": "MINIO_PUBLIC_READ",
@@ -434,18 +442,17 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "depends_on": {"key": "MINIO_ENABLED", "value": True}
             },
             {
-                "key": "MINIO_IMAGE_FMT",
+                "key": "IMAGE_FORMAT",
                 "type": "str",
                 "default": "JPEG",
                 "label": "Image Format",
                 "ui_type": "select",
                 "options": ["JPEG", "PNG", "WEBP"],
                 "description": "Image format for stored files",
-                "help_text": "Format for storing processed document images. JPEG offers best compression with small quality loss (recommended). PNG is lossless but larger files. WEBP provides better compression than JPEG but may have compatibility issues with older systems. Choose based on storage space vs quality needs.",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True}
+                "help_text": "Format for storing processed document images, whether saved to MinIO or embedded inline within Qdrant. JPEG offers best compression with small quality loss (recommended). PNG is lossless but larger files. WEBP provides better compression than JPEG but may have compatibility issues with older systems. Choose based on storage space vs quality needs."
             },
             {
-                "key": "MINIO_IMAGE_QUALITY",
+                "key": "IMAGE_QUALITY",
                 "type": "int",
                 "default": 75,
                 "label": "Image Quality",
@@ -453,8 +460,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "min": 1,
                 "max": 100,
                 "description": "Image compression quality (1-100)",
-                "help_text": "Compression quality for JPEG/WEBP images (1-100). Higher values (85-95) preserve more detail but larger files. Lower values (50-75) save storage but may reduce visual quality. Default 75 balances quality and file size well. PNG ignores this setting as it's lossless.",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True}
+                "help_text": "Compression quality for JPEG/WEBP images (1-100). Higher values (85-95) preserve more detail but larger files. Lower values (50-75) save storage but may reduce visual quality. Default 75 balances quality and file size well. Applied both to MinIO uploads and inline Qdrant payload storage. PNG ignores this setting as it's lossless."
             }
         ]
     }

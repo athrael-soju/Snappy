@@ -26,7 +26,7 @@ from config import (
     MINIO_RETRIES,
     MINIO_FAIL_FAST,
     MINIO_PUBLIC_READ,
-    MINIO_IMAGE_FMT,
+    IMAGE_FORMAT,
     get_pipeline_max_concurrency,
 )
 
@@ -173,7 +173,7 @@ class MinioService:
         self,
         images: Iterable[Image.Image],
         image_ids: Optional[List[str]] = None,
-        fmt: str = MINIO_IMAGE_FMT,
+        fmt: str = IMAGE_FORMAT,
         max_workers: int = MINIO_WORKERS,
         retries: int = MINIO_RETRIES,
         fail_fast: bool = MINIO_FAIL_FAST,
