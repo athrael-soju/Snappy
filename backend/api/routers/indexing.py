@@ -6,12 +6,11 @@ import tempfile
 import uuid
 from typing import List
 
-from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
-from fastapi.responses import StreamingResponse
-
 from api.dependencies import get_qdrant_service, qdrant_init_error
 from api.progress import progress_manager
 from api.utils import convert_pdf_paths_to_images
+from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
+from fastapi.responses import StreamingResponse
 
 logger = logging.getLogger(__name__)
 

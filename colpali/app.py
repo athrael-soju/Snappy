@@ -1,18 +1,21 @@
-from io import BytesIO
-from typing import List, Union, Optional
 import os
+from io import BytesIO
+from typing import Any, List, Optional, Tuple, Union, cast
 
 import torch
-from fastapi import FastAPI, File, UploadFile, HTTPException, Body
-from pydantic import BaseModel
-from PIL import Image
-
 from colpali_engine.models import ColQwen2_5, ColQwen2_5_Processor
+from fastapi import Body, FastAPI, File, HTTPException, UploadFile
+from PIL import Image
+from pydantic import BaseModel
 from transformers.utils.import_utils import is_flash_attn_2_available
 
 # Configuration for CPU parallelism
-CPU_THREADS = int(os.getenv("CPU_THREADS", "4"))  # Number of torch threads for CPU inference
-ENABLE_CPU_MULTIPROCESSING = os.getenv("ENABLE_CPU_MULTIPROCESSING", "false").lower() == "true"
+CPU_THREADS = int(
+    os.getenv("CPU_THREADS", "4")
+)  # Number of torch threads for CPU inference
+ENABLE_CPU_MULTIPROCESSING = (
+    os.getenv("ENABLE_CPU_MULTIPROCESSING", "false").lower() == "true"
+)
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -24,9 +27,7 @@ app = FastAPI(
 device = (
     "cuda:0"
     if torch.cuda.is_available()
-    else "mps"
-    if torch.backends.mps.is_available()
-    else "cpu"
+    else "mps" if torch.backends.mps.is_available() else "cpu"
 )
 
 # Configure CPU threading for better performance
@@ -36,14 +37,25 @@ if device == "cpu":
     print(f"CPU mode: Set torch threads to {CPU_THREADS}")
 
 # Load model and processor
-model = ColQwen2_5.from_pretrained(
-    "vidore/colqwen2.5-v0.2",
-    torch_dtype=torch.bfloat16,
-    device_map=device,
-    attn_implementation="flash_attention_2" if is_flash_attn_2_available() else None,
-).eval()
+model = cast(
+    Any,
+    ColQwen2_5.from_pretrained(
+        "vidore/colqwen2.5-v0.2",
+        torch_dtype=torch.bfloat16,
+        device_map=device,
+        attn_implementation=(
+            "flash_attention_2" if is_flash_attn_2_available() else None
+        ),
+    ).eval(),
+)
 
-processor = ColQwen2_5_Processor.from_pretrained("vidore/colqwen2.5-v0.2")
+_processor_loaded: Union[
+    ColQwen2_5_Processor, Tuple[ColQwen2_5_Processor, dict[str, Any]]
+] = ColQwen2_5_Processor.from_pretrained("vidore/colqwen2.5-v0.2")
+if isinstance(_processor_loaded, tuple):
+    processor = cast(Any, _processor_loaded[0])
+else:
+    processor = cast(Any, _processor_loaded)
 
 print(f"ColPali model loaded on device: {device}")
 print(f"Model dtype: {model.dtype}")
@@ -100,7 +112,7 @@ def generate_query_embeddings(queries: List[str]) -> List[torch.Tensor]:
     device = model.device
     with torch.no_grad():
         batch_query = processor.process_queries(queries).to(device)
-        query_embeddings = model(**batch_query)  # [batch, seq, dim] (as tensor)
+        query_embeddings = cast(torch.Tensor, model(**batch_query))  # [batch, seq, dim]
         # Unbind into per-sample tensors on CPU
         return list(torch.unbind(query_embeddings.to("cpu")))
 
@@ -115,7 +127,9 @@ def generate_image_embeddings_with_boundaries(
         batch_images = processor.process_images(images).to(device)
 
         # Forward pass
-        image_embeddings = model(**batch_images)  # [batch, seq, dim]
+        image_embeddings = cast(
+            torch.Tensor, model(**batch_images)
+        )  # [batch, seq, dim]
         image_embeddings = image_embeddings.to("cpu")
 
         # Expect token ids to be present, so we can find image-token spans
@@ -125,7 +139,7 @@ def generate_image_embeddings_with_boundaries(
             )
 
         input_ids = batch_images["input_ids"].to("cpu")  # [batch, seq]
-        image_token_id = processor.image_token_id
+        image_token_id = int(processor.image_token_id)
 
         batch_items: List[ImageEmbeddingItem] = []
         batch_size = input_ids.shape[0]
@@ -150,9 +164,15 @@ def generate_image_embeddings_with_boundaries(
                 # Sanity: ensure all indices are contiguous (as expected for image patches)
                 # If there are gaps, we still use [start:length] but this flags a potential tokenizer change.
                 # We won't throw here to avoid breaking callers; they can validate further.
-                if not torch.all(
-                    indices == torch.arange(indices[0], indices[0] + indices.numel())
-                ):
+                start_idx = int(indices[0].item())
+                token_count = int(indices.numel())
+                contiguous = torch.arange(
+                    start_idx,
+                    start_idx + token_count,
+                    device=indices.device,
+                    dtype=indices.dtype,
+                )
+                if not torch.all(indices == contiguous):
                     # Non-contiguous; still report start and length, but you may want to log this server-side.
                     print(
                         "Warning: Non-contiguous image tokens found. This may indicate a tokenizer change."
@@ -272,7 +292,8 @@ async def embed_images(files: List[UploadFile] = File(...)):
 
         images: List[Image.Image] = []
         for file in files:
-            if not file.content_type.startswith("image/"):
+            content_type = file.content_type or ""
+            if not content_type.startswith("image/"):
                 raise HTTPException(
                     status_code=400, detail=f"File {file.filename} is not an image"
                 )

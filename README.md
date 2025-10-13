@@ -482,6 +482,15 @@ This template supports binary quantization for Qdrant to reduce memory usage and
 - FastAPI app is assembled by `api/app.py` (routers: meta, retrieval, indexing, maintenance) and booted by `backend.py` in containers (alternatively, run `python main.py` locally from `backend/`).
 - Replace OpenAI with another LLM by adapting the Next.js Chat API at `frontend/app/api/chat/route.ts`.
 - To filter search by metadata, see `QdrantService.search_with_metadata(...)`.
+- The `/search` endpoint now falls back to `DEFAULT_TOP_K` when `k` is omitted, so update that config value to change the global default result count.
+- MinIO batch delete responses surface the raw error text even when MinIO omits the object name, making it easier to match failures back to requested URLs.
+- MUVERA is imported lazily; install `fastembed` with post-processing extras before enabling it at runtime.
+
+### Pre-commit hooks
+
+- Install tooling once: `pip install pre-commit`.
+- Enable hooks in your clone: `pre-commit install`.
+- Run all checks locally (autoflake, isort, black, pyright): `pre-commit run --all-files`.
 
 ## For collaborators
 
@@ -490,6 +499,7 @@ This template supports binary quantization for Qdrant to reduce memory usage and
 - __Branching__: Create small, focused branches like `feat/<short-desc>`, `fix/<short-desc>`, or `chore/<short-desc>`. Open PRs against `main`.
 - __PR guidelines__: Describe the problem, approach, and tradeoffs. Update docs when behavior or config changes. Link related items in `feature-list.md`.
 - __Code style__: Keep Python and TypeScript/React code consistent with existing patterns. Prefer clear naming, type hints where applicable, and small functions.
+- __Quality__: Let pre-commit run on commit or invoke `pre-commit run --all-files` before pushing to ensure formatting and type checks pass.
 - __Security & data__: Do not commit secrets. Use `.env.example` for new vars. Avoid exposing private MinIO objects; use presigned URLs in code.
 - __Issues__: When filing an issue, include context, steps to reproduce, expected vs. actual results, and logs if relevant.
 - __Roadmap__: Use `feature-list.md` to propose or pick up items. Convert unchecked items into issues if you plan to work on them.

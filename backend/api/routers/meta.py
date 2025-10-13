@@ -1,7 +1,5 @@
 import asyncio
 
-from fastapi import APIRouter
-
 import config
 from api.dependencies import (
     get_colpali_client,
@@ -10,6 +8,7 @@ from api.dependencies import (
     minio_init_error,
     qdrant_init_error,
 )
+from fastapi import APIRouter
 
 router = APIRouter(tags=["meta"])
 
@@ -60,7 +59,8 @@ def _check_colpali() -> bool:
 
 def _check_minio() -> bool:
     try:
-        if not config.MINIO_ENABLED:
+        minio_enabled = bool(getattr(config, "MINIO_ENABLED"))
+        if not minio_enabled:
             return True
         svc = get_minio_service()
         return bool(svc and svc.health_check())

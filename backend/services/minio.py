@@ -10,11 +10,6 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import urllib3
-from minio import Minio
-from minio.deleteobjects import DeleteObject
-from minio.error import S3Error
-from PIL import Image
-
 from config import (
     IMAGE_FORMAT,
     MINIO_ACCESS_KEY,
@@ -28,6 +23,10 @@ from config import (
     MINIO_WORKERS,
     get_pipeline_max_concurrency,
 )
+from minio import Minio
+from minio.deleteobjects import DeleteObject
+from minio.error import S3Error
+from PIL import Image
 
 # ---------------------------------------------------------------------------
 # Logging

@@ -3,14 +3,15 @@
 import importlib
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, List, Optional, Tuple, TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, cast
 
 import numpy as np
 from PIL import Image
 
 if TYPE_CHECKING:
-    from backend import config as config  # type: ignore
     from services.colpali import ColPaliService
+
+    from backend import config as config  # type: ignore
 else:  # pragma: no cover - runtime import for application execution
     import config  # type: ignore
 
@@ -149,8 +150,7 @@ class EmbeddingProcessor:
             return original_batch, [], []
 
         dimensions = [
-            {"width": image.width, "height": image.height}
-            for image in image_batch
+            {"width": image.width, "height": image.height} for image in image_batch
         ]
         patch_results_raw = api_client.get_patches(dimensions)
         patch_results: List[dict[str, Any]] = []
@@ -261,9 +261,7 @@ class MuveraPostprocessor:
         logger.debug("MUVERA.process_document output length: %d", len(out))
         return out
 
-    def process_query(
-        self, multivectors: List[List[float]]
-    ) -> Optional[List[float]]:
+    def process_query(self, multivectors: List[List[float]]) -> Optional[List[float]]:
         if not multivectors:
             logger.debug("MUVERA.process_query received empty multivectors")
             return None

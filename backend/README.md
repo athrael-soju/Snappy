@@ -10,6 +10,7 @@ A modular FastAPI service that exposes endpoints for indexing PDFs, search, and 
 - Python 3.10+
 - Poppler installed and on PATH (for `pdf2image`)
 - Optional: Docker + Docker Compose
+- Optional: `fastembed[postprocess]` (only required when enabling the MUVERA post-processor)
 
 ## Setup (local)
 ```bash
@@ -66,7 +67,7 @@ docker compose up -d --build
 - `GET /health` — Service health check with dependencies status
 
 ### Retrieval
-- `GET /search?q=...&k=5` — Visual search over indexed documents
+- `GET /search?q=...&k=5` — Visual search over indexed documents (defaults to `DEFAULT_TOP_K` when `k` is omitted)
 
 ### Indexing
 - `POST /index` (multipart files[]) — Start background indexing job
@@ -80,6 +81,8 @@ docker compose up -d --build
 - `POST /clear/qdrant` — Clear all data from Qdrant collection (data reset)
 - `POST /clear/minio` — Clear all objects from MinIO bucket (data reset)
 - `POST /clear/all` — Clear all data from both systems (complete data reset)
+
+- MinIO batch deletes populate the result map with descriptive error strings even when the service omits an `object_name`, so failures can be mapped back to the requested URLs.
 
 ### Configuration
 - `GET /config/schema` — Get configuration schema with categories and metadata

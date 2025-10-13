@@ -2,10 +2,9 @@ import logging
 import os
 from typing import Dict, Iterator, List, Tuple
 
+import config  # Import module for dynamic config access
 from fastapi import HTTPException
 from pdf2image import convert_from_path, pdfinfo_from_path
-
-import config  # Import module for dynamic config access
 
 logger = logging.getLogger(__name__)
 

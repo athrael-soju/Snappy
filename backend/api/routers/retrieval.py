@@ -1,11 +1,10 @@
 import asyncio
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
-
 import config  # Import module for dynamic config access
 from api.dependencies import get_qdrant_service, qdrant_init_error
 from api.models import SearchItem
+from fastapi import APIRouter, HTTPException, Query
 
 router = APIRouter(prefix="", tags=["retrieval"])
 
@@ -16,7 +15,7 @@ async def search(
     k: Optional[int] = Query(None, ge=1, le=50),
 ):
     # Use config default if not provided
-    top_k: int = int(k) if k is not None else int(getattr(config, 'DEFAULT_TOP_K', 10))
+    top_k: int = int(k) if k is not None else int(getattr(config, "DEFAULT_TOP_K", 10))
     svc = get_qdrant_service()
     if not svc:
         raise HTTPException(

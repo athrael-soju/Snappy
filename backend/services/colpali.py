@@ -4,11 +4,10 @@ from typing import List, Optional, Union
 
 import numpy as np
 import requests
+from config import COLPALI_API_TIMEOUT, COLPALI_CPU_URL, COLPALI_GPU_URL, COLPALI_MODE
 from PIL import Image
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-
-from config import COLPALI_API_TIMEOUT, COLPALI_CPU_URL, COLPALI_GPU_URL, COLPALI_MODE
 
 
 class ColPaliService:

@@ -16,3 +16,4 @@ autoflake
 black
 isort
 pyright
+pre-commit

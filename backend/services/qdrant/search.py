@@ -3,11 +3,10 @@
 import logging
 from typing import List, Optional
 
-import numpy as np
-from qdrant_client import models
-
 import config  # Import module for dynamic config access
+import numpy as np
 from api.utils import compute_page_label
+from qdrant_client import models
 
 logger = logging.getLogger(__name__)
 

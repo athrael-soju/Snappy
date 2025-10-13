@@ -1,14 +1,15 @@
 """Collection management for Qdrant vector database."""
 
 import logging
-from typing import TYPE_CHECKING, Mapping, Optional, cast
+from typing import TYPE_CHECKING, Optional, cast
 
 from qdrant_client import QdrantClient, models
 from qdrant_client.conversions import common_types as qtypes
 
 if TYPE_CHECKING:
-    from backend import config as config  # type: ignore
     from services.colpali import ColPaliService
+
+    from backend import config as config  # type: ignore
 
     from .embedding import MuveraPostprocessor
 else:  # pragma: no cover - runtime import for application execution
@@ -76,7 +77,7 @@ class CollectionManager:
         """Create Qdrant collection for document storage with proper dimension validation."""
         # Return early if the collection already exists
         try:
-            coll = self.service.get_collection(self.collection_name)
+            self.service.get_collection(self.collection_name)
             logger.info("Using existing Qdrant collection '%s'", self.collection_name)
             # If MUVERA is enabled, ensure vector exists and has correct size
             if self.muvera_post and self.muvera_post.embedding_size:
@@ -93,13 +94,16 @@ class CollectionManager:
                             int(self.muvera_post.embedding_size),
                         )
                         muvera_dim = int(self.muvera_post.embedding_size)
-                        update_config = cast(qtypes.VectorsConfigDiff, {
-                            "muvera_fde": models.VectorParams(
-                                size=muvera_dim,
-                                distance=models.Distance.COSINE,
-                                on_disk=config.QDRANT_ON_DISK,
-                            )
-                        })
+                        update_config = cast(
+                            qtypes.VectorsConfigDiff,
+                            {
+                                "muvera_fde": models.VectorParams(
+                                    size=muvera_dim,
+                                    distance=models.Distance.COSINE,
+                                    on_disk=config.QDRANT_ON_DISK,
+                                )
+                            },
+                        )
                         self.service.update_collection(
                             collection_name=self.collection_name,
                             vectors_config=update_config,
