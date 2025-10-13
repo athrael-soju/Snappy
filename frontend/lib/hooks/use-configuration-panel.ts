@@ -122,6 +122,9 @@ export function useConfigurationPanel() {
       toast.success("Configuration saved", {
         description: `${changedKeys.length} setting${changedKeys.length !== 1 ? "s" : ""} updated`,
       });
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("systemStatusChanged"));
+      }
     } catch (err) {
       const errorMsg = err instanceof ApiError ? err.message : "Failed to save configuration";
       setError(errorMsg);
@@ -164,6 +167,9 @@ export function useConfigurationPanel() {
         toast.success("Section reset", {
           description: `${category.name} settings restored to defaults`,
         });
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("systemStatusChanged"));
+        }
       } catch (err) {
         const errorMsg = err instanceof ApiError ? err.message : "Failed to reset section";
         setError(errorMsg);
@@ -186,6 +192,9 @@ export function useConfigurationPanel() {
       setLastSaved(new Date());
 
       toast.success("Configuration reset", { description: "All settings restored to defaults" });
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("systemStatusChanged"));
+      }
     } catch (err) {
       const errorMsg = err instanceof ApiError ? err.message : "Failed to reset configuration";
       setError(errorMsg);
@@ -220,6 +229,9 @@ export function useConfigurationPanel() {
 
       const notify = appliedCount > 0 ? toast.success : toast.info;
       notify("Optimization complete", { description });
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("systemStatusChanged"));
+      }
     } catch (err) {
       const errorMsg = err instanceof ApiError ? err.message : "Failed to optimize configuration";
       setError(errorMsg);
