@@ -21,13 +21,22 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FastAPI / Next.js / ColPali Template",
-  description: "Search, upload and chat with your visual documents",
+  title: "Snappy",
+  description: "Snappy is the friendly document intelligence starter that helps teams upload, search, and chat with visual knowledge in minutes.",
+  applicationName: "Snappy",
   icons: {
     icon: "/favicon.png",
     shortcut: "/favicon.png",
     apple: "/favicon.png",
   },
+  keywords: [
+    "Snappy",
+    "document intelligence",
+    "visual search",
+    "FastAPI",
+    "Next.js",
+    "RAG",
+  ],
 };
 
 export default function RootLayout({
@@ -45,7 +54,7 @@ export default function RootLayout({
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
-          storageKey="colpali-theme"
+          storageKey="snappy-theme"
         >
           {/* Animated gradient background */}
           <AnimatedBackground>

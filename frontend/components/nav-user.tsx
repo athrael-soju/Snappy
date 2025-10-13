@@ -89,7 +89,7 @@ export function NavUser() {
         className="w-56 rounded-2xl border border-border/50 bg-card/95 backdrop-blur-xl shadow-xl"
       >
         <DropdownMenuLabel className="px-3 pt-2 text-[11px] font-semibold uppercase tracking-[0.35em] text-muted-foreground">
-          System
+          Snappy
         </DropdownMenuLabel>
         {maintenanceItems.map((item) => (
           <DropdownMenuItem
@@ -109,14 +109,14 @@ export function NavUser() {
         <DropdownMenuItem
           onSelect={(event) => {
             event.preventDefault()
-            router.push("/about")
-          }}
-          className={cn(itemClasses, !aboutActive && itemHoverClasses, aboutActive && "font-semibold")}
-          style={menuActiveStyle(aboutActive)}
-        >
-          <Info className="h-4 w-4 text-current" />
-          About this Template
-        </DropdownMenuItem>
+        router.push("/about")
+      }}
+      className={cn(itemClasses, !aboutActive && itemHoverClasses, aboutActive && "font-semibold")}
+      style={menuActiveStyle(aboutActive)}
+    >
+      <Info className="h-4 w-4 text-current" />
+      About Snappy
+    </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

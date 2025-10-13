@@ -52,8 +52,18 @@ export default function MaintenancePage() {
     <motion.div {...defaultPageMotion}>
       <motion.section variants={sectionVariants} className="flex flex-col items-center text-center gap-6 pt-6 sm:pt-8">
         <PageHeader
-          title={isConfigurationView ? "System Configuration" : "System Maintenance"}
-          tooltip={isConfigurationView ? "Manage runtime configuration options" : "Monitor and manage storage and indexing resources"}
+          title={isConfigurationView ? "Snappy Configuration" : "Snappy Maintenance"}
+          description={
+            isConfigurationView
+              ? "Adjust ingestion limits, API integrations, and feature flags with confidence."
+              : "Monitor storage, collection health, and perform safe resets when you need a fresh start."
+          }
+          icon={isConfigurationView ? Settings : RotateCcw}
+          tooltip={
+            isConfigurationView
+              ? "Manage runtime configuration options for Snappy."
+              : "Monitor and manage storage and indexing resources."
+          }
         />
       </motion.section>
 

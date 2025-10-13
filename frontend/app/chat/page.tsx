@@ -99,7 +99,7 @@ export default function ChatPage() {
   const removeFromRecentSearches = (q: string) => {
     setRecentSearches((prev) => {
       const updated = prev.filter((s) => s !== q);
-      localStorage.setItem("colpali-chat-recent", JSON.stringify(updated));
+      localStorage.setItem("snappy-chat-recent", JSON.stringify(updated));
       return updated;
     });
   };
@@ -188,7 +188,7 @@ export default function ChatPage() {
     setLastResponseDurationMs(null);
     setRecentSearches((prev) => {
       const updated = [q, ...prev.filter((s) => s !== q)].slice(0, 10);
-      localStorage.setItem("colpali-chat-recent", JSON.stringify(updated));
+      localStorage.setItem("snappy-chat-recent", JSON.stringify(updated));
       return updated;
     });
     sendMessage(e);
@@ -206,7 +206,7 @@ export default function ChatPage() {
 
   // Load recent searches from localStorage once
   useEffect(() => {
-    const saved = localStorage.getItem("colpali-chat-recent");
+    const saved = localStorage.getItem("snappy-chat-recent");
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -229,10 +229,11 @@ export default function ChatPage() {
   return (
     <motion.div {...defaultPageMotion} className="page-shell flex flex-col min-h-0 flex-1 gap-6">
       <motion.section variants={sectionVariants} className="flex flex-col items-center text-center gap-6 pt-6 sm:pt-8">
-      <PageHeader
-          title="AI Chat"
+        <PageHeader
+          title="Snappy Chat"
+          description="Have grounded conversations with inline citations pulled straight from your document pages."
           icon={Brain}
-          tooltip="Ask questions about your documents and get AI-powered responses with inline citations"
+          tooltip="Snappy streams answers backed by ColPali visual matches so you can move quickly without sacrificing trust."
         />
       </motion.section>
       <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col gap-6 pb-6 sm:pb-8">

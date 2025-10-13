@@ -2,7 +2,7 @@
  * Configuration storage utility for persisting runtime config in localStorage
  */
 
-const CONFIG_STORAGE_KEY = 'colpali-runtime-config';
+const CONFIG_STORAGE_KEY = 'snappy-runtime-config';
 
 export interface ConfigValues {
   [key: string]: string;

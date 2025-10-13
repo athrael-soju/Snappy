@@ -81,9 +81,10 @@ export default function UploadPage() {
       <motion.section variants={sectionVariants} className="flex flex-col items-center text-center gap-6 pt-6 sm:pt-8">
 
         <PageHeader
-          title="Upload Documents"
+          title="Upload to Snappy"
+          description="Drop PDFs or images and Snappy will convert each page, stream progress, and prepare embeddings automatically."
           icon={CloudUpload}
-          tooltip="Drag & drop or select files to add to your visual search index"
+          tooltip="Drag & drop or select files to add to your visual document search index."
         />
       </motion.section>
 

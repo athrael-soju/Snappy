@@ -1,35 +1,32 @@
 <center>
-<img width="100%" alt="image" src="image/README/1755459651164.png" />
+<img width="220" alt="Snappy mascot" src="frontend/public/Snappy/snappy_light_nobg_resized.png" />
 </center>
 
-# The Most Beautiful Rag - FastAPI / Next.js / ColPali Template
+# Snappy - Visual Document AI Starter
 
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688)](https://fastapi.tiangolo.com/) [![Qdrant](https://img.shields.io/badge/VectorDB-Qdrant-ff6b6b)](https://qdrant.tech/) [![MinIO](https://img.shields.io/badge/Storage-MinIO-f79533)](https://min.io/) [![Next.js](https://img.shields.io/badge/Frontend-Next.js-000000)](https://nextjs.org/) [![Docker Compose](https://img.shields.io/badge/Orchestration-Docker%20Compose-2496ed)](https://docs.docker.com/compose/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A lightweight, end-to-end template for page-level retrieval over PDFs using a ColPali-like approach:
+Snappy is the friendly evolution of the fastapi-nextjs-colpali-template. It gives teams a ready-to-ship experience for visual document ingestion, search, and chat powered by a ColPali-style embedding pipeline.
 
-- __Storage__: page images in MinIO (or inline inside Qdrant when MinIO is disabled), multivector embeddings in Qdrant
-- __Retrieval__: two-stage reranking with pooled image-token vectors; optional MUVERA-first stage when enabled
-- __Generation__: Next.js chat API streams OpenAI Responses with multimodal context (retrieved page images)
-- __API__: FastAPI service exposing endpoints for indexing, search, and maintenance
+- **Upload & ingest**: Drag-and-drop PDFs or images, stream processing progress, and store generated pages in MinIO.
+- **Visual retrieval**: Qdrant multivectors keep page context intact while optional MUVERA reranking boosts precision.
+- **Explainable chat**: The Next.js chat API streams OpenAI responses with inline visual citations.
+- **Operational guardrails**: Maintenance dashboards, health checks, and environment toggles make Snappy production aware.
 
-This repo is intended as a developer-friendly starting point for vision RAG systems.
+## Component Guides
 
-## Component READMEs
+- [backend/README.md](backend/README.md) — FastAPI backend details
+- [frontend/README.md](frontend/README.md) — Next.js 15 frontend overview
+- [colpali/README.md](colpali/README.md) — ColPali embedding API reference
+- [backend/docs/configuration.md](backend/docs/configuration.md) — Configuration and performance tuning
+- [feature-list.md](feature-list.md) — Production hardening checklist
 
-- [backend/README.md](backend/README.md) â€” FastAPI backend
-- [frontend/README.md](frontend/README.md) â€” Next.js frontend
-- [colpali/README.md](colpali/README.md) â€” ColPali embedding API
-- [backend/docs/configuration.md](backend/docs/configuration.md) â€” **Configuration reference and performance tuning** âš™ï¸
-- [feature-list.md](feature-list.md) â€” Production hardening and roadmap checklist
-
-> **âš ï¸ Performance Note**: CPU-based indexing is **significantly slower** than GPU. For production deployments with frequent indexing, GPU acceleration is strongly recommended. See [backend/docs/configuration.md](backend/docs/configuration.md) for detailed configuration options and performance tuning strategies.
+> **Performance note:** CPU-based indexing is significantly slower than GPU. If you ingest frequently, plan for GPU acceleration. See [backend/docs/configuration.md](backend/docs/configuration.md) for tuning guidance.
 
 ## Table of Contents
 
-- [The Most Beautiful Rag - FastAPI / Next.js / MinIO Template](#the-most-beautiful-rag---fastapi--nextjs--minio-template)
-  - [Component READMEs](#component-readmes)
-  - [Table of Contents](#table-of-contents)
+- [Snappy — Visual Document AI Starter](#snappy--visual-document-ai-starter)
+  - [Component Guides](#component-guides)
   - [Architecture](#architecture)
   - [Features](#features)
   - [New Frontend](#new-frontend)
@@ -519,3 +516,5 @@ Inspired by ColPali-style page-level retrieval and multivector search patterns. 
   - https://qdrant.tech/blog/colpali-qdrant-optimization/
   - https://qdrant.tech/articles/binary-quantization/
 - PyTorch â€” https://pytorch.org/
+
+

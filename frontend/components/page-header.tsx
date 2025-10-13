@@ -14,54 +14,45 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, icon: Icon, children, badge, tooltip }: PageHeaderProps) {
   return (
-    <div className="relative space-y-3 text-center">
-      {/* Subtle background accent - only on top */}
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <div
-          className="absolute left-1/2 top-[-18%] h-56 w-56 -translate-x-1/2 rounded-full opacity-20 blur-3xl"
-          style={{ background: "radial-gradient(circle, rgba(251, 226, 167, 0.35) 0%, transparent 70%)" }}
-        />
-      </div>
-
-      <div className="relative z-10 flex flex-wrap items-center justify-center gap-3">
-        {Icon && (
-          <div className="rounded-2xl border border-border bg-card p-2.5 shadow-sm">
-            <Icon className="h-6 w-6 text-primary" />
-          </div>
-        )}
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <div className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-card/90 backdrop-blur-sm border border-border shadow-sm">
-            <h1
-              className="text-balance text-4xl font-semibold tracking-tight bg-clip-text text-transparent"
-              style={{ backgroundImage: "var(--nav-pill-active)" }}
-            >
-              {title}
-            </h1>
-            {tooltip && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    className="inline-flex items-center justify-center rounded-full border border-border bg-card/80 p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
-                  >
-                    <HelpCircle className="h-4 w-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs text-base bg-popover text-popover-foreground" sideOffset={8}>
-                  {tooltip}
-                </TooltipContent>
-              </Tooltip>
+    <div className="w-full rounded-3xl border border-border/60 bg-card/80 px-6 py-6 shadow-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          {Icon && (
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <Icon className="h-6 w-6" />
+            </span>
+          )}
+          <div className="flex flex-col gap-2 text-center sm:text-left">
+            <div className="flex flex-col items-center gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <h1 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                {title}
+              </h1>
+              {tooltip && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/70 bg-card/90 text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                    >
+                      <HelpCircle className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs text-sm leading-relaxed">
+                    {tooltip}
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
+            {description && (
+              <p className="text-base leading-relaxed text-muted-foreground">
+                {description}
+              </p>
             )}
           </div>
-          {badge && <div className="flex items-center text-sm">{badge}</div>}
         </div>
+        {badge && <div className="flex items-center justify-center">{badge}</div>}
       </div>
-      {description && (
-        <p className="relative z-10 mx-auto max-w-2xl text-balance text-base text-muted-foreground px-4 py-2 rounded-lg bg-card/50 backdrop-blur-sm">
-          {description}
-        </p>
-      )}
-      {children}
+      {children && <div className="mt-4">{children}</div>}
     </div>
   );
 }

@@ -103,7 +103,7 @@ export default function SearchPage() {
   }, [fetchSystemStatus]);
 
   useEffect(() => {
-    const saved = localStorage.getItem("colpali-recent-searches");
+    const saved = localStorage.getItem("snappy-recent-searches");
     if (saved) {
       try {
         setRecentSearches(JSON.parse(saved));
@@ -116,13 +116,13 @@ export default function SearchPage() {
   const addToRecentSearches = useCallback((query: string) => {
     const updated = [query, ...recentSearches.filter((s) => s !== query)].slice(0, 5);
     setRecentSearches(updated);
-    localStorage.setItem("colpali-recent-searches", JSON.stringify(updated));
+    localStorage.setItem("snappy-recent-searches", JSON.stringify(updated));
   }, [recentSearches]);
 
   const removeFromRecentSearches = useCallback((query: string) => {
     const updated = recentSearches.filter((s) => s !== query);
     setRecentSearches(updated);
-    localStorage.setItem("colpali-recent-searches", JSON.stringify(updated));
+    localStorage.setItem("snappy-recent-searches", JSON.stringify(updated));
   }, [recentSearches]);
 
   const handleClearSearch = useCallback(() => {
@@ -220,9 +220,10 @@ export default function SearchPage() {
     <motion.div {...defaultPageMotion} className="page-shell flex min-h-0 flex-1 flex-col gap-6">
       <motion.section variants={sectionVariants} className="flex flex-col items-center text-center gap-6 pt-6 sm:pt-8">
         <PageHeader
-          title="Visual Search"
+          title="Snappy Search"
+          description="Ask natural questions and get ranked visual matches from every page you have indexed."
           icon={Search}
-          tooltip="Find documents and images using natural language powered by AI vision"
+          tooltip="Snappy uses ColPali embeddings and Qdrant multivectors to surface results grounded in what the page actually shows."
         />
       </motion.section>
 
