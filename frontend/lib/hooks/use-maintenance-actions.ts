@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { MaintenanceService, ApiError } from "@/lib/api/generated";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import { ActionType, LoadingState } from "@/components/maintenance/types";
 import { MAINTENANCE_ACTIONS } from "@/components/maintenance/constants";
 import { useAppStore } from "@/stores/app-store";

@@ -78,9 +78,7 @@ export default function UploadPage() {
       tooltip="Drag & drop or select files to add to your visual search index"
       className="flex flex-col gap-4"
     >
-      <div className="flex-shrink-0">
-        <SystemStatusWarning isReady={isReady} />
-      </div>
+      <SystemStatusWarning isReady={isReady} />
       
       <div className="flex-1 min-h-0 flex flex-col gap-4">
         <FileDropzone

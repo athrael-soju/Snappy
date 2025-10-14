@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { MaintenanceService, ApiError } from "@/lib/api/generated";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 interface UseSystemManagementOptions {
   onSuccess?: () => void;

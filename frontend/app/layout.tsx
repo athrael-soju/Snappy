@@ -4,7 +4,7 @@ import "./globals.css";
 import "@/lib/api/client";
 import { Nav } from "@/components/nav";
 import NextTopLoader from "nextjs-toploader";
-import { Toaster } from "@/components/ui/sonner";
+import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { AppStoreProvider } from "@/stores/app-store";
@@ -51,7 +51,7 @@ export default function RootLayout({
           <AnimatedBackground>
             <div className="flex h-dvh flex-col">
               <NextTopLoader showSpinner={false} />
-              <Toaster richColors position="top-right" />
+              <Toaster position="top-right" />
               <AppStoreProvider>
                 <TooltipProvider>
                   <Nav />

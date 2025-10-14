@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Search, AlertCircle, ImageIcon, Eye, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fadeInItemMotion, fadeInPresence, staggeredListMotion } from "@/lib/motion-presets";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import { GlassPanel } from "@/components/ui/glass-panel";
 import Image from "next/image";
 import ImageLightbox from "@/components/lightbox";
@@ -199,9 +199,7 @@ export default function SearchPage() {
       tooltip="Find documents and images using natural language powered by AI vision"
       className="flex flex-col gap-4"
     >
-      <div className="flex-shrink-0">
-        <SystemStatusWarning isReady={isReady} />
-      </div>
+      <SystemStatusWarning isReady={isReady} />
 
       <div className="flex-shrink-0">
         <GlassPanel className="p-4 sm:p-5">

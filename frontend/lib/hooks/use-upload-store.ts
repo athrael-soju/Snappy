@@ -1,5 +1,5 @@
 import { useAppStore } from '@/stores/app-store';
-import { toast } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 
 /**
  * Hook for accessing and managing upload state

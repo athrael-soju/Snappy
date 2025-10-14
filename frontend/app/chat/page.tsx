@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { User, Image as ImageIcon, Loader2, Sparkles, Brain, FileText, BarChart3, MessageSquare, Clock, ExternalLink, ThumbsUp, ThumbsDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fadeInPresence } from "@/lib/motion-presets";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import ImageLightbox from "@/components/lightbox";
 import ChatInputBar from "@/components/chat/ChatInputBar";
 import StarterQuestions from "@/components/chat/StarterQuestions";

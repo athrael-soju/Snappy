@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { toast } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 import { UploadState, AppAction } from '@/stores/app-store';
 
 interface UseUploadSSEOptions {
