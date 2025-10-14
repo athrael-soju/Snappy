@@ -81,7 +81,7 @@ export function FileDropzone({
           <div className="flex flex-col items-center gap-4 py-10 px-6 text-center">
             <div
               className={cn(
-                "flex size-16 items-center justify-center rounded-full bg-gradient-to-br from-primary/10 to-primary/5 text-primary transition-all",
+                "flex size-16 items-center justify-center rounded-full icon-bg text-primary transition-all",
                 isDragOver && "scale-105 border-primary/60"
               )}
             >
@@ -104,7 +104,7 @@ export function FileDropzone({
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-12 justify-center rounded-xl border border-border/50 bg-card/40 backdrop-blur-sm text-foreground hover:border-primary/50 hover:bg-primary/10 hover:scale-[1.02] transition-all duration-200 focus-visible:ring-2 focus-visible:ring-ring/40"
+                  className="h-12 justify-center rounded-xl border border-border/50 bg-card/40 backdrop-blur-sm text-foreground hover:scale-[1.02] transition-all duration-200 focus-visible:ring-2 focus-visible:ring-ring/40 hover-interactive"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading}
                 >
@@ -113,7 +113,7 @@ export function FileDropzone({
                 </Button>
 
                 {hasFiles && (
-                  <div className="flex items-center justify-center gap-2 rounded-xl border border-border/50 bg-primary/5 backdrop-blur-sm px-4 py-2 text-sm font-semibold text-primary">
+                  <div className="flex items-center justify-center gap-2 rounded-xl border border-border/50 bg-hover backdrop-blur-sm px-4 py-2 text-sm font-semibold text-primary">
                     <FileText className="h-4 w-4" aria-hidden="true" />
                     {fileCount} file{fileCount !== 1 ? "s" : ""} selected
                   </div>

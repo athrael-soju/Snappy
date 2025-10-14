@@ -80,6 +80,13 @@
   --nav-pill-active-foreground: oklch(0.985 0.010 255);
   --cta-gradient: linear-gradient(120deg, rgba(79, 70, 229, 0.96) 0%, rgba(147, 51, 234, 0.94) 45%, rgba(14, 165, 233, 0.94) 100%);
   --card-overlay: rgba(255, 255, 255, 0.50);
+
+  /* Interactive states */
+  --hover-bg: color-mix(in oklab, var(--primary) 5%, transparent);
+  --hover-border: color-mix(in oklab, var(--primary) 30%, var(--border));
+  --hover-text: var(--primary);
+  --icon-bg: color-mix(in oklab, var(--primary) 10%, transparent);
+  --icon-bg-muted: color-mix(in oklab, var(--muted) 30%, transparent);
 }
 
 .dark {
@@ -135,6 +142,13 @@
   --nav-pill-shadow: 0 18px 36px -24px rgba(12, 16, 28, 0.70);
   --nav-pill-active-foreground: oklch(0.970 0.010 270);
   --card-overlay: rgba(12, 22, 35, 0.70);
+
+  /* Interactive states */
+  --hover-bg: color-mix(in oklab, var(--primary) 8%, transparent);
+  --hover-border: color-mix(in oklab, var(--primary) 35%, var(--border));
+  --hover-text: var(--primary);
+  --icon-bg: color-mix(in oklab, var(--primary) 12%, transparent);
+  --icon-bg-muted: color-mix(in oklab, var(--muted) 40%, transparent);
 }
 
 @theme inline {
@@ -306,15 +320,29 @@
   .text-subtle {
     color: var(--text-subtle);
   }
-  /* Tooltip bubble sizing */
-  [data-slot="tooltip-content"] {
-    min-width: 8rem;
-    max-width: 20rem;
-    padding: 0.5rem 0.5rem;
-    line-height: 1.5;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    white-space: normal;
+  /* Interactive state utilities */
+  .hover-interactive {
+    transition: all 200ms ease;
+  }
+  .hover-interactive:hover {
+    background-color: var(--hover-bg);
+    border-color: var(--hover-border);
+    color: var(--hover-text);
+  }
+  .icon-bg {
+    background: var(--icon-bg);
+  }
+  .icon-bg-muted {
+    background: var(--icon-bg-muted);
+  }
+  .bg-hover {
+    background-color: var(--hover-bg);
+  }
+  .border-hover {
+    border-color: var(--hover-border);
+  }
+  .text-hover {
+    color: var(--hover-text);
   }
 }
 
