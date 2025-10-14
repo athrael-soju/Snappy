@@ -36,17 +36,13 @@ export function ConfigurationTabs({ categories, activeTab, onTabChange }: Config
               <button
                 key={categoryKey}
                 onClick={() => onTabChange(categoryKey)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${
+                className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
                   isActive
-                    ? 'font-semibold shadow-[var(--nav-pill-shadow)]'
-                    : 'text-[color:var(--nav-pill-inactive-foreground,var(--muted-foreground))] hover:bg-[color:var(--nav-pill-hover)] hover:text-[color:var(--nav-pill-hover-foreground,var(--foreground))]'
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
-                style={isActive ? {
-                  backgroundImage: 'var(--nav-pill-active)',
-                  color: 'var(--nav-pill-active-foreground, var(--foreground))'
-                } : undefined}
               >
-                <Icon className="w-4 h-4 flex-shrink-0" />
+                <Icon className="h-4 w-4 flex-shrink-0" />
                 <span className="truncate text-left">{category.name}</span>
               </button>
             );

@@ -1,7 +1,6 @@
-"use client"
+"use client";
 
-import { type CSSProperties } from "react"
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,45 +8,29 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
-import { UserCircle, SlidersHorizontal, Database, Info } from "lucide-react"
-
-const triggerBaseClasses =
-  "group relative h-11 w-11 sm:h-12 sm:w-12 rounded-full border border-border/50 bg-card/80 text-[color:var(--nav-pill-inactive-foreground,var(--muted-foreground))] shadow-sm transition-all"
-const triggerActiveClasses = "shadow-lg ring-2 ring-primary/30 text-[color:var(--nav-pill-active-foreground,var(--foreground))]"
-const triggerHoverClasses = "hover:text-[color:var(--nav-pill-hover-foreground,var(--foreground))] hover:shadow-md"
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { UserCircle, SlidersHorizontal, Database, Info } from "lucide-react";
 
 const itemClasses =
-  "mx-1 flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition text-[color:var(--nav-pill-inactive-foreground,var(--muted-foreground))]"
-
-const itemHoverClasses = "hover:bg-[color:var(--nav-pill-hover)] hover:text-[color:var(--nav-pill-hover-foreground,var(--foreground))]"
-
-const menuActiveStyle = (isActive: boolean): CSSProperties | undefined =>
-  isActive
-    ? {
-        backgroundImage: "var(--nav-pill-active)",
-        color: "var(--nav-pill-active-foreground, var(--foreground))",
-        boxShadow: "var(--nav-pill-shadow)",
-      }
-    : undefined
+  "flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors focus:bg-secondary focus:text-secondary-foreground";
 
 export function NavUser() {
-  const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  const maintenanceActive = pathname.startsWith("/maintenance")
-  const aboutActive = pathname.startsWith("/about")
-  const dropdownActive = maintenanceActive || aboutActive
-  const section = searchParams.get("section") === "data" ? "data" : "configuration"
+  const maintenanceActive = pathname.startsWith("/maintenance");
+  const aboutActive = pathname.startsWith("/about");
+  const dropdownActive = maintenanceActive || aboutActive;
+  const section = searchParams.get("section") === "data" ? "data" : "configuration";
 
   const navigate = (target: "configuration" | "data") => {
-    const params = new URLSearchParams()
-    params.set("section", target)
-    router.push(`/maintenance?${params.toString()}`)
-  }
+    const params = new URLSearchParams();
+    params.set("section", target);
+    router.push(`/maintenance?${params.toString()}`);
+  };
 
   const maintenanceItems = [
     {
@@ -64,7 +47,7 @@ export function NavUser() {
       isActive: maintenanceActive && section === "data",
       action: () => navigate("data"),
     },
-  ] as const
+  ] as const;
 
   return (
     <DropdownMenu>
@@ -73,12 +56,12 @@ export function NavUser() {
           variant="ghost"
           size="icon"
           aria-label="Open maintenance menu"
-          className={cn(triggerBaseClasses, dropdownActive ? triggerActiveClasses : triggerHoverClasses)}
+          className={cn(
+            "h-11 w-11 rounded-full border bg-card text-muted-foreground shadow-sm transition-colors sm:h-12 sm:w-12",
+            dropdownActive ? "bg-primary/10 text-primary" : "hover:bg-secondary hover:text-secondary-foreground"
+          )}
         >
-          <span
-            className="flex h-full w-full items-center justify-center rounded-full transition-colors text-current"
-            style={dropdownActive ? { backgroundImage: "var(--nav-pill-active)" } : undefined}
-          >
+          <span className="flex h-full w-full items-center justify-center rounded-full">
             <UserCircle className="h-6 w-6" />
           </span>
         </Button>
@@ -86,38 +69,39 @@ export function NavUser() {
       <DropdownMenuContent
         align="end"
         sideOffset={12}
-        className="w-56 rounded-2xl border border-border/50 bg-card/95 backdrop-blur-xl shadow-xl"
+        className="w-56 rounded-xl border bg-card/95 p-2 shadow-lg backdrop-blur"
       >
-        <DropdownMenuLabel className="px-3 pt-2 text-[11px] font-semibold uppercase tracking-[0.35em] text-muted-foreground">
-          System
+        <DropdownMenuLabel className="px-3 pt-1 text-xs font-semibold uppercase text-muted-foreground">
+          Workspace
         </DropdownMenuLabel>
+
         {maintenanceItems.map((item) => (
           <DropdownMenuItem
             key={item.key}
             onSelect={(event) => {
-              event.preventDefault()
-              item.action()
+              event.preventDefault();
+              item.action();
             }}
-            className={cn(itemClasses, !item.isActive && itemHoverClasses, item.isActive && "font-semibold")}
-            style={menuActiveStyle(item.isActive)}
+            className={cn(itemClasses, item.isActive && "bg-secondary text-secondary-foreground font-semibold")}
           >
-            <item.icon className="h-4 w-4 text-current" />
+            <item.icon className="h-4 w-4" />
             {item.label}
           </DropdownMenuItem>
         ))}
-        <DropdownMenuSeparator className="my-2 bg-border/60" />
+
+        <DropdownMenuSeparator className="my-1" />
+
         <DropdownMenuItem
           onSelect={(event) => {
-            event.preventDefault()
-            router.push("/about")
+            event.preventDefault();
+            router.push("/about");
           }}
-          className={cn(itemClasses, !aboutActive && itemHoverClasses, aboutActive && "font-semibold")}
-          style={menuActiveStyle(aboutActive)}
+          className={cn(itemClasses, aboutActive && "bg-secondary text-secondary-foreground font-semibold")}
         >
-          <Info className="h-4 w-4 text-current" />
-          About this Template
+          <Info className="h-4 w-4" />
+          About Snappy
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

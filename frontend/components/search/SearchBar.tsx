@@ -1,6 +1,5 @@
 "use client";
 
-import React, { useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -58,11 +57,11 @@ export default function SearchBar({
             required
             disabled={loading}
             aria-label="Search query"
-            className="h-14 rounded-2xl border border-muted bg-[color:var(--surface-0)]/95 pl-12 pr-24 text-base shadow-[var(--shadow-1)] transition focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--surface-0)] disabled:opacity-70"
+            className="h-14 rounded-xl border border-input bg-card pl-12 pr-24 text-base shadow-sm transition focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-70"
           />
         </div>
         <div className="flex items-stretch justify-end gap-2 self-stretch">
-          <div className="flex items-center gap-2 rounded-2xl border border-muted bg-[color:var(--surface-1)]/80 px-2 py-1 shadow-[var(--shadow-1)]">
+          <div className="flex items-center gap-2 rounded-xl border border-input bg-secondary/40 px-2 py-1 shadow-sm">
             <Tooltip>
               <TooltipTrigger asChild>
                 <div>
@@ -102,7 +101,8 @@ export default function SearchBar({
           <Button
             type="submit"
             disabled={loading || !q.trim()}
-            className="h-14 rounded-2xl bg-primary px-5 text-base font-semibold text-primary-foreground shadow-[var(--shadow-2)] transition hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--surface-0)] disabled:opacity-70"
+            size="lg"
+            className="h-14 rounded-xl px-6 text-base font-semibold"
           >
             {loading ? (
               <>

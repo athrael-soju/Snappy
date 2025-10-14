@@ -61,12 +61,12 @@ export default function ChatInputBar({
             onChange={(e) => setInput(e.target.value)}
             disabled={loading}
             aria-label="Chat input"
-            className="h-11 rounded-2xl border-2 border-border bg-background/95 backdrop-blur-md pl-12 pr-4 text-base shadow-sm transition-all focus-visible:border-primary/50 focus-visible:bg-background focus-visible:ring-4 focus-visible:ring-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-12 rounded-lg border border-input bg-background pl-12 pr-4 text-base shadow-sm transition focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60"
           />
         </div>
 
         {/* Button Group: Settings + Clear */}
-        <div className="flex items-center rounded-xl border-2 border-border bg-background/95 backdrop-blur-md overflow-hidden">
+        <div className="flex items-center overflow-hidden rounded-lg border border-input bg-card">
           <Tooltip>
             <TooltipTrigger asChild>
               <div>
@@ -81,7 +81,7 @@ export default function ChatInputBar({
                   setTopK={setTopK}
                   maxTokens={maxTokens}
                   setMaxTokens={setMaxTokens}
-                  className="h-9 w-9 rounded-none border-0 hover:bg-muted/50 transition-colors"
+                  className="h-11 w-11 rounded-none border-0 hover:bg-muted transition-colors"
                 />
               </div>
             </TooltipTrigger>
@@ -90,7 +90,7 @@ export default function ChatInputBar({
             </TooltipContent>
           </Tooltip>
 
-          <div className="w-px h-5 bg-border" />
+          <div className="h-6 w-px bg-border" />
 
           <Tooltip>
             <TooltipTrigger asChild>
@@ -100,7 +100,7 @@ export default function ChatInputBar({
                 disabled={loading || !hasMessages}
                 size="icon"
                 variant="ghost"
-                className="h-9 w-9 rounded-none border-0 hover:bg-muted/50 transition-colors"
+                className="h-11 w-11 rounded-none border-0 hover:bg-muted transition-colors"
                 >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -116,7 +116,7 @@ export default function ChatInputBar({
             <Button
               type="submit"
               disabled={disableSend}
-              className="primary-gradient h-11 rounded-2xl px-5 text-base font-semibold shadow-lg transition-all hover:shadow-xl hover:scale-[1.02] focus-visible:ring-4 focus-visible:ring-primary/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              className="h-12 rounded-lg px-5 text-base font-semibold"
             >
               {loading ? (
                 <>

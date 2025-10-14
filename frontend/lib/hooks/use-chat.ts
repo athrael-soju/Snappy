@@ -1,4 +1,4 @@
-﻿// frontend/lib/hooks/use-chat.ts
+// frontend/lib/hooks/use-chat.ts
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'

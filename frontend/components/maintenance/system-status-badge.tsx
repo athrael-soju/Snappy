@@ -12,9 +12,9 @@ interface SystemStatusBadgeProps {
 export function SystemStatusBadge({ isReady, isLoading, onRefresh }: SystemStatusBadgeProps) {
   return (
     <div className="flex flex-col gap-3">
-      <Badge 
+      <Badge
         variant={isReady ? "default" : "secondary"}
-        className={`h-12 px-5 justify-center font-semibold text-base shadow-md ${isReady ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700' : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600'} text-white transition-all duration-200`}
+        className="h-12 justify-center px-5 text-base font-semibold"
       >
         {isReady ? (
           <><CheckCircle2 className="w-5 h-5 mr-2" /> Ready</>

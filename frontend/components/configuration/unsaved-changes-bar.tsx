@@ -54,7 +54,7 @@ export function UnsavedChangesBar({
           <div className="container max-w-7xl mx-auto">
             <div className="flex flex-col gap-4 rounded-2xl border border-blue-200/70 dark:border-blue-800/50 bg-card/95 backdrop-blur-lg p-4 shadow-xl sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 text-white shadow-md">
+                <div className="p-2 rounded-full bg-primary text-primary-foreground shadow-md">
                   <AlertTriangle className="h-4 w-4" />
                 </div>
                 <div className="space-y-1">
@@ -86,7 +86,7 @@ export function UnsavedChangesBar({
                   size="sm"
                   onClick={onSave}
                   disabled={saving}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 text-white shadow-lg transition-all duration-300 hover:from-blue-700 hover:to-purple-700 hover:shadow-xl h-full"
+                  className="px-4 py-2 h-full"
                 >
                   {saving ? (
                     <>

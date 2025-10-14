@@ -1,32 +1,32 @@
 "use client";
 
+import { motion } from "framer-motion";
+import { Info } from "lucide-react";
+
 import AboutContent from "@/components/about-content";
 import { PageHeader } from "@/components/page-header";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Info } from "lucide-react";
-import { motion } from "framer-motion";
-import { defaultPageMotion, sectionVariants } from "@/lib/motion-presets";
-import { GlassPanel } from "@/components/ui/glass-panel";
+import { Card } from "@/components/ui/card";
+
+const fadeIn = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.3, ease: "easeOut" },
+};
 
 export default function AboutPage() {
   return (
-    <motion.div {...defaultPageMotion} className="page-shell flex flex-col min-h-0 flex-1 gap-6">
-      <motion.section variants={sectionVariants} className="flex flex-col items-center text-center gap-6 pt-6 sm:pt-8">
+    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
+      <motion.div {...fadeIn}>
         <PageHeader
-          title="About the ColPali Template"
+          title="About Snappy"
+          description="Snappy is a starter kit for multimodal retrieval. Learn the stack, configuration options, and how to extend the template."
           icon={Info}
-          tooltip="A friendly and lightweight knowledge base platform with visual document understanding"
         />
-      </motion.section>
-      <motion.section variants={sectionVariants} className="flex-1 min-h-0 pb-6 sm:pb-8 flex">
-        <GlassPanel className="mx-auto w-full max-w-4xl flex min-h-0 flex-1 flex-col overflow-hidden">
-          <ScrollArea className="h-[calc(100vh-20rem)] rounded-xl">
-            <div className="p-8">
-              <AboutContent />
-            </div>
-          </ScrollArea>
-        </GlassPanel>
-      </motion.section>
-    </motion.div>
+      </motion.div>
+
+      <Card className="p-6 sm:p-8">
+        <AboutContent />
+      </Card>
+    </div>
   );
 }

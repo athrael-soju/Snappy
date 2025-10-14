@@ -8,7 +8,6 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { AppStoreProvider } from "@/stores/app-store";
-import { AnimatedBackground } from "@/components/animated-background";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,8 +20,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FastAPI / Next.js / ColPali Template",
-  description: "Search, upload and chat with your visual documents",
+  title: "Snappy Template",
+  description: "Snappy pairs FastAPI and Next.js so you can build visual AI tools fast.",
   icons: {
     icon: "/favicon.png",
     shortcut: "/favicon.png",
@@ -36,32 +35,27 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className="h-full">
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} text-foreground antialiased relative h-full flex flex-col overflow-hidden`}
+        className={`${geistSans.variable} ${geistMono.variable} bg-background text-foreground antialiased`}
       >
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
-          storageKey="colpali-theme"
+          storageKey="snappy-theme"
         >
-          {/* Animated gradient background */}
-          <AnimatedBackground>
-            <div className="relative z-10 flex flex-1 flex-col min-h-0 h-full">
-              <NextTopLoader showSpinner={false} />
+          <AppStoreProvider>
+            <TooltipProvider>
+              <NextTopLoader showSpinner={false} height={3} />
+              <div className="flex min-h-screen flex-col">
+                <Nav />
+                <main className="flex-1 w-full">{children}</main>
+              </div>
               <Toaster richColors position="top-right" />
-              <AppStoreProvider>
-                <TooltipProvider>
-                  <Nav />
-                  <main className="flex-1 min-h-0 w-full flex flex-col">
-                    {children}
-                  </main>
-                </TooltipProvider>
-              </AppStoreProvider>
-            </div>
-          </AnimatedBackground>
+            </TooltipProvider>
+          </AppStoreProvider>
         </ThemeProvider>
       </body>
     </html>

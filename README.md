@@ -1,303 +1,173 @@
-# The Most Beautiful Rag - FastAPI / Next.js / ColPali Template
+# Snappy - FastAPI x Next.js visual RAG template
 
-<center>
-<img width="100%" alt="image" src="image/README/1755459651164.png" />
-</center>
+Snappy gives you a ready-to-run multimodal retrieval stack. Drop in PDFs or image-heavy docs, and you get ingestion, visual search, and chat with page previews. The goal: ship an approachable developer experience without wrestling gradients or bespoke UI chrome.
 
-[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688)](https://fastapi.tiangolo.com/)
-[![Qdrant](https://img.shields.io/badge/VectorDB-Qdrant-ff6b6b)](https://qdrant.tech/)
-[![MinIO](https://img.shields.io/badge/Storage-MinIO-f79533)](https://min.io/)
-[![Next.js](https://img.shields.io/badge/Frontend-Next.js-000000)](https://nextjs.org/)
-[![Docker Compose](https://img.shields.io/badge/Orchestration-Docker%20Compose-2496ed)](https://docs.docker.com/compose/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+- **Backend** - FastAPI with pipelined ingestion, Qdrant search, MinIO optional for image storage.
+- **Frontend** - Next.js 15, Tailwind v4, shadcn, and Framer Motion for lightweight interactions.
+- **Embeddings** - ColQwen2.5 (a ColPali-style model) so Snappy understands layout, charts, and screenshots.
 
-An end-to-end reference stack for **vision-first RAG** over PDFs. Documents are
-rendered to page images, embedded with a ColPali-style model, stored as
-multivectors in Qdrant, and surfaced through a Next.js UI with streaming chat
-responses and visual citations.
+Repository layout:
 
-> Looking for component-level docs?  
-> • Backend: `backend/README.md`  
-> • Frontend: `frontend/README.md`  
-> • ColPali service: `colpali/README.md`  
-> • Configuration reference: `backend/docs/configuration.md`
+- `backend/` - FastAPI app, config schema, services
+- `frontend/` - Next.js App Router UI
+- `colpali/` - ColQwen2.5 embedding service (CPU/GPU docker-compose)
+- `image/` - Reference assets (optional)
+- `docker-compose.yml`
+
+---
+## Highlights
+
+- **Simple UI** - shadcn components, Tailwind tokens, no animated gradients. Focus on clarity and responsive layouts.
+- **Upload flow** - drag & drop, SSE progress, cancel support.
+- **Visual search** - natural language + layout-aware retrieval, inline previews.
+- **Chat** - streaming answers with the relevant page thumbnails, adjustable `k`, top-k, and tool calling.
+- **Maintenance tab** - initialise collections/buckets, reset data, and edit backend config from the browser.
 
 ---
 
-## Architecture
+## Quick start
 
-```mermaid
----
-config:
-  theme: neutral
-  layout: elk
----
-flowchart TB
-  subgraph Frontend["Next.js Frontend"]
-    UI["Pages (/upload, /search, /chat, /maintenance)"]
-    CHAT["Chat API Route"]
-  end
+### 1. Backend (FastAPI)
 
-  subgraph Backend["FastAPI Backend"]
-    API["REST Routers"]
-  end
+Prereqs: Python 3.11+, [Poppler](https://poppler.freedesktop.org/) for `pdf2image`.
 
-  subgraph Services["Supporting Services"]
-    QDRANT["Qdrant"]
-    MINIO["MinIO"]
-    COLPALI["ColPali Embedding API"]
-    OPENAI["OpenAI Responses API"]
-  end
-
-  USER["Browser"] <--> UI
-  UI --> API
-  API --> QDRANT
-  API --> MINIO
-  API --> COLPALI
-  CHAT --> API
-  CHAT --> OPENAI
-  CHAT -- SSE --> USER
+```powershell
+cd backend
+python -m venv .venv
+. .venv\Scripts\Activate.ps1  # or source .venv/bin/activate
+pip install -U pip setuptools wheel
+pip install -r requirements.txt
+uvicorn backend:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-See `backend/docs/architecture.md` and `backend/docs/analysis.md` for a deeper
-walkthrough of the indexing and retrieval flows.
+### 2. Frontend (Next.js)
+
+```powershell
+cd frontend
+yarn install --frozen-lockfile
+yarn dev
+# open http://localhost:3000
+```
+
+If you prefer npm:
+
+```powershell
+npm install
+npm run dev
+```
+
+Configure the API base URL in `frontend/.env.local` (defaults to `http://localhost:8000`):
+
+```
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+```
+
+### 3. Embedding service
+
+Snappy talks to a ColQwen2.5 service for visual embeddings. You can run the provided docker compose (CPU or GPU):
+
+```powershell
+cd colpali
+docker compose up -d
+```
+
+Set backend env vars if you expose the service elsewhere:
+
+```
+COLPALI_MODE=cpu          # or gpu
+COLPALI_CPU_URL=http://localhost:7001
+COLPALI_GPU_URL=http://localhost:7002
+```
 
 ---
 
-## Features
+## Docker workflow
 
-- **Page-level, multimodal retrieval** – multivector embeddings per PDF page,
-  optional MUVERA first-stage search, MinIO-backed image URLs or inline payloads.
-- **Streaming chat with visual citations** – Next.js edge route emits a custom
-  `kb.images` event alongside OpenAI Responses SSE, and the UI displays a
-  "Visual citations included" chip with an image gallery.
-- **Pipelined indexing** – configurable batch size, automatic concurrency
-  sizing, progress tracking via Server-Sent Events, and optional cancellation.
-- **Runtime configuration UI** – `/maintenance` page consumes the
-  `/config/*` API to edit settings, reset to defaults, or apply hardware-driven
-  optimisations without restarting the backend.
-- **Docker-first** – root `docker-compose.yml` spins up Qdrant, MinIO, backend,
-  frontend, and the ColPali embedding API services (CPU and GPU variants
-  available under `colpali/docker-compose.yml`).
+Run everything with one command from the repository root:
 
----
+```powershell
+docker compose up -d --build
+```
 
-## UI / UX
+The compose file spins up Qdrant, MinIO, backend, frontend, and the ColPali service. Supply OpenAI credentials to the frontend container if you plan to use chat streaming:
 
-A modern Next.js 15 UI with server-side streaming, real-time progress updates, and visual citations.
+```yaml
+services:
+  frontend:
+    environment:
+      - OPENAI_API_KEY=sk-your-key
+      - OPENAI_MODEL=gpt-5-mini
+      - OPENAI_TEMPERATURE=1
+      - OPENAI_MAX_TOKENS=1500
+      - NEXT_PUBLIC_API_BASE_URL=http://backend:8000
+```
 
-<div align="center">
-  <table>
-    <tr>
-      <td align="center">
-        <strong>Home</strong><br/>
-        <img src="image/README/image-1.png" alt="Home screen" width="520" />
-        <img src="image/README/image-8.png" alt="Home screen" width="520" />
-      </td>
-      <td align="center">
-        <strong>Upload</strong><br/>
-        <img src="image/README/image-3.png" alt="Upload screen" width="520" />
-        <img src="image/README/image-10.png" alt="Upload screen" width="520" />
-      </td>
-    </tr>
-    <tr>
-      <td align="center">
-        <strong>Search</strong><br/>
-        <img src="image/README/image-2.png" alt="Search screen" width="520" />
-        <img src="image/README/image-9.png" alt="Search screen" width="520" />
-      </td>
-      <td align="center">
-        <strong>Chat</strong><br/>
-        <img src="image/README/image-4.png" alt="Chat screen" width="520" />
-        <img src="image/README/image-11.png" alt="Chat screen" width="520" />
-      </td>
-    </tr>
-    <tr>
-      <td align="center">
-        <strong>System (Configuration)</strong><br/>
-        <img src="image/README/image-5.png" alt="Configuration screen" width="520" />
-        <img src="image/README/image-12.png" alt="Configuration screen" width="520" />
-      </td>
-      <td align="center">
-        <strong>System (Maintenance)</strong><br/>
-        <img src="image/README/image-6.png" alt="Maintenance screen" width="520" />
-        <img src="image/README/image-13.png" alt="Maintenance screen" width="520" />
-      </td>      
-    </tr>
-    <tr>    
-      <td align="center">
-         <strong>About</strong><br/>
-         <img src="image/README/image-7.png" alt="About screen" width="520" />
-         <img src="image/README/image-14.png" alt="About screen" width="520" />
-      </td>
-    </tr>      
-  </table>
-</div>
+`OPENAI_*` are read server-side by the Next.js API route (`frontend/app/api/chat/route.ts`).
 
 ---
 
-## Quickstart (Docker Compose)
+## Frontend checklist
 
-1. Copy environment defaults and configure values:
+| Path | Purpose |
+|------|---------|
+| `/` | Landing with quick CTAs for upload, search, chat |
+| `/upload` | Drag-and-drop ingest, SSE progress, cancel support |
+| `/search` | Visual search, example queries, inline galleries |
+| `/chat` | Streaming assistant with page thumbnails and adjustable settings |
+| `/maintenance` | Initialisation, data reset, configuration editor |
+| `/about` | Project overview and stack primer |
 
-   ```bash
-   cp .env.example .env
-   cp frontend/.env.example frontend/.env.local
-   ```
-
-   - Set `COLPALI_MODE=cpu` or `gpu` depending on the embedding service you
-     intend to run.
-   - Provide an OpenAI API key in `frontend/.env.local`.
-
-2. Start a ColPali embedding service in another terminal:
-
-   ```bash
-   # From colpali/
-   docker compose up -d api-cpu      # http://localhost:7001
-   # or
-   docker compose up -d api-gpu      # http://localhost:7002
-   ```
-
-3. Launch the full stack from the repository root:
-
-   ```bash
-   docker compose up -d --build
-   ```
-
-4. Visit:
-   - Backend API docs: http://localhost:8000/docs
-   - Frontend UI: http://localhost:3000
-   - MinIO console (optional): http://localhost:9001
+The frontend uses OpenAPI-generated SDKs (`yarn gen:sdk && yarn gen:zod`), stored in `frontend/lib/api/generated`.
 
 ---
 
-## Local development (without Compose)
+## Maintenance & configuration
 
-1. Install Poppler (required by `pdf2image`).
-2. Create a virtual environment and install backend dependencies:
+The Maintenance tab exposes backend configuration over HTTP:
 
-   ```bash
-   cd backend
-   python -m venv .venv
-   . .venv/Scripts/activate  # PowerShell: .venv\Scripts\Activate.ps1
-   pip install -U pip setuptools wheel
-   pip install -r requirements.txt
-   ```
+- `GET /config/schema` – schema with metadata, defaults, and validation.
+- `GET /config/values` – live values.
+- `POST /config/update` – runtime updates (non-persistent).
+- `POST /config/reset` – revert to defaults.
 
-3. Run the backend:
+Sections cover application, processing, embedding service, Qdrant, MinIO, and MUVERA options. Changes apply immediately but do **not** patch `.env`; update your environment files for persistent tweaks.
 
-   ```bash
-   uvicorn backend:app --host 0.0.0.0 --port 8000 --reload
-   ```
-
-4. In `frontend/`, install and run the Next.js app:
-
-   ```bash
-   yarn install --frozen-lockfile
-   yarn dev
-   ```
-
-5. Start a ColPali embedding service (via Docker or locally with `uvicorn
-   colpali/app.py`).
+Use the same page to initialise or delete the Qdrant collection and MinIO bucket.
 
 ---
 
-## Environment variables
+## Backend overview
 
-### Backend highlights
+- `backend/main.py` – API router.
+- `backend/services/` – clients for ColPali, Qdrant, MinIO.
+- `backend/runtime_config.py` – local cache of runtime overrides.
+- `backend/config_schema.py` – strongly typed configuration schema.
 
-- `COLPALI_MODE`, `COLPALI_CPU_URL`, `COLPALI_GPU_URL`,
-  `COLPALI_API_TIMEOUT`
-- `QDRANT_EMBEDDED`, `QDRANT_URL`, `QDRANT_COLLECTION_NAME`,
-  `QDRANT_PREFETCH_LIMIT`, quantisation toggles (`QDRANT_USE_BINARY`, etc.)
-- `MINIO_ENABLED`, `MINIO_URL`, `MINIO_PUBLIC_URL`, credentials, `IMAGE_FORMAT`
-  and `IMAGE_QUALITY`
-- `MUVERA_ENABLED` and related parameters (requires `fastembed[postprocess]`)
-- `LOG_LEVEL`, `ALLOWED_ORIGINS`, `UVICORN_RELOAD`
+Key endpoints:
 
-All schema-backed settings (and their defaults) are documented in
-`backend/docs/configuration.md`. To change values permanently update your
-`.env`. Runtime updates via `/config/update` are ephemeral.
+| Method | Path | Notes |
+|--------|------|-------|
+| `POST` | `/index` | Ingest documents (multipart upload) |
+| `GET` | `/progress/stream/{job_id}` | SSE progress feed |
+| `GET` | `/search` | Visual search (`q`, optional `k`) |
+| `POST` | `/chat` (Next.js route) | Uses backend search + OpenAI responses |
+| `GET` | `/status` | Collection/bucket stats |
+| `POST` | `/initialize` / `/delete` | Provision or tear down infrastructure |
+| `POST` | `/config/update` | Runtime config |
 
-### Frontend highlights (`frontend/.env.local`)
-
-- `NEXT_PUBLIC_API_BASE_URL` – defaults to `http://localhost:8000`
-- `OPENAI_API_KEY`, `OPENAI_MODEL`, optional `OPENAI_TEMPERATURE`,
-  `OPENAI_MAX_TOKENS`
+See `backend/docs` for deeper dives (architecture, analysis, configuration guide).
 
 ---
 
-## API overview
+## Testing ideas & next steps
 
-| Area         | Endpoint(s)                              | Description |
-|--------------|------------------------------------------|-------------|
-| Meta         | `GET /health`                            | Service and dependency status |
-| Retrieval    | `GET /search?q=...&k=5`                  | Page-level search (defaults to 10 results when `k` is omitted) |
-| Indexing     | `POST /index`                            | Start a background indexing job (multipart PDF upload) |
-|              | `GET /progress/stream/{job_id}`          | Real-time job progress (SSE) |
-|              | `POST /index/cancel/{job_id}`            | Cancel an in-flight job |
-| Maintenance  | `GET /status`                            | Collection/bucket statistics |
-|              | `POST /initialize` / `DELETE /delete`    | Provision or tear down collection + bucket |
-|              | `POST /clear/qdrant` / `/clear/minio` / `/clear/all` | Data reset helpers |
-| Configuration| `GET /config/schema` / `GET /config/values` | Expose runtime schema and values |
-|              | `POST /config/update` / `/config/reset` / `/config/optimize` | Runtime configuration management |
-
-Chat streaming is implemented in the Next.js API route
-`frontend/app/api/chat/route.ts`. It calls the backend search endpoint, invokes
-the OpenAI Responses API, and streams Server-Sent Events to the browser. The
-backend does not proxy OpenAI calls.
-
----
-
-## Troubleshooting
-
-- **ColPali timeouts** – increase `COLPALI_API_TIMEOUT` or switch to the GPU
-  service. CPU mode is significantly slower.
-- **Progress stream never completes** – ensure Poppler is installed and
-  accessible; check backend logs for PDF conversion errors.
-- **Images missing in search results** – if `MINIO_ENABLED=False`, images are
-  stored inline. Make sure the frontend `next.config.ts` allows the relevant
-  domains when MinIO is enabled.
-- **CORS errors** – set `ALLOWED_ORIGINS` to explicit URLs before exposing the
-  API outside of local development.
-- **Runtime config changes do not persist** – use `/config/update` for temporary
-  tweaks and update `.env` for permanent values.
-
-See the Troubleshooting section in `backend/docs/configuration.md` for more
-configuration-specific guidance.
-
----
-
-## Development notes
-
-- PDF ingestion runs as an in-process background job (FastAPI
-  `BackgroundTasks`). For production you may want to offload to a queue.
-- MinIO uploads use automatically sized worker pools; override
-  `MINIO_WORKERS`/`MINIO_RETRIES` only when you need explicit control.
-- `frontend` uses OpenAPI code generation (`yarn gen:sdk`, `yarn gen:zod`)
-  backed by `frontend/docs/openapi.json`.
-- Pre-commit hooks (`.pre-commit-config.yaml`) include autoflake, isort, black,
-  and pyright.
-
----
-
-## Roadmap and hardening ideas
-
-Refer to `feature-list.md` for a checklist of production hardening tasks:
-authentication, background workers, observability, CI/CD, infrastructure, and
-more.
+- Add auth, rate limiting, or tenancy for production.
+- Hook in tracing/observability (OpenTelemetry, Prometheus).
+- Swap in your own embedding pipeline or RAG orchestration.
+- Build deploy manifests (Terraform, Helm) for your environment.
 
 ---
 
 ## License
 
-MIT License – see [LICENSE](LICENSE).
-
----
-
-## Acknowledgements
-
-- **ColPali / ColQwen** – https://arxiv.org/abs/2407.01449
-- **Qdrant optimisations** – https://qdrant.tech/blog/colpali-qdrant-optimization/  
-  and https://qdrant.tech/articles/binary-quantization/
-- **PyTorch** – https://pytorch.org/
+MIT © the Snappy contributors.

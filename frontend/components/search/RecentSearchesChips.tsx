@@ -102,7 +102,7 @@ export default function RecentSearchesChips({ recentSearches, loading, visible =
             aria-label="Previous"
             onClick={() => scrollByPage(-1)}
             disabled={currentPage === 0}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 rounded-md border border-muted bg-[color:var(--surface-0)]/90 p-1.5 text-muted-foreground transition hover:bg-[color:var(--surface-2)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 disabled:cursor-not-allowed disabled:opacity-40"
+            className="absolute left-0 top-1/2 z-10 -translate-y-1/2 rounded-md border border-input bg-card/90 p-1.5 text-muted-foreground transition hover:bg-secondary hover:text-secondary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
@@ -113,7 +113,7 @@ export default function RecentSearchesChips({ recentSearches, loading, visible =
             aria-label="Next"
             onClick={() => scrollByPage(1)}
             disabled={currentPage >= pages.length - 1}
-            className="absolute right-1 top-1/2 -translate-y-1/2 z-10 rounded-md border border-muted bg-[color:var(--surface-0)]/90 p-1.5 text-muted-foreground transition hover:bg-[color:var(--surface-2)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 disabled:cursor-not-allowed disabled:opacity-40"
+            className="absolute right-1 top-1/2 z-10 -translate-y-1/2 rounded-md border border-input bg-card/90 p-1.5 text-muted-foreground transition hover:bg-secondary hover:text-secondary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -131,7 +131,7 @@ export default function RecentSearchesChips({ recentSearches, loading, visible =
                         key={`${pIdx}-${idx}`}
                         whileHover={{ scale: 1.02, y: -2 }}
                         whileTap={{ scale: 0.98 }}
-                        className="relative flex-1 min-w-0 rounded-xl border border-muted bg-[color:var(--surface-1)]/70 p-3 text-sm transition-all group min-h-[3.25rem] transform-gpu will-change-transform hover:border-primary/40 hover:bg-primary/10 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-ring/30"
+                        className="group relative min-h-[3.25rem] min-w-0 flex-1 transform-gpu rounded-lg border border-input bg-card p-3 text-sm transition-colors will-change-transform hover:border-primary/60 hover:bg-primary/5 focus-within:border-primary focus-within:ring-2 focus-within:ring-ring/30"
                       >
                         <button
                           onClick={() => onSelect(search)}

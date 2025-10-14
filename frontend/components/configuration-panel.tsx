@@ -4,7 +4,6 @@ import { useState, forwardRef, useImperativeHandle } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
-import { GlassPanel } from "@/components/ui/glass-panel";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -114,8 +113,9 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
         {/* Main content area */}
         <div className="flex-1 min-w-0 flex flex-col gap-6">
           {/* Action Button Group */}
-          <GlassPanel className="overflow-hidden">
-            <ButtonGroup className="shadow-sm !w-full [&>*]:flex-1 [&>*]:h-12">
+          <Card className="overflow-hidden">
+            <CardContent className="p-0">
+              <ButtonGroup className="shadow-sm !w-full [&>*]:flex-1 [&>*]:h-12">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -177,7 +177,8 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                 </TooltipContent>
               </Tooltip>
             </ButtonGroup>
-          </GlassPanel>
+            </CardContent>
+          </Card>
 
           <ScrollArea className="h-[calc(100vh-20rem)]">
             <div className="px-1 py-2 pr-4">
@@ -197,10 +198,10 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                     className="flex-1 min-h-0"
                   >
                     {/* Settings Card - Scrollable */}
-                    <GlassPanel className="flex flex-1 min-h-0 flex-col p-6 overflow-hidden">
-                      <CardHeader className="pb-4 flex-shrink-0 px-0 pt-0">
+                    <Card className="flex flex-1 min-h-0 flex-col overflow-hidden">
+                      <CardHeader className="flex-shrink-0 px-6 pt-6">
                         <div className="flex items-start gap-3">
-                          <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 text-blue-500">
+                          <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
                             <Settings className="w-6 h-6" />
                           </div>
                           <div>
@@ -210,7 +211,7 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                         </div>
                       </CardHeader>
 
-                      <CardContent className="flex-1 min-h-0 overflow-y-auto space-y-6 px-0 pb-0 rounded-3xl">
+                      <CardContent className="flex-1 min-h-0 overflow-y-auto space-y-6 px-6 pb-6">
                         {visibleSettings.map((setting, index) => {
                           // Check for nested settings
                           const childSettings = category.settings.filter(
@@ -230,7 +231,7 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
 
                               {/* Nested child settings */}
                               {hasChildren && (
-                                <div className="mt-4 ml-8 pl-5 border-l-2 border-blue-300/40 dark:border-blue-800/40 space-y-4 pb-2">
+                                <div className="mt-4 ml-6 space-y-4 border-l border-muted pl-4">
                                   {childSettings.map(childSetting => (
                                     <div key={childSetting.key}>
                                       <SettingRenderer
@@ -249,7 +250,7 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                         })}
                       </CardContent>
 
-                    </GlassPanel>
+                    </Card>
 
                   </motion.div>
                 );

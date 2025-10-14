@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useUploadStore } from "@/stores/app-store";
 import { ApiError } from "@/lib/api/generated";
 import { toast } from "@/components/ui/sonner";

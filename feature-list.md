@@ -1,6 +1,6 @@
 # Production Feature List
 
-This checklist captures key tasks to take this template (FastAPI + Next.js + Qdrant + MinIO + ColPali service) to production. It references files/paths in this repo to keep implementation concrete.
+This checklist captures key tasks to take the Snappy template (FastAPI + Next.js + Qdrant + MinIO + ColQwen2.5 embedding service) to production. It references files/paths in this repo to keep implementation concrete.
 
 - __Security & Access Control__
 
@@ -11,7 +11,7 @@ This checklist captures key tasks to take this template (FastAPI + Next.js + Qdr
   - [ ] Make MinIO bucket private; serve images via presigned URLs; enable SSE (SSE-S3/KMS).
     - Update `backend/services/minio.py`; set `MINIO_PUBLIC_READ=False` in `.env`.
   - [ ] Secrets management (move secrets from `.env` to Secret Manager or Kubernetes Secrets/SealedSecrets).
-  - [ ] Reverse proxy + TLS termination (Traefik/Nginx/Caddy), HSTS, HTTP→HTTPS.
+  - [ ] Reverse proxy + TLS termination (Traefik/Nginx/Caddy), HSTS, HTTP -> HTTPS.
   - [ ] Upload hardening: max file size, MIME/type checks, and optional malware scan.
   - [ ] Rate limiting (per-IP and per-identity) via middleware (e.g., `slowapi`/`starlette-limiter`).
 - __Reliability & Performance__
@@ -52,7 +52,7 @@ This checklist captures key tasks to take this template (FastAPI + Next.js + Qdr
 
   - [ ] CI: lint, type-check, tests; build Docker images; SBOM + vulnerability scan (Trivy/Grype); push to registry.
     - Add `.github/workflows/ci.yml`.
-  - [ ] CD: environment promotion (dev→staging→prod), config per environment, blue/green or canary.
+  - [ ] CD: environment promotion (dev -> staging -> prod), config per environment, blue/green or canary.
   - [ ] Dependency hygiene: Renovate/Dependabot; pin base images; reproducible builds.
   - [ ] Supply chain: image signing (cosign), provenance (SLSA) as needed.
 - __Infrastructure__

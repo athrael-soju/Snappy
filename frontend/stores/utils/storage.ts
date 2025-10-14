@@ -1,6 +1,6 @@
 import type { AppState } from '../types';
 
-const STORAGE_KEY = 'colpali-app-state';
+const STORAGE_KEY = 'snappy-app-state';
 
 /**
  * Serialize state for localStorage, excluding non-serializable data like FileList

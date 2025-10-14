@@ -1,8 +1,7 @@
-import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertTriangle, Loader2 } from "lucide-react";
-import { GlassPanel } from "@/components/ui/glass-panel";
 import type { MaintenanceAction, ActionType } from "./types";
 
 interface DataResetCardProps {
@@ -29,33 +28,31 @@ export function DataResetCard({
   const Icon = action.icon;
 
   return (
-    <GlassPanel className="min-h-[240px] hover:shadow-lg transition-all p-6">
-      <CardHeader className="pb-4 px-0 pt-0">
-        <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500/10 to-amber-500/5 text-amber-600 dark:text-amber-400 mb-3">
-          <Icon className="w-6 h-6" />
+    <Card className="min-h-[240px]">
+      <CardHeader className="pb-4">
+        <div className="mb-3 inline-flex size-12 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+          <Icon className="h-6 w-6" />
         </div>
-        <CardTitle className="text-xl font-semibold text-foreground">{action.title}</CardTitle>
-        <CardDescription className="text-base leading-relaxed text-muted-foreground">{action.description}</CardDescription>
+        <CardTitle className="text-lg font-semibold text-foreground">{action.title}</CardTitle>
+        <CardDescription className="text-sm text-muted-foreground">{action.description}</CardDescription>
       </CardHeader>
-      <CardContent className="px-0 pb-0">
-        <p className="text-base text-muted-foreground mb-5 leading-relaxed">
-          {action.detailedDescription}
-        </p>
+      <CardContent className="space-y-4">
+        <p className="text-sm leading-relaxed text-muted-foreground">{action.detailedDescription}</p>
         <Dialog open={dialogOpen} onOpenChange={onDialogChange}>
           <DialogTrigger asChild>
             <Button
               variant="destructive"
               disabled={isInitLoading || isDeleteLoading || !isSystemReady}
-              className="w-full bg-gradient-to-r from-amber-600 to-orange-600 text-white hover:from-amber-700 hover:to-orange-700 hover:shadow-xl hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 transition-all duration-200 font-semibold rounded-full"
+              className="w-full"
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Processing...
                 </>
               ) : (
                 <>
-                  <Icon className="w-4 h-4 mr-2" />
+                  <Icon className="mr-2 h-4 w-4" />
                   {action.title}
                 </>
               )}
@@ -63,46 +60,36 @@ export function DataResetCard({
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-lg">
-                <Icon className="w-5 h-5 text-amber-600" />
+              <DialogTitle className="flex items-center gap-2 text-base font-semibold">
+                <Icon className="h-5 w-5 text-amber-600" />
                 {action.confirmTitle}
               </DialogTitle>
-              <DialogDescription className="leading-relaxed pt-2 max-w-prose">
+              <DialogDescription className="leading-relaxed">
                 {action.confirmMsg}
               </DialogDescription>
             </DialogHeader>
-            <div className="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-lg border-l-4 border-amber-400">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
               <div className="flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                <p className="text-base text-amber-800 dark:text-amber-200 leading-relaxed">
-                  <strong>Warning:</strong> This operation cannot be reversed. The system will return to its initial empty state.
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <p className="text-sm text-amber-800">
+                  <strong>Heads up:</strong> this operation cannot be undone.
                 </p>
               </div>
             </div>
             <DialogFooter className="gap-2">
-              <Button
-                variant="outline"
-                onClick={() => onDialogChange(false)}
-                disabled={isLoading}
-                className="border-muted bg-card text-foreground hover:bg-muted hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
+              <Button variant="outline" onClick={() => onDialogChange(false)} disabled={isLoading}>
                 Cancel
               </Button>
-              <Button
-                variant="destructive"
-                onClick={() => onConfirm(action.id)}
-                disabled={isLoading}
-                className="bg-gradient-to-r from-amber-600 to-orange-600 text-white hover:from-amber-700 hover:to-orange-700 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-              >
+              <Button variant="destructive" onClick={() => onConfirm(action.id)} disabled={isLoading}>
                 {isLoading ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Processing...
                   </>
                 ) : (
                   <>
-                    <Icon className="w-4 h-4 mr-2" />
-                    Confirm {action.title}
+                    <Icon className="mr-2 h-4 w-4" />
+                    Confirm
                   </>
                 )}
               </Button>
@@ -110,6 +97,6 @@ export function DataResetCard({
           </DialogContent>
         </Dialog>
       </CardContent>
-    </GlassPanel>
+    </Card>
   );
 }

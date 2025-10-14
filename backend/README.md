@@ -1,7 +1,7 @@
-# Vision RAG Backend (FastAPI)
+# Snappy Backend (FastAPI)
 
 A FastAPI service that provides PDF ingestion, page-level retrieval, and system
-maintenance APIs for the template. The backend exposes modular routers under
+maintenance APIs for the Snappy template. The backend exposes modular routers under
 `backend/api/routers/` (`meta`, `retrieval`, `indexing`, `maintenance`,
 `config`) and is bootstrapped via `backend/api/app.py:create_app()`.
 
