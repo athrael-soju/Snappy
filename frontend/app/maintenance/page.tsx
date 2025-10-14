@@ -7,7 +7,6 @@ import { useSearchParams } from "next/navigation";
 import { Settings, Wrench } from "lucide-react";
 
 import { PageHeader } from "@/components/page-header";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ConfigurationPanel } from "@/components/configuration-panel";
@@ -71,61 +70,59 @@ export default function MaintenancePage() {
       </PageHeader>
 
       {isConfigurationView ? (
-        <div className="rounded-xl border bg-card p-4 sm:p-6">
+        <div className="rounded-3xl border bg-card p-4 sm:p-6">
           <ConfigurationPanel ref={configPanelRef} />
         </div>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-          <ScrollArea className="h-[calc(100vh-18rem)] rounded-xl border bg-card p-4">
-            <div className="flex flex-col gap-6">
-              <div className={`grid gap-4 ${bucketDisabled ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-2"}`}>
-                <CollectionStatusCard status={systemStatus?.collection ?? null} isLoading={statusLoading} />
-                {!bucketDisabled && (
-                  <BucketStatusCard status={systemStatus?.bucket ?? null} isLoading={statusLoading} />
-                )}
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                <InitializeCard
-                  isLoading={initLoading}
-                  isSystemReady={isSystemReady}
-                  isDeleteLoading={deleteLoading}
-                  onInitialize={handleInitialize}
-                />
-                <DeleteCard
-                  isLoading={deleteLoading}
-                  isInitLoading={initLoading}
-                  isSystemReady={isSystemReady}
-                  dialogOpen={deleteDialogOpen}
-                  onDialogChange={setDeleteDialogOpen}
-                  onDelete={handleDelete}
-                />
-                {criticalActions.map((action) => (
-                  <DataResetCard
-                    key={action.id}
-                    action={action}
-                    isLoading={loading[action.id]}
-                    isInitLoading={initLoading}
-                    isDeleteLoading={deleteLoading}
-                    isSystemReady={isSystemReady}
-                    dialogOpen={dialogOpen === action.id}
-                    onDialogChange={(open) => setDialogOpen(open ? action.id : null)}
-                    onConfirm={runAction}
-                  />
-                ))}
-              </div>
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <div className="flex flex-col gap-6">
+            <div className={`grid gap-4 ${bucketDisabled ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-2"}`}>
+              <CollectionStatusCard status={systemStatus?.collection ?? null} isLoading={statusLoading} />
+              {!bucketDisabled && (
+                <BucketStatusCard status={systemStatus?.bucket ?? null} isLoading={statusLoading} />
+              )}
             </div>
-          </ScrollArea>
 
-          <div className="space-y-4 rounded-xl border bg-card p-4">
-            <h2 className="text-sm font-semibold text-foreground">Service status</h2>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <InitializeCard
+                isLoading={initLoading}
+                isSystemReady={isSystemReady}
+                isDeleteLoading={deleteLoading}
+                onInitialize={handleInitialize}
+              />
+              <DeleteCard
+                isLoading={deleteLoading}
+                isInitLoading={initLoading}
+                isSystemReady={isSystemReady}
+                dialogOpen={deleteDialogOpen}
+                onDialogChange={setDeleteDialogOpen}
+                onDelete={handleDelete}
+              />
+              {criticalActions.map((action) => (
+                <DataResetCard
+                  key={action.id}
+                  action={action}
+                  isLoading={loading[action.id]}
+                  isInitLoading={initLoading}
+                  isDeleteLoading={deleteLoading}
+                  isSystemReady={isSystemReady}
+                  dialogOpen={dialogOpen === action.id}
+                  onDialogChange={(open) => setDialogOpen(open ? action.id : null)}
+                  onConfirm={runAction}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-4 rounded-3xl border bg-card p-4 sm:p-6">
+            <h2 className="text-base font-semibold text-foreground">Service status</h2>
             <p className="text-sm text-muted-foreground">
               Refresh to confirm the latest collection and bucket statistics. Initialise Snappy after you start Qdrant
               and MinIO.
             </p>
-                <Button onClick={fetchStatus} disabled={statusLoading} size="sm" className="w-full">
-                  {statusLoading ? "Refreshing..." : "Refresh now"}
-                </Button>
+            <Button onClick={fetchStatus} disabled={statusLoading} size="sm" className="w-full sm:w-auto">
+              {statusLoading ? "Refreshing..." : "Refresh now"}
+            </Button>
           </div>
         </div>
       )}

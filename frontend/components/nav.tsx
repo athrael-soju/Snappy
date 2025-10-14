@@ -8,7 +8,7 @@ import { Home, Search as SearchIcon, Upload, MessageSquare, Menu } from "lucide-
 import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { NavUser } from "@/components/nav-user";
 import { useAppStore } from "@/stores/app-store";
@@ -132,7 +132,14 @@ export function Nav() {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="flex flex-col gap-6">
+            <SheetContent side="left" className="flex h-full flex-col gap-6">
+              <SheetHeader className="text-left">
+                <SheetTitle className="text-base font-semibold">Navigation</SheetTitle>
+                <SheetDescription className="text-sm text-muted-foreground">
+                  Choose a page or update your settings.
+                </SheetDescription>
+              </SheetHeader>
+
               <Link href="/" className="flex items-center gap-2 text-sm font-semibold text-foreground">
                 <Image
                   src={logoSrc}

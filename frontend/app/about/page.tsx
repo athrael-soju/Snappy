@@ -6,6 +6,7 @@ import { Info } from "lucide-react";
 import AboutContent from "@/components/about-content";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 const fadeIn = {
   initial: { opacity: 0, y: 12 },
@@ -15,18 +16,25 @@ const fadeIn = {
 
 export default function AboutPage() {
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
       <motion.div {...fadeIn}>
         <PageHeader
           title="About Snappy"
           description="Snappy is a starter kit for multimodal retrieval. Learn the stack, configuration options, and how to extend the template."
           icon={Info}
+          badge={
+            <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs font-medium">
+              Mobile ready layout
+            </Badge>
+          }
         />
       </motion.div>
 
-      <Card className="p-6 sm:p-8">
-        <AboutContent />
-      </Card>
+      <motion.section {...fadeIn} transition={{ ...fadeIn.transition, delay: 0.1 }}>
+        <Card className="rounded-3xl border bg-card p-6 shadow-sm sm:p-10">
+          <AboutContent />
+        </Card>
+      </motion.section>
     </div>
   );
 }

@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useRef, useEffect, useState } from "react";
-import { X, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { Clock, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 export interface RecentSearchesChipsProps {
   recentSearches: string[];
@@ -12,75 +13,14 @@ export interface RecentSearchesChipsProps {
   onRemove: (q: string) => void;
 }
 
-export default function RecentSearchesChips({ recentSearches, loading, visible = true, onSelect, onRemove }: RecentSearchesChipsProps) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [currentPage, setCurrentPage] = useState(0)
-  const [atStart, setAtStart] = useState(true)
-  const [atEnd, setAtEnd] = useState(false)
-
-  // Enforce a maximum of 9 items and pre-compute pages of 3
-  const items = recentSearches.slice(0, 9)
-  const pages: string[][] = []
-  for (let i = 0; i < items.length; i += 3) {
-    pages.push(items.slice(i, i + 3))
-  }
-  const pagesLength = pages.length
-
-  useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-    const onWheel = (e: WheelEvent) => {
-      // Convert vertical wheel to page-based horizontal scroll (3 items/page)
-      if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && !e.shiftKey) {
-        e.preventDefault()
-        const pageWidth = el.clientWidth
-        const direction = e.deltaY > 0 ? 1 : -1
-        const scrolledPage = Math.round(el.scrollLeft / pageWidth)
-        const newPage = Math.max(0, Math.min(scrolledPage + direction, pagesLength - 1))
-        el.scrollTo({ left: newPage * pageWidth, behavior: 'smooth' })
-        setCurrentPage(newPage)
-        setAtStart(newPage === 0)
-        setAtEnd(newPage >= pagesLength - 1)
-      }
-    }
-    const onScroll = () => {
-      const pageWidth = el.clientWidth
-      const page = Math.round(el.scrollLeft / pageWidth)
-      setCurrentPage(page)
-      setAtStart(page === 0)
-      setAtEnd(page >= pagesLength - 1)
-    }
-    el.addEventListener('wheel', onWheel, { passive: false })
-    el.addEventListener('scroll', onScroll)
-    return () => {
-      el.removeEventListener('wheel', onWheel)
-      el.removeEventListener('scroll', onScroll)
-    }
-  }, [pagesLength])
-
+export default function RecentSearchesChips({
+  recentSearches,
+  loading = false,
+  visible = true,
+  onSelect,
+  onRemove,
+}: RecentSearchesChipsProps) {
   if (!visible || recentSearches.length === 0) return null;
-
-  const scrollByPage = (direction: 1 | -1) => {
-    const el = containerRef.current
-    if (!el) return
-    const pageWidth = el.clientWidth
-    const nextPage = Math.max(0, Math.min(currentPage + direction, pagesLength - 1))
-    el.scrollTo({ left: nextPage * pageWidth, behavior: 'smooth' })
-    setCurrentPage(nextPage)
-    setAtStart(nextPage === 0)
-    setAtEnd(nextPage >= pagesLength - 1)
-  }
-
-  const goToPage = (index: number) => {
-    const el = containerRef.current
-    if (!el) return
-    const target = Math.max(0, Math.min(index, pagesLength - 1))
-    const pageWidth = el.clientWidth
-    el.scrollTo({ left: target * pageWidth, behavior: 'smooth' })
-    setCurrentPage(target)
-    setAtStart(target === 0)
-    setAtEnd(target >= pagesLength - 1)
-  }
 
   return (
     <AnimatePresence>
@@ -90,110 +30,61 @@ export default function RecentSearchesChips({ recentSearches, loading, visible =
         exit={{ opacity: 0, height: 0 }}
         className="space-y-3"
       >
-        <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm font-medium text-muted-foreground">Recent searches:</span>
-        </div>
-        {/* Wrap scroller and arrows in a relative container so arrows center to the row, not including dots */}
-        <div className="relative">
-          {/* Left chevron */}
-          <button
-            type="button"
-            aria-label="Previous"
-            onClick={() => scrollByPage(-1)}
-            disabled={currentPage === 0}
-            className="absolute left-0 top-1/2 z-10 -translate-y-1/2 rounded-md border border-input bg-card/90 p-1.5 text-muted-foreground transition hover:bg-secondary hover:text-secondary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-
-          {/* Right chevron */}
-          <button
-            type="button"
-            aria-label="Next"
-            onClick={() => scrollByPage(1)}
-            disabled={currentPage >= pages.length - 1}
-            className="absolute right-1 top-1/2 z-10 -translate-y-1/2 rounded-md border border-input bg-card/90 p-1.5 text-muted-foreground transition hover:bg-secondary hover:text-secondary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-
-          <div
-            ref={containerRef}
-            className="overflow-x-hidden overflow-y-visible snap-x snap-mandatory"
-          >
-            <div className="flex w-full">
-              {pages.map((page, pIdx) => (
-                <div key={pIdx} className="shrink-0 w-full snap-start px-8 py-1 overflow-visible">
-                  <div className="flex items-stretch gap-2 pr-1 overflow-visible">
-                    {page.map((search, idx) => (
-                      <motion.div
-                        key={`${pIdx}-${idx}`}
-                        whileHover={{ scale: 1.02, y: -2 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="group relative min-h-[3.25rem] min-w-0 flex-1 transform-gpu rounded-lg border border-input bg-card p-3 text-sm transition-colors will-change-transform hover:border-primary/60 hover:bg-primary/5 focus-within:border-primary focus-within:ring-2 focus-within:ring-ring/30"
-                      >
-                        <button
-                          onClick={() => onSelect(search)}
-                          disabled={!!loading}
-                          className="text-left focus:outline-none min-w-0 h-full block pr-7"
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="p-1.5 bg-muted rounded-lg group-hover:bg-muted transition-colors">
-                              <Clock className="w-4 h-4 text-muted-foreground" />
-                            </div>
-                            <span
-                              className="block group-hover:text-foreground transition-colors"
-                              style={{
-                                display: '-webkit-box',
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical' as any,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                lineHeight: '1.2rem',
-                              }}
-                            >
-                              {search}
-                            </span>
-                          </div>
-                        </button>
-                        <button
-                          aria-label={`Remove ${search}`}
-                          onClick={() => onRemove(search)}
-                          className="absolute top-1 right-1 rounded-full p-1 opacity-0 group-hover:opacity-100 bg-destructive/10 hover:bg-destructive/20 text-destructive transition-all duration-200 hover:scale-110 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/50"
-                          disabled={!!loading}
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </motion.div>
-                    ))}
-                    {/* Fill remaining slots to keep 3 columns aligned */}
-                    {Array.from({ length: Math.max(0, 3 - page.length) }).map((_, i) => (
-                      <div key={`empty-${pIdx}-${i}`} className="flex-1" />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <Clock className="h-4 w-4" />
+          <span>Recent searches</span>
         </div>
 
-        {/* Pagination dots */}
-        {pagesLength > 1 && (
-          <div className="mt-2 flex items-center justify-center gap-1.5" aria-label="Carousel pagination">
-            {Array.from({ length: pagesLength }).map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                aria-label={`Go to page ${i + 1}`}
-                onClick={() => goToPage(i)}
-                className={`h-1.5 rounded-full transition-all ${i === currentPage ? 'w-4 bg-foreground' : 'w-2 bg-muted-foreground/40'}`}
+        <ScrollArea className="-mx-2">
+          <div className="flex w-max gap-2 px-2 pb-1">
+            {recentSearches.map((search) => (
+              <Chip
+                key={search}
+                label={search}
+                disabled={loading}
+                onClick={() => onSelect(search)}
+                onRemove={() => onRemove(search)}
               />
             ))}
           </div>
-        )}
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
       </motion.div>
     </AnimatePresence>
   );
 }
 
+function Chip({
+  label,
+  disabled,
+  onClick,
+  onRemove,
+}: {
+  label: string;
+  disabled?: boolean;
+  onClick: () => void;
+  onRemove: () => void;
+}) {
+  return (
+    <span className="inline-flex min-w-0 items-center overflow-hidden rounded-full border border-input bg-card/80 text-sm shadow-sm">
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        className="max-w-[14rem] truncate px-3 py-1.5 text-left text-sm text-foreground transition hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        title={label}
+      >
+        {label}
+      </button>
+      <button
+        type="button"
+        onClick={onRemove}
+        disabled={disabled}
+        className="flex h-full items-center justify-center px-2 text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+        aria-label={`Remove ${label}`}
+      >
+        <X className="h-3.5 w-3.5" />
+      </button>
+    </span>
+  );
+}

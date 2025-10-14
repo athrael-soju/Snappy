@@ -69,7 +69,7 @@ export default function UploadPage() {
         icon={CloudUpload}
       />
 
-      <SystemStatusWarning isReady={isReady} isLoading={statusLoading} className="rounded-xl" />
+      <SystemStatusWarning isReady={isReady} isLoading={statusLoading} className="rounded-2xl" />
 
       <FileDropzone
         isDragOver={isDragOver}

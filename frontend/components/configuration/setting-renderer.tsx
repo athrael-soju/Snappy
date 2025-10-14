@@ -288,7 +288,7 @@ export function SettingRenderer({ setting, value, saving, isNested = false, onCh
               {setting.description}
               {(min !== undefined || max !== undefined) && (
                 <span className="ml-1 text-xs">
-                  ({min}–{max})
+                  ({min}-{max})
                 </span>
               )}
             </p>

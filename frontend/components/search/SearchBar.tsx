@@ -46,7 +46,7 @@ export default function SearchBar({
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4" aria-labelledby="search-heading">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -57,27 +57,32 @@ export default function SearchBar({
             required
             disabled={loading}
             aria-label="Search query"
-            className="h-14 rounded-xl border border-input bg-card pl-12 pr-24 text-base shadow-sm transition focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-70"
+            className="h-14 rounded-2xl border border-input bg-card pl-12 pr-4 text-base shadow-sm transition focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-70"
           />
         </div>
-        <div className="flex items-stretch justify-end gap-2 self-stretch">
-          <div className="flex items-center gap-2 rounded-xl border border-input bg-secondary/40 px-2 py-1 shadow-sm">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div>
-                  <ChatSettings
-                    k={k}
-                    setK={setK}
-                    loading={loading}
-                    className="h-12 w-12"
-                    topK={topK}
-                    setTopK={setTopK}
-                    showMaxTokens={false}
-                  />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground">Search settings</TooltipContent>
-            </Tooltip>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
+          <div className="flex w-full items-center justify-between gap-2 rounded-xl border border-input bg-secondary/40 px-3 py-2 shadow-sm sm:w-auto sm:justify-center sm:px-2 sm:py-1">
+            <div className="flex items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <ChatSettings
+                      k={k}
+                      setK={setK}
+                      loading={loading}
+                      className="h-12 w-12"
+                      topK={topK}
+                      setTopK={setTopK}
+                      showMaxTokens={false}
+                    />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground">
+                  Search settings
+                </TooltipContent>
+              </Tooltip>
+              <span className="text-xs font-medium text-muted-foreground sm:hidden">Settings</span>
+            </div>
 
             <Tooltip>
               <TooltipTrigger asChild>
@@ -85,11 +90,11 @@ export default function SearchBar({
                   type="button"
                   onClick={onClear}
                   disabled={loading || !hasResults}
-                  size="icon"
                   variant="ghost"
-                  className="h-12 w-12"
+                  className="h-12 flex-1 justify-center rounded-lg text-sm font-medium sm:flex-none sm:h-12 sm:w-12 sm:rounded-md"
                 >
                   <Trash2 className="h-5 w-5" />
+                  <span className="ml-2 sm:hidden">Clear</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground">
@@ -102,7 +107,7 @@ export default function SearchBar({
             type="submit"
             disabled={loading || !q.trim()}
             size="lg"
-            className="h-14 rounded-xl px-6 text-base font-semibold"
+            className="h-14 w-full rounded-2xl px-6 text-base font-semibold sm:w-auto"
           >
             {loading ? (
               <>

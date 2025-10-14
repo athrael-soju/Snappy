@@ -110,18 +110,18 @@ export default function ChatPage() {
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader
-        title="Chat with your documents..."
-        description="Ask Snappy questions about the documents..."
+        title="Chat with your documents"
+        description="Ask Snappy natural language questions and review answers with tap-friendly visual citations."
         icon={Brain}
       />
 
-      <SystemStatusWarning isReady={isReady} isLoading={statusLoading} className="rounded-xl" />
+      <SystemStatusWarning isReady={isReady} isLoading={statusLoading} className="rounded-2xl" />
 
-      <Card className="flex flex-1 flex-col">
-        <CardHeader className="border-b pb-4">
+      <Card className="flex flex-1 flex-col rounded-3xl border bg-card shadow-sm">
+        <CardHeader className="border-b px-4 py-4 sm:px-6">
           <CardTitle className="text-lg font-semibold">Conversation</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-1 flex-col gap-6 pt-4">
+        <CardContent className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
           {!hasMessages && (
             <div className="space-y-4 rounded-lg border border-dashed border-muted p-6 text-sm text-muted-foreground">
               <p>Need inspiration? Try one of these prompts to start a conversation:</p>
@@ -131,7 +131,7 @@ export default function ChatPage() {
                     key={prompt}
                     type="button"
                     onClick={() => setInput(prompt)}
-                    className="rounded-full border border-muted px-3 py-1.5 text-left text-sm text-muted-foreground transition hover:border-primary hover:text-primary"
+                    className="w-full rounded-full border border-muted px-4 py-2 text-left text-sm text-muted-foreground transition hover:border-primary hover:text-primary sm:w-auto"
                   >
                     {prompt}
                   </button>
@@ -162,7 +162,7 @@ export default function ChatPage() {
             </div>
           </ScrollArea>
 
-          <div className="space-y-3 border-t border-muted pt-4">
+          <div className="space-y-3 border-t border-muted pt-4 sm:pt-6">
             <ChatInputBar
               input={input}
               setInput={setInput}
@@ -310,5 +310,5 @@ function MessageBubble({
 function cnBubbleClass(isAssistant: boolean) {
   return isAssistant
     ? "flex flex-col gap-3 rounded-lg border border-muted bg-card px-4 py-3 shadow-sm"
-    : "ml-auto flex max-w-[80%] flex-col gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2 shadow-sm";
+    : "ml-auto flex max-w-full flex-col gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2 shadow-sm sm:max-w-[80%]";
 }

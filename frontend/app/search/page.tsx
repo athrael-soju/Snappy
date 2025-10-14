@@ -181,14 +181,14 @@ export default function SearchPage() {
       <motion.section {...fadeIn}>
         <PageHeader
           title="Visual search"
-          description="Ask natural language questions and Snappy returns the pages that match—even when the answer lives inside a chart or screenshot."
+          description="Ask natural language questions and Snappy returns the pages that match, even when the answer lives inside a chart or screenshot."
           icon={SearchIcon}
         />
       </motion.section>
 
-      <SystemStatusWarning isReady={isReady} isLoading={statusLoading} className="rounded-xl" />
+      <SystemStatusWarning isReady={isReady} isLoading={statusLoading} className="rounded-2xl" />
 
-      <Card>
+      <Card className="rounded-3xl border bg-card shadow-sm">
         <CardHeader className="border-b pb-4">
           <CardTitle className="text-lg font-semibold">Search your workspace</CardTitle>
           <CardDescription>Describe the slide, chart, or document you need.</CardDescription>
@@ -243,13 +243,13 @@ export default function SearchPage() {
         )}
       </AnimatePresence>
 
-      <Card className="flex-1">
+      <Card className="flex-1 rounded-3xl border bg-card shadow-sm">
         <CardHeader className="border-b pb-4">
           <CardTitle className="text-lg font-semibold">Results</CardTitle>
           <CardDescription>
             {hasResults
               ? `Showing ${results.length} item${results.length === 1 ? "" : "s"}${
-                  typeof searchDurationMs === "number" ? ` · ${searchDurationMs.toFixed(0)} ms` : ""
+                  typeof searchDurationMs === "number" ? ` - ${searchDurationMs.toFixed(0)} ms` : ""
                 }`
               : "Search to see matching pages."}
           </CardDescription>
@@ -377,7 +377,7 @@ function ResultCard({
           {item.payload?.filename && (
             <p className="text-sm text-muted-foreground">
               {item.payload.filename}
-              {typeof item.payload?.pdf_page_index === "number" && ` · Page ${item.payload.pdf_page_index + 1}`}
+              {typeof item.payload?.pdf_page_index === "number" && ` - Page ${item.payload.pdf_page_index + 1}`}
             </p>
           )}
         </div>

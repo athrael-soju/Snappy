@@ -50,7 +50,7 @@ export function UploadInfoCards() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
             <p>Drag files straight into the dropzone or click Browse.</p>
-            <p>Batch uploads are supported—Snappy queues the work for you.</p>
+            <p>Batch uploads are supported - Snappy queues the work for you.</p>
             <p>Once processed, files appear in search and chat automatically.</p>
           </CardContent>
         </Card>

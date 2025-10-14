@@ -87,17 +87,17 @@ export function FileDropzone({
                 {isDragOver ? "Release to upload" : "Drag files here"}
               </h2>
               <p className="mx-auto max-w-xl text-sm text-muted-foreground sm:text-base">
-                Drop PDFs or images to feed Snappy’s indexer, or browse to select files from your device.
+                Drop PDFs or images to feed Snappy's indexer, or browse to select files from your device.
               </p>
             </div>
           </div>
 
           <form id="upload-form" onSubmit={onSubmit} className="space-y-6" noValidate>
-            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+            <div className="flex flex-col gap-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto]">
               <Button
                 type="button"
                 variant="outline"
-                className="h-12 justify-center rounded-lg"
+                className="h-12 w-full justify-center rounded-lg sm:w-auto"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
               >
@@ -106,7 +106,7 @@ export function FileDropzone({
               </Button>
 
               {hasFiles && (
-                <div className="flex items-center justify-center gap-2 rounded-lg border border-primary/40 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
+                <div className="flex items-center justify-center gap-2 rounded-lg border border-primary/40 bg-primary/10 px-4 py-2 text-sm font-medium text-primary sm:justify-start">
                   <FileText className="h-4 w-4" aria-hidden="true" />
                   {fileCount} file{fileCount !== 1 ? "s" : ""} selected
                 </div>
