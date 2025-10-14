@@ -110,8 +110,8 @@ export default function ChatPage() {
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader
-        title="Chat with your documents"
-        description="Ask Snappy questions about the documents you have uploaded. Answers include the relevant page previews so you can verify the response."
+        title="Chat with your documents..."
+        description="Ask Snappy questions about the documents..."
         icon={Brain}
       />
 
@@ -154,7 +154,7 @@ export default function ChatPage() {
                     className="flex items-center gap-2 rounded-full bg-muted px-3 py-2 text-sm text-muted-foreground w-fit"
                   >
                     <Sparkles className="h-4 w-4 animate-pulse" />
-                    Thinking…
+                    Thinking...
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -166,7 +166,7 @@ export default function ChatPage() {
             <ChatInputBar
               input={input}
               setInput={setInput}
-              placeholder="Ask anything about your documents…"
+              placeholder="Ask anything about your documents..."
               loading={loading}
               isSettingsValid={isSettingsValid}
               uiSettingsValid={uiSettingsValid}

@@ -19,7 +19,7 @@ export function SystemStatusWarning({ isReady, isLoading = false, className }: S
         {isLoading ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
-            Checking services…
+            Checking services...
           </>
         ) : (
           <>

@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { LucideIcon } from "lucide-react";
+import { Check, LucideIcon } from "lucide-react";
 import { ReactNode } from "react";
 
 interface FeatureCardProps {
@@ -55,7 +55,7 @@ export function FeatureCard({
           <ul className="space-y-2 text-left text-xs text-muted-foreground">
             {features.map((feature, idx) => (
               <li key={idx} className="flex items-start gap-2">
-                <span className="mt-0.5 text-primary">✓</span>
+                <Check className="mt-0.5 h-3.5 w-3.5 text-primary" strokeWidth={3} />
                 <span className="leading-snug">{feature}</span>
               </li>
             ))}

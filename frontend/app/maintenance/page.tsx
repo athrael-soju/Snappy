@@ -123,9 +123,9 @@ export default function MaintenancePage() {
               Refresh to confirm the latest collection and bucket statistics. Initialise Snappy after you start Qdrant
               and MinIO.
             </p>
-            <Button onClick={fetchStatus} disabled={statusLoading} size="sm" className="w-full">
-              {statusLoading ? "Refreshing…" : "Refresh now"}
-            </Button>
+                <Button onClick={fetchStatus} disabled={statusLoading} size="sm" className="w-full">
+                  {statusLoading ? "Refreshing..." : "Refresh now"}
+                </Button>
           </div>
         </div>
       )}

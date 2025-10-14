@@ -31,7 +31,7 @@ export function InitializeCard({ isLoading, isSystemReady, isDeleteLoading, onIn
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Initialising…
+              Initialising...
             </>
           ) : (
             <>

@@ -6,7 +6,7 @@ export default function Loading() {
           className="inline-flex size-10 animate-spin rounded-full border-2 border-muted border-t-primary"
           aria-hidden
         />
-        <span>Loading…</span>
+        <span>Loading...</span>
       </div>
       <span className="sr-only" role="status" aria-live="polite" aria-busy="true">
         Loading
