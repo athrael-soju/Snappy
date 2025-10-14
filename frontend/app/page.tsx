@@ -8,236 +8,267 @@ import {
   Search as SearchIcon,
   MessageSquare,
   Sparkles,
+  Zap,
+  Shield,
   Layers,
+  TrendingUp,
+  FileText,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
-const heroMotion = {
-  initial: { opacity: 0, y: 24 },
+const fadeIn = {
+  initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.45, ease: "easeOut" },
+  transition: { duration: 0.5, ease: [0.23, 1, 0.32, 1] as const },
 };
 
-const sectionMotion = {
-  initial: { opacity: 0, y: 18 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.35, ease: "easeOut" },
+const staggerContainer = {
+  animate: {
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
 };
 
-const cardMotion = {
-  initial: { opacity: 0, y: 12 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true },
-  transition: { duration: 0.3 },
-};
-
-const featureCards = [
+const workflowCards = [
   {
-    title: "Bring visuals online",
-    description:
-      "Drop PDFs or image heavy reports from desktop or phone. Snappy slices and stores every page automatically.",
+    title: "Upload Documents",
+    description: "Drag and drop PDFs or images. Watch real-time processing with progress indicators.",
     icon: Upload,
     href: "/upload",
-    cta: "Upload files",
+    gradient: "from-blue-500/10 to-cyan-500/10",
+    iconColor: "text-blue-600 dark:text-blue-400",
   },
   {
-    title: "Search what you see",
-    description:
-      "Combine text queries with layout awareness so charts, forms, and tables stay in context on any screen.",
+    title: "Visual Search",
+    description: "Find content using natural language. AI understands charts, tables, and layouts.",
     icon: SearchIcon,
     href: "/search",
-    cta: "Open search",
+    gradient: "from-purple-500/10 to-pink-500/10",
+    iconColor: "text-purple-600 dark:text-purple-400",
   },
   {
-    title: "Chat with screenshots",
-    description:
-      "Ask questions that reference visual snippets. Citations stay tappable even on narrow viewports.",
+    title: "AI Chat",
+    description: "Ask questions about your documents. Get answers with visual citations.",
     icon: MessageSquare,
     href: "/chat",
-    cta: "Start chatting",
+    gradient: "from-green-500/10 to-emerald-500/10",
+    iconColor: "text-green-600 dark:text-green-400",
   },
 ] as const;
 
-const quickStartSteps = [
+const features = [
   {
-    label: "Upload",
-    description: "Drag and drop or browse for files. Progress indicators adapt to narrow layouts.",
-    icon: Upload,
+    icon: Zap,
+    title: "Lightning Fast",
+    description: "Powered by ColPali and FastAPI for instant retrieval",
   },
   {
-    label: "Search",
-    description: "Use natural language or presets. Controls stack vertically when space is limited.",
-    icon: SearchIcon,
-  },
-  {
-    label: "Chat",
-    description: "Review answers with image citations that open in a full width lightbox.",
-    icon: MessageSquare,
-  },
-] as const;
-
-const experienceHighlights = [
-  {
-    icon: Sparkles,
-    title: "Thumb friendly controls",
-    description: "Primary actions expand to full width on small screens so they stay easy to reach.",
+    icon: Shield,
+    title: "Self-Hosted",
+    description: "Complete control over your data and infrastructure",
   },
   {
     icon: Layers,
-    title: "Adaptive layout system",
-    description:
-      "Forms and cards flow into single column stacks on phones, then scale into multi column grids on larger displays.",
+    title: "Modern Stack",
+    description: "Next.js 15, React 19, and Tailwind v4",
+  },
+  {
+    icon: TrendingUp,
+    title: "Production Ready",
+    description: "Built with best practices and type safety",
   },
 ] as const;
 
 export default function Home() {
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 px-4 py-8 sm:px-6 lg:px-8">
-      <motion.section
-        {...heroMotion}
-        className="overflow-hidden rounded-3xl border bg-gradient-to-br from-primary/5 via-background to-background p-6 sm:p-10"
-      >
-        <div className="flex flex-col gap-6">
-          <Badge className="w-fit rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-            Template: FastAPI + Next.js
-          </Badge>
-          <div className="space-y-4">
-            <h1 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-5xl sm:leading-tight">
-              Build visual retrieval that feels great on mobile.
+    <div className="flex min-h-screen flex-col">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden border-b bg-gradient-to-br from-primary/5 via-primary/10 to-background">
+        <div className="absolute inset-0 bg-grid-pattern opacity-5" />
+        <div className="relative mx-auto max-w-7xl px-6 py-16 sm:px-8 lg:px-12 lg:py-24">
+          <motion.div
+            {...fadeIn}
+            className="mx-auto max-w-3xl text-center"
+          >
+            <Badge className="mb-6 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary border-primary/20">
+              <Sparkles className="mr-2 h-3.5 w-3.5" />
+              Visual AI Retrieval Platform
+            </Badge>
+            <h1 className="mb-6 text-4xl font-bold tracking-tight text-foreground sm:text-6xl lg:text-7xl">
+              Search Documents{" "}
+              <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                Visually
+              </span>
             </h1>
-            <p className="text-pretty text-sm text-muted-foreground sm:text-lg">
-              Snappy pairs a FastAPI backend with a responsive shadcn powered Next.js UI. Every workflow has been tuned
-              to collapse gracefully on phones and stretch comfortably on larger viewports.
+            <p className="mb-10 text-lg text-muted-foreground sm:text-xl">
+              Snappy combines FastAPI and Next.js to create a powerful multimodal retrieval system.
+              Upload documents, search with AI, and chat with your data.
             </p>
-          </div>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-            <Button asChild size="lg" className="w-full sm:w-auto">
-              <Link href="/upload">
-                Ingest a document
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
-              <Link href="/search">Try the search workflow</Link>
-            </Button>
-          </div>
+            <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
+              <Button asChild size="lg" className="h-12 px-8 text-base shadow-lg shadow-primary/25">
+                <Link href="/upload">
+                  Get Started
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="lg" className="h-12 px-8 text-base">
+                <Link href="/about">
+                  <FileText className="mr-2 h-5 w-5" />
+                  Learn More
+                </Link>
+              </Button>
+            </div>
+          </motion.div>
         </div>
-      </motion.section>
+      </section>
 
-      <motion.section {...sectionMotion} className="grid gap-4 md:grid-cols-2">
-        <Card className="h-full">
-          <CardHeader className="space-y-2">
-            <CardTitle className="text-lg font-semibold">Three step setup</CardTitle>
-            <CardDescription>Stay productive on desktop or mobile with the same flows.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <ol className="space-y-3 text-sm text-muted-foreground">
-              {quickStartSteps.map(({ label, description, icon: Icon }) => (
-                <li key={label} className="flex items-start gap-3">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <Icon className="h-4 w-4" />
-                  </span>
-                  <div className="space-y-1">
-                    <p className="font-semibold text-foreground">{label}</p>
-                    <p>{description}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </CardContent>
-        </Card>
+      {/* Workflows Section */}
+      <section className="border-b bg-background py-16 lg:py-24">
+        <div className="mx-auto max-w-7xl px-6 sm:px-8 lg:px-12">
+          <motion.div
+            initial="initial"
+            whileInView="animate"
+            viewport={{ once: true }}
+            variants={staggerContainer}
+            className="space-y-12"
+          >
+            <div className="text-center">
+              <motion.h2
+                variants={fadeIn}
+                className="mb-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl"
+              >
+                Three Core Workflows
+              </motion.h2>
+              <motion.p
+                variants={fadeIn}
+                className="mx-auto max-w-2xl text-lg text-muted-foreground"
+              >
+                Everything you need to build visual AI applications
+              </motion.p>
+            </div>
 
-        <Card className="h-full">
-          <CardHeader className="space-y-2">
-            <CardTitle className="text-lg font-semibold">Responsive by default</CardTitle>
-            <CardDescription>Built with Tailwind v4 utilities and shadcn components.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 text-sm text-muted-foreground">
-            {experienceHighlights.map(({ icon: Icon, title, description }) => (
-              <div key={title} className="flex items-start gap-3">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
-                  <Icon className="h-4 w-4" />
-                </span>
-                <div className="space-y-1">
-                  <p className="font-semibold text-foreground">{title}</p>
-                  <p>{description}</p>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </motion.section>
-
-      <motion.section {...sectionMotion} transition={{ ...sectionMotion.transition, delay: 0.05 }} className="space-y-6">
-        <div className="space-y-2">
-          <h2 className="text-xl font-semibold text-foreground sm:text-2xl">Core workflows</h2>
-          <p className="text-sm text-muted-foreground sm:text-base">
-            Jump straight into ingestion, retrieval, and chat. Cards scroll horizontally on mobile and fall into a grid
-            on larger screens.
-          </p>
-        </div>
-
-        <div className="-mx-4 sm:hidden">
-          <ScrollArea className="w-[calc(100%+2rem)] px-4 pb-2">
-            <div className="flex w-max gap-4">
-              {featureCards.map((feature) => (
-                <motion.div
-                  key={feature.title}
-                  {...cardMotion}
-                  className="w-[min(18.75rem,calc(100vw-4rem))] shrink-0"
-                >
-                  <FeatureCardItem feature={feature} />
+            <motion.div
+              variants={staggerContainer}
+              className="grid gap-6 lg:grid-cols-3"
+            >
+              {workflowCards.map((workflow) => (
+                <motion.div key={workflow.title} variants={fadeIn}>
+                  <Link href={workflow.href} className="block h-full group">
+                    <Card className="h-full transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1">
+                      <CardHeader>
+                        <div className={cn(
+                          "mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br",
+                          workflow.gradient
+                        )}>
+                          <workflow.icon className={cn("h-7 w-7", workflow.iconColor)} />
+                        </div>
+                        <CardTitle className="text-xl font-semibold">{workflow.title}</CardTitle>
+                        <CardDescription className="text-base">
+                          {workflow.description}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center text-sm font-medium text-primary group-hover:gap-2 transition-all">
+                          Get started
+                          <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
                 </motion.div>
               ))}
-            </div>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
-        </div>
-
-        <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-4 lg:gap-6">
-          {featureCards.map((feature) => (
-            <motion.div key={feature.title} {...cardMotion}>
-              <FeatureCardItem feature={feature} />
             </motion.div>
-          ))}
+          </motion.div>
         </div>
-      </motion.section>
+      </section>
+
+      {/* Features Section */}
+      <section className="bg-muted/30 py-16 lg:py-24">
+        <div className="mx-auto max-w-7xl px-6 sm:px-8 lg:px-12">
+          <motion.div
+            initial="initial"
+            whileInView="animate"
+            viewport={{ once: true }}
+            variants={staggerContainer}
+            className="space-y-12"
+          >
+            <div className="text-center">
+              <motion.h2
+                variants={fadeIn}
+                className="mb-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl"
+              >
+                Built for Performance
+              </motion.h2>
+              <motion.p
+                variants={fadeIn}
+                className="mx-auto max-w-2xl text-lg text-muted-foreground"
+              >
+                A modern stack designed for speed, scalability, and developer experience
+              </motion.p>
+            </div>
+
+            <motion.div
+              variants={staggerContainer}
+              className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4"
+            >
+              {features.map((feature) => (
+                <motion.div key={feature.title} variants={fadeIn}>
+                  <Card className="h-full border-muted bg-card/50 backdrop-blur">
+                    <CardHeader className="text-center">
+                      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                        <feature.icon className="h-6 w-6 text-primary" />
+                      </div>
+                      <CardTitle className="text-lg">{feature.title}</CardTitle>
+                      <CardDescription className="text-sm">
+                        {feature.description}
+                      </CardDescription>
+                    </CardHeader>
+                  </Card>
+                </motion.div>
+              ))}
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="border-t bg-background py-16 lg:py-24">
+        <div className="mx-auto max-w-4xl px-6 text-center sm:px-8 lg:px-12">
+          <motion.div
+            initial="initial"
+            whileInView="animate"
+            viewport={{ once: true }}
+            variants={fadeIn}
+            className="space-y-8"
+          >
+            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+              Ready to Get Started?
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              Upload your first document and experience the power of visual AI retrieval.
+            </p>
+            <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
+              <Button asChild size="lg" className="h-12 px-8 text-base shadow-lg shadow-primary/25">
+                <Link href="/upload">
+                  <Upload className="mr-2 h-5 w-5" />
+                  Upload Documents
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="lg" className="h-12 px-8 text-base">
+                <Link href="/search">
+                  <SearchIcon className="mr-2 h-5 w-5" />
+                  Try Search
+                </Link>
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      </section>
     </div>
-  );
-}
-
-function FeatureCardItem({
-  feature,
-}: {
-  feature: (typeof featureCards)[number];
-}) {
-  const { title, description, icon: Icon, href, cta } = feature;
-
-  return (
-    <Card className="flex h-full flex-col border-muted">
-      <CardHeader className="space-y-3">
-        <div className="flex size-10 items-center justify-center rounded-md bg-primary/10 text-primary">
-          <Icon className="h-5 w-5" />
-        </div>
-        <CardTitle className="text-lg font-semibold text-foreground">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-1 flex-col gap-4 text-sm text-muted-foreground">
-        <p>{description}</p>
-        <Button
-          asChild
-          variant="ghost"
-          className="mt-auto justify-start gap-2 px-0 text-sm font-semibold sm:w-fit"
-        >
-          <Link href={href}>
-            {cta}
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
-        </Button>
-      </CardContent>
-    </Card>
   );
 }

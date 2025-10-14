@@ -16,7 +16,11 @@ import { UserCircle, SlidersHorizontal, Database, Info } from "lucide-react";
 const itemClasses =
   "flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors focus:bg-secondary focus:text-secondary-foreground";
 
-export function NavUser() {
+interface NavUserProps {
+  collapsed?: boolean;
+}
+
+export function NavUser({ collapsed = false }: NavUserProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -57,12 +61,13 @@ export function NavUser() {
           size="icon"
           aria-label="Open maintenance menu"
           className={cn(
-            "h-11 w-11 rounded-full border bg-card text-muted-foreground shadow-sm transition-colors sm:h-12 sm:w-12",
+            "rounded-full border bg-card text-muted-foreground shadow-sm transition-colors",
+            collapsed ? "h-10 w-10" : "h-11 w-11 sm:h-12 sm:w-12",
             dropdownActive ? "bg-primary/10 text-primary" : "hover:bg-secondary hover:text-secondary-foreground"
           )}
         >
           <span className="flex h-full w-full items-center justify-center rounded-full">
-            <UserCircle className="h-6 w-6" />
+            <UserCircle className={cn("h-6 w-6", collapsed && "h-5 w-5")} />
           </span>
         </Button>
       </DropdownMenuTrigger>

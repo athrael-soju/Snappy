@@ -171,3 +171,41 @@
 body {
   letter-spacing: var(--tracking-normal);
 }
+
+/* Background pattern for hero sections */
+.bg-grid-pattern {
+  background-image: 
+    linear-gradient(to right, hsl(var(--muted) / 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--muted) / 0.1) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Focus visible improvements */
+*:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted) / 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}

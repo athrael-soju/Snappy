@@ -108,110 +108,129 @@ export default function ChatPage() {
   );
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
-      <PageHeader
-        title="Chat with your documents"
-        description="Ask Snappy natural language questions and review answers with tap-friendly visual citations."
-        icon={Brain}
-      />
-
-      <SystemStatusWarning isReady={isReady} isLoading={statusLoading} className="rounded-2xl" />
-
-      <Card className="flex flex-1 flex-col rounded-3xl border bg-card shadow-sm">
-        <CardHeader className="border-b px-4 py-4 sm:px-6">
-          <CardTitle className="text-lg font-semibold">Conversation</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
-          {!hasMessages && (
-            <div className="space-y-4 rounded-lg border border-dashed border-muted p-6 text-sm text-muted-foreground">
-              <p>Need inspiration? Try one of these prompts to start a conversation:</p>
-              <div className="flex flex-wrap gap-2">
-                {SUGGESTIONS.map((prompt) => (
-                  <button
-                    key={prompt}
-                    type="button"
-                    onClick={() => setInput(prompt)}
-                    className="w-full rounded-full border border-muted px-4 py-2 text-left text-sm text-muted-foreground transition hover:border-primary hover:text-primary sm:w-auto"
-                  >
-                    {prompt}
-                  </button>
-                ))}
+    <div className="flex min-h-screen flex-col">
+      {/* Header Section */}
+      <div className="border-b bg-gradient-to-br from-green-500/5 to-background px-6 py-12 sm:px-8 lg:px-12">
+        <div className="mx-auto max-w-7xl">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-green-500/10">
+                <Brain className="h-6 w-6 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+                  AI Chat
+                </h1>
+                <p className="text-sm text-muted-foreground sm:text-base">
+                  Ask questions and get answers with visual citations
+                </p>
               </div>
             </div>
-          )}
-
-          <ScrollArea className="flex-1">
-            <div className="space-y-4 pr-2">
-              {messages.map((message) => (
-                <MessageBubble key={message.id} message={message} onPreview={handleOpenLightbox} />
-              ))}
-              <AnimatePresence>
-                {loading && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 8 }}
-                    className="flex items-center gap-2 rounded-full bg-muted px-3 py-2 text-sm text-muted-foreground w-fit"
-                  >
-                    <Sparkles className="h-4 w-4 animate-pulse" />
-                    Thinking...
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              <div ref={messagesEndRef} />
-            </div>
-          </ScrollArea>
-
-          <div className="space-y-3 border-t border-muted pt-4 sm:pt-6">
-            <ChatInputBar
-              input={input}
-              setInput={setInput}
-              placeholder="Ask anything about your documents..."
-              loading={loading}
-              isSettingsValid={isSettingsValid}
-              uiSettingsValid={uiSettingsValid}
-              setUiSettingsValid={setUiSettingsValid}
-              onSubmit={handleSubmit}
-              k={k}
-              setK={setK}
-              toolCallingEnabled={toolCallingEnabled}
-              setToolCallingEnabled={setToolCallingEnabled}
-              topK={topK}
-              setTopK={setTopK}
-              maxTokens={maxTokens}
-              setMaxTokens={setMaxTokens}
-              onClear={() => {
-                reset();
-                setInput("");
-                toast.success("Conversation cleared");
-              }}
-              hasMessages={hasMessages}
-            />
-
-            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1">
-                <Sparkles className="h-3.5 w-3.5 text-primary" />
-                Responses include citations
-              </span>
-              {timeToFirstTokenMs !== null && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5">
-                  First token in {(timeToFirstTokenMs / 1000).toFixed(2)}s
-                </span>
-              )}
-              <Link href="/maintenance?section=configuration" className="underline">
-                Adjust model settings
-              </Link>
-            </div>
-
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+
+      <div className="mx-auto w-full max-w-7xl flex-1 px-6 py-8 sm:px-8 lg:px-12">
+        <div className="flex h-[calc(100vh-220px)] flex-col gap-6">
+          <SystemStatusWarning isReady={isReady} isLoading={statusLoading} className="rounded-2xl" />
+
+          <Card className="flex flex-1 flex-col overflow-hidden border-2">
+            <CardHeader className="border-b bg-muted/30 px-4 py-4 sm:px-6">
+              <CardTitle className="text-lg font-semibold">Conversation</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-1 flex-col gap-6 overflow-hidden p-4 sm:p-6">
+              {!hasMessages && (
+                <div className="space-y-4 rounded-lg border border-dashed border-muted p-6 text-sm text-muted-foreground">
+                  <p className="font-medium text-foreground">Need inspiration? Try one of these prompts:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {SUGGESTIONS.map((prompt) => (
+                      <button
+                        key={prompt}
+                        type="button"
+                        onClick={() => setInput(prompt)}
+                        className="w-full rounded-full border border-muted px-4 py-2 text-left text-sm text-muted-foreground transition hover:border-primary hover:text-primary sm:w-auto"
+                      >
+                        {prompt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <ScrollArea className="flex-1">
+                <div className="space-y-4 pr-2">
+                  {messages.map((message) => (
+                    <MessageBubble key={message.id} message={message} onPreview={handleOpenLightbox} />
+                  ))}
+                  <AnimatePresence>
+                    {loading && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 8 }}
+                        className="flex items-center gap-2 rounded-full bg-muted px-3 py-2 text-sm text-muted-foreground w-fit"
+                      >
+                        <Sparkles className="h-4 w-4 animate-pulse" />
+                        Thinking...
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  <div ref={messagesEndRef} />
+                </div>
+              </ScrollArea>
+
+              <div className="space-y-3 border-t border-muted pt-4 sm:pt-6">
+                <ChatInputBar
+                  input={input}
+                  setInput={setInput}
+                  placeholder="Ask anything about your documents..."
+                  loading={loading}
+                  isSettingsValid={isSettingsValid}
+                  uiSettingsValid={uiSettingsValid}
+                  setUiSettingsValid={setUiSettingsValid}
+                  onSubmit={handleSubmit}
+                  k={k}
+                  setK={setK}
+                  toolCallingEnabled={toolCallingEnabled}
+                  setToolCallingEnabled={setToolCallingEnabled}
+                  topK={topK}
+                  setTopK={setTopK}
+                  maxTokens={maxTokens}
+                  setMaxTokens={setMaxTokens}
+                  onClear={() => {
+                    reset();
+                    setInput("");
+                    toast.success("Conversation cleared");
+                  }}
+                  hasMessages={hasMessages}
+                />
+
+                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                  <span className="inline-flex items-center gap-1">
+                    <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    Responses include citations
+                  </span>
+                  {timeToFirstTokenMs !== null && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5">
+                      First token in {(timeToFirstTokenMs / 1000).toFixed(2)}s
+                    </span>
+                  )}
+                  <Link href="/maintenance?section=configuration" className="underline">
+                    Adjust model settings
+                  </Link>
+                </div>
+
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       <ImageLightbox open={lightboxOpen} src={lightboxSrc} alt={lightboxAlt} onOpenChange={setLightboxOpen} />
     </div>
