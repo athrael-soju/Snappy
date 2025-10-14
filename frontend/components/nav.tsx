@@ -1,17 +1,16 @@
 "use client"
 
-import { Suspense, useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { Home, Eye, CloudUpload, Brain, Menu } from "lucide-react"
+import { Home, Eye, CloudUpload, Brain, Menu, SlidersHorizontal, Database, Info } from "lucide-react"
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetTrigger, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { useAppStore } from '@/stores/app-store'
-import { NavUser } from '@/components/nav-user'
 import { ThemeSwitch } from '@/components/theme-switch'
 
 const links = [
@@ -19,6 +18,9 @@ const links = [
   { href: "/search", label: "Search", icon: Eye, color: "text-secondary" },
   { href: "/upload", label: "Upload", icon: CloudUpload, color: "text-accent" },
   { href: "/chat", label: "Chat", icon: Brain, color: "text-destructive" },
+  { href: "/configuration", label: "Configuration", icon: SlidersHorizontal, color: "text-sky-500" },
+  { href: "/maintenance", label: "Maintenance", icon: Database, color: "text-amber-500" },
+  { href: "/about", label: "About", icon: Info, color: "text-emerald-500" },
 ] as const
 
 const navContainerClasses =
@@ -221,9 +223,6 @@ export function Nav() {
                     <span className="text-sm font-medium text-muted-foreground">Theme</span>
                     <ThemeSwitch />
                   </div>
-                  <div className="pt-2">
-                    <NavUser />
-                  </div>
                 </div>
               </SheetContent>
             </Sheet>
@@ -233,9 +232,6 @@ export function Nav() {
             <ThemeSwitch />
           </div>
 
-          <Suspense fallback={null}>
-            <NavUser />
-          </Suspense>
         </div>
       </nav>
     </header>

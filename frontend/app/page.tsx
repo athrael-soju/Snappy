@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { defaultPageMotion, fadeInItemMotion, hoverLift, sectionVariants, staggeredListMotion } from "@/lib/motion-presets";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Brain, CloudUpload, Database, Sparkles } from "lucide-react";
 import { FeatureCard } from "@/components/ui/feature-card";
+import { GlassPanel } from "@/components/ui/glass-panel";
+import { cn } from "@/lib/utils";
 
 const workflow = [
   {
@@ -28,7 +28,7 @@ const workflow = [
     title: "Visual Embeddings",
     description: "ColPali transforms documents into searchable visual representations",
     icon: Database,
-    href: "/maintenance?section=configuration",
+    href: "/configuration",
     badges: ["AI-Powered", "Qdrant", "GPU Ready"],
     features: [
       "Vision-language model for deep understanding",
@@ -54,19 +54,35 @@ const workflow = [
 
 export default function Home() {
   return (
-    <motion.div {...defaultPageMotion} className="page-shell flex min-h-0 flex-1 flex-col">
-      <motion.section variants={sectionVariants} className="flex flex-col items-center text-center gap-6 pt-6 sm:pt-8">
-        <PageHeader
-          title="FastAPI / Next.js / ColPali Template"
-          icon={Sparkles}
-          badge={<Badge className="rounded-full text-sm">v0.0.5</Badge>}
-          tooltip="This starter kit combines a FastAPI backend, Qdrant vector search, and a modern Next.js interface so you can focus on the experience, not the configuration"
-        />
-      </motion.section>
+    <motion.div {...defaultPageMotion} className="mx-auto w-full max-w-[1240px] h-full px-4 sm:px-6 lg:px-8">
+      {/* Page stack */}
+      <div className="flex h-full flex-col gap-6 py-6">
+        {/* Header card */}
+        <motion.div variants={sectionVariants} className="flex-shrink-0">
+          <GlassPanel className="rounded-2xl bg-white/70 p-4 sm:p-6 shadow">
+            <div className="flex flex-col items-center text-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500">
+                <Sparkles className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <h1 className="text-2xl font-semibold">FastAPI / Next.js / ColPali Template</h1>
+                  <Badge className="rounded-full text-sm">v0.0.5</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
+                  This starter kit combines a FastAPI backend, Qdrant vector search, and a modern Next.js interface so you can focus on the experience, not the configuration
+                </p>
+              </div>
+            </div>
+          </GlassPanel>
+        </motion.div>
 
-      <motion.section variants={sectionVariants} className="flex-1 min-h-0 pb-6 sm:pb-8 flex">
-        <ScrollArea className="h-[calc(100vh-12rem)] rounded-xl">
-          <div className="mx-auto max-w-6xl px-4 py-6">
+        {/* Content section - scrollable */}
+        <motion.div variants={sectionVariants} className="flex-1 min-h-0">
+          <div 
+            className="h-full overflow-y-auto rounded-2xl bg-white/70 p-6 shadow"
+            style={{ overscrollBehavior: 'contain', scrollbarGutter: 'stable' }}
+          >
             {/* Hero copy */}
             <div className="flex flex-col items-center text-center gap-6 mb-8">
               <div className="space-y-3 max-w-3xl">
@@ -123,8 +139,8 @@ export default function Home() {
               ))}
             </motion.div>
           </div>
-        </ScrollArea>
-      </motion.section>
+        </motion.div>
+      </div>
     </motion.div>
   );
 }

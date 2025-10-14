@@ -15,7 +15,6 @@ import ImageLightbox from "@/components/lightbox";
 import ChatInputBar from "@/components/chat/ChatInputBar";
 import StarterQuestions from "@/components/chat/StarterQuestions";
 import MarkdownRenderer from "@/components/chat/MarkdownRenderer";
-import { PageLayout } from "@/components/layout/page-layout";
 import { GlassPanel } from "@/components/ui/glass-panel";
 import { MaintenanceService } from "@/lib/api/generated";
 import { useSystemStatus } from "@/stores/app-store";
@@ -198,21 +197,35 @@ export default function ChatPage() {
   }, [messages, requestStart]);
 
   return (
-    <PageLayout
-      title="AI Chat"
-      icon={Brain}
-      tooltip="Ask questions about your documents and get AI-powered responses with inline citations"
-      className="h-full"
-    >
-      <TooltipProvider>
-        <SystemStatusWarning isReady={isReady} />
-        
-        <div className="flex-1 flex flex-col min-h-0">
+    <TooltipProvider>
+      {/* Centered container with max-width */}
+      <div className="mx-auto w-full max-w-[1160px] h-full px-4 sm:px-6 lg:px-8">
+        {/* Page stack */}
+        <div className="flex h-full flex-col gap-6 py-6">
+          {/* Hero/intro card at top */}
+          <div className="flex-shrink-0">
+            <GlassPanel className="rounded-2xl bg-white/70 p-4 shadow">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500">
+                  <Brain className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h1 className="text-xl font-semibold">AI Chat</h1>
+                  <p className="text-sm text-muted-foreground">Ask questions about your documents</p>
+                </div>
+              </div>
+            </GlassPanel>
+          </div>
+
+          <SystemStatusWarning isReady={isReady} />
+          
+          {/* Messages list - scrollable */}
           <div
             ref={messagesContainerRef}
-            className="flex-1 overflow-y-auto rounded-xl"
+            className="flex-1 min-h-0 overflow-y-auto rounded-2xl bg-white/70 p-4 shadow"
+            style={{ overscrollBehavior: 'contain', scrollbarGutter: 'stable' }}
           >
-            <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-4 sm:py-6">
+            <div className="w-full">
                 <AnimatePresence mode="popLayout">
               {messages.length === 0 ? (
                 <motion.div
@@ -348,9 +361,10 @@ export default function ChatPage() {
             </div>
           </div>
 
-          {/* Input Form */}
-          <div className="flex-shrink-0 border-t px-3 sm:px-4 py-3 sm:py-4">
-          <ChatInputBar
+          {/* Composer bar - sticky to bottom of viewport */}
+          <div className="sticky bottom-0 -mx-4 sm:-mx-6 lg:-mx-8">
+            <div className="border-t bg-white/60 backdrop-blur pb-[env(safe-area-inset-bottom)] px-4 sm:px-6 lg:px-8 pt-4">
+              <ChatInputBar
             input={input}
             setInput={setInput}
             placeholder="Ask anything about your documents. Press Enter to send"
@@ -386,10 +400,10 @@ export default function ChatPage() {
                 description: 'Ready for a fresh start',
               });
             }}
-          />
+              />
 
-          {/* Tips below input */}
-          <div className="mt-2 flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-muted-foreground">
+              {/* Tips below input */}
+              <div className="mt-2 flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-muted-foreground">
             <div className="flex items-center gap-1.5">
               <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary" />
               <span className="hidden sm:inline">AI-powered with inline citations</span>
@@ -401,30 +415,31 @@ export default function ChatPage() {
                 <span className="font-medium text-xs">{(timeToFirstTokenMs / 1000).toFixed(2)}s</span>
               </div>
             )}
-          </div>
+              </div>
 
-            {error && (
-              <motion.div
-                variants={fadeInPresence}
-                initial="hidden"
-                animate="visible"
-                className="mt-3"
-              >
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              </motion.div>
-            )}
+              {error && (
+                <motion.div
+                  variants={fadeInPresence}
+                  initial="hidden"
+                  animate="visible"
+                  className="mt-3"
+                >
+                  <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                </motion.div>
+              )}
+            </div>
           </div>
         </div>
+      </div>
 
-        <ImageLightbox
-          open={lightboxOpen}
-          src={lightboxSrc}
-          alt={lightboxAlt}
-          onOpenChange={setLightboxOpen}
-        />
-      </TooltipProvider>
-    </PageLayout>
+      <ImageLightbox
+        open={lightboxOpen}
+        src={lightboxSrc}
+        alt={lightboxAlt}
+        onOpenChange={setLightboxOpen}
+      />
+    </TooltipProvider>
   );
 }

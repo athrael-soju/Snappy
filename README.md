@@ -34,7 +34,7 @@ config:
 ---
 flowchart TB
   subgraph Frontend["Next.js Frontend"]
-    UI["Pages (/upload, /search, /chat, /maintenance)"]
+    UI["Pages (/upload, /search, /chat, /configuration, /maintenance)"]
     CHAT["Chat API Route"]
   end
 
@@ -73,7 +73,7 @@ walkthrough of the indexing and retrieval flows.
   "Visual citations included" chip with an image gallery.
 - **Pipelined indexing** – configurable batch size, automatic concurrency
   sizing, progress tracking via Server-Sent Events, and optional cancellation.
-- **Runtime configuration UI** – `/maintenance` page consumes the
+- **Runtime configuration UI** — `/configuration` page consumes the
   `/config/*` API to edit settings, reset to defaults, or apply hardware-driven
   optimisations without restarting the backend.
 - **Docker-first** – root `docker-compose.yml` spins up Qdrant, MinIO, backend,

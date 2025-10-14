@@ -197,40 +197,46 @@ export default function SearchPage() {
       title="Visual Search"
       icon={Search}
       tooltip="Find documents and images using natural language powered by AI vision"
-      className="gap-4 h-full"
+      className="flex flex-col gap-4"
     >
-          <SystemStatusWarning isReady={isReady} />
+      <div className="flex-shrink-0">
+        <SystemStatusWarning isReady={isReady} />
+      </div>
 
-          <div className="flex-shrink-0">
-            <GlassPanel className="p-5">
-              <SearchBar
-                q={q}
-                setQ={setQ}
-                loading={loading}
-                onSubmit={onSubmit}
-                k={k}
-                setK={setK}
-                topK={topK}
-                setTopK={setTopK}
-                hasResults={hasResults}
-                onClear={handleClearSearch}
-                inputRef={searchInputRef}
-              />
-            </GlassPanel>
-          </div>
+      <div className="flex-shrink-0">
+        <GlassPanel className="p-5 rounded-2xl bg-white/70 shadow">
+          <SearchBar
+            q={q}
+            setQ={setQ}
+            loading={loading}
+            onSubmit={onSubmit}
+            k={k}
+            setK={setK}
+            topK={topK}
+            setTopK={setTopK}
+            hasResults={hasResults}
+            onClear={handleClearSearch}
+            inputRef={searchInputRef}
+          />
+        </GlassPanel>
+      </div>
 
-          <AnimatePresence>
-            {error && (
-              <motion.div variants={fadeInPresence} initial="hidden" animate="visible" exit="exit" className="flex-shrink-0">
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              </motion.div>
-            )}
-          </AnimatePresence>
+      <AnimatePresence>
+        {error && (
+          <motion.div variants={fadeInPresence} initial="hidden" animate="visible" exit="exit" className="flex-shrink-0">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-          <div className="flex-1 overflow-y-auto min-h-0">
+      <div className="flex-1 min-h-0">
+        <div 
+          className="h-full overflow-y-auto rounded-2xl bg-white/70 p-4 shadow"
+          style={{ overscrollBehavior: 'contain', scrollbarGutter: 'stable' }}
+        >
             {!hasSearched && !loading && !error ? (
                 <GlassPanel className="p-8 sm:p-12" hover>
                   <div className="flex flex-col items-center gap-8 text-center">
@@ -401,8 +407,9 @@ export default function SearchPage() {
                   )}
                 </AnimatePresence>
               )}
-
-          </div>
+        </div>
+      </div>
+      
       <ImageLightbox open={lightboxOpen} src={lightboxSrc} alt={lightboxAlt} onOpenChange={setLightboxOpen} />
     </PageLayout>
   );

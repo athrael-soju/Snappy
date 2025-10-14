@@ -36,9 +36,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className="h-full">
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} text-foreground antialiased relative h-full flex flex-col overflow-hidden`}
+        className={`${geistSans.variable} ${geistMono.variable} text-foreground antialiased`}
       >
         <ThemeProvider
           attribute="class"
@@ -49,13 +49,13 @@ export default function RootLayout({
         >
           {/* Animated gradient background */}
           <AnimatedBackground>
-            <div className="relative z-10 flex flex-1 flex-col min-h-0 h-full">
+            <div className="flex h-dvh flex-col">
               <NextTopLoader showSpinner={false} />
               <Toaster richColors position="top-right" />
               <AppStoreProvider>
                 <TooltipProvider>
                   <Nav />
-                  <main className="flex-1 min-h-0 w-full flex flex-col">
+                  <main className="flex-1 min-h-0 overflow-y-auto" style={{ scrollbarGutter: 'stable', overscrollBehavior: 'contain' }}>
                     {children}
                   </main>
                 </TooltipProvider>

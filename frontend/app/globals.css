@@ -206,12 +206,16 @@
   * {
     @apply border-border outline-ring/45;
   }
+  html {
+    /* Use dvh for proper mobile viewport handling */
+    min-height: 100dvh;
+  }
   body {
     @apply text-foreground antialiased;
-    min-height: 100vh;
     background-color: var(--background);
     color-scheme: light dark;
     font-feature-settings: "liga" 1, "kern" 1;
+    /* Remove any height/overflow constraints - app-shell handles this */
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-semibold tracking-tight text-foreground;

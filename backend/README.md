@@ -127,7 +127,7 @@ APIs; it does not proxy chat requests.
 
 ## Configuration management UI
 
-The `/maintenance` page in the frontend includes a **Configuration** tab that
-talks to the `/config/*` API. It surfaces the schema described above with typed
-inputs, validation, and runtime updates. Critical changes invalidate cached
+The `/configuration` page in the frontend talks to the `/config/*` API. It
+surfaces the schema described above with typed inputs, validation, and runtime
+updates. Critical changes invalidate cached
 services (Qdrant/MinIO/ColPali) so the next API call observes the new values.

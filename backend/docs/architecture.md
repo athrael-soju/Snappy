@@ -84,8 +84,8 @@ Support modules:
 
 ## Next.js integration
 
-- Pages live under `frontend/app/*` (`/upload`, `/search`, `/chat`,
-  `/maintenance`, etc.).
+- Pages live under `frontend/app/*` (`/upload`, `/search`, `/chat`, `/configuration`,
+    `/maintenance`, etc.).
 - `frontend/lib/api/client.ts` configures the generated OpenAPI client using
   `NEXT_PUBLIC_API_BASE_URL` (defaults to `http://localhost:8000`).
 - The chat experience is implemented in `frontend/app/api/chat/route.ts`. It:
