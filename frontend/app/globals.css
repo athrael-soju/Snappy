@@ -254,7 +254,7 @@
   
   /* Standardized page layout system */
   .page-container {
-    @apply flex flex-col gap-4 h-screen overflow-hidden py-4 px-4 sm:px-6 lg:px-8;
+    @apply flex flex-col gap-4 h-screen overflow-y-hidden overflow-x-auto py-4 px-4 sm:px-6 lg:px-8;
   }
   
   .page-header-section {

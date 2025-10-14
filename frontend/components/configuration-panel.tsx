@@ -184,8 +184,9 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
         </div>
 
         {/* Scrollable content area */}
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          <div className="px-1">
+        <div className="flex-1 min-h-0">
+          <ScrollArea className="h-full pr-2">
+            <div className="px-1 pb-20 space-y-4">
               {categoriesToRender.map(([categoryKey, category]) => {
                 if (activeCategoryKey !== categoryKey) return null;
 
@@ -193,27 +194,27 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                 const visibleSettings = category.settings.filter(s => isSettingVisible(s) && !s.depends_on);
 
                 return (
-                <motion.div
-                  key={categoryKey}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <GlassPanel className="p-4 sm:p-6">
-                    <CardHeader className="px-0 pt-0 pb-4 sm:pb-6">
-                      <div className="flex items-start gap-2 sm:gap-3">
-                        <div className="flex size-10 sm:size-12 items-center justify-center rounded-lg bg-primary/10 text-primary flex-shrink-0">
-                          <Settings className="w-5 h-5 sm:w-6 sm:h-6" />
+                  <motion.div
+                    key={categoryKey}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <GlassPanel className="p-4 sm:p-6">
+                      <CardHeader className="px-0 pt-0 pb-4 sm:pb-6">
+                        <div className="flex items-start gap-2 sm:gap-3">
+                          <div className="flex size-10 sm:size-12 items-center justify-center rounded-lg bg-primary/10 text-primary flex-shrink-0">
+                            <Settings className="w-5 h-5 sm:w-6 sm:h-6" />
+                          </div>
+                          <div className="min-w-0">
+                            <CardTitle className="text-lg sm:text-xl font-semibold">{category.name}</CardTitle>
+                            <CardDescription className="mt-1 text-sm sm:text-base">{category.description}</CardDescription>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <CardTitle className="text-lg sm:text-xl font-semibold">{category.name}</CardTitle>
-                          <CardDescription className="mt-1 text-sm sm:text-base">{category.description}</CardDescription>
-                        </div>
-                      </div>
-                    </CardHeader>
+                      </CardHeader>
 
-                    <CardContent className="space-y-4 sm:space-y-6 px-0 pb-0">
+                      <CardContent className="space-y-4 sm:space-y-6 px-0 pb-0">
                         {visibleSettings.map((setting, index) => {
                           // Check for nested settings
                           const childSettings = category.settings.filter(
@@ -222,40 +223,41 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                           const hasChildren = childSettings.length > 0;
 
                           return (
-                          <div key={setting.key}>
-                            {index > 0 && <Separator className="my-3 sm:my-4" />}
-                            <SettingRenderer
-                              setting={setting}
-                              value={values[setting.key]}
-                              saving={saving}
-                              onChange={handleValueChange}
-                            />
+                            <div key={setting.key}>
+                              {index > 0 && <Separator className="my-3 sm:my-4" />}
+                              <SettingRenderer
+                                setting={setting}
+                                value={values[setting.key]}
+                                saving={saving}
+                                onChange={handleValueChange}
+                              />
 
-                            {/* Nested child settings */}
-                            {hasChildren && (
-                              <div className="mt-3 sm:mt-4 ml-4 sm:ml-8 pl-3 sm:pl-5 border-l-2 border-primary/20 space-y-3 sm:space-y-4">
-                                {childSettings.map(childSetting => (
-                                  <div key={childSetting.key}>
-                                    <SettingRenderer
-                                      setting={childSetting}
-                                      value={values[childSetting.key]}
-                                      saving={saving}
-                                      isNested={true}
-                                      onChange={handleValueChange}
-                                    />
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </CardContent>
-                  </GlassPanel>
-                </motion.div>
+                              {/* Nested child settings */}
+                              {hasChildren && (
+                                <div className="mt-3 sm:mt-4 ml-4 sm:ml-8 pl-3 sm:pl-5 border-l-2 border-primary/20 space-y-3 sm:space-y-4">
+                                  {childSettings.map(childSetting => (
+                                    <div key={childSetting.key}>
+                                      <SettingRenderer
+                                        setting={childSetting}
+                                        value={values[childSetting.key]}
+                                        saving={saving}
+                                        isNested={true}
+                                        onChange={handleValueChange}
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </CardContent>
+                    </GlassPanel>
+                  </motion.div>
                 );
               })}
-          </div>
+            </div>
+          </ScrollArea>
         </div>
       </div>
 
