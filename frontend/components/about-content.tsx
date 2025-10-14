@@ -37,7 +37,7 @@ export default function AboutContent() {
           reports and you get ingestion, semantic search, and chat with visual citations. Everything runs locally, so
           you can customise the experience before pointing it at your own data.
         </p>
-        <Badge variant="secondary" className="rounded-full">FastAPI · Next.js · ColQwen2.5</Badge>
+        <Badge variant="secondary" className="rounded-full">FastAPI / Next.js / ColQwen2.5</Badge>
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2">
