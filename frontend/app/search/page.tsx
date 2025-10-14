@@ -10,14 +10,14 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Search, AlertCircle, ImageIcon, Eye, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { defaultPageMotion, fadeInItemMotion, fadeInPresence, hoverLift, sectionVariants, staggeredListMotion } from "@/lib/motion-presets";
+import { fadeInItemMotion, fadeInPresence, staggeredListMotion } from "@/lib/motion-presets";
 import { toast } from "@/components/ui/sonner";
 import { GlassPanel } from "@/components/ui/glass-panel";
 import Image from "next/image";
 import ImageLightbox from "@/components/lightbox";
 import SearchBar from "@/components/search/SearchBar";
 import { useSearchStore, useSystemStatus } from "@/stores/app-store";
-import { PageHeader } from "@/components/page-header";
+import { PageLayout } from "@/components/layout/page-layout";
 import { SystemStatusWarning } from "@/components/upload";
 
 
@@ -193,17 +193,12 @@ export default function SearchPage() {
   }
 
   return (
-    <motion.div {...defaultPageMotion} className="page-shell flex flex-col gap-4 h-screen overflow-hidden py-4">
-      <motion.section variants={sectionVariants} className="flex-shrink-0">
-        <PageHeader
-          title="Visual Search"
-          icon={Search}
-          tooltip="Find documents and images using natural language powered by AI vision"
-        />
-      </motion.section>
-
-      <motion.section variants={sectionVariants} className="flex-1 flex flex-col gap-4 min-h-0">
-        <div className="mx-auto w-full max-w-6xl flex flex-col gap-4 h-full">
+    <PageLayout
+      title="Visual Search"
+      icon={Search}
+      tooltip="Find documents and images using natural language powered by AI vision"
+      className="gap-4 h-full"
+    >
           <SystemStatusWarning isReady={isReady} />
 
           <div className="flex-shrink-0">
@@ -408,10 +403,7 @@ export default function SearchPage() {
               )}
 
           </div>
-        </div>
-      </motion.section>
-
       <ImageLightbox open={lightboxOpen} src={lightboxSrc} alt={lightboxAlt} onOpenChange={setLightboxOpen} />
-    </motion.div>
+    </PageLayout>
   );
 }

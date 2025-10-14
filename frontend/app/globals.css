@@ -248,8 +248,26 @@
 }
 
 @layer utilities {
+  /* Legacy page shell - deprecated, use page-container instead */
   .page-shell { @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8; }
   .page-section { @apply py-8 sm:py-12; }
+  
+  /* Standardized page layout system */
+  .page-container {
+    @apply flex flex-col gap-4 h-screen overflow-hidden py-4 px-4 sm:px-6 lg:px-8;
+  }
+  
+  .page-header-section {
+    @apply flex-shrink-0;
+  }
+  
+  .page-content-section {
+    @apply flex-1 overflow-y-auto min-h-0;
+  }
+  
+  .page-content {
+    @apply mx-auto w-full max-w-6xl flex flex-col gap-6 pb-4;
+  }
   .surface-card {
     background: var(--card);
     border: 1px solid var(--border-muted);

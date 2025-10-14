@@ -4,7 +4,7 @@ import { FileText, Lightbulb } from "lucide-react";
 export function UploadInfoCards() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-      <GlassPanel className="p-6 sm:p-8" hover>
+      <GlassPanel className="p-6 sm:p-8">
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <div className="flex size-14 items-center justify-center rounded-xl icon-bg text-primary">
@@ -25,7 +25,7 @@ export function UploadInfoCards() {
         </div>
       </GlassPanel>
 
-      <GlassPanel className="p-6 sm:p-8" hover>
+      <GlassPanel className="p-6 sm:p-8">
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <div className="flex size-14 items-center justify-center rounded-xl icon-bg text-primary">

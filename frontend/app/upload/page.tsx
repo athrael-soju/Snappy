@@ -4,11 +4,9 @@ import { useRef, useEffect, useCallback, useState } from "react";
 import { MaintenanceService } from "@/lib/api/generated";
 import "@/lib/api/client";
 import { CloudUpload } from "lucide-react";
-import { motion } from "framer-motion";
-import { defaultPageMotion, sectionVariants } from "@/lib/motion-presets";
 import { useSystemStatus } from "@/stores/app-store";
 import { useFileUpload } from "@/lib/hooks/use-file-upload";
-import { PageHeader } from "@/components/page-header";
+import { PageLayout } from "@/components/layout/page-layout";
 import {
   FileDropzone,
   SystemStatusWarning,
@@ -74,45 +72,32 @@ export default function UploadPage() {
   };
 
   return (
-    <motion.div {...defaultPageMotion}
-      className="page-shell flex flex-col gap-4 h-screen overflow-hidden py-4"
+    <PageLayout
+      title="Upload Documents"
+      icon={CloudUpload}
+      tooltip="Drag & drop or select files to add to your visual search index"
     >
-      <motion.section variants={sectionVariants} className="flex-shrink-0">
-        <PageHeader
-          title="Upload Documents"
-          icon={CloudUpload}
-          tooltip="Drag & drop or select files to add to your visual search index"
-        />
-      </motion.section>
-
-      <motion.section variants={sectionVariants} className="flex-1 overflow-y-auto min-h-0">
-        <div className="mx-auto w-full max-w-5xl flex flex-col gap-6 pb-4">
-            {/* System Status Warning */}
-            <SystemStatusWarning isReady={isReady} />
-            <FileDropzone
-              isDragOver={isDragOver}
-              uploading={uploading}
-              files={files}
-              fileCount={fileCount}
-              hasFiles={hasFiles}
-              uploadProgress={uploadProgress}
-              statusText={statusText}
-              jobId={jobId}
-              message={message}
-              error={error}
-              isReady={isReady}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onFileSelect={handleFileSelect}
-              onSubmit={handleSubmit}
-              onCancel={handleCancel}
-            />
-          {!hasFiles && <UploadInfoCards />}
-        </div>
-      </motion.section>
-    </motion.div>
+      <SystemStatusWarning isReady={isReady} />
+      <FileDropzone
+        isDragOver={isDragOver}
+        uploading={uploading}
+        files={files}
+        fileCount={fileCount}
+        hasFiles={hasFiles}
+        uploadProgress={uploadProgress}
+        statusText={statusText}
+        jobId={jobId}
+        message={message}
+        error={error}
+        isReady={isReady}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onFileSelect={handleFileSelect}
+        onSubmit={handleSubmit}
+        onCancel={handleCancel}
+      />
+      {!hasFiles && <UploadInfoCards />}
+    </PageLayout>
   );
 }
-
-
