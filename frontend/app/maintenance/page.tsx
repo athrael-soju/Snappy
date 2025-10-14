@@ -58,14 +58,7 @@ export default function MaintenancePage() {
       tooltip="Monitor and manage storage and indexing resources"
       className="flex flex-col gap-4"
     >
-      <div className="flex-shrink-0">
-        <SystemStatusBadge
-          isReady={isSystemReady}
-          isLoading={statusLoading}
-          onRefresh={fetchStatus}
-        />
-      </div>
-      
+
       <div className="flex-1 min-h-0 flex flex-col gap-4 sm:gap-5">
         {/* Status Cards Row */}
         <div className={`grid grid-cols-1 gap-4 sm:gap-5 ${bucketDisabled ? "" : "lg:grid-cols-2"}`}>

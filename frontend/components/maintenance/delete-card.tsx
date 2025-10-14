@@ -32,7 +32,7 @@ export function DeleteCard({
       </CardHeader>
       <CardContent className="px-0 pb-0">
         <p className="text-base text-muted-foreground mb-5 leading-relaxed">
-          Permanently removes the Qdrant collection and, if enabled, the MinIO bucket. Use this to change configuration or start fresh.
+          Removes the Qdrant collection and, if enabled, the MinIO bucket. Use this to change configuration or start fresh.
         </p>
         <Dialog open={dialogOpen} onOpenChange={onDialogChange}>
           <DialogTrigger asChild>
