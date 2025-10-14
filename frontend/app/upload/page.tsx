@@ -6,7 +6,6 @@ import "@/lib/api/client";
 import { CloudUpload } from "lucide-react";
 import { motion } from "framer-motion";
 import { defaultPageMotion, sectionVariants } from "@/lib/motion-presets";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSystemStatus } from "@/stores/app-store";
 import { useFileUpload } from "@/lib/hooks/use-file-upload";
 import { PageHeader } from "@/components/page-header";
@@ -76,10 +75,9 @@ export default function UploadPage() {
 
   return (
     <motion.div {...defaultPageMotion}
-      className="page-shell flex min-h-0 flex-1 flex-col gap-6"
+      className="page-shell flex flex-col gap-4 h-screen overflow-hidden py-4"
     >
-      <motion.section variants={sectionVariants} className="flex flex-col items-center text-center gap-6 pt-6 sm:pt-8">
-
+      <motion.section variants={sectionVariants} className="flex-shrink-0">
         <PageHeader
           title="Upload Documents"
           icon={CloudUpload}
@@ -87,9 +85,8 @@ export default function UploadPage() {
         />
       </motion.section>
 
-      <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col gap-6 pb-6 sm:pb-8">
-        <ScrollArea className="h-[calc(100vh-12rem)]">
-          <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-4">
+      <motion.section variants={sectionVariants} className="flex-1 overflow-y-auto min-h-0">
+        <div className="mx-auto w-full max-w-5xl flex flex-col gap-6 pb-4">
             {/* System Status Warning */}
             <SystemStatusWarning isReady={isReady} />
             <FileDropzone
@@ -111,9 +108,8 @@ export default function UploadPage() {
               onSubmit={handleSubmit}
               onCancel={handleCancel}
             />
-            {!hasFiles && <UploadInfoCards />}
-          </div>
-        </ScrollArea>
+          {!hasFiles && <UploadInfoCards />}
+        </div>
       </motion.section>
     </motion.div>
   );

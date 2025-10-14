@@ -207,7 +207,7 @@ export default function SearchPage() {
           <SystemStatusWarning isReady={isReady} />
 
           <div className="flex-shrink-0">
-            <GlassPanel className="p-4">
+            <GlassPanel className="p-5">
               <SearchBar
                 q={q}
                 setQ={setQ}
@@ -237,7 +237,7 @@ export default function SearchPage() {
 
           <div className="flex-1 overflow-y-auto min-h-0">
             {!hasSearched && !loading && !error ? (
-                <GlassPanel className="p-8 sm:p-12">
+                <GlassPanel className="p-8 sm:p-12" hover>
                   <div className="flex flex-col items-center gap-8 text-center">
                     <div className="space-y-4 max-w-xl">
                       <div className="flex size-14 items-center justify-center rounded-xl icon-bg text-primary mx-auto">
@@ -373,7 +373,7 @@ export default function SearchPage() {
                       animate="visible"
                       exit="exit"
                     >
-                      <GlassPanel className="p-8 sm:p-12">
+                      <GlassPanel className="p-8 sm:p-12" hover>
                         <div className="flex flex-col items-center gap-6 text-center">
                           <div className="flex size-16 items-center justify-center rounded-xl icon-bg-muted">
                             <ImageIcon className="h-8 w-8 text-muted-foreground" />

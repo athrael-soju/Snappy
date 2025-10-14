@@ -51,11 +51,11 @@ export default function SearchBar({
               required
               disabled={loading}
               aria-label="Search query"
-              className="h-14 rounded-2xl border pl-12 text-base"
+              className="h-14 rounded-xl border pl-12 text-base bg-background/50 backdrop-blur-sm transition-all duration-300 focus:bg-background/80"
             />
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 rounded-xl border bg-card p-2">
+            <div className="flex items-center gap-2 rounded-xl border bg-card/50 backdrop-blur-sm p-2">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div>

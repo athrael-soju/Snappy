@@ -1,67 +1,54 @@
-import { motion } from "framer-motion";
-import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { fadeInItemMotion, hoverLift, staggeredListMotion } from "@/lib/motion-presets";
-import { FileText, ArrowUpFromLine } from "lucide-react";
 import { GlassPanel } from "@/components/ui/glass-panel";
+import { FileText, Lightbulb } from "lucide-react";
 
 export function UploadInfoCards() {
   return (
-    <motion.div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6" {...staggeredListMotion}>
-      <motion.div {...fadeInItemMotion} {...hoverLift}>
-        <GlassPanel className="h-full min-h-[180px] p-6">
-          <CardHeader className="pb-4 px-0 pt-0">
-            <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 text-blue-500 mb-3">
-              <FileText className="w-6 h-6" />
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+      <GlassPanel className="p-6 sm:p-8" hover>
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="flex size-14 items-center justify-center rounded-xl icon-bg text-primary">
+              <FileText className="h-6 w-6" />
             </div>
-            <CardTitle className="text-xl font-semibold">Supported Formats</CardTitle>
-          </CardHeader>
-          <CardContent className="px-0 pb-0">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <div className="font-medium text-foreground flex items-center gap-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  Documents
-                </div>
-                <div className="text-base text-muted-foreground pl-4">PDF</div>
-              </div>
-              <div className="space-y-2">
-                <div className="font-medium text-foreground flex items-center gap-2">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  Images
-                </div>
-                <div className="text-base text-muted-foreground pl-4">PNG, JPG, JPEG, GIF</div>
-              </div>
+            <h3 className="text-lg font-semibold">Supported Formats</h3>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <div className="text-sm font-medium mb-1">Documents</div>
+              <div className="text-sm text-muted-foreground">PDF</div>
             </div>
-          </CardContent>
-        </GlassPanel>
-      </motion.div>
+            <div>
+              <div className="text-sm font-medium mb-1">Images</div>
+              <div className="text-sm text-muted-foreground">PNG, JPG, JPEG, GIF</div>
+            </div>
+          </div>
+        </div>
+      </GlassPanel>
 
-      <motion.div {...fadeInItemMotion} {...hoverLift}>
-        <GlassPanel className="h-full min-h-[180px] p-6">
-          <CardHeader className="pb-4 px-0 pt-0">
-            <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500/10 to-purple-500/5 text-purple-500 mb-3">
-              <ArrowUpFromLine className="w-6 h-6" />
+      <GlassPanel className="p-6 sm:p-8" hover>
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="flex size-14 items-center justify-center rounded-xl icon-bg text-primary">
+              <Lightbulb className="h-6 w-6" />
             </div>
-            <CardTitle className="text-xl font-semibold">Quick Tips</CardTitle>
-          </CardHeader>
-          <CardContent className="px-0 pb-0">
-            <div className="space-y-3 text-base">
-              <div className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-muted-foreground">Drag files directly from your computer</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-muted-foreground">Upload multiple files at once</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-muted-foreground">Files are processed automatically for search</span>
-              </div>
-            </div>
-          </CardContent>
-        </GlassPanel>
-      </motion.div>
-    </motion.div>
+            <h3 className="text-lg font-semibold">Quick Tips</h3>
+          </div>
+          <ul className="space-y-2.5 text-sm text-muted-foreground">
+            <li className="flex items-start gap-2">
+              <span className="mt-1.5 size-1 rounded-full bg-current flex-shrink-0" />
+              <span>Drag files directly from your computer</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="mt-1.5 size-1 rounded-full bg-current flex-shrink-0" />
+              <span>Upload multiple files at once</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="mt-1.5 size-1 rounded-full bg-current flex-shrink-0" />
+              <span>Files are processed automatically for search</span>
+            </li>
+          </ul>
+        </div>
+      </GlassPanel>
+    </div>
   );
 }
