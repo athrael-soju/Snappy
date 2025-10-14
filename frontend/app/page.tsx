@@ -59,7 +59,7 @@ export default function Home() {
         <PageHeader
           title="FastAPI / Next.js / ColPali Template"
           icon={Sparkles}
-          badge={<Badge className="rounded-full text-sm">v0.0.4</Badge>}
+          badge={<Badge className="rounded-full text-sm">v0.0.5</Badge>}
           tooltip="This starter kit combines a FastAPI backend, Qdrant vector search, and a modern Next.js interface so you can focus on the experience, not the configuration"
         />
       </motion.section>
