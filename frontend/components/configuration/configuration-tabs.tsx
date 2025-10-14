@@ -1,5 +1,5 @@
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Settings, Cpu, Brain, Database, HardDrive } from "lucide-react";
+import { GlassPanel } from "@/components/ui/glass-panel";
 
 interface ConfigCategory {
   name: string;
@@ -25,9 +25,9 @@ const iconMap: Record<string, any> = {
 
 export function ConfigurationTabs({ categories, activeTab, onTabChange }: ConfigurationTabsProps) {
   return (
-    <nav className="w-48 flex-shrink-0 min-h-0 flex flex-col">
-      <ScrollArea>
-        <div className="space-y-1 pr-2">
+    <nav className="flex justify-center">
+      <GlassPanel className="inline-flex p-1.5 sm:p-2">
+        <div className="flex flex-wrap justify-center gap-1 sm:gap-2">
           {categories.map(([categoryKey, category]) => {
             const Icon = iconMap[category.icon] || Settings;
             const isActive = activeTab === categoryKey;
@@ -36,23 +36,19 @@ export function ConfigurationTabs({ categories, activeTab, onTabChange }: Config
               <button
                 key={categoryKey}
                 onClick={() => onTabChange(categoryKey)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${
+                className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                   isActive
-                    ? 'font-semibold shadow-[var(--nav-pill-shadow)]'
-                    : 'text-[color:var(--nav-pill-inactive-foreground,var(--muted-foreground))] hover:bg-[color:var(--nav-pill-hover)] hover:text-[color:var(--nav-pill-hover-foreground,var(--foreground))]'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                 }`}
-                style={isActive ? {
-                  backgroundImage: 'var(--nav-pill-active)',
-                  color: 'var(--nav-pill-active-foreground, var(--foreground))'
-                } : undefined}
               >
-                <Icon className="w-4 h-4 flex-shrink-0" />
-                <span className="truncate text-left">{category.name}</span>
+                <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                <span className="hidden sm:inline whitespace-nowrap">{category.name}</span>
               </button>
             );
           })}
         </div>
-      </ScrollArea>
+      </GlassPanel>
     </nav>
   );
 }

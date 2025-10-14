@@ -90,32 +90,31 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
     : categoriesToRender[0]?.[0] ?? activeTab;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full gap-4 sm:gap-6">
       {/* Error alert */}
       {error && (
-        <div className="flex-shrink-0 mb-4">
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        </div>
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
-      {/* Main content - with proper height constraints */}
-      <div className="flex-1 min-h-0 flex gap-6 pr-4">
-        {/* Left rail navigation */}
+      {/* Horizontal tabs - centered at top */}
+      <div className="flex-shrink-0">
         <ConfigurationTabs
           categories={categoriesToRender}
           activeTab={activeCategoryKey}
           onTabChange={setActiveTab}
         />
+      </div>
 
-        {/* Main content area */}
-        <div className="flex-1 min-w-0 flex flex-col gap-6">
-          {/* Action Button Group */}
+      {/* Main content area */}
+      <div className="flex-1 min-h-0 flex flex-col gap-4 sm:gap-6">
+        {/* Action Button Group */}
+        <div className="flex-shrink-0">
           <GlassPanel className="overflow-hidden">
-            <ButtonGroup className="shadow-sm !w-full [&>*]:flex-1 [&>*]:h-12">
+            <ButtonGroup className="w-full">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -123,23 +122,25 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                     size="sm"
                     onClick={optimizeForSystem}
                     disabled={saving || optimizing}
-                    className="gap-2 px-4 border-0 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 !rounded-none"
+                    className="flex-1 gap-1.5 sm:gap-2 text-xs sm:text-sm text-primary rounded-none"
                   >
                     {optimizing ? (
                       <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Optimizing...
+                        <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
+                        <span className="hidden sm:inline">Optimizing...</span>
+                        <span className="sm:hidden">Opt...</span>
                       </>
                     ) : (
                       <>
-                        <Sparkles className="w-4 h-4" />
-                        Optimize
+                        <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <span className="hidden sm:inline">Optimize</span>
+                        <span className="sm:hidden">Opt</span>
                       </>
                     )}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
-                  <p>Detect this server&apos;s hardware and apply recommended settings</p>
+                <TooltipContent>
+                  Detect hardware and apply recommended settings
                 </TooltipContent>
               </Tooltip>
               <Tooltip>
@@ -149,14 +150,15 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                     size="sm"
                     onClick={() => setResetSectionDialogOpen(activeCategoryKey)}
                     disabled={saving}
-                    className="gap-2 px-4 border-0 !rounded-none"
+                    className="flex-1 gap-1.5 sm:gap-2 text-xs sm:text-sm rounded-none"
                   >
-                    <RotateCcw className="w-4 h-4" />
-                    Reset Section
+                    <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">Reset Section</span>
+                    <span className="sm:hidden">Section</span>
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
-                  <p>Reset current section to defaults</p>
+                <TooltipContent>
+                  Reset current section to defaults
                 </TooltipContent>
               </Tooltip>
               <Tooltip>
@@ -166,21 +168,24 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                     size="sm"
                     onClick={() => setResetDialogOpen(true)}
                     disabled={saving}
-                    className="gap-2 px-4 border-0 text-destructive hover:text-destructive/90 !rounded-none"
+                    className="flex-1 gap-1.5 sm:gap-2 text-xs sm:text-sm text-destructive rounded-none"
                   >
-                    <RotateCcw className="w-4 h-4" />
-                    Reset All
+                    <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">Reset All</span>
+                    <span className="sm:hidden">All</span>
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
-                  <p>Reset all configuration to defaults</p>
+                <TooltipContent>
+                  Reset all configuration to defaults
                 </TooltipContent>
               </Tooltip>
             </ButtonGroup>
           </GlassPanel>
+        </div>
 
-          <ScrollArea className="h-[calc(100vh-20rem)]">
-            <div className="px-1 py-2 pr-4">
+        {/* Scrollable content area */}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <div className="px-1">
               {categoriesToRender.map(([categoryKey, category]) => {
                 if (activeCategoryKey !== categoryKey) return null;
 
@@ -188,29 +193,27 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                 const visibleSettings = category.settings.filter(s => isSettingVisible(s) && !s.depends_on);
 
                 return (
-                  <motion.div
-                    key={categoryKey}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.2 }}
-                    className="flex-1 min-h-0"
-                  >
-                    {/* Settings Card - Scrollable */}
-                    <GlassPanel className="flex flex-1 min-h-0 flex-col p-6 overflow-hidden">
-                      <CardHeader className="pb-4 flex-shrink-0 px-0 pt-0">
-                        <div className="flex items-start gap-3">
-                          <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 text-blue-500">
-                            <Settings className="w-6 h-6" />
-                          </div>
-                          <div>
-                            <CardTitle className="text-xl font-semibold text-foreground">{category.name}</CardTitle>
-                            <CardDescription className="mt-1 text-base leading-relaxed text-muted-foreground">{category.description}</CardDescription>
-                          </div>
+                <motion.div
+                  key={categoryKey}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <GlassPanel className="p-4 sm:p-6">
+                    <CardHeader className="px-0 pt-0 pb-4 sm:pb-6">
+                      <div className="flex items-start gap-2 sm:gap-3">
+                        <div className="flex size-10 sm:size-12 items-center justify-center rounded-lg bg-primary/10 text-primary flex-shrink-0">
+                          <Settings className="w-5 h-5 sm:w-6 sm:h-6" />
                         </div>
-                      </CardHeader>
+                        <div className="min-w-0">
+                          <CardTitle className="text-lg sm:text-xl font-semibold">{category.name}</CardTitle>
+                          <CardDescription className="mt-1 text-sm sm:text-base">{category.description}</CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
 
-                      <CardContent className="flex-1 min-h-0 overflow-y-auto space-y-6 px-0 pb-0 rounded-3xl">
+                    <CardContent className="space-y-4 sm:space-y-6 px-0 pb-0">
                         {visibleSettings.map((setting, index) => {
                           // Check for nested settings
                           const childSettings = category.settings.filter(
@@ -219,43 +222,40 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                           const hasChildren = childSettings.length > 0;
 
                           return (
-                            <div key={setting.key}>
-                              {index > 0 && <Separator className="my-3" />}
-                              <SettingRenderer
-                                setting={setting}
-                                value={values[setting.key]}
-                                saving={saving}
-                                onChange={handleValueChange}
-                              />
+                          <div key={setting.key}>
+                            {index > 0 && <Separator className="my-3 sm:my-4" />}
+                            <SettingRenderer
+                              setting={setting}
+                              value={values[setting.key]}
+                              saving={saving}
+                              onChange={handleValueChange}
+                            />
 
-                              {/* Nested child settings */}
-                              {hasChildren && (
-                                <div className="mt-4 ml-8 pl-5 border-l-2 border-blue-300/40 dark:border-blue-800/40 space-y-4 pb-2">
-                                  {childSettings.map(childSetting => (
-                                    <div key={childSetting.key}>
-                                      <SettingRenderer
-                                        setting={childSetting}
-                                        value={values[childSetting.key]}
-                                        saving={saving}
-                                        isNested={true}
-                                        onChange={handleValueChange}
-                                      />
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </CardContent>
-
-                    </GlassPanel>
-
-                  </motion.div>
+                            {/* Nested child settings */}
+                            {hasChildren && (
+                              <div className="mt-3 sm:mt-4 ml-4 sm:ml-8 pl-3 sm:pl-5 border-l-2 border-primary/20 space-y-3 sm:space-y-4">
+                                {childSettings.map(childSetting => (
+                                  <div key={childSetting.key}>
+                                    <SettingRenderer
+                                      setting={childSetting}
+                                      value={values[childSetting.key]}
+                                      saving={saving}
+                                      isNested={true}
+                                      onChange={handleValueChange}
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </CardContent>
+                  </GlassPanel>
+                </motion.div>
                 );
               })}
-            </div>
-          </ScrollArea>
+          </div>
         </div>
       </div>
 
