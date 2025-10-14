@@ -55,55 +55,54 @@ export function FileDropzone({
     : "Upload documents";
 
   return (
-    <GlassPanel
-      className={cn(
-        "border-2 border-dashed transition-all duration-300",
-        isDragOver ? "border-primary/50 bg-primary/10 scale-[1.01] shadow-2xl" : "border-border/40"
-      )}
-      hover
-    >
+    <div className="space-y-4 sm:space-y-6">
         <div
           onDragOver={onDragOver}
           onDragLeave={onDragLeave}
           onDrop={onDrop}
-          className="h-full"
+          className={cn(
+            "relative rounded-2xl border-2 border-dashed transition-all duration-300 bg-gradient-to-br from-background/50 to-background/30 backdrop-blur-sm",
+            isDragOver 
+              ? "border-primary/60 bg-primary/5 scale-[1.01] shadow-xl" 
+              : "border-border/30 hover:border-border/50"
+          )}
         >
-          <div className="flex flex-col items-center gap-4 py-8 sm:py-12 px-6 sm:px-8 text-center">
+          <div className="flex flex-col items-center gap-5 py-12 sm:py-16 px-4 sm:px-8 text-center">
             <div className={cn(
-              "flex size-16 sm:size-20 items-center justify-center rounded-full icon-bg text-primary transition-all duration-300",
-              isDragOver && "scale-110 bg-primary/20"
+              "flex size-16 sm:size-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary transition-all duration-300",
+              isDragOver && "scale-110 from-primary/20 to-primary/10"
             )}>
               <UploadCloud className="h-8 w-8 sm:h-10 sm:w-10" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               <h2 className="text-xl sm:text-2xl font-semibold">
                 {isDragOver ? "Release to upload" : "Drag files here"}
               </h2>
-              <p className="text-sm sm:text-base text-muted-foreground max-w-2xl">
+              <p className="text-sm sm:text-base text-muted-foreground max-w-xl">
                 Drop PDFs, images, or office documents to add them to your ColPali index. You can also browse from your device.
               </p>
             </div>
           </div>
 
-          <div className="space-y-5 px-6 sm:px-8 pb-6 sm:pb-8">
+          <div className="space-y-4 px-4 sm:px-6 pb-6 sm:pb-8">
           <form id="upload-form" onSubmit={onSubmit} className="space-y-4" noValidate>
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-3">
               <Button
                 type="button"
                 variant="outline"
                 size="lg"
-                className="flex-1 h-12"
+                className="flex-1 h-11"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
               >
-                <FolderOpen className="mr-2 h-5 w-5" />
+                <FolderOpen className="mr-2 h-4 w-4" />
                 Browse files
               </Button>
 
               {hasFiles && (
-                <Badge variant="secondary" className="flex items-center gap-2 px-4 py-3 h-auto text-sm">
-                  <FileText className="h-4 w-4" />
-                  {fileCount} file{fileCount !== 1 ? "s" : ""} selected
+                <Badge variant="secondary" className="flex items-center justify-center gap-1.5 px-3 py-2.5 h-auto text-xs sm:text-sm whitespace-nowrap">
+                  <FileText className="h-3.5 w-3.5" />
+                  {fileCount} file{fileCount !== 1 ? "s" : ""}
                 </Badge>
               )}
             </div>
@@ -130,7 +129,7 @@ export function FileDropzone({
 
           <UploadStatusAlerts message={message} error={error} />
 
-          <div className="space-y-2 pt-3 border-t">
+          <div className="space-y-2 pt-2">
             {!isReady && !uploading && (
               <p className="text-xs text-center text-muted-foreground">
                 Initialize collections before uploading new content.
@@ -142,18 +141,18 @@ export function FileDropzone({
               form="upload-form"
               size="lg"
               variant={uploading ? "destructive" : "default"}
-              className="w-full"
+              className="w-full h-11"
               onClick={uploading ? onCancel : undefined}
               title={!isReady && !uploading ? "System must be initialized before uploading" : undefined}
             >
               {uploading ? (
                 <>
-                  <XCircle className="mr-2 h-5 w-5" />
+                  <XCircle className="mr-2 h-4 w-4" />
                   Cancel Upload
                 </>
               ) : (
                 <>
-                  <ArrowUpFromLine className="mr-2 h-5 w-5" />
+                  <ArrowUpFromLine className="mr-2 h-4 w-4" />
                   {uploadLabel}
                 </>
               )}
@@ -161,7 +160,7 @@ export function FileDropzone({
           </div>
           </div>
         </div>
-    </GlassPanel>
+    </div>
   );
 }
 

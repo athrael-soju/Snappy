@@ -56,10 +56,10 @@ export default function Home() {
   return (
     <motion.div {...defaultPageMotion} className="mx-auto w-full max-w-[1240px] h-full px-4 sm:px-6 lg:px-8">
       {/* Page stack */}
-      <div className="flex h-full flex-col gap-6 py-6">
+      <div className="flex h-full flex-col gap-4 sm:gap-6 py-4 sm:py-6">
         {/* Header card */}
         <motion.div variants={sectionVariants} className="flex-shrink-0">
-          <GlassPanel className="rounded-2xl bg-white/70 p-4 sm:p-6 shadow">
+          <GlassPanel className="p-4 sm:p-6">
             <div className="flex flex-col items-center text-center gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500">
                 <Sparkles className="h-6 w-6 text-white" />
@@ -80,11 +80,11 @@ export default function Home() {
         {/* Content section - scrollable */}
         <motion.div variants={sectionVariants} className="flex-1 min-h-0">
           <div 
-            className="h-full overflow-y-auto rounded-2xl bg-white/70 p-6 shadow"
+            className="h-full overflow-y-auto px-2 sm:px-4 py-4 sm:py-6"
             style={{ overscrollBehavior: 'contain', scrollbarGutter: 'stable' }}
           >
             {/* Hero copy */}
-            <div className="flex flex-col items-center text-center gap-6 mb-8">
+            <div className="flex flex-col items-center text-center gap-4 sm:gap-6 mb-6 sm:mb-8">
               <div className="space-y-3 max-w-3xl">
                 <p className="text-lg text-foreground/90 leading-relaxed font-medium">
                   Spin up document ingestion, visual search, and AI chat in minutes with this production-ready template.
@@ -119,7 +119,7 @@ export default function Home() {
             </div>
 
             {/* 3-card grid */}
-            <motion.div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" {...staggeredListMotion}>
+            <motion.div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" {...staggeredListMotion}>
               {workflow.map(({ title, description, icon, href, badges, features }) => (
                 <motion.div key={title} {...fadeInItemMotion} {...hoverLift}>
                   <Link

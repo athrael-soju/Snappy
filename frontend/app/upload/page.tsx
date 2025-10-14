@@ -76,28 +76,34 @@ export default function UploadPage() {
       title="Upload Documents"
       icon={CloudUpload}
       tooltip="Drag & drop or select files to add to your visual search index"
+      className="flex flex-col gap-4"
     >
-      <SystemStatusWarning isReady={isReady} />
-      <FileDropzone
-        isDragOver={isDragOver}
-        uploading={uploading}
-        files={files}
-        fileCount={fileCount}
-        hasFiles={hasFiles}
-        uploadProgress={uploadProgress}
-        statusText={statusText}
-        jobId={jobId}
-        message={message}
-        error={error}
-        isReady={isReady}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onFileSelect={handleFileSelect}
-        onSubmit={handleSubmit}
-        onCancel={handleCancel}
-      />
-      {!hasFiles && <UploadInfoCards />}
+      <div className="flex-shrink-0">
+        <SystemStatusWarning isReady={isReady} />
+      </div>
+      
+      <div className="flex-1 min-h-0 flex flex-col gap-4">
+        <FileDropzone
+          isDragOver={isDragOver}
+          uploading={uploading}
+          files={files}
+          fileCount={fileCount}
+          hasFiles={hasFiles}
+          uploadProgress={uploadProgress}
+          statusText={statusText}
+          jobId={jobId}
+          message={message}
+          error={error}
+          isReady={isReady}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onFileSelect={handleFileSelect}
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+        />
+        {!hasFiles && <UploadInfoCards />}
+      </div>
     </PageLayout>
   );
 }

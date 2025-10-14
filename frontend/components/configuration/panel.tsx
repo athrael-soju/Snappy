@@ -113,28 +113,25 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
       <div className="flex-1 min-h-0 flex flex-col gap-4 sm:gap-6">
         {/* Action Button Group */}
         <div className="flex-shrink-0">
-          <GlassPanel className="overflow-hidden">
-            <ButtonGroup className="w-full">
+          <GlassPanel className="p-2">
+            <div className="flex w-full gap-2">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
-                    size="sm"
                     onClick={optimizeForSystem}
                     disabled={saving || optimizing}
-                    className="flex-1 gap-1.5 sm:gap-2 text-xs sm:text-sm text-primary rounded-none"
+                    className="flex-1 gap-2 text-sm text-primary rounded-xl h-11"
                   >
                     {optimizing ? (
                       <>
-                        <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
-                        <span className="hidden sm:inline">Optimizing...</span>
-                        <span className="sm:hidden">Opt...</span>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Optimizing...</span>
                       </>
                     ) : (
                       <>
-                        <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        <span className="hidden sm:inline">Optimize</span>
-                        <span className="sm:hidden">Opt</span>
+                        <Sparkles className="w-4 h-4" />
+                        <span>Optimize</span>
                       </>
                     )}
                   </Button>
@@ -147,14 +144,12 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                 <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
-                    size="sm"
                     onClick={() => setResetSectionDialogOpen(activeCategoryKey)}
                     disabled={saving}
-                    className="flex-1 gap-1.5 sm:gap-2 text-xs sm:text-sm rounded-none"
+                    className="flex-1 gap-2 text-sm rounded-xl h-11"
                   >
-                    <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    <span className="hidden sm:inline">Reset Section</span>
-                    <span className="sm:hidden">Section</span>
+                    <RotateCcw className="w-4 h-4" />
+                    <span>Reset Section</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -165,21 +160,19 @@ export const ConfigurationPanel = forwardRef<ConfigurationPanelHandle, {}>((_, r
                 <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
-                    size="sm"
                     onClick={() => setResetDialogOpen(true)}
                     disabled={saving}
-                    className="flex-1 gap-1.5 sm:gap-2 text-xs sm:text-sm text-destructive rounded-none"
+                    className="flex-1 gap-2 text-sm text-destructive rounded-xl h-11"
                   >
-                    <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    <span className="hidden sm:inline">Reset All</span>
-                    <span className="sm:hidden">All</span>
+                    <RotateCcw className="w-4 h-4" />
+                    <span>Reset All</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
                   Reset all configuration to defaults
                 </TooltipContent>
               </Tooltip>
-            </ButtonGroup>
+            </div>
           </GlassPanel>
         </div>
 

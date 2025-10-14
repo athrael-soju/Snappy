@@ -126,7 +126,7 @@ export default function ChatPage() {
 
     // Listen for system status changes from other pages
     window.addEventListener('systemStatusChanged', fetchSystemStatus);
-    
+
     return () => {
       window.removeEventListener('systemStatusChanged', fetchSystemStatus);
     };
@@ -157,15 +157,15 @@ export default function ChatPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isSettingsValid || !uiSettingsValid) return;
-    
+
     // Check if system is ready
     if (!isReady) {
-      toast.error('System Not Ready', { 
-        description: 'Initialize collection and bucket before using chat' 
+      toast.error('System Not Ready', {
+        description: 'Initialize collection and bucket before using chat'
       });
       return;
     }
-    
+
     const q = input.trim();
     if (!q) return;
     // track start
@@ -177,9 +177,9 @@ export default function ChatPage() {
   const messageVariants = {
     initial: { opacity: 0, y: 10, scale: 0.95 },
     animate: { opacity: 1, y: 0, scale: 1 },
-    exit: { 
-      opacity: 0, 
-      y: -20, 
+    exit: {
+      opacity: 0,
+      y: -20,
       scale: 0.9
     }
   };
@@ -201,11 +201,11 @@ export default function ChatPage() {
       {/* Centered container with max-width */}
       <div className="mx-auto w-full max-w-[1160px] h-full px-4 sm:px-6 lg:px-8">
         {/* Page stack */}
-        <div className="flex h-full flex-col gap-6 py-6">
+        <div className="flex h-full flex-col gap-4 sm:gap-6 py-4 sm:py-6">
           {/* Hero/intro card at top */}
           <div className="flex-shrink-0">
-            <GlassPanel className="rounded-2xl bg-white/70 p-4 shadow">
-              <div className="flex items-center gap-3">
+            <GlassPanel className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500">
                   <Brain className="h-5 w-5 text-white" />
                 </div>
@@ -218,144 +218,144 @@ export default function ChatPage() {
           </div>
 
           <SystemStatusWarning isReady={isReady} />
-          
+
           {/* Messages list - scrollable */}
           <div
             ref={messagesContainerRef}
-            className="flex-1 min-h-0 overflow-y-auto rounded-2xl bg-white/70 p-4 shadow"
+            className="flex-1 min-h-0 overflow-y-auto"
             style={{ overscrollBehavior: 'contain', scrollbarGutter: 'stable' }}
           >
-            <div className="w-full">
-                <AnimatePresence mode="popLayout">
-              {messages.length === 0 ? (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="flex flex-col items-center justify-center min-h-[400px] text-center"
-                >
-                  <GlassPanel className="w-full max-w-2xl p-6 sm:p-8">
-                    <div className="mb-6 space-y-3">
-                      <div className="mx-auto flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500">
-                        <Brain className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
-                      </div>
-                      <h2 className="text-xl sm:text-2xl font-semibold">Start Your Conversation</h2>
-                      <p className="text-sm sm:text-base text-muted-foreground">Ask questions about your documents and get AI-powered responses</p>
-                    </div>
-                    <StarterQuestions questions={starterQuestions} onSelect={(t) => setInput(t)} />
-                  </GlassPanel>
-                </motion.div>
-              ) : (
-                messages.map((message, idx) => (
-                <motion.div
-                  key={message.id || idx}
-                  variants={messageVariants}
-                  initial="initial"
-                  animate={isClearing ? "exit" : "animate"}
-                  exit="exit"
-                  transition={{
-                    duration: 0.3,
-                    delay: isClearing ? idx * 0.08 : 0,
-                  }}
-                  className={cn(
-                    "flex gap-3 sm:gap-4 mb-4 sm:mb-6 last:mb-0",
-                    message.role === "user" && "flex-row-reverse"
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "flex size-8 sm:size-10 shrink-0 items-center justify-center rounded-full shadow-md",
-                      message.role === "assistant"
-                        ? "bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500 text-white"
-                        : "bg-primary text-primary-foreground"
-                    )}
+            <div className="w-full px-2 sm:px-0">
+              <AnimatePresence mode="popLayout">
+                {messages.length === 0 ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex flex-col items-center justify-center min-h-[400px] text-center"
                   >
-                    {message.role === "assistant" ? (
-                      <Brain className="h-4 w-4 sm:h-5 sm:w-5" />
-                    ) : (
-                      <User className="h-4 w-4 sm:h-5 sm:w-5" />
-                    )}
-                  </div>
-
-                  <div className={cn("flex-1 min-w-0", message.role === "user" && "flex justify-end")}>
-                    <div
+                    <GlassPanel className="w-full max-w-2xl p-6 sm:p-8">
+                      <div className="mb-6 space-y-3">
+                        <div className="mx-auto flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500">
+                          <Brain className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
+                        </div>
+                        <h2 className="text-xl sm:text-2xl font-semibold">Start Your Conversation</h2>
+                        <p className="text-sm sm:text-base text-muted-foreground">Ask questions about your documents and get AI-powered responses</p>
+                      </div>
+                      <StarterQuestions questions={starterQuestions} onSelect={(t) => setInput(t)} />
+                    </GlassPanel>
+                  </motion.div>
+                ) : (
+                  messages.map((message, idx) => (
+                    <motion.div
+                      key={message.id || idx}
+                      variants={messageVariants}
+                      initial="initial"
+                      animate={isClearing ? "exit" : "animate"}
+                      exit="exit"
+                      transition={{
+                        duration: 0.3,
+                        delay: isClearing ? idx * 0.08 : 0,
+                      }}
                       className={cn(
-                        "inline-block max-w-full sm:max-w-[85%] lg:max-w-[640px] rounded-xl sm:rounded-2xl px-3 py-2.5 sm:px-5 sm:py-3.5 shadow-sm",
-                        message.role === "assistant"
-                          ? "bg-card border border-border text-foreground"
-                          : "bg-primary text-primary-foreground"
+                        "flex gap-3 sm:gap-4 mb-4 sm:mb-6 last:mb-0",
+                        message.role === "user" && "flex-row-reverse"
                       )}
                     >
-                      {message.content ? (
-                        message.role === "assistant" ? (
-                          <div className="text-sm sm:text-base leading-relaxed">
-                            <MarkdownRenderer 
-                              content={message.content}
-                              images={message.citations || []}
-                              onImageClick={(url, label) => {
-                                setLightboxSrc(url);
-                                setLightboxAlt(label || 'Citation image');
-                                setLightboxOpen(true);
-                              }}
-                            />
-                          </div>
+                      <div
+                        className={cn(
+                          "flex size-8 sm:size-10 shrink-0 items-center justify-center rounded-full shadow-md",
+                          message.role === "assistant"
+                            ? "bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500 text-white"
+                            : "bg-primary text-primary-foreground"
+                        )}
+                      >
+                        {message.role === "assistant" ? (
+                          <Brain className="h-4 w-4 sm:h-5 sm:w-5" />
                         ) : (
-                          <div className="whitespace-pre-wrap text-sm sm:text-base leading-relaxed">{message.content}</div>
-                        )
-                      ) : (
-                        loading && message.role === "assistant" ? (
-                          <div className="flex items-center gap-2 sm:gap-3 text-muted-foreground">
-                            <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-primary" />
-                            <AnimatePresence mode="wait" initial={false}>
-                              <motion.span
-                                key={brainIdx}
-                                initial={{ opacity: 0, y: 4 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -4 }}
-                                transition={{ duration: 0.2 }}
-                                className="text-xs sm:text-sm font-medium"
-                              >
-                                {BRAIN_PLACEHOLDERS[brainIdx]}
-                              </motion.span>
-                            </AnimatePresence>
-                          </div>
-                        ) : null
-                      )}
-                    </div>
-
-                    {message.role === "assistant" && message.content && (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2 ml-1">
-                        <div className="flex items-center gap-1.5">
-                          <div className="flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500">
-                            <Brain className="h-2.5 w-2.5 text-white" />
-                          </div>
-                          <span className="font-medium hidden sm:inline">AI Assistant</span>
-                        </div>
-                        <div className="flex gap-0.5">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-5 w-5 sm:h-6 sm:w-6" onClick={() => { /* TODO: thumbs up handler */ }}>
-                                <ThumbsUp className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                                <span className="sr-only">Mark helpful</span>
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Helpful</TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-5 w-5 sm:h-6 sm:w-6" onClick={() => { /* TODO: thumbs down handler */ }}>
-                                <ThumbsDown className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                                <span className="sr-only">Mark unhelpful</span>
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Not helpful</TooltipContent>
-                          </Tooltip>
-                        </div>
+                          <User className="h-4 w-4 sm:h-5 sm:w-5" />
+                        )}
                       </div>
-                    )}
-                  </div>
-                </motion.div>
-                ))
-              )}
+
+                      <div className={cn("flex-1 min-w-0", message.role === "user" && "flex justify-end")}>
+                        <div
+                          className={cn(
+                            "inline-block max-w-full sm:max-w-[85%] lg:max-w-[640px] rounded-xl sm:rounded-2xl px-3 py-2.5 sm:px-5 sm:py-3.5 shadow-sm",
+                            message.role === "assistant"
+                              ? "bg-card border border-border text-foreground"
+                              : "bg-primary text-primary-foreground"
+                          )}
+                        >
+                          {message.content ? (
+                            message.role === "assistant" ? (
+                              <div className="text-sm sm:text-base leading-relaxed">
+                                <MarkdownRenderer
+                                  content={message.content}
+                                  images={message.citations || []}
+                                  onImageClick={(url, label) => {
+                                    setLightboxSrc(url);
+                                    setLightboxAlt(label || 'Citation image');
+                                    setLightboxOpen(true);
+                                  }}
+                                />
+                              </div>
+                            ) : (
+                              <div className="whitespace-pre-wrap text-sm sm:text-base leading-relaxed">{message.content}</div>
+                            )
+                          ) : (
+                            loading && message.role === "assistant" ? (
+                              <div className="flex items-center gap-2 sm:gap-3 text-muted-foreground">
+                                <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-primary" />
+                                <AnimatePresence mode="wait" initial={false}>
+                                  <motion.span
+                                    key={brainIdx}
+                                    initial={{ opacity: 0, y: 4 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -4 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="text-xs sm:text-sm font-medium"
+                                  >
+                                    {BRAIN_PLACEHOLDERS[brainIdx]}
+                                  </motion.span>
+                                </AnimatePresence>
+                              </div>
+                            ) : null
+                          )}
+                        </div>
+
+                        {message.role === "assistant" && message.content && (
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2 ml-1">
+                            <div className="flex items-center gap-1.5">
+                              <div className="flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500">
+                                <Brain className="h-2.5 w-2.5 text-white" />
+                              </div>
+                              <span className="font-medium hidden sm:inline">AI Assistant</span>
+                            </div>
+                            <div className="flex gap-0.5">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-5 w-5 sm:h-6 sm:w-6" onClick={() => { /* TODO: thumbs up handler */ }}>
+                                    <ThumbsUp className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                                    <span className="sr-only">Mark helpful</span>
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Helpful</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-5 w-5 sm:h-6 sm:w-6" onClick={() => { /* TODO: thumbs down handler */ }}>
+                                    <ThumbsDown className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                                    <span className="sr-only">Mark unhelpful</span>
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Not helpful</TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))
+                )}
               </AnimatePresence>
               <div ref={messagesEndRef} />
             </div>
@@ -363,58 +363,58 @@ export default function ChatPage() {
 
           {/* Composer bar - sticky to bottom of viewport */}
           <div className="sticky bottom-0 -mx-4 sm:-mx-6 lg:-mx-8">
-            <div className="border-t bg-white/60 backdrop-blur pb-[env(safe-area-inset-bottom)] px-4 sm:px-6 lg:px-8 pt-4">
+            <div className="backdrop-blur pb-[env(safe-area-inset-bottom)] px-4 sm:px-6 lg:px-8 pt-4">
               <ChatInputBar
-            input={input}
-            setInput={setInput}
-            placeholder="Ask anything about your documents. Press Enter to send"
-            loading={loading}
-            isSettingsValid={isSettingsValid}
-            uiSettingsValid={uiSettingsValid}
-            setUiSettingsValid={setUiSettingsValid}
-            onSubmit={handleSubmit}
-            k={k}
-            setK={setK}
-            toolCallingEnabled={toolCallingEnabled}
-            setToolCallingEnabled={setToolCallingEnabled}
-            topK={topK}
-            setTopK={setTopK}
-            maxTokens={maxTokens}
-            setMaxTokens={setMaxTokens}
-            hasMessages={messages.length > 0}
-            onClear={async () => {
-              // Start clearing animation
-              setIsClearing(true);
-              
-              // Wait for exit animations to complete
-              await new Promise(resolve => setTimeout(resolve, 600));
-              
-              // Now actually clear the data
-              reset();
-              setInput('');
-              setRequestStart(null);
-              setLastResponseDurationMs(null);
-              setIsClearing(false);
-              
-              toast.success('Conversation cleared', {
-                description: 'Ready for a fresh start',
-              });
-            }}
+                input={input}
+                setInput={setInput}
+                placeholder="Ask anything about your documents. Press Enter to send"
+                loading={loading}
+                isSettingsValid={isSettingsValid}
+                uiSettingsValid={uiSettingsValid}
+                setUiSettingsValid={setUiSettingsValid}
+                onSubmit={handleSubmit}
+                k={k}
+                setK={setK}
+                toolCallingEnabled={toolCallingEnabled}
+                setToolCallingEnabled={setToolCallingEnabled}
+                topK={topK}
+                setTopK={setTopK}
+                maxTokens={maxTokens}
+                setMaxTokens={setMaxTokens}
+                hasMessages={messages.length > 0}
+                onClear={async () => {
+                  // Start clearing animation
+                  setIsClearing(true);
+
+                  // Wait for exit animations to complete
+                  await new Promise(resolve => setTimeout(resolve, 600));
+
+                  // Now actually clear the data
+                  reset();
+                  setInput('');
+                  setRequestStart(null);
+                  setLastResponseDurationMs(null);
+                  setIsClearing(false);
+
+                  toast.success('Conversation cleared', {
+                    description: 'Ready for a fresh start',
+                  });
+                }}
               />
 
               {/* Tips below input */}
               <div className="mt-2 flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1.5">
-              <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary" />
-              <span className="hidden sm:inline">AI-powered with inline citations</span>
-              <span className="sm:hidden">AI-powered</span>
-            </div>
-            {timeToFirstTokenMs !== null && (
-              <div className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5">
-                <Clock className="w-3 h-3 text-primary" />
-                <span className="font-medium text-xs">{(timeToFirstTokenMs / 1000).toFixed(2)}s</span>
-              </div>
-            )}
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary" />
+                  <span className="hidden sm:inline">AI-powered with inline citations</span>
+                  <span className="sm:hidden">AI-powered</span>
+                </div>
+                {timeToFirstTokenMs !== null && (
+                  <div className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5">
+                    <Clock className="w-3 h-3 text-primary" />
+                    <span className="font-medium text-xs">{(timeToFirstTokenMs / 1000).toFixed(2)}s</span>
+                  </div>
+                )}
               </div>
 
               {error && (

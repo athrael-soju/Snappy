@@ -10,11 +10,11 @@ export default function AboutPage() {
   return (
     <motion.div {...defaultPageMotion} className="mx-auto w-full max-w-[1160px] h-full px-4 sm:px-6 lg:px-8">
       {/* Page stack */}
-      <div className="flex h-full flex-col gap-6 py-6">
+      <div className="flex h-full flex-col gap-4 sm:gap-6 py-4 sm:py-6">
         {/* Header card */}
         <motion.div variants={sectionVariants} className="flex-shrink-0">
-          <GlassPanel className="rounded-2xl bg-white/70 p-4 shadow">
-            <div className="flex items-center gap-3">
+          <GlassPanel className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500">
                 <Info className="h-5 w-5 text-white" />
               </div>
@@ -29,7 +29,7 @@ export default function AboutPage() {
         {/* Content section - scrollable */}
         <motion.div variants={sectionVariants} className="flex-1 min-h-0">
           <div 
-            className="h-full overflow-y-auto rounded-2xl bg-white/70 p-8 shadow"
+            className="h-full overflow-y-auto px-4 sm:px-6 py-4 sm:py-6"
             style={{ overscrollBehavior: 'contain', scrollbarGutter: 'stable' }}
           >
             <div className="max-w-4xl mx-auto">

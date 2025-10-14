@@ -60,13 +60,13 @@ export default function ChatInputBar({
             onChange={(e) => setInput(e.target.value)}
             disabled={loading}
             aria-label="Chat input"
-            className="h-12 sm:h-14 rounded-xl sm:rounded-2xl pl-10 sm:pl-12 pr-3 sm:pr-4 text-sm sm:text-base bg-background/50 backdrop-blur-sm transition-all focus:bg-background/80"
+            className="h-12 sm:h-14 rounded-2xl pl-10 sm:pl-12 pr-3 sm:pr-4 text-sm sm:text-base bg-background/50 backdrop-blur-sm transition-all focus:bg-background/80"
           />
           <MessageSquare className="pointer-events-none absolute left-3 sm:left-4 top-1/2 h-4 w-4 sm:h-5 sm:w-5 -translate-y-1/2 text-muted-foreground" />
         </div>
 
         {/* Button Group: Settings + Clear */}
-        <div className="flex items-center rounded-lg overflow-hidden border bg-card/50 backdrop-blur-sm">
+        <div className="flex items-center rounded-xl overflow-hidden border bg-card/50 backdrop-blur-sm">
           <Tooltip>
             <TooltipTrigger asChild>
               <div>
@@ -117,7 +117,7 @@ export default function ChatInputBar({
               type="submit"
               disabled={disableSend}
               size="lg"
-              className="h-10 sm:h-12 rounded-lg sm:rounded-xl px-4 sm:px-6 text-sm sm:text-base font-semibold"
+              className="h-10 sm:h-12 rounded-xl px-4 sm:px-6 text-sm sm:text-base font-semibold"
             >
               {loading ? (
                 <>

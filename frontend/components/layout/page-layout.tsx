@@ -32,11 +32,11 @@ export function PageLayout({
   return (
     <motion.div {...defaultPageMotion} className={cn("mx-auto w-full h-full px-4 sm:px-6 lg:px-8")} style={{ maxWidth }}>
       {/* Page stack */}
-      <div className="flex h-full flex-col gap-6 py-6">
+      <div className="flex h-full flex-col gap-4 sm:gap-6 py-4 sm:py-6">
         {/* Header card */}
         <motion.div variants={sectionVariants} className="flex-shrink-0">
-          <GlassPanel className="rounded-2xl bg-white/70 p-4 shadow">
-            <div className="flex items-center gap-3">
+          <GlassPanel className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
               {icon && (
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500">
                   {(() => {
@@ -58,7 +58,7 @@ export function PageLayout({
         <motion.div variants={sectionVariants} className={cn("flex-1 min-h-0", className)}>
           {scrollableContent ? (
             <div 
-              className="h-full overflow-y-auto rounded-2xl bg-white/70 p-4 shadow"
+              className="h-full overflow-y-auto px-2 sm:px-4 py-4"
               style={{ overscrollBehavior: 'contain', scrollbarGutter: 'stable' }}
             >
               {children}

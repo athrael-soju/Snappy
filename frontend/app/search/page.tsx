@@ -204,7 +204,7 @@ export default function SearchPage() {
       </div>
 
       <div className="flex-shrink-0">
-        <GlassPanel className="p-5 rounded-2xl bg-white/70 shadow">
+        <GlassPanel className="p-4 sm:p-5">
           <SearchBar
             q={q}
             setQ={setQ}
@@ -234,52 +234,54 @@ export default function SearchPage() {
 
       <div className="flex-1 min-h-0">
         <div 
-          className="h-full overflow-y-auto rounded-2xl bg-white/70 p-4 shadow"
+          className="h-full overflow-y-auto"
           style={{ overscrollBehavior: 'contain', scrollbarGutter: 'stable' }}
         >
             {!hasSearched && !loading && !error ? (
-                <GlassPanel className="p-8 sm:p-12" hover>
-                  <div className="flex flex-col items-center gap-8 text-center">
-                    <div className="space-y-4 max-w-xl">
-                      <div className="flex size-14 items-center justify-center rounded-xl icon-bg text-primary mx-auto">
-                        <Search className="h-6 w-6" />
+                <div className="flex h-full items-center justify-center p-4">
+                  <GlassPanel className="w-full max-w-2xl p-6 sm:p-8">
+                    <div className="flex flex-col items-center gap-6 text-center">
+                      <div className="space-y-4">
+                        <div className="flex size-14 items-center justify-center rounded-xl icon-bg text-primary mx-auto">
+                          <Search className="h-6 w-6" />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <h3 className="text-lg font-semibold">
+                            Search across documents, slides, and imagery
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            Find documents using natural language. Try one of the examples below to get started.
+                          </p>
+                        </div>
                       </div>
                       
-                      <div className="space-y-2">
-                        <h3 className="text-lg font-semibold">
-                          Search across documents, slides, and imagery
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          Find documents using natural language. Try one of the examples below to get started.
-                        </p>
+                      <div className="w-full space-y-3">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Example queries</p>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {exampleQueries.map((example) => (
+                            <Button
+                              key={example}
+                              type="button"
+                              variant="outline"
+                              onClick={() => setQ(example)}
+                              className="justify-start h-auto min-h-[2.5rem] text-left hover-interactive"
+                            >
+                              <span className="line-clamp-2 text-sm">{example}</span>
+                            </Button>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                    
-                    <div className="w-full max-w-2xl space-y-3">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Example queries</p>
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        {exampleQueries.map((example) => (
-                          <Button
-                            key={example}
-                            type="button"
-                            variant="outline"
-                            onClick={() => setQ(example)}
-                            className="justify-start h-auto min-h-[2.5rem] text-left hover-interactive"
-                          >
-                            <span className="line-clamp-2 text-sm">{example}</span>
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </GlassPanel>
+                  </GlassPanel>
+                </div>
               ) : (
                 <AnimatePresence mode="wait">
                   {loading ? (
                     <motion.div
                       key="skeleton"
                       {...staggeredListMotion}
-                      className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                      className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 p-2 sm:p-4"
                     >
                       {Array.from({ length: 8 }).map((_, idx) => (
                         <Card key={idx} className="h-full animate-pulse">
@@ -298,7 +300,7 @@ export default function SearchPage() {
                     <motion.div
                       key="results"
                       {...staggeredListMotion}
-                      className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                      className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 p-2 sm:p-4"
                     >
                       {results.map((item, idx) => {
                         const imageSrc = item.image_url ?? "";
