@@ -52,21 +52,21 @@ export default function ChatInputBar({
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-3" aria-label="Chat composer">
-      <div className="flex items-end gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
         <div className="relative flex-1">
-          <MessageSquare className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground z-10" />
           <Input
             placeholder={placeholder}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={loading}
             aria-label="Chat input"
-            className="h-11 rounded-2xl border-2 border-border bg-background/95 backdrop-blur-md pl-12 pr-4 text-base shadow-sm transition-all focus-visible:border-primary/50 focus-visible:bg-background focus-visible:ring-4 focus-visible:ring-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-12 sm:h-14 rounded-xl sm:rounded-2xl pl-10 sm:pl-12 pr-3 sm:pr-4 text-sm sm:text-base bg-background/50 backdrop-blur-sm transition-all focus:bg-background/80"
           />
+          <MessageSquare className="pointer-events-none absolute left-3 sm:left-4 top-1/2 h-4 w-4 sm:h-5 sm:w-5 -translate-y-1/2 text-muted-foreground" />
         </div>
 
         {/* Button Group: Settings + Clear */}
-        <div className="flex items-center rounded-xl border-2 border-border bg-background/95 backdrop-blur-md overflow-hidden">
+        <div className="flex items-center rounded-lg overflow-hidden border bg-card/50 backdrop-blur-sm">
           <Tooltip>
             <TooltipTrigger asChild>
               <div>
@@ -81,16 +81,16 @@ export default function ChatInputBar({
                   setTopK={setTopK}
                   maxTokens={maxTokens}
                   setMaxTokens={setMaxTokens}
-                  className="h-9 w-9 rounded-none border-0 hover:bg-muted/50 transition-colors"
+                  className="h-10 sm:h-12 w-10 sm:w-12 rounded-none border-0 hover:bg-muted/50"
                 />
               </div>
             </TooltipTrigger>
-            <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
+            <TooltipContent>
               Chat settings
             </TooltipContent>
           </Tooltip>
 
-          <div className="w-px h-5 bg-border" />
+          <div className="w-px h-6 bg-border" />
 
           <Tooltip>
             <TooltipTrigger asChild>
@@ -100,12 +100,12 @@ export default function ChatInputBar({
                 disabled={loading || !hasMessages}
                 size="icon"
                 variant="ghost"
-                className="h-9 w-9 rounded-none border-0 hover:bg-muted/50 transition-colors"
-                >
+                className="h-10 sm:h-12 w-10 sm:w-12 rounded-none hover:bg-muted/50"
+              >
                 <Trash2 className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
+            <TooltipContent>
               {hasMessages ? "Clear conversation" : "No messages to clear"}
             </TooltipContent>
           </Tooltip>
@@ -116,23 +116,25 @@ export default function ChatInputBar({
             <Button
               type="submit"
               disabled={disableSend}
-              className="primary-gradient h-11 rounded-2xl px-5 text-base font-semibold shadow-lg transition-all hover:shadow-xl hover:scale-[1.02] focus-visible:ring-4 focus-visible:ring-primary/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              size="lg"
+              className="h-10 sm:h-12 rounded-lg sm:rounded-xl px-4 sm:px-6 text-sm sm:text-base font-semibold"
             >
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sending
+                  <Loader2 className="mr-1.5 sm:mr-2 h-4 w-4 animate-spin" />
+                  <span className="hidden sm:inline">Sending</span>
+                  <span className="sm:hidden">Send</span>
                 </>
               ) : (
                 <>
-                  <Send className="mr-2 h-4 w-4" />
+                  <Send className="mr-1.5 sm:mr-2 h-4 w-4" />
                   Send
                 </>
               )}
             </Button>
           </TooltipTrigger>
-          <TooltipContent sideOffset={8} className="bg-popover text-popover-foreground border-border">
-            {disableSend ? "Enter a message to send" : "Send message"}
+          <TooltipContent>
+            {disableSend ? "Enter a message" : "Send message"}
           </TooltipContent>
         </Tooltip>
       </div>

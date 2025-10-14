@@ -39,8 +39,8 @@ export function ChatSettings({ k, setK, loading, className, onValidityChange, to
       <TooltipTrigger asChild>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button type="button" variant="outline" size="icon" className={className ?? "h-12 w-12"} aria-label="Chat settings">
-              <SlidersHorizontal className="w-5 h-5" />
+            <Button type="button" variant="ghost" size="icon" className={className ?? "h-12 w-12"} aria-label="Chat settings">
+              <SlidersHorizontal className="h-4 w-4 sm:h-5 sm:w-5" />
             </Button>
           </DialogTrigger>
           <DialogContent aria-label="Chat settings">
