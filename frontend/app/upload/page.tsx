@@ -3,10 +3,9 @@
 import { useRef, useEffect, useCallback, useState } from "react";
 import { MaintenanceService } from "@/lib/api/generated";
 import "@/lib/api/client";
-import { CloudUpload } from "lucide-react";
 import { useSystemStatus } from "@/stores/app-store";
 import { useFileUpload } from "@/lib/hooks/use-file-upload";
-import { PageLayout } from "@/components/layout/page-layout";
+import { AppPage } from "@/components/layout";
 import {
   FileDropzone,
   SystemStatusWarning,
@@ -72,15 +71,14 @@ export default function UploadPage() {
   };
 
   return (
-    <PageLayout
-      title="Upload Documents"
-      icon={CloudUpload}
-      tooltip="Drag & drop or select files to add to your visual search index"
-      className="flex flex-col gap-4"
+    <AppPage
+      title="Upload"
+      description="Add new documents to the visual search index with drag-and-drop or direct selection."
+      contentClassName="stack stack-lg"
     >
       <SystemStatusWarning isReady={isReady} />
-      
-      <div className="flex-1 min-h-0 flex flex-col gap-4">
+
+      <div className="stack stack-lg">
         <FileDropzone
           isDragOver={isDragOver}
           uploading={uploading}
@@ -100,8 +98,8 @@ export default function UploadPage() {
           onSubmit={handleSubmit}
           onCancel={handleCancel}
         />
-        {!hasFiles && <UploadInfoCards />}
+        {!hasFiles ? <UploadInfoCards /> : null}
       </div>
-    </PageLayout>
+    </AppPage>
   );
 }

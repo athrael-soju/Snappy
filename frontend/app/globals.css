@@ -69,6 +69,14 @@
   --space-4: 1.00rem;
   --space-5: 1.50rem;
   --space-6: 2.00rem;
+  --space-7: 2.50rem;
+  --space-8: 3.00rem;
+
+  --container-xs: 36rem;
+  --container-sm: 48rem;
+  --container-md: 64rem;
+  --container-lg: 72rem;
+  --sidebar-width: 22rem;
 
   --app-gradient: radial-gradient(120% 120% at 50% -10%, rgba(248, 250, 255, 1) 0%, rgba(244, 244, 250, 1) 45%, rgba(250, 247, 255, 1) 100%);
   --backdrop-glow: radial-gradient(50% 40% at 20% 10%, rgba(96, 165, 250, 0.18), transparent 75%), radial-gradient(45% 65% at 80% 0%, rgba(168, 85, 247, 0.14), transparent 75%);
@@ -200,6 +208,22 @@
   --shadow-1: var(--shadow-1);
   --shadow-2: var(--shadow-2);
   --shadow-3: var(--shadow-3);
+
+  --spacing-1: var(--space-1);
+  --spacing-2: var(--space-2);
+  --spacing-3: var(--space-3);
+  --spacing-4: var(--space-4);
+  --spacing-5: var(--space-5);
+  --spacing-6: var(--space-6);
+  --spacing-7: var(--space-7);
+  --spacing-8: var(--space-8);
+
+  --size-container-xs: var(--container-xs);
+  --size-container-sm: var(--container-sm);
+  --size-container-md: var(--container-md);
+  --size-container-lg: var(--container-lg);
+  --size-container: var(--container-lg);
+  --size-sidebar: var(--sidebar-width);
 }
 
 @layer base {
@@ -252,37 +276,61 @@
 }
 
 @layer utilities {
-  /* Legacy page shell - deprecated, use page-container instead */
-  .page-shell { @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8; }
-  .page-section { @apply py-8 sm:py-12; }
-  
-  /* Standardized page layout system */
-  .page-container {
-    @apply flex flex-col gap-4 h-screen overflow-y-hidden overflow-x-auto py-4 px-4 sm:px-6 lg:px-8;
+  .app-container {
+    width: 100%;
+    max-width: var(--size-container);
+    margin-inline: auto;
+    padding-inline: var(--space-4);
   }
-  
-  .page-header-section {
-    @apply flex-shrink-0;
+  @media (min-width: 48rem) {
+    .app-container {
+      padding-inline: var(--space-5);
+    }
   }
-  
-  .page-content-section {
-    @apply flex-1 overflow-y-auto min-h-0;
+  @media (min-width: 64rem) {
+    .app-container {
+      padding-inline: var(--space-6);
+    }
   }
-  
-  .page-content {
-    @apply mx-auto w-full max-w-6xl flex flex-col gap-6 pb-4;
+
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
   }
+  .stack-sm { gap: var(--space-3); }
+  .stack-lg { gap: var(--space-5); }
+  .stack-xl { gap: var(--space-6); }
+
+  .section-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+  }
+
+  .page-surface {
+    background: var(--card);
+    border: 1px solid var(--border-muted);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-1);
+    transition: box-shadow 200ms ease, transform 200ms ease;
+  }
+  .page-surface[data-hover="true"]:hover {
+    box-shadow: var(--shadow-2);
+    transform: translateY(-2px);
+  }
+
   .surface-card {
     background: var(--card);
     border: 1px solid var(--border-muted);
-    box-shadow: var(--shadow-1);
     border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-1);
   }
   .surface-card-elevated {
     background: var(--surface-2);
     border: 1px solid var(--border-muted);
-    box-shadow: var(--shadow-2);
     border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-2);
   }
   .card-surface {
     border-radius: var(--radius-lg);

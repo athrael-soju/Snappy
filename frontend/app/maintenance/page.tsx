@@ -3,8 +3,9 @@
 import "@/lib/api/client";
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Database } from "lucide-react";
-import { PageLayout } from "@/components/layout/page-layout";
+import { Button } from "@/components/ui/button";
+import { AppPage } from "@/components/layout";
+import { cn } from "@/lib/utils";
 import { useSystemStatus, useMaintenanceActions, useSystemManagement } from "@/lib/hooks";
 import {
   SystemStatusBadge,
@@ -52,30 +53,41 @@ export default function MaintenancePage() {
   }, [router, section]);
 
   return (
-    <PageLayout
-      title="System Maintenance"
-      icon={Database}
-      tooltip="Monitor and manage storage and indexing resources"
-      className="flex flex-col gap-4"
+    <AppPage
+      title="Maintenance"
+      description="Monitor storage health, manage indexes, and perform administrative actions."
+      actions={(
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            void fetchStatus();
+          }}
+          disabled={statusLoading}
+        >
+          Refresh status
+        </Button>
+      )}
     >
-
-      <div className="flex-1 min-h-0 flex flex-col gap-4 sm:gap-5">
-        {/* Status Cards Row */}
-        <div className={`grid grid-cols-1 gap-4 sm:gap-5 ${bucketDisabled ? "" : "lg:grid-cols-2"}`}>
+      <div className="stack stack-lg">
+        <div
+          className={cn("grid gap-5", {
+            "lg:grid-cols-2": !bucketDisabled,
+          })}
+        >
           <CollectionStatusCard
             status={systemStatus?.collection || null}
             isLoading={statusLoading}
           />
-          {!bucketDisabled && (
+          {!bucketDisabled ? (
             <BucketStatusCard
               status={systemStatus?.bucket || null}
               isLoading={statusLoading}
             />
-          )}
+          ) : null}
         </div>
 
-        {/* Action Cards Row */}
-        <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-3">
+        <div className="grid gap-5 lg:grid-cols-3">
           <InitializeCard
             isLoading={initLoading}
             isSystemReady={isSystemReady}
@@ -107,8 +119,6 @@ export default function MaintenancePage() {
           ))}
         </div>
       </div>
-    </PageLayout>
+    </AppPage>
   );
 }
-
-

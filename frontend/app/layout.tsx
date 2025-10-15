@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "@/lib/api/client";
-import { Nav } from "@/components/nav";
+import { AppShell } from "@/components/layout";
 import NextTopLoader from "nextjs-toploader";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -49,15 +49,12 @@ export default function RootLayout({
         >
           {/* Animated gradient background */}
           <AnimatedBackground>
-            <div className="flex h-dvh flex-col">
+            <div className="relative">
               <NextTopLoader showSpinner={false} />
               <Toaster position="top-right" />
               <AppStoreProvider>
                 <TooltipProvider>
-                  <Nav />
-                  <main className="flex-1 min-h-0 overflow-y-auto" style={{ scrollbarGutter: 'stable', overscrollBehavior: 'contain' }}>
-                    {children}
-                  </main>
+                  <AppShell>{children}</AppShell>
                 </TooltipProvider>
               </AppStoreProvider>
             </div>

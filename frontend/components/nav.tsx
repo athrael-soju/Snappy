@@ -104,8 +104,8 @@ export function Nav() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/40 dark:border-white/10 bg-gradient-to-b from-background/80 via-background/60 to-background/40 supports-[backdrop-filter]:backdrop-blur-2xl shadow-[0_8px_16px_-8px_rgba(0,0,0,0.1)] dark:shadow-[0_8px_16px_-8px_rgba(0,0,0,0.4)]">
-      <nav className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-3 sm:px-6">
+    <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 supports-[backdrop-filter]:backdrop-blur-2xl shadow-[0_8px_16px_-8px_rgba(0,0,0,0.1)] dark:border-white/10 dark:shadow-[0_8px_16px_-8px_rgba(0,0,0,0.4)]">
+      <nav className="app-container flex h-16 items-center gap-[var(--space-3)]">
         <div className="flex flex-1 items-center justify-start min-w-0">
           <Link
             href="/"
@@ -145,7 +145,7 @@ export function Nav() {
               </SheetTrigger>
               <SheetContent 
                 side="left" 
-                className="w-72 border-white/10 bg-background/40 backdrop-blur-3xl p-0 flex flex-col"
+                className="w-[var(--size-sidebar)] border-white/10 bg-background/40 backdrop-blur-3xl p-0 flex flex-col"
               >
                 <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                 

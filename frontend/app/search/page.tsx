@@ -12,12 +12,11 @@ import { Search, AlertCircle, ImageIcon, Eye, ExternalLink } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion";
 import { fadeInItemMotion, fadeInPresence, staggeredListMotion } from "@/lib/motion-presets";
 import { toast } from "sonner";
-import { GlassPanel } from "@/components/ui/glass-panel";
 import Image from "next/image";
 import ImageLightbox from "@/components/lightbox";
 import SearchBar from "@/components/search/SearchBar";
 import { useSearchStore, useSystemStatus } from "@/stores/app-store";
-import { PageLayout } from "@/components/layout/page-layout";
+import { AppPage } from "@/components/layout";
 import { SystemStatusWarning } from "@/components/upload";
 
 
@@ -75,6 +74,7 @@ export default function SearchPage() {
   const searchInputRef = useRef<HTMLInputElement>(null!);
 
   const hasResults = hasSearched && results.length > 0;
+  const canClearSearch = hasSearched || results.length > 0 || q.trim().length > 0;
 
   const fetchSystemStatus = useCallback(async () => {
     setStatusLoading(true);
@@ -193,16 +193,25 @@ export default function SearchPage() {
   }
 
   return (
-    <PageLayout
-      title="Visual Search"
-      icon={Search}
-      tooltip="Find documents and images using natural language powered by AI vision"
-      className="flex flex-col gap-4"
+    <AppPage
+      title="Search"
+      description="Query your ingested documents with natural language and visual understanding."
+      actions={(
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleClearSearch}
+          disabled={!canClearSearch}
+        >
+          Clear results
+        </Button>
+      )}
+      contentClassName="stack stack-lg"
     >
       <SystemStatusWarning isReady={isReady} />
 
       <div className="flex-shrink-0">
-        <GlassPanel className="p-4 sm:p-5">
+        <div className="page-surface p-4 sm:p-5">
           <SearchBar
             q={q}
             setQ={setQ}
@@ -216,7 +225,7 @@ export default function SearchPage() {
             onClear={handleClearSearch}
             inputRef={searchInputRef}
           />
-        </GlassPanel>
+        </div>
       </div>
 
       <AnimatePresence>
@@ -237,7 +246,7 @@ export default function SearchPage() {
         >
             {!hasSearched && !loading && !error ? (
                 <div className="flex h-full items-center justify-center p-4">
-                  <GlassPanel className="w-full max-w-2xl p-6 sm:p-8">
+                  <div className="page-surface w-full max-w-2xl p-6 sm:p-8">
                     <div className="flex flex-col items-center gap-6 text-center">
                       <div className="space-y-4">
                         <div className="flex size-14 items-center justify-center rounded-xl icon-bg text-primary mx-auto">
@@ -271,7 +280,7 @@ export default function SearchPage() {
                         </div>
                       </div>
                     </div>
-                  </GlassPanel>
+                  </div>
                 </div>
               ) : (
                 <AnimatePresence mode="wait">
@@ -374,7 +383,7 @@ export default function SearchPage() {
                       animate="visible"
                       exit="exit"
                     >
-                      <GlassPanel className="p-8 sm:p-12" hover>
+                      <div className="page-surface p-8 sm:p-12" data-hover="true">
                         <div className="flex flex-col items-center gap-6 text-center">
                           <div className="flex size-16 items-center justify-center rounded-xl icon-bg-muted">
                             <ImageIcon className="h-8 w-8 text-muted-foreground" />
@@ -402,7 +411,7 @@ export default function SearchPage() {
                             </div>
                           </div>
                         </div>
-                      </GlassPanel>
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -411,6 +420,6 @@ export default function SearchPage() {
       </div>
       
       <ImageLightbox open={lightboxOpen} src={lightboxSrc} alt={lightboxAlt} onOpenChange={setLightboxOpen} />
-    </PageLayout>
+    </AppPage>
   );
 }
