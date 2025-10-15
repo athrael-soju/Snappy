@@ -2,17 +2,43 @@
 
 import "@/lib/api/client";
 import { useSystemStatus, useMaintenanceActions, useSystemManagement } from "@/lib/hooks";
-import { MAINTENANCE_ACTIONS } from "@/components/maintenance/constants";
+import type { ActionType } from "@/lib/hooks/use-maintenance-actions";
+
+const RESET_ACTIONS: Array<{
+  id: ActionType;
+  title: string;
+  description: string;
+  confirm: string;
+}> = [
+    {
+      id: "all",
+      title: "Reset All Data",
+      description: "Remove every stored document, embedding, and image.",
+      confirm: "Reset the entire system? This permanently removes all data.",
+    },
+    {
+      id: "q",
+      title: "Clear Qdrant",
+      description: "Delete the document vectors stored in Qdrant.",
+      confirm: "Remove all vectors from Qdrant? This cannot be undone.",
+    },
+    {
+      id: "m",
+      title: "Clear MinIO",
+      description: "Delete objects stored in the MinIO bucket (when enabled).",
+      confirm: "Remove all objects from MinIO? This cannot be undone.",
+    },
+  ];
 
 export default function MaintenancePage() {
   const { systemStatus, statusLoading, fetchStatus, isSystemReady } = useSystemStatus();
   const { loading, runAction } = useMaintenanceActions({ onSuccess: fetchStatus });
   const { initLoading, deleteLoading, handleInitialize, handleDelete } = useSystemManagement({ onSuccess: fetchStatus });
 
-  const handleMaintenanceAction = (actionId: typeof MAINTENANCE_ACTIONS[number]["id"]) => {
-    const action = MAINTENANCE_ACTIONS.find((item) => item.id === actionId);
+  const handleMaintenanceAction = (actionId: ActionType) => {
+    const action = RESET_ACTIONS.find((item) => item.id === actionId);
     if (!action) return;
-    if (window.confirm(action.confirmMsg)) {
+    if (window.confirm(action.confirm)) {
       void runAction(actionId);
     }
   };
@@ -113,7 +139,7 @@ export default function MaintenancePage() {
           These operations clear data from specific backends. Confirm each action before continuing.
         </p>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {MAINTENANCE_ACTIONS.map((action) => (
+          {RESET_ACTIONS.map((action) => (
             <article key={action.id} className="space-y-2 rounded border border-dashed border-border p-3">
               <h3 className="text-sm font-semibold text-foreground">{action.title}</h3>
               <p className="text-xs text-muted-foreground">{action.description}</p>

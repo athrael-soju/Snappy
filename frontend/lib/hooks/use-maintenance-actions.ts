@@ -1,21 +1,29 @@
+"use client";
+
 import { useState } from "react";
 import { MaintenanceService, ApiError } from "@/lib/api/generated";
 import { toast } from "sonner";
-import { ActionType, LoadingState } from "@/components/maintenance/types";
-import { MAINTENANCE_ACTIONS } from "@/components/maintenance/constants";
 import { useAppStore } from "@/stores/app-store";
 
+export type ActionType = "q" | "m" | "all";
+
+type LoadingState = Record<ActionType, boolean>;
 
 interface UseMaintenanceActionsOptions {
   onSuccess?: () => void;
 }
+
+const SUCCESS_MESSAGES: Record<ActionType, string> = {
+  q: "Cleared Qdrant collection",
+  m: "Cleared MinIO bucket",
+  all: "Cleared all stored data",
+};
 
 /**
  * Hook to manage maintenance actions (clear operations)
  */
 export function useMaintenanceActions({ onSuccess }: UseMaintenanceActionsOptions = {}) {
   const [loading, setLoading] = useState<LoadingState>({ q: false, m: false, all: false });
-  const [dialogOpen, setDialogOpen] = useState<ActionType | null>(null);
   const { state } = useAppStore();
   const isMinioDisabled = state.systemStatus?.bucket?.disabled === true;
 
@@ -26,69 +34,53 @@ export function useMaintenanceActions({ onSuccess }: UseMaintenanceActionsOption
   };
 
   const runAction = async (action: ActionType) => {
-    const actionConfig = MAINTENANCE_ACTIONS.find(a => a.id === action);
-    if (!actionConfig) return;
-
     const handler = actionHandlers[action];
-    if (!handler) return;
+    if (!handler) {
+      return;
+    }
 
     if (action === "m" && isMinioDisabled) {
       toast.info("MinIO Disabled", {
         description: "MinIO is disabled via configuration; there is nothing to clear.",
       });
-      setDialogOpen(null);
       return;
     }
 
-    setLoading((s) => ({ ...s, [action]: true }));
-    setDialogOpen(null);
+    setLoading((state) => ({ ...state, [action]: true }));
 
     try {
-      const res = await handler();
+      const response = await handler();
 
-      const msg = typeof res === "object" && res !== null
-        ? ('message' in res && typeof res.message === 'string' ? res.message : JSON.stringify(res))
-        : String(res ?? "Operation completed successfully");
+      const description = typeof response === "object" && response !== null
+        ? ("message" in response && typeof response.message === "string" ? response.message : JSON.stringify(response))
+        : String(response ?? "Operation completed successfully");
 
-      toast.success(actionConfig.successMsg, { description: msg });
+      toast.success(SUCCESS_MESSAGES[action], { description });
 
-      // Update stats
       try {
         if (typeof localStorage !== "undefined") {
-          const prevTotal = Number.parseInt(localStorage.getItem("maintenance_operations") ?? "0", 10) || 0;
-          const newTotal = prevTotal + 1;
-          localStorage.setItem("maintenance_operations", newTotal.toString());
+          const previous = Number.parseInt(localStorage.getItem("maintenance_operations") ?? "0", 10) || 0;
+          localStorage.setItem("maintenance_operations", String(previous + 1));
           localStorage.setItem("last_maintenance_action", new Date().toISOString());
         }
       } catch {
-        // Swallow storage exceptions so the action can still complete
+        // Ignore storage errors; they should not block the action.
       }
-      
-      // Notify success callback
+
       onSuccess?.();
-      
-      // Dispatch event to notify other pages
-      window.dispatchEvent(new CustomEvent('systemStatusChanged'));
+      window.dispatchEvent(new CustomEvent("systemStatusChanged"));
     } catch (err: unknown) {
-      let errorMsg = "Maintenance action failed";
+      let message = "Maintenance action failed";
       if (err instanceof ApiError) {
-        errorMsg = `${err.status}: ${err.message}`;
+        message = `${err.status}: ${err.message}`;
       } else if (err instanceof Error) {
-        errorMsg = err.message;
+        message = err.message;
       }
-      toast.error("Action failed", { description: errorMsg });
+      toast.error("Action failed", { description: message });
     } finally {
-      setLoading((s) => ({ ...s, [action]: false }));
+      setLoading((state) => ({ ...state, [action]: false }));
     }
   };
 
-  const isAnyLoading = loading.q || loading.m || loading.all;
-
-  return {
-    loading,
-    dialogOpen,
-    setDialogOpen,
-    runAction,
-    isAnyLoading,
-  };
+  return { loading, runAction };
 }

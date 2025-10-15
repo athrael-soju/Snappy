@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { MaintenanceService, ApiError } from "@/lib/api/generated";
 import { toast } from "sonner";
-import type { SystemStatus } from "@/components/maintenance/types";
+import type { SystemStatus } from "@/stores/types";
 import { useAppStore } from "@/stores/app-store";
 
 /**

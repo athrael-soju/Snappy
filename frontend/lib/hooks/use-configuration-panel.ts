@@ -6,7 +6,24 @@ import { ConfigurationService, ApiError } from "@/lib/api/generated";
 import "@/lib/api/client";
 import { saveConfigToStorage, mergeWithStoredConfig, clearConfigFromStorage } from "@/lib/config/config-store";
 import { parseOptimizationResponse } from "@/lib/api/runtime";
-import type { ConfigSetting } from "@/components/configuration/setting-renderer";
+
+export interface ConfigSetting {
+  key: string;
+  label: string;
+  type: "text" | "number" | "boolean" | "select" | "password";
+  options?: string[];
+  default: string;
+  description: string;
+  help_text?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+  depends_on?: {
+    key: string;
+    value: boolean;
+  };
+  ui_hidden?: boolean;
+}
 
 export interface ConfigCategory {
   name: string;
