@@ -17,7 +17,6 @@ export interface ChatState {
   k: number;
   toolCallingEnabled: boolean;
   loading: boolean;
-  topK: number;
   maxTokens: number;
 }
 
@@ -82,7 +81,6 @@ export type AppAction =
   | { type: 'CHAT_SET_K'; payload: number }
   | { type: 'CHAT_SET_TOOL_CALLING'; payload: boolean }
   | { type: 'CHAT_SET_LOADING'; payload: boolean }
-  | { type: 'CHAT_SET_TOP_K'; payload: number }
   | { type: 'CHAT_SET_MAX_TOKENS'; payload: number }
   | { type: 'CHAT_REMOVE_EMPTY_ASSISTANT' }
   | { type: 'CHAT_RESET' }
@@ -121,7 +119,6 @@ export const initialState: AppState = {
     k: 5,
     toolCallingEnabled: true,
     loading: false,
-    topK: 16,
     maxTokens: 500,
   },
   upload: {

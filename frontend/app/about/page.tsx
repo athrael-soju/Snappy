@@ -1,43 +1,36 @@
 "use client";
 
-import { AboutContent } from "@/components/about";
-import { Info } from "lucide-react";
-import { motion } from "framer-motion";
-import { defaultPageMotion, sectionVariants } from "@/lib/motion-presets";
-import { GlassPanel } from "@/components/ui/glass-panel";
-
 export default function AboutPage() {
   return (
-    <motion.div {...defaultPageMotion} className="mx-auto w-full max-w-[1160px] h-full px-4 sm:px-6 lg:px-8">
-      {/* Page stack */}
-      <div className="flex h-full flex-col gap-4 sm:gap-6 py-4 sm:py-6">
-        {/* Header card */}
-        <motion.div variants={sectionVariants} className="flex-shrink-0">
-          <GlassPanel className="p-3 sm:p-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500">
-                <Info className="h-5 w-5 text-white" />
-              </div>
-              <div className="flex-1">
-                <h1 className="text-xl font-semibold">About the ColPali Template</h1>
-                <p className="text-sm text-muted-foreground">A friendly and lightweight knowledge base platform with visual document understanding</p>
-              </div>
-            </div>
-          </GlassPanel>
-        </motion.div>
+    <main className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
+      <header className="space-y-2">
+        <h1 className="text-2xl font-semibold text-foreground">About This Template</h1>
+        <p className="text-sm text-muted-foreground">
+          This project combines a FastAPI backend, a Next.js frontend, and ColPali-powered visual embeddings. The goal of this stripped-down interface is to keep the essential flows available without relying on animation libraries or third-party component toolkits.
+        </p>
+      </header>
 
-        {/* Content section - scrollable */}
-        <motion.div variants={sectionVariants} className="flex-1 min-h-0">
-          <div 
-            className="h-full overflow-y-auto px-4 sm:px-6 py-4 sm:py-6"
-            style={{ overscrollBehavior: 'contain', scrollbarGutter: 'stable' }}
-          >
-            <div className="max-w-4xl mx-auto">
-              <AboutContent />
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    </motion.div>
+      <section className="space-y-2 rounded border border-border p-4 text-sm leading-relaxed text-muted-foreground">
+        <p>
+          Document ingestion pushes files to the backend, triggers indexing, and streams progress through server-sent events. Search and chat features query the same vector store so you can jump between keyword retrieval and conversational answers.
+        </p>
+        <p>
+          Configuration and maintenance pages are intentionally basic: they call the same APIs as their earlier counterparts but present the controls as plain form elements. When something goes wrong you can still reset storage, re-run initialization, or tweak environment settings without leaving the browser.
+        </p>
+        <p>
+          Explore the repository to see how each feature is wired. The backend endpoints are generated from OpenAPI definitions, and the stores keep state in a single shared context. You can extend the UI as needed, but this version provides a clean baseline for custom styling.
+        </p>
+      </section>
+
+      <section className="space-y-2 rounded border border-border p-4 text-sm">
+        <h2 className="text-base font-semibold text-foreground">Key Technologies</h2>
+        <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
+          <li>FastAPI with background workers for indexing and health checks</li>
+          <li>Qdrant for vector storage and similarity search</li>
+          <li>ColPali models for visual document embeddings</li>
+          <li>Next.js for the frontend, using React Server Components and App Router</li>
+        </ul>
+      </section>
+    </main>
   );
 }

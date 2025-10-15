@@ -25,7 +25,6 @@ export function useChat() {
     k,
     toolCallingEnabled,
     loading,
-    topK,
     maxTokens,
     setMessages,
     addMessage,
@@ -35,7 +34,6 @@ export function useChat() {
     setK,
     setToolCallingEnabled,
     setLoading,
-    setTopK,
     setMaxTokens,
     removeEmptyAssistantPlaceholder,
     reset,
@@ -103,10 +101,6 @@ export function useChat() {
   useEffect(() => {
     persistSetting('tool-calling-enabled', String(toolCallingEnabled))
   }, [toolCallingEnabled, persistSetting])
-
-  useEffect(() => {
-    persistSetting('topK', String(topK))
-  }, [topK, persistSetting])
 
   useEffect(() => {
     persistSetting('maxTokens', String(maxTokens))
@@ -212,13 +206,11 @@ export function useChat() {
     toolCallingEnabled,
     imageGroups,
     isSettingsValid,
-    topK,
     maxTokens,
     // setters
     setInput,
     setK,
     setToolCallingEnabled,
-    setTopK,
     setMaxTokens,
     // actions
     sendMessage,
