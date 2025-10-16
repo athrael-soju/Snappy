@@ -323,64 +323,64 @@ export default function ConfigurationPage() {
                 );
               })}
               </div>
-
-              <div className="mt-4 flex shrink-0 flex-wrap gap-3">
-                <Button
-                  type="button"
-                  onClick={() => resetSection(activeKey)}
-                  disabled={saving}
-                  variant="outline"
-                  size="sm"
-                  className="gap-2 rounded-full"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  Reset Section
-                </Button>
-              </div>
             </div>
           )}
 
           {/* Footer Actions */}
-          <div className="shrink-0 rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm">
-            <div className="flex flex-wrap items-center gap-3">
-              <Button
-                type="button"
-                onClick={saveChanges}
-                disabled={!hasChanges || saving}
-                size="default"
-                className="gap-2 rounded-full shadow-lg shadow-primary/20"
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4" />
-                    Save Changes
-                  </>
+          <div className="shrink-0 rounded-2xl border border-border/40 bg-gradient-to-br from-card/30 to-card/50 p-4 backdrop-blur-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  type="button"
+                  onClick={saveChanges}
+                  disabled={!hasChanges || saving}
+                  size="default"
+                  className="gap-2 rounded-full shadow-lg shadow-primary/20"
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4" />
+                      Save Changes
+                    </>
+                  )}
+                </Button>
+                
+                <Button
+                  type="button"
+                  onClick={resetChanges}
+                  disabled={!hasChanges || saving}
+                  variant="outline"
+                  size="default"
+                  className="gap-2 rounded-full"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Discard
+                </Button>
+                
+                {!hasChanges && (
+                  <Badge variant="secondary" className="gap-1.5">
+                    <CheckCircle2 className="h-3 w-3" />
+                    No unsaved changes
+                  </Badge>
                 )}
-              </Button>
+              </div>
               
               <Button
                 type="button"
-                onClick={resetChanges}
-                disabled={!hasChanges || saving}
+                onClick={() => resetSection(activeKey)}
+                disabled={saving}
                 variant="outline"
-                size="default"
+                size="sm"
                 className="gap-2 rounded-full"
               >
                 <RotateCcw className="h-4 w-4" />
-                Discard
+                <span className="hidden sm:inline">Reset Section</span>
               </Button>
-              
-              {!hasChanges && (
-                <Badge variant="secondary" className="gap-1.5">
-                  <CheckCircle2 className="h-3 w-3" />
-                  No unsaved changes
-                </Badge>
-              )}
             </div>
           </div>
         </div>
