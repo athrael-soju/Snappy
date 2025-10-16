@@ -123,7 +123,7 @@ export default function Home() {
                   
                   <div className="relative flex items-start gap-3">
                     <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${feature.gradient} shadow-lg`}>
-                      <feature.icon className="h-6 w-6 text-white" />
+                      <feature.icon className="h-6 w-6 text-primary-foreground" />
                     </div>
                     
                     <div className="flex-1 text-left">

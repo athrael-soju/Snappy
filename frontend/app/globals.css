@@ -168,6 +168,7 @@
   --tracking-widest: calc(var(--tracking-normal) + 0.1em);
 }
 body {
+  font-family: var(--font-sans);
   letter-spacing: var(--tracking-normal);
   font-size: 16px;
   line-height: 1.6;
