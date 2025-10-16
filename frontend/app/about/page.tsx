@@ -15,6 +15,7 @@ import {
   Cpu
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const features = [
   {
@@ -96,7 +97,8 @@ export default function AboutPage() {
           </div>
 
           {/* Scrollable Content */}
-          <div className="min-h-0 flex-1 space-y-6 overflow-y-auto">
+          <ScrollArea className="min-h-0 flex-1">
+            <div className="space-y-6 pr-4">
             {/* Features Grid */}
             <section className="space-y-3">
               <div className="flex items-center gap-2">
@@ -176,7 +178,8 @@ export default function AboutPage() {
                 </p>
               </div>
             </section>
-          </div>
+            </div>
+          </ScrollArea>
         </div>
       </div>
     </div>

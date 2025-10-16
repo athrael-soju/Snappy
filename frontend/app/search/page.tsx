@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Search, Loader2, X, AlertCircle, Sparkles, ArrowRight, FileText, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { RetrievalService } from "@/lib/api/generated";
 import { parseSearchResults } from "@/lib/api/runtime";
 import { useSearchStore } from "@/lib/hooks/use-search-store";
@@ -246,7 +247,8 @@ export default function SearchPage() {
                     </Button>
                   </div>
                   
-                  <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
+                  <ScrollArea className="min-h-0 flex-1">
+                    <div className="space-y-2 pr-4">
                   {truncatedResults.map((item, index) => (
                     <article 
                       key={`${item.label ?? index}-${index}`} 
@@ -300,7 +302,8 @@ export default function SearchPage() {
                       </div>
                     </article>
                   ))}
-                  </div>
+                    </div>
+                  </ScrollArea>
                 </div>
               )}
             </div>

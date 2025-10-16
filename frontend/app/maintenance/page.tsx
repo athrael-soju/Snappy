@@ -19,6 +19,7 @@ import {
 import type { ActionType } from "@/lib/hooks/use-maintenance-actions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const CORE_OPERATIONS = [
   {
@@ -63,8 +64,9 @@ export default function MaintenancePage() {
 
   return (
     <div className="relative flex min-h-full flex-col overflow-hidden">
-      <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mx-auto w-full max-w-5xl space-y-4">
+      <ScrollArea className="flex-1">
+        <div className="px-4 py-6 sm:px-6 lg:px-8">
+          <div className="mx-auto w-full max-w-5xl space-y-4">
           {/* Header Section */}
           <div className="space-y-2 text-center">
             <h1 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
@@ -313,9 +315,9 @@ export default function MaintenancePage() {
                 })}
               </div>
             </section>
+          </div>
         </div>
-      </div>
+      </ScrollArea>
     </div>
   );
 }
-

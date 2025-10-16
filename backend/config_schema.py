@@ -508,6 +508,7 @@ def get_api_schema() -> Dict[str, Any]:
             "description": category["description"],
             "order": category.get("order", 99),
             "icon": category.get("icon", "settings"),
+            "ui_hidden": category.get("ui_hidden", False),
             "settings": [],
         }
 

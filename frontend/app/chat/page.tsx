@@ -4,6 +4,7 @@ import { ChangeEvent } from "react";
 import "@/lib/api/client";
 import { useChat } from "@/lib/hooks/use-chat";
 import { useSystemStatus } from "@/stores/app-store";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function ChatPage() {
   const {
@@ -92,7 +93,8 @@ export default function ChatPage() {
 
       <section className="flex-1 space-y-3 rounded border border-border p-4">
         <h2 className="text-base font-semibold text-foreground">Conversation</h2>
-        <div className="max-h-[480px] space-y-4 overflow-y-auto rounded border border-dashed border-border p-3">
+        <ScrollArea className="h-[480px] rounded border border-dashed border-border">
+          <div className="space-y-4 p-3">
           {messages.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               No messages yet. Type a question below and press enter to get started.
@@ -131,7 +133,8 @@ export default function ChatPage() {
           {loading && (
             <p className="text-xs text-muted-foreground">Assistant is responding...</p>
           )}
-        </div>
+          </div>
+        </ScrollArea>
       </section>
 
       <form onSubmit={sendMessage} className="space-y-2 rounded border border-border p-4">

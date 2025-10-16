@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import "@/lib/api/client";
 import { useSystemStatus } from "@/stores/app-store";
 import { useFileUpload } from "@/lib/hooks/use-file-upload";
@@ -250,7 +251,8 @@ export default function UploadPage() {
                   </Button>
                 </div>
                 
-                <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto">
+                <ScrollArea className="min-h-0 flex-1">
+                  <div className="space-y-1.5 pr-4">
                   {selectedFiles.map((file, index) => (
                     <div 
                       key={file.name}
@@ -272,7 +274,8 @@ export default function UploadPage() {
                       )}
                     </div>
                   ))}
-                </div>
+                  </div>
+                </ScrollArea>
               </div>
             )}
 

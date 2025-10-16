@@ -6,6 +6,7 @@ import { Footer } from "@/components/footer";
 import { Toaster } from "sonner";
 import { AppStoreProvider } from "@/stores/app-store";
 import { ThemeProvider } from "@/components/theme-provider";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export const metadata: Metadata = {
   title: "Snappy! - Your Friendly Vision Retrieval Buddy",
@@ -39,9 +40,9 @@ export default function RootLayout({
               <Nav />
               
               {/* Row 2: Scrollable Content */}
-              <main className="flex-1 overflow-y-auto">
+              <ScrollArea className="flex-1">
                 {children}
-              </main>
+              </ScrollArea>
               
               {/* Row 3: Fixed Footer */}
               <Footer />

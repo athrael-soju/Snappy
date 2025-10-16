@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function ConfigurationPage() {
   const {
@@ -195,7 +196,8 @@ export default function ConfigurationPage() {
                 </div>
               </div>
 
-              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto">
+              <ScrollArea className="min-h-0 flex-1">
+                <div className="space-y-3 pr-4">
             {activeContent.settings
               .filter((setting) => isSettingVisible(setting))
               .map((setting) => {
@@ -322,7 +324,8 @@ export default function ConfigurationPage() {
                   </article>
                 );
               })}
-              </div>
+                </div>
+              </ScrollArea>
             </div>
           )}
 
