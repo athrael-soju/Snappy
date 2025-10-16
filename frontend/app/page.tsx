@@ -49,7 +49,7 @@ export default function Home() {
   return (
     <div className="relative flex min-h-full flex-col justify-between overflow-hidden">
       {/* Hero Content - Full viewport utilization */}
-      <div className="flex flex-1 flex-col justify-center px-4 py-6 text-center sm:px-6 lg:px-8">
+      <div className="flex flex-1 flex-col justify-center px-4 py-4 text-center sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-6xl space-y-8">
           {/* Badge */}
           <Badge 

@@ -9,7 +9,7 @@ export function Footer() {
       {/* Subtle gradient line at bottom */}
       <div className="absolute inset-x-0 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
       
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 py-4">
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
           <p className="text-center text-base text-muted-foreground sm:text-left">
             © {currentYear} <span className="font-semibold text-foreground">Snappy!</span> Crafted for lightning-fast visual retrieval.

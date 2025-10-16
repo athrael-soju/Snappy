@@ -50,18 +50,11 @@ export default function UploadPage() {
 
   return (
     <div className="relative flex min-h-full flex-col justify-between overflow-hidden">
-      <div className="flex flex-1 flex-col justify-center px-4 py-6 sm:px-6 lg:px-8">
+      <div className="flex flex-1 flex-col justify-center px-4 py-4 sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-5xl space-y-6">
           {/* Header Section */}
           <div className="space-y-3 text-center">
-            <Badge 
-              variant="outline" 
-              className="border-primary/30 bg-primary/5 px-4 py-1.5 text-sm font-medium backdrop-blur-sm"
-            >
-              <Upload className="mr-2 h-3.5 w-3.5" />
-              Document Upload
-            </Badge>
-            
+
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
               <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
                 Upload & Index

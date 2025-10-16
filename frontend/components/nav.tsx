@@ -44,7 +44,7 @@ export function Nav() {
       {/* Subtle gradient line at top */}
       <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
       
-      <div className="container mx-auto px-4 py-4">
+      <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between gap-6">
           {/* Logo with enhanced styling */}
           <Link href="/" className="group flex shrink-0 items-center gap-3 transition-all">

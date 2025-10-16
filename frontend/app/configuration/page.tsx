@@ -26,7 +26,7 @@ export default function ConfigurationPage() {
 
   if (loading && !schema) {
     return (
-      <main className="mx-auto max-w-4xl p-6">
+      <main className="mx-auto max-w-4xl p-4">
         <p className="text-sm text-muted-foreground">Loading configuration...</p>
       </main>
     );
@@ -34,7 +34,7 @@ export default function ConfigurationPage() {
 
   if (!schema) {
     return (
-      <main className="mx-auto max-w-4xl p-6">
+      <main className="mx-auto max-w-4xl p-4">
         <h1 className="text-2xl font-semibold text-foreground">Configuration</h1>
         <p className="mt-3 text-sm text-muted-foreground">
           Configuration data could not be loaded. Check that the API is reachable.
@@ -49,7 +49,7 @@ export default function ConfigurationPage() {
   const activeContent = activeCategory?.[1];
 
   return (
-    <main className="mx-auto flex max-w-5xl flex-col gap-6 p-6">
+    <main className="mx-auto flex max-w-5xl flex-col gap-6 p-4">
       <header className="space-y-2">
         <h1 className="text-2xl font-semibold text-foreground">Configuration</h1>
         <p className="text-sm text-muted-foreground">
