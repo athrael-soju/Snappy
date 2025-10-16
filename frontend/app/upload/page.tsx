@@ -1,6 +1,21 @@
 "use client";
 
 import { FormEvent } from "react";
+import { 
+  Upload, 
+  FileText, 
+  Database, 
+  HardDrive, 
+  CheckCircle2, 
+  AlertCircle,
+  RefreshCw,
+  X,
+  Sparkles,
+  ArrowRight,
+  Loader2,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import "@/lib/api/client";
 import { useSystemStatus } from "@/stores/app-store";
 import { useFileUpload } from "@/lib/hooks/use-file-upload";
@@ -32,120 +47,281 @@ export default function UploadPage() {
   };
 
   const selectedFiles = files ? Array.from(files) : [];
-  const readyLabel = isReady ? "System is ready for uploads." : "Initialize the collection and bucket before uploading.";
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold text-foreground">Upload Documents</h1>
-        <p className="text-sm text-muted-foreground">
-          Choose one or more files and submit them to the backend. Upload progress and job status will appear below.
-        </p>
-      </header>
-
-      <section className="space-y-3 rounded border border-border p-4">
-        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-          <span className={isReady ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
-            {readyLabel}
-          </span>
-          <button
-            type="button"
-            onClick={fetchStatus}
-            className="rounded border border-border px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-            disabled={statusLoading}
+    <main className="relative flex min-h-full flex-col justify-center overflow-hidden px-4 py-4 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-6xl space-y-5">
+        {/* Compact Header */}
+        <div className="space-y-2 text-center">
+          <Badge 
+            variant="outline" 
+            className="border-primary/30 bg-primary/5 px-3 py-1 text-xs font-medium backdrop-blur-sm"
           >
-            {statusLoading ? "Checking..." : "Refresh status"}
-          </button>
+            <Upload className="mr-1.5 h-3 w-3" />
+            Document Upload
+          </Badge>
+          
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            <span className="bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-500 bg-clip-text text-transparent">
+              Upload & Index Documents
+            </span>
+          </h1>
         </div>
-        {systemStatus && (
-          <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
-            <div className="rounded bg-muted p-2">
-              <p className="font-semibold text-foreground">Collection</p>
-              <p>Name: {systemStatus.collection?.name ?? "unknown"}</p>
-              <p>Exists: {systemStatus.collection?.exists ? "yes" : "no"}</p>
-              {typeof systemStatus.collection?.vector_count === "number" && (
-                <p>Vectors: {systemStatus.collection.vector_count}</p>
-              )}
-            </div>
-            <div className="rounded bg-muted p-2">
-              <p className="font-semibold text-foreground">Bucket</p>
-              <p>Status: {systemStatus.bucket?.disabled ? "disabled" : systemStatus.bucket?.exists ? "ready" : "missing"}</p>
-              <p>Name: {systemStatus.bucket?.name ?? "unknown"}</p>
-              {typeof systemStatus.bucket?.object_count === "number" && (
-                <p>Objects: {systemStatus.bucket.object_count}</p>
-              )}
+
+        {/* Two Column Layout */}
+        <div className="grid gap-4 lg:grid-cols-2">
+          {/* Left Column: Upload Zone */}
+          <div className="space-y-3">
+            {/* Drag & Drop Zone - Compact */}
+            <form onSubmit={handleSubmit}>
+              <div
+                className={`group relative overflow-hidden rounded-2xl border-2 border-dashed transition-all ${
+                  isDragOver
+                    ? "border-primary bg-primary/5 shadow-lg shadow-primary/20"
+                    : "border-border/50 bg-card/30 backdrop-blur-sm hover:border-primary/50"
+                }`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <div className={`absolute inset-0 bg-gradient-to-br from-blue-500 to-cyan-500 opacity-0 transition-opacity ${isDragOver ? "opacity-10" : "group-hover:opacity-5"}`} />
+                
+                <div className="relative flex min-h-[200px] flex-col items-center justify-center gap-3 p-6">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg">
+                    <Upload className="h-8 w-8 text-primary-foreground" />
+                  </div>
+                  
+                  <div className="text-center space-y-1">
+                    <h3 className="text-base font-bold">
+                      {isDragOver ? "Drop files here" : "Drag & drop files"}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      or browse to select
+                    </p>
+                  </div>
+                  
+                  <label htmlFor="file-input">
+                    <Button 
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={uploading}
+                      className="gap-2 rounded-full border-2 bg-background/50 px-4 backdrop-blur-sm cursor-pointer"
+                      onClick={() => document.getElementById('file-input')?.click()}
+                    >
+                      <FileText className="h-4 w-4" />
+                      Browse
+                    </Button>
+                  </label>
+                  
+                  <input
+                    id="file-input"
+                    type="file"
+                    multiple
+                    onChange={(event) => handleFileSelect(event.target.files)}
+                    disabled={uploading}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
+                <Button
+                  type="submit"
+                  size="default"
+                  disabled={!hasFiles || uploading || !isReady}
+                  className="group gap-2 rounded-full px-6 shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/25"
+                >
+                  {uploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4" />
+                      Start Upload
+                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                    </>
+                  )}
+                </Button>
+                
+                {uploading && (
+                  <Button
+                    type="button"
+                    onClick={handleCancel}
+                    size="default"
+                    variant="outline"
+                    className="gap-2 rounded-full border-2 bg-background/50 px-6 backdrop-blur-sm"
+                  >
+                    <X className="h-4 w-4" />
+                    Cancel
+                  </Button>
+                )}
+              </div>
+            </form>
+
+            {/* System Status - Compact Inline */}
+            <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
+              <Badge 
+                variant={isReady ? "default" : "destructive"}
+                className="gap-1.5 px-3 py-1"
+              >
+                {isReady ? (
+                  <><CheckCircle2 className="h-3 w-3" />Ready</>
+                ) : (
+                  <><AlertCircle className="h-3 w-3" />Not Ready</>
+                )}
+              </Badge>
+              
+              <Button
+                onClick={fetchStatus}
+                disabled={statusLoading}
+                variant="outline"
+                size="sm"
+                className="h-7 gap-1.5 rounded-full px-3 text-xs"
+              >
+                {statusLoading ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3 w-3" />
+                )}
+                Refresh
+              </Button>
+
+              {/* Inline Status */}
+              <div className="flex items-center gap-2 rounded-full border border-border/50 bg-card/50 px-3 py-1 backdrop-blur-sm">
+                <Database className="h-3 w-3 text-purple-500" />
+                <span className="text-muted-foreground">
+                  {systemStatus?.collection?.exists ? (
+                    <CheckCircle2 className="h-3 w-3 text-green-500" />
+                  ) : (
+                    <AlertCircle className="h-3 w-3 text-red-500" />
+                  )}
+                </span>
+                {typeof systemStatus?.collection?.vector_count === "number" && (
+                  <span className="font-semibold">{systemStatus.collection.vector_count.toLocaleString()}</span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 rounded-full border border-border/50 bg-card/50 px-3 py-1 backdrop-blur-sm">
+                <HardDrive className="h-3 w-3 text-green-500" />
+                <span className="text-muted-foreground">
+                  {systemStatus?.bucket?.exists && !systemStatus?.bucket?.disabled ? (
+                    <CheckCircle2 className="h-3 w-3 text-green-500" />
+                  ) : (
+                    <AlertCircle className="h-3 w-3 text-red-500" />
+                  )}
+                </span>
+                {typeof systemStatus?.bucket?.object_count === "number" && (
+                  <span className="font-semibold">{systemStatus.bucket.object_count.toLocaleString()}</span>
+                )}
+              </div>
             </div>
           </div>
-        )}
-      </section>
 
-      <form
-        className="space-y-4 rounded border border-border p-4"
-        onSubmit={handleSubmit}
-      >
-        <label className="flex flex-col gap-1 text-sm text-foreground">
-          Select files
-          <input
-            type="file"
-            multiple
-            onChange={(event) => handleFileSelect(event.target.files)}
-            disabled={uploading}
-            className="rounded border border-border px-3 py-2 text-sm"
-          />
-        </label>
+          {/* Right Column: Files & Progress */}
+          <div className="space-y-3">
+            {/* Selected Files - Compact with max height */}
+            {hasFiles && (
+              <div className="rounded-2xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm">
+                <div className="mb-3 flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-bold">
+                    Ready ({fileCount})
+                  </h3>
+                </div>
+                
+                <div className="max-h-[200px] space-y-2 overflow-y-auto pr-2">
+                  {selectedFiles.map((file) => (
+                    <div 
+                      key={file.name}
+                      className="flex items-center justify-between rounded-lg border border-border/50 bg-background/50 px-3 py-2 text-xs transition-colors hover:bg-muted/50"
+                    >
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <FileText className="h-4 w-4 shrink-0 text-primary" />
+                        <div className="overflow-hidden">
+                          <p className="truncate font-medium">{file.name}</p>
+                          <p className="text-muted-foreground">
+                            {(file.size / 1024).toFixed(1)} KB
+                          </p>
+                        </div>
+                      </div>
+                      {uploading && typeof uploadProgress === "number" && (
+                        <div className="shrink-0 text-xs font-semibold text-primary">
+                          {Math.round(uploadProgress)}%
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
-        <div
-          className={`flex min-h-[120px] flex-col items-center justify-center gap-2 rounded border border-dashed border-border p-4 text-sm ${
-            isDragOver ? "bg-muted" : ""
-          }`}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        >
-          <p className="text-foreground">Drag and drop files here</p>
-          <p className="text-xs text-muted-foreground">You can also use the file picker above.</p>
-        </div>
+            {/* Progress & Status Messages - Compact */}
+            {(uploadProgress || statusText || jobId || message || error) && (
+              <div className="space-y-2 rounded-2xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm">
+                {typeof uploadProgress === "number" && uploadProgress > 0 && (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-medium">Progress</span>
+                      <span className="font-semibold text-primary">{Math.round(uploadProgress)}%</span>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                      <div 
+                        className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 transition-all duration-300"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+                
+                {statusText && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    {statusText}
+                  </div>
+                )}
+                
+                {jobId && (
+                  <div className="rounded-lg bg-muted/50 px-2 py-1">
+                    <p className="text-xs text-muted-foreground">
+                      Job: <span className="font-mono">{jobId}</span>
+                    </p>
+                  </div>
+                )}
+                
+                {message && (
+                  <div className="flex items-center gap-2 rounded-lg bg-green-500/10 px-3 py-2 text-xs font-medium text-green-600 dark:text-green-400">
+                    <CheckCircle2 className="h-4 w-4" />
+                    {message}
+                  </div>
+                )}
+                
+                {error && (
+                  <div className="flex items-center gap-2 rounded-lg bg-red-500/10 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400">
+                    <AlertCircle className="h-4 w-4" />
+                    {error}
+                  </div>
+                )}
+              </div>
+            )}
 
-        {hasFiles && (
-          <div className="space-y-2 text-sm text-foreground">
-            <p className="font-semibold">Files ready to upload ({fileCount})</p>
-            <ul className="space-y-1 rounded border border-border p-2 text-xs text-muted-foreground">
-              {selectedFiles.map((file) => (
-                <li key={file.name}>
-                  {file.name} ({Math.round(file.size / 1024)} KB)
-                </li>
-              ))}
-            </ul>
+            {/* Empty state when no files */}
+            {!hasFiles && !(uploadProgress || statusText || jobId || message || error) && (
+              <div className="flex min-h-[200px] items-center justify-center rounded-2xl border border-dashed border-border/50 bg-card/20 p-6 backdrop-blur-sm">
+                <div className="text-center">
+                  <FileText className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
+                  <p className="text-xs text-muted-foreground">
+                    Select files to see them listed here
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
-        )}
-
-        {typeof uploadProgress === "number" && uploadProgress > 0 && (
-          <p className="text-sm text-muted-foreground">Progress: {Math.round(uploadProgress)}%</p>
-        )}
-        {statusText && <p className="text-sm text-muted-foreground">Status: {statusText}</p>}
-        {jobId && <p className="text-xs text-muted-foreground">Job ID: {jobId}</p>}
-        {message && <p className="text-sm text-green-600 dark:text-green-400">{message}</p>}
-        {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="submit"
-            className="rounded bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
-            disabled={!hasFiles || uploading || !isReady}
-          >
-            {uploading ? "Uploading..." : "Start upload"}
-          </button>
-          {uploading && (
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="rounded border border-border px-4 py-2 text-sm font-medium text-foreground"
-            >
-              Cancel upload
-            </button>
-          )}
         </div>
-      </form>
+      </div>
     </main>
   );
 }
