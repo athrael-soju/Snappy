@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "@/lib/api/client";
-import { Nav } from "@/components/nav";
 import { Toaster } from "sonner";
 import { AppStoreProvider } from "@/stores/app-store";
+import { AppShell } from "@/components/layout/app-shell";
 
 export const metadata: Metadata = {
   title: "FastAPI / Next.js / ColPali Template",
@@ -25,10 +25,7 @@ export default function RootLayout({
       <body className="bg-background text-foreground antialiased">
         <AppStoreProvider>
           <Toaster position="top-right" />
-          <div className="min-h-dvh">
-            <Nav />
-            <main>{children}</main>
-          </div>
+          <AppShell>{children}</AppShell>
         </AppStoreProvider>
       </body>
     </html>

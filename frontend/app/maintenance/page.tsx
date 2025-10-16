@@ -1,161 +1,242 @@
-"use client";
+"use client"
 
-import "@/lib/api/client";
-import { useSystemStatus, useMaintenanceActions, useSystemManagement } from "@/lib/hooks";
-import type { ActionType } from "@/lib/hooks/use-maintenance-actions";
+import "@/lib/api/client"
+
+import { Page, PageSection } from "@/components/layout/page"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { useSystemStatus, useMaintenanceActions, useSystemManagement } from "@/lib/hooks"
+import type { ActionType } from "@/lib/hooks/use-maintenance-actions"
 
 const RESET_ACTIONS: Array<{
-  id: ActionType;
-  title: string;
-  description: string;
-  confirm: string;
+  id: ActionType
+  title: string
+  description: string
+  confirm: string
 }> = [
-    {
-      id: "all",
-      title: "Reset All Data",
-      description: "Remove every stored document, embedding, and image.",
-      confirm: "Reset the entire system? This permanently removes all data.",
-    },
-    {
-      id: "q",
-      title: "Clear Qdrant",
-      description: "Delete the document vectors stored in Qdrant.",
-      confirm: "Remove all vectors from Qdrant? This cannot be undone.",
-    },
-    {
-      id: "m",
-      title: "Clear MinIO",
-      description: "Delete objects stored in the MinIO bucket (when enabled).",
-      confirm: "Remove all objects from MinIO? This cannot be undone.",
-    },
-  ];
+  {
+    id: "all",
+    title: "Reset all data",
+    description: "Remove every stored document, embedding, and image.",
+    confirm: "Reset the entire system? This permanently removes all data.",
+  },
+  {
+    id: "q",
+    title: "Clear Qdrant",
+    description: "Delete the document vectors stored in Qdrant.",
+    confirm: "Remove all vectors from Qdrant? This cannot be undone.",
+  },
+  {
+    id: "m",
+    title: "Clear MinIO",
+    description: "Delete objects stored in the MinIO bucket (when enabled).",
+    confirm: "Remove all objects from MinIO? This cannot be undone.",
+  },
+]
 
 export default function MaintenancePage() {
-  const { systemStatus, statusLoading, fetchStatus, isSystemReady } = useSystemStatus();
-  const { loading, runAction } = useMaintenanceActions({ onSuccess: fetchStatus });
-  const { initLoading, deleteLoading, handleInitialize, handleDelete } = useSystemManagement({ onSuccess: fetchStatus });
+  const { systemStatus, statusLoading, fetchStatus, isSystemReady } = useSystemStatus()
+  const { loading, runAction } = useMaintenanceActions({ onSuccess: fetchStatus })
+  const { initLoading, deleteLoading, handleInitialize, handleDelete } = useSystemManagement({
+    onSuccess: fetchStatus,
+  })
 
   const handleMaintenanceAction = (actionId: ActionType) => {
-    const action = RESET_ACTIONS.find((item) => item.id === actionId);
-    if (!action) return;
+    const action = RESET_ACTIONS.find((item) => item.id === actionId)
+    if (!action) return
     if (window.confirm(action.confirm)) {
-      void runAction(actionId);
+      void runAction(actionId)
     }
-  };
+  }
 
   const confirmDelete = () => {
     if (window.confirm("Delete the collection and (if enabled) the bucket? This cannot be undone.")) {
-      void handleDelete();
+      void handleDelete()
     }
-  };
+  }
+
+  const headerActions = (
+    <div className="flex flex-wrap gap-2">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={fetchStatus}
+        disabled={statusLoading}
+      >
+        {statusLoading ? "Refreshing..." : "Refresh status"}
+      </Button>
+      <Button
+        variant="destructive"
+        size="sm"
+        onClick={confirmDelete}
+        disabled={deleteLoading || initLoading}
+      >
+        {deleteLoading ? "Deleting..." : "Delete storage"}
+      </Button>
+    </div>
+  )
 
   return (
-    <main className="mx-auto flex max-w-5xl flex-col gap-6 p-6">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold text-foreground">System Maintenance</h1>
-        <p className="text-sm text-muted-foreground">
-          Monitor storage status and run destructive operations manually. Buttons below interact with the FastAPI maintenance endpoints without any decorative UI.
-        </p>
-        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-          <span>System ready: {isSystemReady ? "yes" : "no"}</span>
-          <button
-            type="button"
-            onClick={fetchStatus}
-            className="rounded border border-border px-3 py-1 font-medium text-foreground disabled:opacity-50"
-            disabled={statusLoading}
-          >
-            {statusLoading ? "Refreshing..." : "Refresh status"}
-          </button>
-        </div>
-      </header>
-
-      <section className="space-y-3 rounded border border-border p-4 text-sm">
-        <h2 className="text-base font-semibold text-foreground">Storage Status</h2>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <article className="rounded border border-dashed border-border p-3">
-            <h3 className="text-sm font-semibold text-foreground">Collection</h3>
-            {statusLoading ? (
-              <p className="text-xs text-muted-foreground">Loading...</p>
-            ) : systemStatus?.collection ? (
-              <ul className="space-y-1 text-xs text-muted-foreground">
-                <li>Name: {systemStatus.collection.name}</li>
-                <li>Exists: {systemStatus.collection.exists ? "yes" : "no"}</li>
-                <li>Vectors: {systemStatus.collection.vector_count}</li>
-                <li>Files: {systemStatus.collection.unique_files}</li>
-                {systemStatus.collection.error && <li>Error: {systemStatus.collection.error}</li>}
-              </ul>
-            ) : (
-              <p className="text-xs text-muted-foreground">No information available.</p>
-            )}
-          </article>
-
-          <article className="rounded border border-dashed border-border p-3">
-            <h3 className="text-sm font-semibold text-foreground">Bucket</h3>
-            {statusLoading ? (
-              <p className="text-xs text-muted-foreground">Loading...</p>
-            ) : systemStatus?.bucket ? (
-              <ul className="space-y-1 text-xs text-muted-foreground">
-                <li>Name: {systemStatus.bucket.name}</li>
-                <li>Exists: {systemStatus.bucket.exists ? "yes" : "no"}</li>
-                <li>Objects: {systemStatus.bucket.object_count}</li>
-                <li>Disabled: {systemStatus.bucket.disabled ? "yes" : "no"}</li>
-                {systemStatus.bucket.error && <li>Error: {systemStatus.bucket.error}</li>}
-              </ul>
-            ) : (
-              <p className="text-xs text-muted-foreground">No information available.</p>
-            )}
-          </article>
-        </div>
-      </section>
-
-      <section className="space-y-3 rounded border border-border p-4 text-sm">
-        <h2 className="text-base font-semibold text-foreground">Core Operations</h2>
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={() => void handleInitialize()}
-            className="rounded bg-primary px-4 py-2 font-medium text-primary-foreground disabled:opacity-50"
-            disabled={initLoading || deleteLoading}
-          >
-            {initLoading ? "Initializing..." : "Initialize storage"}
-          </button>
-          <button
-            type="button"
-            onClick={confirmDelete}
-            className="rounded border border-red-500 px-4 py-2 font-medium text-red-600 disabled:opacity-50 dark:text-red-400"
-            disabled={deleteLoading || initLoading}
-          >
-            {deleteLoading ? "Deleting..." : "Delete storage"}
-          </button>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Initialization prepares the Qdrant collection and optionally the MinIO bucket. Deletion removes those resources.
-        </p>
-      </section>
-
-      <section className="space-y-3 rounded border border-border p-4 text-sm">
-        <h2 className="text-base font-semibold text-foreground">Reset Actions</h2>
-        <p className="text-xs text-muted-foreground">
-          These operations clear data from specific backends. Confirm each action before continuing.
-        </p>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {RESET_ACTIONS.map((action) => (
-            <article key={action.id} className="space-y-2 rounded border border-dashed border-border p-3">
-              <h3 className="text-sm font-semibold text-foreground">{action.title}</h3>
-              <p className="text-xs text-muted-foreground">{action.description}</p>
-              <button
-                type="button"
-                onClick={() => handleMaintenanceAction(action.id)}
-                className="rounded border border-border px-3 py-2 text-xs font-medium text-foreground disabled:opacity-50"
-                disabled={loading[action.id] || initLoading || deleteLoading}
+    <Page
+      title="Maintenance"
+      description="Monitor storage status and run maintenance operations against the FastAPI endpoints."
+      actions={headerActions}
+    >
+      <PageSection>
+        <Card>
+          <CardHeader className="gap-3">
+            <CardTitle>System overview</CardTitle>
+            <CardDescription>
+              Review whether storage is ready before performing destructive operations.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-(--space-section-stack)">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+              <Badge
+                variant={isSystemReady ? "secondary" : "destructive"}
+                data-state={isSystemReady ? "ready" : "not-ready"}
               >
-                {loading[action.id] ? "Running..." : "Run action"}
-              </button>
-            </article>
-          ))}
-        </div>
-      </section>
-    </main>
-  );
+                System ready: {isSystemReady ? "Yes" : "No"}
+              </Badge>
+            {statusLoading && <span>Fetching latest status...</span>}
+            </div>
+
+            <div className="grid gap-(--space-section-stack) sm:grid-cols-2">
+              <StatusPanel
+                title="Collection"
+                loading={statusLoading}
+                items={
+                  systemStatus?.collection
+                    ? [
+                        ["Name", systemStatus.collection.name],
+                        ["Exists", systemStatus.collection.exists ? "Yes" : "No"],
+                        ["Vectors", String(systemStatus.collection.vector_count)],
+                        ["Files", String(systemStatus.collection.unique_files)],
+                        systemStatus.collection.error
+                          ? ["Error", systemStatus.collection.error]
+                          : null,
+                      ].filter(Boolean) as Array<[string, string]>
+                    : undefined
+                }
+              />
+              <StatusPanel
+                title="Bucket"
+                loading={statusLoading}
+                items={
+                  systemStatus?.bucket
+                    ? [
+                        ["Name", systemStatus.bucket.name],
+                        ["Exists", systemStatus.bucket.exists ? "Yes" : "No"],
+                        ["Objects", String(systemStatus.bucket.object_count)],
+                        ["Disabled", systemStatus.bucket.disabled ? "Yes" : "No"],
+                        systemStatus.bucket.error
+                          ? ["Error", systemStatus.bucket.error]
+                          : null,
+                      ].filter(Boolean) as Array<[string, string]>
+                    : undefined
+                }
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </PageSection>
+
+      <PageSection>
+        <Card>
+          <CardHeader className="gap-3">
+            <CardTitle>Core operations</CardTitle>
+            <CardDescription>
+              Initialize or tear down shared storage resources used by the system.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-(--space-section-stack)">
+            <div className="flex flex-wrap gap-3">
+              <Button
+                onClick={() => void handleInitialize()}
+                disabled={initLoading || deleteLoading}
+              >
+                {initLoading ? "Initializing..." : "Initialize storage"}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Initialization prepares the Qdrant collection and optionally the MinIO bucket. Deletion removes those
+              resources and is available from the page actions above.
+            </p>
+          </CardContent>
+        </Card>
+      </PageSection>
+
+      <PageSection>
+        <Card>
+          <CardHeader className="gap-3">
+            <CardTitle>Reset actions</CardTitle>
+            <CardDescription>
+              Clear data from specific backends. Confirm each action before continuing.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-(--space-section-stack) sm:grid-cols-2 lg:grid-cols-3">
+              {RESET_ACTIONS.map((action) => (
+                <Card key={action.id}>
+                  <CardHeader className="gap-2">
+                    <CardTitle className="text-base">{action.title}</CardTitle>
+                    <CardDescription>{action.description}</CardDescription>
+                  </CardHeader>
+                  <CardFooter>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleMaintenanceAction(action.id)}
+                      disabled={loading[action.id] || initLoading || deleteLoading}
+                    >
+                      {loading[action.id] ? "Running..." : "Run action"}
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </PageSection>
+    </Page>
+  )
 }
 
+type StatusPanelProps = {
+  title: string
+  loading: boolean
+  items?: Array<[string, string]>
+}
+
+function StatusPanel({ title, loading, items }: StatusPanelProps) {
+  return (
+    <Card className="border-border/40 shadow-none">
+      <CardHeader className="gap-1">
+        <CardTitle className="text-sm">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-1 text-xs text-muted-foreground">
+        {loading ? (
+          <p>Loading...</p>
+        ) : items && items.length > 0 ? (
+          <ul className="space-y-1">
+            {items.map(([label, value]) => (
+              <li key={label}>
+                <span className="font-medium text-foreground">{label}:</span> {value}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>No information available.</p>
+        )}
+      </CardContent>
+    </Card>
+  )
+}

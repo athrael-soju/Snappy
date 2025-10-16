@@ -53,6 +53,10 @@
   --shadow-2xl: 0px 1px 3px 0px hsl(0 0% 0% / 0.43);
   --tracking-normal: 0.025em;
   --spacing: 0.25rem;
+  --layout-container-width: 72rem;
+  --layout-container-padding: calc(var(--spacing) * 6);
+  --layout-stack-gap: calc(var(--spacing) * 6);
+  --section-stack-gap: calc(var(--spacing) * 4);
 }
 
 .dark {
@@ -166,6 +170,11 @@
   --tracking-wide: calc(var(--tracking-normal) + 0.025em);
   --tracking-wider: calc(var(--tracking-normal) + 0.05em);
   --tracking-widest: calc(var(--tracking-normal) + 0.1em);
+
+  --container-page: var(--layout-container-width);
+  --space-container-inline: var(--layout-container-padding);
+  --space-page-stack: var(--layout-stack-gap);
+  --space-section-stack: var(--section-stack-gap);
 }
 
 body {

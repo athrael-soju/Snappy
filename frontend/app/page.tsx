@@ -1,6 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+
+import { Page, PageSection } from "@/components/layout/page";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 const sections = [
   {
@@ -37,36 +42,50 @@ const sections = [
 
 export default function Home() {
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-8 p-6">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold text-foreground">FastAPI / Next.js / ColPali Template</h1>
-        <p className="text-sm text-muted-foreground">
-          A minimal starter project that wires together document ingestion, visual embeddings, and conversational search.
-        </p>
-      </header>
-
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold text-foreground">Getting Around</h2>
-        <ul className="grid gap-3 sm:grid-cols-2">
+    <Page
+      title="Home"
+      description="A minimal starter template that connects document ingestion, visual embeddings, and conversational search."
+    >
+      <PageSection>
+        <div className="grid gap-(--space-section-stack) sm:grid-cols-2">
           {sections.map((section) => (
-            <li key={section.href} className="rounded border border-border p-4 transition-colors hover:border-primary">
-              <Link href={section.href} className="flex flex-col gap-2">
-                <span className="text-base font-medium text-primary">{section.title}</span>
-                <span className="text-sm text-muted-foreground">{section.description}</span>
-              </Link>
-            </li>
+            <Card key={section.href} className="h-full">
+              <CardHeader className="gap-3">
+                <CardTitle className="text-lg">{section.title}</CardTitle>
+                <CardDescription>{section.description}</CardDescription>
+              </CardHeader>
+              <CardFooter className="pt-0">
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="sm"
+                  className="px-0 text-primary hover:text-primary"
+                >
+                  <Link href={section.href} className="inline-flex items-center gap-2">
+                    Explore
+                    <ArrowRight aria-hidden className="size-4" />
+                  </Link>
+                </Button>
+              </CardFooter>
+            </Card>
           ))}
-        </ul>
-      </section>
+        </div>
+      </PageSection>
 
-      <section className="space-y-2 text-sm leading-relaxed text-muted-foreground">
-        <p>
-          This stripped-down interface keeps the essential flows available without animations or component libraries. Use the navigation above to upload files, run searches, chat over indexed content, or manage configuration.
-        </p>
-        <p>
-          Backend services are reachable through the Next.js API client. Update your environment variables if the API endpoint changes.
-        </p>
-      </section>
-    </main>
+      <PageSection>
+        <Card>
+          <CardContent className="space-y-4 text-muted-foreground">
+            <p>
+              Use the navigation above to upload files, run visual searches, chat over indexed content, or review system
+              configuration in one consistent workspace.
+            </p>
+            <p>
+              Backend services stay reachable through the Next.js API client. Update environment variables if the API
+              endpoint changes or new credentials are required.
+            </p>
+          </CardContent>
+        </Card>
+      </PageSection>
+    </Page>
   );
 }
