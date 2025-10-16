@@ -120,7 +120,7 @@ export default function SearchPage() {
                   disabled={!isReady}
                 />
                 
-                {/* Inline Button Group */}
+                {/* Inline Search Button */}
                 <div className="flex shrink-0 items-center gap-2">
                   <Button
                     type="submit"
@@ -139,18 +139,6 @@ export default function SearchPage() {
                         <span className="hidden sm:inline">Search</span>
                       </>
                     )}
-                  </Button>
-                  
-                  <Button
-                    type="button"
-                    onClick={clearResults}
-                    size="sm"
-                    variant="ghost"
-                    disabled={!hasSearched && !query}
-                    className="h-9 gap-2 rounded-full px-3"
-                  >
-                    <X className="h-4 w-4" />
-                    <span className="hidden sm:inline">Clear</span>
                   </Button>
                 </div>
               </div>
@@ -217,15 +205,8 @@ export default function SearchPage() {
           {/* Results Section */}
           {(hasSearched || loading) && (
             <div className="flex min-h-0 flex-1 flex-col space-y-4">
-              {/* Results Header */}
+              {/* Results Header - Stats Only */}
               <div className="flex flex-wrap items-center justify-center gap-3">
-                <Badge variant="outline" className="gap-2 px-3 py-1">
-                  <Sparkles className="h-3 w-3 text-primary" />
-                  <span className="font-semibold">
-                    {loading ? "Searching..." : `${truncatedResults.length} Results`}
-                  </span>
-                </Badge>
-                
                 {hasSearched && searchDurationMs !== null && (
                   <Badge variant="outline" className="gap-2 px-3 py-1">
                     <Clock className="h-3 w-3" />
@@ -261,7 +242,28 @@ export default function SearchPage() {
 
               {/* Results List */}
               {!loading && truncatedResults.length > 0 && (
-                <div className="min-h-0 flex-1 space-y-2 overflow-y-auto rounded-xl border border-border/50 bg-card/30 p-3 backdrop-blur-sm">
+                <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-border/50 bg-card/30 p-3 backdrop-blur-sm">
+                  {/* List Header */}
+                  <div className="mb-2 flex shrink-0 items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      <h3 className="text-sm font-bold">
+                        {truncatedResults.length} {truncatedResults.length === 1 ? "Result" : "Results"}
+                      </h3>
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={clearResults}
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 gap-1.5 rounded-full px-2 text-xs"
+                    >
+                      <X className="h-3 w-3" />
+                      Clear
+                    </Button>
+                  </div>
+                  
+                  <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
                   {truncatedResults.map((item, index) => (
                     <article 
                       key={`${item.label ?? index}-${index}`} 
@@ -315,6 +317,7 @@ export default function SearchPage() {
                       </div>
                     </article>
                   ))}
+                  </div>
                 </div>
               )}
             </div>
