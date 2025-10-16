@@ -49,29 +49,28 @@ export default function UploadPage() {
   const selectedFiles = files ? Array.from(files) : [];
 
   return (
-    <div className="relative flex min-h-full flex-col justify-between overflow-hidden">
-      <div className="flex flex-1 flex-col justify-center px-4 py-4 sm:px-6 lg:px-8">
-        <div className="mx-auto w-full max-w-5xl space-y-6">
+    <div className="relative flex h-full min-h-full flex-col overflow-hidden">
+      <div className="flex h-full flex-1 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-full w-full max-w-5xl flex-col space-y-4">
           {/* Header Section */}
-          <div className="space-y-3 text-center">
-
-            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
+          <div className="shrink-0 space-y-2 text-center">
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
               <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
                 Upload & Index
               </span>
-              <br />
+              {" "}
               <span className="bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-500 bg-clip-text text-transparent">
                 Your Documents
               </span>
             </h1>
             
-            <p className="mx-auto max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+            <p className="mx-auto max-w-2xl text-xs leading-relaxed text-muted-foreground sm:text-sm">
               Drop your documents and let ColPali&apos;s vision AI understand both text and layout.
             </p>
           </div>
 
           {/* Compact System Status */}
-          <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
+          <div className="flex shrink-0 flex-wrap items-center justify-center gap-2 text-xs">
             <Badge 
               variant={isReady ? "default" : "destructive"}
               className="gap-1.5 px-3 py-1"
@@ -136,7 +135,7 @@ export default function UploadPage() {
           </div>
 
           {/* Upload Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col space-y-4">
             {/* Drag & Drop Zone */}
             <div
               className={`group relative overflow-hidden rounded-2xl border-2 border-dashed transition-all ${
@@ -164,19 +163,57 @@ export default function UploadPage() {
                   </p>
                 </div>
                 
-                <label htmlFor="file-input">
-                  <Button 
-                    type="button"
-                    variant="outline"
-                    size="default"
-                    disabled={uploading}
-                    className="gap-2 rounded-full border-2 bg-background/50 px-5 backdrop-blur-sm cursor-pointer"
-                    onClick={() => document.getElementById('file-input')?.click()}
-                  >
-                    <FileText className="h-4 w-4" />
-                    Browse Files
-                  </Button>
-                </label>
+                <div className="flex items-center gap-2">
+                  <label htmlFor="file-input">
+                    <Button 
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={uploading}
+                      className="gap-2 rounded-full border-2 bg-background/50 px-4 backdrop-blur-sm cursor-pointer"
+                      onClick={() => document.getElementById('file-input')?.click()}
+                    >
+                      <FileText className="h-4 w-4" />
+                      Browse
+                    </Button>
+                  </label>
+                  
+                  {hasFiles && (
+                    <>
+                      <Button
+                        type="submit"
+                        size="sm"
+                        disabled={!hasFiles || uploading || !isReady}
+                        className="group gap-2 rounded-full px-4 shadow-lg shadow-primary/20"
+                      >
+                        {uploading ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span className="hidden sm:inline">Uploading...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="h-4 w-4" />
+                            <span className="hidden sm:inline">Upload</span>
+                          </>
+                        )}
+                      </Button>
+                      
+                      {uploading && (
+                        <Button
+                          type="button"
+                          onClick={handleCancel}
+                          size="sm"
+                          variant="ghost"
+                          className="gap-2 rounded-full px-3"
+                        >
+                          <X className="h-4 w-4" />
+                          <span className="hidden sm:inline">Cancel</span>
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
                 
                 <input
                   id="file-input"
@@ -191,15 +228,15 @@ export default function UploadPage() {
 
             {/* Selected Files */}
             {hasFiles && (
-              <div className="rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm">
-                <div className="mb-3 flex items-center gap-2">
+              <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-border/50 bg-card/50 p-3 backdrop-blur-sm">
+                <div className="mb-2 flex shrink-0 items-center gap-2">
                   <Sparkles className="h-4 w-4 text-primary" />
                   <h3 className="text-sm font-bold">
                     Ready to Upload ({fileCount} {fileCount === 1 ? "file" : "files"})
                   </h3>
                 </div>
                 
-                <div className="max-h-32 space-y-1.5 overflow-y-auto">
+                <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto">
                   {selectedFiles.map((file, index) => (
                     <div 
                       key={file.name}
@@ -274,41 +311,6 @@ export default function UploadPage() {
               </div>
             )}
 
-            {/* Action Buttons */}
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <Button
-                type="submit"
-                size="lg"
-                disabled={!hasFiles || uploading || !isReady}
-                className="group h-11 gap-2 rounded-full px-6 shadow-xl shadow-primary/25 transition-all hover:shadow-2xl hover:shadow-primary/30"
-              >
-                {uploading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="h-4 w-4" />
-                    Start Upload
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                  </>
-                )}
-              </Button>
-              
-              {uploading && (
-                <Button
-                  type="button"
-                  onClick={handleCancel}
-                  size="lg"
-                  variant="outline"
-                  className="h-11 gap-2 rounded-full border-2 bg-background/50 px-6 backdrop-blur-sm"
-                >
-                  <X className="h-4 w-4" />
-                  Cancel
-                </Button>
-              )}
-            </div>
           </form>
         </div>
       </div>
