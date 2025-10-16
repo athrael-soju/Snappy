@@ -39,6 +39,7 @@ export default function UploadPage() {
     handleFileSelect,
     handleUpload,
     handleCancel,
+    handleClear,
   } = useFileUpload();
 
   const handleSubmit = async (event: FormEvent) => {
@@ -229,11 +230,24 @@ export default function UploadPage() {
             {/* Selected Files */}
             {hasFiles && (
               <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-border/50 bg-card/50 p-3 backdrop-blur-sm">
-                <div className="mb-2 flex shrink-0 items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  <h3 className="text-sm font-bold">
-                    Ready to Upload ({fileCount} {fileCount === 1 ? "file" : "files"})
-                  </h3>
+                <div className="mb-2 flex shrink-0 items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <h3 className="text-sm font-bold">
+                      Ready to Upload ({fileCount} {fileCount === 1 ? "file" : "files"})
+                    </h3>
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={handleClear}
+                    size="sm"
+                    variant="ghost"
+                    disabled={uploading}
+                    className="h-7 gap-1.5 rounded-full px-2 text-xs"
+                  >
+                    <X className="h-3 w-3" />
+                    Clear
+                  </Button>
                 </div>
                 
                 <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto">

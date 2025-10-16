@@ -147,6 +147,12 @@ export function useFileUpload() {
     cancelUpload();
   }, [cancelUpload]);
 
+  const handleClear = useCallback(() => {
+    setFiles(null);
+    setMessage(null);
+    setError(null);
+  }, [setFiles, setMessage, setError]);
+
   return {
     // State
     files,
@@ -170,6 +176,7 @@ export function useFileUpload() {
     handleFileSelect,
     handleUpload,
     handleCancel,
+    handleClear,
   };
 }
 
