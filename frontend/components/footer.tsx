@@ -5,42 +5,47 @@ export function Footer() {
   const currentYear = new Date().getFullYear()
 
   return (
-    <footer className="border-t border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 py-5 text-base sm:flex-row sm:px-6 lg:px-8">
-        <p className="text-center text-muted-foreground sm:text-left">
-          © {currentYear} Snappy! Crafted for lightning-fast visual retrieval.
-        </p>
-        
-        <div className="flex flex-wrap items-center justify-center gap-1.5 text-muted-foreground">
-          <span>Powered by</span>
-          <Link 
-            href="https://github.com/illuin-tech/colpali" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="font-medium text-primary hover:underline"
-          >
-            FastAPI
-          </Link>
-          <span>,</span>
-          <Link 
-            href="https://nextjs.org" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="font-medium text-primary hover:underline"
-          >
-            Next.js
-          </Link>
-          <span>, and the</span>
-          <Link 
-            href="https://github.com/illuin-tech/colpali" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="font-medium text-primary hover:underline"
-          >
-            ColPali
-          </Link>
-          <span>vision stack</span>
-          <Heart className="ml-1.5 h-4 w-4 fill-primary text-primary" aria-hidden />
+    <footer className="relative border-t border-border/40 bg-background/80 backdrop-blur-xl">
+      {/* Subtle gradient line at bottom */}
+      <div className="absolute inset-x-0 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+      
+      <div className="container mx-auto px-4 py-6">
+        <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+          <p className="text-center text-base text-muted-foreground sm:text-left">
+            © {currentYear} <span className="font-semibold text-foreground">Snappy!</span> Crafted for lightning-fast visual retrieval.
+          </p>
+          
+          <div className="flex flex-wrap items-center justify-center gap-2 text-base text-muted-foreground">
+            <span>Powered by</span>
+            <Link 
+              href="https://fastapi.tiangolo.com" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="font-semibold text-primary transition-colors hover:text-primary/80 hover:underline"
+            >
+              FastAPI
+            </Link>
+            <span>,</span>
+            <Link 
+              href="https://nextjs.org" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="font-semibold text-primary transition-colors hover:text-primary/80 hover:underline"
+            >
+              Next.js
+            </Link>
+            <span>, and the</span>
+            <Link 
+              href="https://github.com/illuin-tech/colpali" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="font-semibold text-primary transition-colors hover:text-primary/80 hover:underline"
+            >
+              ColPali
+            </Link>
+            <span>vision stack</span>
+            <Heart className="ml-2 h-5 w-5 fill-primary text-primary transition-transform hover:scale-110" aria-hidden />
+          </div>
         </div>
       </div>
     </footer>
