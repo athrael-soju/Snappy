@@ -2,16 +2,18 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "@/lib/api/client";
 import { Nav } from "@/components/nav";
+import { Footer } from "@/components/footer";
 import { Toaster } from "sonner";
 import { AppStoreProvider } from "@/stores/app-store";
+import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
-  title: "FastAPI / Next.js / ColPali Template",
-  description: "Search, upload and chat with your visual documents",
+  title: "Snappy! - Your Friendly Vision Retrieval Buddy",
+  description: "Lightning-fast visual document search, upload, and conversational AI powered by ColPali",
   icons: {
-    icon: "/favicon.png",
-    shortcut: "/favicon.png",
-    apple: "/favicon.png",
+    icon: "/Snappy/snappy_light_nobg_resized.png",
+    shortcut: "/Snappy/snappy_light_nobg_resized.png",
+    apple: "/Snappy/snappy_light_nobg_resized.png",
   },
 };
 
@@ -21,15 +23,31 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className="bg-background text-foreground antialiased">
-        <AppStoreProvider>
-          <Toaster position="top-right" />
-          <div className="min-h-dvh">
-            <Nav />
-            <main>{children}</main>
-          </div>
-        </AppStoreProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <AppStoreProvider>
+            <Toaster position="top-right" />
+            {/* 3-row viewport-constrained layout */}
+            <div className="flex h-dvh flex-col overflow-hidden">
+              {/* Row 1: Fixed Header */}
+              <Nav />
+              
+              {/* Row 2: Scrollable Content */}
+              <main className="flex-1 overflow-y-auto">
+                {children}
+              </main>
+              
+              {/* Row 3: Fixed Footer */}
+              <Footer />
+            </div>
+          </AppStoreProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
