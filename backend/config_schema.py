@@ -38,6 +38,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
     "application": {
         "order": 1,
         "icon": "settings",
+        "ui_hidden": True,
         "name": "Core Application",
         "description": "Core application settings",
         "settings": [
@@ -101,13 +102,13 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
     },
     "colpali": {
         "order": 3,
+        "ui_hidden": True,
         "icon": "brain",
         "name": "Embedding Model",
         "description": "ColPali embedding model configuration",
         "settings": [
             {
                 "key": "COLPALI_MODE",
-                "ui_hidden": True,
                 "type": "str",
                 "default": "gpu",
                 "label": "Processing Mode",
@@ -118,7 +119,6 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
             },
             {
                 "key": "COLPALI_CPU_URL",
-                "ui_hidden": True,
                 "type": "str",
                 "default": "http://localhost:7001",
                 "label": "CPU Service URL",
@@ -128,7 +128,6 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
             },
             {
                 "key": "COLPALI_GPU_URL",
-                "ui_hidden": True,
                 "type": "str",
                 "default": "http://localhost:7002",
                 "label": "GPU Service URL",

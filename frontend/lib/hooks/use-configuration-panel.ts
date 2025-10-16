@@ -31,6 +31,7 @@ export interface ConfigCategory {
   order: number;
   icon: string;
   settings: ConfigSetting[];
+  ui_hidden?: boolean;
 }
 
 export type ConfigSchema = Record<string, ConfigCategory>;

@@ -18,6 +18,7 @@ class ConfigCategory(BaseModel):
     name: str
     description: str
     settings: List[Dict[str, Any]]
+    ui_hidden: bool = False
 
 
 class ConfigUpdate(BaseModel):
