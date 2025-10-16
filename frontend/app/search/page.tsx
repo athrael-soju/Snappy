@@ -145,7 +145,7 @@ export default function SearchPage() {
             </div>
 
             {/* Settings Grid */}
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <div className="rounded-xl border border-border/50 bg-card/50 p-3 backdrop-blur-sm">
                 <label className="flex flex-col gap-2">
                   <span className="text-xs font-medium text-muted-foreground">Neighbors (k)</span>
@@ -170,34 +170,24 @@ export default function SearchPage() {
                   />
                 </label>
               </div>
+              <div className="rounded-xl border border-border/50 bg-card/50 p-3 backdrop-blur-sm">
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs font-medium text-muted-foreground">Search Duration</span>
+                  <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-background px-3 py-2 text-sm">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">
+                      {searchDurationMs !== null ? `${(searchDurationMs / 1000).toFixed(2)}s` : '—'}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Error Message */}
             {error && (
-              <div className="flex items-center gap-2 rounded-lg bg-red-500/10 px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400">
+              <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive">
                 <AlertCircle className="h-4 w-4" />
                 {error}
-              </div>
-            )}
-
-            {/* Suggested Queries */}
-            {suggestedQueries.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">Quick suggestions:</p>
-                <div className="flex flex-wrap gap-2">
-                  {suggestedQueries.map((item) => (
-                    <Button
-                      key={item}
-                      type="button"
-                      onClick={() => setQuery(item)}
-                      variant="outline"
-                      size="sm"
-                      className="h-auto rounded-full px-3 py-1.5 text-xs"
-                    >
-                      {item}
-                    </Button>
-                  ))}
-                </div>
               </div>
             )}
           </form>
@@ -207,13 +197,6 @@ export default function SearchPage() {
             <div className="flex min-h-0 flex-1 flex-col space-y-4">
               {/* Results Header - Stats Only */}
               <div className="flex flex-wrap items-center justify-center gap-3">
-                {hasSearched && searchDurationMs !== null && (
-                  <Badge variant="outline" className="gap-2 px-3 py-1">
-                    <Clock className="h-3 w-3" />
-                    {(searchDurationMs / 1000).toFixed(2)}s
-                  </Badge>
-                )}
-                
                 {hasSearched && results.length > topK && (
                   <Badge variant="secondary" className="px-3 py-1 text-xs">
                     Showing {truncatedResults.length} of {results.length}

@@ -26,21 +26,21 @@ const CORE_OPERATIONS = [
     title: "Initialize Storage",
     description: "Prepare the Qdrant collection and optionally the MinIO bucket for data storage.",
     icon: Play,
-    color: "from-blue-500 to-cyan-500"
+    gradient: "from-chart-1 to-chart-2"
   },
   {
     id: "delete",
     title: "Delete Storage",
     description: "Permanently remove the collection and bucket resources from the system.",
     icon: Trash2,
-    color: "from-orange-500 to-amber-500"
+    gradient: "from-chart-4 to-chart-3"
   },
   {
     id: "reset",
     title: "Reset All Data",
     description: "Remove every stored document, embedding, and image from the entire system.",
     icon: ShieldAlert,
-    color: "from-red-500 to-rose-500"
+    gradient: "from-destructive to-destructive/80"
   }
 ];
 
@@ -62,17 +62,17 @@ export default function MaintenancePage() {
   };
 
   return (
-    <div className="relative flex h-full min-h-full flex-col overflow-hidden">
-      <div className="flex h-full flex-1 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mx-auto flex h-full w-full max-w-5xl flex-col space-y-4">
+    <div className="relative flex min-h-full flex-col overflow-hidden">
+      <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-5xl space-y-4">
           {/* Header Section */}
-          <div className="shrink-0 space-y-2 text-center">
+          <div className="space-y-2 text-center">
             <h1 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
               <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
                 System
               </span>
               {" "}
-              <span className="bg-gradient-to-r from-red-500 via-orange-500 to-red-500 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-destructive via-destructive/80 to-destructive bg-clip-text text-transparent">
                 Maintenance
               </span>
             </h1>
@@ -116,25 +116,23 @@ export default function MaintenancePage() {
             </div>
           </div>
 
-          {/* Scrollable Content */}
-          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
-            {/* Storage Status */}
-            <section className="space-y-3">
+          {/* Storage Status */}
+          <section className="space-y-3">
               <div className="flex items-center gap-2">
                 <Server className="h-5 w-5 text-primary" />
                 <h2 className="text-lg font-bold">Storage Status</h2>
               </div>
               
               <div className="grid gap-3 sm:grid-cols-2">
-                <article className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10">
-                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 opacity-0 transition-opacity group-hover:opacity-5" />
+                <article className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-3 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 sm:p-4">
+                  <div className="absolute inset-0 bg-gradient-to-br from-chart-2 to-chart-3 opacity-0 transition-opacity group-hover:opacity-5" />
                   
                   <div className="relative space-y-3">
                     <div className="flex items-center gap-2">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg">
-                        <Database className="h-5 w-5 text-primary-foreground" />
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-chart-2 to-chart-3 shadow-lg sm:h-10 sm:w-10">
+                        <Database className="h-4 w-4 text-primary-foreground sm:h-5 sm:w-5" />
                       </div>
-                      <h3 className="text-sm font-bold">Qdrant Collection</h3>
+                      <h3 className="min-w-0 flex-1 truncate text-sm font-bold">Qdrant Collection</h3>
                     </div>
                     
                     {statusLoading ? (
@@ -170,7 +168,7 @@ export default function MaintenancePage() {
                           </div>
                         </div>
                         {systemStatus.collection.error && (
-                          <div className="flex items-center gap-2 rounded-lg bg-red-500/10 px-2 py-1.5 text-xs text-red-600 dark:text-red-400">
+                          <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-2 py-1.5 text-xs text-destructive">
                             <AlertCircle className="h-3 w-3" />
                             {systemStatus.collection.error}
                           </div>
@@ -182,15 +180,15 @@ export default function MaintenancePage() {
                   </div>
                 </article>
 
-                <article className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10">
-                  <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-amber-500 opacity-0 transition-opacity group-hover:opacity-5" />
+                <article className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-3 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 sm:p-4">
+                  <div className="absolute inset-0 bg-gradient-to-br from-chart-4 to-chart-3 opacity-0 transition-opacity group-hover:opacity-5" />
                   
                   <div className="relative space-y-3">
                     <div className="flex items-center gap-2">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-amber-500 shadow-lg">
-                        <HardDrive className="h-5 w-5 text-primary-foreground" />
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-chart-4 to-chart-3 shadow-lg sm:h-10 sm:w-10">
+                        <HardDrive className="h-4 w-4 text-primary-foreground sm:h-5 sm:w-5" />
                       </div>
-                      <h3 className="text-sm font-bold">MinIO Bucket</h3>
+                      <h3 className="min-w-0 flex-1 truncate text-sm font-bold">MinIO Bucket</h3>
                     </div>
                     
                     {statusLoading ? (
@@ -228,7 +226,7 @@ export default function MaintenancePage() {
                           </div>
                         </div>
                         {systemStatus.bucket.error && (
-                          <div className="flex items-center gap-2 rounded-lg bg-red-500/10 px-2 py-1.5 text-xs text-red-600 dark:text-red-400">
+                          <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-2 py-1.5 text-xs text-destructive">
                             <AlertCircle className="h-3 w-3" />
                             {systemStatus.bucket.error}
                           </div>
@@ -249,11 +247,11 @@ export default function MaintenancePage() {
                 <h2 className="text-lg font-bold">Core Operations</h2>
               </div>
               
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs leading-relaxed text-muted-foreground">
                 Manage system storage and data lifecycle. Each action requires confirmation and may be irreversible.
               </p>
               
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                 {CORE_OPERATIONS.map((operation) => {
                   const Icon = operation.icon;
                   const isLoading = 
@@ -275,13 +273,13 @@ export default function MaintenancePage() {
                   return (
                     <article 
                       key={operation.id}
-                      className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10"
+                      className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-3 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 sm:p-4"
                     >
-                      <div className={`absolute inset-0 bg-gradient-to-br ${operation.color} opacity-0 transition-opacity group-hover:opacity-5`} />
+                      <div className={`absolute inset-0 bg-gradient-to-br ${operation.gradient} opacity-0 transition-opacity group-hover:opacity-5`} />
                       
                       <div className="relative space-y-3">
-                        <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${operation.color} shadow-lg`}>
-                          <Icon className="h-5 w-5 text-primary-foreground" />
+                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${operation.gradient} shadow-lg sm:h-10 sm:w-10`}>
+                          <Icon className="h-4 w-4 text-primary-foreground sm:h-5 sm:w-5" />
                         </div>
                         <div className="space-y-1">
                           <h3 className="text-sm font-bold">{operation.title}</h3>
@@ -315,7 +313,6 @@ export default function MaintenancePage() {
                 })}
               </div>
             </section>
-          </div>
         </div>
       </div>
     </div>
