@@ -1,36 +1,184 @@
 "use client";
 
+import { 
+  Sparkles, 
+  FileText, 
+  Search, 
+  Settings, 
+  Wrench,
+  MessageSquare,
+  Database,
+  Code2,
+  Zap,
+  Shield,
+  Layers,
+  Cpu
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+
+const features = [
+  {
+    icon: FileText,
+    title: "Document Ingestion",
+    description: "Upload files to the backend, trigger indexing, and stream progress through server-sent events.",
+    color: "from-blue-500 to-cyan-500"
+  },
+  {
+    icon: Search,
+    title: "Vector Search",
+    description: "Query the vector store using natural language and find the most relevant document matches.",
+    color: "from-purple-500 to-pink-500"
+  },
+  {
+    icon: MessageSquare,
+    title: "Conversational Chat",
+    description: "Jump between keyword retrieval and conversational answers using the same vector store.",
+    color: "from-green-500 to-emerald-500"
+  },
+  {
+    icon: Settings,
+    title: "Configuration",
+    description: "Edit backend settings directly with inputs that mirror the OpenAPI schema.",
+    color: "from-orange-500 to-amber-500"
+  },
+  {
+    icon: Wrench,
+    title: "System Maintenance",
+    description: "Monitor storage status, reset data, and run maintenance operations manually.",
+    color: "from-red-500 to-rose-500"
+  }
+];
+
+const technologies = [
+  { icon: Code2, name: "FastAPI", description: "Backend with background workers for indexing and health checks" },
+  { icon: Database, name: "Qdrant", description: "Vector storage and similarity search" },
+  { icon: Sparkles, name: "ColPali", description: "Visual document embeddings with vision AI" },
+  { icon: Layers, name: "Next.js", description: "Frontend using React Server Components and App Router" },
+  { icon: Shield, name: "TypeScript", description: "Type-safe development with OpenAPI code generation" },
+  { icon: Cpu, name: "Docker", description: "Containerized deployment with GPU support" }
+];
+
 export default function AboutPage() {
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-6 p-4">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold text-foreground">About This Template</h1>
-        <p className="text-sm text-muted-foreground">
-          This project combines a FastAPI backend, a Next.js frontend, and ColPali-powered visual embeddings. The goal of this stripped-down interface is to keep the essential flows available without relying on animation libraries or third-party component toolkits.
-        </p>
-      </header>
+    <div className="relative flex h-full min-h-full flex-col overflow-hidden">
+      <div className="flex h-full flex-1 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-full w-full max-w-5xl flex-col space-y-6">
+          {/* Header Section */}
+          <div className="shrink-0 space-y-2 text-center">
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
+              <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
+                About This
+              </span>
+              {" "}
+              <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+                Template
+              </span>
+            </h1>
+            
+            <p className="mx-auto max-w-2xl text-xs leading-relaxed text-muted-foreground sm:text-sm">
+              A modern full-stack template combining FastAPI, Next.js, and ColPali-powered visual embeddings for intelligent document processing.
+            </p>
 
-      <section className="space-y-2 rounded border border-border p-4 text-sm leading-relaxed text-muted-foreground">
-        <p>
-          Document ingestion pushes files to the backend, triggers indexing, and streams progress through server-sent events. Search and chat features query the same vector store so you can jump between keyword retrieval and conversational answers.
-        </p>
-        <p>
-          Configuration and maintenance pages are intentionally basic: they call the same APIs as their earlier counterparts but present the controls as plain form elements. When something goes wrong you can still reset storage, re-run initialization, or tweak environment settings without leaving the browser.
-        </p>
-        <p>
-          Explore the repository to see how each feature is wired. The backend endpoints are generated from OpenAPI definitions, and the stores keep state in a single shared context. You can extend the UI as needed, but this version provides a clean baseline for custom styling.
-        </p>
-      </section>
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+              <Badge variant="outline" className="gap-1.5 px-3 py-1">
+                <Zap className="h-3 w-3 text-yellow-500" />
+                Production Ready
+              </Badge>
+              <Badge variant="outline" className="gap-1.5 px-3 py-1">
+                <Code2 className="h-3 w-3 text-blue-500" />
+                Type Safe
+              </Badge>
+              <Badge variant="outline" className="gap-1.5 px-3 py-1">
+                <Sparkles className="h-3 w-3 text-purple-500" />
+                AI Powered
+              </Badge>
+            </div>
+          </div>
 
-      <section className="space-y-2 rounded border border-border p-4 text-sm">
-        <h2 className="text-base font-semibold text-foreground">Key Technologies</h2>
-        <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
-          <li>FastAPI with background workers for indexing and health checks</li>
-          <li>Qdrant for vector storage and similarity search</li>
-          <li>ColPali models for visual document embeddings</li>
-          <li>Next.js for the frontend, using React Server Components and App Router</li>
-        </ul>
-      </section>
-    </main>
+          {/* Scrollable Content */}
+          <div className="min-h-0 flex-1 space-y-6 overflow-y-auto">
+            {/* Features Grid */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-bold">Key Features</h2>
+              </div>
+              
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {features.map((feature) => {
+                  const Icon = feature.icon;
+                  return (
+                    <article 
+                      key={feature.title}
+                      className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10"
+                    >
+                      <div className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 transition-opacity group-hover:opacity-5`} />
+                      
+                      <div className="relative space-y-2">
+                        <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${feature.color} shadow-lg`}>
+                          <Icon className="h-5 w-5 text-primary-foreground" />
+                        </div>
+                        <h3 className="text-sm font-bold">{feature.title}</h3>
+                        <p className="text-xs leading-relaxed text-muted-foreground">
+                          {feature.description}
+                        </p>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* Technologies */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Layers className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-bold">Technology Stack</h2>
+              </div>
+              
+              <div className="grid gap-3 sm:grid-cols-2">
+                {technologies.map((tech) => {
+                  const Icon = tech.icon;
+                  return (
+                    <article 
+                      key={tech.name}
+                      className="flex gap-3 rounded-xl border border-border/50 bg-card/50 p-3 backdrop-blur-sm transition-all hover:border-primary/50"
+                    >
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-primary/10">
+                        <Icon className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="min-w-0 space-y-1">
+                        <h3 className="text-sm font-bold">{tech.name}</h3>
+                        <p className="text-xs text-muted-foreground">{tech.description}</p>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* Architecture Overview */}
+            <section className="rounded-xl border border-border/50 bg-card/30 p-4 backdrop-blur-sm">
+              <div className="mb-3 flex items-center gap-2">
+                <Database className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-bold">How It Works</h2>
+              </div>
+              
+              <div className="space-y-3 text-sm leading-relaxed text-muted-foreground">
+                <p>
+                  This template provides a complete document intelligence system. Upload PDFs, images, or documents through the modern drag-and-drop interface. The backend processes them using ColPali&apos;s vision AI to understand both text and layout, creating rich embeddings stored in Qdrant.
+                </p>
+                <p>
+                  Search using natural language queries or engage in conversational interactions. Both features leverage the same vector store, allowing seamless transitions between different retrieval modes. The configuration panel lets you tune backend settings in real-time, while maintenance tools help manage storage and data lifecycle.
+                </p>
+                <p>
+                  The entire system is built with modern web standards: TypeScript for type safety, OpenAPI for API contract validation, React Server Components for optimal performance, and shadcn/ui for consistent, accessible components.
+                </p>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

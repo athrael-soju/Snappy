@@ -2,44 +2,56 @@
 
 import "@/lib/api/client";
 import { useSystemStatus, useMaintenanceActions, useSystemManagement } from "@/lib/hooks";
+import { 
+  Wrench, 
+  Database, 
+  HardDrive, 
+  Play, 
+  Trash2, 
+  RefreshCw,
+  AlertCircle,
+  CheckCircle2,
+  Loader2,
+  Server,
+  Zap,
+  ShieldAlert
+} from "lucide-react";
 import type { ActionType } from "@/lib/hooks/use-maintenance-actions";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
-const RESET_ACTIONS: Array<{
-  id: ActionType;
-  title: string;
-  description: string;
-  confirm: string;
-}> = [
-    {
-      id: "all",
-      title: "Reset All Data",
-      description: "Remove every stored document, embedding, and image.",
-      confirm: "Reset the entire system? This permanently removes all data.",
-    },
-    {
-      id: "q",
-      title: "Clear Qdrant",
-      description: "Delete the document vectors stored in Qdrant.",
-      confirm: "Remove all vectors from Qdrant? This cannot be undone.",
-    },
-    {
-      id: "m",
-      title: "Clear MinIO",
-      description: "Delete objects stored in the MinIO bucket (when enabled).",
-      confirm: "Remove all objects from MinIO? This cannot be undone.",
-    },
-  ];
+const CORE_OPERATIONS = [
+  {
+    id: "initialize",
+    title: "Initialize Storage",
+    description: "Prepare the Qdrant collection and optionally the MinIO bucket for data storage.",
+    icon: Play,
+    color: "from-blue-500 to-cyan-500"
+  },
+  {
+    id: "delete",
+    title: "Delete Storage",
+    description: "Permanently remove the collection and bucket resources from the system.",
+    icon: Trash2,
+    color: "from-orange-500 to-amber-500"
+  },
+  {
+    id: "reset",
+    title: "Reset All Data",
+    description: "Remove every stored document, embedding, and image from the entire system.",
+    icon: ShieldAlert,
+    color: "from-red-500 to-rose-500"
+  }
+];
 
 export default function MaintenancePage() {
   const { systemStatus, statusLoading, fetchStatus, isSystemReady } = useSystemStatus();
   const { loading, runAction } = useMaintenanceActions({ onSuccess: fetchStatus });
   const { initLoading, deleteLoading, handleInitialize, handleDelete } = useSystemManagement({ onSuccess: fetchStatus });
 
-  const handleMaintenanceAction = (actionId: ActionType) => {
-    const action = RESET_ACTIONS.find((item) => item.id === actionId);
-    if (!action) return;
-    if (window.confirm(action.confirm)) {
-      void runAction(actionId);
+  const handleResetAll = () => {
+    if (window.confirm("Reset the entire system? This permanently removes all data.")) {
+      void runAction("all");
     }
   };
 
@@ -50,112 +62,263 @@ export default function MaintenancePage() {
   };
 
   return (
-    <main className="mx-auto flex max-w-5xl flex-col gap-6 p-4">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold text-foreground">System Maintenance</h1>
-        <p className="text-sm text-muted-foreground">
-          Monitor storage status and run destructive operations manually. Buttons below interact with the FastAPI maintenance endpoints without any decorative UI.
-        </p>
-        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-          <span>System ready: {isSystemReady ? "yes" : "no"}</span>
-          <button
-            type="button"
-            onClick={fetchStatus}
-            className="rounded border border-border px-3 py-1 font-medium text-foreground disabled:opacity-50"
-            disabled={statusLoading}
-          >
-            {statusLoading ? "Refreshing..." : "Refresh status"}
-          </button>
-        </div>
-      </header>
+    <div className="relative flex h-full min-h-full flex-col overflow-hidden">
+      <div className="flex h-full flex-1 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-full w-full max-w-5xl flex-col space-y-4">
+          {/* Header Section */}
+          <div className="shrink-0 space-y-2 text-center">
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
+              <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
+                System
+              </span>
+              {" "}
+              <span className="bg-gradient-to-r from-red-500 via-orange-500 to-red-500 bg-clip-text text-transparent">
+                Maintenance
+              </span>
+            </h1>
+            
+            <p className="mx-auto max-w-2xl text-xs leading-relaxed text-muted-foreground sm:text-sm">
+              Monitor storage status and run maintenance operations. Handle destructive actions with care.
+            </p>
 
-      <section className="space-y-3 rounded border border-border p-4 text-sm">
-        <h2 className="text-base font-semibold text-foreground">Storage Status</h2>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <article className="rounded border border-dashed border-border p-3">
-            <h3 className="text-sm font-semibold text-foreground">Collection</h3>
-            {statusLoading ? (
-              <p className="text-xs text-muted-foreground">Loading...</p>
-            ) : systemStatus?.collection ? (
-              <ul className="space-y-1 text-xs text-muted-foreground">
-                <li>Name: {systemStatus.collection.name}</li>
-                <li>Exists: {systemStatus.collection.exists ? "yes" : "no"}</li>
-                <li>Vectors: {systemStatus.collection.vector_count}</li>
-                <li>Files: {systemStatus.collection.unique_files}</li>
-                {systemStatus.collection.error && <li>Error: {systemStatus.collection.error}</li>}
-              </ul>
-            ) : (
-              <p className="text-xs text-muted-foreground">No information available.</p>
-            )}
-          </article>
-
-          <article className="rounded border border-dashed border-border p-3">
-            <h3 className="text-sm font-semibold text-foreground">Bucket</h3>
-            {statusLoading ? (
-              <p className="text-xs text-muted-foreground">Loading...</p>
-            ) : systemStatus?.bucket ? (
-              <ul className="space-y-1 text-xs text-muted-foreground">
-                <li>Name: {systemStatus.bucket.name}</li>
-                <li>Exists: {systemStatus.bucket.exists ? "yes" : "no"}</li>
-                <li>Objects: {systemStatus.bucket.object_count}</li>
-                <li>Disabled: {systemStatus.bucket.disabled ? "yes" : "no"}</li>
-                {systemStatus.bucket.error && <li>Error: {systemStatus.bucket.error}</li>}
-              </ul>
-            ) : (
-              <p className="text-xs text-muted-foreground">No information available.</p>
-            )}
-          </article>
-        </div>
-      </section>
-
-      <section className="space-y-3 rounded border border-border p-4 text-sm">
-        <h2 className="text-base font-semibold text-foreground">Core Operations</h2>
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={() => void handleInitialize()}
-            className="rounded bg-primary px-4 py-2 font-medium text-primary-foreground disabled:opacity-50"
-            disabled={initLoading || deleteLoading}
-          >
-            {initLoading ? "Initializing..." : "Initialize storage"}
-          </button>
-          <button
-            type="button"
-            onClick={confirmDelete}
-            className="rounded border border-red-500 px-4 py-2 font-medium text-red-600 disabled:opacity-50 dark:text-red-400"
-            disabled={deleteLoading || initLoading}
-          >
-            {deleteLoading ? "Deleting..." : "Delete storage"}
-          </button>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Initialization prepares the Qdrant collection and optionally the MinIO bucket. Deletion removes those resources.
-        </p>
-      </section>
-
-      <section className="space-y-3 rounded border border-border p-4 text-sm">
-        <h2 className="text-base font-semibold text-foreground">Reset Actions</h2>
-        <p className="text-xs text-muted-foreground">
-          These operations clear data from specific backends. Confirm each action before continuing.
-        </p>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {RESET_ACTIONS.map((action) => (
-            <article key={action.id} className="space-y-2 rounded border border-dashed border-border p-3">
-              <h3 className="text-sm font-semibold text-foreground">{action.title}</h3>
-              <p className="text-xs text-muted-foreground">{action.description}</p>
-              <button
-                type="button"
-                onClick={() => handleMaintenanceAction(action.id)}
-                className="rounded border border-border px-3 py-2 text-xs font-medium text-foreground disabled:opacity-50"
-                disabled={loading[action.id] || initLoading || deleteLoading}
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+              <Badge 
+                variant={isSystemReady ? "default" : "destructive"}
+                className="gap-1.5 px-3 py-1"
               >
-                {loading[action.id] ? "Running..." : "Run action"}
-              </button>
-            </article>
-          ))}
+                {isSystemReady ? (
+                  <>
+                    <CheckCircle2 className="h-3 w-3" />
+                    System Ready
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="h-3 w-3" />
+                    Not Ready
+                  </>
+                )}
+              </Badge>
+              
+              <Button
+                onClick={fetchStatus}
+                disabled={statusLoading}
+                variant="ghost"
+                size="sm"
+                className="h-6 gap-1.5 rounded-full px-3 text-xs"
+              >
+                {statusLoading ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3 w-3" />
+                )}
+                Refresh
+              </Button>
+            </div>
+          </div>
+
+          {/* Scrollable Content */}
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
+            {/* Storage Status */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Server className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-bold">Storage Status</h2>
+              </div>
+              
+              <div className="grid gap-3 sm:grid-cols-2">
+                <article className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10">
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 opacity-0 transition-opacity group-hover:opacity-5" />
+                  
+                  <div className="relative space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg">
+                        <Database className="h-5 w-5 text-primary-foreground" />
+                      </div>
+                      <h3 className="text-sm font-bold">Qdrant Collection</h3>
+                    </div>
+                    
+                    {statusLoading ? (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Loading...
+                      </div>
+                    ) : systemStatus?.collection ? (
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            {systemStatus.collection.name}
+                          </Badge>
+                          <Badge 
+                            variant={systemStatus.collection.exists ? "default" : "destructive"}
+                            className="gap-1 text-xs"
+                          >
+                            {systemStatus.collection.exists ? (
+                              <><CheckCircle2 className="h-3 w-3" /> Exists</>
+                            ) : (
+                              <><AlertCircle className="h-3 w-3" /> Not Found</>
+                            )}
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div className="rounded-lg bg-muted/50 px-2 py-1.5">
+                            <p className="text-muted-foreground">Vectors</p>
+                            <p className="font-semibold">{systemStatus.collection.vector_count?.toLocaleString() ?? 0}</p>
+                          </div>
+                          <div className="rounded-lg bg-muted/50 px-2 py-1.5">
+                            <p className="text-muted-foreground">Files</p>
+                            <p className="font-semibold">{systemStatus.collection.unique_files?.toLocaleString() ?? 0}</p>
+                          </div>
+                        </div>
+                        {systemStatus.collection.error && (
+                          <div className="flex items-center gap-2 rounded-lg bg-red-500/10 px-2 py-1.5 text-xs text-red-600 dark:text-red-400">
+                            <AlertCircle className="h-3 w-3" />
+                            {systemStatus.collection.error}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">No information available.</p>
+                    )}
+                  </div>
+                </article>
+
+                <article className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10">
+                  <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-amber-500 opacity-0 transition-opacity group-hover:opacity-5" />
+                  
+                  <div className="relative space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-amber-500 shadow-lg">
+                        <HardDrive className="h-5 w-5 text-primary-foreground" />
+                      </div>
+                      <h3 className="text-sm font-bold">MinIO Bucket</h3>
+                    </div>
+                    
+                    {statusLoading ? (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Loading...
+                      </div>
+                    ) : systemStatus?.bucket ? (
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            {systemStatus.bucket.name}
+                          </Badge>
+                          <Badge 
+                            variant={systemStatus.bucket.exists && !systemStatus.bucket.disabled ? "default" : "destructive"}
+                            className="gap-1 text-xs"
+                          >
+                            {systemStatus.bucket.exists && !systemStatus.bucket.disabled ? (
+                              <><CheckCircle2 className="h-3 w-3" /> Active</>
+                            ) : systemStatus.bucket.disabled ? (
+                              <><AlertCircle className="h-3 w-3" /> Disabled</>
+                            ) : (
+                              <><AlertCircle className="h-3 w-3" /> Not Found</>
+                            )}
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div className="rounded-lg bg-muted/50 px-2 py-1.5">
+                            <p className="text-muted-foreground">Objects</p>
+                            <p className="font-semibold">{systemStatus.bucket.object_count?.toLocaleString() ?? 0}</p>
+                          </div>
+                          <div className="rounded-lg bg-muted/50 px-2 py-1.5">
+                            <p className="text-muted-foreground">Status</p>
+                            <p className="font-semibold">{systemStatus.bucket.disabled ? "Disabled" : "Enabled"}</p>
+                          </div>
+                        </div>
+                        {systemStatus.bucket.error && (
+                          <div className="flex items-center gap-2 rounded-lg bg-red-500/10 px-2 py-1.5 text-xs text-red-600 dark:text-red-400">
+                            <AlertCircle className="h-3 w-3" />
+                            {systemStatus.bucket.error}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">No information available.</p>
+                    )}
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            {/* Core Operations */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Wrench className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-bold">Core Operations</h2>
+              </div>
+              
+              <p className="text-xs text-muted-foreground">
+                Manage system storage and data lifecycle. Each action requires confirmation and may be irreversible.
+              </p>
+              
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {CORE_OPERATIONS.map((operation) => {
+                  const Icon = operation.icon;
+                  const isLoading = 
+                    (operation.id === "initialize" && initLoading) ||
+                    (operation.id === "delete" && deleteLoading) ||
+                    (operation.id === "reset" && loading["all"]);
+                  const isDisabled = initLoading || deleteLoading || loading["all"];
+                  
+                  const handleClick = () => {
+                    if (operation.id === "initialize") {
+                      void handleInitialize();
+                    } else if (operation.id === "delete") {
+                      confirmDelete();
+                    } else if (operation.id === "reset") {
+                      handleResetAll();
+                    }
+                  };
+                  
+                  return (
+                    <article 
+                      key={operation.id}
+                      className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10"
+                    >
+                      <div className={`absolute inset-0 bg-gradient-to-br ${operation.color} opacity-0 transition-opacity group-hover:opacity-5`} />
+                      
+                      <div className="relative space-y-3">
+                        <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${operation.color} shadow-lg`}>
+                          <Icon className="h-5 w-5 text-primary-foreground" />
+                        </div>
+                        <div className="space-y-1">
+                          <h3 className="text-sm font-bold">{operation.title}</h3>
+                          <p className="text-xs leading-relaxed text-muted-foreground">{operation.description}</p>
+                        </div>
+                        <Button
+                          type="button"
+                          onClick={handleClick}
+                          disabled={isDisabled}
+                          variant={operation.id === "reset" ? "destructive" : operation.id === "delete" ? "outline" : "default"}
+                          size="sm"
+                          className="w-full gap-2 rounded-full"
+                        >
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              {operation.id === "initialize" ? "Initializing..." : 
+                               operation.id === "delete" ? "Deleting..." : "Resetting..."}
+                            </>
+                          ) : (
+                            <>
+                              <Icon className="h-4 w-4" />
+                              {operation.id === "initialize" ? "Initialize" : 
+                               operation.id === "delete" ? "Delete" : "Reset All"}
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          </div>
         </div>
-      </section>
-    </main>
+      </div>
+    </div>
   );
 }
 
