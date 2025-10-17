@@ -366,7 +366,7 @@ class DocumentIndexer:
             )
 
         processed = completed if total_images <= 0 else total_images
-        return f"Uploaded and converted {processed} pages"
+        return f"Uploaded and processed {processed} pages"
 
     def _index_documents_pipelined(
         self,
@@ -465,4 +465,4 @@ class DocumentIndexer:
                 raise
 
         processed = completed_count if total_images <= 0 else total_images
-        return f"Uploaded and converted {processed} pages (pipelined mode)"
+        return f"Uploaded and processed {processed} pages (pipelined mode)"
