@@ -40,10 +40,10 @@ export function Nav() {
   }, [])
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-xl">
+    <header className="relative sticky top-0 z-50 shrink-0 border-b border-border/40 bg-background/80 backdrop-blur-xl">
       {/* Subtle gradient line at top */}
       <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
-      
+
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between gap-6">
           {/* Logo with enhanced styling */}
@@ -118,17 +118,17 @@ export function Nav() {
             {/* Mobile Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild className="md:hidden">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
+                <Button
+                  variant="ghost"
+                  size="icon"
                   className="h-11 w-11 rounded-full hover:bg-primary/10 hover:text-primary transition-all"
                 >
                   <Menu className="h-6 w-6" />
                   <span className="sr-only">Open menu</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent 
-                align="end" 
+              <DropdownMenuContent
+                align="end"
                 className="w-56 rounded-2xl border-border/50 bg-card/95 backdrop-blur-xl"
               >
                 {links.map((link) => {
@@ -143,8 +143,8 @@ export function Nav() {
                         href={link.href}
                         className={cn(
                           "w-full cursor-pointer rounded-xl px-3 py-2 transition-all",
-                          isActive 
-                            ? "bg-primary/10 text-primary font-semibold" 
+                          isActive
+                            ? "bg-primary/10 text-primary font-semibold"
                             : "hover:bg-muted/50"
                         )}
                       >

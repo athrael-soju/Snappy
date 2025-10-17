@@ -6,7 +6,6 @@ import { Footer } from "@/components/footer";
 import { Toaster } from "sonner";
 import { AppStoreProvider } from "@/stores/app-store";
 import { ThemeProvider } from "@/components/theme-provider";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 export const metadata: Metadata = {
   title: "Snappy! - Your Friendly Vision Retrieval Buddy",
@@ -24,8 +23,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className="font-sans bg-background text-foreground antialiased">
+    <html lang="en" suppressHydrationWarning className="h-full">
+      <body className="h-dvh overflow-hidden bg-background font-sans text-foreground antialiased">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -34,17 +33,15 @@ export default function RootLayout({
         >
           <AppStoreProvider>
             <Toaster position="top-right" />
-            {/* 3-row viewport-constrained layout */}
-            <div className="flex h-dvh flex-col overflow-hidden">
+            {/* 3-row viewport-aware layout with persistent footer */}
+            <div className="flex h-full min-h-0 flex-col">
               {/* Row 1: Fixed Header */}
               <Nav />
-              
-              {/* Row 2: Scrollable Content */}
-              <ScrollArea className="flex-1">
+              {/* Row 2: Component-controlled scroll area */}
+              <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
                 {children}
-              </ScrollArea>
-              
-              {/* Row 3: Fixed Footer */}
+              </main>
+              {/* Row 3: Persistent Footer */}
               <Footer />
             </div>
           </AppStoreProvider>

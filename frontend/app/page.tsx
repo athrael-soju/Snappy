@@ -1,14 +1,13 @@
 "use client"
 
 import Link from "next/link"
-import { 
-  ArrowRight, 
-  Upload, 
-  Search, 
-  MessageSquare, 
-  Settings, 
+import {
+  ArrowRight,
+  Upload,
+  Search,
+  MessageSquare,
+  Settings,
   Wrench,
-  Info,
   Sparkles,
   Zap,
 } from "lucide-react"
@@ -42,24 +41,23 @@ const primaryFeatures = [
 const secondaryLinks = [
   { title: "Configuration", href: "/configuration", icon: Settings },
   { title: "Maintenance", href: "/maintenance", icon: Wrench },
-  { title: "About", href: "/about", icon: Info },
 ]
 
 export default function Home() {
   return (
-    <div className="relative flex min-h-full flex-col justify-between overflow-hidden">
+    <div className="relative flex flex-1 min-h-0 flex-col justify-between overflow-y-auto">
       {/* Hero Content - Full viewport utilization */}
       <div className="flex flex-1 flex-col justify-center px-4 py-4 text-center sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-6xl space-y-8">
           {/* Badge */}
-          <Badge 
-            variant="outline" 
+          <Badge
+            variant="outline"
             className="border-primary/30 bg-primary/5 px-4 py-1.5 text-sm font-medium backdrop-blur-sm"
           >
             <Sparkles className="mr-2 h-3.5 w-3.5" />
             Powered by ColPali Vision AI
           </Badge>
-          
+
           {/* Heading */}
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
             <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
@@ -70,17 +68,17 @@ export default function Home() {
               Document Intelligence
             </span>
           </h1>
-          
+
           {/* Description */}
           <p className="mx-auto max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Search and chat with your documents using natural language. 
+            Search and chat with your documents using natural language.
             Advanced visual AI understands context, not just keywords.
           </p>
-          
+
           {/* CTA Buttons */}
           <div className="flex flex-wrap items-center justify-center gap-4">
-            <Button 
-              asChild 
+            <Button
+              asChild
               size="lg"
               className="group h-12 gap-2 rounded-full px-6 text-base shadow-xl shadow-primary/25 transition-all hover:shadow-2xl hover:shadow-primary/30"
             >
@@ -90,10 +88,10 @@ export default function Home() {
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
             </Button>
-            <Button 
-              asChild 
+            <Button
+              asChild
               size="lg"
-              variant="outline" 
+              variant="outline"
               className="h-12 gap-2 rounded-full border-2 bg-background/50 px-6 text-base backdrop-blur-sm transition-all hover:bg-background"
             >
               <Link href="/chat">
@@ -113,19 +111,19 @@ export default function Home() {
             {/* Feature Cards */}
             <div className="grid gap-4 md:grid-cols-3">
               {primaryFeatures.map((feature, index) => (
-                <Link 
+                <Link
                   key={feature.href}
                   href={feature.href}
                   className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card/50 p-5 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
                   <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 transition-opacity group-hover:opacity-5`} />
-                  
+
                   <div className="relative flex items-start gap-3">
                     <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${feature.gradient} shadow-lg`}>
                       <feature.icon className="h-6 w-6 text-primary-foreground" />
                     </div>
-                    
+
                     <div className="flex-1 text-left">
                       <h3 className="mb-1.5 text-base font-bold">{feature.title}</h3>
                       <p className="mb-2 text-sm leading-relaxed text-muted-foreground">
