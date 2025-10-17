@@ -99,47 +99,37 @@ export default function Home() {
         variants={containerVariants}
       >
         <div className="mx-auto w-full max-w-6xl space-y-8">
-          {/* Badge */}
-          <motion.div variants={itemVariants}>
-            <Badge
-              variant="outline"
-              className="border-primary/30 bg-primary/5 px-4 py-1.5 text-body font-medium backdrop-blur-sm"
-            >
-              <Sparkles className="mr-2 size-icon-2xs" />
-              Snappy! Powered by the ColPali Vision
-            </Badge>
-          </motion.div>
 
           {/* Brandmark */}
           <motion.div variants={itemVariants}>
-            <div className="relative mx-auto flex h-28 w-28 items-center justify-center rounded-full bg-gradient-to-br from-primary/15 via-primary/5 to-transparent shadow-[0_25px_75px_-30px_rgba(255,64,129,0.6)] sm:h-36 sm:w-36">
-              <div className="absolute inset-0 rounded-full bg-primary/40 opacity-60 blur-3xl" />
+            <div className="relative mx-auto flex hero-logo-frame items-center justify-center sm:hero-logo-frame-lg">
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-br from-primary/30 via-primary/15 to-transparent opacity-90 blur-2xl hero-logo-radiance"
+              />
               {mounted && (
                 <Image
                   src={logoSrc}
                   alt="Snappy logo"
-                  width={180}
-                  height={180}
+                  width={270}
+                  height={270}
                   priority
-                  className="relative h-24 w-24 object-contain drop-shadow-2xl sm:h-32 sm:w-32"
+                  className="relative hero-logo-image object-contain drop-shadow-2xl sm:hero-logo-image-lg"
                 />
               )}
             </div>
+            {/* Heading */}
+            <motion.h1
+              className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl"
+              variants={itemVariants}
+            >
+              <span className="bg-gradient-to-r from-primary via-chart-4 to-chart-1 bg-clip-text text-transparent">
+                Your Vision Retrieval Buddy!
+              </span>
+            </motion.h1>
           </motion.div>
 
-          {/* Heading */}
-          <motion.h1
-            className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl"
-            variants={itemVariants}
-          >
-            <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
-              Meet Snappy!
-            </span>
-            <br />
-            <span className="bg-gradient-to-r from-primary via-chart-4 to-chart-1 bg-clip-text text-transparent">
-              Vision-First Knowledge Retrieval
-            </span>
-          </motion.h1>
+
 
           {/* Description */}
           <motion.p
@@ -158,7 +148,7 @@ export default function Home() {
             <Button
               asChild
               size="lg"
-              className="group h-12 gap-2 rounded-full px-6 text-body shadow-xl shadow-primary/25 transition-all hover:shadow-2xl hover:shadow-primary/30 touch-manipulation"
+              className="group h-12 gap-2 rounded-full px-6 hero-cta-text shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-primary/40 touch-manipulation"
             >
               <Link href="/upload">
                 <Upload className="size-icon-md" />

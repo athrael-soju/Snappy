@@ -193,10 +193,10 @@ function ChatMessage({ message, isLoading, onOpenCitation }: ChatMessageProps) {
                 images={
                   Array.isArray(message.citations)
                     ? message.citations.map((item) => ({
-                        url: item.url ?? null,
-                        label: item.label ?? null,
-                        score: item.score ?? null,
-                      }))
+                      url: item.url ?? null,
+                      label: item.label ?? null,
+                      score: item.score ?? null,
+                    }))
                     : []
                 }
                 onImageClick={(url, label) => onOpenCitation?.(url, label)}
@@ -450,11 +450,6 @@ export default function ChatPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1, duration: 0.3 }}
           >
-            <div className="flex justify-center">
-              <Badge variant="outline" className="border-primary/30 bg-primary/5 px-3 py-1 text-body-xs font-semibold text-primary">
-                Snappy conversation engine
-              </Badge>
-            </div>
             <h1 className="text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">
               <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
                 Chat with

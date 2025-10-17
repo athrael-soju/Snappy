@@ -7,6 +7,7 @@
   /* Updated to use gradient colors from the images */
   --background: oklch(0.98 0.01 90);
   --foreground: oklch(0.25 0.02 280);
+  --hero-cta-text: var(--foreground);
   --card: oklch(0.99 0.01 85);
   --card-foreground: oklch(0.25 0.02 280);
   --popover: oklch(1.0 0 0);
@@ -83,6 +84,7 @@
   /* Updated dark mode to complement gradient colors */
   --background: oklch(0.18 0.03 260);
   --foreground: oklch(0.95 0.02 90);
+  --hero-cta-text: var(--background);
   --card: oklch(0.22 0.03 260);
   --card-foreground: oklch(0.95 0.02 90);
   --popover: oklch(0.22 0.03 260);
@@ -193,7 +195,7 @@
   * {
     @apply border-border outline-ring/50;
   }
-  
+
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
@@ -263,6 +265,35 @@
 }
 
 @layer utilities {
+
+  .hero-logo-frame {
+    width: 10.5rem;
+    height: 10.5rem;
+  }
+
+  .hero-logo-frame-lg {
+    width: 13.5rem;
+    height: 13.5rem;
+  }
+
+  .hero-logo-image {
+    width: 9rem;
+    height: 9rem;
+  }
+
+  .hero-logo-image-lg {
+    width: 12rem;
+    height: 12rem;
+  }
+
+  .hero-cta-text {
+    color: var(--hero-cta-text);
+  }
+
+  .hero-logo-radiance {
+    box-shadow: 0 25px 75px -30px rgb(255 64 129 / 0.6);
+  }
+
   /* Icon size utilities that map to our design system */
   .size-icon-3xs {
     width: var(--icon-3xs);
@@ -452,7 +483,7 @@
 
   /* Responsive text sizes that work with our base font size */
   .text-body-xs {
-    font-size: 0.8125rem;
+    font-size: 1rem;
     line-height: 1.5;
   }
 
