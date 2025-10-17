@@ -360,19 +360,37 @@ export default function UploadPage() {
                   </div>
                 )}
                 
-                {message && (
-                  <div className="flex items-center gap-2 rounded-lg bg-chart-2/10 px-3 py-2 text-body-xs font-medium text-chart-2 dark:text-chart-2">
-                    <CheckCircle2 className="size-icon-xs" />
-                    {message}
-                  </div>
-                )}
+                <AnimatePresence initial={false} mode="sync">
+                  {message && (
+                    <motion.div
+                      key="upload-success"
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.25, ease: "easeInOut" }}
+                      className="flex items-center gap-2 rounded-lg bg-chart-2/10 px-3 py-2 text-body-xs font-medium text-chart-2 dark:text-chart-2"
+                    >
+                      <CheckCircle2 className="size-icon-xs" />
+                      {message}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
                 
-                {error && (
-                  <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-body-xs font-medium text-destructive dark:text-destructive">
-                    <AlertCircle className="size-icon-xs" />
-                    {error}
-                  </div>
-                )}
+                <AnimatePresence initial={false} mode="sync">
+                  {error && (
+                    <motion.div
+                      key="upload-error"
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.25, ease: "easeInOut" }}
+                      className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-body-xs font-medium text-destructive dark:text-destructive"
+                    >
+                      <AlertCircle className="size-icon-xs" />
+                      {error}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             )}
             </AnimatePresence>

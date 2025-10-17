@@ -3,6 +3,9 @@ import { useUploadStore } from "@/stores/app-store";
 import { ApiError } from "@/lib/api/generated";
 import { toast } from "sonner";
 
+const SUCCESS_MESSAGE_DISMISS_MS = 4500;
+const ERROR_MESSAGE_DISMISS_MS = 6000;
+
 export function useFileUpload() {
   const {
     files,
@@ -30,7 +33,7 @@ export function useFileUpload() {
     if (message && !uploading) {
       const timer = setTimeout(() => {
         setMessage(null);
-      }, 10000);
+      }, SUCCESS_MESSAGE_DISMISS_MS);
       return () => clearTimeout(timer);
     }
   }, [message, uploading, setMessage]);
@@ -39,7 +42,7 @@ export function useFileUpload() {
     if (error && !uploading) {
       const timer = setTimeout(() => {
         setError(null);
-      }, 10000);
+      }, ERROR_MESSAGE_DISMISS_MS);
       return () => clearTimeout(timer);
     }
   }, [error, uploading, setError]);
