@@ -1,10 +1,341 @@
 "use client";
 
-import { ChangeEvent } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef } from "react";
+import type { FormEvent } from "react";
 import "@/lib/api/client";
 import { useChat } from "@/lib/hooks/use-chat";
 import { useSystemStatus } from "@/stores/app-store";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import {
+  AlertCircle,
+  Bot,
+  Clock3,
+  Loader2,
+  MessageCircle,
+  Send,
+  Sparkles,
+  Timer,
+  User,
+  Wand2,
+  Telescope,
+  ClipboardCheck,
+} from "lucide-react";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupTextarea,
+} from "@/components/ui/input-group";
+
+const starterPrompts = [
+  {
+    title: "Summarize the latest upload",
+    description: "Capture the decisions, risks, and owners from the newest board packet.",
+    tag: "Summary",
+    icon: ClipboardCheck,
+    emoji: "📄",
+    prompt: "Summarize the key decisions, risks, and owners in the latest board update deck.",
+  },
+  {
+    title: "Surface visual evidence",
+    description: "Point new teammates at diagrams that explain our architecture.",
+    tag: "Architecture",
+    icon: Telescope,
+    emoji: "🏗️",
+    prompt: "Find slides or diagrams that explain the system architecture and cite their sources.",
+  },
+  {
+    title: "Stress test assumptions",
+    description: "Ask what edge cases could break the current rollout plan.",
+    tag: "Planning",
+    icon: Wand2,
+    emoji: "🧪",
+    prompt: "List assumptions or edge cases in the rollout plan that need a follow-up review.",
+  },
+  {
+    title: "Compare requirements",
+    description: "Highlight any gaps between product specs and legal checklists.",
+    tag: "Analysis",
+    icon: MessageCircle,
+    emoji: "⚖️",
+    prompt: "Compare the product requirements with the legal checklist and note conflicting items.",
+  },
+];
+
+type StarterPromptItemProps = {
+  item: (typeof starterPrompts)[0];
+  onClick: (prompt: string) => void;
+};
+
+function StarterPromptItem({ item, onClick }: StarterPromptItemProps) {
+  return (
+    <button
+      key={item.prompt}
+      type="button"
+      onClick={() => onClick(item.prompt)}
+      className="group relative overflow-hidden rounded-2xl border border-border/20 bg-background/90 p-4 text-left shadow-xs transition hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+    >
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-blue-500/5 opacity-0 transition group-hover:opacity-100" />
+      <div className="relative flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xl flex-shrink-0">{item.emoji}</span>
+          <Badge variant="outline" className="rounded-full border-primary/30 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary flex-shrink-0">
+            {item.tag}
+          </Badge>
+        </div>
+        <h3 className="text-xs font-semibold text-foreground leading-tight">{item.title}</h3>
+        <p className="text-[10px] text-muted-foreground line-clamp-2">{item.description}</p>
+      </div>
+    </button>
+  );
+}
+
+type RecentQuestionsProps = {
+  questions: Array<{ id: string; content: string }>;
+  onSelect: (content: string) => void;
+};
+
+function RecentQuestions({ questions, onSelect }: RecentQuestionsProps) {
+  if (questions.length === 0) return null;
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <Clock3 className="h-3.5 w-3.5" />
+        Recent questions
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {questions.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => onSelect(item.content)}
+            className="group inline-flex items-center gap-2 rounded-full border border-border/25 bg-background/85 px-4 py-1.5 text-xs text-muted-foreground transition hover:border-primary/50 hover:text-foreground"
+          >
+            <MessageCircle className="h-3.5 w-3.5 text-primary transition group-hover:text-primary" />
+            <span className="line-clamp-1">{item.content}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+type ChatMessageProps = {
+  message: { id: string; role: string; content: string; citations?: Array<{ url?: string | null; label?: string | null; score?: number | null }> };
+  isLoading?: boolean;
+};
+
+function ChatMessage({ message, isLoading }: ChatMessageProps) {
+  const isUser = message.role === "user";
+  return (
+    <div className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}>
+      <div
+        className={cn(
+          "max-w-[85%] rounded-2xl p-4 text-sm shadow-sm transition overflow-hidden",
+          isUser
+            ? "bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-500 text-primary-foreground"
+            : "bg-background/60 text-foreground dark:bg-background/40",
+        )}
+      >
+        <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">
+          {isUser ? (
+            <>
+              <User className="h-3.5 w-3.5 opacity-90" />
+              You
+            </>
+          ) : (
+            <>
+              <Bot className="h-3.5 w-3.5 text-primary" />
+              Assistant
+            </>
+          )}
+        </div>
+        {isLoading ? (
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1">
+              <span className="h-2 w-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "0ms" }} />
+              <span className="h-2 w-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "150ms" }} />
+              <span className="h-2 w-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "300ms" }} />
+            </div>
+            <span className="text-xs">Thinking...</span>
+          </div>
+        ) : (
+          <p className={cn("whitespace-pre-wrap leading-relaxed break-words min-w-0", isUser ? "text-primary-foreground/90" : "text-foreground/90")}>
+            {message.content || (!isUser ? "..." : "")}
+          </p>
+        )}
+
+        {!isUser && message.citations && message.citations.length > 0 && (
+          <div className="mt-3 space-y-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Citations</p>
+            <div className="flex flex-wrap gap-2">
+              {message.citations.map((item, index) => (
+                <a
+                  key={`${item.url ?? index}-${index}`}
+                  href={item.url ?? undefined}
+                  target={item.url ? "_blank" : undefined}
+                  rel={item.url ? "noreferrer" : undefined}
+                  className="inline-flex min-w-[180px] items-center justify-between gap-3 rounded-xl border border-border/25 bg-background/85 px-3 py-2 text-xs text-primary transition hover:border-primary/50 hover:text-primary"
+                >
+                  <span className="line-clamp-2 text-left font-medium">{item.label ?? "Referenced item"}</span>
+                  {typeof item.score === "number" && (
+                    <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-[10px] font-semibold">
+                      {Math.round(item.score * 100)}%
+                    </Badge>
+                  )}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+type ChatComposerProps = {
+  input: string;
+  onInputChange: (value: string) => void;
+  isReady: boolean;
+  loading: boolean;
+  isSendDisabled: boolean;
+  toolCallingEnabled: boolean;
+  onToolToggle: (checked: boolean) => void;
+  k: number;
+  maxTokens: number;
+  onNumberChange: (event: ChangeEvent<HTMLInputElement>, setter: (value: number) => void) => void;
+  setK: (value: number) => void;
+  setMaxTokens: (value: number) => void;
+  isSettingsValid: boolean;
+  sendMessage: (event: FormEvent<HTMLFormElement>) => void;
+  error: string | null;
+  reset: () => void;
+  messages: Array<{ id: string; role: string; content: string }>;
+};
+
+function ChatComposer({
+  input,
+  onInputChange,
+  isReady,
+  loading,
+  isSendDisabled,
+  toolCallingEnabled,
+  onToolToggle,
+  k,
+  maxTokens,
+  onNumberChange,
+  setK,
+  setMaxTokens,
+  isSettingsValid,
+  sendMessage,
+  error,
+  reset,
+  messages,
+}: ChatComposerProps) {
+  return (
+    <form onSubmit={sendMessage} className="sticky bottom-0 left-0 right-0 z-10 px-4 pb-10 sm:px-6">
+      <div className="mx-auto w-full max-w-6xl">
+        <InputGroup>
+          <InputGroupTextarea
+            id="chat-input-area"
+            value={input}
+            onChange={(event) => onInputChange(event.target.value)}
+            placeholder="Ask anything about your documents..."
+            disabled={!isReady}
+            className="py-2"
+          />
+          <InputGroupAddon align="inline-end" className="gap-1">
+            <Popover>
+              <PopoverTrigger asChild>
+                <InputGroupButton
+                  size="icon-sm"
+                  title="Settings"
+                >
+                  <Wand2 className="h-4 w-4" />
+                </InputGroupButton>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 space-y-4">
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground">Retrieval settings</h4>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Tune how many neighbors to fetch and how long responses can be.
+                  </p>
+                </div>
+                <div className="space-y-4 text-sm">
+                  <div className="space-y-2">
+                    <Label htmlFor="chat-k">Neighbors (k)</Label>
+                    <Input
+                      id="chat-k"
+                      type="number"
+                      min={1}
+                      value={k}
+                      onChange={(event) => onNumberChange(event, setK)}
+                    />
+                    <p className="text-xs text-muted-foreground">Higher values broaden context but may introduce noise.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="chat-max-tokens">Max tokens</Label>
+                    <Input
+                      id="chat-max-tokens"
+                      type="number"
+                      min={64}
+                      value={maxTokens}
+                      onChange={(event) => onNumberChange(event, setMaxTokens)}
+                    />
+                    <p className="text-xs text-muted-foreground">Control response length to balance speed with detail.</p>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-border/30 bg-card/40 px-3 py-2">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Allow tool calling</p>
+                      <p className="text-xs text-muted-foreground">Let the assistant call retrieval tools when needed.</p>
+                    </div>
+                    <Switch
+                      id="chat-tool-calling"
+                      checked={toolCallingEnabled}
+                      onCheckedChange={onToolToggle}
+                    />
+                  </div>
+                  {!isSettingsValid && (
+                    <div className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      The selected k value is not valid.
+                    </div>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+            <InputGroupButton
+              type="button"
+              onClick={reset}
+              size="icon-sm"
+              disabled={messages.length === 0 && !input}
+              title="Clear conversation"
+            >
+              <Loader2 className="h-4 w-4" style={{ transform: "rotate(45deg)" }} />
+            </InputGroupButton>
+            <InputGroupButton
+              type="submit"
+              size="icon-sm"
+              className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:from-blue-500/90 hover:to-cyan-500/90"
+              disabled={isSendDisabled}
+              title="Send message"
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            </InputGroupButton>
+          </InputGroupAddon>
+        </InputGroup>
+      </div>
+    </form>
+  );
+}
 
 export default function ChatPage() {
   const {
@@ -26,6 +357,23 @@ export default function ChatPage() {
   } = useChat();
   const { isReady } = useSystemStatus();
 
+  const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length, loading]);
+
+  const recentQuestions = useMemo(
+    () =>
+      messages
+        .filter((msg) => msg.role === "user" && msg.content.trim().length > 0)
+        .slice(-6)
+        .reverse(),
+    [messages],
+  );
+
+  const isSendDisabled = loading || !isReady || !input.trim() || !isSettingsValid;
+
   const handleNumberChange = (event: ChangeEvent<HTMLInputElement>, setter: (value: number) => void) => {
     const next = Number.parseInt(event.target.value, 10);
     if (!Number.isNaN(next)) {
@@ -33,143 +381,134 @@ export default function ChatPage() {
     }
   };
 
+  const handleSuggestionClick = (prompt: string) => {
+    setInput(prompt);
+    const area = document.getElementById("chat-input-area");
+    if (area instanceof HTMLTextAreaElement) {
+      area.focus();
+    }
+  };
+
   return (
-    <main className="mx-auto flex max-w-4xl flex-col gap-6 p-4">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold text-foreground">Chat</h1>
-        <p className="text-sm text-muted-foreground">
-          Ask follow-up questions and explore indexed documents. This minimal chat keeps only the core features needed to talk to the backend.
-        </p>
-        {!isReady && (
-          <p className="text-sm text-red-600 dark:text-red-400">
-            The system is not ready. Initialize storage before sending prompts.
-          </p>
-        )}
-      </header>
+    <div className="relative flex min-h-full flex-1 flex-col overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-blue-500/15 via-transparent to-transparent" />
+        <div className="absolute -top-16 left-10 h-64 w-64 rounded-full bg-purple-500/20 blur-3xl" />
+        <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-cyan-500/15 blur-3xl" />
+      </div>
 
-      <section className="space-y-3 rounded border border-border p-4 text-sm">
-        <h2 className="text-base font-semibold text-foreground">Retrieval Settings</h2>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="flex flex-col gap-1">
-            <span>Neighbors (k)</span>
-            <input
-              type="number"
-              min={1}
-              value={k}
-              onChange={(event) => handleNumberChange(event, setK)}
-              className="rounded border border-border px-3 py-2"
-            />
-          </label>
-
-          <label className="flex flex-col gap-1">
-            <span>Max tokens</span>
-            <input
-              type="number"
-              min={64}
-              value={maxTokens}
-              onChange={(event) => handleNumberChange(event, setMaxTokens)}
-              className="rounded border border-border px-3 py-2"
-            />
-          </label>
-
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={toolCallingEnabled}
-              onChange={(event) => setToolCallingEnabled(event.target.checked)}
-            />
-            <span>Allow tool calling</span>
-          </label>
-        </div>
-        {!isSettingsValid && (
-          <p className="text-xs text-red-600 dark:text-red-400">The selected k value is not valid.</p>
-        )}
-        {timeToFirstTokenMs !== null && (
-          <p className="text-xs text-muted-foreground">
-            Last response latency: {(timeToFirstTokenMs / 1000).toFixed(2)}s to first token.
-          </p>
-        )}
-      </section>
-
-      <section className="flex-1 space-y-3 rounded border border-border p-4">
-        <h2 className="text-base font-semibold text-foreground">Conversation</h2>
-        <ScrollArea className="h-[480px] rounded border border-dashed border-border">
-          <div className="space-y-4 p-3">
-          {messages.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No messages yet. Type a question below and press enter to get started.
+      <div className="flex h-full flex-1 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-10">
+        <div className="mx-auto flex h-full w-full max-w-6xl flex-col gap-8">
+          <div className="shrink-0 space-y-3 text-center">
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
+              <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
+                Chat through
+              </span>{" "}
+              <span className="bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-500 bg-clip-text text-transparent">
+                Your Documents
+              </span>
+            </h1>
+            <p className="mx-auto max-w-2xl text-xs leading-relaxed text-muted-foreground sm:text-sm">
+              Explore uploads with grounded answers, inline citations, and visual cues from the ColPali stack.
             </p>
-          ) : (
-            messages.map((message) => (
-              <article
-                key={message.id}
-                className="space-y-2 rounded bg-muted p-3 text-sm"
-              >
-                <header className="font-semibold text-foreground">
-                  {message.role === "user" ? "You" : "Assistant"}
-                </header>
-                <p className="whitespace-pre-wrap text-foreground">{message.content || (message.role === "assistant" ? "..." : "")}</p>
-                {message.citations && message.citations.length > 0 && (
-                  <ul className="space-y-1 text-xs text-muted-foreground">
-                    {message.citations.map((item, index) => (
-                      <li key={index}>
-                        {item.url ? (
-                          <a href={item.url} target="_blank" rel="noreferrer" className="text-primary underline">
-                            {item.label ?? item.url}
-                          </a>
-                        ) : (
-                          <span>{item.label ?? "Referenced item"}</span>
-                        )}
-                        {typeof item.score === "number" && (
-                          <span className="ml-1">({Math.round(item.score * 100)}%)</span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
+            <div className="flex flex-wrap justify-center gap-2 text-xs">
+              <Badge variant={isReady ? "default" : "destructive"} className="gap-1.5 px-3 py-1.5">
+                {isReady ? (
+                  <>
+                    <Sparkles className="h-3.5 w-3.5 text-primary-foreground" />
+                    Connected to workspace
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    Setup required
+                  </>
                 )}
-              </article>
-            ))
-          )}
-          {loading && (
-            <p className="text-xs text-muted-foreground">Assistant is responding...</p>
-          )}
+              </Badge>
+              {timeToFirstTokenMs !== null && (
+                <Badge variant="secondary" className="gap-1.5 px-3 py-1.5">
+                  <Timer className="h-3.5 w-3.5" />
+                  {(timeToFirstTokenMs / 1000).toFixed(2)}s response time
+                </Badge>
+              )}
+              {toolCallingEnabled && (
+                <Badge variant="outline" className="gap-1.5 px-3 py-1.5 border-primary/30 text-primary">
+                  <Bot className="h-3.5 w-3.5" />
+                  Advanced mode active
+                </Badge>
+              )}
+            </div>
           </div>
-        </ScrollArea>
-      </section>
 
-      <form onSubmit={sendMessage} className="space-y-2 rounded border border-border p-4">
-        <label className="flex flex-col gap-1 text-sm">
-          Your question
-          <textarea
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            rows={3}
-            className="resize-y rounded border border-border px-3 py-2"
-            placeholder="Ask anything about your documents."
-            disabled={!isReady}
+          <section className="relative flex min-h-[520px] flex-1 flex-col overflow-hidden rounded-xl bg-background/30 backdrop-blur-sm">
+
+
+            <div className="relative flex flex-1 overflow-hidden">
+              <ScrollArea className="h-full w-full">
+                <div className="space-y-6 px-6 pb-32 pr-4 sm:px-10">
+                  {messages.length === 0 && (
+                    <div className="space-y-3 rounded-xl bg-background/40 p-4 animate-in fade-in duration-500">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          <Sparkles className="h-3.5 w-3.5 text-primary" />
+                          Try asking
+                        </div>
+                        <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-2">
+                          {starterPrompts.map((item) => (
+                            <StarterPromptItem key={item.prompt} item={item} onClick={handleSuggestionClick} />
+                          ))}
+                        </div>
+                      </div>
+                      <RecentQuestions questions={recentQuestions} onSelect={handleSuggestionClick} />
+                    </div>
+                  )}
+
+                  {messages.map((message, index) => {
+                    const isLastMessage = index === messages.length - 1;
+                    const isLastAssistantMessage = isLastMessage && message.role === "assistant";
+                    return (
+                      <ChatMessage
+                        key={message.id}
+                        message={message}
+                        isLoading={loading && isLastAssistantMessage}
+                      />
+                    );
+                  })}
+
+                  {loading && messages.length === 0 && (
+                    <ChatMessage
+                      key="loading"
+                      message={{ id: "loading", role: "assistant", content: "" }}
+                      isLoading={true}
+                    />
+                  )}
+                  <div ref={endOfMessagesRef} />
+                </div>
+              </ScrollArea>
+            </div>
+          </section>
+          <ChatComposer
+            input={input}
+            onInputChange={setInput}
+            isReady={isReady}
+            loading={loading}
+            isSendDisabled={isSendDisabled}
+            toolCallingEnabled={toolCallingEnabled}
+            onToolToggle={setToolCallingEnabled}
+            k={k}
+            maxTokens={maxTokens}
+            onNumberChange={handleNumberChange}
+            setK={setK}
+            setMaxTokens={setMaxTokens}
+            isSettingsValid={isSettingsValid}
+            sendMessage={sendMessage}
+            error={error}
+            reset={reset}
+            messages={messages}
           />
-        </label>
-
-        <div className="flex flex-wrap gap-3 text-sm">
-          <button
-            type="submit"
-            className="rounded bg-primary px-4 py-2 font-medium text-primary-foreground disabled:opacity-50"
-            disabled={loading || !isReady || !input.trim() || !isSettingsValid}
-          >
-            {loading ? "Sending..." : "Send"}
-          </button>
-          <button
-            type="button"
-            onClick={reset}
-            className="rounded border border-border px-4 py-2 text-foreground disabled:opacity-50"
-            disabled={messages.length === 0 && !input}
-          >
-            Clear conversation
-          </button>
         </div>
-
-        {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-      </form>
-    </main>
+      </div>
+    </div>
   );
 }
+
