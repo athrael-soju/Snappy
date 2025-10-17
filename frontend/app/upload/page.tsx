@@ -49,6 +49,7 @@ export default function UploadPage() {
   };
 
   const selectedFiles = files ? Array.from(files) : [];
+  const isStatusLoading = uploading && (typeof uploadProgress !== "number" || uploadProgress < 100);
 
   return (
     <div className="relative flex h-full min-h-full flex-col overflow-hidden">
@@ -299,7 +300,13 @@ export default function UploadPage() {
                 
                 {statusText && (
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Loader2 className="h-3 w-3 animate-spin" />
+                    {isStatusLoading ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : error ? (
+                      <AlertCircle className="h-3 w-3 text-destructive" />
+                    ) : (
+                      <CheckCircle2 className="h-3 w-3 text-green-500" />
+                    )}
                     {statusText}
                   </div>
                 )}
