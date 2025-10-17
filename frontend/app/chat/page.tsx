@@ -110,7 +110,7 @@ function RecentQuestions({ questions, onSelect }: RecentQuestionsProps) {
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        <Clock3 className="h-3.5 w-3.5" />
+        <Clock3 className="size-icon-xs" />
         Recent questions
       </div>
       <div className="flex flex-wrap gap-2">
@@ -121,7 +121,7 @@ function RecentQuestions({ questions, onSelect }: RecentQuestionsProps) {
             onClick={() => onSelect(item.content)}
             className="group inline-flex items-center gap-2 rounded-full border border-border/25 bg-background/85 px-4 py-2 text-xs text-muted-foreground transition hover:border-primary/50 hover:text-foreground touch-manipulation"
           >
-            <MessageCircle className="h-4 w-4 text-primary transition group-hover:text-primary" />
+            <MessageCircle className="size-icon-sm text-primary transition group-hover:text-primary" />
             <span className="line-clamp-1">{item.content}</span>
           </button>
         ))}
@@ -151,12 +151,12 @@ function ChatMessage({ message, isLoading, onOpenCitation }: ChatMessageProps) {
         <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">
           {isUser ? (
             <>
-              <User className="h-3.5 w-3.5 text-primary" />
+              <User className="size-icon-xs text-primary" />
               <span className="text-primary">You</span>
             </>
           ) : (
             <>
-              <Bot className="h-3.5 w-3.5 text-accent" />
+              <Bot className="size-icon-xs text-accent" />
               <span className="text-accent">Assistant</span>
             </>
           )}
@@ -183,7 +183,7 @@ function ChatMessage({ message, isLoading, onOpenCitation }: ChatMessageProps) {
               />
               {isLoading && (
                 <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <Loader2 className="size-icon-xs animate-spin" />
                   <span>Streaming response...</span>
                 </div>
               )}
@@ -192,9 +192,9 @@ function ChatMessage({ message, isLoading, onOpenCitation }: ChatMessageProps) {
         ) : (
           <div className="flex items-center gap-2">
             <div className="flex gap-1">
-              <span className="h-2 w-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "0ms" }} />
-              <span className="h-2 w-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "150ms" }} />
-              <span className="h-2 w-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "300ms" }} />
+              <span className="size-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "0ms" }} />
+              <span className="size-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "150ms" }} />
+              <span className="size-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "300ms" }} />
             </div>
             <span className="text-xs">Thinking...</span>
           </div>
@@ -262,7 +262,7 @@ function ChatComposer({
                   size="icon-sm"
                   title="Settings"
                 >
-                  <Wand2 className="h-4 w-4" />
+                  <Wand2 className="size-icon-sm" />
                 </InputGroupButton>
               </PopoverTrigger>
               <PopoverContent className="w-80 space-y-4">
@@ -322,7 +322,7 @@ function ChatComposer({
               disabled={isSendDisabled}
               title="Send message"
             >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {loading ? <Loader2 className="size-icon-sm animate-spin" /> : <Send className="size-icon-sm" />}
             </InputGroupButton>
             <InputGroupButton
               type="button"
@@ -331,7 +331,7 @@ function ChatComposer({
               disabled={messages.length === 0 && !input}
               title="Clear conversation"
             >
-              <Loader2 className="h-4 w-4" style={{ transform: "rotate(45deg)" }} />
+              <Loader2 className="size-icon-sm" style={{ transform: "rotate(45deg)" }} />
             </InputGroupButton>            
           </InputGroupAddon>
         </InputGroup>
@@ -426,25 +426,25 @@ export default function ChatPage() {
               <Badge variant={isReady ? "default" : "destructive"} className="gap-1.5 px-3 py-1.5">
                 {isReady ? (
                   <>
-                    <Sparkles className="h-3.5 w-3.5 text-primary-foreground" />
+                    <Sparkles className="size-icon-xs text-primary-foreground" />
                     Connected to workspace
                   </>
                 ) : (
                   <>
-                    <AlertCircle className="h-3.5 w-3.5" />
+                    <AlertCircle className="size-icon-xs" />
                     Setup required
                   </>
                 )}
               </Badge>
               {timeToFirstTokenMs !== null && (
                 <Badge variant="secondary" className="gap-1.5 px-3 py-1.5">
-                  <Timer className="h-3.5 w-3.5" />
+                  <Timer className="size-icon-xs" />
                   {(timeToFirstTokenMs / 1000).toFixed(2)}s response time
                 </Badge>
               )}
               {toolCallingEnabled && (
                 <Badge variant="outline" className="gap-1.5 px-3 py-1.5 border-primary/30 text-primary">
-                  <Bot className="h-3.5 w-3.5" />
+                  <Bot className="size-icon-xs" />
                   Advanced mode active
                 </Badge>
               )}

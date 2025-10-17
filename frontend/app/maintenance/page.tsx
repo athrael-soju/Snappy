@@ -2,6 +2,7 @@
 
 import "@/lib/api/client";
 import { useSystemStatus, useMaintenanceActions, useSystemManagement } from "@/lib/hooks";
+import { useState } from "react";
 import { 
   Wrench, 
   Database, 
@@ -20,6 +21,16 @@ import type { ActionType } from "@/lib/hooks/use-maintenance-actions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const CORE_OPERATIONS = [
   {
@@ -49,17 +60,18 @@ export default function MaintenancePage() {
   const { systemStatus, statusLoading, fetchStatus, isSystemReady } = useSystemStatus();
   const { loading, runAction } = useMaintenanceActions({ onSuccess: fetchStatus });
   const { initLoading, deleteLoading, handleInitialize, handleDelete } = useSystemManagement({ onSuccess: fetchStatus });
+  
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
 
   const handleResetAll = () => {
-    if (window.confirm("Reset the entire system? This permanently removes all data.")) {
-      void runAction("all");
-    }
+    void runAction("all");
+    setResetDialogOpen(false);
   };
 
   const confirmDelete = () => {
-    if (window.confirm("Delete the collection and (if enabled) the bucket? This cannot be undone.")) {
-      void handleDelete();
-    }
+    void handleDelete();
+    setDeleteDialogOpen(false);
   };
 
   return (
@@ -266,9 +278,9 @@ export default function MaintenancePage() {
                     if (operation.id === "initialize") {
                       void handleInitialize();
                     } else if (operation.id === "delete") {
-                      confirmDelete();
+                      setDeleteDialogOpen(true);
                     } else if (operation.id === "reset") {
-                      handleResetAll();
+                      setResetDialogOpen(true);
                     }
                   };
                   
@@ -318,6 +330,60 @@ export default function MaintenancePage() {
           </div>
         </div>
       </ScrollArea>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="border-destructive/50 bg-card/95 backdrop-blur-xl">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10">
+                <Trash2 className="h-5 w-5 text-destructive" />
+              </div>
+              <AlertDialogTitle className="text-xl">Delete Storage?</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="pt-2 text-sm leading-relaxed">
+              This will permanently delete the collection and (if enabled) the bucket. All vectors, metadata, and stored images will be removed. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:gap-2">
+            <AlertDialogCancel className="h-10 rounded-full touch-manipulation">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="h-10 gap-2 rounded-full bg-destructive text-destructive-foreground shadow-lg hover:bg-destructive/90 touch-manipulation"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete Storage
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reset Confirmation Dialog */}
+      <AlertDialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+        <AlertDialogContent className="border-destructive/50 bg-card/95 backdrop-blur-xl">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10">
+                <ShieldAlert className="h-5 w-5 text-destructive" />
+              </div>
+              <AlertDialogTitle className="text-xl">Reset Entire System?</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="pt-2 text-sm leading-relaxed">
+              This will permanently remove <strong className="font-semibold text-foreground">all data</strong> from your system including all documents, embeddings, and images. The storage infrastructure will remain but will be completely empty. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:gap-2">
+            <AlertDialogCancel className="h-10 rounded-full touch-manipulation">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleResetAll}
+              className="h-10 gap-2 rounded-full bg-destructive text-destructive-foreground shadow-lg hover:bg-destructive/90 touch-manipulation"
+            >
+              <ShieldAlert className="h-4 w-4" />
+              Reset Everything
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

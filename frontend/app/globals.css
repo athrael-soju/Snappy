@@ -67,6 +67,12 @@
   /* </CHANGE> */
   --tracking-normal: 0em;
   --spacing: 0.25rem;
+  /* Icon sizes */
+  --icon-xs: 1rem;
+  --icon-sm: 1.125rem;
+  --icon-md: 1.25rem;
+  --icon-lg: 1.5rem;
+  --icon-xl: 2rem;
 }
 
 .dark {
@@ -130,6 +136,12 @@
   --shadow-xl: 3px 3px 0px 0px hsl(195 45% 35% / 1.0), 3px 8px 10px -1px hsl(195 45% 35% / 1.0);
   --shadow-2xl: 3px 3px 0px 0px hsl(195 45% 35% / 2.5);
   /* </CHANGE> */
+  /* Icon sizes */
+  --icon-xs: 1rem;
+  --icon-sm: 1.125rem;
+  --icon-md: 1.25rem;
+  --icon-lg: 1.5rem;
+  --icon-xl: 2rem;
 }
 
 @theme inline {
@@ -177,7 +189,95 @@
   * {
     @apply border-border outline-ring/50;
   }
+  
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.6;
+    letter-spacing: var(--tracking-normal);
+  }
+
+  /* Improved readability on larger screens */
+  @media (min-width: 768px) {
+    body {
+      font-size: 17px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    body {
+      font-size: 18px;
+    }
+  }
+
+  /* Global icon sizing utilities */
+  .icon-xs {
+    width: var(--icon-xs);
+    height: var(--icon-xs);
+  }
+
+  .icon-sm {
+    width: var(--icon-sm);
+    height: var(--icon-sm);
+  }
+
+  .icon-md {
+    width: var(--icon-md);
+    height: var(--icon-md);
+  }
+
+  .icon-lg {
+    width: var(--icon-lg);
+    height: var(--icon-lg);
+  }
+
+  .icon-xl {
+    width: var(--icon-xl);
+    height: var(--icon-xl);
+  }
+}
+
+@layer utilities {
+  /* Icon size utilities that map to our design system */
+  .size-icon-xs {
+    width: var(--icon-xs);
+    height: var(--icon-xs);
+  }
+
+  .size-icon-sm {
+    width: var(--icon-sm);
+    height: var(--icon-sm);
+  }
+
+  .size-icon-md {
+    width: var(--icon-md);
+    height: var(--icon-md);
+  }
+
+  .size-icon-lg {
+    width: var(--icon-lg);
+    height: var(--icon-lg);
+  }
+
+  .size-icon-xl {
+    width: var(--icon-xl);
+    height: var(--icon-xl);
+  }
+
+  /* Responsive text sizes that work with our base font size */
+  .text-body {
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  .text-body-sm {
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  .text-body-lg {
+    font-size: 1.125rem;
+    line-height: 1.7;
   }
 }

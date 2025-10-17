@@ -54,7 +54,7 @@ export default function Home() {
             variant="outline"
             className="border-primary/30 bg-primary/5 px-4 py-1.5 text-sm font-medium backdrop-blur-sm"
           >
-            <Sparkles className="mr-2 h-3.5 w-3.5" />
+            <Sparkles className="mr-2 size-icon-xs" />
             Powered by the ColPali Vision
           </Badge>
 
@@ -104,7 +104,7 @@ export default function Home() {
           {/* Core Features Section */}
           <div className="pt-2">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-muted px-4 py-1.5 text-sm font-medium">
-              <Zap className="h-4 w-4 text-primary" />
+              <Zap className="size-icon-sm text-primary" />
               Core Features
             </div>
 
@@ -131,7 +131,7 @@ export default function Home() {
                       </p>
                       <div className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
                         Explore
-                        <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-2" />
+                        <ArrowRight className="size-icon-xs transition-transform group-hover:translate-x-2" />
                       </div>
                     </div>
                   </div>

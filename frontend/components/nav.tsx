@@ -107,9 +107,9 @@ export function Nav() {
                 className="group h-11 w-11 rounded-full hover:bg-primary/10 hover:text-primary transition-all touch-manipulation"
               >
                 {theme === "dark" ? (
-                  <Sun className="h-6 w-6 transition-transform group-hover:rotate-45 group-hover:scale-110" />
+                  <Sun className="size-icon-lg transition-transform group-hover:rotate-45 group-hover:scale-110" />
                 ) : (
-                  <Moon className="h-6 w-6 transition-transform group-hover:-rotate-12 group-hover:scale-110" />
+                  <Moon className="size-icon-lg transition-transform group-hover:-rotate-12 group-hover:scale-110" />
                 )}
                 <span className="sr-only">Toggle theme</span>
               </Button>
@@ -123,7 +123,7 @@ export function Nav() {
                   size="icon"
                   className="h-11 w-11 rounded-full hover:bg-primary/10 hover:text-primary transition-all touch-manipulation"
                 >
-                  <Menu className="h-6 w-6" />
+                  <Menu className="size-icon-lg" />
                   <span className="sr-only">Open menu</span>
                 </Button>
               </DropdownMenuTrigger>

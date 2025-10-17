@@ -109,7 +109,7 @@ export default function SearchPage() {
             
             {!isReady && (
               <Badge variant="destructive" className="gap-2 text-xs">
-                <AlertCircle className="h-3 w-3" />
+                <AlertCircle className="size-3" />
                 System not ready
               </Badge>
             )}
@@ -122,7 +122,7 @@ export default function SearchPage() {
               <div className="absolute inset-0 bg-gradient-to-br from-primary to-chart-4 opacity-0 transition-opacity group-focus-within:opacity-5" />
               
               <div className="relative flex items-center gap-3 p-3 sm:p-4">
-                <Search className="h-5 w-5 shrink-0 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <Search className="size-icon-md shrink-0 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <input
                   type="text"
                   value={query}
@@ -142,12 +142,12 @@ export default function SearchPage() {
                   >
                     {loading ? (
                       <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <Loader2 className="size-icon-sm animate-spin" />
                         <span className="hidden sm:inline">Searching...</span>
                       </>
                     ) : (
                       <>
-                        <Search className="h-4 w-4" />
+                        <Search className="size-icon-sm" />
                         <span className="hidden sm:inline">Search</span>
                       </>
                     )}
@@ -186,7 +186,7 @@ export default function SearchPage() {
                 <div className="flex flex-col gap-2">
                   <span className="text-xs font-medium text-muted-foreground">Search Duration</span>
                   <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-background px-3 py-2 text-sm">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <Clock className="size-icon-sm text-muted-foreground" />
                     <span className="font-medium">
                       {searchDurationMs !== null ? `${(searchDurationMs / 1000).toFixed(2)}s` : '—'}
                     </span>
@@ -198,7 +198,7 @@ export default function SearchPage() {
             {/* Error Message */}
             {error && (
               <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive">
-                <AlertCircle className="h-4 w-4" />
+                <AlertCircle className="size-icon-sm" />
                 {error}
               </div>
             )}
@@ -219,7 +219,7 @@ export default function SearchPage() {
               {/* Loading State */}
               {loading && (
                 <div className="flex items-center justify-center gap-2 rounded-xl border border-border/50 bg-card/50 p-8 backdrop-blur-sm">
-                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <Loader2 className="size-icon-md animate-spin text-primary" />
                   <p className="text-sm text-muted-foreground">Searching your documents...</p>
                 </div>
               )}
@@ -241,7 +241,7 @@ export default function SearchPage() {
                   {/* List Header */}
                   <div className="mb-2 flex shrink-0 items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-primary" />
+                      <Sparkles className="size-icon-sm text-primary" />
                       <h3 className="text-sm font-bold">
                         {truncatedResults.length} {truncatedResults.length === 1 ? "Result" : "Results"}
                       </h3>
@@ -253,7 +253,7 @@ export default function SearchPage() {
                       variant="ghost"
                       className="h-7 gap-1.5 rounded-full px-2 text-xs"
                     >
-                      <X className="h-3 w-3" />
+                      <X className="size-3" />
                       Clear
                     </Button>
                   </div>
