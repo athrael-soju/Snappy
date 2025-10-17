@@ -106,7 +106,7 @@ export default function MaintenancePage() {
                 disabled={statusLoading}
                 variant="ghost"
                 size="sm"
-                className="h-6 gap-1.5 rounded-full px-3 text-xs"
+                className="h-8 gap-1.5 rounded-full px-4 text-xs touch-manipulation"
               >
                 {statusLoading ? (
                   <Loader2 className="h-3 w-3 animate-spin" />
@@ -126,7 +126,7 @@ export default function MaintenancePage() {
               </div>
               
               <div className="grid gap-3 sm:grid-cols-2">
-                <article className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-3 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 sm:p-4">
+                <article className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 touch-manipulation">
                   <div className="absolute inset-0 bg-gradient-to-br from-chart-2 to-chart-3 opacity-0 transition-opacity group-hover:opacity-5" />
                   
                   <div className="relative space-y-3">
@@ -134,7 +134,7 @@ export default function MaintenancePage() {
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-chart-2 to-chart-3 shadow-lg sm:h-10 sm:w-10">
                         <Database className="h-4 w-4 text-primary-foreground sm:h-5 sm:w-5" />
                       </div>
-                      <h3 className="min-w-0 flex-1 truncate text-sm font-bold">Qdrant Collection</h3>
+                      <h3 className="min-w-0 flex-1 truncate text-sm sm:text-base font-bold">Qdrant Collection</h3>
                     </div>
                     
                     {statusLoading ? (
@@ -182,7 +182,7 @@ export default function MaintenancePage() {
                   </div>
                 </article>
 
-                <article className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-3 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 sm:p-4">
+                <article className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 touch-manipulation">
                   <div className="absolute inset-0 bg-gradient-to-br from-chart-4 to-chart-3 opacity-0 transition-opacity group-hover:opacity-5" />
                   
                   <div className="relative space-y-3">
@@ -190,7 +190,7 @@ export default function MaintenancePage() {
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-chart-4 to-chart-3 shadow-lg sm:h-10 sm:w-10">
                         <HardDrive className="h-4 w-4 text-primary-foreground sm:h-5 sm:w-5" />
                       </div>
-                      <h3 className="min-w-0 flex-1 truncate text-sm font-bold">MinIO Bucket</h3>
+                      <h3 className="min-w-0 flex-1 truncate text-sm sm:text-base font-bold">MinIO Bucket</h3>
                     </div>
                     
                     {statusLoading ? (
@@ -275,7 +275,7 @@ export default function MaintenancePage() {
                   return (
                     <article 
                       key={operation.id}
-                      className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10"
+                      className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 sm:p-5 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 touch-manipulation"
                     >
                       <div className={`absolute inset-0 bg-gradient-to-br ${operation.gradient} opacity-0 transition-opacity group-hover:opacity-5`} />
                       
@@ -283,9 +283,9 @@ export default function MaintenancePage() {
                         <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${operation.gradient} shadow-lg sm:h-10 sm:w-10`}>
                           <Icon className="h-4 w-4 text-primary-foreground sm:h-5 sm:w-5" />
                         </div>
-                        <div className="space-y-1">
-                          <h3 className="text-sm font-bold">{operation.title}</h3>
-                          <p className="text-xs leading-relaxed text-muted-foreground">{operation.description}</p>
+                        <div className="space-y-1.5">
+                          <h3 className="text-sm sm:text-base font-bold">{operation.title}</h3>
+                          <p className="text-xs sm:text-sm leading-relaxed text-muted-foreground">{operation.description}</p>
                         </div>
                         <Button
                           type="button"
@@ -293,7 +293,7 @@ export default function MaintenancePage() {
                           disabled={isDisabled}
                           variant={operation.id === "reset" ? "destructive" : operation.id === "delete" ? "outline" : "default"}
                           size="sm"
-                          className="w-full gap-2 rounded-full"
+                          className="w-full h-10 gap-2 rounded-full touch-manipulation"
                         >
                           {isLoading ? (
                             <>

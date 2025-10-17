@@ -55,7 +55,7 @@ export default function Home() {
             className="border-primary/30 bg-primary/5 px-4 py-1.5 text-sm font-medium backdrop-blur-sm"
           >
             <Sparkles className="mr-2 h-3.5 w-3.5" />
-            Powered by ColPali Vision AI
+            Powered by the ColPali Vision
           </Badge>
 
           {/* Heading */}
@@ -80,7 +80,7 @@ export default function Home() {
             <Button
               asChild
               size="lg"
-              className="group h-11 sm:h-12 gap-2 rounded-full px-5 sm:px-6 text-sm sm:text-base shadow-xl shadow-primary/25 transition-all hover:shadow-2xl hover:shadow-primary/30 touch-manipulation"
+              className="group h-12 gap-2 rounded-full px-6 text-base shadow-xl shadow-primary/25 transition-all hover:shadow-2xl hover:shadow-primary/30 touch-manipulation"
             >
               <Link href="/upload">
                 <Upload className="h-5 w-5" />
@@ -92,7 +92,7 @@ export default function Home() {
               asChild
               size="lg"
               variant="outline"
-              className="h-12 gap-2 rounded-full border-2 bg-background/50 px-6 text-base backdrop-blur-sm transition-all hover:bg-background"
+              className="h-12 gap-2 rounded-full border-2 bg-background/50 px-6 text-base backdrop-blur-sm transition-all hover:bg-background touch-manipulation"
             >
               <Link href="/chat">
                 <MessageSquare className="h-5 w-5" />
@@ -114,7 +114,7 @@ export default function Home() {
                 <Link
                   key={feature.href}
                   href={feature.href}
-                  className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card/50 p-5 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10"
+                  className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card/50 p-5 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10 touch-manipulation"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
                   <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 transition-opacity group-hover:opacity-5`} />
@@ -125,8 +125,8 @@ export default function Home() {
                     </div>
 
                     <div className="flex-1 text-left">
-                      <h3 className="mb-1.5 text-sm font-bold">{feature.title}</h3>
-                      <p className="mb-2 text-xs leading-relaxed text-muted-foreground">
+                      <h3 className="mb-1.5 text-base font-bold">{feature.title}</h3>
+                      <p className="mb-2 text-sm leading-relaxed text-muted-foreground">
                         {feature.description}
                       </p>
                       <div className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">

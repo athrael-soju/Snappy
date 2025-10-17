@@ -47,7 +47,7 @@ export default function CitationHoverCard({
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="ml-1 align-super text-xs font-semibold text-blue-600 hover:text-blue-500 focus-visible:outline-none focus-visible:underline"
+          className="ml-1 align-super text-xs font-semibold text-primary hover:text-primary/80 focus-visible:outline-none focus-visible:underline"
           aria-label={`View citation ${number}`}
           onMouseEnter={handleMouseEnter}
           onFocus={handleMouseEnter}

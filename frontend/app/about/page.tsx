@@ -103,13 +103,13 @@ export default function AboutPage() {
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-10">
           <header className="space-y-6 text-center">
             <div className="space-y-4">
-              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
                 <span className="bg-gradient-to-r from-primary via-chart-4 to-chart-1 bg-clip-text text-transparent">
                   Snappy!
                 </span>{" "}
                 is your launchpad for multimodal retrieval
               </h1>
-              <p className="mx-auto max-w-3xl text-sm leading-relaxed text-muted-foreground">
+              <p className="mx-auto max-w-3xl text-sm sm:text-base leading-relaxed text-muted-foreground">
                 This template stitches together FastAPI, Next.js, ColPali, Qdrant, and MinIO so you can stand up
                 a production-ready vision retrieval stack without rebuilding the plumbing. Upload documents,
                 search visually, and chat with grounded citations out of the box.
@@ -144,14 +144,14 @@ export default function AboutPage() {
             {highlights.map((item) => (
               <Card
                 key={item.title}
-                className="border-border/50 bg-card/60 backdrop-blur transition hover:border-primary/50 hover:shadow-lg hover:shadow-primary/15"
+                className="border-border/50 bg-card/60 backdrop-blur transition hover:border-primary/50 hover:shadow-lg hover:shadow-primary/15 touch-manipulation"
               >
                 <CardHeader className="gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-chart-4/20 text-primary">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-chart-4/20 text-primary shadow-md">
                     <item.icon className="h-6 w-6" />
                   </div>
-                  <CardTitle className="text-lg">{item.title}</CardTitle>
-                  <CardDescription className="text-sm leading-relaxed">
+                  <CardTitle className="text-base sm:text-lg">{item.title}</CardTitle>
+                  <CardDescription className="text-sm sm:text-base leading-relaxed">
                     {item.description}
                   </CardDescription>
                 </CardHeader>
@@ -173,14 +173,14 @@ export default function AboutPage() {
                   {stack.map((item) => (
                     <li
                       key={item.title}
-                      className="flex gap-3 rounded-xl border border-border/40 bg-background/60 p-4 transition hover:border-primary/40"
+                      className="flex gap-3 rounded-xl border border-border/40 bg-background/60 p-4 transition hover:border-primary/40 touch-manipulation"
                     >
-                      <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary shadow-sm">
                         <item.icon className="h-5 w-5" />
                       </div>
                       <div className="space-y-1.5">
-                        <p className="text-sm font-semibold">{item.title}</p>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
+                        <p className="text-sm sm:text-base font-semibold">{item.title}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                           {item.description}
                         </p>
                       </div>
@@ -225,13 +225,13 @@ export default function AboutPage() {
               {lifecycle.map((item, index) => (
                 <li
                   key={item.label}
-                  className="relative flex h-full flex-col gap-3 rounded-2xl border border-border/30 bg-background/60 p-5 text-left"
+                  className="relative flex h-full flex-col gap-3 rounded-2xl border border-border/30 bg-background/60 p-5 text-left transition-all hover:border-primary/40 hover:shadow-md touch-manipulation"
                 >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary shadow-sm">
                     {index + 1}
                   </span>
-                  <h3 className="text-base font-semibold">{item.label}</h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{item.detail}</p>
+                  <h3 className="text-sm sm:text-base font-semibold">{item.label}</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{item.detail}</p>
                 </li>
               ))}
             </ol>

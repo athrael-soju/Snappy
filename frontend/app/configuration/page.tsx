@@ -126,7 +126,7 @@ export default function ConfigurationPage() {
                 disabled={saving}
                 variant="outline"
                 size="sm"
-                className="gap-2 rounded-full"
+                className="h-10 gap-2 rounded-full px-4 touch-manipulation"
               >
                 <Zap className="h-4 w-4" />
                 <span className="hidden sm:inline">Optimize</span>
@@ -138,7 +138,7 @@ export default function ConfigurationPage() {
                 disabled={saving}
                 variant="outline"
                 size="sm"
-                className="gap-2 rounded-full"
+                className="h-10 gap-2 rounded-full px-4 touch-manipulation"
               >
                 <RotateCcw className="h-4 w-4" />
                 <span className="hidden sm:inline">Reset All</span>
@@ -211,7 +211,7 @@ export default function ConfigurationPage() {
                 if (setting.type === "boolean") {
                   return (
                     <article key={setting.key} className={articleClass}>
-                      <div className="flex items-center justify-between gap-4 min-h-[44px]">
+                      <div className="flex items-center justify-between gap-4 min-h-[48px] touch-manipulation">
                         <div className="flex min-w-0 flex-1 items-center gap-2">
                           <ToggleLeft className="h-4 w-4 shrink-0 text-primary" />
                           <span className="text-sm font-semibold">{setting.label}</span>
@@ -338,7 +338,7 @@ export default function ConfigurationPage() {
                   onClick={saveChanges}
                   disabled={!hasChanges || saving}
                   size="default"
-                  className="gap-2 rounded-full shadow-lg shadow-primary/20"
+                  className="h-11 gap-2 rounded-full px-6 shadow-lg shadow-primary/20 touch-manipulation"
                 >
                   {saving ? (
                     <>
@@ -359,7 +359,7 @@ export default function ConfigurationPage() {
                   disabled={!hasChanges || saving}
                   variant="outline"
                   size="default"
-                  className="gap-2 rounded-full"
+                  className="h-11 gap-2 rounded-full px-6 touch-manipulation"
                 >
                   <RotateCcw className="h-4 w-4" />
                   Discard
@@ -379,7 +379,7 @@ export default function ConfigurationPage() {
                 disabled={saving}
                 variant="outline"
                 size="sm"
-                className="gap-2 rounded-full"
+                className="h-10 gap-2 rounded-full px-4 touch-manipulation"
               >
                 <RotateCcw className="h-4 w-4" />
                 <span className="hidden sm:inline">Reset Section</span>

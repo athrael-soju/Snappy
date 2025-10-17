@@ -49,8 +49,8 @@ export function Nav() {
           {/* Logo with enhanced styling */}
           <Link href="/" className="group flex shrink-0 items-center gap-3 transition-all">
             <div className="relative">
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/20 to-chart-4/20 opacity-0 blur-xl transition-opacity group-hover:opacity-100" />
-              <div className="relative h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-gradient-to-br from-primary/10 to-chart-4/10 p-2 ring-1 ring-primary/20 transition-all group-hover:ring-primary/40 group-hover:shadow-lg group-hover:shadow-primary/20">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/20 to-chart-4/20 opacity-0 blur-xl transition-opacity group-hover:opacity-100" />
+              <div className="relative h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-gradient-to-br from-primary/10 to-chart-4/10 p-2 ring-1 ring-primary/20 transition-all group-hover:ring-primary/40 group-hover:shadow-lg group-hover:shadow-primary/20">
                 {mounted && (
                   <Image
                     src={
@@ -82,7 +82,7 @@ export function Nav() {
                   key={link.href}
                   href={link.href}
                   className={cn(
-                    "relative rounded-full px-5 py-2.5 text-base font-medium transition-all duration-200",
+                    "relative rounded-full px-5 py-2.5 text-sm font-medium transition-all duration-200 touch-manipulation",
                     isActive
                       ? "bg-primary/10 text-primary shadow-sm"
                       : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
@@ -104,7 +104,7 @@ export function Nav() {
                 variant="ghost"
                 size="icon"
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="group h-11 w-11 rounded-full hover:bg-primary/10 hover:text-primary transition-all"
+                className="group h-11 w-11 rounded-full hover:bg-primary/10 hover:text-primary transition-all touch-manipulation"
               >
                 {theme === "dark" ? (
                   <Sun className="h-6 w-6 transition-transform group-hover:rotate-45 group-hover:scale-110" />
@@ -121,7 +121,7 @@ export function Nav() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-11 w-11 rounded-full hover:bg-primary/10 hover:text-primary transition-all"
+                  className="h-11 w-11 rounded-full hover:bg-primary/10 hover:text-primary transition-all touch-manipulation"
                 >
                   <Menu className="h-6 w-6" />
                   <span className="sr-only">Open menu</span>

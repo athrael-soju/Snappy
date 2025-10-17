@@ -152,16 +152,16 @@ export default function UploadPage() {
             >
               <div className={`absolute inset-0 bg-gradient-to-br from-chart-1 to-chart-2 opacity-0 transition-opacity ${isDragOver ? "opacity-10" : "group-hover:opacity-5"}`} />
               
-              <div className="relative flex min-h-[180px] flex-col items-center justify-center gap-3 p-6">
+              <div className="relative flex min-h-[200px] flex-col items-center justify-center gap-4 p-6 sm:p-8">
                 <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-chart-1 to-chart-2 shadow-lg">
                   <Upload className="h-7 w-7 text-primary-foreground" />
                 </div>
                 
-                <div className="text-center space-y-1">
-                  <h3 className="text-base font-bold">
+                <div className="text-center space-y-2">
+                  <h3 className="text-base sm:text-lg font-bold">
                     {isDragOver ? "Drop files here" : "Drag & drop your files"}
                   </h3>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm text-muted-foreground">
                     or browse • PDFs, images, and documents
                   </p>
                 </div>
@@ -173,11 +173,11 @@ export default function UploadPage() {
                       variant="outline"
                       size="sm"
                       disabled={uploading}
-                      className="gap-2 rounded-full border-2 bg-background/50 px-4 backdrop-blur-sm cursor-pointer"
+                      className="h-10 gap-2 rounded-full border-2 bg-background/50 px-5 backdrop-blur-sm cursor-pointer touch-manipulation"
                       onClick={() => document.getElementById('file-input')?.click()}
                     >
                       <FileText className="h-4 w-4" />
-                      Browse
+                      Browse Files
                     </Button>
                   </label>
                   
@@ -187,7 +187,7 @@ export default function UploadPage() {
                         type="submit"
                         size="sm"
                         disabled={!hasFiles || uploading || !isReady}
-                        className="group gap-2 rounded-full px-4 shadow-lg shadow-primary/20"
+                        className="group h-10 gap-2 rounded-full px-5 shadow-lg shadow-primary/20 touch-manipulation"
                       >
                         {uploading ? (
                           <>
@@ -208,7 +208,7 @@ export default function UploadPage() {
                           onClick={handleCancel}
                           size="sm"
                           variant="ghost"
-                          className="gap-2 rounded-full px-3"
+                          className="h-10 gap-2 rounded-full px-4 touch-manipulation"
                         >
                           <X className="h-4 w-4" />
                           <span className="hidden sm:inline">Cancel</span>

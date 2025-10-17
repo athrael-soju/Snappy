@@ -121,7 +121,7 @@ export default function SearchPage() {
             <div className="group relative overflow-hidden rounded-2xl border-2 border-border/50 bg-card/30 backdrop-blur-sm transition-all focus-within:border-primary/50 focus-within:shadow-xl focus-within:shadow-primary/10">
               <div className="absolute inset-0 bg-gradient-to-br from-primary to-chart-4 opacity-0 transition-opacity group-focus-within:opacity-5" />
               
-              <div className="relative flex items-center gap-3 p-3">
+              <div className="relative flex items-center gap-3 p-3 sm:p-4">
                 <Search className="h-5 w-5 shrink-0 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <input
                   type="text"
@@ -138,7 +138,7 @@ export default function SearchPage() {
                     type="submit"
                     size="sm"
                     disabled={loading || !isReady || !query.trim()}
-                    className="group h-9 gap-2 rounded-full px-4 shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/25"
+                    className="group h-10 gap-2 rounded-full px-4 shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/25 touch-manipulation"
                   >
                     {loading ? (
                       <>
@@ -275,33 +275,33 @@ export default function SearchPage() {
                             handleImageOpen(item.image_url, displayTitle);
                           }
                         }}
-                        className="group relative flex gap-3 overflow-hidden rounded-xl border border-border/50 bg-card/50 p-3 sm:p-4 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 cursor-pointer touch-manipulation"
+                        className="group relative flex gap-3 overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 cursor-pointer touch-manipulation"
                       >
                         <div className="absolute inset-0 bg-gradient-to-br from-primary to-chart-4 opacity-0 transition-opacity group-hover:opacity-5" />
                         
                         {/* Thumbnail */}
                         {item.image_url ? (
-                          <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-border/50 bg-background/50">
+                          <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg border border-border/50 bg-background/50">
                             <Image
                               src={item.image_url}
                               alt={displayTitle}
-                              width={80}
-                              height={80}
+                              width={96}
+                              height={96}
                               className="h-full w-full object-cover"
                               unoptimized
                             />
                           </div>
                         ) : (
-                          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-chart-4">
-                            <FileText className="h-7 w-7 text-primary-foreground" />
+                          <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-chart-4">
+                            <FileText className="h-8 w-8 text-primary-foreground" />
                           </div>
                         )}
                         
                         {/* Content */}
                         <div className="relative flex min-w-0 flex-1 flex-col justify-between">
                           {/* Header */}
-                          <div className="space-y-1">
-                            <h3 className="line-clamp-2 text-sm font-bold text-foreground">
+                          <div className="space-y-1.5">
+                            <h3 className="line-clamp-2 text-sm sm:text-base font-bold text-foreground">
                               {displayTitle}
                             </h3>
                             <div className="flex flex-wrap gap-1.5">
