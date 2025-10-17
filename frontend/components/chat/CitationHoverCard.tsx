@@ -27,9 +27,11 @@ export default function CitationHoverCard({
 
   const scoreBadge = useMemo(() => {
     if (typeof score !== 'number') return null;
+    const percentage = score > 1 ? score : score * 100;
+    const cappedPercentage = Math.min(100, percentage);
     return (
       <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-[10px] font-semibold">
-        {(score * 100).toFixed(0)}%
+        {cappedPercentage.toFixed(3)}%
       </Badge>
     );
   }, [score]);

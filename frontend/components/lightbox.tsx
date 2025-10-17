@@ -18,25 +18,25 @@ export type ImageLightboxProps = {
 export default function ImageLightbox({ open, src, alt, onOpenChange }: ImageLightboxProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[35vw] max-w-[95vw] max-h-[95vh] p-0 overflow-hidden">
+      <DialogContent className="!max-w-fit sm:!max-w-fit !max-h-[98vh] p-0 overflow-hidden flex flex-col w-auto">
         <DialogHeader className="sr-only">
           <DialogTitle>{alt || "Image"}</DialogTitle>
           <DialogDescription>Full size image view</DialogDescription>
         </DialogHeader>
 
-        <div className="relative flex items-start justify-center bg-background/95 backdrop-blur-sm max-h-[95vh] overflow-auto">
+        <div className="relative flex items-center justify-center bg-background p-0">
           {src ? (
             <img
               src={src}
               alt={alt || "Full image"}
-              className="w-full h-auto object-contain rounded-md shadow-2xl"
+              className="max-h-[93vh] max-w-[95vw] h-auto w-auto object-contain"
             />
           ) : null}
         </div>
 
         {alt && (
-          <div className="px-6 pb-6">
-            <p className="text-center text-sm text-muted-foreground line-clamp-3">
+          <div className="px-4 py-3 border-t">
+            <p className="text-center text-xs text-muted-foreground line-clamp-2">
               {alt}
             </p>
           </div>
