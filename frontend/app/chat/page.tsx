@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useEffect, useMemo, useRef } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import "@/lib/api/client";
 import { useChat } from "@/lib/hooks/use-chat";
@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import ImageLightbox from "@/components/lightbox";
 import {
   AlertCircle,
   Bot,
@@ -26,6 +27,7 @@ import {
   Wand2,
   Telescope,
   ClipboardCheck,
+  Image as ImageIcon,
 } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import {
@@ -131,9 +133,10 @@ function RecentQuestions({ questions, onSelect }: RecentQuestionsProps) {
 type ChatMessageProps = {
   message: { id: string; role: string; content: string; citations?: Array<{ url?: string | null; label?: string | null; score?: number | null }> };
   isLoading?: boolean;
+  onOpenCitation?: (url: string, label?: string | null) => void;
 };
 
-function ChatMessage({ message, isLoading }: ChatMessageProps) {
+function ChatMessage({ message, isLoading, onOpenCitation }: ChatMessageProps) {
   const isUser = message.role === "user";
   return (
     <div className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}>
@@ -176,23 +179,67 @@ function ChatMessage({ message, isLoading }: ChatMessageProps) {
         {!isUser && message.citations && message.citations.length > 0 && (
           <div className="mt-3 space-y-2">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Citations</p>
-            <div className="flex flex-wrap gap-2">
-              {message.citations.map((item, index) => (
-                <a
-                  key={`${item.url ?? index}-${index}`}
-                  href={item.url ?? undefined}
-                  target={item.url ? "_blank" : undefined}
-                  rel={item.url ? "noreferrer" : undefined}
-                  className="inline-flex min-w-[180px] items-center justify-between gap-3 rounded-xl border border-border/25 bg-background/85 px-3 py-2 text-xs text-primary transition hover:border-primary/50 hover:text-primary"
-                >
-                  <span className="line-clamp-2 text-left font-medium">{item.label ?? "Referenced item"}</span>
-                  {typeof item.score === "number" && (
-                    <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-[10px] font-semibold">
-                      {Math.round(item.score * 100)}%
-                    </Badge>
-                  )}
-                </a>
-              ))}
+            <div className="space-y-2">
+              {message.citations.map((item, index) => {
+                const url = typeof item.url === "string" ? item.url : null;
+                const hasImage = !!url;
+                return (
+                  <div
+                    key={`${url ?? index}-${index}`}
+                    className="rounded-xl border border-border/30 bg-background/90 px-3 py-3 text-xs shadow-sm"
+                  >
+                    <div className="flex items-start gap-3">
+                      {hasImage ? (
+                        <button
+                          type="button"
+                          className="group relative h-16 w-20 overflow-hidden rounded-lg border border-border/50 bg-muted"
+                          onClick={() => url && onOpenCitation?.(url, item.label ?? undefined)}
+                        >
+                          <img
+                            src={url}
+                            alt={item.label ?? `Citation ${index + 1}`}
+                            className="h-full w-full object-cover transition-transform duration-150 group-hover:scale-105"
+                          />
+                        </button>
+                      ) : (
+                        <div className="flex h-16 w-20 items-center justify-center rounded-lg border border-dashed border-border text-[11px] text-muted-foreground">
+                          No preview
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0 space-y-1.5">
+                        <p className="line-clamp-2 text-left font-medium text-foreground">
+                          {item.label ?? `Citation ${index + 1}`}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                          {typeof item.score === "number" && (
+                            <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-[10px] font-semibold">
+                              {Math.round(item.score * 100)}%
+                            </Badge>
+                          )}
+                          {hasImage ? (
+                            <button
+                              type="button"
+                              onClick={() => url && onOpenCitation?.(url, item.label ?? undefined)}
+                              className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                            >
+                              View
+                            </button>
+                          ) : url ? (
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                            >
+                              Open
+                            </a>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -351,11 +398,16 @@ export default function ChatPage() {
     setToolCallingEnabled,
     maxTokens,
     setMaxTokens,
+    imageGroups,
     isSettingsValid,
     sendMessage,
     reset,
   } = useChat();
   const { isReady } = useSystemStatus();
+
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState<string>("");
+  const [lightboxAlt, setLightboxAlt] = useState<string | null>(null);
 
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
 
@@ -387,6 +439,15 @@ export default function ChatPage() {
     if (area instanceof HTMLTextAreaElement) {
       area.focus();
     }
+  };
+
+  const handleCitationOpen = (url: string, label?: string | null) => {
+    if (!url) {
+      return;
+    }
+    setLightboxSrc(url);
+    setLightboxAlt(label ?? null);
+    setLightboxOpen(true);
   };
 
   return (
@@ -471,6 +532,7 @@ export default function ChatPage() {
                         key={message.id}
                         message={message}
                         isLoading={loading && isLastAssistantMessage}
+                        onOpenCitation={handleCitationOpen}
                       />
                     );
                   })}
@@ -508,7 +570,18 @@ export default function ChatPage() {
           />
         </div>
       </div>
+      <ImageLightbox
+        open={lightboxOpen}
+        src={lightboxSrc}
+        alt={lightboxAlt ?? undefined}
+        onOpenChange={(open) => {
+          setLightboxOpen(open);
+          if (!open) {
+            setLightboxSrc("");
+            setLightboxAlt(null);
+          }
+        }}
+      />
     </div>
   );
 }
-
