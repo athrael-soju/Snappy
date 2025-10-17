@@ -1,7 +1,5 @@
 """Document indexing operations for Qdrant."""
 
-import base64
-import io
 import logging
 import uuid
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
@@ -94,43 +92,6 @@ class DocumentIndexer:
         except Exception as exc:
             raise Exception(f"Error during embed: {exc}") from exc
 
-    @staticmethod
-    def _encode_inline_image(image: Image.Image) -> Dict[str, object]:
-        fmt = (config.IMAGE_FORMAT or "PNG").upper()
-        quality = int(config.IMAGE_QUALITY)
-        save_kwargs: Dict[str, object] = {}
-        inline_image = image
-
-        if fmt == "JPEG":
-            inline_image = image.convert("RGB")
-            save_kwargs["quality"] = quality
-            save_kwargs["optimize"] = True
-        elif fmt == "WEBP":
-            save_kwargs["quality"] = quality
-            save_kwargs.setdefault("method", 6)
-
-        buffer = io.BytesIO()
-        inline_image.save(buffer, format=fmt, **save_kwargs)
-        data = buffer.getvalue()
-        mime = {
-            "PNG": "image/png",
-            "JPEG": "image/jpeg",
-            "WEBP": "image/webp",
-        }.get(fmt, "application/octet-stream")
-        encoded = base64.b64encode(data).decode("ascii")
-        data_url = f"data:{mime};base64,{encoded}"
-        record: Dict[str, object] = {
-            "image_url": data_url,
-            "image_inline": True,
-            "image_storage": "qdrant_inline",
-            "image_format": fmt,
-            "image_mime_type": mime,
-            "image_size_bytes": len(data),
-        }
-        if fmt in {"JPEG", "WEBP"}:
-            record["image_quality"] = quality
-        return record
-
     def _store_images(
         self,
         batch_start: int,
@@ -138,36 +99,37 @@ class DocumentIndexer:
     ) -> Tuple[List[str], List[Dict[str, object]]]:
         image_ids = [str(uuid.uuid4()) for _ in image_batch]
 
-        minio_service = self.minio_service
-        if minio_service is not None and config.MINIO_ENABLED:
-            try:
-                image_url_map = minio_service.store_images_batch(
-                    image_batch,
-                    image_ids=image_ids,
-                    quality=config.IMAGE_QUALITY,
-                )
-            except Exception as exc:
+        if self.minio_service is None:
+            raise Exception(
+                "MinIO service is not configured; it is required for image storage."
+            )
+
+        try:
+            image_url_map = self.minio_service.store_images_batch(
+                image_batch,
+                image_ids=image_ids,
+                quality=config.IMAGE_QUALITY,
+            )
+        except Exception as exc:
+            raise Exception(
+                f"Error storing images in MinIO for batch starting at {batch_start}: {exc}"
+            ) from exc
+
+        records: List[Dict[str, object]] = []
+        for image_id in image_ids:
+            image_url = image_url_map.get(image_id)
+            if image_url is None:
                 raise Exception(
-                    f"Error storing images in MinIO for batch starting at {batch_start}: {exc}"
-                ) from exc
-
-            records: List[Dict[str, object]] = []
-            for image_id in image_ids:
-                image_url = image_url_map.get(image_id)
-                if image_url is None:
-                    raise Exception(
-                        f"Image upload failed for batch starting at {batch_start}: missing URL for {image_id}"
-                    )
-                records.append(
-                    {
-                        "image_url": image_url,
-                        "image_inline": False,
-                        "image_storage": "minio",
-                    }
+                    f"Image upload failed for batch starting at {batch_start}: missing URL for {image_id}"
                 )
-            return image_ids, records
+            records.append(
+                {
+                    "image_url": image_url,
+                    "image_inline": False,
+                    "image_storage": "minio",
+                }
+            )
 
-        records = [self._encode_inline_image(image) for image in image_batch]
         return image_ids, records
 
     def _build_points(

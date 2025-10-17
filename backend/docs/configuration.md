@@ -120,8 +120,7 @@ and port for the service you want to talk to.
 
 | Key                | Type | Default | Notes |
 |--------------------|------|---------|-------|
-| `MINIO_ENABLED`    | bool | `False` | Toggle MinIO integration. When disabled, images are embedded inline in Qdrant payloads. |
-| `MINIO_URL`        | str  | `http://localhost:9000` | Internal S3 endpoint used by the backend (shown only when MinIO is enabled). |
+| `MINIO_URL`        | str  | `http://localhost:9000` | Internal S3 endpoint used by the backend. |
 | `MINIO_PUBLIC_URL` | str  | `http://localhost:9000` | Public URL embedded in payloads. Falls back to `MINIO_URL` when blank. |
 | `MINIO_ACCESS_KEY` | str  | `minioadmin` | Access key used to authenticate MinIO requests. Replace in production. |
 | `MINIO_SECRET_KEY` | str  | `minioadmin` | Secret key used with the access key. Replace in production. |
@@ -130,7 +129,7 @@ and port for the service you want to talk to.
 | `MINIO_RETRIES`    | int  | *(auto)* | Retry attempts per upload batch. Computed from the worker count. |
 | `MINIO_FAIL_FAST`  | bool | `False` | Abort immediately on the first upload error. Keep disabled for resiliency. |
 | `MINIO_PUBLIC_READ`| bool | `True`  | Apply a public-read bucket policy automatically. Disable when you intend to serve images through signed URLs or another private mechanism. |
-| `IMAGE_FORMAT`     | str  | `JPEG`  | Format used when storing rendered pages (`JPEG`, `PNG`, or `WEBP`). Applies to both MinIO uploads and inline payloads. |
+| `IMAGE_FORMAT`     | str  | `JPEG`  | Format used when storing rendered pages in MinIO (`JPEG`, `PNG`, or `WEBP`). |
 | `IMAGE_QUALITY`    | int  | `75`    | Quality setting for `JPEG` and `WEBP` images (1-100). Ignored for PNG. |
 
 A few helper methods inside `config.py` compute worker and retry counts when they

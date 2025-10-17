@@ -63,8 +63,7 @@ Support modules:
 3. `DocumentIndexer` (services/qdrant/indexing.py):
    - chunks pages into batches (`BATCH_SIZE`),
    - embeds each batch via the ColPali API (original + mean-pooled variants),
-   - stores images either in MinIO or inline (base64) depending on
-     `MINIO_ENABLED`,
+  - stores images in MinIO,
    - upserts multivector payloads into Qdrant.
 4. Two thread pools keep embedding, storage, and upserts overlapped when
    `ENABLE_PIPELINE_INDEXING=True`. Pipeline concurrency and PDF worker counts

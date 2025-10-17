@@ -35,7 +35,7 @@ Key backend variables (see `.env.example` and `backend/config.py`):
   `COLPALI_API_TIMEOUT`
 - Qdrant: `QDRANT_EMBEDDED`, `QDRANT_URL`, `QDRANT_COLLECTION_NAME`,
   quantisation toggles
-- MinIO: `MINIO_ENABLED`, `MINIO_URL`, `MINIO_PUBLIC_URL`,
+- MinIO: `MINIO_URL`, `MINIO_PUBLIC_URL`,
   `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`
 
 Defaults assume:

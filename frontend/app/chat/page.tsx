@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import ImageLightbox from "@/components/lightbox";
+import MarkdownRenderer from "@/components/chat/MarkdownRenderer";
 import {
   AlertCircle,
   Bot,
@@ -27,7 +28,6 @@ import {
   Wand2,
   Telescope,
   ClipboardCheck,
-  Image as ImageIcon,
 } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import {
@@ -161,7 +161,35 @@ function ChatMessage({ message, isLoading, onOpenCitation }: ChatMessageProps) {
             </>
           )}
         </div>
-        {isLoading ? (
+        {message.content ? (
+          isUser ? (
+            <p className="min-w-0 break-words whitespace-pre-wrap leading-relaxed text-primary-foreground/90">
+              {message.content}
+            </p>
+          ) : (
+            <>
+              <MarkdownRenderer
+                content={message.content}
+                images={
+                  Array.isArray(message.citations)
+                    ? message.citations.map((item) => ({
+                        url: item.url ?? null,
+                        label: item.label ?? null,
+                        score: item.score ?? null,
+                      }))
+                    : []
+                }
+                onImageClick={(url, label) => onOpenCitation?.(url, label)}
+              />
+              {isLoading && (
+                <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>Streaming response...</span>
+                </div>
+              )}
+            </>
+          )
+        ) : (
           <div className="flex items-center gap-2">
             <div className="flex gap-1">
               <span className="h-2 w-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "0ms" }} />
@@ -169,78 +197,6 @@ function ChatMessage({ message, isLoading, onOpenCitation }: ChatMessageProps) {
               <span className="h-2 w-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "300ms" }} />
             </div>
             <span className="text-xs">Thinking...</span>
-          </div>
-        ) : (
-          <p className={cn("whitespace-pre-wrap leading-relaxed break-words min-w-0", isUser ? "text-primary-foreground/90" : "text-foreground/90")}>
-            {message.content || (!isUser ? "..." : "")}
-          </p>
-        )}
-
-        {!isUser && message.citations && message.citations.length > 0 && (
-          <div className="mt-3 space-y-2">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Citations</p>
-            <div className="space-y-2">
-              {message.citations.map((item, index) => {
-                const url = typeof item.url === "string" ? item.url : null;
-                const hasImage = !!url;
-                return (
-                  <div
-                    key={`${url ?? index}-${index}`}
-                    className="rounded-xl border border-border/30 bg-background/90 px-3 py-3 text-xs shadow-sm"
-                  >
-                    <div className="flex items-start gap-3">
-                      {hasImage ? (
-                        <button
-                          type="button"
-                          className="group relative h-16 w-20 overflow-hidden rounded-lg border border-border/50 bg-muted"
-                          onClick={() => url && onOpenCitation?.(url, item.label ?? undefined)}
-                        >
-                          <img
-                            src={url}
-                            alt={item.label ?? `Citation ${index + 1}`}
-                            className="h-full w-full object-cover transition-transform duration-150 group-hover:scale-105"
-                          />
-                        </button>
-                      ) : (
-                        <div className="flex h-16 w-20 items-center justify-center rounded-lg border border-dashed border-border text-[11px] text-muted-foreground">
-                          No preview
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0 space-y-1.5">
-                        <p className="line-clamp-2 text-left font-medium text-foreground">
-                          {item.label ?? `Citation ${index + 1}`}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                          {typeof item.score === "number" && (
-                            <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-[10px] font-semibold">
-                              {Math.round(item.score * 100)}%
-                            </Badge>
-                          )}
-                          {hasImage ? (
-                            <button
-                              type="button"
-                              onClick={() => url && onOpenCitation?.(url, item.label ?? undefined)}
-                              className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
-                            >
-                              View
-                            </button>
-                          ) : url ? (
-                            <a
-                              href={url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
-                            >
-                              Open
-                            </a>
-                          ) : null}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
           </div>
         )}
       </div>

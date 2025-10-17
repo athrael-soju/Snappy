@@ -210,7 +210,7 @@ A modern Next.js 15 UI with server-side streaming, real-time progress updates, a
   `COLPALI_API_TIMEOUT`
 - `QDRANT_EMBEDDED`, `QDRANT_URL`, `QDRANT_COLLECTION_NAME`,
   `QDRANT_PREFETCH_LIMIT`, quantisation toggles (`QDRANT_USE_BINARY`, etc.)
-- `MINIO_ENABLED`, `MINIO_URL`, `MINIO_PUBLIC_URL`, credentials, `IMAGE_FORMAT`
+- `MINIO_URL`, `MINIO_PUBLIC_URL`, credentials, `IMAGE_FORMAT`
   and `IMAGE_QUALITY`
 - `MUVERA_ENABLED` and related parameters (requires `fastembed[postprocess]`)
 - `LOG_LEVEL`, `ALLOWED_ORIGINS`, `UVICORN_RELOAD`
@@ -255,9 +255,8 @@ backend does not proxy OpenAI calls.
   service. CPU mode is significantly slower.
 - **Progress stream never completes** – ensure Poppler is installed and
   accessible; check backend logs for PDF conversion errors.
-- **Images missing in search results** – if `MINIO_ENABLED=False`, images are
-  stored inline. Make sure the frontend `next.config.ts` allows the relevant
-  domains when MinIO is enabled.
+- **Images missing in search results** - confirm MinIO credentials/URL are
+  correct and that the frontend `next.config.ts` allows the relevant domains.
 - **CORS errors** – set `ALLOWED_ORIGINS` to explicit URLs before exposing the
   API outside of local development.
 - **Runtime config changes do not persist** – use `/config/update` for temporary
