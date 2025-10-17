@@ -9,13 +9,13 @@ Next.js App Router UI for upload/indexing, search, and chat.
 
 The app is intentionally simple and unauthenticated. Current pages:
 
-- `/` — Home: landing with quick links and overview.
-- `/about` — About: what this project does, what ColPali is, and comparison to traditional text-only RAG.
-- `/upload` — Upload PDFs for indexing. Starts a background job via FastAPI `POST /index` and subscribes to `GET /progress/stream/{job_id}` (SSE) for real-time progress. Includes upload cancellation support.
-- `/search` — Visual search over indexed pages; returns top-k pages and metadata.
-- `/chat` — AI chat grounded on retrieved page images with visual citations.
-- `/configuration` — Web-based UI for managing backend environment variables at runtime (see Configuration Management below).
-- `/maintenance` — System maintenance interface with:
+- `/` - Home: Snappy-branded landing with quick links and overview.
+- `/about` - About: what this project does, what ColPali is, and comparison to traditional text-only RAG.
+- `/upload` - Upload PDFs for indexing. Starts a background job via FastAPI `POST /index` and subscribes to `GET /progress/stream/{job_id}` (SSE) for real-time progress. Includes upload cancellation support.
+- `/search` - Visual search over indexed pages; returns top-k pages and metadata.
+- `/chat` - AI chat grounded on retrieved page images with visual citations and Snappy callouts.
+- `/configuration` - Web-based UI for managing backend environment variables at runtime (see Configuration Management below).
+- `/maintenance` - System maintenance interface with:
   - Real-time status display showing system readiness, collection stats (vectors, unique files), and bucket stats (object count)
   - **Initialize System**: Creates the Qdrant collection and, when MinIO is enabled, prepares the MinIO bucket. Required before first use.
   - **Delete System**: Removes the collection and, if applicable, the MinIO bucket for configuration changes or a fresh start.
@@ -24,9 +24,15 @@ The app is intentionally simple and unauthenticated. Current pages:
 
 Screenshots live in `image/README/` and are referenced from the repo root `README.md`.
 
+## Design System
+
+- **Tokens live in `app/globals.css`**. Typography utilities (`text-body`, `text-body-xs`, `text-body-lg`) and icon utilities (`size-icon-*`) define our spacing scale.
+- Shared components outside `components/ui` rely on these utilities exclusively, keeping the stylesheet the single source of truth. Responsive variants (e.g. `sm:text-body-sm`, `md:size-icon-md`) are provided in the same file.
+- When building new components, prefer the token utilities over raw Tailwind primitives (`text-sm`, `h-4`, etc.) so spacing stays consistent.
+
 ## Requirements
 - Node.js 22 (matches Dockerfile)
-- Yarn Classic (v1) — auto-enabled by `corepack` in Docker. Locally you can use Yarn or npm.
+- Yarn Classic (v1) - auto-enabled by `corepack` in Docker. Locally you can use Yarn or npm.
 
 ## Install
 ```bash
@@ -43,7 +49,7 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ```
 `frontend/lib/api/client.ts` falls back to `http://localhost:8000` if the env var is not set. The Upload page uses `fetch` for `POST /index` and `EventSource` for `GET /progress/stream/{job_id}`.
 
-OpenAI for chat (SSE) — set on the frontend (server runtime):
+OpenAI for chat (SSE) - set on the frontend (server runtime):
 ```bash
 # frontend/.env.local
 OPENAI_API_KEY=sk-your-key
@@ -52,7 +58,7 @@ OPENAI_MODEL=gpt-5-mini   # optional override
 OPENAI_TEMPERATURE=1
 OPENAI_MAX_TOKENS=1500
 ```
-The chat endpoint `frontend/app/api/chat/route.ts` uses these to call OpenAI Responses API and stream tokens via Server‑Sent Events (SSE) to the browser.
+The chat endpoint `frontend/app/api/chat/route.ts` uses these to call OpenAI Responses API and stream tokens via Server-Sent Events (SSE) to the browser.
 
 ## Develop
 ```bash
@@ -86,8 +92,8 @@ yarn gen:sdk && yarn gen:zod
   }
   ```
 - Response: `text/event-stream` (SSE). Events include:
-  - `response.output_text.delta` — incremental assistant text tokens `{ event, data: { delta: string } }`
-  - `kb.images` — visual citations used by the model `{ event, data: { items: [{ image_url, label, score }] } }`
+  - `response.output_text.delta` - incremental assistant text tokens `{ event, data: { delta: string } }`
+  - `kb.images` - visual citations used by the model `{ event, data: { items: [{ image_url, label, score }] } }`
   - Other OpenAI event passthroughs are sent with `{ event: <type>, data: <raw> }` and are ignored by the UI
 
 Notes:
@@ -112,12 +118,12 @@ Testing
 1) Visit `/chat`
 2) Toggle Tool Calling in the settings chip
 3) OFF: ask a grounded question (e.g. "What are the key risks?") and observe the citations chip + gallery
-4) ON: ask a retrieval question to induce a tool call (e.g. "Find diagrams about AI architecture"). Also try a generic question where the tool is not needed — no images should appear
+4) ON: ask a retrieval question to induce a tool call (e.g. "Find diagrams about AI architecture"). Also try a generic question where the tool is not needed - no images should appear
 
 Deterministic behavior
 
 - Disable tools via the UI or set `localStorage['tool-calling-enabled'] = 'false'`
-- Adjust top‑K via the K control (persists to `localStorage['k']`)
+- Adjust top-K via the K control (persists to `localStorage['k']`)
 
 ## Configuration Management
 
@@ -133,16 +139,17 @@ The `/configuration` page provides a web-based interface for managing backend en
 - **Reset options**: Reset individual sections or all settings to defaults
 
 ### API Endpoints Used
-- `GET /config/schema` — retrieves configuration schema with metadata
-- `GET /config/values` — fetches current runtime values
-- `POST /config/update` — updates individual settings
-- `POST /config/reset` — resets all settings to defaults
+- `GET /config/schema` - retrieves configuration schema with metadata
+- `GET /config/values` - fetches current runtime values
+- `POST /config/update` - updates individual settings
+- `POST /config/reset` - resets all settings to defaults
 
 ### Important Notes
 - Configuration changes update the backend **runtime environment** immediately
 - Changes are **not persisted** to the `.env` file and will be lost on container restart
 - For permanent changes, manually update your `.env` file
 - Critical settings (e.g., API URLs) trigger service invalidation and re-initialization
+- Browser persistence uses a versioned `localStorage` payload (`colpali-runtime-config`); stale or invalid data is ignored and rewritten after each successful sync.
 - See [backend/docs/configuration.md](../backend/docs/configuration.md) for detailed setting documentation
 
 ## Docker/Compose

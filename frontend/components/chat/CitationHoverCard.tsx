@@ -30,7 +30,7 @@ export default function CitationHoverCard({
     const percentage = score > 1 ? score : score * 100;
     const cappedPercentage = Math.min(100, percentage);
     return (
-      <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-[10px] font-semibold">
+      <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-body-xs font-semibold">
         {cappedPercentage.toFixed(3)}%
       </Badge>
     );
@@ -47,7 +47,7 @@ export default function CitationHoverCard({
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="ml-1 align-super text-xs font-semibold text-primary hover:text-primary/80 focus-visible:outline-none focus-visible:underline"
+          className="ml-1 align-super text-body-xs font-semibold text-primary hover:text-primary/80 focus-visible:outline-none focus-visible:underline"
           aria-label={`View citation ${number}`}
           onMouseEnter={handleMouseEnter}
           onFocus={handleMouseEnter}
@@ -56,10 +56,10 @@ export default function CitationHoverCard({
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-64 space-y-3">
-        <div className="space-y-2 text-sm">
+        <div className="space-y-2 text-body-sm">
           <p className="font-semibold leading-tight">{label}</p>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Badge variant="outline" className="rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wide">
+          <div className="flex items-center gap-2 text-body-xs text-muted-foreground">
+            <Badge variant="outline" className="rounded-full px-2 py-0.5 text-body-xs uppercase tracking-wide">
               Citation {number}
             </Badge>
             {scoreBadge}
@@ -82,7 +82,7 @@ export default function CitationHoverCard({
           className="w-full gap-2"
           onClick={handleActivate}
         >
-          <ExternalLink className="h-4 w-4" />
+          <ExternalLink className="size-icon-xs" />
           View page
         </Button>
       </PopoverContent>

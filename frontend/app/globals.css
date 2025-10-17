@@ -68,11 +68,15 @@
   --tracking-normal: 0em;
   --spacing: 0.25rem;
   /* Icon sizes */
+  --icon-3xs: 0.75rem;
+  --icon-2xs: 0.875rem;
   --icon-xs: 1rem;
   --icon-sm: 1.125rem;
   --icon-md: 1.25rem;
   --icon-lg: 1.5rem;
   --icon-xl: 2rem;
+  --icon-2xl: 2.5rem;
+  --icon-3xl: 3rem;
 }
 
 .dark {
@@ -212,6 +216,16 @@
   }
 
   /* Global icon sizing utilities */
+  .icon-3xs {
+    width: var(--icon-3xs);
+    height: var(--icon-3xs);
+  }
+
+  .icon-2xs {
+    width: var(--icon-2xs);
+    height: var(--icon-2xs);
+  }
+
   .icon-xs {
     width: var(--icon-xs);
     height: var(--icon-xs);
@@ -236,10 +250,30 @@
     width: var(--icon-xl);
     height: var(--icon-xl);
   }
+
+  .icon-2xl {
+    width: var(--icon-2xl);
+    height: var(--icon-2xl);
+  }
+
+  .icon-3xl {
+    width: var(--icon-3xl);
+    height: var(--icon-3xl);
+  }
 }
 
 @layer utilities {
   /* Icon size utilities that map to our design system */
+  .size-icon-3xs {
+    width: var(--icon-3xs);
+    height: var(--icon-3xs);
+  }
+
+  .size-icon-2xs {
+    width: var(--icon-2xs);
+    height: var(--icon-2xs);
+  }
+
   .size-icon-xs {
     width: var(--icon-xs);
     height: var(--icon-xs);
@@ -265,7 +299,163 @@
     height: var(--icon-xl);
   }
 
+  .size-icon-2xl {
+    width: var(--icon-2xl);
+    height: var(--icon-2xl);
+  }
+
+  .size-icon-3xl {
+    width: var(--icon-3xl);
+    height: var(--icon-3xl);
+  }
+
+  @media (min-width: 640px) {
+    .sm\:size-icon-3xs {
+      width: var(--icon-3xs);
+      height: var(--icon-3xs);
+    }
+
+    .sm\:size-icon-2xs {
+      width: var(--icon-2xs);
+      height: var(--icon-2xs);
+    }
+
+    .sm\:size-icon-xs {
+      width: var(--icon-xs);
+      height: var(--icon-xs);
+    }
+
+    .sm\:size-icon-sm {
+      width: var(--icon-sm);
+      height: var(--icon-sm);
+    }
+
+    .sm\:size-icon-md {
+      width: var(--icon-md);
+      height: var(--icon-md);
+    }
+
+    .sm\:size-icon-lg {
+      width: var(--icon-lg);
+      height: var(--icon-lg);
+    }
+
+    .sm\:size-icon-xl {
+      width: var(--icon-xl);
+      height: var(--icon-xl);
+    }
+
+    .sm\:size-icon-2xl {
+      width: var(--icon-2xl);
+      height: var(--icon-2xl);
+    }
+
+    .sm\:size-icon-3xl {
+      width: var(--icon-3xl);
+      height: var(--icon-3xl);
+    }
+  }
+
+  @media (min-width: 768px) {
+    .md\:size-icon-3xs {
+      width: var(--icon-3xs);
+      height: var(--icon-3xs);
+    }
+
+    .md\:size-icon-2xs {
+      width: var(--icon-2xs);
+      height: var(--icon-2xs);
+    }
+
+    .md\:size-icon-xs {
+      width: var(--icon-xs);
+      height: var(--icon-xs);
+    }
+
+    .md\:size-icon-sm {
+      width: var(--icon-sm);
+      height: var(--icon-sm);
+    }
+
+    .md\:size-icon-md {
+      width: var(--icon-md);
+      height: var(--icon-md);
+    }
+
+    .md\:size-icon-lg {
+      width: var(--icon-lg);
+      height: var(--icon-lg);
+    }
+
+    .md\:size-icon-xl {
+      width: var(--icon-xl);
+      height: var(--icon-xl);
+    }
+
+    .md\:size-icon-2xl {
+      width: var(--icon-2xl);
+      height: var(--icon-2xl);
+    }
+
+    .md\:size-icon-3xl {
+      width: var(--icon-3xl);
+      height: var(--icon-3xl);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .lg\:size-icon-3xs {
+      width: var(--icon-3xs);
+      height: var(--icon-3xs);
+    }
+
+    .lg\:size-icon-2xs {
+      width: var(--icon-2xs);
+      height: var(--icon-2xs);
+    }
+
+    .lg\:size-icon-xs {
+      width: var(--icon-xs);
+      height: var(--icon-xs);
+    }
+
+    .lg\:size-icon-sm {
+      width: var(--icon-sm);
+      height: var(--icon-sm);
+    }
+
+    .lg\:size-icon-md {
+      width: var(--icon-md);
+      height: var(--icon-md);
+    }
+
+    .lg\:size-icon-lg {
+      width: var(--icon-lg);
+      height: var(--icon-lg);
+    }
+
+    .lg\:size-icon-xl {
+      width: var(--icon-xl);
+      height: var(--icon-xl);
+    }
+
+    .lg\:size-icon-2xl {
+      width: var(--icon-2xl);
+      height: var(--icon-2xl);
+    }
+
+    .lg\:size-icon-3xl {
+      width: var(--icon-3xl);
+      height: var(--icon-3xl);
+    }
+  }
+
   /* Responsive text sizes that work with our base font size */
+  .text-body-xs {
+    font-size: 0.8125rem;
+    line-height: 1.5;
+  }
+
   .text-body {
     font-size: 1rem;
     line-height: 1.6;
@@ -279,5 +469,72 @@
   .text-body-lg {
     font-size: 1.125rem;
     line-height: 1.7;
+  }
+
+  /* Responsive token variants */
+  @media (min-width: 640px) {
+    .sm\:text-body-xs {
+      font-size: 0.8125rem;
+      line-height: 1.5;
+    }
+
+    .sm\:text-body {
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    .sm\:text-body-sm {
+      font-size: 0.875rem;
+      line-height: 1.5;
+    }
+
+    .sm\:text-body-lg {
+      font-size: 1.125rem;
+      line-height: 1.7;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .md\:text-body-xs {
+      font-size: 0.8125rem;
+      line-height: 1.5;
+    }
+
+    .md\:text-body {
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    .md\:text-body-sm {
+      font-size: 0.875rem;
+      line-height: 1.5;
+    }
+
+    .md\:text-body-lg {
+      font-size: 1.125rem;
+      line-height: 1.7;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .lg\:text-body-xs {
+      font-size: 0.8125rem;
+      line-height: 1.5;
+    }
+
+    .lg\:text-body {
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    .lg\:text-body-sm {
+      font-size: 0.875rem;
+      line-height: 1.5;
+    }
+
+    .lg\:text-body-lg {
+      font-size: 1.125rem;
+      line-height: 1.7;
+    }
   }
 }

@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { getRandomBrainPlaceholder } from "@/lib/chat/brain-states";
 import { cn } from "@/lib/utils";
 import ImageLightbox from "@/components/lightbox";
 import MarkdownRenderer from "@/components/chat/MarkdownRenderer";
@@ -93,13 +94,15 @@ function StarterPromptItem({ item, onClick }: StarterPromptItemProps) {
       <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-chart-1/5 opacity-0 transition group-hover:opacity-100" />
       <div className="relative flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xl flex-shrink-0">{item.emoji}</span>
-          <Badge variant="outline" className="rounded-full border-primary/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary flex-shrink-0">
+          <div className="flex size-icon-lg flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary shadow-sm">
+            <item.icon className="size-icon-2xs" />
+          </div>
+          <Badge variant="outline" className="flex-shrink-0 rounded-full border-primary/30 px-2 py-0.5 text-body-xs uppercase tracking-wide text-primary">
             {item.tag}
           </Badge>
         </div>
-        <h3 className="text-xs sm:text-sm font-semibold text-foreground leading-tight">{item.title}</h3>
-        <p className="text-xs text-muted-foreground line-clamp-2 leading-snug">{item.description}</p>
+        <h3 className="text-body-xs sm:text-body-sm font-semibold text-foreground leading-tight">{item.title}</h3>
+        <p className="text-body-xs text-muted-foreground line-clamp-2 leading-snug">{item.description}</p>
       </div>
     </motion.button>
   );
@@ -114,7 +117,7 @@ function RecentQuestions({ questions, onSelect }: RecentQuestionsProps) {
   if (questions.length === 0) return null;
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <div className="flex items-center gap-2 text-body-xs font-semibold uppercase tracking-wide text-muted-foreground">
         <Clock3 className="size-icon-xs" />
         Recent questions
       </div>
@@ -124,7 +127,7 @@ function RecentQuestions({ questions, onSelect }: RecentQuestionsProps) {
             key={item.id}
             type="button"
             onClick={() => onSelect(item.content)}
-            className="group inline-flex items-center gap-2 rounded-full border border-border/25 bg-background/85 px-4 py-2 text-xs text-muted-foreground transition hover:border-primary/50 hover:text-foreground touch-manipulation"
+            className="group inline-flex items-center gap-2 rounded-full border border-border/25 bg-background/85 px-4 py-2 text-body-xs text-muted-foreground transition hover:border-primary/50 hover:text-foreground touch-manipulation"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: index * 0.1, duration: 0.2 }}
@@ -148,8 +151,9 @@ type ChatMessageProps = {
 
 function ChatMessage({ message, isLoading, onOpenCitation }: ChatMessageProps) {
   const isUser = message.role === "user";
+  const thinkingPlaceholder = useMemo(() => getRandomBrainPlaceholder(), []);
   return (
-    <motion.div 
+    <motion.div
       className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -158,13 +162,13 @@ function ChatMessage({ message, isLoading, onOpenCitation }: ChatMessageProps) {
     >
       <div
         className={cn(
-          "max-w-[95%] sm:max-w-[85%] rounded-2xl p-4 text-sm sm:text-base transition overflow-hidden",
+          "max-w-[95%] sm:max-w-[85%] rounded-2xl p-4 text-body-sm sm:text-body transition overflow-hidden",
           isUser
             ? "bg-primary/10 border-2 border-primary/30 text-foreground shadow-md dark:bg-primary/20 dark:border-primary/40"
             : "bg-card/80 border border-border/40 text-card-foreground shadow-lg backdrop-blur-sm dark:bg-card/60 dark:border-border/30",
         )}
       >
-        <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">
+        <div className="mb-2 flex items-center gap-2 text-body-xs font-semibold uppercase tracking-wide">
           {isUser ? (
             <>
               <User className="size-icon-xs text-primary" />
@@ -179,7 +183,7 @@ function ChatMessage({ message, isLoading, onOpenCitation }: ChatMessageProps) {
         </div>
         {message.content ? (
           isUser ? (
-            <p className="min-w-0 break-words whitespace-pre-wrap text-sm sm:text-base leading-relaxed text-foreground/90">
+            <p className="min-w-0 break-words whitespace-pre-wrap text-body-sm sm:text-body leading-relaxed text-foreground/90">
               {message.content}
             </p>
           ) : (
@@ -189,16 +193,16 @@ function ChatMessage({ message, isLoading, onOpenCitation }: ChatMessageProps) {
                 images={
                   Array.isArray(message.citations)
                     ? message.citations.map((item) => ({
-                        url: item.url ?? null,
-                        label: item.label ?? null,
-                        score: item.score ?? null,
-                      }))
+                      url: item.url ?? null,
+                      label: item.label ?? null,
+                      score: item.score ?? null,
+                    }))
                     : []
                 }
                 onImageClick={(url, label) => onOpenCitation?.(url, label)}
               />
               {isLoading && (
-                <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="mt-2 flex items-center gap-2 text-body-xs text-muted-foreground">
                   <Loader2 className="size-icon-xs animate-spin" />
                   <span>Streaming response...</span>
                 </div>
@@ -207,12 +211,14 @@ function ChatMessage({ message, isLoading, onOpenCitation }: ChatMessageProps) {
           )
         ) : (
           <div className="flex items-center gap-2">
+            <span className="text-body-xs" aria-live="polite">
+              {thinkingPlaceholder}
+            </span>
             <div className="flex gap-1">
               <span className="size-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "0ms" }} />
               <span className="size-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "150ms" }} />
               <span className="size-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "300ms" }} />
             </div>
-            <span className="text-xs">Thinking...</span>
           </div>
         )}
       </div>
@@ -260,8 +266,8 @@ function ChatComposer({
   messages,
 }: ChatComposerProps) {
   return (
-    <motion.form 
-      onSubmit={sendMessage} 
+    <motion.form
+      onSubmit={sendMessage}
       className="sticky bottom-0 left-0 right-0 z-10 px-4 pb-10 sm:px-6"
       initial={{ opacity: 0, y: 50 }}
       animate={{ opacity: 1, y: 0 }}
@@ -289,12 +295,12 @@ function ChatComposer({
               </PopoverTrigger>
               <PopoverContent className="w-80 space-y-4">
                 <div>
-                  <h4 className="text-sm font-semibold text-foreground">Retrieval settings</h4>
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <h4 className="text-body-sm font-semibold text-foreground">Retrieval settings</h4>
+                  <p className="mt-1 text-body-xs text-muted-foreground">
                     Tune how many neighbors to fetch and how long responses can be.
                   </p>
                 </div>
-                <div className="space-y-4 text-sm">
+                <div className="space-y-4 text-body-sm">
                   <div className="space-y-2">
                     <Label htmlFor="chat-k">Neighbors (k)</Label>
                     <Input
@@ -304,7 +310,7 @@ function ChatComposer({
                       value={k}
                       onChange={(event) => onNumberChange(event, setK)}
                     />
-                    <p className="text-xs text-muted-foreground">Higher values broaden context but may introduce noise.</p>
+                    <p className="text-body-xs text-muted-foreground">Higher values broaden context but may introduce noise.</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="chat-max-tokens">Max tokens</Label>
@@ -315,12 +321,12 @@ function ChatComposer({
                       value={maxTokens}
                       onChange={(event) => onNumberChange(event, setMaxTokens)}
                     />
-                    <p className="text-xs text-muted-foreground">Control response length to balance speed with detail.</p>
+                    <p className="text-body-xs text-muted-foreground">Control response length to balance speed with detail.</p>
                   </div>
                   <div className="flex items-center justify-between gap-3 rounded-xl border border-border/30 bg-card/40 px-3 py-2">
                     <div>
-                      <p className="text-sm font-medium text-foreground">Allow tool calling</p>
-                      <p className="text-xs text-muted-foreground">Let the assistant call retrieval tools when needed.</p>
+                      <p className="text-body-sm font-medium text-foreground">Allow tool calling</p>
+                      <p className="text-body-xs text-muted-foreground">Let the assistant call retrieval tools when needed.</p>
                     </div>
                     <Switch
                       id="chat-tool-calling"
@@ -329,8 +335,8 @@ function ChatComposer({
                     />
                   </div>
                   {!isSettingsValid && (
-                    <div className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                      <AlertCircle className="h-4 w-4" />
+                    <div className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-body-xs text-destructive">
+                      <AlertCircle className="size-icon-xs" />
                       The selected k value is not valid.
                     </div>
                   )}
@@ -354,7 +360,7 @@ function ChatComposer({
               title="Clear conversation"
             >
               <Trash2 className="size-icon-sm" />
-            </InputGroupButton>            
+            </InputGroupButton>
           </InputGroupAddon>
         </InputGroup>
       </div>
@@ -431,30 +437,35 @@ export default function ChatPage() {
   return (
     <div className="relative flex min-h-full flex-1 flex-col overflow-hidden">
       <div className="flex h-full flex-1 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-10">
-        <motion.div 
+        <motion.div
           className="mx-auto flex h-full w-full max-w-6xl flex-col gap-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
         >
-          <motion.div 
+          <motion.div
             className="shrink-0 space-y-3 text-center"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1, duration: 0.3 }}
           >
+            <div className="flex justify-center">
+              <Badge variant="outline" className="border-primary/30 bg-primary/5 px-3 py-1 text-body-xs font-semibold text-primary">
+                Snappy conversation engine
+              </Badge>
+            </div>
             <h1 className="text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">
               <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
-                Chat through
+                Chat with
               </span>{" "}
               <span className="bg-gradient-to-r from-chart-1 via-chart-2 to-chart-1 bg-clip-text text-transparent">
-                Your Documents
+                Snappy
               </span>
             </h1>
-            <p className="mx-auto max-w-2xl text-xs leading-relaxed text-muted-foreground">
-              Explore uploads with grounded answers, inline citations, and visual cues from the ColPali stack.
+            <p className="mx-auto max-w-2xl text-body-xs leading-relaxed text-muted-foreground">
+              Explore uploads with Snappy&apos;s grounded answers, inline citations, and visual cues from the ColPali stack.
             </p>
-            <div className="flex flex-wrap justify-center gap-2 text-xs">
+            <div className="flex flex-wrap justify-center gap-2 text-body-xs">
               <Badge variant={isReady ? "default" : "destructive"} className="gap-1.5 px-3 py-1.5">
                 {isReady ? (
                   <>
@@ -491,36 +502,36 @@ export default function ChatPage() {
                 <div className="space-y-6 px-6 pb-32 pr-4 sm:px-10">
                   <AnimatePresence mode="wait">
                     {messages.length === 0 && (
-                      <motion.div 
+                      <motion.div
                         className="flex justify-center"
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.9 }}
                         transition={{ duration: 0.4, ease: "easeOut" }}
                       >
-                      <div className="w-full max-w-3xl space-y-3 rounded-xl border border-border/20 bg-card/60 p-4 shadow-sm animate-in fade-in duration-500 dark:bg-card/40">
-                        <div className="space-y-2.5">
-                          <div className="flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                            <Sparkles className="h-3.5 w-3.5 text-primary" />
-                            Try asking
+                        <div className="w-full max-w-3xl space-y-3 rounded-xl border border-border/20 bg-card/60 p-4 shadow-sm animate-in fade-in duration-500 dark:bg-card/40">
+                          <div className="space-y-2.5">
+                            <div className="flex items-center justify-center gap-2 text-body-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                              <Sparkles className="size-icon-2xs text-primary" />
+                              Try asking
+                            </div>
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              {starterPrompts.map((item, index) => (
+                                <motion.div
+                                  key={item.prompt}
+                                  initial={{ opacity: 0, y: 20 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: 0.1 + index * 0.1, duration: 0.3 }}
+                                >
+                                  <StarterPromptItem item={item} onClick={handleSuggestionClick} />
+                                </motion.div>
+                              ))}
+                            </div>
                           </div>
-                          <div className="grid gap-2 sm:grid-cols-2">
-                            {starterPrompts.map((item, index) => (
-                              <motion.div
-                                key={item.prompt}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.1 + index * 0.1, duration: 0.3 }}
-                              >
-                                <StarterPromptItem item={item} onClick={handleSuggestionClick} />
-                              </motion.div>
-                            ))}
-                          </div>
+                          <RecentQuestions questions={recentQuestions} onSelect={handleSuggestionClick} />
                         </div>
-                        <RecentQuestions questions={recentQuestions} onSelect={handleSuggestionClick} />
-                      </div>
-                    </motion.div>
-                  )}
+                      </motion.div>
+                    )}
                   </AnimatePresence>
 
                   <AnimatePresence mode="popLayout">

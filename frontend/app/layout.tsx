@@ -55,7 +55,7 @@ export default function RootLayout({
                 <div className="absolute top-1/3 -right-24 h-96 w-96 rounded-full bg-accent/15 blur-3xl dark:bg-accent/8" />
                 <div className="absolute bottom-0 left-1/3 h-80 w-80 rounded-full bg-secondary/15 blur-3xl dark:bg-secondary/8" />
               </div>
-              
+
               {/* Row 1: Fixed Header */}
               <Nav />
               {/* Row 2: Component-controlled scroll area */}

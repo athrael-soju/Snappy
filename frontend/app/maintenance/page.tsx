@@ -102,8 +102,8 @@ export default function MaintenancePage() {
               </span>
             </h1>
             
-            <p className="mx-auto max-w-2xl text-xs leading-relaxed text-muted-foreground">
-              Monitor storage status and run maintenance operations. Handle destructive actions with care.
+            <p className="mx-auto max-w-2xl text-body-xs leading-relaxed text-muted-foreground">
+              Monitor Snappy&apos;s storage status and run maintenance operations. Handle destructive actions with care.
             </p>
 
             <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
@@ -113,12 +113,12 @@ export default function MaintenancePage() {
               >
                 {isSystemReady ? (
                   <>
-                    <CheckCircle2 className="h-3 w-3" />
+                    <CheckCircle2 className="size-icon-3xs" />
                     System Ready
                   </>
                 ) : (
                   <>
-                    <AlertCircle className="h-3 w-3" />
+                    <AlertCircle className="size-icon-3xs" />
                     Not Ready
                   </>
                 )}
@@ -129,12 +129,12 @@ export default function MaintenancePage() {
                 disabled={statusLoading}
                 variant="ghost"
                 size="sm"
-                className="h-8 gap-1.5 rounded-full px-4 text-xs touch-manipulation"
+                className="h-8 gap-1.5 rounded-full px-4 text-body-xs touch-manipulation"
               >
                 {statusLoading ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <Loader2 className="size-icon-3xs animate-spin" />
                 ) : (
-                  <RefreshCw className="h-3 w-3" />
+                  <RefreshCw className="size-icon-3xs" />
                 )}
                 Refresh
               </Button>
@@ -149,7 +149,7 @@ export default function MaintenancePage() {
             transition={{ delay: 0.2, duration: 0.3 }}
           >
               <div className="flex items-center gap-2">
-                <Server className="h-5 w-5 text-primary" />
+                <Server className="size-icon-md text-primary" />
                 <h2 className="text-lg font-bold">Storage Status</h2>
               </div>
               
@@ -166,35 +166,35 @@ export default function MaintenancePage() {
                   
                   <div className="relative space-y-3">
                     <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-chart-2 to-chart-3 shadow-lg sm:h-10 sm:w-10">
-                        <Database className="h-4 w-4 text-primary-foreground sm:h-5 sm:w-5" />
+                      <div className="flex size-icon-xl shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-chart-2 to-chart-3 shadow-lg sm:size-icon-2xl">
+                        <Database className="size-icon-xs text-primary-foreground sm:size-icon-md" />
                       </div>
-                      <h3 className="min-w-0 flex-1 truncate text-sm sm:text-base font-bold">Qdrant Collection</h3>
+                      <h3 className="min-w-0 flex-1 truncate text-body-sm sm:text-body font-bold">Qdrant Collection</h3>
                     </div>
                     
                     {statusLoading ? (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Loader2 className="h-3 w-3 animate-spin" />
+                      <div className="flex items-center gap-2 text-body-xs text-muted-foreground">
+                        <Loader2 className="size-icon-3xs animate-spin" />
                         Loading...
                       </div>
                     ) : systemStatus?.collection ? (
                       <div className="space-y-2">
                         <div className="flex flex-wrap gap-2">
-                          <Badge variant="outline" className="text-xs">
+                          <Badge variant="outline" className="text-body-xs">
                             {systemStatus.collection.name}
                           </Badge>
                           <Badge 
                             variant={systemStatus.collection.exists ? "default" : "destructive"}
-                            className="gap-1 text-xs"
+                            className="gap-1 text-body-xs"
                           >
                             {systemStatus.collection.exists ? (
-                              <><CheckCircle2 className="h-3 w-3 text-chart-2" /> Exists</>
+                              <><CheckCircle2 className="size-icon-3xs text-chart-2" /> Exists</>
                             ) : (
-                              <><AlertCircle className="h-3 w-3" /> Not Found</>
+                              <><AlertCircle className="size-icon-3xs" /> Not Found</>
                             )}
                           </Badge>
                         </div>
-                        <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="grid grid-cols-2 gap-2 text-body-xs">
                           <div className="rounded-lg bg-muted/50 px-2 py-1.5">
                             <p className="text-muted-foreground">Vectors</p>
                             <p className="font-semibold">{systemStatus.collection.vector_count?.toLocaleString() ?? 0}</p>
@@ -205,14 +205,14 @@ export default function MaintenancePage() {
                           </div>
                         </div>
                         {systemStatus.collection.error && (
-                          <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-2 py-1.5 text-xs text-destructive">
-                            <AlertCircle className="h-3 w-3" />
+                          <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-2 py-1.5 text-body-xs text-destructive">
+                            <AlertCircle className="size-icon-3xs" />
                             {systemStatus.collection.error}
                           </div>
                         )}
                       </div>
                     ) : (
-                      <p className="text-xs text-muted-foreground">No information available.</p>
+                      <p className="text-body-xs text-muted-foreground">No information available.</p>
                     )}
                   </div>
                 </motion.article>
@@ -229,37 +229,37 @@ export default function MaintenancePage() {
                   
                   <div className="relative space-y-3">
                     <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-chart-4 to-chart-3 shadow-lg sm:h-10 sm:w-10">
-                        <HardDrive className="h-4 w-4 text-primary-foreground sm:h-5 sm:w-5" />
+                      <div className="flex size-icon-xl shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-chart-4 to-chart-3 shadow-lg sm:size-icon-2xl">
+                        <HardDrive className="size-icon-xs text-primary-foreground sm:size-icon-md" />
                       </div>
-                      <h3 className="min-w-0 flex-1 truncate text-sm sm:text-base font-bold">MinIO Bucket</h3>
+                      <h3 className="min-w-0 flex-1 truncate text-body-sm sm:text-body font-bold">MinIO Bucket</h3>
                     </div>
                     
                     {statusLoading ? (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Loader2 className="h-3 w-3 animate-spin" />
+                      <div className="flex items-center gap-2 text-body-xs text-muted-foreground">
+                        <Loader2 className="size-icon-3xs animate-spin" />
                         Loading...
                       </div>
                     ) : systemStatus?.bucket ? (
                       <div className="space-y-2">
                         <div className="flex flex-wrap gap-2">
-                          <Badge variant="outline" className="text-xs">
+                          <Badge variant="outline" className="text-body-xs">
                             {systemStatus.bucket.name}
                           </Badge>
                           <Badge 
                             variant={systemStatus.bucket.exists && !systemStatus.bucket.disabled ? "default" : "destructive"}
-                            className="gap-1 text-xs"
+                            className="gap-1 text-body-xs"
                           >
                             {systemStatus.bucket.exists && !systemStatus.bucket.disabled ? (
-                              <><CheckCircle2 className="h-3 w-3 text-chart-2" /> Active</>
+                              <><CheckCircle2 className="size-icon-3xs text-chart-2" /> Active</>
                             ) : systemStatus.bucket.disabled ? (
-                              <><AlertCircle className="h-3 w-3" /> Disabled</>
+                              <><AlertCircle className="size-icon-3xs" /> Disabled</>
                             ) : (
-                              <><AlertCircle className="h-3 w-3" /> Not Found</>
+                              <><AlertCircle className="size-icon-3xs" /> Not Found</>
                             )}
                           </Badge>
                         </div>
-                        <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="grid grid-cols-2 gap-2 text-body-xs">
                           <div className="rounded-lg bg-muted/50 px-2 py-1.5">
                             <p className="text-muted-foreground">Objects</p>
                             <p className="font-semibold">{systemStatus.bucket.object_count?.toLocaleString() ?? 0}</p>
@@ -270,14 +270,14 @@ export default function MaintenancePage() {
                           </div>
                         </div>
                         {systemStatus.bucket.error && (
-                          <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-2 py-1.5 text-xs text-destructive">
-                            <AlertCircle className="h-3 w-3" />
+                          <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-2 py-1.5 text-body-xs text-destructive">
+                            <AlertCircle className="size-icon-3xs" />
                             {systemStatus.bucket.error}
                           </div>
                         )}
                       </div>
                     ) : (
-                      <p className="text-xs text-muted-foreground">No information available.</p>
+                      <p className="text-body-xs text-muted-foreground">No information available.</p>
                     )}
                   </div>
                 </motion.article>
@@ -292,11 +292,11 @@ export default function MaintenancePage() {
               transition={{ delay: 0.4, duration: 0.3 }}
             >
               <div className="flex items-center gap-2">
-                <Wrench className="h-5 w-5 text-primary" />
+                <Wrench className="size-icon-md text-primary" />
                 <h2 className="text-lg font-bold">Core Operations</h2>
               </div>
               
-              <p className="text-xs leading-relaxed text-muted-foreground">
+              <p className="text-body-xs leading-relaxed text-muted-foreground">
                 Manage system storage and data lifecycle. Each action requires confirmation and may be irreversible.
               </p>
               
@@ -332,12 +332,12 @@ export default function MaintenancePage() {
                       <div className={`absolute inset-0 bg-gradient-to-br ${operation.gradient} opacity-0 transition-opacity group-hover:opacity-5`} />
                       
                       <div className="relative space-y-3">
-                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${operation.gradient} shadow-lg sm:h-10 sm:w-10`}>
-                          <Icon className="h-4 w-4 text-primary-foreground sm:h-5 sm:w-5" />
+                        <div className={`flex size-icon-xl shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${operation.gradient} shadow-lg sm:size-icon-2xl`}>
+                          <Icon className="size-icon-xs text-primary-foreground sm:size-icon-md" />
                         </div>
                         <div className="space-y-1.5">
-                          <h3 className="text-sm sm:text-base font-bold">{operation.title}</h3>
-                          <p className="text-xs sm:text-sm leading-relaxed text-muted-foreground">{operation.description}</p>
+                          <h3 className="text-body-sm sm:text-body font-bold">{operation.title}</h3>
+                          <p className="text-body-xs sm:text-body-sm leading-relaxed text-muted-foreground">{operation.description}</p>
                         </div>
                         <Button
                           type="button"
@@ -349,13 +349,13 @@ export default function MaintenancePage() {
                         >
                           {isLoading ? (
                             <>
-                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <Loader2 className="size-icon-xs animate-spin" />
                               {operation.id === "initialize" ? "Initializing..." : 
                                operation.id === "delete" ? "Deleting..." : "Resetting..."}
                             </>
                           ) : (
                             <>
-                              <Icon className="h-4 w-4" />
+                              <Icon className="size-icon-xs" />
                               {operation.id === "initialize" ? "Initialize" : 
                                operation.id === "delete" ? "Delete" : "Reset All"}
                             </>
@@ -376,12 +376,12 @@ export default function MaintenancePage() {
         <AlertDialogContent className="border-destructive/50 bg-card/95 backdrop-blur-xl">
           <AlertDialogHeader>
             <div className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10">
-                <Trash2 className="h-5 w-5 text-destructive" />
+              <div className="flex size-icon-2xl items-center justify-center rounded-full bg-destructive/10">
+                <Trash2 className="size-icon-md text-destructive" />
               </div>
               <AlertDialogTitle className="text-xl">Delete Storage?</AlertDialogTitle>
             </div>
-            <AlertDialogDescription className="pt-2 text-sm leading-relaxed">
+            <AlertDialogDescription className="pt-2 text-body-sm leading-relaxed">
               This will permanently delete the collection and (if enabled) the bucket. All vectors, metadata, and stored images will be removed. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -391,7 +391,7 @@ export default function MaintenancePage() {
               onClick={confirmDelete}
               className="h-10 gap-2 rounded-full bg-destructive text-destructive-foreground shadow-lg hover:bg-destructive/90 touch-manipulation"
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="size-icon-xs" />
               Delete Storage
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -403,12 +403,12 @@ export default function MaintenancePage() {
         <AlertDialogContent className="border-destructive/50 bg-card/95 backdrop-blur-xl">
           <AlertDialogHeader>
             <div className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10">
-                <ShieldAlert className="h-5 w-5 text-destructive" />
+              <div className="flex size-icon-2xl items-center justify-center rounded-full bg-destructive/10">
+                <ShieldAlert className="size-icon-md text-destructive" />
               </div>
               <AlertDialogTitle className="text-xl">Reset Entire System?</AlertDialogTitle>
             </div>
-            <AlertDialogDescription className="pt-2 text-sm leading-relaxed">
+            <AlertDialogDescription className="pt-2 text-body-sm leading-relaxed">
               This will permanently remove <strong className="font-semibold text-foreground">all data</strong> from your system including all documents, embeddings, and images. The storage infrastructure will remain but will be completely empty. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -418,7 +418,7 @@ export default function MaintenancePage() {
               onClick={handleResetAll}
               className="h-10 gap-2 rounded-full bg-destructive text-destructive-foreground shadow-lg hover:bg-destructive/90 touch-manipulation"
             >
-              <ShieldAlert className="h-4 w-4" />
+              <ShieldAlert className="size-icon-xs" />
               Reset Everything
             </AlertDialogAction>
           </AlertDialogFooter>

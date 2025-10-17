@@ -35,8 +35,8 @@ export default function ImageLightbox({ open, src, alt, onOpenChange }: ImageLig
         </div>
 
         {alt && (
-          <div className="px-4 py-3 border-t">
-            <p className="text-center text-xs text-muted-foreground line-clamp-2">
+          <div className="border-t px-4 py-3">
+            <p className="text-center text-body-xs text-muted-foreground line-clamp-2">
               {alt}
             </p>
           </div>

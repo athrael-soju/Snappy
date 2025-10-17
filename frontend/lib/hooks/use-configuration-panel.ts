@@ -8,6 +8,7 @@ import {
   saveConfigToStorage,
   clearConfigFromStorage,
   loadConfigFromStorage,
+  loadStoredConfigMeta,
 } from "@/lib/config/config-store";
 import { parseOptimizationResponse } from "@/lib/api/runtime";
 
@@ -73,6 +74,7 @@ export function useConfigurationPanel() {
 
       const currentValues = { ...(valuesData as Record<string, string>) };
       const storedValues = loadConfigFromStorage();
+      const { updatedAt: storedUpdatedAt } = loadStoredConfigMeta();
       const pendingUpdates: Array<[string, string]> = [];
 
       let appliedStoredConfig = false;
@@ -99,7 +101,9 @@ export function useConfigurationPanel() {
 
       setValues(currentValues);
       setOriginalValues(currentValues);
-      saveConfigToStorage(currentValues);
+      const timestamp = appliedStoredConfig ? new Date() : storedUpdatedAt ?? new Date();
+      saveConfigToStorage(currentValues, timestamp);
+      setLastSaved(timestamp);
 
       if (appliedStoredConfig && typeof window !== "undefined") {
         window.dispatchEvent(new Event("systemStatusChanged"));
@@ -161,6 +165,7 @@ export function useConfigurationPanel() {
     try {
       const changedKeys = Object.keys(values).filter(key => values[key] !== originalValues[key]);
 
+      const savedAt = new Date();
       for (const key of changedKeys) {
         await ConfigurationService.updateConfigConfigUpdatePost({
           key,
@@ -168,9 +173,9 @@ export function useConfigurationPanel() {
         });
       }
 
-      saveConfigToStorage(values);
+      saveConfigToStorage(values, savedAt);
       setOriginalValues({ ...values });
-      setLastSaved(new Date());
+      setLastSaved(savedAt);
       toast.success("Configuration saved", {
         description: `${changedKeys.length} setting${changedKeys.length !== 1 ? "s" : ""} updated`,
       });
@@ -214,11 +219,13 @@ export function useConfigurationPanel() {
         const nextValues = { ...values, ...defaultValues };
         setValues(nextValues);
         setOriginalValues(prev => ({ ...prev, ...defaultValues }));
-        saveConfigToStorage(nextValues);
+        const savedAt = new Date();
+        saveConfigToStorage(nextValues, savedAt);
 
         toast.success("Section reset", {
           description: `${category.name} settings restored to defaults`,
         });
+        setLastSaved(savedAt);
         if (typeof window !== "undefined") {
           window.dispatchEvent(new Event("systemStatusChanged"));
         }

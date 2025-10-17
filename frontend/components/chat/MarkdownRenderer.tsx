@@ -43,22 +43,22 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
         >
           {copied ? (
             <>
-              <Check className="mr-1 h-3.5 w-3.5 text-green-500" />
-              <span className="text-xs">Copied</span>
+              <Check className="mr-1 size-icon-2xs text-green-500" />
+              <span className="text-body-xs">Copied</span>
             </>
           ) : (
             <>
-              <Copy className="mr-1 h-3.5 w-3.5" />
-              <span className="text-xs">Copy</span>
+              <Copy className="mr-1 size-icon-2xs" />
+              <span className="text-body-xs">Copy</span>
             </>
           )}
         </Button>
       </div>
       <pre className="max-w-full overflow-x-auto rounded-lg border bg-muted/50 p-4">
         {language && (
-          <div className="mb-2 text-xs font-medium text-muted-foreground">{language}</div>
+          <div className="mb-2 text-body-xs font-medium text-muted-foreground">{language}</div>
         )}
-        <code className="block font-mono text-sm text-foreground">{code}</code>
+        <code className="block font-mono text-body-sm text-foreground">{code}</code>
       </pre>
     </div>
   );
@@ -143,7 +143,7 @@ export default function MarkdownRenderer({
         parts.push(
           <code
             key={`${baseKey}-code-${keyCounter++}`}
-            className="rounded border bg-muted px-1.5 py-0.5 font-mono text-sm"
+            className="rounded border bg-muted px-1.5 py-0.5 font-mono text-body-sm"
           >
             {codeMatch[1]}
           </code>,

@@ -54,18 +54,18 @@ export default function Loading() {
               animate={{ rotate: 360 }}
               transition={{ duration: 2, repeat: Infinity, ease: "linear", repeatType: "loop" }}
             >
-              <Loader2 className="h-10 w-10 text-primary" />
+              <Loader2 className="size-icon-2xl text-primary" />
             </motion.div>
           </div>
         </div>
         
         {/* Loading text with gradient */}
         <motion.p
-          className="bg-gradient-to-r from-chart-1 via-chart-2 to-chart-4 bg-clip-text text-base font-semibold text-transparent"
+          className="bg-gradient-to-r from-chart-1 via-chart-2 to-chart-4 bg-clip-text text-body font-semibold text-transparent"
           animate={{ opacity: [0.5, 1, 0.5] }}
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", repeatType: "loop" }}
         >
-          Loading...
+          Snappy is getting things ready...
         </motion.p>
       </motion.div>
     </div>

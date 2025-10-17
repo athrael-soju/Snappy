@@ -17,10 +17,10 @@ multivectors in Qdrant, and surfaced through a Next.js UI with streaming chat
 responses and visual citations.
 
 > Looking for component-level docs?  
-> • Backend: `backend/README.md`  
-> • Frontend: `frontend/README.md`  
-> • ColPali service: `colpali/README.md`  
-> • Configuration reference: `backend/docs/configuration.md`
+> - Backend: `backend/README.md`  
+> - Frontend: `frontend/README.md`  
+> - ColPali service: `colpali/README.md`  
+> - Configuration reference: `backend/docs/configuration.md`
 
 ---
 
@@ -66,17 +66,17 @@ walkthrough of the indexing and retrieval flows.
 
 ## Features
 
-- **Page-level, multimodal retrieval** – multivector embeddings per PDF page,
+- **Page-level, multimodal retrieval** - multivector embeddings per PDF page,
   optional MUVERA first-stage search, MinIO-backed image URLs or inline payloads.
-- **Streaming chat with visual citations** – Next.js edge route emits a custom
+- **Streaming chat with visual citations** - Next.js edge route emits a custom
   `kb.images` event alongside OpenAI Responses SSE, and the UI displays a
   "Visual citations included" chip with an image gallery.
-- **Pipelined indexing** – configurable batch size, automatic concurrency
+- **Pipelined indexing** - configurable batch size, automatic concurrency
   sizing, progress tracking via Server-Sent Events, and optional cancellation.
-- **Runtime configuration UI** — `/configuration` page consumes the
+- **Runtime configuration UI** - `/configuration` page consumes the
   `/config/*` API to edit settings, reset to defaults, or apply hardware-driven
   optimisations without restarting the backend.
-- **Docker-first** – root `docker-compose.yml` spins up Qdrant, MinIO, backend,
+- **Docker-first** - root `docker-compose.yml` spins up Qdrant, MinIO, backend,
   frontend, and the ColPali embedding API services (CPU and GPU variants
   available under `colpali/docker-compose.yml`).
 
@@ -85,6 +85,8 @@ walkthrough of the indexing and retrieval flows.
 ## UI / UX
 
 A modern Next.js 15 UI with server-side streaming, real-time progress updates, and visual citations.
+
+- Shared components rely on the tokenised utilities defined in `frontend/app/globals.css` (`text-body-*`, `size-icon-*`), keeping the stylesheet the single source of truth for typography and icon sizing. Use those helpers when extending the UI to stay on the Snappy visual grid.
 
 <div align="center">
   <table>
@@ -221,7 +223,7 @@ All schema-backed settings (and their defaults) are documented in
 
 ### Frontend highlights (`frontend/.env.local`)
 
-- `NEXT_PUBLIC_API_BASE_URL` – defaults to `http://localhost:8000`
+- `NEXT_PUBLIC_API_BASE_URL` - defaults to `http://localhost:8000`
 - `OPENAI_API_KEY`, `OPENAI_MODEL`, optional `OPENAI_TEMPERATURE`,
   `OPENAI_MAX_TOKENS`
 
@@ -251,15 +253,15 @@ backend does not proxy OpenAI calls.
 
 ## Troubleshooting
 
-- **ColPali timeouts** – increase `COLPALI_API_TIMEOUT` or switch to the GPU
+- **ColPali timeouts** - increase `COLPALI_API_TIMEOUT` or switch to the GPU
   service. CPU mode is significantly slower.
-- **Progress stream never completes** – ensure Poppler is installed and
+- **Progress stream never completes** - ensure Poppler is installed and
   accessible; check backend logs for PDF conversion errors.
 - **Images missing in search results** - confirm MinIO credentials/URL are
   correct and that the frontend `next.config.ts` allows the relevant domains.
-- **CORS errors** – set `ALLOWED_ORIGINS` to explicit URLs before exposing the
+- **CORS errors** - set `ALLOWED_ORIGINS` to explicit URLs before exposing the
   API outside of local development.
-- **Runtime config changes do not persist** – use `/config/update` for temporary
+- **Runtime config changes do not persist** - use `/config/update` for temporary
   tweaks and update `.env` for permanent values.
 
 See the Troubleshooting section in `backend/docs/configuration.md` for more
@@ -290,13 +292,13 @@ more.
 
 ## License
 
-MIT License – see [LICENSE](LICENSE).
+MIT License - see [LICENSE](LICENSE).
 
 ---
 
 ## Acknowledgements
 
-- **ColPali / ColQwen** – https://arxiv.org/abs/2407.01449
-- **Qdrant optimisations** – https://qdrant.tech/blog/colpali-qdrant-optimization/  
+- **ColPali / ColQwen** - https://arxiv.org/abs/2407.01449
+- **Qdrant optimisations** - https://qdrant.tech/blog/colpali-qdrant-optimization/  
   and https://qdrant.tech/articles/binary-quantization/
-- **PyTorch** – https://pytorch.org/
+- **PyTorch** - https://pytorch.org/

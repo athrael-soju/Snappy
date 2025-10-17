@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { motion } from "framer-motion"
+import Link from "next/link";
+import { motion } from "framer-motion";
 import {
   ArrowRight,
   Upload,
@@ -11,38 +11,38 @@ import {
   Wrench,
   Sparkles,
   Zap,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 const primaryFeatures = [
   {
     title: "Upload & Index",
-    description: "Drop documents and let ColPali's vision AI understand both text and layout.",
+    description: "Drop documents and let Snappy's ColPali vision model understand layout and content instantly.",
     href: "/upload",
     icon: Upload,
     gradient: "from-chart-1 to-chart-2",
   },
   {
     title: "Search Naturally",
-    description: "Ask questions in plain language and get precise, context-aware results.",
+    description: "Ask questions in plain language and Snappy surfaces precise, citation-ready answers.",
     href: "/search",
     icon: Search,
     gradient: "from-primary to-chart-4",
   },
   {
     title: "Chat & Discover",
-    description: "Have conversations with your documents powered by visual understanding.",
+    description: "Have conversations with your documents powered by Snappy's visual reasoning.",
     href: "/chat",
     icon: MessageSquare,
     gradient: "from-chart-2 to-chart-3",
   },
-]
+];
 
 const secondaryLinks = [
   { title: "Configuration", href: "/configuration", icon: Settings },
   { title: "Maintenance", href: "/maintenance", icon: Wrench },
-]
+];
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -75,9 +75,9 @@ const cardVariants = {
 
 export default function Home() {
   return (
-    <div className="relative flex flex-1 min-h-0 flex-col justify-between overflow-y-auto">
+    <div className="relative flex min-h-0 flex-1 flex-col justify-between overflow-y-auto">
       {/* Hero Content - Full viewport utilization */}
-      <motion.div 
+      <motion.div
         className="flex flex-1 flex-col justify-center px-4 py-4 text-center sm:px-6 lg:px-8"
         initial="hidden"
         animate="visible"
@@ -88,60 +88,60 @@ export default function Home() {
           <motion.div variants={itemVariants}>
             <Badge
               variant="outline"
-              className="border-primary/30 bg-primary/5 px-4 py-1.5 text-sm font-medium backdrop-blur-sm"
+              className="border-primary/30 bg-primary/5 px-4 py-1.5 text-body font-medium backdrop-blur-sm"
             >
-              <Sparkles className="mr-2 size-icon-xs" />
-              Powered by ColPali Vision AI
+              <Sparkles className="mr-2 size-icon-2xs" />
+              Snappy! Powered by the ColPali Vision
             </Badge>
           </motion.div>
 
           {/* Heading */}
-          <motion.h1 
+          <motion.h1
             className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl"
             variants={itemVariants}
           >
             <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
-              Vision-First
+              Meet Snappy!
             </span>
             <br />
             <span className="bg-gradient-to-r from-primary via-chart-4 to-chart-1 bg-clip-text text-transparent">
-              Document Intelligence
+              Vision-First Knowledge Retrieval
             </span>
           </motion.h1>
 
           {/* Description */}
-          <motion.p 
-            className="mx-auto max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base"
+          <motion.p
+            className="mx-auto max-w-2xl text-body text-muted-foreground"
             variants={itemVariants}
           >
-            Search and chat with your documents using natural language.
-            Advanced visual AI understands context, not just keywords.
+            Snappy combines lightning-fast ingestion with context-aware retrieval so your team can move
+            from document to decision in seconds.
           </motion.p>
 
           {/* CTA Buttons */}
-          <motion.div 
+          <motion.div
             className="flex flex-wrap items-center justify-center gap-3 sm:gap-4"
             variants={itemVariants}
           >
             <Button
               asChild
               size="lg"
-              className="group h-12 gap-2 rounded-full px-6 text-base shadow-xl shadow-primary/25 transition-all hover:shadow-2xl hover:shadow-primary/30 touch-manipulation"
+              className="group h-12 gap-2 rounded-full px-6 text-body shadow-xl shadow-primary/25 transition-all hover:shadow-2xl hover:shadow-primary/30 touch-manipulation"
             >
               <Link href="/upload">
-                <Upload className="h-5 w-5" />
+                <Upload className="size-icon-md" />
                 Get Started
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                <ArrowRight className="size-icon-2xs transition-transform group-hover:translate-x-1" />
               </Link>
             </Button>
             <Button
               asChild
               size="lg"
               variant="outline"
-              className="h-12 gap-2 rounded-full border-2 bg-background/50 px-6 text-base backdrop-blur-sm transition-all hover:bg-background touch-manipulation"
+              className="h-12 gap-2 rounded-full border-2 bg-background/50 px-6 text-body backdrop-blur-sm transition-all hover:bg-background touch-manipulation"
             >
               <Link href="/chat">
-                <MessageSquare className="h-5 w-5" />
+                <MessageSquare className="size-icon-md" />
                 Try Chat
               </Link>
             </Button>
@@ -149,17 +149,14 @@ export default function Home() {
 
           {/* Core Features Section */}
           <motion.div className="pt-2" variants={itemVariants}>
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-muted px-4 py-1.5 text-sm font-medium">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-muted px-4 py-1.5 text-body font-medium">
               <Zap className="size-icon-sm text-primary" />
               Core Features
             </div>
 
             {/* Feature Cards */}
-            <motion.div 
-              className="grid gap-4 md:grid-cols-3"
-              variants={containerVariants}
-            >
-              {primaryFeatures.map((feature, index) => (
+            <motion.div className="grid gap-4 md:grid-cols-3" variants={containerVariants}>
+              {primaryFeatures.map((feature) => (
                 <motion.div
                   key={feature.href}
                   variants={cardVariants}
@@ -170,31 +167,35 @@ export default function Home() {
                     href={feature.href}
                     className="group relative block overflow-hidden rounded-2xl border border-border/50 bg-card/50 p-5 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10 touch-manipulation"
                   >
-                  <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 transition-opacity group-hover:opacity-5`} />
+                    <div
+                      className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 transition-opacity group-hover:opacity-5`}
+                    />
 
-                  <div className="relative flex items-start gap-3">
-                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${feature.gradient} shadow-lg`}>
-                      <feature.icon className="h-6 w-6 text-primary-foreground" />
-                    </div>
+                    <div className="relative flex items-start gap-3">
+                      <div
+                        className={`flex size-icon-3xl shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${feature.gradient} shadow-lg`}
+                      >
+                        <feature.icon className="size-icon-lg text-primary-foreground" />
+                      </div>
 
-                    <div className="flex-1 text-left">
-                      <h3 className="mb-1.5 text-base font-bold">{feature.title}</h3>
-                      <p className="mb-2 text-sm leading-relaxed text-muted-foreground">
-                        {feature.description}
-                      </p>
-                      <div className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
-                        Explore
-                        <ArrowRight className="size-icon-xs transition-transform group-hover:translate-x-2" />
+                      <div className="flex-1 text-left">
+                        <h3 className="mb-1.5 text-lg font-bold">{feature.title}</h3>
+                        <p className="mb-2 text-body-sm text-muted-foreground">
+                          {feature.description}
+                        </p>
+                        <div className="inline-flex items-center gap-1.5 text-body-sm font-semibold text-primary">
+                          Explore
+                          <ArrowRight className="size-icon-2xs transition-transform group-hover:translate-x-2" />
+                        </div>
                       </div>
                     </div>
-                  </div>
                   </Link>
                 </motion.div>
               ))}
             </motion.div>
 
             {/* Secondary Links */}
-            <motion.div 
+            <motion.div
               className="mt-6 flex flex-wrap items-center justify-center gap-3"
               variants={itemVariants}
             >
@@ -204,10 +205,10 @@ export default function Home() {
                   asChild
                   variant="ghost"
                   size="default"
-                  className="gap-2 rounded-full px-4"
+                  className="gap-2 rounded-full px-4 text-body-sm"
                 >
                   <Link href={link.href}>
-                    <link.icon className="h-4 w-4" />
+                    <link.icon className="size-icon-2xs" />
                     {link.title}
                   </Link>
                 </Button>
@@ -217,5 +218,5 @@ export default function Home() {
         </div>
       </motion.div>
     </div>
-  )
+  );
 }

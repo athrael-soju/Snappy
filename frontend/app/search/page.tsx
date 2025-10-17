@@ -114,13 +114,13 @@ export default function SearchPage() {
               </span>
             </h1>
             
-            <p className="mx-auto max-w-2xl text-xs leading-relaxed text-muted-foreground">
-              Ask questions in natural language and find the most relevant matches.
+            <p className="mx-auto max-w-2xl text-body-xs leading-relaxed text-muted-foreground">
+              Ask questions in natural language and let Snappy surface the most relevant matches instantly.
             </p>
             
             {!isReady && (
-              <Badge variant="destructive" className="gap-2 text-xs">
-                <AlertCircle className="size-3" />
+              <Badge variant="destructive" className="gap-2 text-body-xs">
+                <AlertCircle className="size-icon-3xs" />
                 System not ready
               </Badge>
             )}
@@ -149,7 +149,7 @@ export default function SearchPage() {
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Ask about content, visuals, or document details..."
-                  className="flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
+                  className="flex-1 bg-transparent text-body outline-none placeholder:text-muted-foreground"
                   disabled={!isReady}
                 />
                 
@@ -181,32 +181,32 @@ export default function SearchPage() {
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <div className="rounded-xl border border-border/50 bg-card/50 p-3 backdrop-blur-sm">
                 <label className="flex flex-col gap-2">
-                  <span className="text-xs font-medium text-muted-foreground">Neighbors (k)</span>
+                  <span className="text-body-xs font-medium text-muted-foreground">Neighbors (k)</span>
                   <input
                     type="number"
                     min={1}
                     value={k}
                     onChange={(event) => handleNumberChange(event, setK)}
-                    className="rounded-lg border border-border/50 bg-background px-3 py-2 text-sm outline-none transition-all focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+                    className="rounded-lg border border-border/50 bg-background px-3 py-2 text-body-sm outline-none transition-all focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
                   />
                 </label>
               </div>
               <div className="rounded-xl border border-border/50 bg-card/50 p-3 backdrop-blur-sm">
                 <label className="flex flex-col gap-2">
-                  <span className="text-xs font-medium text-muted-foreground">Show top results</span>
+                  <span className="text-body-xs font-medium text-muted-foreground">Show top results</span>
                   <input
                     type="number"
                     min={1}
                     value={topK}
                     onChange={(event) => handleNumberChange(event, setTopK)}
-                    className="rounded-lg border border-border/50 bg-background px-3 py-2 text-sm outline-none transition-all focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+                    className="rounded-lg border border-border/50 bg-background px-3 py-2 text-body-sm outline-none transition-all focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
                   />
                 </label>
               </div>
               <div className="rounded-xl border border-border/50 bg-card/50 p-3 backdrop-blur-sm">
                 <div className="flex flex-col gap-2">
-                  <span className="text-xs font-medium text-muted-foreground">Search Duration</span>
-                  <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-background px-3 py-2 text-sm">
+                  <span className="text-body-xs font-medium text-muted-foreground">Search Duration</span>
+                  <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-background px-3 py-2 text-body-sm">
                     <Clock className="size-icon-sm text-muted-foreground" />
                     <span className="font-medium">
                       {searchDurationMs !== null ? `${(searchDurationMs / 1000).toFixed(2)}s` : '—'}
@@ -225,7 +225,7 @@ export default function SearchPage() {
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive">
+                  <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-4 py-3 text-body-sm font-medium text-destructive">
                     <AlertCircle className="size-icon-sm" />
                     {error}
                   </div>
@@ -247,7 +247,7 @@ export default function SearchPage() {
               {/* Results Header - Stats Only */}
               <div className="flex flex-wrap items-center justify-center gap-3">
                 {hasSearched && results.length > topK && (
-                  <Badge variant="secondary" className="px-3 py-1 text-xs">
+                  <Badge variant="secondary" className="px-3 py-1 text-body-xs">
                     Showing {truncatedResults.length} of {results.length}
                   </Badge>
                 )}
@@ -264,7 +264,7 @@ export default function SearchPage() {
                   >
                     <div className="flex items-center justify-center gap-2 rounded-xl border border-border/50 bg-card/50 p-8 backdrop-blur-sm">
                       <Loader2 className="size-icon-md animate-spin text-primary" />
-                      <p className="text-sm text-muted-foreground">Searching your documents...</p>
+                      <p className="text-body-sm text-muted-foreground">Searching your documents...</p>
                     </div>
                   </motion.div>
                 )}
@@ -280,9 +280,9 @@ export default function SearchPage() {
                     transition={{ duration: 0.3 }}
                   >
                     <div className="rounded-xl border border-border/50 bg-card/50 p-8 text-center backdrop-blur-sm">
-                      <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground/50" />
-                      <p className="mt-3 text-sm font-medium text-foreground">No matches found</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
+                      <AlertCircle className="mx-auto size-icon-3xl text-muted-foreground/50" />
+                      <p className="mt-3 text-body-sm font-medium text-foreground">No matches found</p>
+                      <p className="mt-1 text-body-xs text-muted-foreground">
                         Try adjusting your query or search parameters
                       </p>
                     </div>
@@ -305,7 +305,7 @@ export default function SearchPage() {
                   <div className="mb-2 flex shrink-0 items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <Sparkles className="size-icon-sm text-primary" />
-                      <h3 className="text-sm font-bold">
+                      <h3 className="text-body-sm font-bold">
                         {truncatedResults.length} {truncatedResults.length === 1 ? "Result" : "Results"}
                       </h3>
                     </div>
@@ -314,9 +314,9 @@ export default function SearchPage() {
                       onClick={clearResults}
                       size="sm"
                       variant="ghost"
-                      className="h-7 gap-1.5 rounded-full px-2 text-xs"
+                      className="h-7 gap-1.5 rounded-full px-2 text-body-xs"
                     >
-                      <X className="size-3" />
+                      <X className="size-icon-3xs" />
                       Clear
                     </Button>
                   </div>
@@ -362,7 +362,7 @@ export default function SearchPage() {
                           </div>
                         ) : (
                           <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-chart-4">
-                            <FileText className="h-8 w-8 text-primary-foreground" />
+                            <FileText className="size-icon-xl text-primary-foreground" />
                           </div>
                         )}
                         
@@ -370,12 +370,12 @@ export default function SearchPage() {
                         <div className="relative flex min-w-0 flex-1 flex-col justify-between">
                           {/* Header */}
                           <div className="space-y-1.5">
-                            <h3 className="line-clamp-2 text-sm sm:text-base font-bold text-foreground">
+                            <h3 className="line-clamp-2 text-body-sm sm:text-body font-bold text-foreground">
                               {displayTitle}
                             </h3>
                             <div className="flex flex-wrap gap-1.5">
                               {typeof item.score === "number" && (
-                                <Badge variant="secondary" className="h-auto px-2 py-0.5 text-xs font-semibold">
+                                <Badge variant="secondary" className="h-auto px-2 py-0.5 text-body-xs font-semibold">
                                   {Math.min(100, item.score > 1 ? item.score : item.score * 100).toFixed(3)}% relevance
                                 </Badge>
                               )}

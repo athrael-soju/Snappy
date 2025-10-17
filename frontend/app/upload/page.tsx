@@ -78,14 +78,14 @@ export default function UploadPage() {
               </span>
             </h1>
             
-            <p className="mx-auto max-w-2xl text-xs leading-relaxed text-muted-foreground">
-              Drop your documents and let ColPali&apos;s vision AI understand both text and layout.
+            <p className="mx-auto max-w-2xl text-body-xs leading-relaxed text-muted-foreground">
+              Drop your documents and let Snappy&apos;s ColPali vision AI understand both text and layout.
             </p>
           </motion.div>
 
           {/* Compact System Status */}
           <motion.div 
-            className="flex shrink-0 flex-wrap items-center justify-center gap-2 text-xs"
+            className="flex shrink-0 flex-wrap items-center justify-center gap-2 text-body-xs"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2, duration: 0.3 }}
@@ -96,24 +96,24 @@ export default function UploadPage() {
             >
               {isReady ? (
                 <>
-                  <CheckCircle2 className="h-3 w-3" />
+                  <CheckCircle2 className="size-icon-3xs" />
                   Ready
                 </>
               ) : (
                 <>
-                  <AlertCircle className="h-3 w-3" />
+                  <AlertCircle className="size-icon-3xs" />
                   Not Ready
                 </>
               )}
             </Badge>
             
             <Badge variant="outline" className="gap-1.5 px-3 py-1">
-              <Database className="h-3 w-3" />
+              <Database className="size-icon-3xs" />
               {systemStatus?.collection?.name ?? "unknown"}
               {systemStatus?.collection?.exists ? (
-                <CheckCircle2 className="h-3 w-3 text-chart-2" />
+                <CheckCircle2 className="size-icon-3xs text-chart-2" />
               ) : (
-                <AlertCircle className="h-3 w-3 text-destructive" />
+                <AlertCircle className="size-icon-3xs text-destructive" />
               )}
               {typeof systemStatus?.collection?.vector_count === "number" && (
                 <span className="ml-1 font-semibold">
@@ -123,12 +123,12 @@ export default function UploadPage() {
             </Badge>
             
             <Badge variant="outline" className="gap-1.5 px-3 py-1">
-              <HardDrive className="h-3 w-3" />
+              <HardDrive className="size-icon-3xs" />
               {systemStatus?.bucket?.name ?? "unknown"}
               {systemStatus?.bucket?.exists && !systemStatus?.bucket?.disabled ? (
-                <CheckCircle2 className="h-3 w-3 text-chart-2" />
+                <CheckCircle2 className="size-icon-3xs text-chart-2" />
               ) : (
-                <AlertCircle className="h-3 w-3 text-destructive" />
+                <AlertCircle className="size-icon-3xs text-destructive" />
               )}
               {typeof systemStatus?.bucket?.object_count === "number" && (
                 <span className="ml-1 font-semibold">
@@ -142,12 +142,12 @@ export default function UploadPage() {
               disabled={statusLoading}
               variant="ghost"
               size="sm"
-              className="h-6 gap-1.5 rounded-full px-3 text-xs"
+              className="h-6 gap-1.5 rounded-full px-3 text-body-xs"
             >
               {statusLoading ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
+                <Loader2 className="size-icon-3xs animate-spin" />
               ) : (
-                <RefreshCw className="h-3 w-3" />
+                <RefreshCw className="size-icon-3xs" />
               )}
               Refresh
             </Button>
@@ -179,10 +179,10 @@ export default function UploadPage() {
                 </div>
                 
                 <div className="text-center space-y-2">
-                  <h3 className="text-base sm:text-lg font-bold">
+                  <h3 className="text-body sm:text-lg font-bold">
                     {isDragOver ? "Drop files here" : "Drag & drop your files"}
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-body-sm text-muted-foreground">
                     or browse • PDFs, images, and documents
                   </p>
                 </div>
@@ -197,7 +197,7 @@ export default function UploadPage() {
                       className="h-10 gap-2 rounded-full border-2 bg-background/50 px-5 backdrop-blur-sm cursor-pointer touch-manipulation"
                       onClick={() => document.getElementById('file-input')?.click()}
                     >
-                      <FileText className="h-4 w-4" />
+                      <FileText className="size-icon-xs" />
                       Browse Files
                     </Button>
                   </label>
@@ -212,12 +212,12 @@ export default function UploadPage() {
                       >
                         {uploading ? (
                           <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <Loader2 className="size-icon-xs animate-spin" />
                             <span className="hidden sm:inline">Uploading...</span>
                           </>
                         ) : (
                           <>
-                            <Upload className="h-4 w-4" />
+                            <Upload className="size-icon-xs" />
                             <span className="hidden sm:inline">Upload</span>
                           </>
                         )}
@@ -231,7 +231,7 @@ export default function UploadPage() {
                           variant="ghost"
                           className="h-10 gap-2 rounded-full px-4 touch-manipulation"
                         >
-                          <X className="h-4 w-4" />
+                          <X className="size-icon-xs" />
                           <span className="hidden sm:inline">Cancel</span>
                         </Button>
                       )}
@@ -262,8 +262,8 @@ export default function UploadPage() {
                 >
                 <div className="mb-2 flex shrink-0 items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-primary" />
-                    <h3 className="text-sm font-bold">
+                    <Sparkles className="size-icon-xs text-primary" />
+                    <h3 className="text-body-sm font-bold">
                       Ready to Upload ({fileCount} {fileCount === 1 ? "file" : "files"})
                     </h3>
                   </div>
@@ -273,9 +273,9 @@ export default function UploadPage() {
                     size="sm"
                     variant="ghost"
                     disabled={uploading}
-                    className="h-7 gap-1.5 rounded-full px-2 text-xs"
+                    className="h-7 gap-1.5 rounded-full px-2 text-body-xs"
                   >
-                    <X className="h-3 w-3" />
+                    <X className="size-icon-3xs" />
                     Clear
                   </Button>
                 </div>
@@ -293,16 +293,16 @@ export default function UploadPage() {
                       whileHover={{ scale: 1.02, x: 4 }}
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        <FileText className="h-4 w-4 shrink-0 text-primary" />
+                        <FileText className="size-icon-xs shrink-0 text-primary" />
                         <div className="min-w-0">
-                          <p className="truncate text-xs font-medium">{file.name}</p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="truncate text-body-xs font-medium">{file.name}</p>
+                          <p className="text-body-xs text-muted-foreground">
                             {(file.size / 1024).toFixed(1)} KB
                           </p>
                         </div>
                       </div>
                       {uploading && typeof uploadProgress === "number" && (
-                        <div className="shrink-0 text-xs font-semibold text-primary">
+                        <div className="shrink-0 text-body-xs font-semibold text-primary">
                           {Math.round(uploadProgress)}%
                         </div>
                       )}
@@ -326,7 +326,7 @@ export default function UploadPage() {
                 >
                 {typeof uploadProgress === "number" && uploadProgress > 0 && (
                   <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center justify-between text-body-xs">
                       <span className="font-medium">Upload Progress</span>
                       <span className="font-semibold text-primary">{Math.round(uploadProgress)}%</span>
                     </div>
@@ -340,13 +340,13 @@ export default function UploadPage() {
                 )}
                 
                 {statusText && (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2 text-body-xs text-muted-foreground">
                     {isStatusLoading ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <Loader2 className="size-icon-3xs animate-spin" />
                     ) : error ? (
-                      <AlertCircle className="h-3 w-3 text-destructive" />
+                      <AlertCircle className="size-icon-3xs text-destructive" />
                     ) : (
-                      <CheckCircle2 className="h-3 w-3 text-chart-2" />
+                      <CheckCircle2 className="size-icon-3xs text-chart-2" />
                     )}
                     {statusText}
                   </div>
@@ -354,22 +354,22 @@ export default function UploadPage() {
                 
                 {jobId && (
                   <div className="rounded-lg bg-muted/50 px-2 py-1.5">
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-body-xs text-muted-foreground">
                       Job ID: <span className="font-mono">{jobId}</span>
                     </p>
                   </div>
                 )}
                 
                 {message && (
-                  <div className="flex items-center gap-2 rounded-lg bg-chart-2/10 px-3 py-2 text-xs font-medium text-chart-2 dark:text-chart-2">
-                    <CheckCircle2 className="h-4 w-4" />
+                  <div className="flex items-center gap-2 rounded-lg bg-chart-2/10 px-3 py-2 text-body-xs font-medium text-chart-2 dark:text-chart-2">
+                    <CheckCircle2 className="size-icon-xs" />
                     {message}
                   </div>
                 )}
                 
                 {error && (
-                  <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive dark:text-destructive">
-                    <AlertCircle className="h-4 w-4" />
+                  <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-body-xs font-medium text-destructive dark:text-destructive">
+                    <AlertCircle className="size-icon-xs" />
                     {error}
                   </div>
                 )}
