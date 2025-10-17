@@ -316,15 +316,6 @@ function ChatComposer({
               </PopoverContent>
             </Popover>
             <InputGroupButton
-              type="button"
-              onClick={reset}
-              size="icon-sm"
-              disabled={messages.length === 0 && !input}
-              title="Clear conversation"
-            >
-              <Loader2 className="h-4 w-4" style={{ transform: "rotate(45deg)" }} />
-            </InputGroupButton>
-            <InputGroupButton
               type="submit"
               size="icon-sm"
               className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:from-blue-500/90 hover:to-cyan-500/90"
@@ -333,6 +324,15 @@ function ChatComposer({
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </InputGroupButton>
+            <InputGroupButton
+              type="button"
+              onClick={reset}
+              size="icon-sm"
+              disabled={messages.length === 0 && !input}
+              title="Clear conversation"
+            >
+              <Loader2 className="h-4 w-4" style={{ transform: "rotate(45deg)" }} />
+            </InputGroupButton>            
           </InputGroupAddon>
         </InputGroup>
       </div>
