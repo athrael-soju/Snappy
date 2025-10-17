@@ -11,6 +11,7 @@ import { RetrievalService } from "@/lib/api/generated";
 import { parseSearchResults } from "@/lib/api/runtime";
 import { useSearchStore } from "@/lib/hooks/use-search-store";
 import { useSystemStatus } from "@/stores/app-store";
+import ImageLightbox from "@/components/lightbox";
 
 const suggestedQueries = [
   "Show recent upload summaries",
@@ -37,6 +38,9 @@ export default function SearchPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState<string>("");
+  const [lightboxAlt, setLightboxAlt] = useState<string | null>(null);
 
   const truncatedResults = useMemo(() => results.slice(0, topK), [results, topK]);
 
@@ -74,6 +78,13 @@ export default function SearchPage() {
   const clearResults = () => {
     reset();
     setError(null);
+  };
+
+  const handleImageOpen = (url: string, label?: string) => {
+    if (!url) return;
+    setLightboxSrc(url);
+    setLightboxAlt(label ?? null);
+    setLightboxOpen(true);
   };
 
   return (
@@ -249,59 +260,62 @@ export default function SearchPage() {
                   
                   <ScrollArea className="min-h-0 flex-1">
                     <div className="space-y-2 pr-4">
-                  {truncatedResults.map((item, index) => (
-                    <article 
-                      key={`${item.label ?? index}-${index}`} 
-                      className="group relative flex gap-3 overflow-hidden rounded-xl border border-border/50 bg-card/50 p-3 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10"
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 opacity-0 transition-opacity group-hover:opacity-5" />
-                      
-                      {/* Thumbnail */}
-                      {item.image_url ? (
-                        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-border/50 bg-background/50">
-                          <Image
-                            src={item.image_url}
-                            alt={item.label ?? `Result ${index + 1}`}
-                            width={80}
-                            height={80}
-                            className="h-full w-full object-cover"
-                            unoptimized
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-pink-500">
-                          <FileText className="h-7 w-7 text-primary-foreground" />
-                        </div>
-                      )}
-                      
-                      {/* Content */}
-                      <div className="relative flex min-w-0 flex-1 flex-col justify-between">
-                        {/* Header */}
-                        <div className="space-y-1">
-                          <h3 className="line-clamp-2 text-sm font-bold text-foreground">
-                            {item.label ?? `Result ${index + 1}`}
-                          </h3>
-                          <div className="flex flex-wrap gap-1.5">
-                            {typeof item.score === "number" && (
-                              <Badge variant="secondary" className="h-auto px-2 py-0.5 text-xs">
-                                {Math.round(item.score * 100)}%
-                              </Badge>
-                            )}
-                            {item.payload?.filename && (
-                              <Badge variant="outline" className="h-auto max-w-[200px] truncate px-2 py-0.5 text-xs font-normal">
-                                {item.payload.filename}
-                              </Badge>
-                            )}
-                            {typeof item.payload?.pdf_page_index === "number" && (
-                              <Badge variant="outline" className="h-auto px-2 py-0.5 text-xs font-normal">
-                                Page {item.payload.pdf_page_index + 1}
-                              </Badge>
-                            )}
+                  {truncatedResults.map((item, index) => {
+                    const filename = item.payload?.filename;
+                    const pageIndex = item.payload?.pdf_page_index;
+                    const displayTitle = filename 
+                      ? `${filename}${typeof pageIndex === 'number' ? ` - Page ${pageIndex + 1}` : ''}`
+                      : item.label ?? `Result ${index + 1}`;
+                    
+                    return (
+                      <article 
+                        key={`${item.label ?? index}-${index}`}
+                        onClick={() => {
+                          if (item.image_url) {
+                            handleImageOpen(item.image_url, displayTitle);
+                          }
+                        }}
+                        className="group relative flex gap-3 overflow-hidden rounded-xl border border-border/50 bg-card/50 p-3 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 cursor-pointer"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 opacity-0 transition-opacity group-hover:opacity-5" />
+                        
+                        {/* Thumbnail */}
+                        {item.image_url ? (
+                          <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-border/50 bg-background/50">
+                            <Image
+                              src={item.image_url}
+                              alt={displayTitle}
+                              width={80}
+                              height={80}
+                              className="h-full w-full object-cover"
+                              unoptimized
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-pink-500">
+                            <FileText className="h-7 w-7 text-primary-foreground" />
+                          </div>
+                        )}
+                        
+                        {/* Content */}
+                        <div className="relative flex min-w-0 flex-1 flex-col justify-between">
+                          {/* Header */}
+                          <div className="space-y-1">
+                            <h3 className="line-clamp-2 text-sm font-bold text-foreground">
+                              {displayTitle}
+                            </h3>
+                            <div className="flex flex-wrap gap-1.5">
+                              {typeof item.score === "number" && (
+                                <Badge variant="secondary" className="h-auto px-2 py-0.5 text-xs font-semibold">
+                                  {Math.round(item.score * 100)}% relevance
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </article>
-                  ))}
+                      </article>
+                    );
+                  })}
                     </div>
                   </ScrollArea>
                 </div>
@@ -310,6 +324,18 @@ export default function SearchPage() {
           )}
         </div>
       </div>
+      <ImageLightbox
+        open={lightboxOpen}
+        src={lightboxSrc}
+        alt={lightboxAlt ?? undefined}
+        onOpenChange={(open) => {
+          setLightboxOpen(open);
+          if (!open) {
+            setLightboxSrc("");
+            setLightboxAlt(null);
+          }
+        }}
+      />
     </div>
   );
 }
