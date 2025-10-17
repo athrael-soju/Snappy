@@ -206,7 +206,9 @@ export async function POST(request: NextRequest) {
       // Now, generate answer WITHOUT tools
       streamResponse = await streamModel({ input, instructions: systemPrompt, withTools: false });
     } else {
+      let toolUsed = false;
       if (functionCall && functionCall.name === 'document_search') {
+        toolUsed = true;
         const searchResult = await executeDocumentSearch(userMessage, kClamped);
 
         // 4. Add function result to input
@@ -228,7 +230,11 @@ export async function POST(request: NextRequest) {
       }
 
       // Continue streaming WITH tools enabled
-      streamResponse = await streamModel({ input, instructions: systemPrompt, withTools: true });
+      streamResponse = await streamModel({
+        input,
+        instructions: systemPrompt,
+        withTools: !toolUsed,
+      });
     }
 
     const encoder = new TextEncoder();

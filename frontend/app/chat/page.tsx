@@ -142,28 +142,28 @@ function ChatMessage({ message, isLoading, onOpenCitation }: ChatMessageProps) {
     <div className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}>
       <div
         className={cn(
-          "max-w-[85%] rounded-2xl p-4 text-sm shadow-sm transition overflow-hidden",
+          "max-w-[85%] rounded-2xl p-4 text-sm transition overflow-hidden",
           isUser
-            ? "bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-500 text-primary-foreground"
-            : "bg-background/60 text-foreground dark:bg-background/40",
+            ? "bg-primary/10 border-2 border-primary/30 text-foreground shadow-md dark:bg-primary/20 dark:border-primary/40"
+            : "bg-card/80 border border-border/40 text-card-foreground shadow-lg backdrop-blur-sm dark:bg-card/60 dark:border-border/30",
         )}
       >
         <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">
           {isUser ? (
             <>
-              <User className="h-3.5 w-3.5 opacity-90" />
-              You
+              <User className="h-3.5 w-3.5 text-primary" />
+              <span className="text-primary">You</span>
             </>
           ) : (
             <>
-              <Bot className="h-3.5 w-3.5 text-primary" />
-              Assistant
+              <Bot className="h-3.5 w-3.5 text-accent" />
+              <span className="text-accent">Assistant</span>
             </>
           )}
         </div>
         {message.content ? (
           isUser ? (
-            <p className="min-w-0 break-words whitespace-pre-wrap leading-relaxed text-primary-foreground/90">
+            <p className="min-w-0 break-words whitespace-pre-wrap leading-relaxed text-foreground/90">
               {message.content}
             </p>
           ) : (
@@ -408,12 +408,6 @@ export default function ChatPage() {
 
   return (
     <div className="relative flex min-h-full flex-1 flex-col overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-blue-500/15 via-transparent to-transparent" />
-        <div className="absolute -top-16 left-10 h-64 w-64 rounded-full bg-purple-500/20 blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-cyan-500/15 blur-3xl" />
-      </div>
-
       <div className="flex h-full flex-1 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-10">
         <div className="mx-auto flex h-full w-full max-w-6xl flex-col gap-8">
           <div className="shrink-0 space-y-3 text-center">
@@ -457,14 +451,14 @@ export default function ChatPage() {
             </div>
           </div>
 
-          <section className="relative flex min-h-[520px] flex-1 flex-col overflow-hidden rounded-xl bg-background/30 backdrop-blur-sm">
+          <section className="relative flex min-h-[520px] flex-1 flex-col overflow-hidden">
 
 
             <div className="relative flex flex-1 overflow-hidden">
               <ScrollArea className="h-full w-full">
                 <div className="space-y-6 px-6 pb-32 pr-4 sm:px-10">
                   {messages.length === 0 && (
-                    <div className="space-y-3 rounded-xl bg-background/40 p-4 animate-in fade-in duration-500">
+                    <div className="space-y-3 rounded-xl border border-border/20 bg-card/60 p-4 shadow-sm animate-in fade-in duration-500 dark:bg-card/40">
                       <div className="space-y-2">
                         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                           <Sparkles className="h-3.5 w-3.5 text-primary" />

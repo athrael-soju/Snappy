@@ -4,7 +4,11 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { ConfigurationService, ApiError } from "@/lib/api/generated";
 import "@/lib/api/client";
-import { saveConfigToStorage, mergeWithStoredConfig, clearConfigFromStorage } from "@/lib/config/config-store";
+import {
+  saveConfigToStorage,
+  clearConfigFromStorage,
+  loadConfigFromStorage,
+} from "@/lib/config/config-store";
 import { parseOptimizationResponse } from "@/lib/api/runtime";
 
 export interface ConfigSetting {
@@ -67,9 +71,39 @@ export function useConfigurationPanel() {
 
       setSchema(schemaData as ConfigSchema);
 
-      const mergedValues = mergeWithStoredConfig(valuesData);
-      setValues(mergedValues);
-      setOriginalValues(mergedValues);
+      const currentValues = { ...(valuesData as Record<string, string>) };
+      const storedValues = loadConfigFromStorage();
+      const pendingUpdates: Array<[string, string]> = [];
+
+      let appliedStoredConfig = false;
+      if (storedValues) {
+        for (const [key, storedValue] of Object.entries(storedValues)) {
+          if (typeof storedValue !== "string") continue;
+          if (currentValues[key] !== storedValue) {
+            pendingUpdates.push([key, storedValue]);
+          }
+        }
+
+        if (pendingUpdates.length > 0) {
+          for (const [key, value] of pendingUpdates) {
+            try {
+              await ConfigurationService.updateConfigConfigUpdatePost({ key, value });
+              currentValues[key] = value;
+              appliedStoredConfig = true;
+            } catch (err) {
+              console.error(`Failed to reapply stored config for '${key}':`, err);
+            }
+          }
+        }
+      }
+
+      setValues(currentValues);
+      setOriginalValues(currentValues);
+      saveConfigToStorage(currentValues);
+
+      if (appliedStoredConfig && typeof window !== "undefined") {
+        window.dispatchEvent(new Event("systemStatusChanged"));
+      }
     } catch (err) {
       const errorMsg = err instanceof ApiError ? err.message : "Failed to load configuration";
       setError(errorMsg);

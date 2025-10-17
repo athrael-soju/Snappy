@@ -34,7 +34,16 @@ export default function RootLayout({
           <AppStoreProvider>
             <Toaster position="top-right" />
             {/* 3-row viewport-aware layout with persistent footer */}
-            <div className="flex h-full min-h-0 flex-col">
+            <div className="relative flex h-full min-h-0 flex-col">
+              {/* Animated gradient background */}
+              <div className="pointer-events-none fixed inset-0 -z-10">
+                <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
+                <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-primary/8 via-primary/3 to-transparent" />
+                <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-primary/15 blur-3xl dark:bg-primary/8" />
+                <div className="absolute top-1/3 -right-24 h-96 w-96 rounded-full bg-accent/15 blur-3xl dark:bg-accent/8" />
+                <div className="absolute bottom-0 left-1/3 h-80 w-80 rounded-full bg-secondary/15 blur-3xl dark:bg-secondary/8" />
+              </div>
+              
               {/* Row 1: Fixed Header */}
               <Nav />
               {/* Row 2: Component-controlled scroll area */}

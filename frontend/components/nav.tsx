@@ -40,7 +40,7 @@ export function Nav() {
   }, [])
 
   return (
-    <header className="relative sticky top-0 z-50 shrink-0 border-b border-border/40 bg-background/80 backdrop-blur-xl">
+    <header className="relative sticky top-0 z-50 shrink-0 border-b border-border/40 bg-background/50 backdrop-blur-xl">
       {/* Subtle gradient line at top */}
       <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
 

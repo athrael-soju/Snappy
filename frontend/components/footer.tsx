@@ -5,7 +5,7 @@ export function Footer() {
   const currentYear = new Date().getFullYear()
 
   return (
-    <footer className="relative shrink-0 border-t border-border/40 bg-background/80 backdrop-blur-xl">
+    <footer className="relative shrink-0 border-t border-border/40 bg-background/50 backdrop-blur-xl">
       {/* Subtle gradient line at bottom */}
       <div className="absolute inset-x-0 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
       
