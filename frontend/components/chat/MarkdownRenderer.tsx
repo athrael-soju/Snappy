@@ -4,6 +4,7 @@
 import React, { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Copy, Check } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import CitationHoverCard from './CitationHoverCard';
 
 type ImageData = {
@@ -16,6 +17,7 @@ type MarkdownRendererProps = {
   content: string;
   images?: ImageData[];
   onImageClick?: (url: string, label?: string) => void;
+  className?: string;
 };
 
 // Inline helper to render fenced code blocks with copy functionality
@@ -72,6 +74,7 @@ export default function MarkdownRenderer({
   content,
   images = [],
   onImageClick,
+  className,
 }: MarkdownRendererProps) {
   const citationMap = useMemo(() => {
     const map = new Map<string, { number: number; image: ImageData }>();
@@ -301,5 +304,14 @@ export default function MarkdownRenderer({
     return elements;
   };
 
-  return <div className="prose prose-sm max-w-none text-foreground">{renderContent()}</div>;
+  return (
+    <div
+      className={cn(
+        'max-w-none space-y-3 text-body-sm leading-relaxed text-foreground sm:text-body',
+        className,
+      )}
+    >
+      {renderContent()}
+    </div>
+  );
 }

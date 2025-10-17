@@ -183,7 +183,7 @@ function ChatMessage({ message, isLoading, onOpenCitation }: ChatMessageProps) {
         </div>
         {message.content ? (
           isUser ? (
-            <p className="min-w-0 break-words whitespace-pre-wrap text-body-sm sm:text-body leading-relaxed text-foreground/90">
+            <p className="min-w-0 break-words whitespace-pre-wrap text-body-sm leading-relaxed text-foreground/90 sm:text-body">
               {message.content}
             </p>
           ) : (
@@ -193,13 +193,14 @@ function ChatMessage({ message, isLoading, onOpenCitation }: ChatMessageProps) {
                 images={
                   Array.isArray(message.citations)
                     ? message.citations.map((item) => ({
-                      url: item.url ?? null,
-                      label: item.label ?? null,
-                      score: item.score ?? null,
-                    }))
+                        url: item.url ?? null,
+                        label: item.label ?? null,
+                        score: item.score ?? null,
+                      }))
                     : []
                 }
                 onImageClick={(url, label) => onOpenCitation?.(url, label)}
+                className="text-foreground/90"
               />
               {isLoading && (
                 <div className="mt-2 flex items-center gap-2 text-body-xs text-muted-foreground">

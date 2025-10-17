@@ -1,6 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import { useTheme } from "next-themes";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
@@ -74,6 +77,18 @@ const cardVariants = {
 };
 
 export default function Home() {
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const logoSrc =
+    theme === "dark"
+      ? "/Snappy/snappy_dark_nobg_resized.png"
+      : "/Snappy/snappy_light_nobg_resized.png";
+
   return (
     <div className="relative flex min-h-0 flex-1 flex-col justify-between overflow-y-auto">
       {/* Hero Content - Full viewport utilization */}
@@ -93,6 +108,23 @@ export default function Home() {
               <Sparkles className="mr-2 size-icon-2xs" />
               Snappy! Powered by the ColPali Vision
             </Badge>
+          </motion.div>
+
+          {/* Brandmark */}
+          <motion.div variants={itemVariants}>
+            <div className="relative mx-auto flex h-28 w-28 items-center justify-center rounded-full bg-gradient-to-br from-primary/15 via-primary/5 to-transparent shadow-[0_25px_75px_-30px_rgba(255,64,129,0.6)] sm:h-36 sm:w-36">
+              <div className="absolute inset-0 rounded-full bg-primary/40 opacity-60 blur-3xl" />
+              {mounted && (
+                <Image
+                  src={logoSrc}
+                  alt="Snappy logo"
+                  width={180}
+                  height={180}
+                  priority
+                  className="relative h-24 w-24 object-contain drop-shadow-2xl sm:h-32 sm:w-32"
+                />
+              )}
+            </div>
           </motion.div>
 
           {/* Heading */}
