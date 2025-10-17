@@ -93,17 +93,17 @@ export default function SearchPage() {
         <div className="mx-auto flex h-full w-full max-w-5xl flex-col space-y-4">
           {/* Header Section */}
           <div className="shrink-0 space-y-2 text-center">
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
+            <h1 className="text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">
               <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
                 Search & Discover
               </span>
               {" "}
-              <span className="bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-primary via-chart-4 to-primary bg-clip-text text-transparent">
                 Your Documents
               </span>
             </h1>
             
-            <p className="mx-auto max-w-2xl text-xs leading-relaxed text-muted-foreground sm:text-sm">
+            <p className="mx-auto max-w-2xl text-xs leading-relaxed text-muted-foreground">
               Ask questions in natural language and find the most relevant matches.
             </p>
             
@@ -119,7 +119,7 @@ export default function SearchPage() {
           <form onSubmit={handleSearch} className="shrink-0 space-y-3">
             {/* Search Input with Buttons */}
             <div className="group relative overflow-hidden rounded-2xl border-2 border-border/50 bg-card/30 backdrop-blur-sm transition-all focus-within:border-primary/50 focus-within:shadow-xl focus-within:shadow-primary/10">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 opacity-0 transition-opacity group-focus-within:opacity-5" />
+              <div className="absolute inset-0 bg-gradient-to-br from-primary to-chart-4 opacity-0 transition-opacity group-focus-within:opacity-5" />
               
               <div className="relative flex items-center gap-3 p-3">
                 <Search className="h-5 w-5 shrink-0 text-muted-foreground group-focus-within:text-primary transition-colors" />
@@ -275,9 +275,9 @@ export default function SearchPage() {
                             handleImageOpen(item.image_url, displayTitle);
                           }
                         }}
-                        className="group relative flex gap-3 overflow-hidden rounded-xl border border-border/50 bg-card/50 p-3 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 cursor-pointer"
+                        className="group relative flex gap-3 overflow-hidden rounded-xl border border-border/50 bg-card/50 p-3 sm:p-4 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 cursor-pointer touch-manipulation"
                       >
-                        <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 opacity-0 transition-opacity group-hover:opacity-5" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary to-chart-4 opacity-0 transition-opacity group-hover:opacity-5" />
                         
                         {/* Thumbnail */}
                         {item.image_url ? (
@@ -292,7 +292,7 @@ export default function SearchPage() {
                             />
                           </div>
                         ) : (
-                          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-pink-500">
+                          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-chart-4">
                             <FileText className="h-7 w-7 text-primary-foreground" />
                           </div>
                         )}

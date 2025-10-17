@@ -8,8 +8,8 @@ import { AppStoreProvider } from "@/stores/app-store";
 import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
-  title: "Snappy! - Your Friendly Vision Retrieval Buddy",
-  description: "Lightning-fast visual document search, upload, and conversational AI powered by ColPali",
+  title: "Snappy! - Vision-First Document Intelligence",
+  description: "Lightning-fast visual document search, intelligent chat, and seamless upload powered by ColPali AI",
   icons: {
     icon: "/Snappy/snappy_light_nobg_resized.png",
     shortcut: "/Snappy/snappy_light_nobg_resized.png",

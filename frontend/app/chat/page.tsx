@@ -83,18 +83,18 @@ function StarterPromptItem({ item, onClick }: StarterPromptItemProps) {
       key={item.prompt}
       type="button"
       onClick={() => onClick(item.prompt)}
-      className="group relative overflow-hidden rounded-2xl border border-border/20 bg-background/90 p-4 text-left shadow-xs transition hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+      className="group relative overflow-hidden rounded-xl border border-border/20 bg-background/90 p-3 text-left shadow-xs transition hover:border-primary/50 hover:shadow-md hover:shadow-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-blue-500/5 opacity-0 transition group-hover:opacity-100" />
-      <div className="relative flex flex-col gap-2">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-chart-1/5 opacity-0 transition group-hover:opacity-100" />
+      <div className="relative flex flex-col gap-1.5">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xl flex-shrink-0">{item.emoji}</span>
-          <Badge variant="outline" className="rounded-full border-primary/30 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary flex-shrink-0">
+          <span className="text-lg flex-shrink-0">{item.emoji}</span>
+          <Badge variant="outline" className="rounded-full border-primary/30 px-1.5 py-0 text-[10px] font-semibold uppercase tracking-wide text-primary flex-shrink-0">
             {item.tag}
           </Badge>
         </div>
-        <h3 className="text-xs font-semibold text-foreground leading-tight">{item.title}</h3>
-        <p className="text-[10px] text-muted-foreground line-clamp-2">{item.description}</p>
+        <h3 className="text-[11px] font-semibold text-foreground leading-tight">{item.title}</h3>
+        <p className="text-[10px] text-muted-foreground line-clamp-2 leading-snug">{item.description}</p>
       </div>
     </button>
   );
@@ -142,7 +142,7 @@ function ChatMessage({ message, isLoading, onOpenCitation }: ChatMessageProps) {
     <div className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}>
       <div
         className={cn(
-          "max-w-[85%] rounded-2xl p-4 text-sm transition overflow-hidden",
+          "max-w-[95%] sm:max-w-[85%] rounded-2xl p-3 sm:p-4 text-sm transition overflow-hidden",
           isUser
             ? "bg-primary/10 border-2 border-primary/30 text-foreground shadow-md dark:bg-primary/20 dark:border-primary/40"
             : "bg-card/80 border border-border/40 text-card-foreground shadow-lg backdrop-blur-sm dark:bg-card/60 dark:border-border/30",
@@ -318,7 +318,7 @@ function ChatComposer({
             <InputGroupButton
               type="submit"
               size="icon-sm"
-              className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:from-blue-500/90 hover:to-cyan-500/90"
+              className="bg-gradient-to-r from-chart-1 to-chart-2 text-white hover:from-chart-1/90 hover:to-chart-2/90"
               disabled={isSendDisabled}
               title="Send message"
             >
@@ -411,15 +411,15 @@ export default function ChatPage() {
       <div className="flex h-full flex-1 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-10">
         <div className="mx-auto flex h-full w-full max-w-6xl flex-col gap-8">
           <div className="shrink-0 space-y-3 text-center">
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
+            <h1 className="text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">
               <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
                 Chat through
               </span>{" "}
-              <span className="bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-500 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-chart-1 via-chart-2 to-chart-1 bg-clip-text text-transparent">
                 Your Documents
               </span>
             </h1>
-            <p className="mx-auto max-w-2xl text-xs leading-relaxed text-muted-foreground sm:text-sm">
+            <p className="mx-auto max-w-2xl text-xs leading-relaxed text-muted-foreground">
               Explore uploads with grounded answers, inline citations, and visual cues from the ColPali stack.
             </p>
             <div className="flex flex-wrap justify-center gap-2 text-xs">
@@ -458,19 +458,21 @@ export default function ChatPage() {
               <ScrollArea className="h-full w-full">
                 <div className="space-y-6 px-6 pb-32 pr-4 sm:px-10">
                   {messages.length === 0 && (
-                    <div className="space-y-3 rounded-xl border border-border/20 bg-card/60 p-4 shadow-sm animate-in fade-in duration-500 dark:bg-card/40">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                          <Sparkles className="h-3.5 w-3.5 text-primary" />
-                          Try asking
+                    <div className="flex justify-center">
+                      <div className="w-full max-w-3xl space-y-3 rounded-xl border border-border/20 bg-card/60 p-4 shadow-sm animate-in fade-in duration-500 dark:bg-card/40">
+                        <div className="space-y-2.5">
+                          <div className="flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            <Sparkles className="h-3.5 w-3.5 text-primary" />
+                            Try asking
+                          </div>
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            {starterPrompts.map((item) => (
+                              <StarterPromptItem key={item.prompt} item={item} onClick={handleSuggestionClick} />
+                            ))}
+                          </div>
                         </div>
-                        <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-2">
-                          {starterPrompts.map((item) => (
-                            <StarterPromptItem key={item.prompt} item={item} onClick={handleSuggestionClick} />
-                          ))}
-                        </div>
+                        <RecentQuestions questions={recentQuestions} onSelect={handleSuggestionClick} />
                       </div>
-                      <RecentQuestions questions={recentQuestions} onSelect={handleSuggestionClick} />
                     </div>
                   )}
 

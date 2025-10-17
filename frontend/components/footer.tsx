@@ -12,7 +12,7 @@ export function Footer() {
       <div className="container mx-auto px-4 py-2 sm:py-3">
         <div className="flex flex-col items-center justify-between gap-2 sm:flex-row sm:gap-4">
           <p className="text-center text-xs text-muted-foreground sm:text-left sm:text-sm">
-            © {currentYear} <span className="font-semibold text-foreground">Snappy!</span> Crafted for lightning-fast visual retrieval.
+            © {currentYear} <span className="bg-gradient-to-r from-primary to-chart-4 bg-clip-text text-transparent font-bold">Snappy!</span> Crafted for lightning-fast visual retrieval.
           </p>
           
           <div className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground sm:gap-x-2 sm:text-sm">

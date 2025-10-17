@@ -49,8 +49,8 @@ export function Nav() {
           {/* Logo with enhanced styling */}
           <Link href="/" className="group flex shrink-0 items-center gap-3 transition-all">
             <div className="relative">
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/20 to-purple-500/20 opacity-0 blur-xl transition-opacity group-hover:opacity-100" />
-              <div className="relative h-14 w-14 rounded-xl bg-gradient-to-br from-primary/10 to-purple-500/10 p-2 ring-1 ring-primary/20 transition-all group-hover:ring-primary/40 group-hover:shadow-lg group-hover:shadow-primary/20">
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/20 to-chart-4/20 opacity-0 blur-xl transition-opacity group-hover:opacity-100" />
+              <div className="relative h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-gradient-to-br from-primary/10 to-chart-4/10 p-2 ring-1 ring-primary/20 transition-all group-hover:ring-primary/40 group-hover:shadow-lg group-hover:shadow-primary/20">
                 {mounted && (
                   <Image
                     src={
@@ -58,10 +58,10 @@ export function Nav() {
                         ? "/Snappy/snappy_dark_nobg_resized.png"
                         : "/Snappy/snappy_light_nobg_resized.png"
                     }
-                    alt="Snappy Logo"
+                    alt="Snappy"
                     width={48}
                     height={48}
-                    className="object-contain"
+                    className="object-contain transition-transform group-hover:scale-110"
                     priority
                   />
                 )}
@@ -70,7 +70,7 @@ export function Nav() {
           </Link>
 
           {/* Desktop Navigation - Center */}
-          <nav className="hidden flex-1 items-center justify-center gap-1 md:flex">
+          <nav className="hidden flex-1 items-center justify-center gap-1 lg:flex">
             {links.map((link) => {
               const isActive =
                 link.href === "/"
@@ -117,7 +117,7 @@ export function Nav() {
 
             {/* Mobile Menu */}
             <DropdownMenu>
-              <DropdownMenuTrigger asChild className="md:hidden">
+              <DropdownMenuTrigger asChild className="lg:hidden">
                 <Button
                   variant="ghost"
                   size="icon"

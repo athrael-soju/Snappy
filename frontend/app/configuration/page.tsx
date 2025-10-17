@@ -80,7 +80,7 @@ export default function ConfigurationPage() {
         <div className="mx-auto flex h-full w-full max-w-5xl flex-col space-y-4">
           {/* Header Section */}
           <div className="shrink-0 space-y-2 text-center">
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
+            <h1 className="text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">
               <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
                 System
               </span>
@@ -90,7 +90,7 @@ export default function ConfigurationPage() {
               </span>
             </h1>
             
-            <p className="mx-auto max-w-2xl text-xs leading-relaxed text-muted-foreground sm:text-sm">
+            <p className="mx-auto max-w-2xl text-xs leading-relaxed text-muted-foreground">
               Edit backend settings directly. Inputs mirror the OpenAPI schema and save values individually.
             </p>
             
@@ -211,7 +211,7 @@ export default function ConfigurationPage() {
                 if (setting.type === "boolean") {
                   return (
                     <article key={setting.key} className={articleClass}>
-                      <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center justify-between gap-4 min-h-[44px]">
                         <div className="flex min-w-0 flex-1 items-center gap-2">
                           <ToggleLeft className="h-4 w-4 shrink-0 text-primary" />
                           <span className="text-sm font-semibold">{setting.label}</span>
@@ -241,8 +241,8 @@ export default function ConfigurationPage() {
 
                 if (setting.type === "select" && Array.isArray(setting.options)) {
                   return (
-                    <article key={setting.key} className={`space-y-3 ${articleClass}`}>
-                      <label className="flex flex-col gap-2">
+                    <article key={setting.key} className={`space-y-2 ${articleClass}`}>
+                      <label className="flex flex-col gap-2 touch-manipulation">
                         <div className="flex items-center gap-2">
                           <List className="h-4 w-4 text-primary" />
                           <span className="text-sm font-semibold">{setting.label}</span>
@@ -285,8 +285,8 @@ export default function ConfigurationPage() {
                 const Icon = setting.type === "password" ? Lock : setting.type === "number" ? Hash : Info;
                 
                 return (
-                  <article key={setting.key} className={`space-y-3 ${articleClass}`}>
-                    <label className="flex flex-col gap-2">
+                  <article key={setting.key} className={`space-y-2 ${articleClass}`}>
+                    <label className="flex flex-col gap-2 touch-manipulation">
                       <div className="flex items-center gap-2">
                         <Icon className="h-4 w-4 text-primary" />
                         <span className="text-sm font-semibold">{setting.label}</span>

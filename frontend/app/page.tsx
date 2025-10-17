@@ -20,21 +20,21 @@ const primaryFeatures = [
     description: "Drop documents and let ColPali's vision AI understand both text and layout.",
     href: "/upload",
     icon: Upload,
-    gradient: "from-blue-500 to-cyan-500",
+    gradient: "from-chart-1 to-chart-2",
   },
   {
     title: "Search Naturally",
     description: "Ask questions in plain language and get precise, context-aware results.",
     href: "/search",
     icon: Search,
-    gradient: "from-purple-500 to-pink-500",
+    gradient: "from-primary to-chart-4",
   },
   {
     title: "Chat & Discover",
     description: "Have conversations with your documents powered by visual understanding.",
     href: "/chat",
     icon: MessageSquare,
-    gradient: "from-green-500 to-emerald-500",
+    gradient: "from-chart-2 to-chart-3",
   },
 ]
 
@@ -59,28 +59,28 @@ export default function Home() {
           </Badge>
 
           {/* Heading */}
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
             <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
               Vision-First
             </span>
             <br />
-            <span className="bg-gradient-to-r from-primary via-purple-500 to-primary bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-primary via-chart-4 to-chart-1 bg-clip-text text-transparent">
               Document Intelligence
             </span>
           </h1>
 
           {/* Description */}
-          <p className="mx-auto max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+          <p className="mx-auto max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
             Search and chat with your documents using natural language.
             Advanced visual AI understands context, not just keywords.
           </p>
 
           {/* CTA Buttons */}
-          <div className="flex flex-wrap items-center justify-center gap-4">
+          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
             <Button
               asChild
               size="lg"
-              className="group h-12 gap-2 rounded-full px-6 text-base shadow-xl shadow-primary/25 transition-all hover:shadow-2xl hover:shadow-primary/30"
+              className="group h-11 sm:h-12 gap-2 rounded-full px-5 sm:px-6 text-sm sm:text-base shadow-xl shadow-primary/25 transition-all hover:shadow-2xl hover:shadow-primary/30 touch-manipulation"
             >
               <Link href="/upload">
                 <Upload className="h-5 w-5" />
@@ -125,8 +125,8 @@ export default function Home() {
                     </div>
 
                     <div className="flex-1 text-left">
-                      <h3 className="mb-1.5 text-base font-bold">{feature.title}</h3>
-                      <p className="mb-2 text-sm leading-relaxed text-muted-foreground">
+                      <h3 className="mb-1.5 text-sm font-bold">{feature.title}</h3>
+                      <p className="mb-2 text-xs leading-relaxed text-muted-foreground">
                         {feature.description}
                       </p>
                       <div className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">

@@ -69,7 +69,7 @@ export default function MaintenancePage() {
           <div className="mx-auto w-full max-w-5xl space-y-4">
           {/* Header Section */}
           <div className="space-y-2 text-center">
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
+            <h1 className="text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">
               <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
                 System
               </span>
@@ -79,7 +79,7 @@ export default function MaintenancePage() {
               </span>
             </h1>
             
-            <p className="mx-auto max-w-2xl text-xs leading-relaxed text-muted-foreground sm:text-sm">
+            <p className="mx-auto max-w-2xl text-xs leading-relaxed text-muted-foreground">
               Monitor storage status and run maintenance operations. Handle destructive actions with care.
             </p>
 
@@ -153,7 +153,7 @@ export default function MaintenancePage() {
                             className="gap-1 text-xs"
                           >
                             {systemStatus.collection.exists ? (
-                              <><CheckCircle2 className="h-3 w-3" /> Exists</>
+                              <><CheckCircle2 className="h-3 w-3 text-chart-2" /> Exists</>
                             ) : (
                               <><AlertCircle className="h-3 w-3" /> Not Found</>
                             )}
@@ -209,7 +209,7 @@ export default function MaintenancePage() {
                             className="gap-1 text-xs"
                           >
                             {systemStatus.bucket.exists && !systemStatus.bucket.disabled ? (
-                              <><CheckCircle2 className="h-3 w-3" /> Active</>
+                              <><CheckCircle2 className="h-3 w-3 text-chart-2" /> Active</>
                             ) : systemStatus.bucket.disabled ? (
                               <><AlertCircle className="h-3 w-3" /> Disabled</>
                             ) : (
@@ -275,7 +275,7 @@ export default function MaintenancePage() {
                   return (
                     <article 
                       key={operation.id}
-                      className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-3 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 sm:p-4"
+                      className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10"
                     >
                       <div className={`absolute inset-0 bg-gradient-to-br ${operation.gradient} opacity-0 transition-opacity group-hover:opacity-5`} />
                       

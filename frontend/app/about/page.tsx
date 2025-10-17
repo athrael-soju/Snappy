@@ -102,21 +102,14 @@ export default function AboutPage() {
       <section className="px-4 py-10 sm:px-6 lg:px-8">
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-10">
           <header className="space-y-6 text-center">
-            <Badge
-              variant="outline"
-              className="mx-auto w-fit gap-2 border-primary/40 bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary backdrop-blur"
-            >
-              <Sparkles className="h-4 w-4" />
-              Vision-first RAG template
-            </Badge>
             <div className="space-y-4">
-              <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-                <span className="bg-gradient-to-r from-primary via-purple-500 to-primary bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+                <span className="bg-gradient-to-r from-primary via-chart-4 to-chart-1 bg-clip-text text-transparent">
                   Snappy!
                 </span>{" "}
                 is your launchpad for multimodal retrieval
               </h1>
-              <p className="mx-auto max-w-3xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+              <p className="mx-auto max-w-3xl text-sm leading-relaxed text-muted-foreground">
                 This template stitches together FastAPI, Next.js, ColPali, Qdrant, and MinIO so you can stand up
                 a production-ready vision retrieval stack without rebuilding the plumbing. Upload documents,
                 search visually, and chat with grounded citations out of the box.
@@ -154,7 +147,7 @@ export default function AboutPage() {
                 className="border-border/50 bg-card/60 backdrop-blur transition hover:border-primary/50 hover:shadow-lg hover:shadow-primary/15"
               >
                 <CardHeader className="gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 text-primary">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-chart-4/20 text-primary">
                     <item.icon className="h-6 w-6" />
                   </div>
                   <CardTitle className="text-lg">{item.title}</CardTitle>
@@ -244,7 +237,7 @@ export default function AboutPage() {
             </ol>
           </section>
 
-          <section className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-background to-purple-500/10 p-6 text-center backdrop-blur lg:p-10">
+          <section className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-background to-chart-4/10 p-6 text-center backdrop-blur lg:p-10">
             <h2 className="text-2xl font-semibold sm:text-3xl">Ready to tailor it to your domain?</h2>
             <p className="mt-3 text-sm text-muted-foreground sm:text-base">
               Bring your PDFs, plug in your ColPali deployment, and start experimenting. The template includes

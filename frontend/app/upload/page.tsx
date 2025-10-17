@@ -57,17 +57,17 @@ export default function UploadPage() {
         <div className="mx-auto flex h-full w-full max-w-5xl flex-col space-y-4">
           {/* Header Section */}
           <div className="shrink-0 space-y-2 text-center">
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
+            <h1 className="text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">
               <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
                 Upload & Index
               </span>
               {" "}
-              <span className="bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-500 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-chart-1 via-chart-2 to-chart-1 bg-clip-text text-transparent">
                 Your Documents
               </span>
             </h1>
             
-            <p className="mx-auto max-w-2xl text-xs leading-relaxed text-muted-foreground sm:text-sm">
+            <p className="mx-auto max-w-2xl text-xs leading-relaxed text-muted-foreground">
               Drop your documents and let ColPali&apos;s vision AI understand both text and layout.
             </p>
           </div>
@@ -95,9 +95,9 @@ export default function UploadPage() {
               <Database className="h-3 w-3" />
               {systemStatus?.collection?.name ?? "unknown"}
               {systemStatus?.collection?.exists ? (
-                <CheckCircle2 className="h-3 w-3 text-green-500" />
+                <CheckCircle2 className="h-3 w-3 text-chart-2" />
               ) : (
-                <AlertCircle className="h-3 w-3 text-red-500" />
+                <AlertCircle className="h-3 w-3 text-destructive" />
               )}
               {typeof systemStatus?.collection?.vector_count === "number" && (
                 <span className="ml-1 font-semibold">
@@ -110,9 +110,9 @@ export default function UploadPage() {
               <HardDrive className="h-3 w-3" />
               {systemStatus?.bucket?.name ?? "unknown"}
               {systemStatus?.bucket?.exists && !systemStatus?.bucket?.disabled ? (
-                <CheckCircle2 className="h-3 w-3 text-green-500" />
+                <CheckCircle2 className="h-3 w-3 text-chart-2" />
               ) : (
-                <AlertCircle className="h-3 w-3 text-red-500" />
+                <AlertCircle className="h-3 w-3 text-destructive" />
               )}
               {typeof systemStatus?.bucket?.object_count === "number" && (
                 <span className="ml-1 font-semibold">
@@ -150,10 +150,10 @@ export default function UploadPage() {
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
             >
-              <div className={`absolute inset-0 bg-gradient-to-br from-blue-500 to-cyan-500 opacity-0 transition-opacity ${isDragOver ? "opacity-10" : "group-hover:opacity-5"}`} />
+              <div className={`absolute inset-0 bg-gradient-to-br from-chart-1 to-chart-2 opacity-0 transition-opacity ${isDragOver ? "opacity-10" : "group-hover:opacity-5"}`} />
               
               <div className="relative flex min-h-[180px] flex-col items-center justify-center gap-3 p-6">
-                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg">
+                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-chart-1 to-chart-2 shadow-lg">
                   <Upload className="h-7 w-7 text-primary-foreground" />
                 </div>
                 
@@ -257,7 +257,7 @@ export default function UploadPage() {
                   {selectedFiles.map((file, index) => (
                     <div 
                       key={file.name}
-                      className="flex items-center justify-between rounded-lg border border-border/50 bg-background/50 px-3 py-2 transition-colors hover:bg-muted/50"
+                      className="flex items-center justify-between rounded-lg border border-border/50 bg-background/50 px-3 py-2.5 transition-colors hover:bg-muted/50"
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <FileText className="h-4 w-4 shrink-0 text-primary" />
@@ -291,7 +291,7 @@ export default function UploadPage() {
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-muted">
                       <div 
-                        className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 transition-all duration-300"
+                        className="h-full bg-gradient-to-r from-chart-1 to-chart-2 transition-all duration-300"
                         style={{ width: `${uploadProgress}%` }}
                       />
                     </div>
@@ -305,7 +305,7 @@ export default function UploadPage() {
                     ) : error ? (
                       <AlertCircle className="h-3 w-3 text-destructive" />
                     ) : (
-                      <CheckCircle2 className="h-3 w-3 text-green-500" />
+                      <CheckCircle2 className="h-3 w-3 text-chart-2" />
                     )}
                     {statusText}
                   </div>
@@ -320,14 +320,14 @@ export default function UploadPage() {
                 )}
                 
                 {message && (
-                  <div className="flex items-center gap-2 rounded-lg bg-green-500/10 px-3 py-2 text-xs font-medium text-green-600 dark:text-green-400">
+                  <div className="flex items-center gap-2 rounded-lg bg-chart-2/10 px-3 py-2 text-xs font-medium text-chart-2 dark:text-chart-2">
                     <CheckCircle2 className="h-4 w-4" />
                     {message}
                   </div>
                 )}
                 
                 {error && (
-                  <div className="flex items-center gap-2 rounded-lg bg-red-500/10 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400">
+                  <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive dark:text-destructive">
                     <AlertCircle className="h-4 w-4" />
                     {error}
                   </div>
