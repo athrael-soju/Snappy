@@ -6,6 +6,7 @@ import { Footer } from "@/components/footer";
 import { Toaster } from "sonner";
 import { AppStoreProvider } from "@/stores/app-store";
 import { ThemeProvider } from "@/components/theme-provider";
+import NextTopLoader from "nextjs-toploader";
 
 export const metadata: Metadata = {
   title: "Snappy! - Vision-First Document Intelligence",
@@ -31,6 +32,17 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <NextTopLoader
+            color="linear-gradient(90deg, hsl(var(--chart-1)), hsl(var(--chart-2)), hsl(var(--chart-4)))"
+            initialPosition={0.08}
+            crawlSpeed={200}
+            height={3}
+            crawl={true}
+            showSpinner={false}
+            easing="ease"
+            speed={200}
+            shadow="0 0 10px hsl(var(--chart-1)),0 0 5px hsl(var(--chart-2))"
+          />
           <AppStoreProvider>
             <Toaster position="top-right" />
             {/* 3-row viewport-aware layout with persistent footer */}

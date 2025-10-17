@@ -2,6 +2,7 @@
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import "@/lib/api/client";
 import { useChat } from "@/lib/hooks/use-chat";
 import { useSystemStatus } from "@/stores/app-store";
@@ -28,6 +29,8 @@ import {
   Wand2,
   Telescope,
   ClipboardCheck,
+  Settings,
+  Trash2,
 } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import {
@@ -39,36 +42,36 @@ import {
 
 const starterPrompts = [
   {
-    title: "Summarize the latest upload",
-    description: "Capture the decisions, risks, and owners from the newest board packet.",
-    tag: "Summary",
-    icon: ClipboardCheck,
-    emoji: "📄",
-    prompt: "Summarize the key decisions, risks, and owners in the latest board update deck.",
-  },
-  {
-    title: "Surface visual evidence",
-    description: "Point new teammates at diagrams that explain our architecture.",
-    tag: "Architecture",
+    title: "Find visual information",
+    description: "Search for charts, diagrams, or images showing specific data or concepts.",
+    tag: "Visual",
     icon: Telescope,
-    emoji: "🏗️",
-    prompt: "Find slides or diagrams that explain the system architecture and cite their sources.",
+    emoji: "🔍",
+    prompt: "Find all charts and diagrams related to [your topic] and describe what they show.",
   },
   {
-    title: "Stress test assumptions",
-    description: "Ask what edge cases could break the current rollout plan.",
-    tag: "Planning",
-    icon: Wand2,
-    emoji: "🧪",
-    prompt: "List assumptions or edge cases in the rollout plan that need a follow-up review.",
+    title: "Extract from tables",
+    description: "Pull specific data from tables and structured content in documents.",
+    tag: "Data",
+    icon: ClipboardCheck,
+    emoji: "📊",
+    prompt: "What information is shown in the tables about [your topic]? List the key data points.",
   },
   {
-    title: "Compare requirements",
-    description: "Highlight any gaps between product specs and legal checklists.",
-    tag: "Analysis",
+    title: "Analyze document layout",
+    description: "Understand how information is organized across pages and sections.",
+    tag: "Layout",
     icon: MessageCircle,
-    emoji: "⚖️",
-    prompt: "Compare the product requirements with the legal checklist and note conflicting items.",
+    emoji: "📑",
+    prompt: "Describe the layout and structure of documents covering [your topic]. Where is the key information located?",
+  },
+  {
+    title: "Compare visual elements",
+    description: "Identify differences and similarities between images and diagrams.",
+    tag: "Compare",
+    icon: Wand2,
+    emoji: "🔬",
+    prompt: "Compare the visual elements across different documents about [your topic]. What patterns or differences do you notice?",
   },
 ];
 
@@ -79,11 +82,13 @@ type StarterPromptItemProps = {
 
 function StarterPromptItem({ item, onClick }: StarterPromptItemProps) {
   return (
-    <button
+    <motion.button
       key={item.prompt}
       type="button"
       onClick={() => onClick(item.prompt)}
       className="group relative overflow-hidden rounded-xl border border-border/20 bg-background/90 p-3 sm:p-4 text-left shadow-xs transition hover:border-primary/50 hover:shadow-md hover:shadow-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 touch-manipulation"
+      whileHover={{ scale: 1.02, y: -2 }}
+      whileTap={{ scale: 0.98 }}
     >
       <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-chart-1/5 opacity-0 transition group-hover:opacity-100" />
       <div className="relative flex flex-col gap-2">
@@ -96,7 +101,7 @@ function StarterPromptItem({ item, onClick }: StarterPromptItemProps) {
         <h3 className="text-xs sm:text-sm font-semibold text-foreground leading-tight">{item.title}</h3>
         <p className="text-xs text-muted-foreground line-clamp-2 leading-snug">{item.description}</p>
       </div>
-    </button>
+    </motion.button>
   );
 }
 
@@ -114,16 +119,21 @@ function RecentQuestions({ questions, onSelect }: RecentQuestionsProps) {
         Recent questions
       </div>
       <div className="flex flex-wrap gap-2">
-        {questions.map((item) => (
-          <button
+        {questions.map((item, index) => (
+          <motion.button
             key={item.id}
             type="button"
             onClick={() => onSelect(item.content)}
             className="group inline-flex items-center gap-2 rounded-full border border-border/25 bg-background/85 px-4 py-2 text-xs text-muted-foreground transition hover:border-primary/50 hover:text-foreground touch-manipulation"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: index * 0.1, duration: 0.2 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
             <MessageCircle className="size-icon-sm text-primary transition group-hover:text-primary" />
             <span className="line-clamp-1">{item.content}</span>
-          </button>
+          </motion.button>
         ))}
       </div>
     </div>
@@ -139,7 +149,13 @@ type ChatMessageProps = {
 function ChatMessage({ message, isLoading, onOpenCitation }: ChatMessageProps) {
   const isUser = message.role === "user";
   return (
-    <div className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}>
+    <motion.div 
+      className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -20, scale: 0.95 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+    >
       <div
         className={cn(
           "max-w-[95%] sm:max-w-[85%] rounded-2xl p-4 text-sm sm:text-base transition overflow-hidden",
@@ -200,7 +216,7 @@ function ChatMessage({ message, isLoading, onOpenCitation }: ChatMessageProps) {
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -244,7 +260,13 @@ function ChatComposer({
   messages,
 }: ChatComposerProps) {
   return (
-    <form onSubmit={sendMessage} className="sticky bottom-0 left-0 right-0 z-10 px-4 pb-10 sm:px-6">
+    <motion.form 
+      onSubmit={sendMessage} 
+      className="sticky bottom-0 left-0 right-0 z-10 px-4 pb-10 sm:px-6"
+      initial={{ opacity: 0, y: 50 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+    >
       <div className="mx-auto w-full max-w-6xl">
         <InputGroup>
           <InputGroupTextarea
@@ -262,7 +284,7 @@ function ChatComposer({
                   size="icon-sm"
                   title="Settings"
                 >
-                  <Wand2 className="size-icon-sm" />
+                  <Settings className="size-icon-sm" />
                 </InputGroupButton>
               </PopoverTrigger>
               <PopoverContent className="w-80 space-y-4">
@@ -331,12 +353,12 @@ function ChatComposer({
               disabled={messages.length === 0 && !input}
               title="Clear conversation"
             >
-              <Loader2 className="size-icon-sm" style={{ transform: "rotate(45deg)" }} />
+              <Trash2 className="size-icon-sm" />
             </InputGroupButton>            
           </InputGroupAddon>
         </InputGroup>
       </div>
-    </form>
+    </motion.form>
   );
 }
 
@@ -409,8 +431,18 @@ export default function ChatPage() {
   return (
     <div className="relative flex min-h-full flex-1 flex-col overflow-hidden">
       <div className="flex h-full flex-1 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-10">
-        <div className="mx-auto flex h-full w-full max-w-6xl flex-col gap-8">
-          <div className="shrink-0 space-y-3 text-center">
+        <motion.div 
+          className="mx-auto flex h-full w-full max-w-6xl flex-col gap-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+        >
+          <motion.div 
+            className="shrink-0 space-y-3 text-center"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.3 }}
+          >
             <h1 className="text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">
               <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
                 Chat through
@@ -449,7 +481,7 @@ export default function ChatPage() {
                 </Badge>
               )}
             </div>
-          </div>
+          </motion.div>
 
           <section className="relative flex min-h-[520px] flex-1 flex-col overflow-hidden">
 
@@ -457,8 +489,15 @@ export default function ChatPage() {
             <div className="relative flex flex-1 overflow-hidden">
               <ScrollArea className="h-full w-full">
                 <div className="space-y-6 px-6 pb-32 pr-4 sm:px-10">
-                  {messages.length === 0 && (
-                    <div className="flex justify-center">
+                  <AnimatePresence mode="wait">
+                    {messages.length === 0 && (
+                      <motion.div 
+                        className="flex justify-center"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        transition={{ duration: 0.4, ease: "easeOut" }}
+                      >
                       <div className="w-full max-w-3xl space-y-3 rounded-xl border border-border/20 bg-card/60 p-4 shadow-sm animate-in fade-in duration-500 dark:bg-card/40">
                         <div className="space-y-2.5">
                           <div className="flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -466,36 +505,48 @@ export default function ChatPage() {
                             Try asking
                           </div>
                           <div className="grid gap-2 sm:grid-cols-2">
-                            {starterPrompts.map((item) => (
-                              <StarterPromptItem key={item.prompt} item={item} onClick={handleSuggestionClick} />
+                            {starterPrompts.map((item, index) => (
+                              <motion.div
+                                key={item.prompt}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.1 + index * 0.1, duration: 0.3 }}
+                              >
+                                <StarterPromptItem item={item} onClick={handleSuggestionClick} />
+                              </motion.div>
                             ))}
                           </div>
                         </div>
                         <RecentQuestions questions={recentQuestions} onSelect={handleSuggestionClick} />
                       </div>
-                    </div>
+                    </motion.div>
                   )}
+                  </AnimatePresence>
 
-                  {messages.map((message, index) => {
-                    const isLastMessage = index === messages.length - 1;
-                    const isLastAssistantMessage = isLastMessage && message.role === "assistant";
-                    return (
+                  <AnimatePresence mode="popLayout">
+                    {messages.map((message, index) => {
+                      const isLastMessage = index === messages.length - 1;
+                      const isLastAssistantMessage = isLastMessage && message.role === "assistant";
+                      return (
+                        <ChatMessage
+                          key={message.id}
+                          message={message}
+                          isLoading={loading && isLastAssistantMessage}
+                          onOpenCitation={handleCitationOpen}
+                        />
+                      );
+                    })}
+                  </AnimatePresence>
+
+                  <AnimatePresence mode="wait">
+                    {loading && messages.length === 0 && (
                       <ChatMessage
-                        key={message.id}
-                        message={message}
-                        isLoading={loading && isLastAssistantMessage}
-                        onOpenCitation={handleCitationOpen}
+                        key="loading"
+                        message={{ id: "loading", role: "assistant", content: "" }}
+                        isLoading={true}
                       />
-                    );
-                  })}
-
-                  {loading && messages.length === 0 && (
-                    <ChatMessage
-                      key="loading"
-                      message={{ id: "loading", role: "assistant", content: "" }}
-                      isLoading={true}
-                    />
-                  )}
+                    )}
+                  </AnimatePresence>
                   <div ref={endOfMessagesRef} />
                 </div>
               </ScrollArea>
@@ -520,7 +571,7 @@ export default function ChatPage() {
             reset={reset}
             messages={messages}
           />
-        </div>
+        </motion.div>
       </div>
       <ImageLightbox
         open={lightboxOpen}

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   Upload, 
   FileText, 
@@ -54,9 +55,19 @@ export default function UploadPage() {
   return (
     <div className="relative flex h-full min-h-full flex-col overflow-hidden">
       <div className="flex h-full flex-1 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mx-auto flex h-full w-full max-w-5xl flex-col space-y-4">
+        <motion.div 
+          className="mx-auto flex h-full w-full max-w-5xl flex-col space-y-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+        >
           {/* Header Section */}
-          <div className="shrink-0 space-y-2 text-center">
+          <motion.div 
+            className="shrink-0 space-y-2 text-center"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.3 }}
+          >
             <h1 className="text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">
               <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
                 Upload & Index
@@ -70,10 +81,15 @@ export default function UploadPage() {
             <p className="mx-auto max-w-2xl text-xs leading-relaxed text-muted-foreground">
               Drop your documents and let ColPali&apos;s vision AI understand both text and layout.
             </p>
-          </div>
+          </motion.div>
 
           {/* Compact System Status */}
-          <div className="flex shrink-0 flex-wrap items-center justify-center gap-2 text-xs">
+          <motion.div 
+            className="flex shrink-0 flex-wrap items-center justify-center gap-2 text-xs"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2, duration: 0.3 }}
+          >
             <Badge 
               variant={isReady ? "default" : "destructive"}
               className="gap-1.5 px-3 py-1"
@@ -135,12 +151,12 @@ export default function UploadPage() {
               )}
               Refresh
             </Button>
-          </div>
+          </motion.div>
 
           {/* Upload Form */}
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col space-y-4">
             {/* Drag & Drop Zone */}
-            <div
+            <motion.div
               className={`group relative overflow-hidden rounded-2xl border-2 border-dashed transition-all ${
                 isDragOver
                   ? "border-primary bg-primary/5 shadow-xl shadow-primary/25"
@@ -149,6 +165,11 @@ export default function UploadPage() {
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
             >
               <div className={`absolute inset-0 bg-gradient-to-br from-chart-1 to-chart-2 opacity-0 transition-opacity ${isDragOver ? "opacity-10" : "group-hover:opacity-5"}`} />
               
@@ -227,11 +248,18 @@ export default function UploadPage() {
                   className="hidden"
                 />
               </div>
-            </div>
+            </motion.div>
 
             {/* Selected Files */}
-            {hasFiles && (
-              <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-border/50 bg-card/50 p-3 backdrop-blur-sm">
+            <AnimatePresence mode="wait">
+              {hasFiles && (
+                <motion.div 
+                  className="flex min-h-0 flex-1 flex-col rounded-xl border border-border/50 bg-card/50 p-3 backdrop-blur-sm"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
                 <div className="mb-2 flex shrink-0 items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-primary" />
@@ -255,9 +283,14 @@ export default function UploadPage() {
                 <ScrollArea className="min-h-0 flex-1">
                   <div className="space-y-1.5 pr-4">
                   {selectedFiles.map((file, index) => (
-                    <div 
+                    <motion.div 
                       key={file.name}
                       className="flex items-center justify-between rounded-lg border border-border/50 bg-background/50 px-3 py-2.5 transition-colors hover:bg-muted/50"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      transition={{ delay: index * 0.05, duration: 0.2 }}
+                      whileHover={{ scale: 1.02, x: 4 }}
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <FileText className="h-4 w-4 shrink-0 text-primary" />
@@ -273,16 +306,24 @@ export default function UploadPage() {
                           {Math.round(uploadProgress)}%
                         </div>
                       )}
-                    </div>
+                    </motion.div>
                   ))}
                   </div>
                 </ScrollArea>
-              </div>
+              </motion.div>
             )}
+            </AnimatePresence>
 
             {/* Progress & Status Messages */}
-            {(uploadProgress || statusText || jobId || message || error) && (
-              <div className="space-y-2 rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm">
+            <AnimatePresence mode="wait">
+              {(uploadProgress || statusText || jobId || message || error) && (
+                <motion.div 
+                  className="space-y-2 rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.3 }}
+                >
                 {typeof uploadProgress === "number" && uploadProgress > 0 && (
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
@@ -332,11 +373,12 @@ export default function UploadPage() {
                     {error}
                   </div>
                 )}
-              </div>
+              </motion.div>
             )}
+            </AnimatePresence>
 
           </form>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import { motion, AnimatePresence } from "framer-motion";
 import "@/lib/api/client";
 import { useSystemStatus, useMaintenanceActions, useSystemManagement } from "@/lib/hooks";
 import { useState } from "react";
@@ -78,9 +79,19 @@ export default function MaintenancePage() {
     <div className="relative flex min-h-full flex-col overflow-hidden">
       <ScrollArea className="flex-1">
         <div className="px-4 py-6 sm:px-6 lg:px-8">
-          <div className="mx-auto w-full max-w-5xl space-y-4">
+          <motion.div 
+            className="mx-auto w-full max-w-5xl space-y-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+          >
           {/* Header Section */}
-          <div className="space-y-2 text-center">
+          <motion.div 
+            className="space-y-2 text-center"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.3 }}
+          >
             <h1 className="text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">
               <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
                 System
@@ -128,17 +139,29 @@ export default function MaintenancePage() {
                 Refresh
               </Button>
             </div>
-          </div>
+          </motion.div>
 
           {/* Storage Status */}
-          <section className="space-y-3">
+          <motion.section 
+            className="space-y-3"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.3 }}
+          >
               <div className="flex items-center gap-2">
                 <Server className="h-5 w-5 text-primary" />
                 <h2 className="text-lg font-bold">Storage Status</h2>
               </div>
               
               <div className="grid gap-3 sm:grid-cols-2">
-                <article className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 touch-manipulation">
+                <motion.article 
+                  className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 touch-manipulation"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3, duration: 0.3 }}
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                >
                   <div className="absolute inset-0 bg-gradient-to-br from-chart-2 to-chart-3 opacity-0 transition-opacity group-hover:opacity-5" />
                   
                   <div className="relative space-y-3">
@@ -192,9 +215,16 @@ export default function MaintenancePage() {
                       <p className="text-xs text-muted-foreground">No information available.</p>
                     )}
                   </div>
-                </article>
+                </motion.article>
 
-                <article className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 touch-manipulation">
+                <motion.article 
+                  className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 touch-manipulation"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3, duration: 0.3 }}
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                >
                   <div className="absolute inset-0 bg-gradient-to-br from-chart-4 to-chart-3 opacity-0 transition-opacity group-hover:opacity-5" />
                   
                   <div className="relative space-y-3">
@@ -250,12 +280,17 @@ export default function MaintenancePage() {
                       <p className="text-xs text-muted-foreground">No information available.</p>
                     )}
                   </div>
-                </article>
+                </motion.article>
               </div>
-            </section>
+            </motion.section>
 
             {/* Core Operations */}
-            <section className="space-y-3">
+            <motion.section 
+              className="space-y-3"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.3 }}
+            >
               <div className="flex items-center gap-2">
                 <Wrench className="h-5 w-5 text-primary" />
                 <h2 className="text-lg font-bold">Core Operations</h2>
@@ -285,9 +320,14 @@ export default function MaintenancePage() {
                   };
                   
                   return (
-                    <article 
+                    <motion.article 
                       key={operation.id}
                       className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 sm:p-5 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 touch-manipulation"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.5 + (CORE_OPERATIONS.findIndex(op => op.id === operation.id) * 0.1), duration: 0.3 }}
+                      whileHover={{ scale: 1.03, y: -4 }}
+                      whileTap={{ scale: 0.97 }}
                     >
                       <div className={`absolute inset-0 bg-gradient-to-br ${operation.gradient} opacity-0 transition-opacity group-hover:opacity-5`} />
                       
@@ -322,12 +362,12 @@ export default function MaintenancePage() {
                           )}
                         </Button>
                       </div>
-                    </article>
+                    </motion.article>
                   );
                 })}
               </div>
-            </section>
-          </div>
+            </motion.section>
+          </motion.div>
         </div>
       </ScrollArea>
 

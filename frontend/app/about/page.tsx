@@ -1,4 +1,7 @@
+"use client"
+
 import Link from "next/link"
+import { motion } from "framer-motion"
 import {
   ArrowRight,
   Braces,
@@ -100,8 +103,18 @@ export default function AboutPage() {
   return (
     <div className="relative flex min-h-full flex-col overflow-x-hidden">
       <section className="px-4 py-10 sm:px-6 lg:px-8">
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-10">
-          <header className="space-y-6 text-center">
+        <motion.div 
+          className="mx-auto flex w-full max-w-5xl flex-col gap-10"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+        >
+          <motion.header 
+            className="space-y-6 text-center"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.4 }}
+          >
             <div className="space-y-4">
               <h1 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
                 <span className="bg-gradient-to-r from-primary via-chart-4 to-chart-1 bg-clip-text text-transparent">
@@ -138,14 +151,19 @@ export default function AboutPage() {
                 </Link>
               </Button>
             </div>
-          </header>
+          </motion.header>
 
           <section className="grid gap-4 md:grid-cols-3">
-            {highlights.map((item) => (
-              <Card
+            {highlights.map((item, index) => (
+              <motion.div
                 key={item.title}
-                className="border-border/50 bg-card/60 backdrop-blur transition hover:border-primary/50 hover:shadow-lg hover:shadow-primary/15 touch-manipulation"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 + index * 0.1, duration: 0.4 }}
+                whileHover={{ scale: 1.03, y: -4 }}
+                whileTap={{ scale: 0.98 }}
               >
+                <Card className="border-border/50 bg-card/60 backdrop-blur transition hover:border-primary/50 hover:shadow-lg hover:shadow-primary/15 touch-manipulation">
                 <CardHeader className="gap-4">
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-chart-4/20 text-primary shadow-md">
                     <item.icon className="h-6 w-6" />
@@ -156,10 +174,16 @@ export default function AboutPage() {
                   </CardDescription>
                 </CardHeader>
               </Card>
+              </motion.div>
             ))}
           </section>
 
-          <section className="grid gap-6 lg:grid-cols-3">
+          <motion.section 
+            className="grid gap-6 lg:grid-cols-3"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.5 }}
+          >
             <Card className="lg:col-span-2 border-border/60 bg-card/70 backdrop-blur">
               <CardHeader>
                 <CardTitle className="text-2xl font-semibold">How the pieces fit together</CardTitle>
@@ -170,10 +194,14 @@ export default function AboutPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <ul className="grid gap-4 sm:grid-cols-2">
-                  {stack.map((item) => (
-                    <li
+                  {stack.map((item, index) => (
+                    <motion.li
                       key={item.title}
                       className="flex gap-3 rounded-xl border border-border/40 bg-background/60 p-4 transition hover:border-primary/40 touch-manipulation"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.6 + index * 0.1, duration: 0.3 }}
+                      whileHover={{ scale: 1.02, x: 4 }}
                     >
                       <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary shadow-sm">
                         <item.icon className="h-5 w-5" />
@@ -184,7 +212,7 @@ export default function AboutPage() {
                           {item.description}
                         </p>
                       </div>
-                    </li>
+                    </motion.li>
                   ))}
                 </ul>
               </CardContent>
@@ -212,9 +240,14 @@ export default function AboutPage() {
                 </div>
               </CardContent>
             </Card>
-          </section>
+          </motion.section>
 
-          <section className="rounded-3xl border border-border/40 bg-muted/30 p-6 backdrop-blur lg:p-10">
+          <motion.section 
+            className="rounded-3xl border border-border/40 bg-muted/30 p-6 backdrop-blur lg:p-10"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.7, duration: 0.5 }}
+          >
             <div className="mx-auto max-w-4xl space-y-6 text-center">
               <h2 className="text-2xl font-semibold sm:text-3xl">From PDF to grounded answer</h2>
               <p className="text-sm text-muted-foreground sm:text-base">
@@ -223,21 +256,31 @@ export default function AboutPage() {
             </div>
             <ol className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
               {lifecycle.map((item, index) => (
-                <li
+                <motion.li
                   key={item.label}
                   className="relative flex h-full flex-col gap-3 rounded-2xl border border-border/30 bg-background/60 p-5 text-left transition-all hover:border-primary/40 hover:shadow-md touch-manipulation"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.8 + index * 0.1, duration: 0.3 }}
+                  whileHover={{ scale: 1.05, y: -5 }}
+                  whileTap={{ scale: 0.98 }}
                 >
                   <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary shadow-sm">
                     {index + 1}
                   </span>
                   <h3 className="text-sm sm:text-base font-semibold">{item.label}</h3>
                   <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{item.detail}</p>
-                </li>
+                </motion.li>
               ))}
             </ol>
-          </section>
+          </motion.section>
 
-          <section className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-background to-chart-4/10 p-6 text-center backdrop-blur lg:p-10">
+          <motion.section 
+            className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-background to-chart-4/10 p-6 text-center backdrop-blur lg:p-10"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.2, duration: 0.5 }}
+          >
             <h2 className="text-2xl font-semibold sm:text-3xl">Ready to tailor it to your domain?</h2>
             <p className="mt-3 text-sm text-muted-foreground sm:text-base">
               Bring your PDFs, plug in your ColPali deployment, and start experimenting. The template includes
@@ -267,8 +310,8 @@ export default function AboutPage() {
                 </Link>
               </Button>
             </div>
-          </section>
-        </div>
+          </motion.section>
+        </motion.div>
       </section>
     </div>
   )

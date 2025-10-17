@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import "@/lib/api/client";
 import Image from "next/image";
 import { Search, Loader2, X, AlertCircle, Sparkles, ArrowRight, FileText, Clock } from "lucide-react";
@@ -90,9 +91,19 @@ export default function SearchPage() {
   return (
     <div className="relative flex h-full min-h-full flex-col overflow-hidden">
       <div className="flex h-full flex-1 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mx-auto flex h-full w-full max-w-5xl flex-col space-y-4">
+        <motion.div 
+          className="mx-auto flex h-full w-full max-w-5xl flex-col space-y-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+        >
           {/* Header Section */}
-          <div className="shrink-0 space-y-2 text-center">
+          <motion.div 
+            className="shrink-0 space-y-2 text-center"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.3 }}
+          >
             <h1 className="text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">
               <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
                 Search & Discover
@@ -113,12 +124,22 @@ export default function SearchPage() {
                 System not ready
               </Badge>
             )}
-          </div>
+          </motion.div>
 
           {/* Search Form */}
-          <form onSubmit={handleSearch} className="shrink-0 space-y-3">
+          <motion.form 
+            onSubmit={handleSearch} 
+            className="shrink-0 space-y-3"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.3 }}
+          >
             {/* Search Input with Buttons */}
-            <div className="group relative overflow-hidden rounded-2xl border-2 border-border/50 bg-card/30 backdrop-blur-sm transition-all focus-within:border-primary/50 focus-within:shadow-xl focus-within:shadow-primary/10">
+            <motion.div 
+              className="group relative overflow-hidden rounded-2xl border-2 border-border/50 bg-card/30 backdrop-blur-sm transition-all focus-within:border-primary/50 focus-within:shadow-xl focus-within:shadow-primary/10"
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+            >
               <div className="absolute inset-0 bg-gradient-to-br from-primary to-chart-4 opacity-0 transition-opacity group-focus-within:opacity-5" />
               
               <div className="relative flex items-center gap-3 p-3 sm:p-4">
@@ -154,7 +175,7 @@ export default function SearchPage() {
                   </Button>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
             {/* Settings Grid */}
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -196,17 +217,33 @@ export default function SearchPage() {
             </div>
 
             {/* Error Message */}
-            {error && (
-              <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive">
-                <AlertCircle className="size-icon-sm" />
-                {error}
-              </div>
-            )}
-          </form>
+            <AnimatePresence mode="wait">
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive">
+                    <AlertCircle className="size-icon-sm" />
+                    {error}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.form>
 
           {/* Results Section */}
-          {(hasSearched || loading) && (
-            <div className="flex min-h-0 flex-1 flex-col space-y-4">
+          <AnimatePresence mode="wait">
+            {(hasSearched || loading) && (
+              <motion.div 
+                className="flex min-h-0 flex-1 flex-col space-y-4"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
               {/* Results Header - Stats Only */}
               <div className="flex flex-wrap items-center justify-center gap-3">
                 {hasSearched && results.length > topK && (
@@ -217,27 +254,53 @@ export default function SearchPage() {
               </div>
 
               {/* Loading State */}
-              {loading && (
-                <div className="flex items-center justify-center gap-2 rounded-xl border border-border/50 bg-card/50 p-8 backdrop-blur-sm">
-                  <Loader2 className="size-icon-md animate-spin text-primary" />
-                  <p className="text-sm text-muted-foreground">Searching your documents...</p>
-                </div>
-              )}
+              <AnimatePresence mode="wait">
+                {loading && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className="flex items-center justify-center gap-2 rounded-xl border border-border/50 bg-card/50 p-8 backdrop-blur-sm">
+                      <Loader2 className="size-icon-md animate-spin text-primary" />
+                      <p className="text-sm text-muted-foreground">Searching your documents...</p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* No Results */}
-              {!loading && hasSearched && truncatedResults.length === 0 && (
-                <div className="rounded-xl border border-border/50 bg-card/50 p-8 text-center backdrop-blur-sm">
-                  <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground/50" />
-                  <p className="mt-3 text-sm font-medium text-foreground">No matches found</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Try adjusting your query or search parameters
-                  </p>
-                </div>
-              )}
+              <AnimatePresence mode="wait">
+                {!loading && hasSearched && truncatedResults.length === 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <div className="rounded-xl border border-border/50 bg-card/50 p-8 text-center backdrop-blur-sm">
+                      <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                      <p className="mt-3 text-sm font-medium text-foreground">No matches found</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Try adjusting your query or search parameters
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Results List */}
-              {!loading && truncatedResults.length > 0 && (
-                <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-border/50 bg-card/30 p-3 backdrop-blur-sm">
+              <AnimatePresence mode="wait">
+                {!loading && truncatedResults.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                    className="flex min-h-0 flex-1 flex-col"
+                  >
+                  <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-border/50 bg-card/30 p-3 backdrop-blur-sm">
                   {/* List Header */}
                   <div className="mb-2 flex shrink-0 items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
@@ -260,23 +323,29 @@ export default function SearchPage() {
                   
                   <ScrollArea className="min-h-0 flex-1">
                     <div className="space-y-2 pr-4">
-                  {truncatedResults.map((item, index) => {
+                      {truncatedResults.map((item, index) => {
                     const filename = item.payload?.filename;
                     const pageIndex = item.payload?.pdf_page_index;
                     const displayTitle = filename 
                       ? `${filename}${typeof pageIndex === 'number' ? ` - Page ${pageIndex + 1}` : ''}`
                       : item.label ?? `Result ${index + 1}`;
                     
-                    return (
-                      <article 
-                        key={`${item.label ?? index}-${index}`}
-                        onClick={() => {
-                          if (item.image_url) {
-                            handleImageOpen(item.image_url, displayTitle);
-                          }
-                        }}
-                        className="group relative flex gap-3 overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 cursor-pointer touch-manipulation"
-                      >
+                        return (
+                          <motion.article 
+                            key={`${item.label ?? index}-${index}`}
+                            onClick={() => {
+                              if (item.image_url) {
+                                handleImageOpen(item.image_url, displayTitle);
+                              }
+                            }}
+                            className="group relative flex gap-3 overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 cursor-pointer touch-manipulation"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            transition={{ delay: index * 0.05, duration: 0.2 }}
+                            whileHover={{ scale: 1.02, x: 4 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
                         <div className="absolute inset-0 bg-gradient-to-br from-primary to-chart-4 opacity-0 transition-opacity group-hover:opacity-5" />
                         
                         {/* Thumbnail */}
@@ -312,17 +381,20 @@ export default function SearchPage() {
                               )}
                             </div>
                           </div>
-                        </div>
-                      </article>
-                    );
-                  })}
+                          </div>
+                        </motion.article>
+                        );
+                      })}
                     </div>
                   </ScrollArea>
-                </div>
+                  </div>
+                </motion.div>
               )}
-            </div>
+              </AnimatePresence>
+            </motion.div>
           )}
-        </div>
+          </AnimatePresence>
+        </motion.div>
       </div>
       <ImageLightbox
         open={lightboxOpen}

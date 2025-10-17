@@ -1,5 +1,6 @@
 "use client";
 
+import { motion, AnimatePresence } from "framer-motion";
 import "@/lib/api/client";
 import { useConfigurationPanel } from "@/lib/hooks/use-configuration-panel";
 import { 
@@ -47,10 +48,15 @@ export default function ConfigurationPage() {
   if (loading && !schema) {
     return (
       <div className="relative flex h-full min-h-full flex-col overflow-hidden">
-        <div className="flex h-full flex-1 flex-col items-center justify-center px-4 py-6">
+        <motion.div 
+          className="flex h-full flex-1 flex-col items-center justify-center px-4 py-6"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="mt-3 text-sm text-muted-foreground">Loading configuration...</p>
-        </div>
+        </motion.div>
       </div>
     );
   }
@@ -77,9 +83,19 @@ export default function ConfigurationPage() {
   return (
     <div className="relative flex h-full min-h-full flex-col overflow-hidden">
       <div className="flex h-full flex-1 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mx-auto flex h-full w-full max-w-5xl flex-col space-y-4">
+        <motion.div 
+          className="mx-auto flex h-full w-full max-w-5xl flex-col space-y-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+        >
           {/* Header Section */}
-          <div className="shrink-0 space-y-2 text-center">
+          <motion.div 
+            className="shrink-0 space-y-2 text-center"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.3 }}
+          >
             <h1 className="text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">
               <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
                 System
@@ -100,10 +116,15 @@ export default function ConfigurationPage() {
                 {error}
               </div>
             )}
-          </div>
+          </motion.div>
 
           {/* Controls & Stats */}
-          <div className="shrink-0 space-y-3 rounded-2xl border border-border/40 bg-gradient-to-br from-card/30 to-card/50 p-4 backdrop-blur-sm">
+          <motion.div 
+            className="shrink-0 space-y-3 rounded-2xl border border-border/40 bg-gradient-to-br from-card/30 to-card/50 p-4 backdrop-blur-sm"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2, duration: 0.3 }}
+          >
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex min-w-0 flex-1 items-center gap-2">
                 <Settings className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -174,11 +195,19 @@ export default function ConfigurationPage() {
                 </Badge>
               )}
             </div>
-          </div>
+          </motion.div>
 
           {/* Settings Section */}
-          {activeContent && (
-            <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-border/40 bg-gradient-to-br from-card/20 to-card/40 p-4 backdrop-blur-sm">
+          <AnimatePresence mode="wait">
+            {activeContent && (
+              <motion.div 
+                key={activeKey}
+                className="flex min-h-0 flex-1 flex-col rounded-2xl border border-border/40 bg-gradient-to-br from-card/20 to-card/40 p-4 backdrop-blur-sm"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+              >
               <div className="mb-4 shrink-0">
                 <div className="flex items-center gap-2">
                   <Settings className="h-5 w-5 text-primary" />
@@ -197,7 +226,12 @@ export default function ConfigurationPage() {
               </div>
 
               <ScrollArea className="min-h-0 flex-1">
-                <div className="space-y-3 pr-4">
+                <motion.div 
+                  className="space-y-3 pr-4"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.1, duration: 0.3 }}
+                >
             {activeContent.settings
               .filter((setting) => isSettingVisible(setting))
               .map((setting) => {
@@ -210,7 +244,14 @@ export default function ConfigurationPage() {
 
                 if (setting.type === "boolean") {
                   return (
-                    <article key={setting.key} className={articleClass}>
+                    <motion.article 
+                      key={setting.key} 
+                      className={articleClass}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2 }}
+                      whileHover={{ scale: 1.01 }}
+                    >
                       <div className="flex items-center justify-between gap-4 min-h-[48px] touch-manipulation">
                         <div className="flex min-w-0 flex-1 items-center gap-2">
                           <ToggleLeft className="h-4 w-4 shrink-0 text-primary" />
@@ -235,13 +276,20 @@ export default function ConfigurationPage() {
                           disabled={saving}
                         />
                       </div>
-                    </article>
+                    </motion.article>
                   );
                 }
 
                 if (setting.type === "select" && Array.isArray(setting.options)) {
                   return (
-                    <article key={setting.key} className={`space-y-2 ${articleClass}`}>
+                    <motion.article 
+                      key={setting.key} 
+                      className={`space-y-2 ${articleClass}`}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2 }}
+                      whileHover={{ scale: 1.01 }}
+                    >
                       <label className="flex flex-col gap-2 touch-manipulation">
                         <div className="flex items-center gap-2">
                           <List className="h-4 w-4 text-primary" />
@@ -273,7 +321,7 @@ export default function ConfigurationPage() {
                           ))}
                         </select>
                       </label>
-                    </article>
+                    </motion.article>
                   );
                 }
 
@@ -285,7 +333,14 @@ export default function ConfigurationPage() {
                 const Icon = setting.type === "password" ? Lock : setting.type === "number" ? Hash : Info;
                 
                 return (
-                  <article key={setting.key} className={`space-y-2 ${articleClass}`}>
+                  <motion.article 
+                    key={setting.key} 
+                    className={`space-y-2 ${articleClass}`}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                    whileHover={{ scale: 1.01 }}
+                  >
                     <label className="flex flex-col gap-2 touch-manipulation">
                       <div className="flex items-center gap-2">
                         <Icon className="h-4 w-4 text-primary" />
@@ -321,16 +376,22 @@ export default function ConfigurationPage() {
                         Visible when {setting.depends_on.key} = {setting.depends_on.value ? "True" : "False"}
                       </Badge>
                     )}
-                  </article>
+                  </motion.article>
                 );
               })}
-                </div>
+                </motion.div>
               </ScrollArea>
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
 
           {/* Footer Actions */}
-          <div className="shrink-0 rounded-2xl border border-border/40 bg-gradient-to-br from-card/30 to-card/50 p-4 backdrop-blur-sm">
+          <motion.div 
+            className="shrink-0 rounded-2xl border border-border/40 bg-gradient-to-br from-card/30 to-card/50 p-4 backdrop-blur-sm"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.3 }}
+          >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-3">
                 <Button
@@ -385,8 +446,8 @@ export default function ConfigurationPage() {
                 <span className="hidden sm:inline">Reset Section</span>
               </Button>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </div>
     </div>
   );

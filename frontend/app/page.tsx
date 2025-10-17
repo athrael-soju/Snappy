@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { motion } from "framer-motion"
 import {
   ArrowRight,
   Upload,
@@ -43,23 +44,62 @@ const secondaryLinks = [
   { title: "Maintenance", href: "/maintenance", icon: Wrench },
 ]
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring" as const, stiffness: 100, damping: 10 },
+  },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, scale: 0.9 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: { type: "spring" as const, stiffness: 100, damping: 15 },
+  },
+};
+
 export default function Home() {
   return (
     <div className="relative flex flex-1 min-h-0 flex-col justify-between overflow-y-auto">
       {/* Hero Content - Full viewport utilization */}
-      <div className="flex flex-1 flex-col justify-center px-4 py-4 text-center sm:px-6 lg:px-8">
+      <motion.div 
+        className="flex flex-1 flex-col justify-center px-4 py-4 text-center sm:px-6 lg:px-8"
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+      >
         <div className="mx-auto w-full max-w-6xl space-y-8">
           {/* Badge */}
-          <Badge
-            variant="outline"
-            className="border-primary/30 bg-primary/5 px-4 py-1.5 text-sm font-medium backdrop-blur-sm"
-          >
-            <Sparkles className="mr-2 size-icon-xs" />
-            Powered by the ColPali Vision
-          </Badge>
+          <motion.div variants={itemVariants}>
+            <Badge
+              variant="outline"
+              className="border-primary/30 bg-primary/5 px-4 py-1.5 text-sm font-medium backdrop-blur-sm"
+            >
+              <Sparkles className="mr-2 size-icon-xs" />
+              Powered by ColPali Vision AI
+            </Badge>
+          </motion.div>
 
           {/* Heading */}
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
+          <motion.h1 
+            className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl"
+            variants={itemVariants}
+          >
             <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
               Vision-First
             </span>
@@ -67,16 +107,22 @@ export default function Home() {
             <span className="bg-gradient-to-r from-primary via-chart-4 to-chart-1 bg-clip-text text-transparent">
               Document Intelligence
             </span>
-          </h1>
+          </motion.h1>
 
           {/* Description */}
-          <p className="mx-auto max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+          <motion.p 
+            className="mx-auto max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base"
+            variants={itemVariants}
+          >
             Search and chat with your documents using natural language.
             Advanced visual AI understands context, not just keywords.
-          </p>
+          </motion.p>
 
           {/* CTA Buttons */}
-          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+          <motion.div 
+            className="flex flex-wrap items-center justify-center gap-3 sm:gap-4"
+            variants={itemVariants}
+          >
             <Button
               asChild
               size="lg"
@@ -99,24 +145,31 @@ export default function Home() {
                 Try Chat
               </Link>
             </Button>
-          </div>
+          </motion.div>
 
           {/* Core Features Section */}
-          <div className="pt-2">
+          <motion.div className="pt-2" variants={itemVariants}>
             <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-muted px-4 py-1.5 text-sm font-medium">
               <Zap className="size-icon-sm text-primary" />
               Core Features
             </div>
 
             {/* Feature Cards */}
-            <div className="grid gap-4 md:grid-cols-3">
+            <motion.div 
+              className="grid gap-4 md:grid-cols-3"
+              variants={containerVariants}
+            >
               {primaryFeatures.map((feature, index) => (
-                <Link
+                <motion.div
                   key={feature.href}
-                  href={feature.href}
-                  className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card/50 p-5 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10 touch-manipulation"
-                  style={{ animationDelay: `${index * 100}ms` }}
+                  variants={cardVariants}
+                  whileHover={{ scale: 1.02, y: -4 }}
+                  whileTap={{ scale: 0.98 }}
                 >
+                  <Link
+                    href={feature.href}
+                    className="group relative block overflow-hidden rounded-2xl border border-border/50 bg-card/50 p-5 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10 touch-manipulation"
+                  >
                   <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 transition-opacity group-hover:opacity-5`} />
 
                   <div className="relative flex items-start gap-3">
@@ -135,12 +188,16 @@ export default function Home() {
                       </div>
                     </div>
                   </div>
-                </Link>
+                  </Link>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
 
             {/* Secondary Links */}
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <motion.div 
+              className="mt-6 flex flex-wrap items-center justify-center gap-3"
+              variants={itemVariants}
+            >
               {secondaryLinks.map((link) => (
                 <Button
                   key={link.href}
@@ -155,10 +212,10 @@ export default function Home() {
                   </Link>
                 </Button>
               ))}
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
     </div>
   )
 }
