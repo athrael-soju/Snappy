@@ -1,4 +1,4 @@
-# The Most Beautiful Rag - FastAPI / Next.js / ColPali Template
+# Snappy - Your Vision Retrieval buddy!
 
 <center>
   <img width="100%" alt="image" src="frontend/public/Snappy/Snappy_light_readme.png" />

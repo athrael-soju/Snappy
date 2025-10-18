@@ -1,4 +1,4 @@
-# Vision RAG Backend (FastAPI)
+# Snappy - Backend (FastAPI)
 
 A FastAPI service that provides PDF ingestion, page-level retrieval, and system
 maintenance APIs for the template. The backend exposes modular routers under
@@ -15,7 +15,7 @@ maintenance APIs for the template. The backend exposes modular routers under
 ## Local setup
 
 ```bash
-# From repo root (PowerShell example)
+# Snappy - Your Vision Retrieval buddy!
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -U pip setuptools wheel
@@ -25,7 +25,7 @@ pip install -r backend/requirements.txt
 ## Environment
 
 ```bash
-# From repo root
+# Snappy - Your Vision Retrieval buddy!
 copy .env.example .env
 ```
 
@@ -51,10 +51,10 @@ setting.
 ## Run locally
 
 ```bash
-# Matches docker-compose
+# Snappy - Your Vision Retrieval buddy!
 uvicorn backend:app --host 0.0.0.0 --port 8000 --reload
 
-# Alternative launcher (uses HOST/PORT env vars)
+# Snappy - Your Vision Retrieval buddy!
 python backend/main.py
 ```
 

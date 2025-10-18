@@ -1,4 +1,4 @@
-# Configuration Reference
+# Snappy - Configuration Reference
 
 This document describes every runtime configuration knob exposed by the FastAPI
 backend. All dynamic settings are defined in `backend/config_schema.py`. The

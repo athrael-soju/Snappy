@@ -1,4 +1,4 @@
-# Vision RAG Frontend (Next.js 15)
+# Snappy - Frontend (Next.js 15)
 
 Next.js App Router UI for upload/indexing, search, and chat.
 
@@ -34,25 +34,25 @@ The app is intentionally simple and unauthenticated. Current pages:
 
 ## Install
 ```bash
-# From frontend/
+# Snappy - Your Vision Retrieval buddy!
 yarn install --frozen-lockfile
-# or: npm ci
+# Snappy - Your Vision Retrieval buddy!
 ```
 
 ## Environment
 Set the backend base URL for the SDK and fetches:
 ```bash
-# frontend/.env.local
+# Snappy - Your Vision Retrieval buddy!
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ```
 `frontend/lib/api/client.ts` falls back to `http://localhost:8000` if the env var is not set. The Upload page uses `fetch` for `POST /index` and `EventSource` for `GET /progress/stream/{job_id}`.
 
 OpenAI for chat (SSE) - set on the frontend (server runtime):
 ```bash
-# frontend/.env.local
+# Snappy - Your Vision Retrieval buddy!
 OPENAI_API_KEY=sk-your-key
 OPENAI_MODEL=gpt-5-mini   # optional override
-# optional
+# Snappy - Your Vision Retrieval buddy!
 OPENAI_TEMPERATURE=1
 OPENAI_MAX_TOKENS=1500
 ```
@@ -61,7 +61,7 @@ The chat endpoint `frontend/app/api/chat/route.ts` uses these to call OpenAI Res
 ## Develop
 ```bash
 yarn dev
-# or: npm run dev
+# Snappy - Your Vision Retrieval buddy!
 ```
 Open http://localhost:3000.
 
