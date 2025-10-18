@@ -167,7 +167,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
             {
                 "key": "QDRANT_EMBEDDED",
                 "type": "bool",
-                "default": True,
+                "default": False,
                 "label": "Run Embedded Qdrant",
                 "ui_type": "boolean",
                 "description": "Use an embedded (in-memory) Qdrant instance",
