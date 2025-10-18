@@ -3,7 +3,7 @@ import type { AppState } from '../types';
 const STORAGE_KEY = 'colpali-app-state';
 
 /**
- * Serialize state for localStorage, excluding non-serializable data like FileList
+ * Serialize state for localStorage, excluding non-serializable data like File handles
  */
 export function serializeStateForStorage(state: AppState): any {
   return {
@@ -25,7 +25,8 @@ export function serializeStateForStorage(state: AppState): any {
     },
     // Persist minimal upload state to track ongoing uploads
     upload: {
-      files: null, // Never persist FileList
+      files: null, // Never persist selected files
+      fileMeta: state.upload.fileMeta,
       uploading: state.upload.uploading,
       uploadProgress: state.upload.uploadProgress,
       message: state.upload.message,

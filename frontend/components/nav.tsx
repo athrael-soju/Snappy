@@ -14,6 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useUploadStore } from "@/stores/app-store"
 
 type NavLink = {
   href: string
@@ -34,6 +35,11 @@ export function Nav() {
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
+  const { uploading, uploadProgress } = useUploadStore()
+  const showUploadBadge = uploading && typeof uploadProgress === "number"
+  const uploadPercent = showUploadBadge
+    ? Math.min(100, Math.max(0, Math.round(uploadProgress ?? 0)))
+    : null
 
   useEffect(() => {
     setMounted(true)
@@ -78,6 +84,8 @@ export function Nav() {
                 link.href === "/"
                   ? pathname === "/"
                   : pathname === link.href || pathname.startsWith(`${link.href}/`)
+              const isUploadLink = link.href === "/upload"
+              const shouldShowBadge = isUploadLink && showUploadBadge
 
               return (
                 <Link
@@ -94,6 +102,11 @@ export function Nav() {
                     <span className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/5 to-purple-500/5 animate-pulse" />
                   )}
                   <span className="relative">{link.label}</span>
+                  {shouldShowBadge && uploadPercent !== null && (
+                    <span className="absolute -top-2 -right-3 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground shadow-sm">
+                      {uploadPercent}%
+                    </span>
+                  )}
                 </Link>
               )
             })}
@@ -139,19 +152,26 @@ export function Nav() {
                       link.href === "/"
                         ? pathname === "/"
                         : pathname === link.href || pathname.startsWith(`${link.href}/`)
+                    const isUploadLink = link.href === "/upload"
+                    const shouldShowBadge = isUploadLink && showUploadBadge
 
                     return (
                       <DropdownMenuItem key={link.href} asChild>
                         <Link
                           href={link.href}
                           className={cn(
-                            "w-full cursor-pointer rounded-xl px-3 py-2 text-body-sm transition-all",
+                            "flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl px-3 py-2 text-body-sm transition-all",
                             isActive
                               ? "bg-primary/10 text-primary font-semibold"
                               : "hover:bg-muted/50"
                           )}
                         >
-                          {link.label}
+                          <span>{link.label}</span>
+                          {shouldShowBadge && uploadPercent !== null && (
+                            <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground shadow-sm">
+                              {uploadPercent}%
+                            </span>
+                          )}
                         </Link>
                       </DropdownMenuItem>
                     )

@@ -1,5 +1,18 @@
 import { useAppStore } from '@/stores/app-store';
 import { toast } from 'sonner';
+import type { UploadFileMeta } from '@/stores/types';
+
+const toFileMeta = (files: File[] | null): UploadFileMeta[] | null => {
+  if (!files || files.length === 0) {
+    return null;
+  }
+  return files.map((file) => ({
+    name: file.name,
+    size: file.size,
+    type: file.type,
+    lastModified: file.lastModified,
+  }));
+};
 
 /**
  * Hook for accessing and managing upload state
@@ -13,15 +26,7 @@ export function useUploadStore() {
     if (!jobId) {
       return;
     }
-    
-    // First, clear jobId to stop SSE connection (it watches jobId)
-    // This will trigger the SSE cleanup before we change other state
-    dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
-    
-    // Then reset other upload state
-    dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: false });
-    dispatch({ type: 'UPLOAD_SET_PROGRESS', payload: 0 });
-    dispatch({ type: 'UPLOAD_SET_STATUS_TEXT', payload: null });
+    dispatch({ type: 'UPLOAD_SET_STATUS_TEXT', payload: 'Cancelling upload…' });
     
     try {
       // Call backend to cancel (best effort)
@@ -31,13 +36,6 @@ export function useUploadStore() {
       
       if (response.ok) {
         dispatch({ type: 'UPLOAD_SET_ERROR', payload: null });
-        dispatch({ type: 'UPLOAD_SET_MESSAGE', payload: 'Upload cancelled' });
-        
-        if (typeof window !== 'undefined') {
-          toast.success('Upload Cancelled', { 
-            description: 'The upload has been stopped successfully' 
-          });
-        }
       } else {
         console.warn(`Backend cancel failed: ${response.statusText}`);
         dispatch({ type: 'UPLOAD_SET_ERROR', payload: 'Cancellation may not have completed on server' });
@@ -64,8 +62,10 @@ export function useUploadStore() {
   
   return {
     ...state.upload,
-    setFiles: (files: FileList | null) => 
-      dispatch({ type: 'UPLOAD_SET_FILES', payload: files }),
+    setFiles: (files: File[] | null) => {
+      dispatch({ type: 'UPLOAD_SET_FILES', payload: files });
+      dispatch({ type: 'UPLOAD_SET_FILE_META', payload: toFileMeta(files) });
+    },
     setUploading: (uploading: boolean) => 
       dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: uploading }),
     setProgress: (progress: number) => 
@@ -78,6 +78,8 @@ export function useUploadStore() {
       dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: jobId }),
     setStatusText: (statusText: string | null) => 
       dispatch({ type: 'UPLOAD_SET_STATUS_TEXT', payload: statusText }),
+    setFileMeta: (meta: UploadFileMeta[] | null) =>
+      dispatch({ type: 'UPLOAD_SET_FILE_META', payload: meta }),
     reset: () => dispatch({ type: 'UPLOAD_RESET' }),
     cancelUpload,
   };

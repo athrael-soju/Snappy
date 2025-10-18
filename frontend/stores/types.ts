@@ -20,8 +20,16 @@ export interface ChatState {
   maxTokens: number;
 }
 
+export interface UploadFileMeta {
+  name: string;
+  size: number;
+  type: string;
+  lastModified?: number;
+}
+
 export interface UploadState {
-  files: FileList | null;
+  files: File[] | null;
+  fileMeta: UploadFileMeta[] | null;
   uploading: boolean;
   uploadProgress: number;
   message: string | null;
@@ -85,7 +93,8 @@ export type AppAction =
   | { type: 'CHAT_RESET' }
   
   // Upload actions
-  | { type: 'UPLOAD_SET_FILES'; payload: FileList | null }
+  | { type: 'UPLOAD_SET_FILES'; payload: File[] | null }
+  | { type: 'UPLOAD_SET_FILE_META'; payload: UploadFileMeta[] | null }
   | { type: 'UPLOAD_SET_UPLOADING'; payload: boolean }
   | { type: 'UPLOAD_SET_PROGRESS'; payload: number }
   | { type: 'UPLOAD_SET_MESSAGE'; payload: string | null }
@@ -122,6 +131,7 @@ export const initialState: AppState = {
   },
   upload: {
     files: null,
+    fileMeta: null,
     uploading: false,
     uploadProgress: 0,
     message: null,

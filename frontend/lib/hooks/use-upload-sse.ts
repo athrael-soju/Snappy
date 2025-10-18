@@ -85,6 +85,7 @@ export function useUploadSSE({ uploadState, dispatch }: UseUploadSSEOptions) {
           dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: false });
           dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
           dispatch({ type: 'UPLOAD_SET_FILES', payload: null }); // Clear files on completion
+          dispatch({ type: 'UPLOAD_SET_FILE_META', payload: null });
           scheduleProgressReset();
           
           // Show toast notification
@@ -98,6 +99,7 @@ export function useUploadSSE({ uploadState, dispatch }: UseUploadSSEOptions) {
           dispatch({ type: 'UPLOAD_SET_STATUS_TEXT', payload: null });
           dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: false });
           dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
+          dispatch({ type: 'UPLOAD_SET_FILE_META', payload: null });
           scheduleProgressReset();
           
           // Show toast notification
@@ -112,6 +114,7 @@ export function useUploadSSE({ uploadState, dispatch }: UseUploadSSEOptions) {
           dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: false });
           dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
           dispatch({ type: 'UPLOAD_SET_FILES', payload: null });
+          dispatch({ type: 'UPLOAD_SET_FILE_META', payload: null });
           scheduleProgressReset();
           
           // Show toast notification
@@ -130,6 +133,7 @@ export function useUploadSSE({ uploadState, dispatch }: UseUploadSSEOptions) {
       dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: false });
       dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
       dispatch({ type: 'UPLOAD_SET_STATUS_TEXT', payload: null });
+      dispatch({ type: 'UPLOAD_SET_FILE_META', payload: null });
       dispatch({ type: 'UPLOAD_SET_PROGRESS', payload: 0 });
       scheduleProgressReset();
     });
@@ -147,6 +151,7 @@ export function useUploadSSE({ uploadState, dispatch }: UseUploadSSEOptions) {
             dispatch({ type: 'UPLOAD_SET_STATUS_TEXT', payload: null });
             dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: false });
             dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
+            dispatch({ type: 'UPLOAD_SET_FILE_META', payload: null });
             scheduleProgressReset();
             
             if (typeof window !== 'undefined') {
@@ -169,6 +174,7 @@ export function useUploadSSE({ uploadState, dispatch }: UseUploadSSEOptions) {
         dispatch({ type: 'UPLOAD_SET_STATUS_TEXT', payload: null });
         dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: false });
         dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
+        dispatch({ type: 'UPLOAD_SET_FILE_META', payload: null });
         scheduleProgressReset();
         
         if (typeof window !== 'undefined') {

@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent } from "react";
+import Link from "next/link";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Upload,
@@ -14,7 +15,10 @@ import {
   Sparkles,
   ArrowRight,
   Loader2,
+  Wrench,
+  ListChecks,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { AppButton } from "@/components/app-button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -22,11 +26,53 @@ import "@/lib/api/client";
 import { useSystemStatus } from "@/stores/app-store";
 import { useFileUpload } from "@/lib/hooks/use-file-upload";
 import { PageHeader } from "@/components/page-header";
+import type { UploadFileMeta } from "@/stores/types";
+
+const STATUS_PANEL_AUTO_DISMISS_MS = 4500;
+
+type UploadHelperCard = {
+  id: string;
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  gradient: string;
+  href?: string;
+  actionLabel?: string;
+};
+
+const UPLOAD_HELPER_CARDS: UploadHelperCard[] = [
+  {
+    id: "maintenance",
+    title: "Check System Health",
+    description: "Verify the Qdrant collection and MinIO bucket are ready before large uploads.",
+    icon: Wrench,
+    gradient: "from-chart-2 to-chart-3",
+    href: "/maintenance",
+    actionLabel: "Open Maintenance",
+  },
+  {
+    id: "prepare",
+    title: "Organize Your Files",
+    description: "Group related documents together and prefer small batches for faster indexing feedback.",
+    icon: ListChecks,
+    gradient: "from-chart-4 to-chart-3",
+  },
+  {
+    id: "search",
+    title: "Validate Results",
+    description: "Head to Search after indexing finishes to spot-check newly embedded content.",
+    icon: Sparkles,
+    gradient: "from-chart-1 to-chart-2",
+    href: "/search",
+    actionLabel: "Go to Search",
+  },
+];
 
 export default function UploadPage() {
   const { systemStatus, statusLoading, fetchStatus, isReady } = useSystemStatus();
   const {
     files,
+    fileMeta,
     uploading,
     uploadProgress,
     message,
@@ -36,6 +82,7 @@ export default function UploadPage() {
     isDragOver,
     fileCount,
     hasFiles,
+    isCancelling,
     handleDragOver,
     handleDragLeave,
     handleDrop,
@@ -50,9 +97,80 @@ export default function UploadPage() {
     await handleUpload(isReady);
   };
 
-  const selectedFiles = files ? Array.from(files) : [];
+  const selectedFiles = files ?? [];
+  const persistedFiles =
+    uploading && (!selectedFiles || selectedFiles.length === 0) ? fileMeta ?? [] : [];
+  const displayFiles: Array<File | UploadFileMeta> =
+    selectedFiles && selectedFiles.length > 0 ? selectedFiles : persistedFiles;
+  const usingPersistedMeta = selectedFiles.length === 0 && displayFiles.length > 0;
   const showStatusText = Boolean(statusText && statusText !== message);
   const isStatusLoading = uploading && (typeof uploadProgress !== "number" || uploadProgress < 100);
+
+  const [showHelpfulCards, setShowHelpfulCards] = useState(!uploading && !hasFiles);
+  const [statusDismissed, setStatusDismissed] = useState(false);
+  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const clearDismissTimer = useCallback(() => {
+    if (dismissTimerRef.current) {
+      clearTimeout(dismissTimerRef.current);
+      dismissTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => clearDismissTimer, [clearDismissTimer]);
+
+  const triggerFileDialog = useCallback(() => {
+    if (uploading) return;
+    fileInputRef.current?.click();
+  }, [uploading]);
+
+  useEffect(() => {
+    const hasStatusCopy = Boolean(statusText || jobId || message || error);
+    const hasVisibleProgress =
+      uploading && typeof uploadProgress === "number" && uploadProgress > 0;
+
+    if (uploading || hasFiles) {
+      clearDismissTimer();
+      setStatusDismissed(false);
+      setShowHelpfulCards(false);
+      return;
+    }
+
+    if (hasStatusCopy || hasVisibleProgress) {
+      setStatusDismissed(false);
+      setShowHelpfulCards(false);
+
+      if (!dismissTimerRef.current) {
+        dismissTimerRef.current = setTimeout(() => {
+          setStatusDismissed(true);
+          setShowHelpfulCards(true);
+          clearDismissTimer();
+        }, STATUS_PANEL_AUTO_DISMISS_MS);
+      }
+    } else {
+      clearDismissTimer();
+      setStatusDismissed(false);
+      setShowHelpfulCards(true);
+    }
+
+    return clearDismissTimer;
+  }, [
+    uploading,
+    hasFiles,
+    uploadProgress,
+    statusText,
+    jobId,
+    message,
+    error,
+    clearDismissTimer,
+  ]);
+
+  const shouldShowStatusPanel =
+    !statusDismissed &&
+    Boolean(uploading || statusText || jobId || message || error);
+
+  const shouldShowHelpfulCards = showHelpfulCards && !uploading && !hasFiles;
 
   return (
     <div className="relative flex h-full min-h-full flex-col overflow-hidden">
@@ -199,17 +317,16 @@ export default function UploadPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <label htmlFor="file-input" className="cursor-pointer">
-                    <AppButton
-                      type="button"
-                      variant="outline"
-                      size="md"
-                      disabled={uploading}
-                    >
-                      <FileText className="size-icon-xs" />
-                      Browse Files
-                    </AppButton>
-                  </label>
+                  <AppButton
+                    type="button"
+                    variant="outline"
+                    size="md"
+                    onClick={triggerFileDialog}
+                    disabled={uploading}
+                  >
+                    <FileText className="size-icon-xs" />
+                    Browse Files
+                  </AppButton>
 
                   {hasFiles && (
                     <>
@@ -238,9 +355,12 @@ export default function UploadPage() {
                           onClick={handleCancel}
                           size="md"
                           variant="ghost"
+                          disabled={isCancelling}
                         >
                           <X className="size-icon-xs" />
-                          <span className="hidden sm:inline">Cancel</span>
+                          <span className="hidden sm:inline">
+                            {isCancelling ? "Cancelling..." : "Cancel"}
+                          </span>
                         </AppButton>
                       )}
                     </>
@@ -251,7 +371,13 @@ export default function UploadPage() {
                   id="file-input"
                   type="file"
                   multiple
-                  onChange={(event) => handleFileSelect(event.target.files)}
+                  ref={fileInputRef}
+                  onChange={(event) => {
+                    handleFileSelect(event.target.files);
+                    if (event.target) {
+                      event.target.value = "";
+                    }
+                  }}
                   disabled={uploading}
                   className="hidden"
                 />
@@ -277,7 +403,12 @@ export default function UploadPage() {
                     </div>
                     <AppButton
                       type="button"
-                      onClick={handleClear}
+                      onClick={() => {
+                        handleClear();
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = "";
+                        }
+                      }}
                       size="xs"
                       variant="ghost"
                       disabled={uploading}
@@ -288,33 +419,38 @@ export default function UploadPage() {
                   </div>
 
                   <ScrollArea className="min-h-0 flex-1">
+                    {usingPersistedMeta && (
+                      <p className="mb-2 px-1 text-body-xs text-muted-foreground">
+                        Upload resuming after refresh. You can still monitor progress or cancel while the server finishes.
+                      </p>
+                    )}
                     <div className="space-y-1.5 pr-4">
-                      {selectedFiles.map((file, index) => (
-                        <motion.div
-                          key={file.name}
-                          className="flex items-center justify-between rounded-lg border border-border/50 bg-background/50 px-3 py-2.5 transition-colors hover:bg-muted/50"
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: 20 }}
-                          transition={{ delay: index * 0.05, duration: 0.2 }}
-                          whileHover={{ scale: 1.02, x: 4 }}
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <FileText className="size-icon-xs shrink-0 text-primary" />
-                            <div className="min-w-0">
-                              <p className="truncate text-body-xs font-medium">{file.name}</p>
-                              <p className="text-body-xs text-muted-foreground">
-                                {(file.size / 1024).toFixed(1)} KB
-                              </p>
+                      {displayFiles.map((file, index) => {
+                        const isFileObject = file instanceof File;
+                        const keyBase = isFileObject ? `${file.lastModified}` : "meta";
+                        const fileKey = `${file.name}-${keyBase}-${index}`;
+                        const sizeKb = (file.size / 1024).toFixed(1);
+
+                        return (
+                          <motion.div
+                            key={fileKey}
+                            className="flex items-center justify-between rounded-lg border border-border/50 bg-background/50 px-3 py-2.5 transition-colors hover:bg-muted/50"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            transition={{ delay: index * 0.05, duration: 0.2 }}
+                            whileHover={{ scale: 1.02, x: 4 }}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <FileText className="size-icon-xs shrink-0 text-primary" />
+                              <div className="min-w-0">
+                                <p className="truncate text-body-xs font-medium">{file.name}</p>
+                                <p className="text-body-xs text-muted-foreground">{sizeKb} KB</p>
+                              </div>
                             </div>
-                          </div>
-                          {uploading && typeof uploadProgress === "number" && (
-                            <div className="shrink-0 text-body-xs font-semibold text-primary">
-                              {Math.round(uploadProgress)}%
-                            </div>
-                          )}
-                        </motion.div>
-                      ))}
+                          </motion.div>
+                        );
+                      })}
                     </div>
                   </ScrollArea>
                 </motion.div>
@@ -323,7 +459,7 @@ export default function UploadPage() {
 
             {/* Progress & Status Messages */}
             <AnimatePresence mode="wait">
-              {(uploadProgress || statusText || jobId || message || error) && (
+              {shouldShowStatusPanel && (
                 <motion.div
                   className="space-y-2 rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm"
                   initial={{ opacity: 0, y: 10 }}
@@ -331,7 +467,14 @@ export default function UploadPage() {
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.3 }}
                 >
-                  {typeof uploadProgress === "number" && uploadProgress > 0 && (
+                  {uploading && (typeof uploadProgress !== "number" || uploadProgress === 0) && !statusText && (
+                    <div className="flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-2 text-body-xs text-muted-foreground">
+                      <Loader2 className="size-icon-3xs animate-spin" />
+                      Preparing upload...
+                    </div>
+                  )}
+
+                  {uploading && typeof uploadProgress === "number" && uploadProgress > 0 && (
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between text-body-xs">
                         <span className="font-medium">Upload Progress</span>
@@ -399,6 +542,58 @@ export default function UploadPage() {
                     )}
                   </AnimatePresence>
                 </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Helpful Guidance */}
+            <AnimatePresence mode="wait">
+              {shouldShowHelpfulCards && (
+                <motion.section
+                  className="space-y-3 rounded-2xl border border-border/50 bg-card/40 p-4 backdrop-blur-sm"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="size-icon-xs text-primary" />
+                    <h3 className="text-body font-bold">Keep Momentum Going</h3>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    {UPLOAD_HELPER_CARDS.map((card, index) => (
+                      <motion.article
+                        key={card.id}
+                        className="group relative overflow-hidden rounded-xl border border-border/50 bg-background/60 p-4 transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10"
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05, duration: 0.25 }}
+                        whileHover={{ y: -4, scale: 1.01 }}
+                        whileTap={{ scale: 0.99 }}
+                      >
+                        <div className={`absolute inset-0 bg-gradient-to-br ${card.gradient} opacity-0 transition-opacity group-hover:opacity-10`} />
+                        <div className="relative space-y-3">
+                          <div className="flex items-center gap-2">
+                            <div className="flex size-10 items-center justify-center rounded-lg bg-muted/70">
+                              <card.icon className="size-icon-xs text-primary" />
+                            </div>
+                            <h4 className="text-body-sm font-semibold">{card.title}</h4>
+                          </div>
+                          <p className="text-body-xs text-muted-foreground">{card.description}</p>
+                          {card.href && card.actionLabel && (
+                            <Link
+                              href={card.href}
+                              className="inline-flex items-center gap-1 text-body-xs font-semibold text-primary transition-colors hover:text-primary/80"
+                            >
+                              {card.actionLabel}
+                              <ArrowRight className="size-icon-3xs" />
+                            </Link>
+                          )}
+                        </div>
+                      </motion.article>
+                    ))}
+                  </div>
+                </motion.section>
               )}
             </AnimatePresence>
 
