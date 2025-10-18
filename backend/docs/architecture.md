@@ -1,6 +1,6 @@
-# Architecture
+# Snappy - Architecture
 
-A high-level view of the Vision RAG template and its main data flows.
+A high-level view of Snappy and its main data flows.
 
 ```mermaid
 ---

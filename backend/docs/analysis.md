@@ -1,4 +1,4 @@
-# Vision RAG Template: System Analysis and Comparison to Traditional RAG
+# Snappy: System Analysis and Comparison to Traditional RAG
 
 This document analyzes the current system implemented in this repository and compares it to a traditional text-centric RAG (Retrieval-Augmented Generation) approach.
 
@@ -74,7 +74,7 @@ Notes:
 
 ---
 
-## Comparison: Vision RAG Template vs Traditional Text RAG
+## Comparison: Snappy vs Traditional Text RAG
 
 - __Data modality__
   - Vision RAG: page images; no OCR required; resilient to scans, stamps, tables, charts.
