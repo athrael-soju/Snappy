@@ -36,15 +36,6 @@
   --chart-3: oklch(0.88 0.14 95);
   --chart-4: oklch(0.75 0.16 40);
   --chart-5: oklch(0.82 0.1 160);
-  /* Sidebar with gradient-inspired colors */
-  --sidebar: oklch(0.97 0.02 350);
-  --sidebar-foreground: oklch(0.25 0.02 280);
-  --sidebar-primary: oklch(0.72 0.18 350);
-  --sidebar-primary-foreground: oklch(1.0 0 0);
-  --sidebar-accent: oklch(0.88 0.14 95);
-  --sidebar-accent-foreground: oklch(0.25 0.02 280);
-  --sidebar-border: oklch(0.9 0.04 350);
-  --sidebar-ring: oklch(0.72 0.18 350);
   /* </CHANGE> */
   --font-sans: Poppins, sans-serif;
   --font-serif: Lora, serif;
@@ -112,15 +103,6 @@
   --chart-3: oklch(0.68 0.16 350);
   --chart-4: oklch(0.72 0.15 40);
   --chart-5: oklch(0.75 0.1 160);
-  /* Dark mode sidebar */
-  --sidebar: oklch(0.15 0.03 260);
-  --sidebar-foreground: oklch(0.95 0.02 90);
-  --sidebar-primary: oklch(0.88 0.14 95);
-  --sidebar-primary-foreground: oklch(0.18 0.03 260);
-  --sidebar-accent: oklch(0.68 0.16 350);
-  --sidebar-accent-foreground: oklch(0.95 0.02 90);
-  --sidebar-border: oklch(0.3 0.03 260);
-  --sidebar-ring: oklch(0.88 0.14 95);
   /* </CHANGE> */
   --font-sans: Poppins, sans-serif;
   --font-serif: Lora, serif;
@@ -181,14 +163,6 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
 }
 
 @layer base {

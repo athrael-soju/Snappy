@@ -498,7 +498,7 @@ export default function ChatPage() {
               {toolCallingEnabled && (
                 <Badge variant="outline" className="gap-1.5 px-3 py-1.5 border-primary/30 text-primary">
                   <Bot className="size-icon-sm" />
-                  Advanced mode active
+                  Tool Calling Enabled
                 </Badge>
               )}
             </div>

@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { InfoTooltip } from "@/components/info-tooltip";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -223,14 +223,7 @@ export default function ConfigurationPage() {
                     <Settings className="size-icon-md text-primary" />
                     <h2 className="text-lg font-bold">{activeContent.name}</h2>
                     {activeContent.description && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="size-icon-xs text-muted-foreground hover:text-foreground transition-colors" />
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-sm">
-                          <p>{activeContent.description}</p>
-                        </TooltipContent>
-                      </Tooltip>
+                      <InfoTooltip description={activeContent.description} />
                     )}
                   </div>
                 </div>
@@ -269,19 +262,11 @@ export default function ConfigurationPage() {
                                 <div className="flex min-w-0 flex-1 items-center gap-2">
                                   <ToggleLeft className="size-icon-xs shrink-0 text-primary" />
                                   <span className="text-body-sm font-semibold">{setting.label}</span>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <button type="button" className="inline-flex shrink-0">
-                                        <Info className="size-icon-2xs text-muted-foreground hover:text-foreground transition-colors" />
-                                      </button>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="max-w-xs">
-                                      {description && <p>{description}</p>}
-                                      {helpText && (
-                                        <p className={`text-body-xs opacity-80${description ? " mt-1" : ""}`}>{helpText}</p>
-                                      )}
-                                    </TooltipContent>
-                                  </Tooltip>
+                                  <InfoTooltip
+                                    title={description}
+                                    description={helpText}
+                                    triggerClassName="shrink-0"
+                                  />
                                 </div>
                                 <Switch
                                   checked={(currentValue || "").toLowerCase() === "true"}
@@ -307,19 +292,11 @@ export default function ConfigurationPage() {
                                 <div className="flex items-center gap-2">
                                   <List className="size-icon-xs text-primary" />
                                   <span className="text-body-sm font-semibold">{setting.label}</span>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <button type="button" className="inline-flex">
-                                        <Info className="size-icon-2xs text-muted-foreground hover:text-foreground transition-colors" />
-                                      </button>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="max-w-xs">
-                                      {description && <p>{description}</p>}
-                                      {helpText && (
-                                        <p className={`text-body-xs opacity-80${description ? " mt-1" : ""}`}>{helpText}</p>
-                                      )}
-                                    </TooltipContent>
-                                  </Tooltip>
+                                  <InfoTooltip
+                                    title={description}
+                                    description={helpText}
+                                    triggerClassName="shrink-0"
+                                  />
                                 </div>
                                 <select
                                   value={currentValue}
@@ -358,19 +335,11 @@ export default function ConfigurationPage() {
                               <div className="flex items-center gap-2">
                                 <Icon className="size-icon-xs text-primary" />
                                 <span className="text-body-sm font-semibold">{setting.label}</span>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <button type="button" className="inline-flex">
-                                      <Info className="size-icon-2xs text-muted-foreground hover:text-foreground transition-colors" />
-                                    </button>
-                                  </TooltipTrigger>
-                                  <TooltipContent className="max-w-xs">
-                                    {description && <p>{description}</p>}
-                                    {helpText && (
-                                      <p className={`text-body-xs opacity-80${description ? " mt-1" : ""}`}>{helpText}</p>
-                                    )}
-                                  </TooltipContent>
-                                </Tooltip>
+                                <InfoTooltip
+                                  title={description}
+                                  description={helpText}
+                                  triggerClassName="shrink-0"
+                                />
                               </div>
                               <input
                                 type={inputType}

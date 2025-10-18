@@ -4,7 +4,7 @@ import { ChangeEvent, FormEvent, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import "@/lib/api/client";
 import Image from "next/image";
-import { Search, Loader2, X, AlertCircle, Sparkles, ArrowRight, FileText, Clock, Info } from "lucide-react";
+import { Search, Loader2, X, AlertCircle, Sparkles, ArrowRight, FileText, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -13,7 +13,7 @@ import { parseSearchResults } from "@/lib/api/runtime";
 import { useSearchStore } from "@/lib/hooks/use-search-store";
 import { useSystemStatus } from "@/stores/app-store";
 import ImageLightbox from "@/components/lightbox";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { InfoTooltip } from "@/components/info-tooltip";
 
 const suggestedQueries = [
   "Show recent upload summaries",
@@ -182,20 +182,10 @@ export default function SearchPage() {
                 <label className="flex flex-col gap-2">
                   <span className="flex items-center gap-1 text-body-xs font-medium text-muted-foreground">
                     Top K
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          type="button"
-                          className="inline-flex rounded-full p-1 text-muted-foreground transition-colors hover:text-foreground"
-                          aria-label="What is Top K?"
-                        >
-                          <Info className="size-icon-2xs" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        Controls how many nearest neighbors the retriever fetches per query. Higher values surface more context but may add noise.
-                      </TooltipContent>
-                    </Tooltip>
+                    <InfoTooltip
+                      description="Controls how many nearest neighbors the retriever fetches per query. Higher values surface more context but may add noise."
+                      triggerAriaLabel="What is Top K?"
+                    />
                   </span>
                   <input
                     type="number"
