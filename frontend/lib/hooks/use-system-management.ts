@@ -14,15 +14,6 @@ export function useSystemManagement({ onSuccess }: UseSystemManagementOptions = 
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  const isBucketSkipped = (result: any): boolean => {
-    const bucketResult = result?.results?.bucket;
-    if (!bucketResult) return false;
-    if (bucketResult.status && typeof bucketResult.status === "string") {
-      if (bucketResult.status.toLowerCase() === "skipped") return true;
-    }
-    return false;
-  };
-
   const buildSuccessDescription = (result: any, fallback: string) => {
     const message = result?.results?.bucket?.message;
     if (typeof message === "string" && message.length > 0) {
@@ -37,11 +28,10 @@ export function useSystemManagement({ onSuccess }: UseSystemManagementOptions = 
       const result = await MaintenanceService.initializeInitializePost();
 
       const status: string | undefined = typeof result?.status === "string" ? result.status : undefined;
-      const bucketSkipped = isBucketSkipped(result);
 
-      if (status === "success" || (status === "partial" && bucketSkipped)) {
+      if (status === "success") {
         toast.success("Initialization Complete", {
-          description: buildSuccessDescription(result, "Collection & MinIO bucket are ready"),
+          description: buildSuccessDescription(result, "Qdrant Collection & MinIO bucket ready"),
         });
       } else if (status === "partial") {
         toast.warning("Partial Initialization", {
@@ -78,9 +68,8 @@ export function useSystemManagement({ onSuccess }: UseSystemManagementOptions = 
       const result = await MaintenanceService.deleteCollectionAndBucketDeleteDelete();
 
       const status: string | undefined = typeof result?.status === "string" ? result.status : undefined;
-      const bucketSkipped = isBucketSkipped(result);
 
-      if (status === "success" || (status === "partial" && bucketSkipped)) {
+      if (status === "success") {
         toast.success("Deletion Complete", {
           description: buildSuccessDescription(result, "Collection removed (and MinIO bucket if enabled)"),
         });
