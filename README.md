@@ -4,7 +4,7 @@
 
 ---
 
-# Your Vision Retrieval buddy!
+# Snappy - Your Vision Retrieval Buddy! 📸
 
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688)](https://fastapi.tiangolo.com/)
 [![Qdrant](https://img.shields.io/badge/VectorDB-Qdrant-ff6b6b)](https://qdrant.tech/)
@@ -13,10 +13,9 @@
 [![Docker Compose](https://img.shields.io/badge/Orchestration-Docker%20Compose-2496ed)](https://docs.docker.com/compose/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-An end-to-end reference stack for **vision-first RAG** over PDFs. Documents are
-rendered to page images, embedded with a ColPali-style model, stored as
-multivectors in Qdrant, and surfaced through a Next.js UI with streaming chat
-responses and visual citations.
+Hey there! 👋 Snappy is your friendly companion for **vision-first document retrieval**. Drop in your PDFs, and watch as Snappy transforms them into searchable page images with state-of-the-art ColPali embeddings. No OCR headaches, no text extraction gymnastics—just pure visual understanding!
+
+We're talking multivector embeddings in Qdrant, object storage in MinIO, streaming AI chat with visual citations, and a sleek Next.js interface that makes document search feel like magic. ✨
 
 > Looking for component-level docs?  
 > - Backend: `backend/README.md`  
@@ -66,78 +65,71 @@ walkthrough of the indexing and retrieval flows.
 
 ---
 
-## Features
+## What Makes Snappy Special? 🌟
 
-- **Page-level, multimodal retrieval** - multivector embeddings per PDF page,
-  optional MUVERA first-stage search, and MinIO-backed image URLs (object storage
-  is now a hard requirement).
-- **Streaming chat with visual citations** - Next.js edge route emits a custom
-  `kb.images` event alongside OpenAI Responses SSE, and the UI displays a
-  "Visual citations included" chip with an image gallery.
-- **Pipelined indexing** - configurable batch size, automatic concurrency
-  sizing, progress tracking via Server-Sent Events, and optional cancellation.
-- **Runtime configuration UI** - the redesigned `/configuration` page lets you
-  review, restore, or discard browser-held drafts before applying changes,
-  manage settings by section, and reset values without restarting the backend.
-- **Docker-first** - root `docker-compose.yml` spins up Qdrant, MinIO, backend,
-  frontend, and the ColPali embedding API services (CPU and GPU variants
-  available under `colpali/docker-compose.yml`).
+- **🎯 Page-level Vision Retrieval** - Multivector embeddings for every PDF page with optional MUVERA acceleration. No text extraction needed—Snappy sees your documents the way you do!
+
+- **💬 Smart Chat with Visual Proof** - Stream responses from OpenAI with actual page images as citations. When Snappy answers, it shows its work with a glowing "Visual citations included" chip and image gallery.
+
+- **⚡ Blazing Fast Indexing** - Pipelined processing with real-time progress updates via Server-Sent Events. Cancel anytime, batch smartly, and watch the magic happen.
+
+- **🎛️ Live Configuration** - Tweak runtime settings on the fly through a beautiful web UI. Review drafts, manage by section, reset to defaults—all without restarting a thing.
+
+- **🐳 Docker-Ready** - One command gets you Qdrant, MinIO, FastAPI backend, Next.js frontend, and ColPali embedding services (CPU or GPU, you choose!).
 
 ---
 
-## UI / UX
+## Snappy's Look & Feel 🎨
 
-A modern Next.js 15 UI with server-side streaming, real-time progress updates, and visual citations.
+We've crafted a gorgeous Next.js 15 interface that's as functional as it is beautiful. Think real-time streaming, smooth animations, and visual citations that pop!
 
-- Shared components rely on the tokenised utilities defined in `frontend/app/globals.css` (`text-body-*`, `size-icon-*`), keeping the stylesheet the single source of truth for typography and icon sizing. Use those helpers when extending the UI to stay on the Snappy visual grid.
-- The configuration workspace now organises sections with horizontal tabs, shows
-  lightweight stats, and surfaces a draft banner whenever the browser is out of
-  sync with the server so you can opt in before reapplying stored values.
+- **Design Tokens**: Everything stays pixel-perfect with our tokenized utilities in `frontend/app/globals.css` (`text-body-*`, `size-icon-*`). Extend Snappy's UI with these helpers to maintain that consistent, professional vibe.
+
+- **Smart Configuration**: Organized tabs, live stats, and a helpful draft banner that lets you know when your browser settings drift from the server. No surprises, just smooth sailing! 🚢
 
 ---
 
-## Sneak Peek
+## See Snappy in Action 🎬
 
 https://github.com/user-attachments/assets/99438b0d-c62e-4e47-bdc8-623ee1d2236c
 
 ---
 
-## Quickstart (Docker Compose)
+## Get Snappy Running in 5 Minutes! ⚡
 
-1. Copy environment defaults and configure values:
+**Step 1:** Set up your environment files
 
-   ```bash
-   cp .env.example .env
-   cp frontend/.env.example frontend/.env.local
-   ```
+```bash
+cp .env.example .env
+cp frontend/.env.example frontend/.env.local
+```
 
-   - Set `COLPALI_MODE=cpu` or `gpu` depending on the embedding service you
-     intend to run.
-   - Provide an OpenAI API key in `frontend/.env.local`.
+- Choose `COLPALI_MODE=cpu` or `gpu` (GPU is faster if you have the hardware!)
+- Pop in your OpenAI API key in `frontend/.env.local`
 
-2. Start a ColPali embedding service in another terminal:
+**Step 2:** Fire up the ColPali embedding service
 
-   ```bash
-   # From colpali/
-   docker compose up -d api-cpu      # http://localhost:7001
-   # or
-   docker compose up -d api-gpu      # http://localhost:7002
-   ```
+```bash
+# From the colpali/ directory
+docker compose up -d api-cpu      # CPU mode → http://localhost:7001
+# OR for the speedy option
+docker compose up -d api-gpu      # GPU mode → http://localhost:7002
+```
 
-3. Launch the full stack from the repository root:
+**Step 3:** Launch the whole Snappy stack
 
-   ```bash
-   docker compose up -d --build
-   ```
+```bash
+docker compose up -d --build
+```
 
-4. Visit:
-   - Backend API docs: http://localhost:8000/docs
-   - Frontend UI: http://localhost:3000
-   - MinIO console (optional): http://localhost:9001
+**Step 4:** Start exploring! 🎉
+- 📚 Backend API docs: http://localhost:8000/docs
+- 🎨 Snappy UI: http://localhost:3000
+- 🗄️ MinIO console: http://localhost:9001 (optional)
 
 ---
 
-## Local development (without Compose)
+## Prefer Local Development? We Got You! 💻
 
 1. Install Poppler (required by `pdf2image`).
 2. Create a virtual environment and install backend dependencies:
@@ -216,42 +208,37 @@ backend does not proxy OpenAI calls.
 
 ---
 
-## Troubleshooting
+## Troubleshooting - Snappy's Here to Help! 🔧
 
-- **ColPali timeouts** - increase `COLPALI_API_TIMEOUT` or switch to the GPU
-  service. CPU mode is significantly slower.
-- **Progress stream never completes** - ensure Poppler is installed and
-  accessible; check backend logs for PDF conversion errors.
-- **Images missing in search results** - confirm MinIO credentials/URL are
-  correct and that the frontend `next.config.ts` allows the relevant domains.
-- **CORS errors** - set `ALLOWED_ORIGINS` to explicit URLs before exposing the
-  API outside of local development.
-- **Runtime config changes do not persist** - use `/config/update` for temporary
-  tweaks and update `.env` for permanent values.
+**ColPali timing out?** Bump up `COLPALI_API_TIMEOUT` or switch to GPU mode. CPU works but it's like running through molasses!
 
-See the Troubleshooting section in `backend/docs/configuration.md` for more
-configuration-specific guidance.
+**Progress bar stuck?** Make sure Poppler is installed and playing nice. Check those backend logs for PDF conversion drama.
+
+**Missing images?** Double-check your MinIO credentials and URLs. Also peek at `next.config.ts` to ensure image domains are whitelisted.
+
+**CORS giving you grief?** Lock down `ALLOWED_ORIGINS` with explicit URLs before going public. Wildcards are great for dev, not so much for production!
+
+**Config changes vanishing?** Remember: `/config/update` is temporary magic. For permanent changes, update that `.env` file!
+
+💡 **Pro tip**: Check out `backend/docs/configuration.md` for deep-dive troubleshooting guidance.
 
 ---
 
-## Development notes
+## Developer Notes 🛠️
 
-- PDF ingestion runs as an in-process background job (FastAPI
-  `BackgroundTasks`). For production you may want to offload to a queue.
-- MinIO uploads use automatically sized worker pools; override
-  `MINIO_WORKERS`/`MINIO_RETRIES` only when you need explicit control.
-- `frontend` uses OpenAPI code generation (`yarn gen:sdk`, `yarn gen:zod`)
-  backed by `frontend/docs/openapi.json`.
-- Pre-commit hooks (`.pre-commit-config.yaml`) include autoflake, isort, black,
-  and pyright.
+- **Background Jobs**: PDF ingestion uses FastAPI `BackgroundTasks`. Simple and effective! For production scale, consider a proper job queue.
+
+- **Smart Upload Pools**: MinIO automatically sizes worker pools based on your hardware. Only tweak `MINIO_WORKERS`/`MINIO_RETRIES` if you really know what you're doing!
+
+- **Type Safety FTW**: The frontend auto-generates TypeScript types from OpenAPI specs (`yarn gen:sdk`, `yarn gen:zod`). Always in sync, always type-safe!
+
+- **Code Quality**: Pre-commit hooks keep things tidy with autoflake, isort, black, and pyright. Clean code is happy code! ✨
 
 ---
 
-## Roadmap and hardening ideas
+## What's Next for Snappy? 🚀
 
-Refer to `feature-list.md` for a checklist of production hardening tasks:
-authentication, background workers, observability, CI/CD, infrastructure, and
-more.
+Curious about future features? Check out `feature-list.md` for our production roadmap—think authentication, distributed workers, observability dashboards, CI/CD pipelines, and infrastructure scaling. Snappy's just getting started!
 
 ---
 
@@ -261,9 +248,16 @@ MIT License - see [LICENSE](LICENSE).
 
 ---
 
-## Acknowledgements
+## Standing on the Shoulders of Giants 🙏
 
-- **ColPali / ColQwen** - https://arxiv.org/abs/2407.01449
-- **Qdrant optimisations** - https://qdrant.tech/blog/colpali-qdrant-optimization/  
-  and https://qdrant.tech/articles/binary-quantization/
-- **PyTorch** - https://pytorch.org/
+Snappy wouldn't exist without these amazing projects:
+
+- **ColPali / ColQwen** - The brilliant vision-language models that power our understanding  
+  📄 https://arxiv.org/abs/2407.01449
+
+- **Qdrant** - Lightning-fast vector search with killer optimization guides  
+  📚 https://qdrant.tech/blog/colpali-qdrant-optimization/  
+  📚 https://qdrant.tech/articles/binary-quantization/
+
+- **PyTorch** - The deep learning framework that makes it all possible  
+  🔥 https://pytorch.org/
