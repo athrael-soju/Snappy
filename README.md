@@ -92,11 +92,11 @@ A modern Next.js 15 UI with server-side streaming, real-time progress updates, a
   lightweight stats, and surfaces a draft banner whenever the browser is out of
   sync with the server so you can opt in before reapplying stored values.
 
-<p align="center">
-  <a href="https://youtu.be/fzj9hJIKGlg" title="Watch the demo">
-    <img src="https://img.youtube.com/vi/fzj9hJIKGlg/hqdefault.jpg" alt="Snappy demo" width="640" />
-  </a>
-</p>
+---
+
+## Snappy Peak!
+
+https://github.com/user-attachments/assets/99438b0d-c62e-4e47-bdc8-623ee1d2236c
 
 ---
 
