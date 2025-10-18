@@ -78,17 +78,17 @@ export function InfoTooltip({
           triggerClassName
         )}
       >
-        <Icon className={cn("size-3", iconClassName)} aria-hidden="true" />
+        <Icon className={cn("size-4", iconClassName)} aria-hidden="true" />
       </button>
     )
 
   const body = content ?? (
     <div className="space-y-1 text-left">
       {title ? (
-        <p className="text-xs font-semibold leading-tight text-background">{title}</p>
+        <p className="text-lg font-semibold leading-tight text-background">{title}</p>
       ) : null}
       {description ? (
-        <p className="text-[11px] leading-tight text-background/80">{description}</p>
+        <p className="text-sm leading-tight text-background/80">{description}</p>
       ) : null}
     </div>
   )

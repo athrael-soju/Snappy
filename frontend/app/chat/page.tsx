@@ -273,7 +273,7 @@ function ChatComposer({
       <div className="mx-auto w-full max-w-6xl space-y-3">
         <div className="relative overflow-hidden rounded-[32px] border border-border/40 bg-background/95 p-4 shadow-xl shadow-primary/5 backdrop-blur">
           <div className="pointer-events-none absolute inset-0 rounded-[32px] border border-white/5" />
-          <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-4">
+          <div className="relative z-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
             <div className="flex-1">
               <div className="rounded-3xl border border-border/30 bg-input/10 transition focus-within:border-primary/40 focus-within:shadow-lg focus-within:shadow-primary/10">
                 <Textarea
@@ -287,7 +287,7 @@ function ChatComposer({
                 />
               </div>
             </div>
-            <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-col sm:items-stretch sm:gap-3">
+            <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
               <AppButton
                 type="submit"
                 size="icon-lg"
@@ -298,80 +298,88 @@ function ChatComposer({
               >
                 {loading ? <Loader2 className="size-icon-md animate-spin" /> : <Send className="size-icon-md" />}
               </AppButton>
-            </div>
-            <div>
-              <AppButton
-                type="button"
-                onClick={reset}
-                variant="ghost"
-                size="icon-lg"
-                disabled={messages.length === 0 && !input}
-                aria-label="Clear conversation"
-              >
-                <Trash2 className="size-icon-md" />
-              </AppButton>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <AppButton
-                    type="button"
-                    variant="glass"
-                    size="icon-lg"
-                    elevated
-                    aria-label="Open retrieval settings"
-                  >
-                    <Settings className="size-icon-md" />
-                  </AppButton>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 space-y-4">
-                  <div>
-                    <h4 className="text-body-sm font-semibold text-foreground">Retrieval settings</h4>
-                    <p className="mt-1 text-body-xs text-muted-foreground">
-                      Tune how many neighbors to fetch and how long responses can be.
-                    </p>
-                  </div>
-                  <div className="space-y-4 text-body-sm">
-                    <div className="space-y-2">
-                      <Label htmlFor="chat-k">Top K</Label>
-                      <Input
-                        id="chat-k"
-                        type="number"
-                        min={1}
-                        value={k}
-                        onChange={(event) => onNumberChange(event, setK)}
-                      />
-                      <p className="text-body-xs text-muted-foreground">Controls how many nearest neighbors the assistant retrieves. Higher values surface more context but may introduce noise.</p>
+              <div className="inline-flex items-center overflow-hidden rounded-full border border-border/40 bg-background/80 shadow-sm divide-x divide-border/40">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <AppButton
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      groupPosition="start"
+                      aria-label="Open retrieval settings"
+                    >
+                      <Settings className="size-icon-sm" />
+                    </AppButton>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 space-y-4">
+                    <div>
+                      <h4 className="text-body-sm font-semibold text-foreground">Retrieval settings</h4>
+                      <p className="mt-1 text-body-xs text-muted-foreground">
+                        Tune how many neighbors to fetch and how long responses can be.
+                      </p>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="chat-max-tokens">Max tokens</Label>
-                      <Input
-                        id="chat-max-tokens"
-                        type="number"
-                        min={64}
-                        value={maxTokens}
-                        onChange={(event) => onNumberChange(event, setMaxTokens)}
-                      />
-                      <p className="text-body-xs text-muted-foreground">Control response length to balance speed with detail.</p>
-                    </div>
-                    <div className="flex items-center justify-between gap-3 rounded-xl border border-border/30 bg-card/40 px-3 py-2">
-                      <div>
-                        <p className="text-body-sm font-medium text-foreground">Allow tool calling</p>
-                        <p className="text-body-xs text-muted-foreground">Let the assistant call retrieval tools when needed.</p>
+                    <div className="space-y-4 text-body-sm">
+                      <div className="space-y-2">
+                        <Label htmlFor="chat-k">Top K</Label>
+                        <Input
+                          id="chat-k"
+                          type="number"
+                          min={1}
+                          value={k}
+                          onChange={(event) => onNumberChange(event, setK)}
+                        />
+                        <p className="text-body-xs text-muted-foreground">
+                          Controls how many nearest neighbors the assistant retrieves. Higher values surface more
+                          context but may introduce noise.
+                        </p>
                       </div>
-                      <Switch
-                        id="chat-tool-calling"
-                        checked={toolCallingEnabled}
-                        onCheckedChange={onToolToggle}
-                      />
-                    </div>
-                    {!isSettingsValid && (
-                      <div className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-body-xs text-destructive">
-                        <AlertCircle className="size-icon-sm" />
-                        The selected Top K value is not valid.
+                      <div className="space-y-2">
+                        <Label htmlFor="chat-max-tokens">Max tokens</Label>
+                        <Input
+                          id="chat-max-tokens"
+                          type="number"
+                          min={64}
+                          value={maxTokens}
+                          onChange={(event) => onNumberChange(event, setMaxTokens)}
+                        />
+                        <p className="text-body-xs text-muted-foreground">
+                          Control response length to balance speed with detail.
+                        </p>
                       </div>
-                    )}
-                  </div>
-                </PopoverContent>
-              </Popover>
+                      <div className="flex items-center justify-between gap-3 rounded-xl border border-border/30 bg-card/40 px-3 py-2">
+                        <div>
+                          <p className="text-body-sm font-medium text-foreground">Allow tool calling</p>
+                          <p className="text-body-xs text-muted-foreground">
+                            Let the assistant call retrieval tools when needed.
+                          </p>
+                        </div>
+                        <Switch
+                          id="chat-tool-calling"
+                          checked={toolCallingEnabled}
+                          onCheckedChange={onToolToggle}
+                        />
+                      </div>
+                      {!isSettingsValid && (
+                        <div className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-body-xs text-destructive">
+                          <AlertCircle className="size-icon-sm" />
+                          The selected Top K value is not valid.
+                        </div>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                <AppButton
+                  type="button"
+                  onClick={reset}
+                  variant="ghost"
+                  size="icon"
+                  groupPosition="end"
+                  disabled={messages.length === 0 && !input}
+                  aria-label="Clear conversation"
+                >
+                  <Trash2 className="size-icon-sm" />
+                </AppButton>
+              </div>
             </div>
           </div>
         </div>

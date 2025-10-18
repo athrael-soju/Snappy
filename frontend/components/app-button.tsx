@@ -52,6 +52,10 @@ type AppButtonProps = Omit<PrimitiveButtonProps, "className" | "size" | "variant
    * Adds a group class so trailing icons can react to hover via `group-hover/app-button:*` utilities.
    */
   iconShift?: boolean
+  /**
+   * Indicates the button participates in a segmented group.
+   */
+  groupPosition?: "start" | "middle" | "end"
 }
 
 const baseClasses =
@@ -96,6 +100,18 @@ const alignClasses: Record<NonNullable<AppButtonProps["align"]>, string> = {
   between: "justify-between",
 }
 
+const groupShapeClasses: Record<NonNullable<AppButtonProps["groupPosition"]>, string> = {
+  start: "rounded-l-full rounded-r-none",
+  middle: "rounded-none",
+  end: "rounded-r-full rounded-l-none",
+}
+
+const groupOverlapClasses: Record<NonNullable<AppButtonProps["groupPosition"]>, string> = {
+  start: "",
+  middle: "-ml-px",
+  end: "-ml-px",
+}
+
 export function AppButton({
   variant = "primary",
   size = "md",
@@ -104,10 +120,13 @@ export function AppButton({
   pill,
   align = "center",
   iconShift,
+  groupPosition,
   ...props
 }: AppButtonProps) {
   const isInline = size === "inline"
-  const resolvedPill = pill ?? !isInline
+  const isGrouped = groupPosition !== undefined
+  const resolvedPill = isGrouped ? false : pill ?? !isInline
+  const resolvedGroupPosition = groupPosition ?? null
 
   return (
     <PrimitiveButton
@@ -118,6 +137,8 @@ export function AppButton({
         sizeClasses[size],
         variantClasses[variant],
         resolvedPill ? "rounded-full" : "rounded-md",
+        resolvedGroupPosition ? groupShapeClasses[resolvedGroupPosition] : undefined,
+        resolvedGroupPosition ? groupOverlapClasses[resolvedGroupPosition] : undefined,
         fullWidth ? "w-full" : "w-fit",
         elevated ? "shadow-lg shadow-primary/20" : "shadow-none",
         iconShift ? "group/app-button" : "",
@@ -125,6 +146,7 @@ export function AppButton({
       )}
       data-variant={variant}
       data-size={size}
+      data-group-position={resolvedGroupPosition ?? undefined}
     />
   )
 }
