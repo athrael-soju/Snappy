@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="65%" alt="image" src="frontend/public/Snappy/Snappy_light_readme.png" />
+  <img width="754" height="643" alt="snappy_light_nobg_resized" src="https://github.com/user-attachments/assets/2ebd2908-42a7-46d4-84a1-cad8aeca1847" />
 </p>
 
 # Your Vision Retrieval buddy!
