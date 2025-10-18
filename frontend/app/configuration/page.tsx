@@ -16,13 +16,35 @@ import {
   Hash,
   ToggleLeft,
   List,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+} from "@/components/ui/dropdown-menu";
 import Loading from "../loading";
+
+const SETTING_OVERRIDES: Record<
+  string,
+  {
+    description?: string;
+    helpText?: string;
+  }
+> = {
+  MINIO_WORKERS: {
+    description: "Number of concurrent upload workers (auto-sized)",
+    helpText:
+      "Snappy derives this from available CPU cores and pipeline concurrency. Override only if you need to cap or expand throughput manually.",
+  },
+};
 
 export default function ConfigurationPage() {
   const {
@@ -70,14 +92,14 @@ export default function ConfigurationPage() {
   return (
     <div className="relative flex h-full min-h-full flex-col overflow-hidden">
       <div className="flex h-full flex-1 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
-        <motion.div 
+        <motion.div
           className="mx-auto flex h-full w-full max-w-5xl flex-col space-y-4"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
         >
           {/* Header Section */}
-          <motion.div 
+          <motion.div
             className="shrink-0 space-y-2 text-center"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -92,11 +114,11 @@ export default function ConfigurationPage() {
                 Configuration
               </span>
             </h1>
-            
+
             <p className="mx-auto max-w-2xl text-body-xs leading-relaxed text-muted-foreground">
               Edit backend settings directly. Inputs mirror the OpenAPI schema and save values individually.
             </p>
-            
+
             {error && (
               <div className="mx-auto flex max-w-2xl items-center justify-center gap-2 rounded-lg bg-destructive/10 px-4 py-2 text-body-sm font-medium text-destructive">
                 <AlertCircle className="size-icon-xs" />
@@ -106,7 +128,7 @@ export default function ConfigurationPage() {
           </motion.div>
 
           {/* Controls & Stats */}
-          <motion.div 
+          <motion.div
             className="shrink-0 space-y-3 rounded-2xl border border-border/40 bg-gradient-to-br from-card/30 to-card/50 p-4 backdrop-blur-sm"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -114,18 +136,32 @@ export default function ConfigurationPage() {
           >
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex min-w-0 flex-1 items-center gap-2">
-                <Settings className="size-icon-xs shrink-0 text-muted-foreground" />
-                <select
-                  value={activeKey}
-                  onChange={(event) => setActiveTab(event.target.value)}
-                  className="min-w-0 flex-1 rounded-xl border border-border/40 bg-background/50 px-3 py-2 text-body-sm outline-none transition-all focus:border-primary/50 focus:bg-background focus:ring-2 focus:ring-primary/20"
-                >
-                  {categories.map(([key, category]) => (
-                    <option key={key} value={key}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
+                <Settings className="size-icon-sm shrink-0 text-muted-foreground" />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="min-w-0 flex-1 justify-between gap-3 rounded-xl border-border/40 bg-background/50 px-3 py-2 text-body-sm font-medium text-left transition-colors hover:bg-background focus-visible:border-primary/50 focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-primary/20"
+                    >
+                      <span className="truncate">{activeCategory?.[1]?.name ?? "Select category"}</span>
+                      <ChevronDown className="size-icon-sm shrink-0 text-muted-foreground" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-64">
+                    <DropdownMenuRadioGroup
+                      value={activeKey}
+                      onValueChange={(value) => setActiveTab(value)}
+                    >
+                      {categories.map(([key, category]) => (
+                        <DropdownMenuRadioItem key={key} value={key}>
+                          <span className="truncate">{category.name}</span>
+                        </DropdownMenuRadioItem>
+                      ))}
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
               <Button
                 type="button"
@@ -139,7 +175,7 @@ export default function ConfigurationPage() {
                 <span className="hidden sm:inline">Reset All</span>
               </Button>
             </div>
-            
+
             <div className="flex flex-wrap items-center justify-center gap-2">
               <Badge variant="outline" className="gap-1.5 px-3 py-1">
                 <Hash className="size-icon-3xs" />
@@ -174,7 +210,7 @@ export default function ConfigurationPage() {
           {/* Settings Section */}
           <AnimatePresence mode="wait">
             {activeContent && (
-              <motion.div 
+              <motion.div
                 key={activeKey}
                 className="flex min-h-0 flex-1 flex-col rounded-2xl border border-border/40 bg-gradient-to-br from-card/20 to-card/40 p-4 backdrop-blur-sm"
                 initial={{ opacity: 0, x: 20 }}
@@ -182,185 +218,188 @@ export default function ConfigurationPage() {
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3 }}
               >
-              <div className="mb-4 shrink-0">
-                <div className="flex items-center gap-2">
-                  <Settings className="size-icon-md text-primary" />
-                  <h2 className="text-lg font-bold">{activeContent.name}</h2>
-                  {activeContent.description && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="size-icon-xs text-muted-foreground hover:text-foreground transition-colors" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-sm">
-                        <p>{activeContent.description}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
-                </div>
-              </div>
-
-              <ScrollArea className="min-h-0 flex-1">
-                <motion.div 
-                  className="space-y-3 pr-4"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.1, duration: 0.3 }}
-                >
-            {activeContent.settings
-              .filter((setting) => isSettingVisible(setting))
-              .map((setting) => {
-                const currentValue = values[setting.key] ?? setting.default;
-
-                const isDependent = !!setting.depends_on;
-                const articleClass = isDependent 
-                  ? "group ml-6 rounded-2xl border border-border/40 border-l-4 border-l-primary/30 bg-gradient-to-br from-card/30 to-card/50 p-4 backdrop-blur-sm transition-all hover:border-border/60 hover:border-l-primary/50 hover:shadow-sm sm:ml-8"
-                  : "group rounded-2xl border border-border/40 bg-gradient-to-br from-card/30 to-card/50 p-4 backdrop-blur-sm transition-all hover:border-border/60 hover:shadow-sm";
-
-                if (setting.type === "boolean") {
-                  return (
-                    <motion.article 
-                      key={setting.key} 
-                      className={articleClass}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2 }}
-                      whileHover={{ scale: 1.01 }}
-                    >
-                      <div className="flex items-center justify-between gap-4 min-h-[48px] touch-manipulation">
-                        <div className="flex min-w-0 flex-1 items-center gap-2">
-                          <ToggleLeft className="size-icon-xs shrink-0 text-primary" />
-                          <span className="text-body-sm font-semibold">{setting.label}</span>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <button type="button" className="inline-flex shrink-0">
-                                <Info className="size-icon-2xs text-muted-foreground hover:text-foreground transition-colors" />
-                              </button>
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs">
-                              <p>{setting.description}</p>
-                              {setting.help_text && (
-                                <p className="mt-1 text-body-xs opacity-80">{setting.help_text}</p>
-                              )}
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                        <Switch
-                          checked={(currentValue || "").toLowerCase() === "true"}
-                          onCheckedChange={(checked) => handleValueChange(setting.key, checked ? "True" : "False")}
-                          disabled={saving}
-                        />
-                      </div>
-                    </motion.article>
-                  );
-                }
-
-                if (setting.type === "select" && Array.isArray(setting.options)) {
-                  return (
-                    <motion.article 
-                      key={setting.key} 
-                      className={`space-y-2 ${articleClass}`}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2 }}
-                      whileHover={{ scale: 1.01 }}
-                    >
-                      <label className="flex flex-col gap-2 touch-manipulation">
-                        <div className="flex items-center gap-2">
-                          <List className="size-icon-xs text-primary" />
-                          <span className="text-body-sm font-semibold">{setting.label}</span>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <button type="button" className="inline-flex">
-                                <Info className="size-icon-2xs text-muted-foreground hover:text-foreground transition-colors" />
-                              </button>
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs">
-                              <p>{setting.description}</p>
-                              {setting.help_text && (
-                                <p className="mt-1 text-body-xs opacity-80">{setting.help_text}</p>
-                              )}
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                        <select
-                          value={currentValue}
-                          onChange={(event) => handleValueChange(setting.key, event.target.value)}
-                          disabled={saving}
-                          className="w-full rounded-xl border border-border/40 bg-background/50 px-3 py-2.5 text-body-sm outline-none transition-all focus:border-primary/50 focus:bg-background focus:ring-2 focus:ring-primary/20"
-                        >
-                          {setting.options.map((option) => (
-                            <option key={option} value={option}>
-                              {option}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                    </motion.article>
-                  );
-                }
-
-                const inputType = setting.type === "password" ? "password" : setting.type === "number" ? "number" : "text";
-                const min = typeof setting.min === "number" ? setting.min : undefined;
-                const max = typeof setting.max === "number" ? setting.max : undefined;
-                const step = typeof setting.step === "number" ? setting.step : undefined;
-
-                const Icon = setting.type === "password" ? Lock : setting.type === "number" ? Hash : Info;
-                
-                return (
-                  <motion.article 
-                    key={setting.key} 
-                    className={`space-y-2 ${articleClass}`}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2 }}
-                    whileHover={{ scale: 1.01 }}
-                  >
-                    <label className="flex flex-col gap-2 touch-manipulation">
-                      <div className="flex items-center gap-2">
-                        <Icon className="size-icon-xs text-primary" />
-                        <span className="text-body-sm font-semibold">{setting.label}</span>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button type="button" className="inline-flex">
-                              <Info className="size-icon-2xs text-muted-foreground hover:text-foreground transition-colors" />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs">
-                            <p>{setting.description}</p>
-                            {setting.help_text && (
-                              <p className="mt-1 text-body-xs opacity-80">{setting.help_text}</p>
-                            )}
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-                      <input
-                        type={inputType}
-                        value={currentValue}
-                        onChange={(event) => handleValueChange(setting.key, event.target.value)}
-                        disabled={saving}
-                        min={min}
-                        max={max}
-                        step={step}
-                        className="w-full rounded-xl border border-border/40 bg-background/50 px-3 py-2.5 text-body-sm outline-none transition-all focus:border-primary/50 focus:bg-background focus:ring-2 focus:ring-primary/20"
-                      />
-                    </label>
-                    {setting.depends_on && (
-                      <Badge variant="outline" className="gap-1.5 text-body-xs">
-                        <AlertCircle className="size-icon-3xs" />
-                        Visible when {setting.depends_on.key} = {setting.depends_on.value ? "True" : "False"}
-                      </Badge>
+                <div className="mb-4 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <Settings className="size-icon-md text-primary" />
+                    <h2 className="text-lg font-bold">{activeContent.name}</h2>
+                    {activeContent.description && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="size-icon-xs text-muted-foreground hover:text-foreground transition-colors" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-sm">
+                          <p>{activeContent.description}</p>
+                        </TooltipContent>
+                      </Tooltip>
                     )}
-                  </motion.article>
-                );
-              })}
-                </motion.div>
-              </ScrollArea>
-            </motion.div>
-          )}
+                  </div>
+                </div>
+
+                <ScrollArea className="min-h-0 flex-1">
+                  <motion.div
+                    className="space-y-3 pr-4"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.1, duration: 0.3 }}
+                  >
+                    {activeContent.settings
+                      .filter((setting) => isSettingVisible(setting))
+                      .map((setting) => {
+                        const currentValue = values[setting.key] ?? setting.default;
+                        const override = SETTING_OVERRIDES[setting.key] ?? {};
+                        const description = override.description ?? setting.description;
+                        const helpText = override.helpText ?? setting.help_text;
+
+                        const isDependent = !!setting.depends_on;
+                        const articleClass = isDependent
+                          ? "group ml-6 rounded-2xl border border-border/40 border-l-4 border-l-primary/30 bg-gradient-to-br from-card/30 to-card/50 p-4 backdrop-blur-sm transition-all hover:border-border/60 hover:border-l-primary/50 hover:shadow-sm sm:ml-8"
+                          : "group rounded-2xl border border-border/40 bg-gradient-to-br from-card/30 to-card/50 p-4 backdrop-blur-sm transition-all hover:border-border/60 hover:shadow-sm";
+
+                        if (setting.type === "boolean") {
+                          return (
+                            <motion.article
+                              key={setting.key}
+                              className={articleClass}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.2 }}
+                              whileHover={{ scale: 1.01 }}
+                            >
+                              <div className="flex items-center justify-between gap-4 min-h-[48px] touch-manipulation">
+                                <div className="flex min-w-0 flex-1 items-center gap-2">
+                                  <ToggleLeft className="size-icon-xs shrink-0 text-primary" />
+                                  <span className="text-body-sm font-semibold">{setting.label}</span>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <button type="button" className="inline-flex shrink-0">
+                                        <Info className="size-icon-2xs text-muted-foreground hover:text-foreground transition-colors" />
+                                      </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                      {description && <p>{description}</p>}
+                                      {helpText && (
+                                        <p className={`text-body-xs opacity-80${description ? " mt-1" : ""}`}>{helpText}</p>
+                                      )}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </div>
+                                <Switch
+                                  checked={(currentValue || "").toLowerCase() === "true"}
+                                  onCheckedChange={(checked) => handleValueChange(setting.key, checked ? "True" : "False")}
+                                  disabled={saving}
+                                />
+                              </div>
+                            </motion.article>
+                          );
+                        }
+
+                        if (setting.type === "select" && Array.isArray(setting.options)) {
+                          return (
+                            <motion.article
+                              key={setting.key}
+                              className={`space-y-2 ${articleClass}`}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.2 }}
+                              whileHover={{ scale: 1.01 }}
+                            >
+                              <label className="flex flex-col gap-2 touch-manipulation">
+                                <div className="flex items-center gap-2">
+                                  <List className="size-icon-xs text-primary" />
+                                  <span className="text-body-sm font-semibold">{setting.label}</span>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <button type="button" className="inline-flex">
+                                        <Info className="size-icon-2xs text-muted-foreground hover:text-foreground transition-colors" />
+                                      </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                      {description && <p>{description}</p>}
+                                      {helpText && (
+                                        <p className={`text-body-xs opacity-80${description ? " mt-1" : ""}`}>{helpText}</p>
+                                      )}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </div>
+                                <select
+                                  value={currentValue}
+                                  onChange={(event) => handleValueChange(setting.key, event.target.value)}
+                                  disabled={saving}
+                                  className="w-full rounded-xl border border-border/40 bg-background/50 px-3 py-2.5 text-body-sm outline-none transition-all focus:border-primary/50 focus:bg-background focus:ring-2 focus:ring-primary/20"
+                                >
+                                  {setting.options.map((option) => (
+                                    <option key={option} value={option}>
+                                      {option}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                            </motion.article>
+                          );
+                        }
+
+                        const inputType = setting.type === "password" ? "password" : setting.type === "number" ? "number" : "text";
+                        const min = typeof setting.min === "number" ? setting.min : undefined;
+                        const max = typeof setting.max === "number" ? setting.max : undefined;
+                        const step = typeof setting.step === "number" ? setting.step : undefined;
+
+                        const Icon = setting.type === "password" ? Lock : setting.type === "number" ? Hash : Info;
+
+                        return (
+                          <motion.article
+                            key={setting.key}
+                            className={`space-y-2 ${articleClass}`}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.2 }}
+                            whileHover={{ scale: 1.01 }}
+                          >
+                            <label className="flex flex-col gap-2 touch-manipulation">
+                              <div className="flex items-center gap-2">
+                                <Icon className="size-icon-xs text-primary" />
+                                <span className="text-body-sm font-semibold">{setting.label}</span>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button type="button" className="inline-flex">
+                                      <Info className="size-icon-2xs text-muted-foreground hover:text-foreground transition-colors" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-xs">
+                                    {description && <p>{description}</p>}
+                                    {helpText && (
+                                      <p className={`text-body-xs opacity-80${description ? " mt-1" : ""}`}>{helpText}</p>
+                                    )}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                              <input
+                                type={inputType}
+                                value={currentValue}
+                                onChange={(event) => handleValueChange(setting.key, event.target.value)}
+                                disabled={saving}
+                                min={min}
+                                max={max}
+                                step={step}
+                                className="w-full rounded-xl border border-border/40 bg-background/50 px-3 py-2.5 text-body-sm outline-none transition-all focus:border-primary/50 focus:bg-background focus:ring-2 focus:ring-primary/20"
+                              />
+                            </label>
+                            {setting.depends_on && (
+                              <Badge variant="outline" className="gap-1.5 text-body-xs">
+                                <AlertCircle className="size-icon-3xs" />
+                                Visible when {setting.depends_on.key} = {setting.depends_on.value ? "True" : "False"}
+                              </Badge>
+                            )}
+                          </motion.article>
+                        );
+                      })}
+                  </motion.div>
+                </ScrollArea>
+              </motion.div>
+            )}
           </AnimatePresence>
 
           {/* Footer Actions */}
-          <motion.div 
+          <motion.div
             className="shrink-0 rounded-2xl border border-border/40 bg-gradient-to-br from-card/30 to-card/50 p-4 backdrop-blur-sm"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -387,7 +426,7 @@ export default function ConfigurationPage() {
                     </>
                   )}
                 </Button>
-                
+
                 <Button
                   type="button"
                   onClick={resetChanges}
@@ -399,7 +438,7 @@ export default function ConfigurationPage() {
                   <RotateCcw className="size-icon-xs" />
                   Discard
                 </Button>
-                
+
                 {!hasChanges && (
                   <Badge variant="secondary" className="gap-1.5">
                     <CheckCircle2 className="size-icon-3xs" />
@@ -407,7 +446,7 @@ export default function ConfigurationPage() {
                   </Badge>
                 )}
               </div>
-              
+
               <Button
                 type="button"
                 onClick={() => resetSection(activeKey)}

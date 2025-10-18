@@ -80,7 +80,7 @@ export default function UploadPage() {
             </h1>
 
             <p className="mx-auto max-w-2xl text-body-xs leading-relaxed text-muted-foreground">
-              Drop your documents and let Snappy&apos;s ColPali vision AI understand both text and layout.
+              Drop your documents and let Snappy retrieve insights from them.
             </p>
           </motion.div>
 
@@ -110,7 +110,7 @@ export default function UploadPage() {
 
             <Badge variant="outline" className="gap-1.5 px-3 py-1">
               <Database className="size-icon-3xs" />
-              {systemStatus?.collection?.name ?? "unknown"}
+              <span className="font-semibold">Vectors</span>
               {systemStatus?.collection?.exists ? (
                 <CheckCircle2 className="size-icon-3xs text-chart-2" />
               ) : (
@@ -118,14 +118,19 @@ export default function UploadPage() {
               )}
               {typeof systemStatus?.collection?.vector_count === "number" && (
                 <span className="ml-1 font-semibold">
-                  ({systemStatus.collection.vector_count.toLocaleString()})
+                  {systemStatus.collection.vector_count.toLocaleString()}
+                </span>
+              )}
+              {systemStatus?.collection?.name && (
+                <span className="ml-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                  {systemStatus.collection.name}
                 </span>
               )}
             </Badge>
 
             <Badge variant="outline" className="gap-1.5 px-3 py-1">
               <HardDrive className="size-icon-3xs" />
-              {systemStatus?.bucket?.name ?? "unknown"}
+              <span className="font-semibold">Images</span>
               {systemStatus?.bucket?.exists ? (
                 <CheckCircle2 className="size-icon-3xs text-chart-2" />
               ) : (
@@ -133,7 +138,12 @@ export default function UploadPage() {
               )}
               {typeof systemStatus?.bucket?.object_count === "number" && (
                 <span className="ml-1 font-semibold">
-                  ({systemStatus.bucket.object_count.toLocaleString()})
+                  {systemStatus.bucket.object_count.toLocaleString()}
+                </span>
+              )}
+              {systemStatus?.bucket?.name && (
+                <span className="ml-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                  {systemStatus.bucket.name}
                 </span>
               )}
             </Badge>
@@ -159,8 +169,8 @@ export default function UploadPage() {
             {/* Drag & Drop Zone */}
             <motion.div
               className={`group relative overflow-hidden rounded-2xl border-2 border-dashed transition-all ${isDragOver
-                  ? "border-primary bg-primary/5 shadow-xl shadow-primary/25"
-                  : "border-border/50 bg-card/30 backdrop-blur-sm hover:border-primary/50"
+                ? "border-primary bg-primary/5 shadow-xl shadow-primary/25"
+                : "border-border/50 bg-card/30 backdrop-blur-sm hover:border-primary/50"
                 }`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}

@@ -34,12 +34,6 @@ import {
   Trash2,
 } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupTextarea,
-} from "@/components/ui/input-group";
 
 const starterPrompts = [
   {
@@ -95,7 +89,7 @@ function StarterPromptItem({ item, onClick }: StarterPromptItemProps) {
       <div className="relative flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
           <div className="flex size-icon-lg flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary shadow-sm">
-            <item.icon className="size-icon-2xs" />
+            <item.icon className="size-icon-sm" />
           </div>
           <Badge variant="outline" className="flex-shrink-0 rounded-full border-primary/30 px-2 py-0.5 text-body-xs uppercase tracking-wide text-primary">
             {item.tag}
@@ -118,7 +112,7 @@ function RecentQuestions({ questions, onSelect }: RecentQuestionsProps) {
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 text-body-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        <Clock3 className="size-icon-xs" />
+        <Clock3 className="size-icon-sm" />
         Recent questions
       </div>
       <div className="flex flex-wrap gap-2">
@@ -154,6 +148,7 @@ function ChatMessage({ message, isLoading, onOpenCitation }: ChatMessageProps) {
   const thinkingPlaceholder = useMemo(() => getRandomBrainPlaceholder(), []);
   return (
     <motion.div
+      layout="position"
       className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -171,12 +166,12 @@ function ChatMessage({ message, isLoading, onOpenCitation }: ChatMessageProps) {
         <div className="mb-2 flex items-center gap-2 text-body-xs font-semibold uppercase tracking-wide">
           {isUser ? (
             <>
-              <User className="size-icon-xs text-primary" />
+              <User className="size-icon-sm text-primary" />
               <span className="text-primary">You</span>
             </>
           ) : (
             <>
-              <Bot className="size-icon-xs text-accent" />
+              <Bot className="size-icon-sm text-accent" />
               <span className="text-accent">Assistant</span>
             </>
           )}
@@ -204,7 +199,7 @@ function ChatMessage({ message, isLoading, onOpenCitation }: ChatMessageProps) {
               />
               {isLoading && (
                 <div className="mt-2 flex items-center gap-2 text-body-xs text-muted-foreground">
-                  <Loader2 className="size-icon-xs animate-spin" />
+                  <Loader2 className="size-icon-sm animate-spin" />
                   <span>Streaming response...</span>
                 </div>
               )}
@@ -274,96 +269,115 @@ function ChatComposer({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
     >
-      <div className="mx-auto w-full max-w-6xl">
-        <InputGroup>
-          <InputGroupTextarea
-            id="chat-input-area"
-            value={input}
-            onChange={(event) => onInputChange(event.target.value)}
-            placeholder="Ask anything about your documents..."
-            disabled={!isReady}
-            className="py-2"
-          />
-          <InputGroupAddon align="inline-end" className="gap-1">
-            <Popover>
-              <PopoverTrigger asChild>
-                <InputGroupButton
-                  size="icon-sm"
-                  title="Settings"
-                >
-                  <Settings className="size-icon-sm" />
-                </InputGroupButton>
-              </PopoverTrigger>
-              <PopoverContent className="w-80 space-y-4">
-                <div>
-                  <h4 className="text-body-sm font-semibold text-foreground">Retrieval settings</h4>
-                  <p className="mt-1 text-body-xs text-muted-foreground">
-                    Tune how many neighbors to fetch and how long responses can be.
-                  </p>
-                </div>
-                <div className="space-y-4 text-body-sm">
-                  <div className="space-y-2">
-                    <Label htmlFor="chat-k">Neighbors (k)</Label>
-                    <Input
-                      id="chat-k"
-                      type="number"
-                      min={1}
-                      value={k}
-                      onChange={(event) => onNumberChange(event, setK)}
-                    />
-                    <p className="text-body-xs text-muted-foreground">Higher values broaden context but may introduce noise.</p>
+      <div className="mx-auto w-full max-w-6xl space-y-3">
+        <div className="relative overflow-hidden rounded-[32px] border border-border/40 bg-background/95 p-4 shadow-xl shadow-primary/5 backdrop-blur">
+          <div className="pointer-events-none absolute inset-0 rounded-[32px] border border-white/5" />
+          <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-4">
+            <div className="flex-1">
+              <div className="rounded-3xl border border-border/30 bg-input/10 transition focus-within:border-primary/40 focus-within:shadow-lg focus-within:shadow-primary/10">
+                <Textarea
+                  id="chat-input-area"
+                  value={input}
+                  onChange={(event) => onInputChange(event.target.value)}
+                  placeholder="Ask anything about your documents..."
+                  disabled={!isReady}
+                  rows={3}
+                  className="min-h-[3.5rem] w-full resize-none border-0 bg-transparent px-4 py-3 text-body leading-relaxed placeholder:text-muted-foreground outline-none focus-visible:ring-0"
+                />
+              </div>
+            </div>
+            <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-col sm:items-stretch sm:gap-3">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon-lg"
+                    className="rounded-2xl border-border/40 bg-background/70 text-muted-foreground shadow-md hover:border-primary/40 hover:text-primary"
+                    aria-label="Open retrieval settings"
+                  >
+                    <Settings className="size-icon-md" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 space-y-4">
+                  <div>
+                    <h4 className="text-body-sm font-semibold text-foreground">Retrieval settings</h4>
+                    <p className="mt-1 text-body-xs text-muted-foreground">
+                      Tune how many neighbors to fetch and how long responses can be.
+                    </p>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="chat-max-tokens">Max tokens</Label>
-                    <Input
-                      id="chat-max-tokens"
-                      type="number"
-                      min={64}
-                      value={maxTokens}
-                      onChange={(event) => onNumberChange(event, setMaxTokens)}
-                    />
-                    <p className="text-body-xs text-muted-foreground">Control response length to balance speed with detail.</p>
-                  </div>
-                  <div className="flex items-center justify-between gap-3 rounded-xl border border-border/30 bg-card/40 px-3 py-2">
-                    <div>
-                      <p className="text-body-sm font-medium text-foreground">Allow tool calling</p>
-                      <p className="text-body-xs text-muted-foreground">Let the assistant call retrieval tools when needed.</p>
+                  <div className="space-y-4 text-body-sm">
+                    <div className="space-y-2">
+                      <Label htmlFor="chat-k">Top K</Label>
+                      <Input
+                        id="chat-k"
+                        type="number"
+                        min={1}
+                        value={k}
+                        onChange={(event) => onNumberChange(event, setK)}
+                      />
+                      <p className="text-body-xs text-muted-foreground">Controls how many nearest neighbors the assistant retrieves. Higher values surface more context but may introduce noise.</p>
                     </div>
-                    <Switch
-                      id="chat-tool-calling"
-                      checked={toolCallingEnabled}
-                      onCheckedChange={onToolToggle}
-                    />
-                  </div>
-                  {!isSettingsValid && (
-                    <div className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-body-xs text-destructive">
-                      <AlertCircle className="size-icon-xs" />
-                      The selected k value is not valid.
+                    <div className="space-y-2">
+                      <Label htmlFor="chat-max-tokens">Max tokens</Label>
+                      <Input
+                        id="chat-max-tokens"
+                        type="number"
+                        min={64}
+                        value={maxTokens}
+                        onChange={(event) => onNumberChange(event, setMaxTokens)}
+                      />
+                      <p className="text-body-xs text-muted-foreground">Control response length to balance speed with detail.</p>
                     </div>
-                  )}
-                </div>
-              </PopoverContent>
-            </Popover>
-            <InputGroupButton
-              type="submit"
-              size="icon-sm"
-              className="bg-gradient-to-r from-chart-1 to-chart-2 text-white hover:from-chart-1/90 hover:to-chart-2/90"
-              disabled={isSendDisabled}
-              title="Send message"
-            >
-              {loading ? <Loader2 className="size-icon-sm animate-spin" /> : <Send className="size-icon-sm" />}
-            </InputGroupButton>
-            <InputGroupButton
-              type="button"
-              onClick={reset}
-              size="icon-sm"
-              disabled={messages.length === 0 && !input}
-              title="Clear conversation"
-            >
-              <Trash2 className="size-icon-sm" />
-            </InputGroupButton>
-          </InputGroupAddon>
-        </InputGroup>
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-border/30 bg-card/40 px-3 py-2">
+                      <div>
+                        <p className="text-body-sm font-medium text-foreground">Allow tool calling</p>
+                        <p className="text-body-xs text-muted-foreground">Let the assistant call retrieval tools when needed.</p>
+                      </div>
+                      <Switch
+                        id="chat-tool-calling"
+                        checked={toolCallingEnabled}
+                        onCheckedChange={onToolToggle}
+                      />
+                    </div>
+                    {!isSettingsValid && (
+                      <div className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-body-xs text-destructive">
+                        <AlertCircle className="size-icon-sm" />
+                        The selected Top K value is not valid.
+                      </div>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              <Button
+                type="submit"
+                size="icon-lg"
+                className="rounded-2xl bg-gradient-to-r from-chart-1 to-chart-2 text-white shadow-lg shadow-primary/20 transition hover:from-chart-1/90 hover:to-chart-2/90 disabled:opacity-70"
+                disabled={isSendDisabled}
+                aria-label="Send message"
+              >
+                {loading ? <Loader2 className="size-icon-md animate-spin" /> : <Send className="size-icon-md" />}
+              </Button>
+              <Button
+                type="button"
+                onClick={reset}
+                variant="ghost"
+                size="icon-lg"
+                disabled={messages.length === 0 && !input}
+                className="rounded-2xl border border-border/30 bg-background/60 text-muted-foreground transition hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+                aria-label="Clear conversation"
+              >
+                <Trash2 className="size-icon-md" />
+              </Button>
+            </div>
+          </div>
+        </div>
+        {error && (
+          <div className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-body-sm font-medium text-destructive">
+            <AlertCircle className="size-icon-sm" />
+            {error}
+          </div>
+        )}
       </div>
     </motion.form>
   );
@@ -465,25 +479,25 @@ export default function ChatPage() {
               <Badge variant={isReady ? "default" : "destructive"} className="gap-1.5 px-3 py-1.5">
                 {isReady ? (
                   <>
-                    <Sparkles className="size-icon-xs text-primary-foreground" />
+                    <Sparkles className="size-icon-sm text-primary-foreground" />
                     Connected to workspace
                   </>
                 ) : (
                   <>
-                    <AlertCircle className="size-icon-xs" />
+                    <AlertCircle className="size-icon-sm" />
                     Setup required
                   </>
                 )}
               </Badge>
               {timeToFirstTokenMs !== null && (
                 <Badge variant="secondary" className="gap-1.5 px-3 py-1.5">
-                  <Timer className="size-icon-xs" />
+                  <Timer className="size-icon-sm" />
                   {(timeToFirstTokenMs / 1000).toFixed(2)}s response time
                 </Badge>
               )}
               {toolCallingEnabled && (
                 <Badge variant="outline" className="gap-1.5 px-3 py-1.5 border-primary/30 text-primary">
-                  <Bot className="size-icon-xs" />
+                  <Bot className="size-icon-sm" />
                   Advanced mode active
                 </Badge>
               )}
@@ -496,19 +510,20 @@ export default function ChatPage() {
             <div className="relative flex flex-1 overflow-hidden">
               <ScrollArea className="h-full w-full">
                 <div className="space-y-6 px-6 pb-32 pr-4 sm:px-10">
-                  <AnimatePresence mode="wait">
+                  <AnimatePresence initial={false}>
                     {messages.length === 0 && (
                       <motion.div
+                        layout
                         className="flex justify-center"
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        transition={{ duration: 0.4, ease: "easeOut" }}
+                        initial={{ opacity: 0, y: 24 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -24 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
                       >
                         <div className="w-full max-w-3xl space-y-3 rounded-xl border border-border/20 bg-card/60 p-4 shadow-sm animate-in fade-in duration-500 dark:bg-card/40">
                           <div className="space-y-2.5">
                             <div className="flex items-center justify-center gap-2 text-body-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                              <Sparkles className="size-icon-2xs text-primary" />
+                              <Sparkles className="size-icon-sm text-primary" />
                               Try asking
                             </div>
                             <div className="grid gap-2 sm:grid-cols-2">
