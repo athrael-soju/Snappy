@@ -1,4 +1,6 @@
-# Snappy: System Analysis and Comparison to Traditional RAG
+# Snappy - Your Vision Retrieval buddy!
+
+## System Analysis and Comparison to Traditional RAG
 
 This document analyzes the current system implemented in this repository and compares it to a traditional text-centric RAG (Retrieval-Augmented Generation) approach.
 

@@ -1,4 +1,6 @@
-# Snappy - Architecture
+# Snappy - Your Vision Retrieval buddy!
+
+## Architecture Overview
 
 A high-level view of Snappy and its main data flows.
 
