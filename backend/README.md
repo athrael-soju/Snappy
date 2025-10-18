@@ -74,7 +74,7 @@ Our root `docker-compose.yml` orchestrates the whole gang: `qdrant`, `minio`, `b
 docker compose up -d --build
 ```
 
-⚠️ **Important**: MinIO credentials are mandatory. Snappy needs proper object storage—no shortcuts here!
+⚠️ **Important**: MinIO credentials are mandatory. Snappy needs proper object storage; no shortcuts here!
 
 ## API Endpoints - Your Command Center 🎮
 
@@ -121,7 +121,7 @@ The chat magic happens in the frontend at `frontend/app/api/chat/route.ts`. This
 2. Streams responses via Server-Sent Events
 3. Injects beautiful page images through custom `kb.images` events
 
-Snappy's backend? It handles the heavy lifting: document search (`GET /search`) and system maintenance. But it stays out of the chat proxy game—that's the frontend's jam! 🎵
+Snappy's backend? It handles the heavy lifting: document search (`GET /search`) and system maintenance. But it stays out of the chat proxy game; that's the frontend's jam! 🎵
 
 ## Configuration UI - Settings Made Simple 🎛️
 
