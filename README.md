@@ -2,6 +2,8 @@
   <img width="754" height="643" alt="snappy_light_nobg_resized" src="https://github.com/user-attachments/assets/2ebd2908-42a7-46d4-84a1-cad8aeca1847" />
 </p>
 
+---
+
 # Your Vision Retrieval buddy!
 
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688)](https://fastapi.tiangolo.com/)
@@ -94,7 +96,7 @@ A modern Next.js 15 UI with server-side streaming, real-time progress updates, a
 
 ---
 
-## Snappy Peak!
+## Sneak Peek
 
 https://github.com/user-attachments/assets/99438b0d-c62e-4e47-bdc8-623ee1d2236c
 
