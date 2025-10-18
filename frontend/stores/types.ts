@@ -45,7 +45,6 @@ export interface SystemStatus {
     exists: boolean;
     object_count: number;
     error: string | null;
-    disabled?: boolean;
   };
   lastChecked: number | null;
 }

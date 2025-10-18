@@ -4,19 +4,19 @@ import { motion, AnimatePresence } from "framer-motion";
 import "@/lib/api/client";
 import { useSystemStatus, useMaintenanceActions, useSystemManagement } from "@/lib/hooks";
 import { useState } from "react";
-import { 
-  Wrench, 
-  Database, 
-  HardDrive, 
-  Play, 
-  Trash2, 
+import {
+  Wrench,
+  Database,
+  HardDrive,
+  Play,
+  Trash2,
   RefreshCw,
   AlertCircle,
   CheckCircle2,
   Loader2,
   Server,
   Zap,
-  ShieldAlert
+  ShieldAlert,
 } from "lucide-react";
 import type { ActionType } from "@/lib/hooks/use-maintenance-actions";
 import { Button } from "@/components/ui/button";
@@ -62,7 +62,7 @@ export default function MaintenancePage() {
   const { systemStatus, statusLoading, fetchStatus, isSystemReady } = useSystemStatus();
   const { loading, runAction } = useMaintenanceActions({ onSuccess: fetchStatus });
   const { initLoading, deleteLoading, handleInitialize, handleDelete } = useSystemManagement({ onSuccess: fetchStatus });
-  
+
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const badgeBase = "rounded-full border px-3 py-1 text-body-xs font-semibold";
@@ -87,82 +87,82 @@ export default function MaintenancePage() {
     <div className="relative flex min-h-full flex-col overflow-hidden">
       <ScrollArea className="flex-1">
         <div className="px-4 py-6 sm:px-6 lg:px-8">
-          <motion.div 
+          <motion.div
             className="mx-auto w-full max-w-5xl space-y-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, ease: "easeOut" }}
           >
-          {/* Header Section */}
-          <motion.div 
-            className="space-y-2 text-center"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.3 }}
-          >
-            <h1 className="text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">
-              <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
-                System
-              </span>
-              {" "}
-              <span className="bg-gradient-to-r from-destructive via-destructive/80 to-destructive bg-clip-text text-transparent">
-                Maintenance
-              </span>
-            </h1>
-            
-            <p className="mx-auto max-w-2xl text-body-xs leading-relaxed text-muted-foreground">
-              Monitor Snappy&apos;s storage status and run maintenance operations. Handle destructive actions with care.
-            </p>
+            {/* Header Section */}
+            <motion.div
+              className="space-y-2 text-center"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, duration: 0.3 }}
+            >
+              <h1 className="text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">
+                <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
+                  System
+                </span>
+                {" "}
+                <span className="bg-gradient-to-r from-destructive via-destructive/80 to-destructive bg-clip-text text-transparent">
+                  Maintenance
+                </span>
+              </h1>
 
-            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-              <Badge 
-                variant="outline"
-                className={cn("gap-1.5", isSystemReady ? badgeClasses.positive : badgeClasses.negative)}
-              >
-                {isSystemReady ? (
-                  <>
-                    <CheckCircle2 className="size-icon-3xs" />
-                    System Ready
-                  </>
-                ) : (
-                  <>
-                    <AlertCircle className="size-icon-3xs" />
-                    Not Ready
-                  </>
-                )}
-              </Badge>
-              
-              <Button
-                onClick={fetchStatus}
-                disabled={statusLoading}
-                variant="ghost"
-                size="sm"
-                className="h-8 gap-1.5 rounded-full px-4 text-body-xs touch-manipulation"
-              >
-                {statusLoading ? (
-                  <Loader2 className="size-icon-3xs animate-spin" />
-                ) : (
-                  <RefreshCw className="size-icon-3xs" />
-                )}
-                Refresh
-              </Button>
-            </div>
-          </motion.div>
+              <p className="mx-auto max-w-2xl text-body-xs leading-relaxed text-muted-foreground">
+                Monitor Snappy&apos;s storage status and run maintenance operations. Handle destructive actions with care.
+              </p>
 
-          {/* Storage Status */}
-          <motion.section 
-            className="space-y-3"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.3 }}
-          >
+              <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                <Badge
+                  variant="outline"
+                  className={cn("gap-1.5", isSystemReady ? badgeClasses.positive : badgeClasses.negative)}
+                >
+                  {isSystemReady ? (
+                    <>
+                      <CheckCircle2 className="size-icon-3xs" />
+                      System Ready
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle className="size-icon-3xs" />
+                      Not Ready
+                    </>
+                  )}
+                </Badge>
+
+                <Button
+                  onClick={fetchStatus}
+                  disabled={statusLoading}
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-1.5 rounded-full px-4 text-body-xs touch-manipulation"
+                >
+                  {statusLoading ? (
+                    <Loader2 className="size-icon-3xs animate-spin" />
+                  ) : (
+                    <RefreshCw className="size-icon-3xs" />
+                  )}
+                  Refresh
+                </Button>
+              </div>
+            </motion.div>
+
+            {/* Storage Status */}
+            <motion.section
+              className="space-y-3"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.3 }}
+            >
               <div className="flex items-center gap-2">
                 <Server className="size-icon-md text-primary" />
                 <h2 className="text-lg font-bold">Storage Status</h2>
               </div>
-              
+
               <div className="grid gap-3 sm:grid-cols-2">
-                <motion.article 
+                <motion.article
                   className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 touch-manipulation"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -171,7 +171,7 @@ export default function MaintenancePage() {
                   whileTap={{ scale: 0.98 }}
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-chart-2 to-chart-3 opacity-0 transition-opacity group-hover:opacity-5" />
-                  
+
                   <div className="relative space-y-3">
                     <div className="flex items-center gap-2">
                       <div className="flex size-icon-xl shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-chart-2 to-chart-3 shadow-lg sm:size-icon-2xl">
@@ -179,7 +179,7 @@ export default function MaintenancePage() {
                       </div>
                       <h3 className="min-w-0 flex-1 truncate text-body-sm sm:text-body font-bold">Qdrant Collection</h3>
                     </div>
-                    
+
                     {statusLoading ? (
                       <div className="flex items-center gap-2 text-body-xs text-muted-foreground">
                         <Loader2 className="size-icon-3xs animate-spin" />
@@ -191,16 +191,37 @@ export default function MaintenancePage() {
                           <Badge variant="outline" className={badgeClasses.neutral}>
                             {systemStatus.collection.name}
                           </Badge>
-                          <Badge 
+                          <Badge
                             variant="outline"
                             className={cn("gap-1", systemStatus.collection.exists ? badgeClasses.positive : badgeClasses.negative)}
                           >
                             {systemStatus.collection.exists ? (
-                              <><CheckCircle2 className="size-icon-3xs" /> Exists</>
+                              <><CheckCircle2 className="size-icon-3xs" /> Active</>
                             ) : (
                               <><AlertCircle className="size-icon-3xs" /> Not Found</>
                             )}
                           </Badge>
+                          {typeof systemStatus.collection.embedded === "boolean" && (
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "gap-1.5",
+                                systemStatus.collection.embedded ? badgeClasses.positive : badgeClasses.neutral
+                              )}
+                            >
+                              {systemStatus.collection.embedded ? (
+                                <>
+                                  <Zap className="size-icon-3xs" />
+                                  Embedded
+                                </>
+                              ) : (
+                                <>
+                                  <Server className="size-icon-3xs" />
+                                  Container
+                                </>
+                              )}
+                            </Badge>
+                          )}
                         </div>
                         <div className="grid grid-cols-2 gap-2 text-body-xs">
                           <div className="rounded-lg bg-muted/50 px-2 py-1.5">
@@ -225,7 +246,7 @@ export default function MaintenancePage() {
                   </div>
                 </motion.article>
 
-                <motion.article 
+                <motion.article
                   className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 touch-manipulation"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -234,7 +255,7 @@ export default function MaintenancePage() {
                   whileTap={{ scale: 0.98 }}
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-chart-4 to-chart-3 opacity-0 transition-opacity group-hover:opacity-5" />
-                  
+
                   <div className="relative space-y-3">
                     <div className="flex items-center gap-2">
                       <div className="flex size-icon-xl shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-chart-4 to-chart-3 shadow-lg sm:size-icon-2xl">
@@ -242,7 +263,7 @@ export default function MaintenancePage() {
                       </div>
                       <h3 className="min-w-0 flex-1 truncate text-body-sm sm:text-body font-bold">MinIO Bucket</h3>
                     </div>
-                    
+
                     {statusLoading ? (
                       <div className="flex items-center gap-2 text-body-xs text-muted-foreground">
                         <Loader2 className="size-icon-3xs animate-spin" />
@@ -254,21 +275,15 @@ export default function MaintenancePage() {
                           <Badge variant="outline" className={badgeClasses.neutral}>
                             {systemStatus.bucket.name}
                           </Badge>
-                          <Badge 
+                          <Badge
                             variant="outline"
                             className={cn(
                               "gap-1",
-                              systemStatus.bucket.exists && !systemStatus.bucket.disabled
-                                ? badgeClasses.positive
-                                : systemStatus.bucket.disabled
-                                  ? badgeClasses.warning
-                                  : badgeClasses.negative
+                              systemStatus.bucket.exists ? badgeClasses.positive : badgeClasses.negative
                             )}
                           >
-                            {systemStatus.bucket.exists && !systemStatus.bucket.disabled ? (
+                            {systemStatus.bucket.exists ? (
                               <><CheckCircle2 className="size-icon-3xs" /> Active</>
-                            ) : systemStatus.bucket.disabled ? (
-                              <><AlertCircle className="size-icon-3xs" /> Disabled</>
                             ) : (
                               <><AlertCircle className="size-icon-3xs" /> Not Found</>
                             )}
@@ -281,7 +296,7 @@ export default function MaintenancePage() {
                           </div>
                           <div className="rounded-lg bg-muted/50 px-2 py-1.5">
                             <p className="text-muted-foreground">Status</p>
-                            <p className="font-semibold">{systemStatus.bucket.disabled ? "Disabled" : "Enabled"}</p>
+                            <p className="font-semibold">{systemStatus.bucket.exists ? "Available" : "Unavailable"}</p>
                           </div>
                         </div>
                         {systemStatus.bucket.error && (
@@ -300,7 +315,7 @@ export default function MaintenancePage() {
             </motion.section>
 
             {/* Core Operations */}
-            <motion.section 
+            <motion.section
               className="space-y-3"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -310,20 +325,20 @@ export default function MaintenancePage() {
                 <Wrench className="size-icon-md text-primary" />
                 <h2 className="text-lg font-bold">Core Operations</h2>
               </div>
-              
+
               <p className="text-body-xs leading-relaxed text-muted-foreground">
                 Manage system storage and data lifecycle. Each action requires confirmation and may be irreversible.
               </p>
-              
+
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                 {CORE_OPERATIONS.map((operation) => {
                   const Icon = operation.icon;
-                  const isLoading = 
+                  const isLoading =
                     (operation.id === "initialize" && initLoading) ||
                     (operation.id === "delete" && deleteLoading) ||
                     (operation.id === "reset" && loading["all"]);
                   const isDisabled = initLoading || deleteLoading || loading["all"];
-                  
+
                   const handleClick = () => {
                     if (operation.id === "initialize") {
                       void handleInitialize();
@@ -333,9 +348,9 @@ export default function MaintenancePage() {
                       setResetDialogOpen(true);
                     }
                   };
-                  
+
                   return (
-                    <motion.article 
+                    <motion.article
                       key={operation.id}
                       className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 sm:p-5 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 touch-manipulation"
                       initial={{ opacity: 0, scale: 0.9 }}
@@ -345,7 +360,7 @@ export default function MaintenancePage() {
                       whileTap={{ scale: 0.97 }}
                     >
                       <div className={`absolute inset-0 bg-gradient-to-br ${operation.gradient} opacity-0 transition-opacity group-hover:opacity-5`} />
-                      
+
                       <div className="relative space-y-3">
                         <div className={`flex size-icon-xl shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${operation.gradient} shadow-lg sm:size-icon-2xl`}>
                           <Icon className="size-icon-xs text-primary-foreground sm:size-icon-md" />
@@ -365,14 +380,14 @@ export default function MaintenancePage() {
                           {isLoading ? (
                             <>
                               <Loader2 className="size-icon-xs animate-spin" />
-                              {operation.id === "initialize" ? "Initializing..." : 
-                               operation.id === "delete" ? "Deleting..." : "Resetting..."}
+                              {operation.id === "initialize" ? "Initializing..." :
+                                operation.id === "delete" ? "Deleting..." : "Resetting..."}
                             </>
                           ) : (
                             <>
                               <Icon className="size-icon-xs" />
-                              {operation.id === "initialize" ? "Initialize" : 
-                               operation.id === "delete" ? "Delete" : "Reset All"}
+                              {operation.id === "initialize" ? "Initialize" :
+                                operation.id === "delete" ? "Delete" : "Reset All"}
                             </>
                           )}
                         </Button>

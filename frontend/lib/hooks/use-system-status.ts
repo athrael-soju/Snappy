@@ -14,17 +14,16 @@ export function useSystemStatus() {
   const setStatus = useCallback((status: SystemStatus) => {
     dispatch({ type: 'SYSTEM_SET_STATUS', payload: { ...status, lastChecked: Date.now() } });
   }, [dispatch]);
-  
+
   const clearStatus = useCallback(() => {
     dispatch({ type: 'SYSTEM_CLEAR_STATUS' });
   }, [dispatch]);
-  
+
   const systemStatus = state.systemStatus;
 
   const isReady = useMemo(() => {
     const collectionReady = !!systemStatus?.collection.exists;
-    const bucketStatus = systemStatus?.bucket;
-    const bucketReady = bucketStatus ? (bucketStatus.disabled ? true : bucketStatus.exists) : false;
+    const bucketReady = !!systemStatus?.bucket.exists;
     return collectionReady && bucketReady;
   }, [systemStatus]);
 

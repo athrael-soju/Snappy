@@ -161,7 +161,6 @@ def _collect_bucket_status(msvc: Optional["MinioService"]) -> dict:
         "name": bucket_name,
         "exists": False,
         "object_count": 0,
-        "disabled": False,
         "error": None,
     }
     if not msvc:

@@ -20,22 +20,15 @@ export function useSystemManagement({ onSuccess }: UseSystemManagementOptions = 
     if (bucketResult.status && typeof bucketResult.status === "string") {
       if (bucketResult.status.toLowerCase() === "skipped") return true;
     }
-    if (bucketResult.disabled === true) return true;
-    const message: unknown = bucketResult.message;
-    if (typeof message === "string" && message.toLowerCase().includes("minio disabled")) {
-      return true;
-    }
     return false;
   };
 
   const buildSuccessDescription = (result: any, fallback: string) => {
-    const bucketSkipped = isBucketSkipped(result);
-    if (!bucketSkipped) return fallback;
     const message = result?.results?.bucket?.message;
     if (typeof message === "string" && message.length > 0) {
       return message;
     }
-    return "Collection ready; MinIO is disabled via configuration.";
+    return fallback;
   };
 
   const handleInitialize = async () => {
@@ -48,7 +41,7 @@ export function useSystemManagement({ onSuccess }: UseSystemManagementOptions = 
 
       if (status === "success" || (status === "partial" && bucketSkipped)) {
         toast.success("Initialization Complete", {
-          description: buildSuccessDescription(result, "Collection is ready (and MinIO bucket if enabled)"),
+          description: buildSuccessDescription(result, "Collection & MinIO bucket are ready"),
         });
       } else if (status === "partial") {
         toast.warning("Partial Initialization", {

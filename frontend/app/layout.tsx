@@ -3,7 +3,7 @@ import "./globals.css";
 import "@/lib/api/client";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
-import { Toaster } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 import { AppStoreProvider } from "@/stores/app-store";
 import { ThemeProvider } from "@/components/theme-provider";
 import NextTopLoader from "nextjs-toploader";

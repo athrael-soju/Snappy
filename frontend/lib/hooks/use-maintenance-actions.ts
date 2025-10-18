@@ -25,7 +25,6 @@ const SUCCESS_MESSAGES: Record<ActionType, string> = {
 export function useMaintenanceActions({ onSuccess }: UseMaintenanceActionsOptions = {}) {
   const [loading, setLoading] = useState<LoadingState>({ q: false, m: false, all: false });
   const { state } = useAppStore();
-  const isMinioDisabled = state.systemStatus?.bucket?.disabled === true;
 
   const actionHandlers: Record<ActionType, () => Promise<unknown>> = {
     q: () => MaintenanceService.clearQdrantClearQdrantPost(),
@@ -36,13 +35,6 @@ export function useMaintenanceActions({ onSuccess }: UseMaintenanceActionsOption
   const runAction = async (action: ActionType) => {
     const handler = actionHandlers[action];
     if (!handler) {
-      return;
-    }
-
-    if (action === "m" && isMinioDisabled) {
-      toast.info("MinIO Disabled", {
-        description: "MinIO is disabled via configuration; there is nothing to clear.",
-      });
       return;
     }
 
