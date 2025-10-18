@@ -171,7 +171,7 @@ export default function ConfigurationPage() {
                 type="button"
                 onClick={resetToDefaults}
                 disabled={saving}
-                variant="outline"
+                variant="hero"
                 size="md"
               >
                 <RotateCcw className="size-icon-xs" />

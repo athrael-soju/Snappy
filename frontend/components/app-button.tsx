@@ -75,7 +75,7 @@ const variantClasses: Record<AppButtonVariant, string> = {
   hero:
     "bg-gradient-to-r from-primary via-chart-4 to-chart-1 text-primary-foreground hover:from-primary/90 hover:via-chart-4/85 hover:to-chart-1/90 focus-visible:ring-primary/40",
   glass:
-    "border border-white/15 bg-background/65 text-foreground backdrop-blur-md hover:border-primary/30 focus-visible:ring-primary/25 dark:border-white/5",
+    "border border-white/20 bg-white/10 text-foreground/90 backdrop-blur-xl saturate-150 shadow-[0_18px_40px_-18px_rgba(15,23,42,0.45)] hover:bg-white/15 hover:border-white/35 focus-visible:ring-white/40 dark:border-white/10 dark:bg-white/5 dark:text-white dark:shadow-[0_22px_45px_-20px_rgba(2,6,23,0.65)] dark:hover:border-primary/30",
   muted:
     "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 focus-visible:ring-muted/40",
   link:
