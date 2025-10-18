@@ -50,6 +50,7 @@ export default function UploadPage() {
   };
 
   const selectedFiles = files ? Array.from(files) : [];
+  const showStatusText = Boolean(statusText && statusText !== message);
   const isStatusLoading = uploading && (typeof uploadProgress !== "number" || uploadProgress < 100);
 
   return (
@@ -339,7 +340,7 @@ export default function UploadPage() {
                   </div>
                 )}
                 
-                {statusText && (
+                {showStatusText && (
                   <div className="flex items-center gap-2 text-body-xs text-muted-foreground">
                     {isStatusLoading ? (
                       <Loader2 className="size-icon-3xs animate-spin" />

@@ -13,7 +13,6 @@ import {
   Sparkles,
   Workflow,
 } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -132,7 +131,7 @@ export default function AboutPage() {
               <Button
                 asChild
                 size="lg"
-                className="group h-12 gap-2 rounded-full px-6 text-body shadow-lg shadow-primary/25"
+                className="group h-12 gap-2 rounded-full px-6 hero-cta-text shadow-lg shadow-primary/25 transition-all hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-primary/40"
               >
                 <Link href="/upload">
                   Start indexing
@@ -265,7 +264,7 @@ export default function AboutPage() {
                   whileHover={{ scale: 1.05, y: -5 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <span className="flex size-icon-2xl items-center justify-center rounded-full bg-primary/10 text-body-sm font-semibold text-primary shadow-sm">
+                  <span className="flex size-icon-2xl items-center justify-center rounded-full border border-border/40 bg-muted/70 text-body-sm font-semibold text-muted-foreground shadow-sm">
                     {index + 1}
                   </span>
                   <h3 className="text-body-sm sm:text-body font-semibold">{item.label}</h3>

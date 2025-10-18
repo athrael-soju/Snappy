@@ -32,6 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
 
 const CORE_OPERATIONS = [
   {
@@ -64,6 +65,13 @@ export default function MaintenancePage() {
   
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const badgeBase = "rounded-full border px-3 py-1 text-body-xs font-semibold";
+  const badgeClasses = {
+    neutral: cn(badgeBase, "border-border/40 bg-muted/70 text-muted-foreground"),
+    positive: cn(badgeBase, "border-chart-2/40 bg-chart-2/10 text-chart-2"),
+    negative: cn(badgeBase, "border-destructive/40 bg-destructive/10 text-destructive"),
+    warning: cn(badgeBase, "border-amber-400/40 bg-amber-500/10 text-amber-200"),
+  };
 
   const handleResetAll = () => {
     void runAction("all");
@@ -108,8 +116,8 @@ export default function MaintenancePage() {
 
             <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
               <Badge 
-                variant={isSystemReady ? "default" : "destructive"}
-                className="gap-1.5 px-3 py-1"
+                variant="outline"
+                className={cn("gap-1.5", isSystemReady ? badgeClasses.positive : badgeClasses.negative)}
               >
                 {isSystemReady ? (
                   <>
@@ -180,15 +188,15 @@ export default function MaintenancePage() {
                     ) : systemStatus?.collection ? (
                       <div className="space-y-2">
                         <div className="flex flex-wrap gap-2">
-                          <Badge variant="outline" className="text-body-xs">
+                          <Badge variant="outline" className={badgeClasses.neutral}>
                             {systemStatus.collection.name}
                           </Badge>
                           <Badge 
-                            variant={systemStatus.collection.exists ? "default" : "destructive"}
-                            className="gap-1 text-body-xs"
+                            variant="outline"
+                            className={cn("gap-1", systemStatus.collection.exists ? badgeClasses.positive : badgeClasses.negative)}
                           >
                             {systemStatus.collection.exists ? (
-                              <><CheckCircle2 className="size-icon-3xs text-chart-2" /> Exists</>
+                              <><CheckCircle2 className="size-icon-3xs" /> Exists</>
                             ) : (
                               <><AlertCircle className="size-icon-3xs" /> Not Found</>
                             )}
@@ -243,15 +251,22 @@ export default function MaintenancePage() {
                     ) : systemStatus?.bucket ? (
                       <div className="space-y-2">
                         <div className="flex flex-wrap gap-2">
-                          <Badge variant="outline" className="text-body-xs">
+                          <Badge variant="outline" className={badgeClasses.neutral}>
                             {systemStatus.bucket.name}
                           </Badge>
                           <Badge 
-                            variant={systemStatus.bucket.exists && !systemStatus.bucket.disabled ? "default" : "destructive"}
-                            className="gap-1 text-body-xs"
+                            variant="outline"
+                            className={cn(
+                              "gap-1",
+                              systemStatus.bucket.exists && !systemStatus.bucket.disabled
+                                ? badgeClasses.positive
+                                : systemStatus.bucket.disabled
+                                  ? badgeClasses.warning
+                                  : badgeClasses.negative
+                            )}
                           >
                             {systemStatus.bucket.exists && !systemStatus.bucket.disabled ? (
-                              <><CheckCircle2 className="size-icon-3xs text-chart-2" /> Active</>
+                              <><CheckCircle2 className="size-icon-3xs" /> Active</>
                             ) : systemStatus.bucket.disabled ? (
                               <><AlertCircle className="size-icon-3xs" /> Disabled</>
                             ) : (

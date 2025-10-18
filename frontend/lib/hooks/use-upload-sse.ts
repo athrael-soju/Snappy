@@ -61,6 +61,7 @@ export function useUploadSSE({ uploadState, dispatch }: UseUploadSSEOptions) {
           dispatch({ type: 'UPLOAD_SET_PROGRESS', payload: 100 });
           const successMsg = data.message || `Upload completed`;
           dispatch({ type: 'UPLOAD_SET_MESSAGE', payload: successMsg });
+          dispatch({ type: 'UPLOAD_SET_STATUS_TEXT', payload: null });
           dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: false });
           dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
           dispatch({ type: 'UPLOAD_SET_FILES', payload: null }); // Clear files on completion
@@ -73,6 +74,7 @@ export function useUploadSSE({ uploadState, dispatch }: UseUploadSSEOptions) {
           closeSSEConnection();
           const errMsg = data.error || 'Upload failed';
           dispatch({ type: 'UPLOAD_SET_ERROR', payload: errMsg });
+          dispatch({ type: 'UPLOAD_SET_STATUS_TEXT', payload: null });
           dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: false });
           dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
           
@@ -84,6 +86,7 @@ export function useUploadSSE({ uploadState, dispatch }: UseUploadSSEOptions) {
           closeSSEConnection();
           const cancelMsg = data.message || 'Upload cancelled';
           dispatch({ type: 'UPLOAD_SET_MESSAGE', payload: cancelMsg });
+          dispatch({ type: 'UPLOAD_SET_STATUS_TEXT', payload: null });
           dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: false });
           dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
           dispatch({ type: 'UPLOAD_SET_FILES', payload: null });
@@ -103,6 +106,7 @@ export function useUploadSSE({ uploadState, dispatch }: UseUploadSSEOptions) {
       dispatch({ type: 'UPLOAD_SET_ERROR', payload: 'Upload job not found. It may have completed or failed.' });
       dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: false });
       dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
+      dispatch({ type: 'UPLOAD_SET_STATUS_TEXT', payload: null });
       dispatch({ type: 'UPLOAD_SET_PROGRESS', payload: 0 });
     });
 
@@ -116,6 +120,7 @@ export function useUploadSSE({ uploadState, dispatch }: UseUploadSSEOptions) {
           if (uploadState.uploading && uploadState.jobId) {
             closeSSEConnection();
             dispatch({ type: 'UPLOAD_SET_ERROR', payload: 'Connection lost. The collection may have been deleted or the service is unavailable.' });
+            dispatch({ type: 'UPLOAD_SET_STATUS_TEXT', payload: null });
             dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: false });
             dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
             
@@ -136,6 +141,7 @@ export function useUploadSSE({ uploadState, dispatch }: UseUploadSSEOptions) {
         console.error('Upload stalled - no progress for 45 seconds');
         closeSSEConnection();
         dispatch({ type: 'UPLOAD_SET_ERROR', payload: 'Upload stalled. The collection may have been deleted or the service is unavailable.' });
+        dispatch({ type: 'UPLOAD_SET_STATUS_TEXT', payload: null });
         dispatch({ type: 'UPLOAD_SET_UPLOADING', payload: false });
         dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
         
