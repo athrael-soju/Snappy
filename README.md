@@ -67,15 +67,16 @@ walkthrough of the indexing and retrieval flows.
 ## Features
 
 - **Page-level, multimodal retrieval** - multivector embeddings per PDF page,
-  optional MUVERA first-stage search, MinIO-backed image URLs or inline payloads.
+  optional MUVERA first-stage search, and MinIO-backed image URLs (object storage
+  is now a hard requirement).
 - **Streaming chat with visual citations** - Next.js edge route emits a custom
   `kb.images` event alongside OpenAI Responses SSE, and the UI displays a
   "Visual citations included" chip with an image gallery.
 - **Pipelined indexing** - configurable batch size, automatic concurrency
   sizing, progress tracking via Server-Sent Events, and optional cancellation.
-- **Runtime configuration UI** - `/configuration` page consumes the
-  `/config/*` API to edit settings, reset to defaults, or apply hardware-driven
-  optimisations without restarting the backend.
+- **Runtime configuration UI** - the redesigned `/configuration` page lets you
+  review, restore, or discard browser-held drafts before applying changes,
+  manage settings by section, and reset values without restarting the backend.
 - **Docker-first** - root `docker-compose.yml` spins up Qdrant, MinIO, backend,
   frontend, and the ColPali embedding API services (CPU and GPU variants
   available under `colpali/docker-compose.yml`).
@@ -87,6 +88,9 @@ walkthrough of the indexing and retrieval flows.
 A modern Next.js 15 UI with server-side streaming, real-time progress updates, and visual citations.
 
 - Shared components rely on the tokenised utilities defined in `frontend/app/globals.css` (`text-body-*`, `size-icon-*`), keeping the stylesheet the single source of truth for typography and icon sizing. Use those helpers when extending the UI to stay on the Snappy visual grid.
+- The configuration workspace now organises sections with horizontal tabs, shows
+  lightweight stats, and surfaces a draft banner whenever the browser is out of
+  sync with the server so you can opt in before reapplying stored values.
 
 <div align="center">
   <table>
@@ -210,16 +214,17 @@ A modern Next.js 15 UI with server-side streaming, real-time progress updates, a
 
 - `COLPALI_MODE`, `COLPALI_CPU_URL`, `COLPALI_GPU_URL`,
   `COLPALI_API_TIMEOUT`
-- `QDRANT_EMBEDDED`, `QDRANT_URL`, `QDRANT_COLLECTION_NAME`,
+- `QDRANT_EMBEDDED` (defaults to `False`), `QDRANT_URL`, `QDRANT_COLLECTION_NAME`,
   `QDRANT_PREFETCH_LIMIT`, quantisation toggles (`QDRANT_USE_BINARY`, etc.)
-- `MINIO_URL`, `MINIO_PUBLIC_URL`, credentials, `IMAGE_FORMAT`
-  and `IMAGE_QUALITY`
+- `MINIO_URL`, `MINIO_PUBLIC_URL`, credentials, `MINIO_BUCKET_NAME`,
+  `IMAGE_FORMAT` and `IMAGE_QUALITY`
 - `MUVERA_ENABLED` and related parameters (requires `fastembed[postprocess]`)
 - `LOG_LEVEL`, `ALLOWED_ORIGINS`, `UVICORN_RELOAD`
 
 All schema-backed settings (and their defaults) are documented in
 `backend/docs/configuration.md`. To change values permanently update your
-`.env`. Runtime updates via `/config/update` are ephemeral.
+`.env`. Runtime updates via `/config/update` are ephemeral. MinIO credentials
+must be supplied; the backend no longer falls back to inline image storage.
 
 ### Frontend highlights (`frontend/.env.local`)
 

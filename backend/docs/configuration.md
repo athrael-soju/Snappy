@@ -99,7 +99,7 @@ and port for the service you want to talk to.
 | Key                         | Type  | Default | Notes |
 |-----------------------------|-------|---------|-------|
 | `QDRANT_URL`                | str   | `http://localhost:6333` | External Qdrant endpoint (ignored when `QDRANT_EMBEDDED=True`). |
-| `QDRANT_EMBEDDED`           | bool  | `True`  | Launch an embedded in-memory Qdrant instance. Disable to connect to an external deployment. |
+| `QDRANT_EMBEDDED`           | bool  | `False` | Launch an embedded in-memory Qdrant instance. Enable when you want the backend to manage an in-process database instead of an external cluster. |
 | `QDRANT_COLLECTION_NAME`    | str   | `documents` | Collection name used for all vectors and metadata (also feeds the default MinIO bucket name). |
 | `QDRANT_PREFETCH_LIMIT`     | int   | `200`   | Number of multivector candidates prefetched for reranking when mean pooling is enabled. |
 | `QDRANT_ON_DISK`            | bool  | `True`  | Store primary vector data on disk (memory-mapped). |
@@ -132,9 +132,11 @@ and port for the service you want to talk to.
 | `IMAGE_FORMAT`     | str  | `JPEG`  | Format used when storing rendered pages in MinIO (`JPEG`, `PNG`, or `WEBP`). |
 | `IMAGE_QUALITY`    | int  | `75`    | Quality setting for `JPEG` and `WEBP` images (1-100). Ignored for PNG. |
 
-A few helper methods inside `config.py` compute worker and retry counts when they
-are not explicitly set. That keeps the upload pipeline balanced without
-managing yet another environment variable.
+MinIO is now mandatory—if the service fails to initialise the backend surfaces
+an error rather than falling back to inline payload storage. Helper methods
+inside `config.py` still compute worker and retry counts when they are not
+explicitly set, keeping the upload pipeline balanced without managing yet
+another environment variable.
 
 ---
 
@@ -207,3 +209,4 @@ you need the new values to survive a rebuild or container restart.
 
 For a deeper dive into the configuration architecture see
 `backend/CONFIGURATION_GUIDE.md`.
+

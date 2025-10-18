@@ -14,7 +14,7 @@ The app is intentionally simple and unauthenticated. Current pages:
 - `/upload` - Upload PDFs for indexing. Starts a background job via FastAPI `POST /index` and subscribes to `GET /progress/stream/{job_id}` (SSE) for real-time progress. Includes upload cancellation support.
 - `/search` - Visual search over indexed pages; returns top-k pages and metadata.
 - `/chat` - AI chat grounded on retrieved page images with visual citations and Snappy callouts.
-- `/configuration` - Web-based UI for managing backend environment variables at runtime (see Configuration Management below).
+- `/configuration` - Web-based UI for managing backend environment variables at runtime with section tabs and an explicit draft-restore flow (see Configuration Management below).
 - `/maintenance` - System maintenance interface with:
   - Real-time status display showing system readiness, collection stats (vectors, unique files), and bucket stats (object count)
   - **Initialize System**: Creates the Qdrant collection and prepares the MinIO bucket. Required before first use.
@@ -135,7 +135,7 @@ The `/configuration` page provides a web-based interface for managing backend en
 - **Smart controls**: Sliders for numeric values, toggles for booleans, dropdowns for enums
 - **Real-time validation**: Input constraints, min/max ranges, and tooltips
 - **Conditional visibility**: Dependent settings show/hide based on parent values
-- **Browser persistence**: Changes saved to `localStorage` and synced with backend runtime
+- **Draft awareness**: Local edits are cached in `localStorage`, but you choose whether to restore them before anything is written back to the API
 - **Reset options**: Reset individual sections or all settings to defaults
 
 ### API Endpoints Used
@@ -149,7 +149,7 @@ The `/configuration` page provides a web-based interface for managing backend en
 - Changes are **not persisted** to the `.env` file and will be lost on container restart
 - For permanent changes, manually update your `.env` file
 - Critical settings (e.g., API URLs) trigger service invalidation and re-initialization
-- Browser persistence uses a versioned `localStorage` payload (`colpali-runtime-config`); stale or invalid data is ignored and rewritten after each successful sync.
+- Browser persistence uses a versioned `localStorage` payload (`colpali-runtime-config`); when cached values differ from the server the page surfaces a draft banner so you can restore or discard them before saving.
 - See [backend/docs/configuration.md](../backend/docs/configuration.md) for detailed setting documentation
 
 ## Docker/Compose
