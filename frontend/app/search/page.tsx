@@ -255,7 +255,7 @@ export default function SearchPage() {
                   <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-background px-3 py-2 text-body-sm">
                     <Clock className="size-icon-sm text-muted-foreground" />
                     <span className="font-medium">
-                      {searchDurationMs !== null ? `${(searchDurationMs / 1000).toFixed(2)}s` : '—'}
+                      {searchDurationMs !== null ? `${(searchDurationMs / 1000).toFixed(2)}s` : '-'}
                     </span>
                   </div>
                 </div>

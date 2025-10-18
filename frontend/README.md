@@ -1,172 +1,193 @@
-# Snappy - Frontend (Next.js 15)
+# Snappy Frontend - The Face of Brilliance! 🎨
 
-Next.js App Router UI for upload/indexing, search, and chat.
+Welcome to Snappy's gorgeous Next.js 15 interface! This is where the magic meets the eye; beautiful pages for uploading, searching, and chatting with your documents.
 
 - Codegen: `openapi-typescript-codegen` + `openapi-zod-client`
 - Generated SDK wired via `frontend/lib/api/client.ts`
 
-## Pages & Routes
+## Your Tour of Snappy's Pages 🗺️
 
-The app is intentionally simple and unauthenticated. Current pages:
+We keep things clean, simple, and unauthenticated (for now). Here's what you'll find:
 
-- `/` - Home: Snappy-branded landing with quick links and overview.
-- `/about` - About: what this project does, what ColPali is, and comparison to traditional text-only RAG.
-- `/upload` - Upload PDFs for indexing. Starts a background job via FastAPI `POST /index` and subscribes to `GET /progress/stream/{job_id}` (SSE) for real-time progress. Includes upload cancellation support.
-- `/search` - Visual search over indexed pages; returns top-k pages and metadata.
-- `/chat` - AI chat grounded on retrieved page images with visual citations and Snappy callouts.
-- `/configuration` - Web-based UI for managing backend environment variables at runtime with section tabs and an explicit draft-restore flow (see Configuration Management below).
-- `/maintenance` - System maintenance interface with:
-  - Real-time status display showing system readiness, collection stats (vectors, unique files), and bucket stats (object count)
-  - **Initialize System**: Creates the Qdrant collection and prepares the MinIO bucket. Required before first use.
-  - **Delete System**: Removes both the collection and the MinIO bucket for configuration changes or a fresh start.
-  - **Data Reset**: Clears all data (documents, embeddings, images) while preserving the collection and bucket infrastructure.
-  - All operations include confirmation dialogs and status updates across all pages via event system.
+- **`/`** - 🏠 **Home Sweet Home**: Your Snappy-branded landing pad with quick links and an overview of what's possible.
 
-## Design System
+- **`/about`** - 📖 **The Story**: Learn what Snappy does, how ColPali works its magic, and why vision-first beats old-school text-only RAG.
 
-- **Tokens live in `app/globals.css`**. Typography utilities (`text-body`, `text-body-xs`, `text-body-lg`) and icon utilities (`size-icon-*`) define our spacing scale.
-- Shared components outside `components/ui` rely on these utilities exclusively, keeping the stylesheet the single source of truth. Responsive variants (e.g. `sm:text-body-sm`, `md:size-icon-md`) are provided in the same file.
-- When building new components, prefer the token utilities over raw Tailwind primitives (`text-sm`, `h-4`, etc.) so spacing stays consistent.
+- **`/upload`** - 📤 **Drop Your Docs**: Upload PDFs and watch them get indexed in real-time. Background jobs via `POST /index` with live progress through SSE streams. Changed your mind? Hit cancel!
 
-## Requirements
-- Node.js 22 (matches Dockerfile)
-- Yarn Classic (v1) - auto-enabled by `corepack` in Docker. Locally you can use Yarn or npm.
+- **`/search`** - 🔍 **Find What You Need**: Visual search across all indexed pages. Get your top-k results with full metadata.
 
-## Install
+- **`/chat`** - 💬 **Talk to Your Docs**: AI-powered conversations grounded in retrieved page images. Visual citations included, with Snappy's friendly callouts!
+
+- **`/configuration`** - ⚙️ **Control Center**: Manage all backend settings through a slick web UI. Section tabs, draft detection, and real-time updates; no backend restarts needed!
+
+- **`/maintenance`** - 🛠️ **System Command**: Your system management hub featuring:
+  - 📊 Real-time status dashboard (system health, vector counts, file stats)
+  - 🎬 **Initialize System**: First-time setup for Qdrant + MinIO
+  - 🗑️ **Delete System**: Nuclear option for fresh starts
+  - 🔄 **Data Reset**: Clear everything while keeping infrastructure intact
+  - ✅ Confirmation dialogs and live status updates everywhere
+
+## Snappy's Design Language 🎨
+
+- **Design Tokens Rule**: All typography (`text-body`, `text-body-xs`, `text-body-lg`) and icon sizing (`size-icon-*`) live in `app/globals.css`. One source of truth, zero guesswork!
+
+- **Consistency by Default**: Shared components use these utilities exclusively. Responsive variants (`sm:text-body-sm`, `md:size-icon-md`) keep everything looking sharp on any screen.
+
+- **Build with Style**: When creating new components, stick to our token utilities instead of raw Tailwind classes. Your future self will thank you! 🙏
+
+## What You'll Need 📦
+- **Node.js 22** - Matches our Dockerfile for consistency
+- **Yarn Classic (v1)** - Auto-enabled by `corepack` in Docker. Locally? Use Yarn or npm, we're flexible!
+
+## Installation Time! 🚀
 ```bash
-# Snappy - Your Vision Retrieval buddy!
+# Install all the frontend goodies
 yarn install --frozen-lockfile
-# Snappy - Your Vision Retrieval buddy!
 ```
 
-## Environment
-Set the backend base URL for the SDK and fetches:
+## Environment Setup 🌟
+
+**Backend Connection**:
 ```bash
-# Snappy - Your Vision Retrieval buddy!
+# Point Snappy to your backend
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ```
-`frontend/lib/api/client.ts` falls back to `http://localhost:8000` if the env var is not set. The Upload page uses `fetch` for `POST /index` and `EventSource` for `GET /progress/stream/{job_id}`.
+*Default is `http://localhost:8000` if not set; we got you covered!*
 
-OpenAI for chat (SSE) - set on the frontend (server runtime):
+**OpenAI Configuration** (for that sweet chat magic):
 ```bash
-# Snappy - Your Vision Retrieval buddy!
+# Your OpenAI credentials
 OPENAI_API_KEY=sk-your-key
-OPENAI_MODEL=gpt-5-mini   # optional override
-# Snappy - Your Vision Retrieval buddy!
-OPENAI_TEMPERATURE=1
-OPENAI_MAX_TOKENS=1500
+OPENAI_MODEL=gpt-5-mini        # Optional: pick your model
+OPENAI_TEMPERATURE=1           # Optional: creativity dial
+OPENAI_MAX_TOKENS=1500         # Optional: response length
 ```
-The chat endpoint `frontend/app/api/chat/route.ts` uses these to call OpenAI Responses API and stream tokens via Server-Sent Events (SSE) to the browser.
+*The chat route (`frontend/app/api/chat/route.ts`) uses these to stream beautiful responses via SSE!*
 
-## Develop
+## Start Developing 💻
 ```bash
 yarn dev
-# Snappy - Your Vision Retrieval buddy!
 ```
-Open http://localhost:3000.
+🎉 **Boom!** Head to http://localhost:3000 and start building!
 
-## Build & Run
+## Production Build 🏗️
 ```bash
+# Build for production
 yarn build
+
+# Run the optimized build
 yarn start
 ```
 
-## API Schema & Codegen
-- The SDK and Zod types are generated from `frontend/docs/openapi.json` and are used across pages. The Upload page currently calls `POST /index` via `fetch` and uses `EventSource` for `GET /progress/stream/{job_id}`.
-- Codegen runs automatically via `predev` and `prebuild` scripts. To (re)generate manually:
+## Type-Safe Magic 🪄
+
+**Auto-Generated Types**: Our SDK and Zod schemas come straight from `frontend/docs/openapi.json`. Always in sync, always type-safe!
+
+**Codegen**: Happens automatically on `predev` and `prebuild`. Want to regenerate manually?
 ```bash
 yarn gen:sdk && yarn gen:zod
 ```
+*Perfect for when you've updated the backend API schema!*
 
-## Chat API (SSE)
-- Route: `POST /api/chat`
-- Runtime: **Edge Runtime** for optimized streaming performance and reduced latency
-- Request body:
-  ```json
-  {
-    "message": "Explain this",
-    "k": 5,
-    "toolCallingEnabled": true
-  }
-  ```
-- Response: `text/event-stream` (SSE). Events include:
-  - `response.output_text.delta` - incremental assistant text tokens `{ event, data: { delta: string } }`
-  - `kb.images` - visual citations used by the model `{ event, data: { items: [{ image_url, label, score }] } }`
-  - Other OpenAI event passthroughs are sent with `{ event: <type>, data: <raw> }` and are ignored by the UI
+## Chat API - Streaming Excellence 🌊
 
-Notes:
+**Endpoint**: `POST /api/chat`  
+**Runtime**: Edge Runtime (blazing fast, minimal latency!)
 
-- When tool calling is disabled, the backend performs document search unconditionally and emits `kb.images` if results exist. When tool calling is enabled, `kb.images` is emitted only if the model actually calls the `document_search` tool.
-- The UI listens for `kb.images` and shows a glowing "Visual citations included" chip; clicking scrolls to the gallery.
+**Send This**:
+```json
+{
+  "message": "Explain this",
+  "k": 5,
+  "toolCallingEnabled": true
+}
+```
 
-## Tool calling & visual citations
+**Get This** (`text/event-stream`):
+- 📝 `response.output_text.delta` - Text streaming in chunk by chunk
+- 🖼️ `kb.images` - Visual citations with URLs, labels, and relevance scores
+- 🔄 OpenAI passthroughs - Other events (safely ignored by the UI)
 
-When are images emitted?
+**How It Works**:
+- 🔧 **Tools OFF**: Backend always searches docs and emits images when found
+- 🤖 **Tools ON**: Backend only emits images if the AI decides to call the `document_search` tool
+- ✨ **UI Magic**: Glowing "Visual citations included" chip appears, click to scroll to the gallery!
 
-- Tools OFF (disabled)
-  - Backend always runs document search before answering
-  - Emits `kb.images` if results exist
+## Visual Citations Deep Dive 🎯
 
-- Tools ON (enabled)
-  - Backend exposes the `document_search` tool to the model
-  - Emits `kb.images` only if the model called the tool and images were attached
+**When Do Images Appear?**
 
-Testing
+- **🔴 Tools Disabled**
+  - Every query triggers document search
+  - Images included when results exist
+  - Predictable and consistent!
 
-1) Visit `/chat`
-2) Toggle Tool Calling in the settings chip
-3) OFF: ask a grounded question (e.g. "What are the key risks?") and observe the citations chip + gallery
-4) ON: ask a retrieval question to induce a tool call (e.g. "Find diagrams about AI architecture"). Also try a generic question where the tool is not needed - no images should appear
+- **🟢 Tools Enabled**
+  - AI decides when to search documents
+  - Images only appear when the tool is invoked
+  - Smarter, but less predictable
 
-Deterministic behavior
+**Testing the Magic** 🧪
 
-- Disable tools via the UI or set `localStorage['tool-calling-enabled'] = 'false'`
-- Adjust top-K via the K control (persists to `localStorage['k']`)
+1. Head to `/chat`
+2. Toggle Tool Calling in settings
+3. **Tools OFF**: Ask "What are the key risks?" → Citations appear!
+4. **Tools ON**: Try "Find diagrams about AI architecture" → Tool invoked, images shown
+5. **Tools ON**: Ask "What's 2+2?" → No tool needed, no images (as expected!)
 
-## Configuration Management
+**Control the Behavior** 🎮
+- Toggle tools in the UI or set `localStorage['tool-calling-enabled'] = 'false'`
+- Adjust K value (result count) via the slider; persists to `localStorage['k']`
 
-The `/configuration` page provides a web-based interface for managing backend environment variables:
+## Configuration Management - Total Control ⚙️
 
-### Features
-- **Live editing**: Modify all backend configuration values through an intuitive UI
-- **Categorized settings**: Organized by Application, Processing, ColPali API, Qdrant, MinIO, and MUVERA
-- **Smart controls**: Sliders for numeric values, toggles for booleans, dropdowns for enums
-- **Real-time validation**: Input constraints, min/max ranges, and tooltips
-- **Conditional visibility**: Dependent settings show/hide based on parent values
-- **Draft awareness**: Local edits are cached in `localStorage`, but you choose whether to restore them before anything is written back to the API
-- **Reset options**: Reset individual sections or all settings to defaults
+The `/configuration` page is your mission control for all backend settings:
 
-### API Endpoints Used
-- `GET /config/schema` - retrieves configuration schema with metadata
-- `GET /config/values` - fetches current runtime values
-- `POST /config/update` - updates individual settings
-- `POST /config/reset` - resets all settings to defaults
+### Why You'll Love It 💙
+- ✏️ **Live Editing**: Change any setting through a beautiful UI
+- 📁 **Smart Organization**: Settings grouped by Application, Processing, ColPali, Qdrant, MinIO, and MUVERA
+- 🎚️ **Smart Controls**: Sliders for numbers, toggles for booleans, dropdowns for choices
+- ✅ **Instant Validation**: Min/max ranges, tooltips, and helpful error messages
+- 👁️ **Conditional UI**: Dependent settings appear/disappear based on context
+- 💾 **Draft System**: Local changes cached in `localStorage`; you decide when to apply them!
+- 🔄 **Reset Superpowers**: Reset individual sections or go nuclear and reset everything
 
-### Important Notes
-- Configuration changes update the backend **runtime environment** immediately
-- Changes are **not persisted** to the `.env` file and will be lost on container restart
-- For permanent changes, manually update your `.env` file
-- Critical settings (e.g., API URLs) trigger service invalidation and re-initialization
-- Browser persistence uses a versioned `localStorage` payload (`colpali-runtime-config`); when cached values differ from the server the page surfaces a draft banner so you can restore or discard them before saving.
-- See [backend/docs/configuration.md](../backend/docs/configuration.md) for detailed setting documentation
+### Under the Hood 🔧
+- `GET /config/schema` - Grab the config blueprint with all metadata
+- `GET /config/values` - See what's currently set
+- `POST /config/update` - Change individual settings on the fly
+- `POST /config/reset` - Back to square one (defaults restored)
 
-## Docker/Compose
-- The repo root `docker-compose.yml` includes a `frontend` service (Next.js on 3000).
-- Start all services from the repo root:
-  ```bash
-  docker compose up -d --build
-  ```
-- OPENAI_* for chat must be provided to the frontend container at runtime (the backend does not use them):
-  ```yaml
-  services:
-    frontend:
-      environment:
-        - OPENAI_API_KEY=sk-your-key
-        - OPENAI_MODEL=gpt-5-nano # optional
-        - OPENAI_TEMPERATURE=1     # optional
-        - OPENAI_MAX_TOKENS=1500   # optional
-        - NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
-  ```
-  Notes:
-  - `NEXT_PUBLIC_API_BASE_URL` is embedded at build time; the app defaults to `http://localhost:8000` if unset.
-  - The chat API route reads `OPENAI_*` at server runtime, so setting them on the running container is sufficient.
+### Important Stuff ⚠️
+- ⚡ Changes take effect **immediately** in the runtime
+- 💨 Changes are **temporary**; container restarts wipe them
+- 💾 For permanent changes, update your `.env` file
+- 🔄 Critical settings (like API URLs) trigger service restarts automatically
+- 📦 Draft system uses `localStorage` (`colpali-runtime-config`); version-controlled and smart!
+- 📖 Deep dive: Check [backend/docs/configuration.md](../backend/docs/configuration.md) for all the details
+
+## Docker Compose - One Command Deploy 🐳
+
+The root `docker-compose.yml` includes our `frontend` service (Next.js on port 3000).
+
+**Launch Everything**:
+```bash
+docker compose up -d --build
+```
+
+**Environment Variables** (set these on the frontend container):
+```yaml
+services:
+  frontend:
+    environment:
+      - OPENAI_API_KEY=sk-your-key
+      - OPENAI_MODEL=gpt-5-nano           # optional
+      - OPENAI_TEMPERATURE=1              # optional
+      - OPENAI_MAX_TOKENS=1500            # optional
+      - NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+```
+
+**Pro Tips** 💡:
+- `NEXT_PUBLIC_API_BASE_URL` bakes in at build time (defaults to `http://localhost:8000`)
+- `OPENAI_*` variables are read at server runtime; set them on the container and you're golden!

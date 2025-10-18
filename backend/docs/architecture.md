@@ -1,8 +1,6 @@
-# Snappy - Your Vision Retrieval buddy!
+# Snappy Architecture - How It All Fits Together! 🏗️
 
-## Architecture Overview
-
-A high-level view of Snappy and its main data flows.
+Welcome to the architectural tour of Snappy! Let's see how all the pieces work together to deliver vision-first document retrieval magic. ✨
 
 ```mermaid
 ---
@@ -37,84 +35,79 @@ flowchart TB
   CHAT -- SSE Stream --> USER
 ```
 
-## Component overview
+## The Component Cast 🎭
 
-- **FastAPI app** – `backend/api/app.py` wires routers for `meta`, `retrieval`,
-  `indexing`, `maintenance`, and `config`.
-- **Qdrant service** – `backend/services/qdrant/` encapsulates collection
-  management, document indexing, search, and optional MUVERA post-processing.
-- **MinIO service** – `backend/services/minio.py` uploads page images in batches
-  with automatic worker sizing and retry logic.
-- **ColPali client** – `backend/services/colpali.py` handles query/image
-  embedding calls, patch metadata requests, and timeout/retry settings.
-- **Configuration** – `backend/config.py` reads values from
-  `config_schema.py` and exposes typed accessors. The configuration API routes
-  invalidate cached services when critical keys change.
+**Core Services**:
+- **FastAPI App** (`backend/api/app.py`) – The conductor! Wires up all routers: `meta`, `retrieval`, `indexing`, `maintenance`, and `config`
+- **Qdrant Service** (`backend/services/qdrant/`) – Vector storage maestro handling collections, indexing, search, and optional MUVERA magic
+- **MinIO Service** (`backend/services/minio.py`) – Image upload champion with smart batching, auto-sized workers, and retry logic
+- **ColPali Client** (`backend/services/colpali.py`) – The vision brain connector, handling embeddings, patches, and timeouts
+- **Configuration** (`backend/config.py`) – Dynamic settings manager that reads from `config_schema.py` and invalidates services when needed
 
-Support modules:
+**Supporting Cast**:
+- `backend/api/utils.py` – PDF-to-image conversion wizardry
+- `backend/api/progress.py` – Real-time job tracking for SSE streams
+- `backend/api/dependencies.py` – Smart service caching with error recovery
 
-- `backend/api/utils.py` – PDF to image conversion helpers.
-- `backend/api/progress.py` – In-memory job progress registry used by SSE.
-- `backend/api/dependencies.py` – Cached service access with error tracking.
+## The Indexing Journey 📚➡️🔍
 
-## Indexing flow (PDF upload)
+**Step-by-Step Magic**:
 
-1. The `POST /index` route stores uploaded PDFs in temporary files and schedules
-   a background task.
-2. `convert_pdf_paths_to_images` renders pages via `pdf2image`.
-3. `DocumentIndexer` (services/qdrant/indexing.py):
-   - chunks pages into batches (`BATCH_SIZE`),
-   - embeds each batch via the ColPali API (original + mean-pooled variants),
-  - stores images in MinIO,
-   - upserts multivector payloads into Qdrant.
-4. Two thread pools keep embedding, storage, and upserts overlapped when
-   `ENABLE_PIPELINE_INDEXING=True`. Pipeline concurrency and PDF worker counts
-   are derived automatically from available CPU cores.
-5. Progress is published through `/progress/stream/{job_id}` as Server-Sent
-   Events until the job completes, fails, or is cancelled.
+1. **Upload** → `POST /index` receives PDFs and schedules a background task
+2. **Rasterize** → `convert_pdf_paths_to_images` transforms PDFs into page images via `pdf2image`
+3. **Process** → `DocumentIndexer` (`services/qdrant/indexing.py`) does the heavy lifting:
+   - 📦 Chunks pages into batches (`BATCH_SIZE`)
+   - 🧠 Embeds via ColPali API (original + mean-pooled variants)
+   - 🗄️ Stores images in MinIO
+   - 📊 Upserts multivector data into Qdrant
+4. **Pipeline Power** → When `ENABLE_PIPELINE_INDEXING=True`, dual thread pools overlap embedding, storage, and upserts for maximum throughput (auto-sized based on CPU cores!)
+5. **Live Updates** → Progress streams through `/progress/stream/{job_id}` as Server-Sent Events. Watch it happen in real-time! 🎬
 
-## Retrieval flow
+## The Search Flow 🔍✨
 
-1. The `GET /search` route embeds the query using ColPali.
-2. `SearchManager` (services/qdrant/search.py) performs a multivector search:
-   - optional MUVERA first-stage search when enabled,
-   - prefetch against mean-pooled vectors when `QDRANT_MEAN_POOLING_ENABLED=True`,
-   - final reranking using the original vectors.
-3. The API returns payload metadata including `image_url`. Images are not fetched
-   during search; the frontend loads them lazily.
+**Finding the Perfect Match**:
 
-## Next.js integration
+1. **Query In** → `GET /search` embeds your text query via ColPali
+2. **Smart Search** → `SearchManager` (`services/qdrant/search.py`) does multi-stage retrieval:
+   - 🚀 Optional MUVERA first-stage (when enabled) for speed
+   - 📊 Prefetch from mean-pooled vectors (when `QDRANT_MEAN_POOLING_ENABLED=True`)
+   - 🎯 Final reranking with full-precision original vectors
+3. **Results** → Returns metadata + `image_url` (images loaded lazily by the frontend for snappy performance!)
 
-- Pages live under `frontend/app/*` (`/upload`, `/search`, `/chat`, `/configuration`,
-    `/maintenance`, etc.).
-- `frontend/lib/api/client.ts` configures the generated OpenAPI client using
-  `NEXT_PUBLIC_API_BASE_URL` (defaults to `http://localhost:8000`).
-- The chat experience is implemented in `frontend/app/api/chat/route.ts`. It:
-  - optionally calls `/search` or exposes a `document_search` tool,
-  - converts retrieved images to data URLs when necessary,
-  - streams OpenAI Responses API events back to the browser and emits a custom
-    `kb.images` event for visual citations.
+## Frontend Integration 🎨
 
-## ColPali service (`colpali/`)
+**The User Experience Layer**:
 
-- Standalone FastAPI application exposing:
-  - `GET /health`, `GET /info`
-  - `POST /patches`
-  - `POST /embed/queries`
-  - `POST /embed/images`
-- CPU and GPU variants are provided via `colpali/docker-compose.yml`.
-- The backend selects the correct base URL based on `COLPALI_MODE` (CPU or GPU)
-  and honours the `COLPALI_API_TIMEOUT` when making requests.
+- **Pages** → Live under `frontend/app/*`: `/upload`, `/search`, `/chat`, `/configuration`, `/maintenance`, and more
+- **API Client** → `frontend/lib/api/client.ts` wires up the auto-generated OpenAPI client (points to `NEXT_PUBLIC_API_BASE_URL`, defaults to `http://localhost:8000`)
+- **Chat Magic** → Implemented in `frontend/app/api/chat/route.ts`:
+  - 🔍 Searches docs via `/search` or exposes `document_search` tool to the AI
+  - 🖼️ Converts images to data URLs when needed
+  - 🌊 Streams OpenAI responses + custom `kb.images` events for visual citations
 
-## Configuration lifecycle
+## ColPali Service - The Vision Brain 🧠
 
-1. Defaults and metadata originate from `config_schema.py`.
-2. Values are loaded from `.env`/environment variables into `runtime_config`.
-3. The configuration API (`/config/schema`, `/config/values`, `/config/update`,
-   `/config/reset`, `/config/optimize`) exposes and mutates runtime values.
-4. Critical updates clear service caches so new requests pick up the new
-   configuration.
+**Standalone Embedding Service** (`colpali/`):
 
-Refer to `backend/docs/configuration.md` for an exhaustive description of every
-setting and its defaults. For implementation details, see
-`backend/CONFIGURATION_GUIDE.md`.
+**Endpoints**:
+- `GET /health`, `GET /info` – Health checks and model info
+- `POST /patches` – Patch grid calculations
+- `POST /embed/queries` – Text → embeddings
+- `POST /embed/images` – Images → embeddings
+
+**Deployment Options**: CPU and GPU variants via `colpali/docker-compose.yml`
+
+**Smart Routing**: Backend auto-selects URLs based on `COLPALI_MODE` and respects `COLPALI_API_TIMEOUT`. Simple! 🎯
+
+## Configuration Lifecycle ⚙️
+
+**From Schema to Runtime**:
+
+1. **Blueprint** → Defaults and metadata defined in `config_schema.py`
+2. **Load** → Values flow from `.env`/environment into `runtime_config`
+3. **Expose** → Configuration API (`/config/schema`, `/config/values`, `/config/update`, `/config/reset`, `/config/optimize`) makes everything accessible and mutable
+4. **Refresh** → Critical updates auto-invalidate service caches for instant effect! ⚡
+
+📚 **Learn More**:
+- Settings reference: `backend/docs/configuration.md`
+- Implementation deep-dive: `backend/CONFIGURATION_GUIDE.md`
