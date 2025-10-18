@@ -48,23 +48,25 @@ export function Nav() {
         <div className="flex items-center justify-between gap-6">
           {/* Logo with enhanced styling */}
           <Link href="/" className="group flex shrink-0 items-center gap-3 transition-all">
-            <div className="relative">
-              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/20 to-chart-4/20 opacity-0 blur-xl transition-opacity group-hover:opacity-100" />
-              <div className="relative size-icon-3xl sm:h-14 sm:w-14 rounded-full bg-gradient-to-br from-primary/10 to-chart-4/10 p-2 ring-1 ring-primary/20 transition-all group-hover:ring-primary/40 group-hover:shadow-lg group-hover:shadow-primary/20">
-                {mounted && (
-                  <Image
-                    src={
-                      theme === "dark"
-                        ? "/Snappy/snappy_dark_nobg_resized.png"
-                        : "/Snappy/snappy_light_nobg_resized.png"
-                    }
-                    alt="Snappy"
-                    width={48}
-                    height={48}
-                    className="object-contain transition-transform group-hover:scale-110"
-                    priority
-                  />
-                )}
+            <div className="relative flex items-center gap-4">
+              <div className="relative">
+                <div className="pointer-events-none absolute -inset-3 rounded-full bg-gradient-to-br from-primary/35 via-primary/15 to-transparent opacity-60 blur-2xl transition-opacity group-hover:opacity-90" />
+                <div className="relative h-14 w-14 sm:h-16 sm:w-16">
+                  {mounted && (
+                    <Image
+                      src={
+                        theme === "dark"
+                          ? "/Snappy/snappy_dark_nobg_resized.png"
+                          : "/Snappy/snappy_light_nobg_resized.png"
+                      }
+                      alt="Snappy"
+                      width={72}
+                      height={72}
+                      className="relative z-10 h-full w-full object-contain drop-shadow-[0_10px_20px_rgba(17,24,39,0.35)] transition-transform duration-200 group-hover:scale-110"
+                      priority
+                    />
+                  )}
+                </div>
               </div>
             </div>
           </Link>
