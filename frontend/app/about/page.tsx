@@ -103,13 +103,13 @@ export default function AboutPage() {
   return (
     <div className="relative flex min-h-full flex-col overflow-x-hidden">
       <section className="px-4 py-10 sm:px-6 lg:px-8">
-        <motion.div 
+        <motion.div
           className="mx-auto flex w-full max-w-5xl flex-col gap-10"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
         >
-          <motion.header 
+          <motion.header
             className="shrink-0"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -171,21 +171,21 @@ export default function AboutPage() {
                 whileTap={{ scale: 0.98 }}
               >
                 <Card className="border-border/50 bg-card/60 backdrop-blur transition hover:border-primary/50 hover:shadow-lg hover:shadow-primary/15 touch-manipulation">
-                <CardHeader className="gap-4">
-                  <div className="flex size-icon-3xl items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-chart-4/20 text-primary shadow-md">
-                    <item.icon className="size-icon-lg" />
-                  </div>
-                  <CardTitle className="text-body sm:text-lg">{item.title}</CardTitle>
-                  <CardDescription className="text-body-sm sm:text-body leading-relaxed">
-                    {item.description}
-                  </CardDescription>
-                </CardHeader>
-              </Card>
+                  <CardHeader className="gap-4">
+                    <div className="flex size-icon-3xl items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-chart-4/20 text-primary shadow-md">
+                      <item.icon className="size-icon-lg" />
+                    </div>
+                    <CardTitle className="text-body sm:text-lg">{item.title}</CardTitle>
+                    <CardDescription className="text-body-sm sm:text-body leading-relaxed">
+                      {item.description}
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
               </motion.div>
             ))}
           </section>
 
-          <motion.section 
+          <motion.section
             className="grid gap-6 lg:grid-cols-3"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -249,7 +249,7 @@ export default function AboutPage() {
             </Card>
           </motion.section>
 
-          <motion.section 
+          <motion.section
             className="rounded-3xl border border-border/40 bg-muted/30 p-6 backdrop-blur lg:p-10"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -282,7 +282,7 @@ export default function AboutPage() {
             </ol>
           </motion.section>
 
-          <motion.section 
+          <motion.section
             className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-background to-chart-4/10 p-6 text-center backdrop-blur lg:p-10"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}

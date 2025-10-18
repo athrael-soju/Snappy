@@ -118,45 +118,47 @@ export function Nav() {
             )}
 
             {/* Mobile Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild className="lg:hidden">
-                <AppButton
-                  variant="ghost"
-                  size="icon"
-                  iconShift
+            <div className="lg:hidden">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <AppButton
+                    variant="ghost"
+                    size="icon"
+                    iconShift
+                  >
+                    <Menu className="size-icon-lg transition-transform group-hover/app-button:scale-110" />
+                    <span className="sr-only">Open menu</span>
+                  </AppButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="w-56 rounded-2xl border-border/50 bg-card/95 backdrop-blur-xl"
                 >
-                  <Menu className="size-icon-lg transition-transform group-hover/app-button:scale-110" />
-                  <span className="sr-only">Open menu</span>
-                </AppButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="w-56 rounded-2xl border-border/50 bg-card/95 backdrop-blur-xl"
-              >
-                {links.map((link) => {
-                  const isActive =
-                    link.href === "/"
-                      ? pathname === "/"
-                      : pathname === link.href || pathname.startsWith(`${link.href}/`)
+                  {links.map((link) => {
+                    const isActive =
+                      link.href === "/"
+                        ? pathname === "/"
+                        : pathname === link.href || pathname.startsWith(`${link.href}/`)
 
-                  return (
-                    <DropdownMenuItem key={link.href} asChild>
-                      <Link
-                        href={link.href}
-                        className={cn(
-                          "w-full cursor-pointer rounded-xl px-3 py-2 text-body-sm transition-all",
-                          isActive
-                            ? "bg-primary/10 text-primary font-semibold"
-                            : "hover:bg-muted/50"
-                        )}
-                      >
-                        {link.label}
-                      </Link>
-                    </DropdownMenuItem>
-                  )
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                    return (
+                      <DropdownMenuItem key={link.href} asChild>
+                        <Link
+                          href={link.href}
+                          className={cn(
+                            "w-full cursor-pointer rounded-xl px-3 py-2 text-body-sm transition-all",
+                            isActive
+                              ? "bg-primary/10 text-primary font-semibold"
+                              : "hover:bg-muted/50"
+                          )}
+                        >
+                          {link.label}
+                        </Link>
+                      </DropdownMenuItem>
+                    )
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
       </div>
