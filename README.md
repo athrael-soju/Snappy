@@ -2,7 +2,7 @@
   <img width="65%" alt="image" src="frontend/public/Snappy/Snappy_light_readme.png" />
 </p>
 
-# Snappy - Your Vision Retrieval buddy!
+# Your Vision Retrieval buddy!
 
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688)](https://fastapi.tiangolo.com/)
 [![Qdrant](https://img.shields.io/badge/VectorDB-Qdrant-ff6b6b)](https://qdrant.tech/)
