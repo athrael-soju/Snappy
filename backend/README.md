@@ -1,138 +1,134 @@
-# Snappy - Backend (FastAPI)
+# Snappy Backend - Where the Magic Happens! ✨
 
-A FastAPI service that provides PDF ingestion, page-level retrieval, and system
-maintenance APIs for the template. The backend exposes modular routers under
-`backend/api/routers/` (`meta`, `retrieval`, `indexing`, `maintenance`,
-`config`) and is bootstrapped via `backend/api/app.py:create_app()`.
+Welcome to Snappy's brain! This FastAPI service is the powerhouse behind PDF ingestion, lightning-fast page-level retrieval, and all those sweet system maintenance features. 
 
-## Requirements
+Everything's neatly organized in modular routers under `backend/api/routers/` (`meta`, `retrieval`, `indexing`, `maintenance`, `config`), all fired up through `backend/api/app.py:create_app()`. Clean architecture? You bet! 🏛️
 
-- Python 3.10+
-- Poppler available on `PATH` (`pdf2image` uses `pdftoppm`)
-- Optional: Docker + Docker Compose
-- Optional: `fastembed[postprocess]` if you plan to enable MUVERA
+## What You'll Need 📦
 
-## Local setup
+- **Python 3.10+** - The newer, the better!
+- **Poppler** - Must be on your `PATH` (Snappy uses `pdftoppm` for PDF magic)
+- **Docker + Docker Compose** - Optional but highly recommended for a smooth ride
+- **`fastembed[postprocess]`** - Optional, only if you want MUVERA superpowers
+
+## Getting Started Locally 🚀
 
 ```bash
-# Snappy - Your Vision Retrieval buddy!
+# Create a cozy virtual environment
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
+
+# Update the essentials
 pip install -U pip setuptools wheel
+
+# Install Snappy's backend dependencies
 pip install -r backend/requirements.txt
 ```
 
-## Environment
+## Environment Setup 🌟
 
 ```bash
-# Snappy - Your Vision Retrieval buddy!
+# Copy the example env file
 copy .env.example .env
 ```
 
-Key backend variables (see `.env.example` and `backend/config.py`):
+**Essential Variables** (peek at `.env.example` and `backend/config.py` for details):
 
-- ColPali: `COLPALI_MODE`, `COLPALI_CPU_URL`, `COLPALI_GPU_URL`,
-  `COLPALI_API_TIMEOUT`
-- Qdrant: `QDRANT_EMBEDDED` (defaults to `False`), `QDRANT_URL`, `QDRANT_COLLECTION_NAME`,
-  quantisation toggles
-- MinIO: `MINIO_URL`, `MINIO_PUBLIC_URL`,
-  `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`
+- **ColPali Config**: `COLPALI_MODE`, `COLPALI_CPU_URL`, `COLPALI_GPU_URL`, `COLPALI_API_TIMEOUT`
+- **Qdrant Setup**: `QDRANT_EMBEDDED`, `QDRANT_URL`, `QDRANT_COLLECTION_NAME`, plus quantization options
+- **MinIO Storage**: `MINIO_URL`, `MINIO_PUBLIC_URL`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`
 
-Defaults assume:
+**Default Endpoints** (works out of the box!):
+- 🕸️ Qdrant: `http://localhost:6333`
+- 🗄️ MinIO: `http://localhost:9000`
+- 🧠 ColPali CPU: `http://localhost:7001`
+- 🚀 ColPali GPU: `http://localhost:7002`
 
-- Qdrant at `http://localhost:6333`
-- MinIO at `http://localhost:9000`
-- ColPali CPU service at `http://localhost:7001`, GPU service at
-  `http://localhost:7002`
+📚 **Deep Dive**: Check out `backend/docs/configuration.md` for the complete configuration encyclopedia!
 
-See `backend/docs/configuration.md` for a full reference to every runtime
-setting.
-
-## Run locally
+## Fire Up the Backend 🔥
 
 ```bash
-# Snappy - Your Vision Retrieval buddy!
+# Option 1: The uvicorn way (with hot reload!)
 uvicorn backend:app --host 0.0.0.0 --port 8000 --reload
 
-# Snappy - Your Vision Retrieval buddy!
+# Option 2: The direct approach
 python backend/main.py
 ```
 
-Visit http://localhost:8000/docs for OpenAPI documentation.
+🎉 **Ready to explore?** Head to http://localhost:8000/docs for interactive API documentation!
 
-## Docker Compose
+## Docker Compose - The Easy Button 🐳
 
-The root `docker-compose.yml` starts `qdrant`, `minio`, `backend`, and
-`frontend`. The backend container sets:
+Our root `docker-compose.yml` orchestrates the whole gang: `qdrant`, `minio`, `backend`, and `frontend`. Everything just works!
 
+**Container Configuration**:
 - `COLPALI_CPU_URL=http://host.docker.internal:7001`
 - `COLPALI_GPU_URL=http://host.docker.internal:7002`
 - `QDRANT_URL=http://qdrant:6333`
 - `MINIO_URL=http://minio:9000`
 - `MINIO_PUBLIC_URL=http://localhost:9000`
 
-Bring up the stack:
-
+**Launch Everything**:
 ```bash
 docker compose up -d --build
 ```
 
-MinIO credentials are required; the service no longer falls back to inline
-image payload storage when MinIO is unavailable.
+⚠️ **Important**: MinIO credentials are mandatory. Snappy needs proper object storage—no shortcuts here!
 
-## Key endpoints
+## API Endpoints - Your Command Center 🎮
 
-### Meta
+### 💓 Meta (Health Checks)
 
-- `GET /health` – Dependency health summary (ColPali, MinIO, Qdrant)
+- `GET /health` – See how ColPali, MinIO, and Qdrant are feeling
 
-### Retrieval
+### 🔍 Retrieval (The Search Magic)
 
-- `GET /search?q=...&k=5` – Visual search over indexed documents  
-  (defaults to 10 results when `k` is omitted)
+- `GET /search?q=...&k=5` – Visual search across all indexed documents  
+  (Leave out `k` for a sensible 10 results)
 
-### Indexing
+### 📚 Indexing (Document Processing)
 
-- `POST /index` (multipart `files[]`) – Start a background indexing job
-- `GET /progress/stream/{job_id}` – Server-Sent Events stream with progress
-- `POST /index/cancel/{job_id}` – Cancel an in-flight job
+- `POST /index` – Upload PDFs (multipart `files[]`) and start the magic
+- `GET /progress/stream/{job_id}` – Real-time progress via Server-Sent Events
+- `POST /index/cancel/{job_id}` – Changed your mind? Cancel away!
 
-### Maintenance
+### 🛠️ Maintenance (System Management)
 
-- `GET /status` – Collection and bucket statistics
-- `POST /initialize` – Create collection/bucket according to current config
-- `DELETE /delete` – Remove collection and bucket
-- `POST /clear/qdrant` – Clear Qdrant data
-- `POST /clear/minio` – Clear MinIO objects
-- `POST /clear/all` – Clear both stores
+- `GET /status` – Quick stats on your collection and bucket
+- `POST /initialize` – Set up collection + bucket (first time? Start here!)
+- `DELETE /delete` – Nuclear option: removes collection and bucket
+- `POST /clear/qdrant` – Wipe Qdrant data only
+- `POST /clear/minio` – Clear MinIO objects only
+- `POST /clear/all` – Fresh start: clear everything!
 
-MinIO batch deletes return a structured report so failed objects can be
-identified even when MinIO omits their names.
+*Note: MinIO deletes give you detailed reports, even when things go sideways.*
 
-### Configuration
+### ⚙️ Configuration (Runtime Tuning)
 
-- `GET /config/schema` – Configuration schema (categories, defaults, metadata)
-- `GET /config/values` – Current runtime values
-- `POST /config/update` – Update a single value at runtime
-- `POST /config/reset` – Reset everything to schema defaults
-- `POST /config/optimize` – Apply hardware-driven tuning recommendations
+- `GET /config/schema` – The blueprint: categories, defaults, and metadata
+- `GET /config/values` – What's currently configured
+- `POST /config/update` – Tweak settings on the fly
+- `POST /config/reset` – Back to factory defaults
+- `POST /config/optimize` – Let Snappy auto-tune based on your hardware
 
-Configuration changes apply immediately but do **not** modify your `.env` file.
-Persist any important changes manually.
+⚠️ **Remember**: Runtime changes are temporary! Update `.env` for permanent tweaks.
 
-## Chat and visual citations
+## Chat & Visual Citations 💬
 
-Chat streaming lives in the frontend at `frontend/app/api/chat/route.ts`. The
-Next.js route calls the OpenAI Responses API, streams SSE to the browser, and
-injects retrieved page images via a `kb.images` event. The backend is
-responsible for document search (`GET /search`) and the supporting maintenance
-APIs; it does not proxy chat requests.
+The chat magic happens in the frontend at `frontend/app/api/chat/route.ts`. This Next.js route:
+1. Calls the OpenAI Responses API
+2. Streams responses via Server-Sent Events
+3. Injects beautiful page images through custom `kb.images` events
 
-## Configuration management UI
+Snappy's backend? It handles the heavy lifting: document search (`GET /search`) and system maintenance. But it stays out of the chat proxy game—that's the frontend's jam! 🎵
 
-The `/configuration` page in the frontend talks to the `/config/*` API. It
-surfaces the schema described above with typed inputs, validation, and runtime
-updates. When browser-held drafts differ from the server it prompts you to
-restore or discard them before any API calls are made. Critical changes
-invalidate cached services (Qdrant/MinIO/ColPali) so the next API call observes
-the new values.
+## Configuration UI - Settings Made Simple 🎛️
+
+The `/configuration` page is where you become the maestro! It connects to the `/config/*` API and gives you:
+- ✅ Typed inputs with validation
+- 📊 Real-time updates
+- 💾 Draft detection (when browser and server disagree)
+- ♻️ Smart cache invalidation (critical changes refresh services automatically)
+
+No restarts, no yaml wrestling, no config file archaeology. Just smooth, intuitive tuning! 🎶
