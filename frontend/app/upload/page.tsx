@@ -15,12 +15,13 @@ import {
   ArrowRight,
   Loader2,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { AppButton } from "@/components/app-button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import "@/lib/api/client";
 import { useSystemStatus } from "@/stores/app-store";
 import { useFileUpload } from "@/lib/hooks/use-file-upload";
+import { PageHeader } from "@/components/page-header";
 
 export default function UploadPage() {
   const { systemStatus, statusLoading, fetchStatus, isReady } = useSystemStatus();
@@ -64,24 +65,25 @@ export default function UploadPage() {
         >
           {/* Header Section */}
           <motion.div
-            className="shrink-0 space-y-2 text-center"
+            className="shrink-0"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1, duration: 0.3 }}
           >
-            <h1 className="text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">
-              <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
-                Upload & Index
-              </span>
-              {" "}
-              <span className="bg-gradient-to-r from-chart-1 via-chart-2 to-chart-1 bg-clip-text text-transparent">
-                Your Documents
-              </span>
-            </h1>
-
-            <p className="mx-auto max-w-2xl text-body-xs leading-relaxed text-muted-foreground">
-              Drop your documents and let Snappy retrieve insights from them.
-            </p>
+            <PageHeader
+              align="center"
+              title={
+                <>
+                  <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
+                    Upload & Index
+                  </span>{" "}
+                  <span className="bg-gradient-to-r from-chart-1 via-chart-2 to-chart-1 bg-clip-text text-transparent">
+                    Your Documents
+                  </span>
+                </>
+              }
+              description="Drop your documents and let Snappy retrieve insights from them."
+            />
           </motion.div>
 
           {/* Compact System Status */}
@@ -148,12 +150,11 @@ export default function UploadPage() {
               )}
             </Badge>
 
-            <Button
+            <AppButton
               onClick={fetchStatus}
               disabled={statusLoading}
               variant="ghost"
-              size="sm"
-              className="h-6 gap-1.5 rounded-full px-3 text-body-xs"
+              size="xs"
             >
               {statusLoading ? (
                 <Loader2 className="size-icon-3xs animate-spin" />
@@ -161,7 +162,7 @@ export default function UploadPage() {
                 <RefreshCw className="size-icon-3xs" />
               )}
               Refresh
-            </Button>
+            </AppButton>
           </motion.div>
 
           {/* Upload Form */}
@@ -198,27 +199,25 @@ export default function UploadPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <label htmlFor="file-input">
-                    <Button
+                  <label htmlFor="file-input" className="cursor-pointer">
+                    <AppButton
                       type="button"
                       variant="outline"
-                      size="sm"
+                      size="md"
                       disabled={uploading}
-                      className="h-10 gap-2 rounded-full border-2 bg-background/50 px-5 backdrop-blur-sm cursor-pointer touch-manipulation"
-                      onClick={() => document.getElementById('file-input')?.click()}
                     >
                       <FileText className="size-icon-xs" />
                       Browse Files
-                    </Button>
+                    </AppButton>
                   </label>
 
                   {hasFiles && (
                     <>
-                      <Button
+                      <AppButton
                         type="submit"
-                        size="sm"
+                        size="md"
+                        elevated
                         disabled={!hasFiles || uploading || !isReady}
-                        className="group h-10 gap-2 rounded-full px-5 shadow-lg shadow-primary/20 touch-manipulation"
                       >
                         {uploading ? (
                           <>
@@ -231,19 +230,18 @@ export default function UploadPage() {
                             <span className="hidden sm:inline">Upload</span>
                           </>
                         )}
-                      </Button>
+                      </AppButton>
 
                       {uploading && (
-                        <Button
+                        <AppButton
                           type="button"
                           onClick={handleCancel}
-                          size="sm"
+                          size="md"
                           variant="ghost"
-                          className="h-10 gap-2 rounded-full px-4 touch-manipulation"
                         >
                           <X className="size-icon-xs" />
                           <span className="hidden sm:inline">Cancel</span>
-                        </Button>
+                        </AppButton>
                       )}
                     </>
                   )}
@@ -277,17 +275,16 @@ export default function UploadPage() {
                         Ready to Upload ({fileCount} {fileCount === 1 ? "file" : "files"})
                       </h3>
                     </div>
-                    <Button
+                    <AppButton
                       type="button"
                       onClick={handleClear}
-                      size="sm"
+                      size="xs"
                       variant="ghost"
                       disabled={uploading}
-                      className="h-7 gap-1.5 rounded-full px-2 text-body-xs"
                     >
                       <X className="size-icon-3xs" />
                       Clear
-                    </Button>
+                    </AppButton>
                   </div>
 
                   <ScrollArea className="min-h-0 flex-1">

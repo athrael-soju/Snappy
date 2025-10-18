@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useTheme } from "next-themes"
 import { Moon, Sun, Menu } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { AppButton } from "@/components/app-button"
 import { useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
 import {
@@ -100,32 +100,32 @@ export function Nav() {
           {/* Actions */}
           <div className="flex items-center gap-2">
             {mounted && (
-              <Button
+              <AppButton
                 variant="ghost"
                 size="icon"
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="group h-11 w-11 rounded-full hover:bg-primary/10 hover:text-primary transition-all touch-manipulation"
+                iconShift
               >
                 {theme === "dark" ? (
-                  <Sun className="size-icon-lg transition-transform group-hover:rotate-45 group-hover:scale-110" />
+                  <Sun className="size-icon-lg transition-transform group-hover/app-button:rotate-45 group-hover/app-button:scale-110" />
                 ) : (
-                  <Moon className="size-icon-lg transition-transform group-hover:-rotate-12 group-hover:scale-110" />
+                  <Moon className="size-icon-lg transition-transform group-hover/app-button:-rotate-12 group-hover/app-button:scale-110" />
                 )}
                 <span className="sr-only">Toggle theme</span>
-              </Button>
+              </AppButton>
             )}
 
             {/* Mobile Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild className="lg:hidden">
-                <Button
+                <AppButton
                   variant="ghost"
                   size="icon"
-                  className="h-11 w-11 rounded-full hover:bg-primary/10 hover:text-primary transition-all touch-manipulation"
+                  iconShift
                 >
-                  <Menu className="size-icon-lg" />
+                  <Menu className="size-icon-lg transition-transform group-hover/app-button:scale-110" />
                   <span className="sr-only">Open menu</span>
-                </Button>
+                </AppButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"

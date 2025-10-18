@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { AppButton } from '@/components/app-button';
 import { Copy, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import CitationHoverCard from './CitationHoverCard';
@@ -37,11 +37,11 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
   return (
     <div className="relative group my-4">
       <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
-        <Button
-          variant="ghost"
-          size="sm"
+        <AppButton
+          variant="glass"
+          size="xs"
           onClick={handleCopy}
-          className="h-7 px-2 bg-background/50 backdrop-blur-sm hover:bg-background/80"
+          elevated
         >
           {copied ? (
             <>
@@ -54,7 +54,7 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
               <span className="text-body-xs">Copy</span>
             </>
           )}
-        </Button>
+        </AppButton>
       </div>
       <pre className="max-w-full overflow-x-auto rounded-lg border bg-muted/50 p-4">
         {language && (

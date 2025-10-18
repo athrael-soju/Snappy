@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import "@/lib/api/client";
 import Image from "next/image";
 import { Search, Loader2, X, AlertCircle, Sparkles, ArrowRight, FileText, Clock } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { AppButton } from "@/components/app-button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RetrievalService } from "@/lib/api/generated";
@@ -14,6 +14,7 @@ import { useSearchStore } from "@/lib/hooks/use-search-store";
 import { useSystemStatus } from "@/stores/app-store";
 import ImageLightbox from "@/components/lightbox";
 import { InfoTooltip } from "@/components/info-tooltip";
+import { PageHeader } from "@/components/page-header";
 
 const suggestedQueries = [
   "Show recent upload summaries",
@@ -98,31 +99,33 @@ export default function SearchPage() {
         >
           {/* Header Section */}
           <motion.div
-            className="shrink-0 space-y-2 text-center"
+            className="shrink-0"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1, duration: 0.3 }}
           >
-            <h1 className="text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">
-              <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
-                Search & Discover
-              </span>
-              {" "}
-              <span className="bg-gradient-to-r from-primary via-chart-4 to-primary bg-clip-text text-transparent">
-                Your Documents
-              </span>
-            </h1>
-
-            <p className="mx-auto max-w-2xl text-body-xs leading-relaxed text-muted-foreground">
-              Ask questions in natural language and let Snappy surface the most relevant matches instantly.
-            </p>
-
-            {!isReady && (
-              <Badge variant="destructive" className="gap-2 text-body-xs">
-                <AlertCircle className="size-icon-3xs" />
-                System not ready
-              </Badge>
-            )}
+            <PageHeader
+              align="center"
+              title={
+                <>
+                  <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
+                    Search & Discover
+                  </span>{" "}
+                  <span className="bg-gradient-to-r from-primary via-chart-4 to-primary bg-clip-text text-transparent">
+                    Your Documents
+                  </span>
+                </>
+              }
+              description="Ask questions in natural language and let Snappy surface the most relevant matches instantly."
+              childrenClassName="gap-2 pt-2"
+            >
+              {!isReady && (
+                <Badge variant="destructive" className="gap-2 text-body-xs">
+                  <AlertCircle className="size-icon-3xs" />
+                  System not ready
+                </Badge>
+              )}
+            </PageHeader>
           </motion.div>
 
           {/* Search Form */}
@@ -154,11 +157,11 @@ export default function SearchPage() {
 
                 {/* Inline Search Button */}
                 <div className="flex shrink-0 items-center gap-2">
-                  <Button
+                  <AppButton
                     type="submit"
-                    size="sm"
+                    size="md"
+                    elevated
                     disabled={loading || !isReady || !query.trim()}
-                    className="group h-10 gap-2 rounded-full px-4 shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/25 touch-manipulation"
                   >
                     {loading ? (
                       <>
@@ -171,7 +174,7 @@ export default function SearchPage() {
                         <span className="hidden sm:inline">Search</span>
                       </>
                     )}
-                  </Button>
+                  </AppButton>
                 </div>
               </div>
             </motion.div>
@@ -302,16 +305,15 @@ export default function SearchPage() {
                               {truncatedResults.length} {truncatedResults.length === 1 ? "Result" : "Results"}
                             </h3>
                           </div>
-                          <Button
+                          <AppButton
                             type="button"
                             onClick={clearResults}
-                            size="sm"
+                            size="xs"
                             variant="ghost"
-                            className="h-7 gap-1.5 rounded-full px-2 text-body-xs"
                           >
                             <X className="size-icon-3xs" />
                             Clear
-                          </Button>
+                          </AppButton>
                         </div>
 
                         <ScrollArea className="min-h-0 flex-1">

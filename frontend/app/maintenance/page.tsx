@@ -19,7 +19,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import type { ActionType } from "@/lib/hooks/use-maintenance-actions";
-import { Button } from "@/components/ui/button";
+import { AppButton } from "@/components/app-button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -33,6 +33,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/page-header";
 
 const CORE_OPERATIONS = [
   {
@@ -95,26 +96,26 @@ export default function MaintenancePage() {
           >
             {/* Header Section */}
             <motion.div
-              className="space-y-2 text-center"
+              className="shrink-0"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1, duration: 0.3 }}
             >
-              <h1 className="text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">
-                <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
-                  System
-                </span>
-                {" "}
-                <span className="bg-gradient-to-r from-destructive via-destructive/80 to-destructive bg-clip-text text-transparent">
-                  Maintenance
-                </span>
-              </h1>
-
-              <p className="mx-auto max-w-2xl text-body-xs leading-relaxed text-muted-foreground">
-                Monitor Snappy&apos;s storage status and run maintenance operations. Handle destructive actions with care.
-              </p>
-
-              <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+              <PageHeader
+                align="center"
+                title={
+                  <>
+                    <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
+                      System
+                    </span>{" "}
+                    <span className="bg-gradient-to-r from-destructive via-destructive/80 to-destructive bg-clip-text text-transparent">
+                      Maintenance
+                    </span>
+                  </>
+                }
+                description="Monitor Snappy's storage status and run maintenance operations. Handle destructive actions with care."
+                childrenClassName="gap-2 pt-2"
+              >
                 <Badge
                   variant="outline"
                   className={cn("gap-1.5", isSystemReady ? badgeClasses.positive : badgeClasses.negative)}
@@ -132,12 +133,11 @@ export default function MaintenancePage() {
                   )}
                 </Badge>
 
-                <Button
+                <AppButton
                   onClick={fetchStatus}
                   disabled={statusLoading}
                   variant="ghost"
-                  size="sm"
-                  className="h-8 gap-1.5 rounded-full px-4 text-body-xs touch-manipulation"
+                  size="xs"
                 >
                   {statusLoading ? (
                     <Loader2 className="size-icon-3xs animate-spin" />
@@ -145,8 +145,8 @@ export default function MaintenancePage() {
                     <RefreshCw className="size-icon-3xs" />
                   )}
                   Refresh
-                </Button>
-              </div>
+                </AppButton>
+              </PageHeader>
             </motion.div>
 
             {/* Storage Status */}
@@ -338,6 +338,12 @@ export default function MaintenancePage() {
                     (operation.id === "delete" && deleteLoading) ||
                     (operation.id === "reset" && loading["all"]);
                   const isDisabled = initLoading || deleteLoading || loading["all"];
+                  const buttonVariant =
+                    operation.id === "reset"
+                      ? "destructive"
+                      : operation.id === "delete"
+                        ? "outline"
+                        : "primary";
 
                   const handleClick = () => {
                     if (operation.id === "initialize") {
@@ -369,13 +375,14 @@ export default function MaintenancePage() {
                           <h3 className="text-body-sm sm:text-body font-bold">{operation.title}</h3>
                           <p className="text-body-xs sm:text-body-sm leading-relaxed text-muted-foreground">{operation.description}</p>
                         </div>
-                        <Button
+                        <AppButton
                           type="button"
                           onClick={handleClick}
                           disabled={isDisabled}
-                          variant={operation.id === "reset" ? "destructive" : operation.id === "delete" ? "outline" : "default"}
-                          size="sm"
-                          className="w-full h-10 gap-2 rounded-full touch-manipulation"
+                          variant={buttonVariant}
+                          size="md"
+                          fullWidth
+                          elevated
                         >
                           {isLoading ? (
                             <>
@@ -390,7 +397,7 @@ export default function MaintenancePage() {
                                 operation.id === "delete" ? "Delete" : "Reset All"}
                             </>
                           )}
-                        </Button>
+                        </AppButton>
                       </div>
                     </motion.article>
                   );

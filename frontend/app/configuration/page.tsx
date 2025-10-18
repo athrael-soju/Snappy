@@ -18,9 +18,10 @@ import {
   List,
   ChevronDown,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { AppButton } from "@/components/app-button";
 import { Badge } from "@/components/ui/badge";
 import { InfoTooltip } from "@/components/info-tooltip";
+import { PageHeader } from "@/components/page-header";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -100,25 +101,25 @@ export default function ConfigurationPage() {
         >
           {/* Header Section */}
           <motion.div
-            className="shrink-0 space-y-2 text-center"
+            className="shrink-0"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1, duration: 0.3 }}
           >
-            <h1 className="text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">
-              <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
-                System
-              </span>
-              {" "}
-              <span className="bg-gradient-to-r from-chart-4 via-chart-3 to-chart-4 bg-clip-text text-transparent">
-                Configuration
-              </span>
-            </h1>
-
-            <p className="mx-auto max-w-2xl text-body-xs leading-relaxed text-muted-foreground">
-              Edit backend settings directly. Inputs mirror the OpenAPI schema and save values individually.
-            </p>
-
+            <PageHeader
+              align="center"
+              title={
+                <>
+                  <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
+                    System
+                  </span>{" "}
+                  <span className="bg-gradient-to-r from-chart-4 via-chart-3 to-chart-4 bg-clip-text text-transparent">
+                    Configuration
+                  </span>
+                </>
+              }
+              description="Edit backend settings directly. Inputs mirror the OpenAPI schema and save values individually."
+            />
             {error && (
               <div className="mx-auto flex max-w-2xl items-center justify-center gap-2 rounded-lg bg-destructive/10 px-4 py-2 text-body-sm font-medium text-destructive">
                 <AlertCircle className="size-icon-xs" />
@@ -139,15 +140,18 @@ export default function ConfigurationPage() {
                 <Settings className="size-icon-sm shrink-0 text-muted-foreground" />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="min-w-0 flex-1 justify-between gap-3 rounded-xl border-border/40 bg-background/50 px-3 py-2 text-body-sm font-medium text-left transition-colors hover:bg-background focus-visible:border-primary/50 focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-primary/20"
-                    >
-                      <span className="truncate">{activeCategory?.[1]?.name ?? "Select category"}</span>
-                      <ChevronDown className="size-icon-sm shrink-0 text-muted-foreground" />
-                    </Button>
+                    <div className="flex-1 min-w-0">
+                      <AppButton
+                        type="button"
+                        variant="outline"
+                        size="md"
+                        fullWidth
+                        align="between"
+                      >
+                        <span className="truncate">{activeCategory?.[1]?.name ?? "Select category"}</span>
+                        <ChevronDown className="size-icon-sm shrink-0 text-muted-foreground" />
+                      </AppButton>
+                    </div>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-64">
                     <DropdownMenuRadioGroup
@@ -163,17 +167,16 @@ export default function ConfigurationPage() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <Button
+              <AppButton
                 type="button"
                 onClick={resetToDefaults}
                 disabled={saving}
                 variant="outline"
-                size="sm"
-                className="h-10 gap-2 rounded-full px-4 touch-manipulation"
+                size="md"
               >
                 <RotateCcw className="size-icon-xs" />
                 <span className="hidden sm:inline">Reset All</span>
-              </Button>
+              </AppButton>
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-2">
@@ -376,12 +379,12 @@ export default function ConfigurationPage() {
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-3">
-                <Button
+                <AppButton
                   type="button"
                   onClick={saveChanges}
                   disabled={!hasChanges || saving}
-                  size="default"
-                  className="h-11 gap-2 rounded-full px-6 shadow-lg shadow-primary/20 touch-manipulation"
+                  size="lg"
+                  elevated
                 >
                   {saving ? (
                     <>
@@ -394,19 +397,18 @@ export default function ConfigurationPage() {
                       Save Changes
                     </>
                   )}
-                </Button>
+                </AppButton>
 
-                <Button
+                <AppButton
                   type="button"
                   onClick={resetChanges}
                   disabled={!hasChanges || saving}
                   variant="outline"
-                  size="default"
-                  className="h-11 gap-2 rounded-full px-6 touch-manipulation"
+                  size="lg"
                 >
                   <RotateCcw className="size-icon-xs" />
                   Discard
-                </Button>
+                </AppButton>
 
                 {!hasChanges && (
                   <Badge variant="secondary" className="gap-1.5">
@@ -416,17 +418,16 @@ export default function ConfigurationPage() {
                 )}
               </div>
 
-              <Button
+              <AppButton
                 type="button"
                 onClick={() => resetSection(activeKey)}
                 disabled={saving}
                 variant="outline"
                 size="sm"
-                className="h-10 gap-2 rounded-full px-4 touch-manipulation"
               >
                 <RotateCcw className="size-icon-xs" />
                 <span className="hidden sm:inline">Reset Section</span>
-              </Button>
+              </AppButton>
             </div>
           </motion.div>
         </motion.div>

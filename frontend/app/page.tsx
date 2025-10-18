@@ -15,7 +15,7 @@ import {
   Sparkles,
   Zap,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { AppButton } from "@/components/app-button";
 import { Badge } from "@/components/ui/badge";
 
 const primaryFeatures = [
@@ -145,28 +145,31 @@ export default function Home() {
             className="flex flex-wrap items-center justify-center gap-3 sm:gap-4"
             variants={itemVariants}
           >
-            <Button
+            <AppButton
               asChild
-              size="lg"
-              className="group h-12 gap-2 rounded-full px-6 hero-cta-text shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-primary/40 touch-manipulation"
+              variant="hero"
+              size="xl"
+              elevated
+              iconShift
             >
               <Link href="/upload">
-                <Upload className="size-icon-md" />
+                <Upload className="size-icon-lg" />
                 Get Started
-                <ArrowRight className="size-icon-2xs transition-transform group-hover:translate-x-1" />
+                <ArrowRight className="size-icon-xs transition-transform group-hover/app-button:translate-x-1" />
               </Link>
-            </Button>
-            <Button
+            </AppButton>
+            <AppButton
               asChild
-              size="lg"
-              variant="outline"
-              className="h-12 gap-2 rounded-full border-2 bg-background/50 px-6 text-body backdrop-blur-sm transition-all hover:bg-background touch-manipulation"
+              variant="glass"
+              size="xl"
+              elevated
+              iconShift
             >
               <Link href="/chat">
-                <MessageSquare className="size-icon-md" />
+                <MessageSquare className="size-icon-lg" />
                 Try Chat
               </Link>
-            </Button>
+            </AppButton>
           </motion.div>
 
           {/* Core Features Section */}
@@ -222,18 +225,12 @@ export default function Home() {
               variants={itemVariants}
             >
               {secondaryLinks.map((link) => (
-                <Button
-                  key={link.href}
-                  asChild
-                  variant="ghost"
-                  size="default"
-                  className="gap-2 rounded-full px-4 text-body-sm"
-                >
+                <AppButton key={link.href} asChild variant="ghost" size="sm">
                   <Link href={link.href}>
                     <link.icon className="size-icon-2xs" />
                     {link.title}
                   </Link>
-                </Button>
+                </AppButton>
               ))}
             </motion.div>
           </motion.div>

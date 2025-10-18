@@ -7,7 +7,7 @@ import "@/lib/api/client";
 import { useChat } from "@/lib/hooks/use-chat";
 import { useSystemStatus } from "@/stores/app-store";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Button } from "@/components/ui/button";
+import { AppButton } from "@/components/app-button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { PageHeader } from "@/components/page-header";
 
 const starterPrompts = [
   {
@@ -287,17 +288,39 @@ function ChatComposer({
               </div>
             </div>
             <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-col sm:items-stretch sm:gap-3">
+              <AppButton
+                type="submit"
+                size="icon-lg"
+                variant="hero"
+                elevated
+                disabled={isSendDisabled}
+                aria-label="Send message"
+              >
+                {loading ? <Loader2 className="size-icon-md animate-spin" /> : <Send className="size-icon-md" />}
+              </AppButton>
+            </div>
+            <div>
+              <AppButton
+                type="button"
+                onClick={reset}
+                variant="ghost"
+                size="icon-lg"
+                disabled={messages.length === 0 && !input}
+                aria-label="Clear conversation"
+              >
+                <Trash2 className="size-icon-md" />
+              </AppButton>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button
+                  <AppButton
                     type="button"
-                    variant="outline"
+                    variant="glass"
                     size="icon-lg"
-                    className="rounded-2xl border-border/40 bg-background/70 text-muted-foreground shadow-md hover:border-primary/40 hover:text-primary"
+                    elevated
                     aria-label="Open retrieval settings"
                   >
                     <Settings className="size-icon-md" />
-                  </Button>
+                  </AppButton>
                 </PopoverTrigger>
                 <PopoverContent className="w-80 space-y-4">
                   <div>
@@ -349,26 +372,6 @@ function ChatComposer({
                   </div>
                 </PopoverContent>
               </Popover>
-              <Button
-                type="submit"
-                size="icon-lg"
-                className="rounded-2xl bg-gradient-to-r from-chart-1 to-chart-2 text-white shadow-lg shadow-primary/20 transition hover:from-chart-1/90 hover:to-chart-2/90 disabled:opacity-70"
-                disabled={isSendDisabled}
-                aria-label="Send message"
-              >
-                {loading ? <Loader2 className="size-icon-md animate-spin" /> : <Send className="size-icon-md" />}
-              </Button>
-              <Button
-                type="button"
-                onClick={reset}
-                variant="ghost"
-                size="icon-lg"
-                disabled={messages.length === 0 && !input}
-                className="rounded-2xl border border-border/30 bg-background/60 text-muted-foreground transition hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
-                aria-label="Clear conversation"
-              >
-                <Trash2 className="size-icon-md" />
-              </Button>
             </div>
           </div>
         </div>
@@ -459,23 +462,27 @@ export default function ChatPage() {
           transition={{ duration: 0.4, ease: "easeOut" }}
         >
           <motion.div
-            className="shrink-0 space-y-3 text-center"
+            className="shrink-0"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1, duration: 0.3 }}
           >
-            <h1 className="text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">
-              <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
-                Chat with
-              </span>{" "}
-              <span className="bg-gradient-to-r from-chart-1 via-chart-2 to-chart-1 bg-clip-text text-transparent">
-                Snappy
-              </span>
-            </h1>
-            <p className="mx-auto max-w-2xl text-body-xs leading-relaxed text-muted-foreground">
-              Explore uploads with Snappy&apos;s grounded answers, inline citations, and visual cues from the ColPali stack.
-            </p>
-            <div className="flex flex-wrap justify-center gap-2 text-body-xs">
+            <PageHeader
+              align="center"
+              spacing="lg"
+              title={
+                <>
+                  <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
+                    Chat with
+                  </span>{" "}
+                  <span className="bg-gradient-to-r from-chart-1 via-chart-2 to-chart-1 bg-clip-text text-transparent">
+                    Snappy
+                  </span>
+                </>
+              }
+              description="Explore uploads with Snappy's grounded answers, inline citations, and visual cues from the ColPali stack."
+              childrenClassName="gap-2 text-body-xs"
+            >
               <Badge variant={isReady ? "default" : "destructive"} className="gap-1.5 px-3 py-1.5">
                 {isReady ? (
                   <>
@@ -501,7 +508,7 @@ export default function ChatPage() {
                   Tool Calling Enabled
                 </Badge>
               )}
-            </div>
+            </PageHeader>
           </motion.div>
 
           <section className="relative flex min-h-[520px] flex-1 flex-col overflow-hidden">

@@ -1,7 +1,7 @@
 import { useMemo, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { AppButton } from '@/components/app-button';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { ExternalLink } from 'lucide-react';
 
@@ -45,15 +45,18 @@ export default function CitationHoverCard({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="ml-1 align-super text-body-xs font-semibold text-primary hover:text-primary/80 focus-visible:outline-none focus-visible:underline"
-          aria-label={`View citation ${number}`}
-          onMouseEnter={handleMouseEnter}
-          onFocus={handleMouseEnter}
-        >
-          [{number}]
-        </button>
+        <span className="ml-1 align-super">
+          <AppButton
+            type="button"
+            variant="link"
+            size="inline"
+            aria-label={`View citation ${number}`}
+            onMouseEnter={handleMouseEnter}
+            onFocus={handleMouseEnter}
+          >
+            [{number}]
+          </AppButton>
+        </span>
       </PopoverTrigger>
       <PopoverContent className="w-64 space-y-3">
         <div className="space-y-2 text-body-sm">
@@ -75,16 +78,16 @@ export default function CitationHoverCard({
             priority={false}
           />
         </div>
-        <Button
+        <AppButton
           type="button"
           size="sm"
           variant="outline"
-          className="w-full gap-2"
+          fullWidth
           onClick={handleActivate}
         >
           <ExternalLink className="size-icon-xs" />
           View page
-        </Button>
+        </AppButton>
       </PopoverContent>
     </Popover>
   );

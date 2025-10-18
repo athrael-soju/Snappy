@@ -13,7 +13,7 @@ import {
   Sparkles,
   Workflow,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { AppButton } from "@/components/app-button"
 import {
   Card,
   CardContent,
@@ -21,6 +21,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { PageHeader } from "@/components/page-header"
 
 const highlights = [
   {
@@ -109,47 +110,54 @@ export default function AboutPage() {
           transition={{ duration: 0.5, ease: "easeOut" }}
         >
           <motion.header 
-            className="space-y-6 text-center"
+            className="shrink-0"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1, duration: 0.4 }}
           >
-            <div className="space-y-4">
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
-                <span className="bg-gradient-to-r from-primary via-chart-4 to-chart-1 bg-clip-text text-transparent">
-                  Snappy!
-                </span>{" "}
-                is your launchpad for multimodal retrieval
-              </h1>
-              <p className="mx-auto max-w-3xl text-body-sm sm:text-body leading-relaxed text-muted-foreground">
-                This template stitches together FastAPI, Next.js, ColPali, Qdrant, and MinIO so you can stand up
-                a production-ready vision retrieval stack without rebuilding the plumbing. Upload documents,
-                search visually, and chat with grounded citations out of the box.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center justify-center gap-4">
-              <Button
-                asChild
-                size="lg"
-                className="group h-12 gap-2 rounded-full px-6 hero-cta-text shadow-lg shadow-primary/25 transition-all hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-primary/40"
-              >
-                <Link href="/upload">
-                  Start indexing
-                  <ArrowRight className="size-icon-xs transition-transform group-hover:translate-x-1" />
-                </Link>
-              </Button>
-              <Button
-                asChild
-                size="lg"
-                variant="outline"
-                className="h-12 gap-2 rounded-full border-2 bg-background/60 px-6 text-body backdrop-blur"
-              >
-                <Link href="/search">
-                  Explore search
-                  <ArrowRight className="size-icon-xs transition-transform group-hover:translate-x-1" />
-                </Link>
-              </Button>
-            </div>
+            <PageHeader
+              align="center"
+              spacing="lg"
+              title={
+                <>
+                  <span className="bg-gradient-to-r from-primary via-chart-4 to-chart-1 bg-clip-text text-transparent">
+                    Snappy!
+                  </span>{" "}
+                  is your launchpad for multimodal retrieval
+                </>
+              }
+              description="This template stitches together FastAPI, Next.js, ColPali, Qdrant, and MinIO so you can stand up a production-ready vision retrieval stack without rebuilding the plumbing. Upload documents, search visually, and chat with grounded citations out of the box."
+              descriptionClassName="text-body-sm sm:text-body leading-relaxed text-muted-foreground max-w-3xl"
+              actionsClassName="gap-4 flex-wrap justify-center"
+              actions={
+                <>
+                  <AppButton
+                    asChild
+                    variant="hero"
+                    size="xl"
+                    elevated
+                    iconShift
+                  >
+                    <Link href="/upload">
+                      Start indexing
+                      <ArrowRight className="size-icon-xs transition-transform group-hover/app-button:translate-x-1" />
+                    </Link>
+                  </AppButton>
+                  <AppButton
+                    asChild
+                    variant="glass"
+                    size="xl"
+                    elevated
+                    iconShift
+                  >
+                    <Link href="/search">
+                      Explore search
+                      <ArrowRight className="size-icon-xs transition-transform group-hover/app-button:translate-x-1" />
+                    </Link>
+                  </AppButton>
+                </>
+              }
+            />
           </motion.header>
 
           <section className="grid gap-4 md:grid-cols-3">
@@ -287,27 +295,29 @@ export default function AboutPage() {
               harden as you grow.
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
-              <Button
+              <AppButton
                 asChild
                 size="lg"
-                className="h-12 gap-2 rounded-full px-6 text-body shadow-lg shadow-primary/20"
+                elevated
+                iconShift
               >
                 <Link href="/chat">
                   Try grounded chat
-                  <ArrowRight className="size-icon-xs transition-transform group-hover:translate-x-1" />
+                  <ArrowRight className="size-icon-xs transition-transform group-hover/app-button:translate-x-1" />
                 </Link>
-              </Button>
-              <Button
+              </AppButton>
+              <AppButton
                 asChild
                 size="lg"
-                variant="outline"
-                className="h-12 gap-2 rounded-full border-2 bg-background/50 px-6 text-body backdrop-blur"
+                variant="glass"
+                elevated
+                iconShift
               >
                 <Link href="/maintenance">
                   View maintenance tools
-                  <ArrowRight className="size-icon-xs transition-transform group-hover:translate-x-1" />
+                  <ArrowRight className="size-icon-xs transition-transform group-hover/app-button:translate-x-1" />
                 </Link>
-              </Button>
+              </AppButton>
             </div>
           </motion.section>
         </motion.div>
