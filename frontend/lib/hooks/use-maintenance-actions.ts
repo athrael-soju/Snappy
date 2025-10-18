@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { MaintenanceService, ApiError } from "@/lib/api/generated";
 import { toast } from "sonner";
-import { useAppStore } from "@/stores/app-store";
 
 export type ActionType = "q" | "m" | "all";
 
@@ -24,7 +23,6 @@ const SUCCESS_MESSAGES: Record<ActionType, string> = {
  */
 export function useMaintenanceActions({ onSuccess }: UseMaintenanceActionsOptions = {}) {
   const [loading, setLoading] = useState<LoadingState>({ q: false, m: false, all: false });
-  const { state } = useAppStore();
 
   const actionHandlers: Record<ActionType, () => Promise<unknown>> = {
     q: () => MaintenanceService.clearQdrantClearQdrantPost(),

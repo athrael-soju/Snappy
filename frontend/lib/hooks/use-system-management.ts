@@ -31,7 +31,7 @@ export function useSystemManagement({ onSuccess }: UseSystemManagementOptions = 
 
       if (status === "success") {
         toast.success("Initialization Complete", {
-          description: buildSuccessDescription(result, "Qdrant Collection & MinIO bucket ready"),
+          description: buildSuccessDescription(result, "Qdrant collection and MinIO bucket are ready"),
         });
       } else if (status === "partial") {
         toast.warning("Partial Initialization", {
@@ -71,7 +71,7 @@ export function useSystemManagement({ onSuccess }: UseSystemManagementOptions = 
 
       if (status === "success") {
         toast.success("Deletion Complete", {
-          description: buildSuccessDescription(result, "Collection removed (and MinIO bucket if enabled)"),
+          description: buildSuccessDescription(result, "Qdrant collection and MinIO bucket removed"),
         });
       } else if (status === "partial") {
         toast.warning("Partial Deletion", {

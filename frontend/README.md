@@ -17,9 +17,9 @@ The app is intentionally simple and unauthenticated. Current pages:
 - `/configuration` - Web-based UI for managing backend environment variables at runtime (see Configuration Management below).
 - `/maintenance` - System maintenance interface with:
   - Real-time status display showing system readiness, collection stats (vectors, unique files), and bucket stats (object count)
-  - **Initialize System**: Creates the Qdrant collection and, when MinIO is enabled, prepares the MinIO bucket. Required before first use.
-  - **Delete System**: Removes the collection and, if applicable, the MinIO bucket for configuration changes or a fresh start.
-  - **Data Reset**: Clears all data (documents, embeddings, images) while preserving infrastructure (skips MinIO when disabled).
+  - **Initialize System**: Creates the Qdrant collection and prepares the MinIO bucket. Required before first use.
+  - **Delete System**: Removes both the collection and the MinIO bucket for configuration changes or a fresh start.
+  - **Data Reset**: Clears all data (documents, embeddings, images) while preserving the collection and bucket infrastructure.
   - All operations include confirmation dialogs and status updates across all pages via event system.
 
 Screenshots live in `image/README/` and are referenced from the repo root `README.md`.
