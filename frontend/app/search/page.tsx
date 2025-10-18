@@ -1,10 +1,22 @@
 "use client";
 
+import Link from "next/link";
 import { ChangeEvent, FormEvent, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import "@/lib/api/client";
 import Image from "next/image";
-import { Search, Loader2, X, AlertCircle, Sparkles, ArrowRight, FileText, Clock } from "lucide-react";
+import {
+  Search,
+  Loader2,
+  X,
+  AlertCircle,
+  Sparkles,
+  ArrowRight,
+  FileText,
+  Clock,
+  Compass,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { AppButton } from "@/components/app-button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -20,6 +32,44 @@ const suggestedQueries = [
   "Show recent upload summaries",
   "Find diagrams about the architecture",
   "Which contracts mention service levels?",
+];
+
+type SearchHelperCard = {
+  id: string;
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  gradient: string;
+  href?: string;
+  actionLabel?: string;
+};
+
+const SEARCH_HELPER_CARDS: SearchHelperCard[] = [
+  {
+    id: "start",
+    title: "Start with a question",
+    description: "Ask about people, diagrams, or obligations. Snappy ranks the most relevant page images instantly.",
+    icon: Sparkles,
+    gradient: "from-chart-1 to-chart-2",
+  },
+  {
+    id: "uploads",
+    title: "Spot-check uploads",
+    description: "Recently indexed? Search by filename or topic to verify that your latest PDFs are retrievable.",
+    icon: FileText,
+    gradient: "from-chart-3 to-chart-4",
+    href: "/upload",
+    actionLabel: "Go to Upload",
+  },
+  {
+    id: "status",
+    title: "Monitor system health",
+    description: "Confirm Qdrant and MinIO are ready before large queries or new ingestion sessions.",
+    icon: Compass,
+    gradient: "from-chart-2 to-primary",
+    href: "/maintenance",
+    actionLabel: "Open Maintenance",
+  },
 ];
 
 export default function SearchPage() {
@@ -229,6 +279,77 @@ export default function SearchPage() {
               )}
             </AnimatePresence>
           </motion.form>
+
+          {/* Helper content before first search */}
+          <AnimatePresence mode="wait">
+            {!hasSearched && !loading && (
+              <motion.section
+                className="space-y-3 rounded-2xl border border-border/40 bg-card/30 p-4 backdrop-blur-sm"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -16 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="flex items-center gap-2">
+                  <Sparkles className="size-icon-xs text-primary" />
+                  <h3 className="text-body font-bold">Ways to get started</h3>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {SEARCH_HELPER_CARDS.map((card, index) => (
+                    <motion.article
+                      key={card.id}
+                      className="group relative overflow-hidden rounded-xl border border-border/40 bg-background/70 p-4 transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10"
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05, duration: 0.25 }}
+                      whileHover={{ y: -4, scale: 1.01 }}
+                      whileTap={{ scale: 0.99 }}
+                    >
+                      <div
+                        className={`absolute inset-0 bg-gradient-to-br ${card.gradient} opacity-0 transition-opacity group-hover:opacity-10`}
+                      />
+                      <div className="relative space-y-3">
+                        <div className="flex items-center gap-2">
+                          <div className="flex size-10 items-center justify-center rounded-lg bg-muted/70">
+                            <card.icon className="size-icon-xs text-primary" />
+                          </div>
+                          <h4 className="text-body-sm font-semibold">{card.title}</h4>
+                        </div>
+                        <p className="text-body-xs text-muted-foreground">{card.description}</p>
+                        {card.href && card.actionLabel && (
+                          <Link
+                            href={card.href}
+                            className="inline-flex items-center gap-1 text-body-xs font-semibold text-primary transition-colors hover:text-primary/80"
+                          >
+                            {card.actionLabel}
+                            <ArrowRight className="size-icon-3xs" />
+                          </Link>
+                        )}
+                      </div>
+                    </motion.article>
+                  ))}
+                </div>
+
+                <div className="rounded-xl border border-dashed border-border/30 bg-background/70 p-4 text-left">
+                  <p className="text-body-xs font-semibold text-muted-foreground">Need inspiration?</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {suggestedQueries.map((item) => (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => setQuery(item)}
+                        className="inline-flex items-center gap-1 rounded-full border border-border/40 bg-background px-3 py-1 text-body-xs font-medium text-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                      >
+                        <Clock className="size-icon-3xs text-primary/80" />
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </motion.section>
+            )}
+          </AnimatePresence>
 
           {/* Results Section */}
           <AnimatePresence mode="wait">

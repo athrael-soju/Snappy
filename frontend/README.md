@@ -22,8 +22,6 @@ The app is intentionally simple and unauthenticated. Current pages:
   - **Data Reset**: Clears all data (documents, embeddings, images) while preserving the collection and bucket infrastructure.
   - All operations include confirmation dialogs and status updates across all pages via event system.
 
-Screenshots live in `image/README/` and are referenced from the repo root `README.md`.
-
 ## Design System
 
 - **Tokens live in `app/globals.css`**. Typography utilities (`text-body`, `text-body-xs`, `text-body-lg`) and icon utilities (`size-icon-*`) define our spacing scale.
