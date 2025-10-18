@@ -329,7 +329,6 @@ export default function MaintenancePage() {
               <p className="text-body-xs leading-relaxed text-muted-foreground">
                 Manage system storage and data lifecycle. Each action requires confirmation and may be irreversible.
               </p>
-
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                 {CORE_OPERATIONS.map((operation) => {
                   const Icon = operation.icon;
@@ -342,8 +341,8 @@ export default function MaintenancePage() {
                     operation.id === "reset"
                       ? "destructive"
                       : operation.id === "delete"
-                        ? "outline"
-                        : "primary";
+                        ? "destructive"
+                        : "hero";
 
                   const handleClick = () => {
                     if (operation.id === "initialize") {

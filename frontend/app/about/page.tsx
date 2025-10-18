@@ -298,6 +298,7 @@ export default function AboutPage() {
               <AppButton
                 asChild
                 size="lg"
+                variant="hero"
                 elevated
                 iconShift
               >
