@@ -347,7 +347,6 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "text",
                 "description": "Internal MinIO service URL",
                 "help_text": "Internal endpoint for the MinIO object storage service. Used by the backend to upload files. Default port is 9000. Change if MinIO runs on a different host or port. Format: http://hostname:port. Must be accessible from the backend application.",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True},
             },
             {
                 "key": "MINIO_PUBLIC_URL",
@@ -358,7 +357,6 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "text",
                 "description": "Public-facing MinIO URL",
                 "help_text": "Public endpoint for accessing stored files from browsers/clients. Can differ from MINIO_URL if using a reverse proxy or load balancer. In production, use your domain (e.g., https://storage.example.com). In development, same as MINIO_URL is fine.",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True},
             },
             {
                 "key": "MINIO_ACCESS_KEY",
@@ -369,7 +367,6 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "password",
                 "description": "MinIO access key (username)",
                 "help_text": "MinIO access key (similar to username) for authentication. Default 'minioadmin' is for development only. In production, create a dedicated access key with appropriate permissions. Never use default credentials in production - security risk!",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True},
             },
             {
                 "key": "MINIO_SECRET_KEY",
@@ -380,7 +377,6 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "password",
                 "description": "MinIO secret key (password)",
                 "help_text": "MinIO secret key (similar to password) for authentication. Default 'minioadmin' is for development only. In production, use a strong, randomly generated secret. Store securely in environment variables. Critical security setting - never expose publicly!",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True},
             },
             {
                 "key": "MINIO_BUCKET_NAME",
@@ -391,11 +387,10 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "text",
                 "description": "Name of the storage bucket (auto-derived when empty)",
                 "help_text": "When left blank, the backend derives a MinIO bucket name by slugifying the Qdrant collection name. Override only if you need to target a specific existing bucket.",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True},
             },
             {
                 "key": "MINIO_WORKERS",
-                "ui_hidden": True,
+                "ui_hidden": False,
                 "type": "int",
                 "default": 12,
                 "label": "Worker Threads",
@@ -404,7 +399,6 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "max": 32,
                 "description": "Number of concurrent upload workers (auto-sized)",
                 "help_text": "The backend now sizes this automatically based on CPU cores and pipeline concurrency. Override via environment variables only when you need to cap or increase concurrency manually.",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True},
             },
             {
                 "key": "MINIO_RETRIES",
@@ -417,7 +411,6 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "max": 10,
                 "description": "Number of retry attempts on failure (auto-sized)",
                 "help_text": "The backend derives this from the chosen worker concurrency. Override via environment variables if you need stricter or more lenient retry behaviour.",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True},
             },
             {
                 "key": "MINIO_FAIL_FAST",
@@ -428,17 +421,16 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "boolean",
                 "description": "Stop immediately on first error",
                 "help_text": "Advanced troubleshooting option. When left unset the backend keeps the resilient default (False); override only if you need to abort batches on the first failure.",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True},
             },
             {
                 "key": "MINIO_PUBLIC_READ",
+                "ui_hidden": True,
                 "type": "bool",
                 "default": True,
                 "label": "Public Read Access",
                 "ui_type": "boolean",
                 "description": "Allow public read access to files",
                 "help_text": "Makes uploaded files publicly accessible without authentication. Enable (True) for public applications where anyone can view documents. Disable (False) for private/internal applications requiring access control. Consider your security requirements carefully.",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True},
             },
             {
                 "key": "IMAGE_FORMAT",

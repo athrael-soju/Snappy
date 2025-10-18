@@ -3,26 +3,26 @@
 import { motion, AnimatePresence } from "framer-motion";
 import "@/lib/api/client";
 import { useConfigurationPanel } from "@/lib/hooks/use-configuration-panel";
-import { 
-  Settings, 
-  Save, 
-  RotateCcw, 
-  AlertCircle, 
+import {
+  Settings,
+  Save,
+  RotateCcw,
+  AlertCircle,
   CheckCircle2,
   Loader2,
   Sparkles,
-  Zap,
   Info,
   Lock,
   Hash,
   ToggleLeft,
-  List
+  List,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import Loading from "../loading";
 
 export default function ConfigurationPage() {
   const {
@@ -40,25 +40,12 @@ export default function ConfigurationPage() {
     resetChanges,
     resetSection,
     resetToDefaults,
-    optimizeForSystem,
     handleValueChange,
     isSettingVisible,
   } = useConfigurationPanel();
 
   if (loading && !schema) {
-    return (
-      <div className="relative flex h-full min-h-full flex-col overflow-hidden">
-        <motion.div 
-          className="flex h-full flex-1 flex-col items-center justify-center px-4 py-6"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3 }}
-        >
-          <Loader2 className="size-icon-xl animate-spin text-primary" />
-          <p className="mt-3 text-body-sm text-muted-foreground">Loading configuration...</p>
-        </motion.div>
-      </div>
-    );
+    return <Loading />;
   }
 
   if (!schema) {
@@ -140,19 +127,6 @@ export default function ConfigurationPage() {
                   ))}
                 </select>
               </div>
-
-              <Button
-                type="button"
-                onClick={optimizeForSystem}
-                disabled={saving}
-                variant="outline"
-                size="sm"
-                className="h-10 gap-2 rounded-full px-4 touch-manipulation"
-              >
-                <Zap className="size-icon-xs" />
-                <span className="hidden sm:inline">Optimize</span>
-              </Button>
-              
               <Button
                 type="button"
                 onClick={resetToDefaults}

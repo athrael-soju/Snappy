@@ -10,7 +10,6 @@ import {
   loadConfigFromStorage,
   loadStoredConfigMeta,
 } from "@/lib/config/config-store";
-import { parseOptimizationResponse } from "@/lib/api/runtime";
 
 export interface ConfigSetting {
   key: string;
@@ -58,7 +57,6 @@ export function useConfigurationPanel() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("application");
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [optimizing, setOptimizing] = useState(false);
 
   const loadConfiguration = useCallback(async () => {
     setLoading(true);
@@ -263,43 +261,6 @@ export function useConfigurationPanel() {
     }
   }, [loadConfiguration]);
 
-  const optimizeForSystem = useCallback(async () => {
-    if (hasChanges) {
-      toast.info("Save changes first", { description: "Please save or discard edits before optimizing." });
-      return;
-    }
-
-    setOptimizing(true);
-    setError(null);
-
-    try {
-      const result = await ConfigurationService.optimizeConfigConfigOptimizePost();
-      const optimization = parseOptimizationResponse(result);
-      clearConfigFromStorage();
-      await loadConfiguration();
-      setLastSaved(new Date());
-
-      const appliedCount = Object.keys(optimization.applied ?? {}).length;
-      const description =
-        optimization.message ||
-        (appliedCount
-          ? `Applied ${appliedCount} setting${appliedCount !== 1 ? "s" : ""}.`
-          : "Your configuration already matched the recommended profile.");
-
-      const notify = appliedCount > 0 ? toast.success : toast.info;
-      notify("Optimization complete", { description });
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new Event("systemStatusChanged"));
-      }
-    } catch (err) {
-      const errorMsg = err instanceof ApiError ? err.message : "Failed to optimize configuration";
-      setError(errorMsg);
-      toast.error("Optimization failed", { description: errorMsg });
-    } finally {
-      setOptimizing(false);
-    }
-  }, [hasChanges, loadConfiguration]);
-
   return {
     schema,
     loading,
@@ -311,12 +272,10 @@ export function useConfigurationPanel() {
     values,
     configStats,
     lastSaved,
-    optimizing,
     saveChanges,
     resetChanges,
     resetSection,
     resetToDefaults,
-    optimizeForSystem,
     handleValueChange,
     isSettingVisible,
   };
