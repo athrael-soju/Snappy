@@ -1,7 +1,7 @@
-# The Most Beautiful Rag - FastAPI / Next.js / ColPali Template
+# Snappy - Your Vision Retrieval buddy!
 
 <center>
-<img width="100%" alt="image" src="image/README/1755459651164.png" />
+  <img width="100%" alt="image" src="frontend/public/Snappy/Snappy_light_readme.png" />
 </center>
 
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688)](https://fastapi.tiangolo.com/)
@@ -17,10 +17,10 @@ multivectors in Qdrant, and surfaced through a Next.js UI with streaming chat
 responses and visual citations.
 
 > Looking for component-level docs?  
-> • Backend: `backend/README.md`  
-> • Frontend: `frontend/README.md`  
-> • ColPali service: `colpali/README.md`  
-> • Configuration reference: `backend/docs/configuration.md`
+> - Backend: `backend/README.md`  
+> - Frontend: `frontend/README.md`  
+> - ColPali service: `colpali/README.md`  
+> - Configuration reference: `backend/docs/configuration.md`
 
 ---
 
@@ -34,7 +34,7 @@ config:
 ---
 flowchart TB
   subgraph Frontend["Next.js Frontend"]
-    UI["Pages (/upload, /search, /chat, /maintenance)"]
+    UI["Pages (/upload, /search, /chat, /configuration, /maintenance)"]
     CHAT["Chat API Route"]
   end
 
@@ -66,17 +66,18 @@ walkthrough of the indexing and retrieval flows.
 
 ## Features
 
-- **Page-level, multimodal retrieval** – multivector embeddings per PDF page,
-  optional MUVERA first-stage search, MinIO-backed image URLs or inline payloads.
-- **Streaming chat with visual citations** – Next.js edge route emits a custom
+- **Page-level, multimodal retrieval** - multivector embeddings per PDF page,
+  optional MUVERA first-stage search, and MinIO-backed image URLs (object storage
+  is now a hard requirement).
+- **Streaming chat with visual citations** - Next.js edge route emits a custom
   `kb.images` event alongside OpenAI Responses SSE, and the UI displays a
   "Visual citations included" chip with an image gallery.
-- **Pipelined indexing** – configurable batch size, automatic concurrency
+- **Pipelined indexing** - configurable batch size, automatic concurrency
   sizing, progress tracking via Server-Sent Events, and optional cancellation.
-- **Runtime configuration UI** – `/maintenance` page consumes the
-  `/config/*` API to edit settings, reset to defaults, or apply hardware-driven
-  optimisations without restarting the backend.
-- **Docker-first** – root `docker-compose.yml` spins up Qdrant, MinIO, backend,
+- **Runtime configuration UI** - the redesigned `/configuration` page lets you
+  review, restore, or discard browser-held drafts before applying changes,
+  manage settings by section, and reset values without restarting the backend.
+- **Docker-first** - root `docker-compose.yml` spins up Qdrant, MinIO, backend,
   frontend, and the ColPali embedding API services (CPU and GPU variants
   available under `colpali/docker-compose.yml`).
 
@@ -86,53 +87,16 @@ walkthrough of the indexing and retrieval flows.
 
 A modern Next.js 15 UI with server-side streaming, real-time progress updates, and visual citations.
 
-<div align="center">
-  <table>
-    <tr>
-      <td align="center">
-        <strong>Home</strong><br/>
-        <img src="image/README/image-1.png" alt="Home screen" width="520" />
-        <img src="image/README/image-8.png" alt="Home screen" width="520" />
-      </td>
-      <td align="center">
-        <strong>Upload</strong><br/>
-        <img src="image/README/image-3.png" alt="Upload screen" width="520" />
-        <img src="image/README/image-10.png" alt="Upload screen" width="520" />
-      </td>
-    </tr>
-    <tr>
-      <td align="center">
-        <strong>Search</strong><br/>
-        <img src="image/README/image-2.png" alt="Search screen" width="520" />
-        <img src="image/README/image-9.png" alt="Search screen" width="520" />
-      </td>
-      <td align="center">
-        <strong>Chat</strong><br/>
-        <img src="image/README/image-4.png" alt="Chat screen" width="520" />
-        <img src="image/README/image-11.png" alt="Chat screen" width="520" />
-      </td>
-    </tr>
-    <tr>
-      <td align="center">
-        <strong>System (Configuration)</strong><br/>
-        <img src="image/README/image-5.png" alt="Configuration screen" width="520" />
-        <img src="image/README/image-12.png" alt="Configuration screen" width="520" />
-      </td>
-      <td align="center">
-        <strong>System (Maintenance)</strong><br/>
-        <img src="image/README/image-6.png" alt="Maintenance screen" width="520" />
-        <img src="image/README/image-13.png" alt="Maintenance screen" width="520" />
-      </td>      
-    </tr>
-    <tr>    
-      <td align="center">
-         <strong>About</strong><br/>
-         <img src="image/README/image-7.png" alt="About screen" width="520" />
-         <img src="image/README/image-14.png" alt="About screen" width="520" />
-      </td>
-    </tr>      
-  </table>
-</div>
+- Shared components rely on the tokenised utilities defined in `frontend/app/globals.css` (`text-body-*`, `size-icon-*`), keeping the stylesheet the single source of truth for typography and icon sizing. Use those helpers when extending the UI to stay on the Snappy visual grid.
+- The configuration workspace now organises sections with horizontal tabs, shows
+  lightweight stats, and surfaces a draft banner whenever the browser is out of
+  sync with the server so you can opt in before reapplying stored values.
+
+<p align="center">
+  <a href="https://youtu.be/fzj9hJIKGlg" title="Watch the demo">
+    <img src="https://img.youtube.com/vi/fzj9hJIKGlg/hqdefault.jpg" alt="Snappy demo" width="640" />
+  </a>
+</p>
 
 ---
 
@@ -208,20 +172,21 @@ A modern Next.js 15 UI with server-side streaming, real-time progress updates, a
 
 - `COLPALI_MODE`, `COLPALI_CPU_URL`, `COLPALI_GPU_URL`,
   `COLPALI_API_TIMEOUT`
-- `QDRANT_EMBEDDED`, `QDRANT_URL`, `QDRANT_COLLECTION_NAME`,
+- `QDRANT_EMBEDDED` (defaults to `False`), `QDRANT_URL`, `QDRANT_COLLECTION_NAME`,
   `QDRANT_PREFETCH_LIMIT`, quantisation toggles (`QDRANT_USE_BINARY`, etc.)
-- `MINIO_ENABLED`, `MINIO_URL`, `MINIO_PUBLIC_URL`, credentials, `IMAGE_FORMAT`
-  and `IMAGE_QUALITY`
+- `MINIO_URL`, `MINIO_PUBLIC_URL`, credentials, `MINIO_BUCKET_NAME`,
+  `IMAGE_FORMAT` and `IMAGE_QUALITY`
 - `MUVERA_ENABLED` and related parameters (requires `fastembed[postprocess]`)
 - `LOG_LEVEL`, `ALLOWED_ORIGINS`, `UVICORN_RELOAD`
 
 All schema-backed settings (and their defaults) are documented in
 `backend/docs/configuration.md`. To change values permanently update your
-`.env`. Runtime updates via `/config/update` are ephemeral.
+`.env`. Runtime updates via `/config/update` are ephemeral. MinIO credentials
+must be supplied; the backend no longer falls back to inline image storage.
 
 ### Frontend highlights (`frontend/.env.local`)
 
-- `NEXT_PUBLIC_API_BASE_URL` – defaults to `http://localhost:8000`
+- `NEXT_PUBLIC_API_BASE_URL` - defaults to `http://localhost:8000`
 - `OPENAI_API_KEY`, `OPENAI_MODEL`, optional `OPENAI_TEMPERATURE`,
   `OPENAI_MAX_TOKENS`
 
@@ -251,16 +216,15 @@ backend does not proxy OpenAI calls.
 
 ## Troubleshooting
 
-- **ColPali timeouts** – increase `COLPALI_API_TIMEOUT` or switch to the GPU
+- **ColPali timeouts** - increase `COLPALI_API_TIMEOUT` or switch to the GPU
   service. CPU mode is significantly slower.
-- **Progress stream never completes** – ensure Poppler is installed and
+- **Progress stream never completes** - ensure Poppler is installed and
   accessible; check backend logs for PDF conversion errors.
-- **Images missing in search results** – if `MINIO_ENABLED=False`, images are
-  stored inline. Make sure the frontend `next.config.ts` allows the relevant
-  domains when MinIO is enabled.
-- **CORS errors** – set `ALLOWED_ORIGINS` to explicit URLs before exposing the
+- **Images missing in search results** - confirm MinIO credentials/URL are
+  correct and that the frontend `next.config.ts` allows the relevant domains.
+- **CORS errors** - set `ALLOWED_ORIGINS` to explicit URLs before exposing the
   API outside of local development.
-- **Runtime config changes do not persist** – use `/config/update` for temporary
+- **Runtime config changes do not persist** - use `/config/update` for temporary
   tweaks and update `.env` for permanent values.
 
 See the Troubleshooting section in `backend/docs/configuration.md` for more
@@ -291,13 +255,13 @@ more.
 
 ## License
 
-MIT License – see [LICENSE](LICENSE).
+MIT License - see [LICENSE](LICENSE).
 
 ---
 
 ## Acknowledgements
 
-- **ColPali / ColQwen** – https://arxiv.org/abs/2407.01449
-- **Qdrant optimisations** – https://qdrant.tech/blog/colpali-qdrant-optimization/  
+- **ColPali / ColQwen** - https://arxiv.org/abs/2407.01449
+- **Qdrant optimisations** - https://qdrant.tech/blog/colpali-qdrant-optimization/  
   and https://qdrant.tech/articles/binary-quantization/
-- **PyTorch** – https://pytorch.org/
+- **PyTorch** - https://pytorch.org/

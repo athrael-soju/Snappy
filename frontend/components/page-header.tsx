@@ -1,67 +1,144 @@
-import { LucideIcon, HelpCircle } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+"use client"
 
-import type { ReactNode } from "react";
+import * as React from "react"
 
-interface PageHeaderProps {
-  title: string;
-  description?: string;
-  icon?: LucideIcon;
-  children?: ReactNode;
-  badge?: ReactNode;
-  tooltip?: string;
+import { cn } from "@/lib/utils"
+
+type PageHeaderProps = {
+  /**
+   * Main heading content. Supports React fragments for gradient spans.
+   */
+  title: React.ReactNode
+  /**
+   * Optional supporting copy rendered under the title.
+   */
+  description?: React.ReactNode
+  /**
+   * Eyebrow text rendered above the title (e.g., a section label).
+   */
+  lead?: React.ReactNode
+  /**
+   * Action area rendered alongside the header (buttons, links, etc.).
+   */
+  actions?: React.ReactNode
+  /**
+   * Additional content rendered beneath the description (badges, chips, etc.).
+   */
+  children?: React.ReactNode
+  /**
+   * Horizontal alignment for the header stack.
+   */
+  align?: "left" | "center"
+  /**
+   * Overall vertical rhythm between header sections.
+   */
+  spacing?: "sm" | "md" | "lg"
+  className?: string
+  titleClassName?: string
+  descriptionClassName?: string
+  leadClassName?: string
+  childrenClassName?: string
+  actionsClassName?: string
 }
 
-export function PageHeader({ title, description, icon: Icon, children, badge, tooltip }: PageHeaderProps) {
+const spacingClassMap: Record<NonNullable<PageHeaderProps["spacing"]>, string> = {
+  sm: "gap-3",
+  md: "gap-4",
+  lg: "gap-6",
+}
+
+export function PageHeader({
+  title,
+  description,
+  lead,
+  actions,
+  children,
+  align = "center",
+  spacing = "md",
+  className,
+  titleClassName,
+  descriptionClassName,
+  leadClassName,
+  childrenClassName,
+  actionsClassName,
+}: PageHeaderProps) {
+  const alignment = align === "center" ? "items-center text-center" : "items-start text-left"
+  const descriptionWidth =
+    align === "center" ? "mx-auto max-w-2xl" : "max-w-3xl"
+  const actionsAlignment = align === "center" ? "justify-center" : "justify-start"
+
   return (
-    <div className="relative space-y-3 text-center">
-      {/* Subtle background accent - only on top */}
-      <div className="pointer-events-none absolute inset-0 -z-10">
+    <header
+      className={cn(
+        "flex flex-col",
+        spacingClassMap[spacing],
+        alignment,
+        className
+      )}
+    >
+      {lead ? (
         <div
-          className="absolute left-1/2 top-[-18%] h-56 w-56 -translate-x-1/2 rounded-full opacity-20 blur-3xl"
-          style={{ background: "radial-gradient(circle, rgba(251, 226, 167, 0.35) 0%, transparent 70%)" }}
-        />
+          className={cn(
+            "text-body-xs font-semibold uppercase tracking-wide text-muted-foreground",
+            align === "center" ? "mx-auto" : undefined,
+            leadClassName
+          )}
+        >
+          {lead}
+        </div>
+      ) : null}
+
+      <div
+        className={cn(
+          "flex flex-col gap-2",
+          align === "center" ? "items-center" : "items-start"
+        )}
+      >
+        <h1
+          className={cn(
+            "text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl",
+            titleClassName
+          )}
+        >
+          {title}
+        </h1>
+        {description ? (
+          <div
+            className={cn(
+              "text-body-xs leading-relaxed text-muted-foreground",
+              descriptionWidth,
+              descriptionClassName
+            )}
+          >
+            {description}
+          </div>
+        ) : null}
       </div>
 
-      <div className="relative z-10 flex flex-wrap items-center justify-center gap-3">
-        {Icon && (
-          <div className="rounded-2xl border border-border bg-card p-2.5 shadow-sm">
-            <Icon className="h-6 w-6 text-primary" />
-          </div>
-        )}
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <div className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-card/90 backdrop-blur-sm border border-border shadow-sm">
-            <h1
-              className="text-balance text-4xl font-semibold tracking-tight bg-clip-text text-transparent"
-              style={{ backgroundImage: "var(--nav-pill-active)" }}
-            >
-              {title}
-            </h1>
-            {tooltip && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    className="inline-flex items-center justify-center rounded-full border border-border bg-card/80 p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
-                  >
-                    <HelpCircle className="h-4 w-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs text-base bg-popover text-popover-foreground" sideOffset={8}>
-                  {tooltip}
-                </TooltipContent>
-              </Tooltip>
-            )}
-          </div>
-          {badge && <div className="flex items-center text-sm">{badge}</div>}
+      {actions ? (
+        <div
+          className={cn(
+            "flex flex-wrap items-center gap-3",
+            actionsAlignment,
+            actionsClassName
+          )}
+        >
+          {actions}
         </div>
-      </div>
-      {description && (
-        <p className="relative z-10 mx-auto max-w-2xl text-balance text-base text-muted-foreground px-4 py-2 rounded-lg bg-card/50 backdrop-blur-sm">
-          {description}
-        </p>
-      )}
-      {children}
-    </div>
-  );
+      ) : null}
+
+      {children ? (
+        <div
+          className={cn(
+            "flex flex-wrap items-center gap-2",
+            actionsAlignment,
+            childrenClassName
+          )}
+        >
+          {children}
+        </div>
+      ) : null}
+    </header>
+  )
 }
+

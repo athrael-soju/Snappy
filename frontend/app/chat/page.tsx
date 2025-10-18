@@ -1,62 +1,398 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
-import { useChat } from "@/lib/hooks/use-chat";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-// Removed Select in favor of a clearer segmented control
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { User, Image as ImageIcon, Loader2, Sparkles, Brain, FileText, BarChart3, MessageSquare, Clock, ExternalLink, ThumbsUp, ThumbsDown } from "lucide-react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import type { FormEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { defaultPageMotion, fadeInPresence, sectionVariants } from "@/lib/motion-presets";
-import { toast } from "@/components/ui/sonner";
-import ImageLightbox from "@/components/lightbox";
-import ChatInputBar from "@/components/chat/ChatInputBar";
-import StarterQuestions from "@/components/chat/StarterQuestions";
-import RecentSearchesChips from "@/components/search/RecentSearchesChips";
-import MarkdownRenderer from "@/components/chat/MarkdownRenderer";
-import { PageHeader } from "@/components/page-header";
-import { MaintenanceService } from "@/lib/api/generated";
+import "@/lib/api/client";
+import { useChat } from "@/lib/hooks/use-chat";
 import { useSystemStatus } from "@/stores/app-store";
-import Link from "next/link";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { AppButton } from "@/components/app-button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { getRandomBrainPlaceholder } from "@/lib/chat/brain-states";
 import { cn } from "@/lib/utils";
+import ImageLightbox from "@/components/lightbox";
+import MarkdownRenderer from "@/components/chat/MarkdownRenderer";
+import {
+  AlertCircle,
+  Bot,
+  Clock3,
+  Loader2,
+  MessageCircle,
+  Send,
+  Sparkles,
+  Timer,
+  User,
+  Wand2,
+  Telescope,
+  ClipboardCheck,
+  Settings,
+  Trash2,
+} from "lucide-react";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { PageHeader } from "@/components/page-header";
 
-import { BRAIN_PLACEHOLDERS } from "@/lib/utils";
-import { SystemStatusWarning } from "@/components/upload";
-
-// Starter questions to help users get started (qualitative phrasing)
-const starterQuestions = [
+const starterPrompts = [
   {
-    icon: FileText,
-    text: "What key themes emerge in my August 2025 financial report?",
-    category: "Analysis"
+    title: "Find visual information",
+    description: "Search for charts, diagrams, or images showing specific data or concepts.",
+    tag: "Visual",
+    icon: Telescope,
+    emoji: "🔍",
+    prompt: "Find all charts and diagrams related to [your topic] and describe what they show.",
   },
   {
-    icon: BarChart3,
-    text: "Explain the AI architecture in the Q2 system design docs at a high level",
-    category: "Technical"
+    title: "Extract from tables",
+    description: "Pull specific data from tables and structured content in documents.",
+    tag: "Data",
+    icon: ClipboardCheck,
+    emoji: "📊",
+    prompt: "What information is shown in the tables about [your topic]? List the key data points.",
   },
   {
-    icon: MessageSquare,
-    text: "For Project Orion, where are responsibilities and scope discussed?",
-    category: "Legal"
+    title: "Analyze document layout",
+    description: "Understand how information is organized across pages and sections.",
+    tag: "Layout",
+    icon: MessageCircle,
+    emoji: "📑",
+    prompt: "Describe the layout and structure of documents covering [your topic]. Where is the key information located?",
   },
   {
-    icon: Brain,
-    text: "Find slide decks that outline product vision and strategy",
-    category: "Business"
-  }
+    title: "Compare visual elements",
+    description: "Identify differences and similarities between images and diagrams.",
+    tag: "Compare",
+    icon: Wand2,
+    emoji: "🔬",
+    prompt: "Compare the visual elements across different documents about [your topic]. What patterns or differences do you notice?",
+  },
 ];
 
-const CHAT_PLACEHOLDER_EXAMPLES = [
-  "Give a high-level overview of my latest project report",
-  "What potential risks are highlighted in the compliance policies?",
-  "Show conceptual diagrams about AI systems from the design docs",
-  "Which vendor contracts discuss obligations?"
-];
+type StarterPromptItemProps = {
+  item: (typeof starterPrompts)[0];
+  onClick: (prompt: string) => void;
+};
+
+function StarterPromptItem({ item, onClick }: StarterPromptItemProps) {
+  return (
+    <motion.button
+      key={item.prompt}
+      type="button"
+      onClick={() => onClick(item.prompt)}
+      className="group relative overflow-hidden rounded-xl border border-border/20 bg-background/90 p-3 sm:p-4 text-left shadow-xs transition hover:border-primary/50 hover:shadow-md hover:shadow-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 touch-manipulation"
+      whileHover={{ scale: 1.02, y: -2 }}
+      whileTap={{ scale: 0.98 }}
+    >
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-chart-1/5 opacity-0 transition group-hover:opacity-100" />
+      <div className="relative flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex size-icon-lg flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary shadow-sm">
+            <item.icon className="size-icon-sm" />
+          </div>
+          <Badge variant="outline" className="flex-shrink-0 rounded-full border-primary/30 px-2 py-0.5 text-body-xs uppercase tracking-wide text-primary">
+            {item.tag}
+          </Badge>
+        </div>
+        <h3 className="text-body-xs sm:text-body-sm font-semibold text-foreground leading-tight">{item.title}</h3>
+        <p className="text-body-xs text-muted-foreground line-clamp-2 leading-snug">{item.description}</p>
+      </div>
+    </motion.button>
+  );
+}
+
+type RecentQuestionsProps = {
+  questions: Array<{ id: string; content: string }>;
+  onSelect: (content: string) => void;
+};
+
+function RecentQuestions({ questions, onSelect }: RecentQuestionsProps) {
+  if (questions.length === 0) return null;
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2 text-body-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <Clock3 className="size-icon-sm" />
+        Recent questions
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {questions.map((item, index) => (
+          <motion.button
+            key={item.id}
+            type="button"
+            onClick={() => onSelect(item.content)}
+            className="group inline-flex items-center gap-2 rounded-full border border-border/25 bg-background/85 px-4 py-2 text-body-xs text-muted-foreground transition hover:border-primary/50 hover:text-foreground touch-manipulation"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: index * 0.1, duration: 0.2 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <MessageCircle className="size-icon-sm text-primary transition group-hover:text-primary" />
+            <span className="line-clamp-1">{item.content}</span>
+          </motion.button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+type ChatMessageProps = {
+  message: { id: string; role: string; content: string; citations?: Array<{ url?: string | null; label?: string | null; score?: number | null }> };
+  isLoading?: boolean;
+  onOpenCitation?: (url: string, label?: string | null) => void;
+};
+
+function ChatMessage({ message, isLoading, onOpenCitation }: ChatMessageProps) {
+  const isUser = message.role === "user";
+  const thinkingPlaceholder = useMemo(() => getRandomBrainPlaceholder(), []);
+  return (
+    <motion.div
+      layout="position"
+      className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -20, scale: 0.95 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+    >
+      <div
+        className={cn(
+          "max-w-[95%] sm:max-w-[85%] rounded-2xl p-4 text-body-sm sm:text-body transition overflow-hidden",
+          isUser
+            ? "bg-primary/10 border-2 border-primary/30 text-foreground shadow-md dark:bg-primary/20 dark:border-primary/40"
+            : "bg-card/80 border border-border/40 text-card-foreground shadow-lg backdrop-blur-sm dark:bg-card/60 dark:border-border/30",
+        )}
+      >
+        <div className="mb-2 flex items-center gap-2 text-body-xs font-semibold uppercase tracking-wide">
+          {isUser ? (
+            <>
+              <User className="size-icon-sm text-primary" />
+              <span className="text-primary">You</span>
+            </>
+          ) : (
+            <>
+              <Bot className="size-icon-sm text-accent" />
+              <span className="text-accent">Assistant</span>
+            </>
+          )}
+        </div>
+        {message.content ? (
+          isUser ? (
+            <p className="min-w-0 break-words whitespace-pre-wrap text-body-sm leading-relaxed text-foreground/90 sm:text-body">
+              {message.content}
+            </p>
+          ) : (
+            <>
+              <MarkdownRenderer
+                content={message.content}
+                images={
+                  Array.isArray(message.citations)
+                    ? message.citations.map((item) => ({
+                      url: item.url ?? null,
+                      label: item.label ?? null,
+                      score: item.score ?? null,
+                    }))
+                    : []
+                }
+                onImageClick={(url, label) => onOpenCitation?.(url, label)}
+                className="text-foreground/90"
+              />
+              {isLoading && (
+                <div className="mt-2 flex items-center gap-2 text-body-xs text-muted-foreground">
+                  <Loader2 className="size-icon-sm animate-spin" />
+                  <span>Streaming response...</span>
+                </div>
+              )}
+            </>
+          )
+        ) : (
+          <div className="flex items-center gap-2">
+            <span className="text-body-xs" aria-live="polite">
+              {thinkingPlaceholder}
+            </span>
+            <div className="flex gap-1">
+              <span className="size-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "0ms" }} />
+              <span className="size-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "150ms" }} />
+              <span className="size-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "300ms" }} />
+            </div>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+type ChatComposerProps = {
+  input: string;
+  onInputChange: (value: string) => void;
+  isReady: boolean;
+  loading: boolean;
+  isSendDisabled: boolean;
+  toolCallingEnabled: boolean;
+  onToolToggle: (checked: boolean) => void;
+  k: number;
+  maxTokens: number;
+  onNumberChange: (event: ChangeEvent<HTMLInputElement>, setter: (value: number) => void) => void;
+  setK: (value: number) => void;
+  setMaxTokens: (value: number) => void;
+  isSettingsValid: boolean;
+  sendMessage: (event: FormEvent<HTMLFormElement>) => void;
+  error: string | null;
+  reset: () => void;
+  messages: Array<{ id: string; role: string; content: string }>;
+};
+
+function ChatComposer({
+  input,
+  onInputChange,
+  isReady,
+  loading,
+  isSendDisabled,
+  toolCallingEnabled,
+  onToolToggle,
+  k,
+  maxTokens,
+  onNumberChange,
+  setK,
+  setMaxTokens,
+  isSettingsValid,
+  sendMessage,
+  error,
+  reset,
+  messages,
+}: ChatComposerProps) {
+  return (
+    <motion.form
+      onSubmit={sendMessage}
+      className="sticky bottom-0 left-0 right-0 z-10 px-4 pb-10 sm:px-6"
+      initial={{ opacity: 0, y: 50 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+    >
+      <div className="mx-auto w-full max-w-6xl space-y-3">
+        <div className="relative overflow-hidden rounded-[32px] border border-border/40 bg-background/95 p-4 shadow-xl shadow-primary/5 backdrop-blur">
+          <div className="pointer-events-none absolute inset-0 rounded-[32px] border border-white/5" />
+          <div className="relative z-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+            <div className="flex-1">
+              <div className="rounded-3xl border border-border/30 bg-input/10 transition focus-within:border-primary/40 focus-within:shadow-lg focus-within:shadow-primary/10">
+                <Textarea
+                  id="chat-input-area"
+                  value={input}
+                  onChange={(event) => onInputChange(event.target.value)}
+                  placeholder="Ask anything about your documents..."
+                  disabled={!isReady}
+                  rows={3}
+                  className="min-h-[3.5rem] w-full resize-none border-0 bg-transparent px-4 py-3 text-body leading-relaxed placeholder:text-muted-foreground outline-none focus-visible:ring-0"
+                />
+              </div>
+            </div>
+            <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+              <AppButton
+                type="submit"
+                size="icon-lg"
+                variant="hero"
+                elevated
+                disabled={isSendDisabled}
+                aria-label="Send message"
+              >
+                {loading ? <Loader2 className="size-icon-md animate-spin" /> : <Send className="size-icon-md" />}
+              </AppButton>
+              <div className="inline-flex items-center overflow-hidden rounded-full border border-border/40 bg-background/80 shadow-sm divide-x divide-border/40">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <AppButton
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      groupPosition="start"
+                      aria-label="Open retrieval settings"
+                    >
+                      <Settings className="size-icon-sm" />
+                    </AppButton>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 space-y-4">
+                    <div>
+                      <h4 className="text-body-sm font-semibold text-foreground">Retrieval settings</h4>
+                      <p className="mt-1 text-body-xs text-muted-foreground">
+                        Tune how many neighbors to fetch and how long responses can be.
+                      </p>
+                    </div>
+                    <div className="space-y-4 text-body-sm">
+                      <div className="space-y-2">
+                        <Label htmlFor="chat-k">Top K</Label>
+                        <Input
+                          id="chat-k"
+                          type="number"
+                          min={1}
+                          value={k}
+                          onChange={(event) => onNumberChange(event, setK)}
+                        />
+                        <p className="text-body-xs text-muted-foreground">
+                          Controls how many nearest neighbors the assistant retrieves. Higher values surface more
+                          context but may introduce noise.
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="chat-max-tokens">Max tokens</Label>
+                        <Input
+                          id="chat-max-tokens"
+                          type="number"
+                          min={64}
+                          value={maxTokens}
+                          onChange={(event) => onNumberChange(event, setMaxTokens)}
+                        />
+                        <p className="text-body-xs text-muted-foreground">
+                          Control response length to balance speed with detail.
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-between gap-3 rounded-xl border border-border/30 bg-card/40 px-3 py-2">
+                        <div>
+                          <p className="text-body-sm font-medium text-foreground">Allow tool calling</p>
+                          <p className="text-body-xs text-muted-foreground">
+                            Let the assistant call retrieval tools when needed.
+                          </p>
+                        </div>
+                        <Switch
+                          id="chat-tool-calling"
+                          checked={toolCallingEnabled}
+                          onCheckedChange={onToolToggle}
+                        />
+                      </div>
+                      {!isSettingsValid && (
+                        <div className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-body-xs text-destructive">
+                          <AlertCircle className="size-icon-sm" />
+                          The selected Top K value is not valid.
+                        </div>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                <AppButton
+                  type="button"
+                  onClick={reset}
+                  variant="ghost"
+                  size="icon"
+                  groupPosition="end"
+                  disabled={messages.length === 0 && !input}
+                  aria-label="Clear conversation"
+                >
+                  <Trash2 className="size-icon-sm" />
+                </AppButton>
+              </div>
+            </div>
+          </div>
+        </div>
+        {error && (
+          <div className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-body-sm font-medium text-destructive">
+            <AlertCircle className="size-icon-sm" />
+            {error}
+          </div>
+        )}
+      </div>
+    </motion.form>
+  );
+}
 
 export default function ChatPage() {
   const {
@@ -70,8 +406,6 @@ export default function ChatPage() {
     setK,
     toolCallingEnabled,
     setToolCallingEnabled,
-    topK,
-    setTopK,
     maxTokens,
     setMaxTokens,
     imageGroups,
@@ -79,400 +413,215 @@ export default function ChatPage() {
     sendMessage,
     reset,
   } = useChat();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const { isReady } = useSystemStatus();
+
   const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lightboxSrc, setLightboxSrc] = useState("");
-  const [lightboxAlt, setLightboxAlt] = useState<string | undefined>(undefined);
-  const [uiSettingsValid, setUiSettingsValid] = useState(true);
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  const [requestStart, setRequestStart] = useState<number | null>(null);
-  const [lastResponseDurationMs, setLastResponseDurationMs] = useState<number | null>(null);
-  const [brainIdx, setBrainIdx] = useState<number>(0);
-  const [sourceInspectorOpen, setSourceInspectorOpen] = useState(false);
-  const [isClearing, setIsClearing] = useState(false);
-  const { systemStatus, setStatus, isReady, needsRefresh } = useSystemStatus();
-  const [statusLoading, setStatusLoading] = useState(false);
-  const hasFetchedRef = useRef(false);
-  const [placeholderIdx, setPlaceholderIdx] = useState(0);
+  const [lightboxSrc, setLightboxSrc] = useState<string>("");
+  const [lightboxAlt, setLightboxAlt] = useState<string | null>(null);
 
-  const removeFromRecentSearches = (q: string) => {
-    setRecentSearches((prev) => {
-      const updated = prev.filter((s) => s !== q);
-      localStorage.setItem("colpali-chat-recent", JSON.stringify(updated));
-      return updated;
-    });
-  };
+  const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
 
-  const scrollToBottom = () => {
-    if (messagesContainerRef.current) {
-      // Use rAF to ensure DOM has settled before scrolling
-      requestAnimationFrame(() => {
-        if (messagesContainerRef.current) {
-          const viewport = messagesContainerRef.current.querySelector('[data-slot="scroll-area-viewport"]');
-          if (viewport) {
-            viewport.scrollTop = viewport.scrollHeight;
-          }
-        }
-      });
+  useEffect(() => {
+    endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length, loading]);
+
+  const recentQuestions = useMemo(
+    () =>
+      messages
+        .filter((msg) => msg.role === "user" && msg.content.trim().length > 0)
+        .slice(-6)
+        .reverse(),
+    [messages],
+  );
+
+  const isSendDisabled = loading || !isReady || !input.trim() || !isSettingsValid;
+
+  const handleNumberChange = (event: ChangeEvent<HTMLInputElement>, setter: (value: number) => void) => {
+    const next = Number.parseInt(event.target.value, 10);
+    if (!Number.isNaN(next)) {
+      setter(next);
     }
   };
 
-  // Fetch system status function - always fetches fresh when called
-  const fetchSystemStatus = useCallback(async () => {
-    setStatusLoading(true);
-    try {
-      const status = await MaintenanceService.getStatusStatusGet();
-      setStatus({ ...status, lastChecked: Date.now() });
-      hasFetchedRef.current = true;
-    } catch (err) {
-      console.error('Failed to fetch system status:', err);
-    } finally {
-      setStatusLoading(false);
+  const handleSuggestionClick = (prompt: string) => {
+    setInput(prompt);
+    const area = document.getElementById("chat-input-area");
+    if (area instanceof HTMLTextAreaElement) {
+      area.focus();
     }
-  }, [setStatus]);
+  };
 
-  // Fetch system status on mount and listen for changes
-  useEffect(() => {
-    // Only fetch if we haven't fetched yet
-    if (!hasFetchedRef.current) {
-      fetchSystemStatus();
-    }
-
-    // Listen for system status changes from other pages
-    window.addEventListener('systemStatusChanged', fetchSystemStatus);
-    
-    return () => {
-      window.removeEventListener('systemStatusChanged', fetchSystemStatus);
-    };
-  }, [fetchSystemStatus]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  useEffect(() => {
-    const id = setInterval(() => setPlaceholderIdx((i) => (i + 1) % CHAT_PLACEHOLDER_EXAMPLES.length), 5000);
-    return () => clearInterval(id);
-  }, []);
-
-  // Rotate "thinking" placeholders while loading
-  useEffect(() => {
-    if (loading) {
-      // randomize start for variety
-      setBrainIdx((prev) => (prev + Math.floor(Math.random() * BRAIN_PLACEHOLDERS.length)) % BRAIN_PLACEHOLDERS.length);
-      const id = setInterval(() => {
-        setBrainIdx((i) => (i + 1) % BRAIN_PLACEHOLDERS.length);
-      }, 1200);
-      return () => clearInterval(id);
-    }
-  }, [loading]);
-
-  // sendMessage now provided by useChat
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isSettingsValid || !uiSettingsValid) return;
-    
-    // Check if system is ready
-    if (!isReady) {
-      toast.error('System Not Ready', { 
-        description: 'Initialize collection and bucket before using chat' 
-      });
+  const handleCitationOpen = (url: string, label?: string | null) => {
+    if (!url) {
       return;
     }
-    
-    const q = input.trim();
-    if (!q) return;
-    // track start and recent searches
-    setRequestStart(performance.now());
-    setLastResponseDurationMs(null);
-    setRecentSearches((prev) => {
-      const updated = [q, ...prev.filter((s) => s !== q)].slice(0, 10);
-      localStorage.setItem("colpali-chat-recent", JSON.stringify(updated));
-      return updated;
-    });
-    sendMessage(e);
+    setLightboxSrc(url);
+    setLightboxAlt(label ?? null);
+    setLightboxOpen(true);
   };
-
-  const messageVariants = {
-    initial: { opacity: 0, y: 10, scale: 0.95 },
-    animate: { opacity: 1, y: 0, scale: 1 },
-    exit: { 
-      opacity: 0, 
-      y: -20, 
-      scale: 0.9
-    }
-  };
-
-  // Load recent searches from localStorage once
-  useEffect(() => {
-    const saved = localStorage.getItem("colpali-chat-recent");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setRecentSearches(Array.isArray(parsed) ? parsed.slice(0, 10) : []);
-      } catch { }
-    }
-  }, []);
-
-  // When an assistant message appears after a started request, compute duration
-  useEffect(() => {
-    if (requestStart && messages.length > 0) {
-      const last = messages[messages.length - 1];
-      if (last.role === "assistant") {
-        setLastResponseDurationMs(performance.now() - requestStart);
-        setRequestStart(null);
-      }
-    }
-  }, [messages, requestStart]);
 
   return (
-    <motion.div {...defaultPageMotion} className="page-shell flex flex-col min-h-0 flex-1 gap-6">
-      <motion.section variants={sectionVariants} className="flex flex-col items-center text-center gap-6 pt-6 sm:pt-8">
-      <PageHeader
-          title="AI Chat"
-          icon={Brain}
-          tooltip="Ask questions about your documents and get AI-powered responses with inline citations"
-        />
-      </motion.section>
-      <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col gap-6 pb-6 sm:pb-8">
-        <div className="mx-auto flex h-full w-full max-w-5xl flex-1 flex-col gap-6">
-          {/* System Status Warning */}
-          <SystemStatusWarning isReady={isReady} />
-          {/* Chat Messages */}
-          <div className="flex min-h-0 flex-1 flex-col">
-            <ScrollArea
-              ref={messagesContainerRef}
-              className="h-[calc(100vh-20rem)] rounded-xl">
-              <div className="mx-auto w-full max-w-3xl px-4 py-6">
-                <AnimatePresence mode="popLayout">
-                {messages.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex flex-col items-center justify-center min-h-[400px] text-center"
-              >
-                {/* Frosted glass panel inspired by reference image */}
-                <div className="w-full max-w-2xl rounded-3xl border border-border/50 bg-card/40 backdrop-blur-xl p-8 shadow-2xl">
-                  <div className="mb-6">
-                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500 shadow-lg">
-                      <Brain className="h-7 w-7 text-white" />
-                    </div>
-                    <h2 className="text-2xl font-semibold text-foreground mb-2">Start Your Conversation</h2>
-                    <p className="text-base text-muted-foreground">Ask questions about your documents and get AI-powered responses</p>
-                  </div>
-
-                  {/* Starter Questions */}
-                  <StarterQuestions questions={starterQuestions} onSelect={(t) => setInput(t)} />
-                  
-                  {/* Recent Searches - Using RecentSearchesChips component */}
-                  {recentSearches.length > 0 && (
-                    <div className="mt-6 pt-6 border-t border-border/50">
-                      <RecentSearchesChips
-                        recentSearches={recentSearches}
-                        loading={loading}
-                        onSelect={(q) => setInput(q)}
-                        onRemove={removeFromRecentSearches}
-                      />
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-                ) : (
-              messages.map((message, idx) => (
-                <motion.div
-                  key={message.id || idx}
-                  variants={messageVariants}
-                  initial="initial"
-                  animate={isClearing ? "exit" : "animate"}
-                  exit="exit"
-                  transition={{
-                    duration: 0.3,
-                    delay: isClearing ? idx * 0.08 : 0,
-                  }}
-                  className={`flex gap-4 mb-6 last:mb-0 ${message.role === "assistant" ? "" : "flex-row-reverse"}`}
-                >
-                  <div
-                    className={cn(
-                      "flex size-10 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold shadow-lg",
-                      message.role === "assistant"
-                        ? "bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500 border-transparent text-white"
-                        : "bg-gradient-to-br from-primary/90 to-primary border-transparent text-primary-foreground"
-                    )}
-                  >
-                    {message.role === "assistant" ? (
-                      <Brain className="h-5 w-5" />
-                    ) : (
-                      <User className="h-5 w-5" />
-                    )}
-                  </div>
-
-                  <div className={cn("flex-1", message.role === "user" && "flex justify-end")}>
-                    <div
-                      className={cn(
-                        "inline-block max-w-[640px] rounded-2xl border px-5 py-3.5 text-left shadow-md transition-colors",
-                        message.role === "assistant"
-                          ? "bg-card/95 backdrop-blur-md border-border text-foreground dark:bg-surface-2/95 dark:border-border-muted"
-                          : "bg-primary/90 border-primary text-primary-foreground dark:bg-purple-600/85 dark:border-purple-500/50 dark:text-white"
-                      )}
-                    >
-                      {message.content ? (
-                        message.role === "assistant" ? (
-                          <div className="text-base leading-relaxed">
-                            <MarkdownRenderer 
-                              content={message.content}
-                              images={message.citations || []}
-                              onImageClick={(url, label) => {
-                                setLightboxSrc(url);
-                                setLightboxAlt(label || 'Citation image');
-                                setLightboxOpen(true);
-                              }}
-                            />
-                          </div>
-                        ) : (
-                          <div className="whitespace-pre-wrap text-base leading-relaxed">{message.content}</div>
-                        )
-                      ) : (
-                        loading && message.role === "assistant" ? (
-                          <div className="flex items-center gap-3 text-muted-foreground dark:text-text-subtle">
-                            <div className="relative">
-                              <Loader2 className="w-5 h-5 animate-spin text-purple-500 dark:text-purple-400" />
-                              <div className="absolute inset-0 blur-sm">
-                                <Loader2 className="w-5 h-5 animate-spin text-purple-400 dark:text-purple-300" />
-                              </div>
-                            </div>
-                            <AnimatePresence mode="wait" initial={false}>
-                              <motion.span
-                                key={brainIdx}
-                                initial={{ opacity: 0, y: 4 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -4 }}
-                                transition={{ duration: 0.2 }}
-                                className="text-sm font-medium"
-                              >
-                                {BRAIN_PLACEHOLDERS[brainIdx]}
-                              </motion.span>
-                            </AnimatePresence>
-                          </div>
-                        ) : null
-                      )}
-                    </div>
-
-                    {message.role === "assistant" && message.content && (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2.5 ml-1">
-                        <div className="flex items-center gap-1.5">
-                          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500">
-                            <Brain className="h-3 w-3 text-white" />
-                          </div>
-                          <span className="font-medium">AI Assistant</span>
-                        </div>
-                        <div className="flex gap-0.5 ml-1">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-green-500/10 hover:text-green-600 transition-colors" onClick={() => { /* TODO: thumbs up handler */ }}>
-                                <ThumbsUp className="h-3.5 w-3.5" aria-hidden />
-                                <span className="sr-only">Mark helpful</span>
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Mark as helpful</TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-red-500/10 hover:text-red-600 transition-colors" onClick={() => { /* TODO: thumbs down handler */ }}>
-                                <ThumbsDown className="h-3.5 w-3.5" aria-hidden />
-                                <span className="sr-only">Mark unhelpful</span>
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Mark as unhelpful</TooltipContent>
-                          </Tooltip>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              ))
-                )}
-                </AnimatePresence>
-                <div ref={messagesEndRef} />
-              </div>
-            </ScrollArea>
-
-        {/* Input Form */}
-        <div className="sticky bottom-0 left-0 right-0 border-divider/50 px-4 py-3.5">
-          <ChatInputBar
-            input={input}
-            setInput={setInput}
-            placeholder="Ask anything about your documents. Press Enter to send"
-            loading={loading}
-            isSettingsValid={isSettingsValid}
-            uiSettingsValid={uiSettingsValid}
-            setUiSettingsValid={setUiSettingsValid}
-            onSubmit={handleSubmit}
-            k={k}
-            setK={setK}
-            toolCallingEnabled={toolCallingEnabled}
-            setToolCallingEnabled={setToolCallingEnabled}
-            topK={topK}
-            setTopK={setTopK}
-            maxTokens={maxTokens}
-            setMaxTokens={setMaxTokens}
-            hasMessages={messages.length > 0}
-            onClear={async () => {
-              // Start clearing animation
-              setIsClearing(true);
-              
-              // Wait for exit animations to complete
-              await new Promise(resolve => setTimeout(resolve, 600));
-              
-              // Now actually clear the data
-              reset();
-              setInput('');
-              setRequestStart(null);
-              setLastResponseDurationMs(null);
-              setIsClearing(false);
-              
-              toast.success('Conversation cleared', {
-                description: 'Ready for a fresh start',
-              });
-            }}
-          />
-
-          {/* Tips below input */}
-          <div className="mt-2.5 flex flex-wrap items-center gap-3 text-xs text-muted-foreground/80">
-            <div className="flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-purple-500" />
-              <span>AI-powered with inline citations</span>
-            </div>
-            {timeToFirstTokenMs !== null && (
-              <div className="flex items-center gap-1.5 rounded-full bg-[color:var(--surface-1)] px-2 py-0.5 border border-muted/40">
-                <Clock className="w-3 h-3 text-green-500" />
-                <span className="font-medium">{(timeToFirstTokenMs / 1000).toFixed(2)}s</span>
-              </div>
-            )}
-          </div>
-
-          {error && (
-            <motion.div
-              variants={fadeInPresence}
-              initial="hidden"
-              animate="visible"
-              className="mt-3"
+    <div className="relative flex min-h-full flex-1 flex-col overflow-hidden">
+      <div className="flex h-full flex-1 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-10">
+        <motion.div
+          className="mx-auto flex h-full w-full max-w-6xl flex-col gap-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+        >
+          <motion.div
+            className="shrink-0"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.3 }}
+          >
+            <PageHeader
+              align="center"
+              spacing="lg"
+              title={
+                <>
+                  <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
+                    Chat with
+                  </span>{" "}
+                  <span className="bg-gradient-to-r from-chart-1 via-chart-2 to-chart-1 bg-clip-text text-transparent">
+                    Snappy
+                  </span>
+                </>
+              }
+              description="Explore uploads with Snappy's grounded answers, inline citations, and visual cues from the ColPali stack."
+              childrenClassName="gap-2 text-body-xs"
             >
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            </motion.div>
-          )}
-        </div>
-          </div>
-        </div>
-      </motion.section>
+              <Badge variant={isReady ? "default" : "destructive"} className="gap-1.5 px-3 py-1.5">
+                {isReady ? (
+                  <>
+                    <Sparkles className="size-icon-sm text-primary-foreground" />
+                    Connected to workspace
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="size-icon-sm" />
+                    Setup required
+                  </>
+                )}
+              </Badge>
+              {timeToFirstTokenMs !== null && (
+                <Badge variant="secondary" className="gap-1.5 px-3 py-1.5">
+                  <Timer className="size-icon-sm" />
+                  {(timeToFirstTokenMs / 1000).toFixed(2)}s response time
+                </Badge>
+              )}
+              {toolCallingEnabled && (
+                <Badge variant="outline" className="gap-1.5 px-3 py-1.5 border-primary/30 text-primary">
+                  <Bot className="size-icon-sm" />
+                  Tool Calling Enabled
+                </Badge>
+              )}
+            </PageHeader>
+          </motion.div>
+
+          <section className="relative flex min-h-[520px] flex-1 flex-col overflow-hidden">
+
+
+            <div className="relative flex flex-1 overflow-hidden">
+              <ScrollArea className="h-full w-full">
+                <div className="space-y-6 px-6 pb-32 pr-4 sm:px-10">
+                  <AnimatePresence initial={false}>
+                    {messages.length === 0 && (
+                      <motion.div
+                        layout
+                        className="flex justify-center"
+                        initial={{ opacity: 0, y: 24 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -24 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                      >
+                        <div className="w-full max-w-3xl space-y-3 rounded-xl border border-border/20 bg-card/60 p-4 shadow-sm animate-in fade-in duration-500 dark:bg-card/40">
+                          <div className="space-y-2.5">
+                            <div className="flex items-center justify-center gap-2 text-body-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                              <Sparkles className="size-icon-sm text-primary" />
+                              Try asking
+                            </div>
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              {starterPrompts.map((item, index) => (
+                                <motion.div
+                                  key={item.prompt}
+                                  initial={{ opacity: 0, y: 20 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: 0.1 + index * 0.1, duration: 0.3 }}
+                                >
+                                  <StarterPromptItem item={item} onClick={handleSuggestionClick} />
+                                </motion.div>
+                              ))}
+                            </div>
+                          </div>
+                          <RecentQuestions questions={recentQuestions} onSelect={handleSuggestionClick} />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <AnimatePresence mode="popLayout">
+                    {messages.map((message, index) => {
+                      const isLastMessage = index === messages.length - 1;
+                      const isLastAssistantMessage = isLastMessage && message.role === "assistant";
+                      return (
+                        <ChatMessage
+                          key={message.id}
+                          message={message}
+                          isLoading={loading && isLastAssistantMessage}
+                          onOpenCitation={handleCitationOpen}
+                        />
+                      );
+                    })}
+                  </AnimatePresence>
+
+                  <AnimatePresence mode="wait">
+                    {loading && messages.length === 0 && (
+                      <ChatMessage
+                        key="loading"
+                        message={{ id: "loading", role: "assistant", content: "" }}
+                        isLoading={true}
+                      />
+                    )}
+                  </AnimatePresence>
+                  <div ref={endOfMessagesRef} />
+                </div>
+              </ScrollArea>
+            </div>
+          </section>
+          <ChatComposer
+            input={input}
+            onInputChange={setInput}
+            isReady={isReady}
+            loading={loading}
+            isSendDisabled={isSendDisabled}
+            toolCallingEnabled={toolCallingEnabled}
+            onToolToggle={setToolCallingEnabled}
+            k={k}
+            maxTokens={maxTokens}
+            onNumberChange={handleNumberChange}
+            setK={setK}
+            setMaxTokens={setMaxTokens}
+            isSettingsValid={isSettingsValid}
+            sendMessage={sendMessage}
+            error={error}
+            reset={reset}
+            messages={messages}
+          />
+        </motion.div>
+      </div>
       <ImageLightbox
         open={lightboxOpen}
         src={lightboxSrc}
-        alt={lightboxAlt}
-        onOpenChange={setLightboxOpen}
+        alt={lightboxAlt ?? undefined}
+        onOpenChange={(open) => {
+          setLightboxOpen(open);
+          if (!open) {
+            setLightboxSrc("");
+            setLightboxAlt(null);
+          }
+        }}
       />
-    </motion.div>
+    </div>
   );
 }

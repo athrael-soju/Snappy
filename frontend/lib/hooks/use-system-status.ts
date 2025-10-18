@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { MaintenanceService, ApiError } from "@/lib/api/generated";
-import { toast } from "@/components/ui/sonner";
-import type { SystemStatus } from "@/components/maintenance/types";
+import { toast } from "sonner";
+import type { SystemStatus } from "@/stores/types";
 import { useAppStore } from "@/stores/app-store";
 
 /**
@@ -14,17 +14,16 @@ export function useSystemStatus() {
   const setStatus = useCallback((status: SystemStatus) => {
     dispatch({ type: 'SYSTEM_SET_STATUS', payload: { ...status, lastChecked: Date.now() } });
   }, [dispatch]);
-  
+
   const clearStatus = useCallback(() => {
     dispatch({ type: 'SYSTEM_CLEAR_STATUS' });
   }, [dispatch]);
-  
+
   const systemStatus = state.systemStatus;
 
   const isReady = useMemo(() => {
     const collectionReady = !!systemStatus?.collection.exists;
-    const bucketStatus = systemStatus?.bucket;
-    const bucketReady = bucketStatus ? (bucketStatus.disabled ? true : bucketStatus.exists) : false;
+    const bucketReady = !!systemStatus?.bucket.exists;
     return collectionReady && bucketReady;
   }, [systemStatus]);
 

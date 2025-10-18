@@ -154,9 +154,18 @@ class SearchManager:
                     params=params,
                 )
             search_queries.append(req)
-        return self.service.query_batch_points(
-            collection_name=self.collection_name, requests=search_queries
-        )
+        try:
+            return self.service.query_batch_points(
+                collection_name=self.collection_name, requests=search_queries
+            )
+        except ValueError as exc:
+            if "not found" in str(exc).lower():
+                logger.warning(
+                    "Qdrant collection '%s' missing during search; returning empty results",
+                    self.collection_name,
+                )
+                return []
+            raise
 
     def search_with_metadata(
         self, query: str, k: int = 5, payload_filter: Optional[dict] = None

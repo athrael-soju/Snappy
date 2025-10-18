@@ -1,435 +1,529 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { parseSearchResults, type SearchItem } from "@/lib/api/runtime";
-import { RetrievalService, ApiError, MaintenanceService } from "@/lib/api/generated";
+import Link from "next/link";
+import { ChangeEvent, FormEvent, useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import "@/lib/api/client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import Image from "next/image";
+import {
+  Search,
+  Loader2,
+  X,
+  AlertCircle,
+  Sparkles,
+  ArrowRight,
+  FileText,
+  Clock,
+  Compass,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { AppButton } from "@/components/app-button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Search, AlertCircle, ImageIcon, Eye, ExternalLink } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import { defaultPageMotion, fadeInItemMotion, fadeInPresence, hoverLift, sectionVariants, staggeredListMotion } from "@/lib/motion-presets";
-import { toast } from "@/components/ui/sonner";
-import { GlassPanel } from "@/components/ui/glass-panel";
-import Image from "next/image";
+import { RetrievalService } from "@/lib/api/generated";
+import { parseSearchResults } from "@/lib/api/runtime";
+import { useSearchStore } from "@/lib/hooks/use-search-store";
+import { useSystemStatus } from "@/stores/app-store";
 import ImageLightbox from "@/components/lightbox";
-import SearchBar from "@/components/search/SearchBar";
-import { useSearchStore, useSystemStatus } from "@/stores/app-store";
+import { InfoTooltip } from "@/components/info-tooltip";
 import { PageHeader } from "@/components/page-header";
-import { SystemStatusWarning } from "@/components/upload";
 
-
-const exampleQueries = [
-  "Show pitch decks with charts on revenue targets",
-  "Contracts mentioning service level agreements",
-  "Images that include architectural diagrams",
-  "Team updates from the past quarter",
+const suggestedQueries = [
+  "Show recent upload summaries",
+  "Find diagrams about the architecture",
+  "Which contracts mention service levels?",
 ];
 
-const fileTypeOptions = ["All types", "Documents", "Images"];
-const dateRangeOptions = ["Any time", "Past week", "Past month", "Past year"];
-const sourceOptions = ["All sources", "Uploads", "External"];
-
-type FilterState = {
-  fileType: number;
-  dateRange: number;
-  source: number;
-  hasImages: boolean;
+type SearchHelperCard = {
+  id: string;
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  gradient: string;
+  href?: string;
+  actionLabel?: string;
 };
 
-const defaultFilters: FilterState = {
-  fileType: 0,
-  dateRange: 0,
-  source: 0,
-  hasImages: false,
-};
+const SEARCH_HELPER_CARDS: SearchHelperCard[] = [
+  {
+    id: "start",
+    title: "Start with a question",
+    description: "Ask about people, diagrams, or obligations. Snappy ranks the most relevant page images instantly.",
+    icon: Sparkles,
+    gradient: "from-chart-1 to-chart-2",
+  },
+  {
+    id: "uploads",
+    title: "Spot-check uploads",
+    description: "Recently indexed? Search by filename or topic to verify that your latest PDFs are retrievable.",
+    icon: FileText,
+    gradient: "from-chart-3 to-chart-4",
+    href: "/upload",
+    actionLabel: "Go to Upload",
+  },
+  {
+    id: "status",
+    title: "Monitor system health",
+    description: "Confirm Qdrant and MinIO are ready before large queries or new ingestion sessions.",
+    icon: Compass,
+    gradient: "from-chart-2 to-primary",
+    href: "/maintenance",
+    actionLabel: "Open Maintenance",
+  },
+];
 
 export default function SearchPage() {
   const {
-    query: q,
+    query,
+    setQuery,
     results,
     hasSearched,
     searchDurationMs,
     k,
-    topK,
-    setQuery: setQ,
+    setK,
+    reset,
     setResults,
     setHasSearched,
-    setK,
-    setTopK,
-    reset,
   } = useSearchStore();
-  const { setStatus, isReady } = useSystemStatus();
+  const { isReady } = useSystemStatus();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [statusLoading, setStatusLoading] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lightboxSrc, setLightboxSrc] = useState("");
-  const [lightboxAlt, setLightboxAlt] = useState<string | undefined>(undefined);
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  const [filters, setFilters] = useState<FilterState>(defaultFilters);
+  const [lightboxSrc, setLightboxSrc] = useState<string>("");
+  const [lightboxAlt, setLightboxAlt] = useState<string | null>(null);
 
-  const hasFetchedRef = useRef(false);
-  const searchInputRef = useRef<HTMLInputElement>(null!);
+  const truncatedResults = useMemo(() => results.slice(0, k), [results, k]);
 
-  const hasResults = hasSearched && results.length > 0;
-
-  const fetchSystemStatus = useCallback(async () => {
-    setStatusLoading(true);
-    try {
-      const status = await MaintenanceService.getStatusStatusGet();
-      setStatus({ ...status, lastChecked: Date.now() });
-      hasFetchedRef.current = true;
-    } catch (err) {
-      console.error("Failed to fetch system status:", err);
-    } finally {
-      setStatusLoading(false);
+  const handleNumberChange = (event: ChangeEvent<HTMLInputElement>, setter: (value: number) => void) => {
+    const next = Number.parseInt(event.target.value, 10);
+    if (!Number.isNaN(next)) {
+      setter(next);
     }
-  }, [setStatus]);
+  };
 
-  useEffect(() => {
-    if (!hasFetchedRef.current) {
-      fetchSystemStatus();
-    }
-
-    window.addEventListener("systemStatusChanged", fetchSystemStatus);
-    return () => {
-      window.removeEventListener("systemStatusChanged", fetchSystemStatus);
-    };
-  }, [fetchSystemStatus]);
-
-  useEffect(() => {
-    const saved = localStorage.getItem("colpali-recent-searches");
-    if (saved) {
-      try {
-        setRecentSearches(JSON.parse(saved));
-      } catch {
-        // ignore parse errors
-      }
-    }
-  }, []);
-
-  const addToRecentSearches = useCallback((query: string) => {
-    const updated = [query, ...recentSearches.filter((s) => s !== query)].slice(0, 5);
-    setRecentSearches(updated);
-    localStorage.setItem("colpali-recent-searches", JSON.stringify(updated));
-  }, [recentSearches]);
-
-  const removeFromRecentSearches = useCallback((query: string) => {
-    const updated = recentSearches.filter((s) => s !== query);
-    setRecentSearches(updated);
-    localStorage.setItem("colpali-recent-searches", JSON.stringify(updated));
-  }, [recentSearches]);
-
-  const handleClearSearch = useCallback(() => {
-    reset();
-    setError(null);
-    toast.success("Search results cleared");
-  }, [reset]);
-
-  const cycleFilter = useCallback((key: keyof FilterState) => {
-    setFilters((prev) => {
-      if (key === "hasImages") {
-        return { ...prev, hasImages: !prev.hasImages };
-      }
-
-      const max = key === "fileType" ? fileTypeOptions.length : key === "dateRange" ? dateRangeOptions.length : sourceOptions.length;
-      const nextIndex = (prev[key] as number + 1) % max;
-      return { ...prev, [key]: nextIndex } as FilterState;
-    });
-  }, []);
-
-  const filterSummary = useMemo(() => {
-    const summary: string[] = [];
-    if (filters.fileType !== 0) summary.push(fileTypeOptions[filters.fileType]);
-    if (filters.dateRange !== 0) summary.push(dateRangeOptions[filters.dateRange]);
-    if (filters.source !== 0) summary.push(sourceOptions[filters.source]);
-    if (filters.hasImages) summary.push("Has images");
-    return summary.join(" � ");
-  }, [filters]);
-
-  useEffect(() => {
-    const handler = (event: KeyboardEvent) => {
-      if (event.key === "/" && !event.metaKey && !event.ctrlKey && !event.altKey) {
-        event.preventDefault();
-        searchInputRef.current?.focus();
-      }
-
-      if (event.key === "Escape") {
-        if (loading) return;
-        if (document.activeElement === searchInputRef.current && q) {
-          setQ("");
-          return;
-        }
-        if (hasResults) {
-          handleClearSearch();
-        }
-      }
-    };
-
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [handleClearSearch, hasResults, loading, q, setQ]);
-
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const query = q.trim();
-    if (!query) return;
-
-    if (!isReady) {
-      toast.error("System Not Ready", {
-        description: "Initialize collection and bucket before searching",
-      });
+  const handleSearch = async (event: FormEvent) => {
+    event.preventDefault();
+    const trimmed = query.trim();
+    if (!trimmed) {
       return;
     }
 
     setLoading(true);
     setError(null);
-    setHasSearched(true);
-    addToRecentSearches(query);
 
     try {
       const start = performance.now();
-      const rawData = await RetrievalService.searchSearchGet(query, k);
-      const data = parseSearchResults(rawData);
-      const end = performance.now();
-      setResults(data, end - start);
-
-      toast.success(`Found ${data.length} ${data.length === 1 ? "result" : "results"}`, {
-        description: filterSummary ? `Filters active: ${filterSummary}` : undefined,
-      });
-    } catch (err: unknown) {
-      let errorMsg = "Search failed";
-      if (err instanceof ApiError) {
-        errorMsg = `${err.status}: ${err.message}`;
-      } else if (err instanceof Error) {
-        errorMsg = err.message;
-      }
-      setError(errorMsg);
-      toast.error("Search Failed", { description: errorMsg });
+      const data = await RetrievalService.searchSearchGet(trimmed, k);
+      const parsed = parseSearchResults(data);
+      setResults(parsed, performance.now() - start);
+      setHasSearched(true);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Search failed";
+      setError(message);
     } finally {
       setLoading(false);
     }
-  }
+  };
+
+  const clearResults = () => {
+    reset();
+    setError(null);
+  };
+
+  const handleImageOpen = (url: string, label?: string) => {
+    if (!url) return;
+    setLightboxSrc(url);
+    setLightboxAlt(label ?? null);
+    setLightboxOpen(true);
+  };
 
   return (
-    <motion.div {...defaultPageMotion} className="page-shell flex min-h-0 flex-1 flex-col gap-6">
-      <motion.section variants={sectionVariants} className="flex flex-col items-center text-center gap-6 pt-6 sm:pt-8">
-        <PageHeader
-          title="Visual Search"
-          icon={Search}
-          tooltip="Find documents and images using natural language powered by AI vision"
-        />
-      </motion.section>
+    <div className="relative flex h-full min-h-full flex-col overflow-hidden">
+      <div className="flex h-full flex-1 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
+        <motion.div
+          className="mx-auto flex h-full w-full max-w-5xl flex-col space-y-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+        >
+          {/* Header Section */}
+          <motion.div
+            className="shrink-0"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.3 }}
+          >
+            <PageHeader
+              align="center"
+              title={
+                <>
+                  <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
+                    Search & Discover
+                  </span>{" "}
+                  <span className="bg-gradient-to-r from-primary via-chart-4 to-primary bg-clip-text text-transparent">
+                    Your Documents
+                  </span>
+                </>
+              }
+              description="Ask questions in natural language and let Snappy surface the most relevant matches instantly."
+              childrenClassName="gap-2 pt-2"
+            >
+              {!isReady && (
+                <Badge variant="destructive" className="gap-2 text-body-xs">
+                  <AlertCircle className="size-icon-3xs" />
+                  System not ready
+                </Badge>
+              )}
+            </PageHeader>
+          </motion.div>
 
-      <motion.section variants={sectionVariants} className="flex-1 min-h-0 flex flex-col gap-6 pb-6 sm:pb-8">
-        <div className="mx-auto flex h-full w-full max-w-6xl flex-1 flex-col gap-6">
-          <SystemStatusWarning isReady={isReady} />
+          {/* Search Form */}
+          <motion.form
+            onSubmit={handleSearch}
+            className="shrink-0 space-y-3"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.3 }}
+          >
+            {/* Search Input with Buttons */}
+            <motion.div
+              className="group relative overflow-hidden rounded-2xl border-2 border-border/50 bg-card/30 backdrop-blur-sm transition-all focus-within:border-primary/50 focus-within:shadow-xl focus-within:shadow-primary/10"
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-primary to-chart-4 opacity-0 transition-opacity group-focus-within:opacity-5" />
 
-          <div className="sticky top-[5.25rem] z-30">
-            <GlassPanel className="p-5 overflow-visible">
-              <SearchBar
-                q={q}
-                setQ={setQ}
-                loading={loading}
-                onSubmit={onSubmit}
-                k={k}
-                setK={setK}
-                topK={topK}
-                setTopK={setTopK}
-                hasResults={hasResults}
-                onClear={handleClearSearch}
-                inputRef={searchInputRef}
-                recentSearches={recentSearches}
-                onSelectRecent={setQ}
-                onRemoveRecent={removeFromRecentSearches}
-              />
-            </GlassPanel>
-          </div>
+              <div className="relative flex items-center gap-3 p-3 sm:p-4">
+                <Search className="size-icon-md shrink-0 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Ask about content, visuals, or document details..."
+                  className="flex-1 bg-transparent text-body outline-none placeholder:text-muted-foreground"
+                  disabled={!isReady}
+                />
 
-          <AnimatePresence>
-            {error && (
-              <motion.div variants={fadeInPresence} initial="hidden" animate="visible" exit="exit">
-                <Alert variant="destructive" className="border-strong bg-destructive/10 text-foreground">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              </motion.div>
+                {/* Inline Search Button */}
+                <div className="flex shrink-0 items-center gap-2">
+                  <AppButton
+                    variant="hero"
+                    size="md"
+                    elevated
+                    disabled={loading || !isReady || !query.trim()}
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="size-icon-sm animate-spin" />
+                        <span className="hidden sm:inline">Searching...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Search className="size-icon-sm" />
+                        <span className="hidden sm:inline">Search</span>
+                      </>
+                    )}
+                  </AppButton>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Settings Grid */}
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
+              <div className="rounded-xl border border-border/50 bg-card/50 p-3 backdrop-blur-sm">
+                <label className="flex flex-col gap-2">
+                  <span className="flex items-center gap-1 text-body-xs font-medium text-muted-foreground">
+                    Top K
+                    <InfoTooltip
+                      description="Controls how many nearest neighbors the retriever fetches per query. Higher values surface more context but may add noise."
+                      triggerAriaLabel="What is Top K?"
+                    />
+                  </span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={k}
+                    onChange={(event) => handleNumberChange(event, setK)}
+                    className="rounded-lg border border-border/50 bg-background px-3 py-2 text-body-sm outline-none transition-all focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+                  />
+                </label>
+              </div>
+              <div className="rounded-xl border border-border/50 bg-card/50 p-3 backdrop-blur-sm">
+                <div className="flex flex-col gap-2">
+                  <span className="text-body-xs font-medium text-muted-foreground">Search Duration</span>
+                  <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-background px-3 py-2 text-body-sm">
+                    <Clock className="size-icon-sm text-muted-foreground" />
+                    <span className="font-medium">
+                      {searchDurationMs !== null ? `${(searchDurationMs / 1000).toFixed(2)}s` : '—'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Error Message */}
+            <AnimatePresence mode="wait">
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-4 py-3 text-body-sm font-medium text-destructive">
+                    <AlertCircle className="size-icon-sm" />
+                    {error}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.form>
+
+          {/* Helper content before first search */}
+          <AnimatePresence mode="wait">
+            {!hasSearched && !loading && (
+              <motion.section
+                className="space-y-3 rounded-2xl border border-border/40 bg-card/30 p-4 backdrop-blur-sm"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -16 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="flex items-center gap-2">
+                  <Sparkles className="size-icon-xs text-primary" />
+                  <h3 className="text-body font-bold">Ways to get started</h3>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {SEARCH_HELPER_CARDS.map((card, index) => (
+                    <motion.article
+                      key={card.id}
+                      className="group relative overflow-hidden rounded-xl border border-border/40 bg-background/70 p-4 transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10"
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05, duration: 0.25 }}
+                      whileHover={{ y: -4, scale: 1.01 }}
+                      whileTap={{ scale: 0.99 }}
+                    >
+                      <div
+                        className={`absolute inset-0 bg-gradient-to-br ${card.gradient} opacity-0 transition-opacity group-hover:opacity-10`}
+                      />
+                      <div className="relative space-y-3">
+                        <div className="flex items-center gap-2">
+                          <div className="flex size-10 items-center justify-center rounded-lg bg-muted/70">
+                            <card.icon className="size-icon-xs text-primary" />
+                          </div>
+                          <h4 className="text-body-sm font-semibold">{card.title}</h4>
+                        </div>
+                        <p className="text-body-xs text-muted-foreground">{card.description}</p>
+                        {card.href && card.actionLabel && (
+                          <Link
+                            href={card.href}
+                            className="inline-flex items-center gap-1 text-body-xs font-semibold text-primary transition-colors hover:text-primary/80"
+                          >
+                            {card.actionLabel}
+                            <ArrowRight className="size-icon-3xs" />
+                          </Link>
+                        )}
+                      </div>
+                    </motion.article>
+                  ))}
+                </div>
+
+                <div className="rounded-xl border border-dashed border-border/30 bg-background/70 p-4 text-left">
+                  <p className="text-body-xs font-semibold text-muted-foreground">Need inspiration?</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {suggestedQueries.map((item) => (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => setQuery(item)}
+                        className="inline-flex items-center gap-1 rounded-full border border-border/40 bg-background px-3 py-1 text-body-xs font-medium text-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                      >
+                        <Clock className="size-icon-3xs text-primary/80" />
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </motion.section>
             )}
           </AnimatePresence>
 
-          <ScrollArea className="h-[calc(100vh-30rem)]">
-            <div className="px-1 py-2 pr-4">
-              {!hasSearched && !loading && !error ? (
-                <GlassPanel className="p-20 text-center">
-                  <div className="flex size-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary">
-                    <Search className="h-9 w-9" />
-                  </div>
-                  <div className="space-y-3 max-w-2xl">
-                    <h3 className="text-2xl font-semibold text-foreground">Search across documents, slides, and imagery</h3>
-                    <p className="text-base leading-relaxed text-muted-foreground">
-                      Find documents using natural language. Try one of the examples below to get started.
-                    </p>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {exampleQueries.map((example) => (
-                      <Button
-                        key={example}
-                        type="button"
-                        variant="outline"
-                        onClick={() => setQ(example)}
-                        className="justify-start rounded-xl px-4 py-3 text-left text-base hover:border-primary/40 hover:bg-primary/10"
-                      >
-                        {example}
-                      </Button>
-                    ))}
-                  </div>
-                </GlassPanel>
-              ) : (
+          {/* Results Section */}
+          <AnimatePresence mode="wait">
+            {(hasSearched || loading) && (
+              <motion.div
+                className="flex min-h-0 flex-1 flex-col space-y-4"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                {/* Results Header - Stats Only */}
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  {hasSearched && results.length > k && (
+                    <Badge variant="secondary" className="px-3 py-1 text-body-xs">
+                      Showing {truncatedResults.length} of {results.length}
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Loading State */}
                 <AnimatePresence mode="wait">
-                  {loading ? (
+                  {loading && (
                     <motion.div
-                      key="skeleton"
-                      {...staggeredListMotion}
-                      className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
                     >
-                      {Array.from({ length: 8 }).map((_, idx) => (
-                        <motion.div key={idx} {...fadeInItemMotion} className="card-surface h-full animate-pulse space-y-3 p-4">
-                          <div className="aspect-video rounded-xl bg-[color:var(--surface-2)]" />
-                          <div className="space-y-2">
-                            <div className="h-4 w-3/4 rounded bg-[color:var(--surface-2)]" />
-                            <div className="h-3 w-2/3 rounded bg-[color:var(--surface-2)]" />
-                          </div>
-                          <div className="h-3 w-1/3 rounded bg-[color:var(--surface-2)]" />
-                        </motion.div>
-                      ))}
-                    </motion.div>
-                  ) : hasResults ? (
-                    <motion.div
-                      key="results"
-                      {...staggeredListMotion}
-                      className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
-                    >
-                      {results.map((item, idx) => {
-                        const imageSrc = item.image_url ?? "";
-                        const hasImage = imageSrc.length > 0;
-                        const isInlineImage = hasImage && imageSrc.startsWith("data:");
-
-                        return (
-                          <motion.div key={idx} {...fadeInItemMotion} {...hoverLift}>
-                            <Card className="card-surface group flex h-full flex-col overflow-hidden cursor-pointer hover:shadow-xl transition-all border-border/50">
-                              {hasImage ? (
-                                <button
-                                  type="button"
-                                  className="relative aspect-video overflow-hidden text-left"
-                                onClick={() => {
-                                  setLightboxSrc(imageSrc);
-                                  setLightboxAlt(item.label ?? `Result ${idx + 1}`);
-                                  setLightboxOpen(true);
-                                }}
-                              >
-                                <Image
-                                  src={imageSrc}
-                                  alt={item.label ?? `Result ${idx + 1}`}
-                                  fill
-                                  sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 25vw"
-                                  className="object-cover transition duration-500 group-hover:scale-110"
-                                  unoptimized={isInlineImage}
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                                <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/95 backdrop-blur-sm px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-lg opacity-0 group-hover:opacity-100 transition-all">
-                                  <Eye className="h-3.5 w-3.5" /> View
-                                </span>
-                              </button>
-                            ) : (
-                              <div className="flex aspect-video items-center justify-center bg-[color:var(--surface-2)]">
-                                <ImageIcon className="h-8 w-8 text-muted-foreground" />
-                              </div>
-                            )}
-
-                            <CardContent className="flex flex-1 flex-col gap-4 p-4">
-                              <div className="space-y-2">
-                                <h3 className="line-clamp-2 text-base font-semibold text-foreground group-hover:text-primary transition-colors">
-                                  {item.label ?? `Result ${idx + 1}`}
-                                </h3>
-                                {item.payload?.filename && (
-                                  <p className="line-clamp-1 text-sm text-muted-foreground">
-                                    {item.payload.filename}
-                                    {item.payload?.pdf_page_index !== undefined && ` • Page ${item.payload.pdf_page_index + 1}`}
-                                  </p>
-                                )}
-                              </div>
-
-                              <div className="mt-auto flex items-center gap-2 border-t border-divider pt-3 text-xs">
-                                <Badge variant="secondary" className="text-xs font-medium rounded-full">
-                                  #{idx + 1}
-                                </Badge>
-                                {typeof item.score === "number" && (
-                                  <Badge variant="outline" className="text-xs font-medium rounded-full border-primary/30 text-primary">
-                                    {Math.round(item.score * 100)}%
-                                  </Badge>
-                                )}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </motion.div>
-                      );
-                      })}
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="empty"
-                      variants={fadeInPresence}
-                      initial="hidden"
-                      animate="visible"
-                      exit="exit"
-                    >
-                      <GlassPanel className="p-14">
-                        <div className="flex flex-col items-center gap-6 text-center">
-                          <div className="flex size-20 items-center justify-center rounded-2xl bg-gradient-to-br from-muted/30 to-muted/10">
-                            <ImageIcon className="h-10 w-10 text-muted-foreground" />
-                          </div>
-                          <div className="space-y-3 max-w-xl">
-                            <h3 className="text-xl font-semibold text-foreground">No matches found</h3>
-                            <p className="text-base leading-relaxed text-muted-foreground">
-                              We could not find results for <span className="font-medium text-foreground">{q}</span>. Adjust your search terms, broaden filters, or upload additional documents to improve coverage.
-                            </p>
-                          </div>
-                          <div className="grid gap-3 text-base text-muted-foreground sm:grid-cols-2">
-                            <div className="flex items-start gap-2">
-                              <span className="mt-1 size-1.5 rounded-full bg-foreground/70" />
-                              Try pairing a document title with a visual clue.
-                            </div>
-                            <div className="flex items-start gap-2">
-                              <span className="mt-1 size-1.5 rounded-full bg-foreground/70" />
-                              Check spelling or use broader keywords.
-                            </div>
-                            <div className="flex items-start gap-2">
-                              <span className="mt-1 size-1.5 rounded-full bg-foreground/70" />
-                              Narrow filters or reset them to defaults.
-                            </div>
-                            <div className="flex items-start gap-2">
-                              <span className="mt-1 size-1.5 rounded-full bg-foreground/70" />
-                              Upload more visuals for richer retrieval.
-                            </div>
-                          </div>
-                        </div>
-                      </GlassPanel>
+                      <div className="flex items-center justify-center gap-2 rounded-xl border border-border/50 bg-card/50 p-8 backdrop-blur-sm">
+                        <Loader2 className="size-icon-md animate-spin text-primary" />
+                        <p className="text-body-sm text-muted-foreground">Searching your documents...</p>
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
-              )}
 
-            </div>
-          </ScrollArea>
-        </div>
-      </motion.section>
+                {/* No Results */}
+                <AnimatePresence mode="wait">
+                  {!loading && hasSearched && truncatedResults.length === 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <div className="rounded-xl border border-border/50 bg-card/50 p-8 text-center backdrop-blur-sm">
+                        <AlertCircle className="mx-auto size-icon-3xl text-muted-foreground/50" />
+                        <p className="mt-3 text-body-sm font-medium text-foreground">No matches found</p>
+                        <p className="mt-1 text-body-xs text-muted-foreground">
+                          Try adjusting your query or search parameters
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-      <ImageLightbox open={lightboxOpen} src={lightboxSrc} alt={lightboxAlt} onOpenChange={setLightboxOpen} />
-    </motion.div>
+                {/* Results List */}
+                <AnimatePresence mode="wait">
+                  {!loading && truncatedResults.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3 }}
+                      className="flex min-h-0 flex-1 flex-col"
+                    >
+                      <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-border/50 bg-card/30 p-3 backdrop-blur-sm">
+                        {/* List Header */}
+                        <div className="mb-2 flex shrink-0 items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="size-icon-sm text-primary" />
+                            <h3 className="text-body-sm font-bold">
+                              {truncatedResults.length} {truncatedResults.length === 1 ? "Result" : "Results"}
+                            </h3>
+                          </div>
+                          <AppButton
+                            type="button"
+                            onClick={clearResults}
+                            size="xs"
+                            variant="ghost"
+                          >
+                            <X className="size-icon-3xs" />
+                            Clear
+                          </AppButton>
+                        </div>
+
+                        <ScrollArea className="min-h-0 flex-1">
+                          <div className="space-y-2 pr-4">
+                            {truncatedResults.map((item, index) => {
+                              const filename = item.payload?.filename;
+                              const pageIndex = item.payload?.pdf_page_index;
+                              const displayTitle = filename
+                                ? `${filename}${typeof pageIndex === 'number' ? ` - Page ${pageIndex + 1}` : ''}`
+                                : item.label ?? `Result ${index + 1}`;
+
+                              return (
+                                <motion.article
+                                  key={`${item.label ?? index}-${index}`}
+                                  onClick={() => {
+                                    if (item.image_url) {
+                                      handleImageOpen(item.image_url, displayTitle);
+                                    }
+                                  }}
+                                  className="group relative flex gap-3 overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 cursor-pointer touch-manipulation"
+                                  initial={{ opacity: 0, x: -20 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  exit={{ opacity: 0, x: 20 }}
+                                  transition={{ delay: index * 0.05, duration: 0.2 }}
+                                  whileHover={{ scale: 1.02, x: 4 }}
+                                  whileTap={{ scale: 0.98 }}
+                                >
+                                  <div className="absolute inset-0 bg-gradient-to-br from-primary to-chart-4 opacity-0 transition-opacity group-hover:opacity-5" />
+
+                                  {/* Thumbnail */}
+                                  {item.image_url ? (
+                                    <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg border border-border/50 bg-background/50">
+                                      <Image
+                                        src={item.image_url}
+                                        alt={displayTitle}
+                                        width={96}
+                                        height={96}
+                                        className="h-full w-full object-cover"
+                                        unoptimized
+                                      />
+                                    </div>
+                                  ) : (
+                                    <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-chart-4">
+                                      <FileText className="size-icon-xl text-primary-foreground" />
+                                    </div>
+                                  )}
+
+                                  {/* Content */}
+                                  <div className="relative flex min-w-0 flex-1 flex-col justify-between">
+                                    {/* Header */}
+                                    <div className="space-y-1.5">
+                                      <h3 className="line-clamp-2 text-body-sm sm:text-body font-bold text-foreground">
+                                        {displayTitle}
+                                      </h3>
+                                      <div className="flex flex-wrap gap-1.5">
+                                        {typeof item.score === "number" && (
+                                          <Badge variant="secondary" className="h-auto px-2 py-0.5 text-body-xs font-semibold">
+                                            {Math.min(100, item.score > 1 ? item.score : item.score * 100).toFixed(3)}% relevance
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </motion.article>
+                              );
+                            })}
+                          </div>
+                        </ScrollArea>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </div>
+      <ImageLightbox
+        open={lightboxOpen}
+        src={lightboxSrc}
+        alt={lightboxAlt ?? undefined}
+        onOpenChange={(open) => {
+          setLightboxOpen(open);
+          if (!open) {
+            setLightboxSrc("");
+            setLightboxAlt(null);
+          }
+        }}
+      />
+    </div>
   );
 }

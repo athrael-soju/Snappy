@@ -1,25 +1,20 @@
-"use client";
-
-import React from 'react';
-import Image from "next/image";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
+import { useMemo, useState, useCallback } from 'react';
+import Image from 'next/image';
+import { Badge } from '@/components/ui/badge';
+import { AppButton } from '@/components/app-button';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { ExternalLink } from 'lucide-react';
 
-interface CitationHoverCardProps {
+type CitationHoverCardProps = {
   number: number;
   imageUrl: string;
   label: string;
-  score?: number;
-  onOpen: () => void;
-  children?: React.ReactNode;
-}
+  score?: number | null;
+  onOpen?: () => void;
+};
 
 /**
- * Hover card that shows citation preview on superscript hover
+ * Renders a superscript citation indicator that shows a preview popover on hover/focus.
  */
 export default function CitationHoverCard({
   number,
@@ -27,77 +22,73 @@ export default function CitationHoverCard({
   label,
   score,
   onOpen,
-  children
 }: CitationHoverCardProps) {
-  // Extract document title and page info heuristically
-  const delimiterIndex = label.toLowerCase().indexOf("page ");
-  const docTitle = delimiterIndex >= 0
-    ? label.slice(0, delimiterIndex).trim().replace(/["']+$/, "")
-    : label;
-  const pageInfo = delimiterIndex >= 0 ? label.slice(delimiterIndex).trim() : label;
+  const [open, setOpen] = useState(false);
+
+  const scoreBadge = useMemo(() => {
+    if (typeof score !== 'number') return null;
+    const percentage = score > 1 ? score : score * 100;
+    const cappedPercentage = Math.min(100, percentage);
+    return (
+      <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-body-xs font-semibold">
+        {cappedPercentage.toFixed(3)}%
+      </Badge>
+    );
+  }, [score]);
+
+  const handleMouseEnter = useCallback(() => setOpen(true), []);
+  const handleActivate = useCallback(() => {
+    onOpen?.();
+    setOpen(false);
+  }, [onOpen]);
 
   return (
-    <HoverCard openDelay={200} closeDelay={100}>
-      <HoverCardTrigger asChild>
-        {children || (
-          <sup
-            className="inline-flex items-center justify-center w-5 h-5 text-[10px] font-semibold text-primary bg-primary/10 border border-primary/30 rounded cursor-pointer hover:bg-primary/20 hover:border-primary/50 transition-all ml-0.5"
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <span className="ml-1 align-super">
+          <AppButton
+            type="button"
+            variant="link"
+            size="inline"
+            aria-label={`View citation ${number}`}
+            onMouseEnter={handleMouseEnter}
+            onFocus={handleMouseEnter}
           >
-            {number}
-          </sup>
-        )}
-      </HoverCardTrigger>
-      <HoverCardContent 
-        className="w-80 p-0 overflow-hidden border-border" 
-        side="top"
-        align="center"
-      >
-        <div className="flex flex-col">
-          {/* Preview Image */}
-          <div className="relative w-full h-[120px] bg-muted/30 overflow-hidden border-b border-border">
-            <Image
-              src={imageUrl}
-              alt={label}
-              fill
-              sizes="320px"
-              className="object-contain"
-              unoptimized
-            />
-          </div>
-          
-          {/* Content */}
-          <div className="p-3 space-y-2 bg-popover">
-            {/* Document title */}
-            <div className="text-xs font-semibold text-foreground line-clamp-1" title={docTitle}>
-              {docTitle}
-            </div>
-            
-            {/* Page info */}
-            <div className="text-xs text-muted-foreground">
-              {pageInfo}
-            </div>
-            
-            {/* Score if available */}
-            {score !== undefined && score !== null && (
-              <div className="text-xs text-primary font-medium">
-                {score.toFixed(2)}% relevance
-              </div>
-            )}
-            
-            {/* Open button */}
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                onOpen();
-              }}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 mt-2 text-xs font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg transition-colors"
-            >
-              <span>View Citation</span>
-              <ExternalLink className="w-3 h-3" />
-            </button>
+            [{number}]
+          </AppButton>
+        </span>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 space-y-3">
+        <div className="space-y-2 text-body-sm">
+          <p className="font-semibold leading-tight">{label}</p>
+          <div className="flex items-center gap-2 text-body-xs text-muted-foreground">
+            <Badge variant="outline" className="rounded-full px-2 py-0.5 text-body-xs uppercase tracking-wide">
+              Citation {number}
+            </Badge>
+            {scoreBadge}
           </div>
         </div>
-      </HoverCardContent>
-    </HoverCard>
+        <div className="relative h-32 w-full overflow-hidden rounded-md border">
+          <Image
+            src={imageUrl}
+            alt={label}
+            fill
+            sizes="256px"
+            className="object-cover"
+            priority={false}
+          />
+        </div>
+        <AppButton
+          type="button"
+          size="sm"
+          variant="outline"
+          fullWidth
+          onClick={handleActivate}
+        >
+          <ExternalLink className="size-icon-xs" />
+          View page
+        </AppButton>
+      </PopoverContent>
+    </Popover>
   );
 }

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { MaintenanceService, ApiError } from "@/lib/api/generated";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 interface UseSystemManagementOptions {
   onSuccess?: () => void;
@@ -14,28 +14,12 @@ export function useSystemManagement({ onSuccess }: UseSystemManagementOptions = 
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  const isBucketSkipped = (result: any): boolean => {
-    const bucketResult = result?.results?.bucket;
-    if (!bucketResult) return false;
-    if (bucketResult.status && typeof bucketResult.status === "string") {
-      if (bucketResult.status.toLowerCase() === "skipped") return true;
-    }
-    if (bucketResult.disabled === true) return true;
-    const message: unknown = bucketResult.message;
-    if (typeof message === "string" && message.toLowerCase().includes("minio disabled")) {
-      return true;
-    }
-    return false;
-  };
-
   const buildSuccessDescription = (result: any, fallback: string) => {
-    const bucketSkipped = isBucketSkipped(result);
-    if (!bucketSkipped) return fallback;
     const message = result?.results?.bucket?.message;
     if (typeof message === "string" && message.length > 0) {
       return message;
     }
-    return "Collection ready; MinIO is disabled via configuration.";
+    return fallback;
   };
 
   const handleInitialize = async () => {
@@ -44,11 +28,10 @@ export function useSystemManagement({ onSuccess }: UseSystemManagementOptions = 
       const result = await MaintenanceService.initializeInitializePost();
 
       const status: string | undefined = typeof result?.status === "string" ? result.status : undefined;
-      const bucketSkipped = isBucketSkipped(result);
 
-      if (status === "success" || (status === "partial" && bucketSkipped)) {
+      if (status === "success") {
         toast.success("Initialization Complete", {
-          description: buildSuccessDescription(result, "Collection is ready (and MinIO bucket if enabled)"),
+          description: buildSuccessDescription(result, "Qdrant collection and MinIO bucket are ready"),
         });
       } else if (status === "partial") {
         toast.warning("Partial Initialization", {
@@ -85,11 +68,10 @@ export function useSystemManagement({ onSuccess }: UseSystemManagementOptions = 
       const result = await MaintenanceService.deleteCollectionAndBucketDeleteDelete();
 
       const status: string | undefined = typeof result?.status === "string" ? result.status : undefined;
-      const bucketSkipped = isBucketSkipped(result);
 
-      if (status === "success" || (status === "partial" && bucketSkipped)) {
+      if (status === "success") {
         toast.success("Deletion Complete", {
-          description: buildSuccessDescription(result, "Collection removed (and MinIO bucket if enabled)"),
+          description: buildSuccessDescription(result, "Qdrant collection and MinIO bucket removed"),
         });
       } else if (status === "partial") {
         toast.warning("Partial Deletion", {

@@ -1,4 +1,4 @@
-# Vision RAG Backend (FastAPI)
+# Snappy - Backend (FastAPI)
 
 A FastAPI service that provides PDF ingestion, page-level retrieval, and system
 maintenance APIs for the template. The backend exposes modular routers under
@@ -15,7 +15,7 @@ maintenance APIs for the template. The backend exposes modular routers under
 ## Local setup
 
 ```bash
-# From repo root (PowerShell example)
+# Snappy - Your Vision Retrieval buddy!
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -U pip setuptools wheel
@@ -25,7 +25,7 @@ pip install -r backend/requirements.txt
 ## Environment
 
 ```bash
-# From repo root
+# Snappy - Your Vision Retrieval buddy!
 copy .env.example .env
 ```
 
@@ -33,9 +33,9 @@ Key backend variables (see `.env.example` and `backend/config.py`):
 
 - ColPali: `COLPALI_MODE`, `COLPALI_CPU_URL`, `COLPALI_GPU_URL`,
   `COLPALI_API_TIMEOUT`
-- Qdrant: `QDRANT_EMBEDDED`, `QDRANT_URL`, `QDRANT_COLLECTION_NAME`,
+- Qdrant: `QDRANT_EMBEDDED` (defaults to `False`), `QDRANT_URL`, `QDRANT_COLLECTION_NAME`,
   quantisation toggles
-- MinIO: `MINIO_ENABLED`, `MINIO_URL`, `MINIO_PUBLIC_URL`,
+- MinIO: `MINIO_URL`, `MINIO_PUBLIC_URL`,
   `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`
 
 Defaults assume:
@@ -51,10 +51,10 @@ setting.
 ## Run locally
 
 ```bash
-# Matches docker-compose
+# Snappy - Your Vision Retrieval buddy!
 uvicorn backend:app --host 0.0.0.0 --port 8000 --reload
 
-# Alternative launcher (uses HOST/PORT env vars)
+# Snappy - Your Vision Retrieval buddy!
 python backend/main.py
 ```
 
@@ -76,6 +76,9 @@ Bring up the stack:
 ```bash
 docker compose up -d --build
 ```
+
+MinIO credentials are required; the service no longer falls back to inline
+image payload storage when MinIO is unavailable.
 
 ## Key endpoints
 
@@ -127,7 +130,9 @@ APIs; it does not proxy chat requests.
 
 ## Configuration management UI
 
-The `/maintenance` page in the frontend includes a **Configuration** tab that
-talks to the `/config/*` API. It surfaces the schema described above with typed
-inputs, validation, and runtime updates. Critical changes invalidate cached
-services (Qdrant/MinIO/ColPali) so the next API call observes the new values.
+The `/configuration` page in the frontend talks to the `/config/*` API. It
+surfaces the schema described above with typed inputs, validation, and runtime
+updates. When browser-held drafts differ from the server it prompts you to
+restore or discard them before any API calls are made. Critical changes
+invalidate cached services (Qdrant/MinIO/ColPali) so the next API call observes
+the new values.

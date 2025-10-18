@@ -1,11 +1,23 @@
-﻿import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useUploadStore } from "@/stores/app-store";
 import { ApiError } from "@/lib/api/generated";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
+
+const SUCCESS_MESSAGE_DISMISS_MS = 4500;
+const ERROR_MESSAGE_DISMISS_MS = 6000;
+
+const toFileArray = (input: FileList | File[] | null): File[] | null => {
+  if (!input) {
+    return null;
+  }
+  const filesArray = Array.from(input as ArrayLike<File>);
+  return filesArray.length > 0 ? filesArray : null;
+};
 
 export function useFileUpload() {
   const {
     files,
+    fileMeta,
     uploading,
     uploadProgress,
     message,
@@ -30,7 +42,7 @@ export function useFileUpload() {
     if (message && !uploading) {
       const timer = setTimeout(() => {
         setMessage(null);
-      }, 10000);
+      }, SUCCESS_MESSAGE_DISMISS_MS);
       return () => clearTimeout(timer);
     }
   }, [message, uploading, setMessage]);
@@ -39,7 +51,7 @@ export function useFileUpload() {
     if (error && !uploading) {
       const timer = setTimeout(() => {
         setError(null);
-      }, 10000);
+      }, ERROR_MESSAGE_DISMISS_MS);
       return () => clearTimeout(timer);
     }
   }, [error, uploading, setError]);
@@ -68,15 +80,18 @@ export function useFileUpload() {
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-    const droppedFiles = e.dataTransfer.files;
-    if (droppedFiles.length > 0) {
+    const droppedFiles = toFileArray(e.dataTransfer.files);
+    if (droppedFiles && droppedFiles.length > 0) {
       setFiles(droppedFiles);
     }
   }, [setFiles]);
 
-  const handleFileSelect = useCallback((selectedFiles: FileList | null) => {
-    if (selectedFiles) {
-      setFiles(selectedFiles);
+  const handleFileSelect = useCallback((selectedFiles: FileList | File[] | null) => {
+    const nextFiles = toFileArray(selectedFiles);
+    if (nextFiles) {
+      setFiles(nextFiles);
+    } else {
+      setFiles(null);
     }
   }, [setFiles]);
 
@@ -107,7 +122,7 @@ export function useFileUpload() {
     
     try {
       const formData = new FormData();
-      Array.from(files).forEach((f) => formData.append("files", f));
+      files.forEach((f) => formData.append("files", f));
 
       const startRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || ''}/index`, {
         method: "POST",
@@ -147,9 +162,16 @@ export function useFileUpload() {
     cancelUpload();
   }, [cancelUpload]);
 
+  const handleClear = useCallback(() => {
+    setFiles(null);
+    setMessage(null);
+    setError(null);
+  }, [setFiles, setMessage, setError]);
+
   return {
     // State
     files,
+    fileMeta,
     uploading,
     uploadProgress,
     message,
@@ -160,8 +182,14 @@ export function useFileUpload() {
     isCancelling: isCancellingRef.current,
     
     // Computed
-    fileCount: files ? files.length : 0,
-    hasFiles: files ? files.length > 0 : false,
+    fileCount: files && files.length > 0
+      ? files.length
+      : fileMeta && fileMeta.length > 0
+        ? fileMeta.length
+        : 0,
+    hasFiles:
+      (files && files.length > 0) ||
+      (uploading && fileMeta && fileMeta.length > 0),
     
     // Handlers
     handleDragOver,
@@ -170,6 +198,7 @@ export function useFileUpload() {
     handleFileSelect,
     handleUpload,
     handleCancel,
+    handleClear,
   };
 }
 

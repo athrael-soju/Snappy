@@ -43,9 +43,6 @@ export function chatReducer(state: AppState, action: AppAction): AppState | null
     case 'CHAT_SET_LOADING':
       return { ...state, chat: { ...state.chat, loading: action.payload } };
     
-    case 'CHAT_SET_TOP_K':
-      return { ...state, chat: { ...state.chat, topK: action.payload } };
-    
     case 'CHAT_SET_MAX_TOKENS':
       return { ...state, chat: { ...state.chat, maxTokens: action.payload } };
 
@@ -75,7 +72,6 @@ export function chatReducer(state: AppState, action: AppAction): AppState | null
           ...initialState.chat,
           k: state.chat.k,
           toolCallingEnabled: state.chat.toolCallingEnabled,
-          topK: state.chat.topK,
           maxTokens: state.chat.maxTokens,
         } 
       };

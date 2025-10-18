@@ -38,6 +38,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
     "application": {
         "order": 1,
         "icon": "settings",
+        "ui_hidden": True,
         "name": "Core Application",
         "description": "Core application settings",
         "settings": [
@@ -101,13 +102,13 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
     },
     "colpali": {
         "order": 3,
+        "ui_hidden": True,
         "icon": "brain",
         "name": "Embedding Model",
         "description": "ColPali embedding model configuration",
         "settings": [
             {
                 "key": "COLPALI_MODE",
-                "ui_hidden": True,
                 "type": "str",
                 "default": "gpu",
                 "label": "Processing Mode",
@@ -118,7 +119,6 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
             },
             {
                 "key": "COLPALI_CPU_URL",
-                "ui_hidden": True,
                 "type": "str",
                 "default": "http://localhost:7001",
                 "label": "CPU Service URL",
@@ -128,7 +128,6 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
             },
             {
                 "key": "COLPALI_GPU_URL",
-                "ui_hidden": True,
                 "type": "str",
                 "default": "http://localhost:7002",
                 "label": "GPU Service URL",
@@ -168,7 +167,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
             {
                 "key": "QDRANT_EMBEDDED",
                 "type": "bool",
-                "default": True,
+                "default": False,
                 "label": "Run Embedded Qdrant",
                 "ui_type": "boolean",
                 "description": "Use an embedded (in-memory) Qdrant instance",
@@ -340,15 +339,6 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
         "description": "Configure how extracted page images are stored.",
         "settings": [
             {
-                "key": "MINIO_ENABLED",
-                "type": "bool",
-                "default": False,
-                "label": "Enable MinIO Object Storage",
-                "ui_type": "boolean",
-                "description": "Use MinIO to store extracted page images",
-                "help_text": "When enabled the backend uploads rendered document pages to MinIO. Disable to embed the images directly in the Qdrant payload (simpler for local setups, but stores data inside Qdrant).",
-            },
-            {
                 "key": "MINIO_URL",
                 "ui_hidden": True,
                 "type": "str",
@@ -357,7 +347,6 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "text",
                 "description": "Internal MinIO service URL",
                 "help_text": "Internal endpoint for the MinIO object storage service. Used by the backend to upload files. Default port is 9000. Change if MinIO runs on a different host or port. Format: http://hostname:port. Must be accessible from the backend application.",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True},
             },
             {
                 "key": "MINIO_PUBLIC_URL",
@@ -368,7 +357,6 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "text",
                 "description": "Public-facing MinIO URL",
                 "help_text": "Public endpoint for accessing stored files from browsers/clients. Can differ from MINIO_URL if using a reverse proxy or load balancer. In production, use your domain (e.g., https://storage.example.com). In development, same as MINIO_URL is fine.",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True},
             },
             {
                 "key": "MINIO_ACCESS_KEY",
@@ -379,7 +367,6 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "password",
                 "description": "MinIO access key (username)",
                 "help_text": "MinIO access key (similar to username) for authentication. Default 'minioadmin' is for development only. In production, create a dedicated access key with appropriate permissions. Never use default credentials in production - security risk!",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True},
             },
             {
                 "key": "MINIO_SECRET_KEY",
@@ -390,7 +377,6 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "password",
                 "description": "MinIO secret key (password)",
                 "help_text": "MinIO secret key (similar to password) for authentication. Default 'minioadmin' is for development only. In production, use a strong, randomly generated secret. Store securely in environment variables. Critical security setting - never expose publicly!",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True},
             },
             {
                 "key": "MINIO_BUCKET_NAME",
@@ -401,11 +387,10 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "text",
                 "description": "Name of the storage bucket (auto-derived when empty)",
                 "help_text": "When left blank, the backend derives a MinIO bucket name by slugifying the Qdrant collection name. Override only if you need to target a specific existing bucket.",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True},
             },
             {
                 "key": "MINIO_WORKERS",
-                "ui_hidden": True,
+                "ui_hidden": False,
                 "type": "int",
                 "default": 12,
                 "label": "Worker Threads",
@@ -414,7 +399,6 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "max": 32,
                 "description": "Number of concurrent upload workers (auto-sized)",
                 "help_text": "The backend now sizes this automatically based on CPU cores and pipeline concurrency. Override via environment variables only when you need to cap or increase concurrency manually.",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True},
             },
             {
                 "key": "MINIO_RETRIES",
@@ -427,7 +411,6 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "max": 10,
                 "description": "Number of retry attempts on failure (auto-sized)",
                 "help_text": "The backend derives this from the chosen worker concurrency. Override via environment variables if you need stricter or more lenient retry behaviour.",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True},
             },
             {
                 "key": "MINIO_FAIL_FAST",
@@ -438,17 +421,16 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "boolean",
                 "description": "Stop immediately on first error",
                 "help_text": "Advanced troubleshooting option. When left unset the backend keeps the resilient default (False); override only if you need to abort batches on the first failure.",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True},
             },
             {
                 "key": "MINIO_PUBLIC_READ",
+                "ui_hidden": True,
                 "type": "bool",
                 "default": True,
                 "label": "Public Read Access",
                 "ui_type": "boolean",
                 "description": "Allow public read access to files",
                 "help_text": "Makes uploaded files publicly accessible without authentication. Enable (True) for public applications where anyone can view documents. Disable (False) for private/internal applications requiring access control. Consider your security requirements carefully.",
-                "depends_on": {"key": "MINIO_ENABLED", "value": True},
             },
             {
                 "key": "IMAGE_FORMAT",
@@ -458,7 +440,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "select",
                 "options": ["JPEG", "PNG", "WEBP"],
                 "description": "Image format for stored files",
-                "help_text": "Format for storing processed document images, whether saved to MinIO or embedded inline within Qdrant. JPEG offers best compression with small quality loss (recommended). PNG is lossless but larger files. WEBP provides better compression than JPEG but may have compatibility issues with older systems. Choose based on storage space vs quality needs.",
+                "help_text": "Format for storing processed document images in MinIO. JPEG offers best compression with small quality loss (recommended). PNG is lossless but larger files. WEBP provides better compression than JPEG but may have compatibility issues with older systems. Choose based on storage space vs quality needs.",
             },
             {
                 "key": "IMAGE_QUALITY",
@@ -469,7 +451,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "min": 1,
                 "max": 100,
                 "description": "Image compression quality (1-100)",
-                "help_text": "Compression quality for JPEG/WEBP images (1-100). Higher values (85-95) preserve more detail but larger files. Lower values (50-75) save storage but may reduce visual quality. Default 75 balances quality and file size well. Applied both to MinIO uploads and inline Qdrant payload storage. PNG ignores this setting as it's lossless.",
+                "help_text": "Compression quality for JPEG/WEBP images (1-100). Higher values (85-95) preserve more detail but larger files. Lower values (50-75) save storage but may reduce visual quality. Default 75 balances quality and file size well. Applied to MinIO uploads. PNG ignores this setting as it's lossless.",
             },
         ],
     },
@@ -509,6 +491,7 @@ def get_api_schema() -> Dict[str, Any]:
             "description": category["description"],
             "order": category.get("order", 99),
             "icon": category.get("icon", "settings"),
+            "ui_hidden": category.get("ui_hidden", False),
             "settings": [],
         }
 
@@ -560,7 +543,6 @@ def get_critical_keys() -> set:
     """
     return {
         "MUVERA_ENABLED",
-        "MINIO_ENABLED",
         "QDRANT_EMBEDDED",
         "QDRANT_COLLECTION_NAME",
         "QDRANT_MEAN_POOLING_ENABLED",

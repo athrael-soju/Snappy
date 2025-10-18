@@ -1,7 +1,5 @@
 """Main Qdrant service that orchestrates all operations."""
 
-import base64
-import io
 import logging
 from typing import TYPE_CHECKING, Callable, Iterable, Optional
 
@@ -36,11 +34,13 @@ class QdrantService:
             muvera_post: Optional MUVERA postprocessor
         """
         try:
+            if minio_service is None:
+                raise ValueError("MinIO service is required for QdrantService")
+
             # Initialize dependencies
             self.api_client = api_client
             self.minio_service = minio_service
             self.muvera_post = muvera_post
-            self.inline_storage = minio_service is None
 
             # Initialize subcomponents
             self.collection_manager = CollectionManager(
@@ -140,16 +140,6 @@ class QdrantService:
         """
         if not image_url:
             raise Exception("No image reference provided")
-        if image_url.startswith("data:"):
-            try:
-                _, encoded = image_url.split(",", 1)
-            except ValueError as exc:
-                raise Exception("Invalid inline image data URL") from exc
-            try:
-                binary = base64.b64decode(encoded)
-            except Exception as exc:  # pragma: no cover - defensive guard
-                raise Exception("Failed to decode inline image payload") from exc
-            return Image.open(io.BytesIO(binary))
         if not self.minio_service:
             raise Exception("MinIO service not available")
         return self.minio_service.get_image(image_url)

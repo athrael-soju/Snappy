@@ -1,6 +1,8 @@
-# Architecture
+# Snappy - Your Vision Retrieval buddy!
 
-A high-level view of the Vision RAG template and its main data flows.
+## Architecture Overview
+
+A high-level view of Snappy and its main data flows.
 
 ```mermaid
 ---
@@ -63,8 +65,7 @@ Support modules:
 3. `DocumentIndexer` (services/qdrant/indexing.py):
    - chunks pages into batches (`BATCH_SIZE`),
    - embeds each batch via the ColPali API (original + mean-pooled variants),
-   - stores images either in MinIO or inline (base64) depending on
-     `MINIO_ENABLED`,
+  - stores images in MinIO,
    - upserts multivector payloads into Qdrant.
 4. Two thread pools keep embedding, storage, and upserts overlapped when
    `ENABLE_PIPELINE_INDEXING=True`. Pipeline concurrency and PDF worker counts
@@ -84,8 +85,8 @@ Support modules:
 
 ## Next.js integration
 
-- Pages live under `frontend/app/*` (`/upload`, `/search`, `/chat`,
-  `/maintenance`, etc.).
+- Pages live under `frontend/app/*` (`/upload`, `/search`, `/chat`, `/configuration`,
+    `/maintenance`, etc.).
 - `frontend/lib/api/client.ts` configures the generated OpenAPI client using
   `NEXT_PUBLIC_API_BASE_URL` (defaults to `http://localhost:8000`).
 - The chat experience is implemented in `frontend/app/api/chat/route.ts`. It:

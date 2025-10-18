@@ -17,12 +17,19 @@ export interface ChatState {
   k: number;
   toolCallingEnabled: boolean;
   loading: boolean;
-  topK: number;
   maxTokens: number;
 }
 
+export interface UploadFileMeta {
+  name: string;
+  size: number;
+  type: string;
+  lastModified?: number;
+}
+
 export interface UploadState {
-  files: FileList | null;
+  files: File[] | null;
+  fileMeta: UploadFileMeta[] | null;
   uploading: boolean;
   uploadProgress: number;
   message: string | null;
@@ -46,7 +53,6 @@ export interface SystemStatus {
     exists: boolean;
     object_count: number;
     error: string | null;
-    disabled?: boolean;
   };
   lastChecked: number | null;
 }
@@ -82,13 +88,13 @@ export type AppAction =
   | { type: 'CHAT_SET_K'; payload: number }
   | { type: 'CHAT_SET_TOOL_CALLING'; payload: boolean }
   | { type: 'CHAT_SET_LOADING'; payload: boolean }
-  | { type: 'CHAT_SET_TOP_K'; payload: number }
   | { type: 'CHAT_SET_MAX_TOKENS'; payload: number }
   | { type: 'CHAT_REMOVE_EMPTY_ASSISTANT' }
   | { type: 'CHAT_RESET' }
   
   // Upload actions
-  | { type: 'UPLOAD_SET_FILES'; payload: FileList | null }
+  | { type: 'UPLOAD_SET_FILES'; payload: File[] | null }
+  | { type: 'UPLOAD_SET_FILE_META'; payload: UploadFileMeta[] | null }
   | { type: 'UPLOAD_SET_UPLOADING'; payload: boolean }
   | { type: 'UPLOAD_SET_PROGRESS'; payload: number }
   | { type: 'UPLOAD_SET_MESSAGE'; payload: string | null }
@@ -121,11 +127,11 @@ export const initialState: AppState = {
     k: 5,
     toolCallingEnabled: true,
     loading: false,
-    topK: 16,
     maxTokens: 500,
   },
   upload: {
     files: null,
+    fileMeta: null,
     uploading: false,
     uploadProgress: 0,
     message: null,

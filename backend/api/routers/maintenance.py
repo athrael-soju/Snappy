@@ -21,10 +21,6 @@ if TYPE_CHECKING:
 _get_config = getattr  # alias for static analysis friendliness
 
 
-def _is_minio_enabled() -> bool:
-    return bool(getattr(config, "MINIO_ENABLED", False))
-
-
 def _collection_name() -> str:
     return str(getattr(config, "QDRANT_COLLECTION_NAME", ""))
 
@@ -54,17 +50,7 @@ async def clear_qdrant():
 @router.post("/clear/minio")
 async def clear_minio():
     try:
-        if not _is_minio_enabled():
-            return {
-                "status": "skipped",
-                "message": "MinIO disabled via configuration",
-            }
         msvc = get_minio_service()
-        if not msvc:
-            raise HTTPException(
-                status_code=503,
-                detail=f"MinIO unavailable: {minio_init_error or 'Dependency service is down'}",
-            )
         res = await asyncio.to_thread(msvc.clear_images)
         return {
             "status": "ok",
@@ -129,8 +115,6 @@ async def delete_collection_and_bucket():
 def _collect_collection_status(svc: Optional["QdrantService"]) -> dict:
     collection_name = _collection_name()
     embedded = bool(getattr(config, "QDRANT_EMBEDDED", False))
-    minio_enabled = _is_minio_enabled()
-
     status = {
         "name": collection_name,
         "exists": False,
@@ -138,7 +122,7 @@ def _collect_collection_status(svc: Optional["QdrantService"]) -> dict:
         "unique_files": 0,
         "error": None,
         "embedded": embedded,
-        "image_store_mode": "minio" if minio_enabled else "inline",
+        "image_store_mode": "minio",
     }
     if not svc:
         status["error"] = qdrant_init_error or "Service unavailable"
@@ -172,17 +156,13 @@ def _collect_collection_status(svc: Optional["QdrantService"]) -> dict:
 
 def _collect_bucket_status(msvc: Optional["MinioService"]) -> dict:
     bucket_name = _bucket_name()
-    minio_enabled = _is_minio_enabled()
 
     status = {
         "name": bucket_name,
         "exists": False,
         "object_count": 0,
-        "disabled": not minio_enabled,
         "error": None,
     }
-    if not minio_enabled:
-        return status
     if not msvc:
         status["error"] = minio_init_error or "Service unavailable"
         return status
@@ -206,7 +186,6 @@ def _clear_all_sync(
     svc: Optional["QdrantService"], msvc: Optional["MinioService"]
 ) -> str:
     _collection_name()
-    minio_enabled = _is_minio_enabled()
     if svc:
         try:
             q_msg = svc.clear_collection()
@@ -216,9 +195,7 @@ def _clear_all_sync(
         q_msg = (
             f"Qdrant unavailable: {qdrant_init_error or 'Dependency service is down'}"
         )
-    if not minio_enabled:
-        m_msg = "MinIO disabled via configuration"
-    elif msvc:
+    if msvc:
         try:
             res = msvc.clear_images()
             m_msg = (
@@ -237,8 +214,6 @@ def _initialize_sync(
 ) -> dict:
     collection_name = _collection_name()
     bucket_name = _bucket_name()
-    minio_enabled = _is_minio_enabled()
-
     results = {
         "collection": {"status": "pending", "message": ""},
         "bucket": {"status": "pending", "message": ""},
@@ -256,10 +231,7 @@ def _initialize_sync(
     else:
         results["collection"]["status"] = "error"
         results["collection"]["message"] = qdrant_init_error or "Service unavailable"
-    if not minio_enabled:
-        results["bucket"]["status"] = "skipped"
-        results["bucket"]["message"] = "MinIO disabled via configuration"
-    elif msvc:
+    if msvc:
         try:
             msvc._create_bucket_if_not_exists()
             results["bucket"]["status"] = "success"
@@ -295,7 +267,6 @@ def _delete_sync(
 ) -> dict:
     collection_name = _collection_name()
     bucket_name = _bucket_name()
-    minio_enabled = _is_minio_enabled()
 
     results = {
         "collection": {"status": "pending", "message": ""},
@@ -318,10 +289,7 @@ def _delete_sync(
     else:
         results["collection"]["status"] = "error"
         results["collection"]["message"] = qdrant_init_error or "Service unavailable"
-    if not minio_enabled:
-        results["bucket"]["status"] = "skipped"
-        results["bucket"]["message"] = "MinIO disabled via configuration"
-    elif msvc:
+    if msvc:
         try:
             bucket_exists = msvc.service.bucket_exists(bucket_name)
             if bucket_exists:

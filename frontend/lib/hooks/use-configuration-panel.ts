@@ -4,9 +4,31 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { ConfigurationService, ApiError } from "@/lib/api/generated";
 import "@/lib/api/client";
-import { saveConfigToStorage, mergeWithStoredConfig, clearConfigFromStorage } from "@/lib/config/config-store";
-import { parseOptimizationResponse } from "@/lib/api/runtime";
-import type { ConfigSetting } from "@/components/configuration/setting-renderer";
+import {
+  saveConfigToStorage,
+  clearConfigFromStorage,
+  loadConfigFromStorage,
+  loadStoredConfigMeta,
+} from "@/lib/config/config-store";
+import type { ConfigValues } from "@/lib/config/config-store";
+
+export interface ConfigSetting {
+  key: string;
+  label: string;
+  type: "text" | "number" | "boolean" | "select" | "password";
+  options?: string[];
+  default: string;
+  description: string;
+  help_text?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+  depends_on?: {
+    key: string;
+    value: boolean;
+  };
+  ui_hidden?: boolean;
+}
 
 export interface ConfigCategory {
   name: string;
@@ -14,6 +36,7 @@ export interface ConfigCategory {
   order: number;
   icon: string;
   settings: ConfigSetting[];
+  ui_hidden?: boolean;
 }
 
 export type ConfigSchema = Record<string, ConfigCategory>;
@@ -35,7 +58,9 @@ export function useConfigurationPanel() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("application");
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [optimizing, setOptimizing] = useState(false);
+  const [storedDraft, setStoredDraft] = useState<ConfigValues | null>(null);
+  const [storedDraftKeys, setStoredDraftKeys] = useState<string[]>([]);
+  const [storedDraftUpdatedAt, setStoredDraftUpdatedAt] = useState<Date | null>(null);
 
   const loadConfiguration = useCallback(async () => {
     setLoading(true);
@@ -49,9 +74,39 @@ export function useConfigurationPanel() {
 
       setSchema(schemaData as ConfigSchema);
 
-      const mergedValues = mergeWithStoredConfig(valuesData);
-      setValues(mergedValues);
-      setOriginalValues(mergedValues);
+      const serverValues = { ...(valuesData as Record<string, string>) };
+      setValues(serverValues);
+      setOriginalValues(serverValues);
+
+      const storedValues = loadConfigFromStorage();
+      const { updatedAt: storedUpdatedAt } = loadStoredConfigMeta();
+
+      if (storedValues) {
+        const diffKeys = Object.entries(storedValues)
+          .filter(([key, storedValue]) => typeof storedValue === "string" && serverValues[key] !== storedValue)
+          .map(([key]) => key);
+
+        if (diffKeys.length > 0) {
+          setStoredDraft(storedValues);
+          setStoredDraftKeys(diffKeys);
+          setStoredDraftUpdatedAt(storedUpdatedAt ?? null);
+          setLastSaved(storedUpdatedAt ?? null);
+        } else {
+          const timestamp = storedUpdatedAt ?? new Date();
+          saveConfigToStorage(serverValues, timestamp);
+          setStoredDraft(null);
+          setStoredDraftKeys([]);
+          setStoredDraftUpdatedAt(null);
+          setLastSaved(timestamp);
+        }
+      } else {
+        const timestamp = new Date();
+        saveConfigToStorage(serverValues, timestamp);
+        setStoredDraft(null);
+        setStoredDraftKeys([]);
+        setStoredDraftUpdatedAt(null);
+        setLastSaved(timestamp);
+      }
     } catch (err) {
       const errorMsg = err instanceof ApiError ? err.message : "Failed to load configuration";
       setError(errorMsg);
@@ -70,6 +125,8 @@ export function useConfigurationPanel() {
     setHasChanges(changed);
   }, [values, originalValues]);
 
+  const hasStoredDraft = storedDraftKeys.length > 0;
+
   const configStats: ConfigStats = useMemo(
     () => ({
       totalSettings: Object.keys(values).length,
@@ -84,6 +141,25 @@ export function useConfigurationPanel() {
     }),
     [values, originalValues]
   );
+
+  const restoreStoredDraft = useCallback(() => {
+    if (!storedDraft) return;
+    setValues(prev => ({ ...prev, ...storedDraft }));
+    setStoredDraftKeys([]);
+    toast.info("Draft restored", {
+      description: "Review the changes below, then save to reapply them.",
+    });
+  }, [storedDraft]);
+
+  const discardStoredDraft = useCallback(() => {
+    setStoredDraft(null);
+    setStoredDraftKeys([]);
+    setStoredDraftUpdatedAt(null);
+    saveConfigToStorage(originalValues, new Date());
+    toast.info("Draft discarded", {
+      description: "Local draft changes were removed. Current settings mirror the server.",
+    });
+  }, [originalValues]);
 
   const handleValueChange = useCallback((key: string, value: string) => {
     setValues(prev => ({ ...prev, [key]: value }));
@@ -109,6 +185,7 @@ export function useConfigurationPanel() {
     try {
       const changedKeys = Object.keys(values).filter(key => values[key] !== originalValues[key]);
 
+      const savedAt = new Date();
       for (const key of changedKeys) {
         await ConfigurationService.updateConfigConfigUpdatePost({
           key,
@@ -116,9 +193,12 @@ export function useConfigurationPanel() {
         });
       }
 
-      saveConfigToStorage(values);
+      saveConfigToStorage(values, savedAt);
       setOriginalValues({ ...values });
-      setLastSaved(new Date());
+      setLastSaved(savedAt);
+      setStoredDraft(null);
+      setStoredDraftKeys([]);
+      setStoredDraftUpdatedAt(savedAt);
       toast.success("Configuration saved", {
         description: `${changedKeys.length} setting${changedKeys.length !== 1 ? "s" : ""} updated`,
       });
@@ -162,11 +242,16 @@ export function useConfigurationPanel() {
         const nextValues = { ...values, ...defaultValues };
         setValues(nextValues);
         setOriginalValues(prev => ({ ...prev, ...defaultValues }));
-        saveConfigToStorage(nextValues);
+        const savedAt = new Date();
+        saveConfigToStorage(nextValues, savedAt);
+        setStoredDraft(null);
+        setStoredDraftKeys([]);
+        setStoredDraftUpdatedAt(savedAt);
 
         toast.success("Section reset", {
           description: `${category.name} settings restored to defaults`,
         });
+        setLastSaved(savedAt);
         if (typeof window !== "undefined") {
           window.dispatchEvent(new Event("systemStatusChanged"));
         }
@@ -204,43 +289,6 @@ export function useConfigurationPanel() {
     }
   }, [loadConfiguration]);
 
-  const optimizeForSystem = useCallback(async () => {
-    if (hasChanges) {
-      toast.info("Save changes first", { description: "Please save or discard edits before optimizing." });
-      return;
-    }
-
-    setOptimizing(true);
-    setError(null);
-
-    try {
-      const result = await ConfigurationService.optimizeConfigConfigOptimizePost();
-      const optimization = parseOptimizationResponse(result);
-      clearConfigFromStorage();
-      await loadConfiguration();
-      setLastSaved(new Date());
-
-      const appliedCount = Object.keys(optimization.applied ?? {}).length;
-      const description =
-        optimization.message ||
-        (appliedCount
-          ? `Applied ${appliedCount} setting${appliedCount !== 1 ? "s" : ""}.`
-          : "Your configuration already matched the recommended profile.");
-
-      const notify = appliedCount > 0 ? toast.success : toast.info;
-      notify("Optimization complete", { description });
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new Event("systemStatusChanged"));
-      }
-    } catch (err) {
-      const errorMsg = err instanceof ApiError ? err.message : "Failed to optimize configuration";
-      setError(errorMsg);
-      toast.error("Optimization failed", { description: errorMsg });
-    } finally {
-      setOptimizing(false);
-    }
-  }, [hasChanges, loadConfiguration]);
-
   return {
     schema,
     loading,
@@ -252,12 +300,15 @@ export function useConfigurationPanel() {
     values,
     configStats,
     lastSaved,
-    optimizing,
+    hasStoredDraft,
+    storedDraftUpdatedAt,
+    storedDraftKeys,
     saveChanges,
     resetChanges,
     resetSection,
     resetToDefaults,
-    optimizeForSystem,
+    restoreStoredDraft,
+    discardStoredDraft,
     handleValueChange,
     isSettingVisible,
   };

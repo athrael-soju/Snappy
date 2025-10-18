@@ -5,6 +5,9 @@ export function uploadReducer(state: AppState, action: AppAction): AppState | nu
   switch (action.type) {
     case 'UPLOAD_SET_FILES':
       return { ...state, upload: { ...state.upload, files: action.payload } };
+
+    case 'UPLOAD_SET_FILE_META':
+      return { ...state, upload: { ...state.upload, fileMeta: action.payload } };
     
     case 'UPLOAD_SET_UPLOADING':
       return { ...state, upload: { ...state.upload, uploading: action.payload } };

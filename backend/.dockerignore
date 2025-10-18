@@ -11,5 +11,5 @@ __pycache__/
 .qdrant/
 minio_data/
 qdrant_data/
-vision_rag_data/
+backend_data/
 data/

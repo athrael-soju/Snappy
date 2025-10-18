@@ -1,6 +1,5 @@
 import asyncio
 
-import config
 from api.dependencies import (
     get_colpali_client,
     get_minio_service,
@@ -59,9 +58,6 @@ def _check_colpali() -> bool:
 
 def _check_minio() -> bool:
     try:
-        minio_enabled = bool(getattr(config, "MINIO_ENABLED"))
-        if not minio_enabled:
-            return True
         svc = get_minio_service()
         return bool(svc and svc.health_check())
     except Exception:

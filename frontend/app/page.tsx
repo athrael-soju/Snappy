@@ -1,130 +1,241 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import { useTheme } from "next-themes";
 import { motion } from "framer-motion";
-import { defaultPageMotion, fadeInItemMotion, hoverLift, sectionVariants, staggeredListMotion } from "@/lib/motion-presets";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { PageHeader } from "@/components/page-header";
+import {
+  ArrowRight,
+  Upload,
+  Search,
+  MessageSquare,
+  Settings,
+  Wrench,
+  Sparkles,
+  Zap,
+} from "lucide-react";
+import { AppButton } from "@/components/app-button";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { ArrowRight, Brain, CloudUpload, Database, Sparkles } from "lucide-react";
-import { FeatureCard } from "@/components/ui/feature-card";
 
-const workflow = [
+const primaryFeatures = [
   {
-    title: "Upload & Ingest",
-    description: "Effortlessly bring your documents into the system with intelligent processing",
-    icon: CloudUpload,
+    title: "Upload & Index",
+    description: "Drop documents and let Snappy's ColPali vision model understand layout and content instantly.",
     href: "/upload",
-    badges: ["PDF", "Images", "Multi-page"],
-    features: [
-      "Drag-and-drop interface with batch upload",
-      "Automatic format detection and validation",
-      "Real-time progress tracking and status",
-      "Secure storage with metadata extraction",
-    ],
+    icon: Upload,
+    gradient: "from-chart-1 to-chart-2",
   },
   {
-    title: "Visual Embeddings",
-    description: "ColPali transforms documents into searchable visual representations",
-    icon: Database,
-    href: "/maintenance?section=configuration",
-    badges: ["AI-Powered", "Qdrant", "GPU Ready"],
-    features: [
-      "Vision-language model for deep understanding",
-      "Page-level embeddings for precise retrieval",
-      "Vector database with similarity search",
-      "Configurable processing pipeline",
-    ],
-  },
-  {
-    title: "Search & Chat",
-    description: "Interact naturally with your documents using AI-powered search and conversation",
-    icon: Brain,
+    title: "Search Naturally",
+    description: "Ask questions in plain language and Snappy surfaces precise, citation-ready answers.",
     href: "/search",
-    badges: ["RAG", "Multi-modal", "Real-time"],
-    features: [
-      "Natural language queries with context awareness",
-      "Visual similarity search across documents",
-      "AI chat with document citations and sources",
-      "Instant results with relevance scoring",
-    ],
+    icon: Search,
+    gradient: "from-primary to-chart-4",
+  },
+  {
+    title: "Chat & Discover",
+    description: "Have conversations with your documents powered by Snappy's visual reasoning.",
+    href: "/chat",
+    icon: MessageSquare,
+    gradient: "from-chart-2 to-chart-3",
   },
 ];
 
-export default function Home() {
-  return (
-    <motion.div {...defaultPageMotion} className="page-shell flex min-h-0 flex-1 flex-col">
-      <motion.section variants={sectionVariants} className="flex flex-col items-center text-center gap-6 pt-6 sm:pt-8">
-        <PageHeader
-          title="FastAPI / Next.js / ColPali Template"
-          icon={Sparkles}
-          badge={<Badge className="rounded-full text-sm">v0.0.5</Badge>}
-          tooltip="This starter kit combines a FastAPI backend, Qdrant vector search, and a modern Next.js interface so you can focus on the experience, not the configuration"
-        />
-      </motion.section>
+const secondaryLinks = [
+  { title: "Configuration", href: "/configuration", icon: Settings },
+  { title: "Maintenance", href: "/maintenance", icon: Wrench },
+];
 
-      <motion.section variants={sectionVariants} className="flex-1 min-h-0 pb-6 sm:pb-8 flex">
-        <ScrollArea className="h-[calc(100vh-12rem)] rounded-xl">
-          <div className="mx-auto max-w-6xl px-4 py-6">
-            {/* Hero copy */}
-            <div className="flex flex-col items-center text-center gap-6 mb-8">
-              <div className="space-y-3 max-w-3xl">
-                <p className="text-lg text-foreground/90 leading-relaxed font-medium">
-                  Spin up document ingestion, visual search, and AI chat in minutes with this production-ready template.
-                </p>
-                <p className="text-sm text-foreground/70 font-medium">
-                  Powered by <span className="font-semibold text-primary hover:text-primary/80 transition-colors">ColPali</span>, <span className="font-semibold text-primary hover:text-primary/80 transition-colors">Qdrant</span>, and modern web technologies
-                </p>
-              </div>
-              
-              {/* Primary CTA above the grid */}
-              <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-4">
-                <Button
-                  asChild
-                  size="lg"
-                  className="primary-gradient rounded-full px-8 py-6 text-base font-semibold shadow-lg transition-all hover:shadow-xl hover:scale-105 focus-visible:ring-4 focus-visible:ring-ring/35 focus-visible:ring-offset-2"
-                >
-                  <Link href="/upload">
-                    <CloudUpload className="mr-2 h-5 w-5" />
-                    Upload Documents
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Link>
-                </Button>
-                <Button
-                  asChild
-                  variant="outline"
-                  size="lg"
-                  className="rounded-full px-6 py-6 text-base font-medium"
-                >
-                  <Link href="/search">Explore Search</Link>
-                </Button>
-              </div>
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring" as const, stiffness: 100, damping: 10 },
+  },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, scale: 0.9 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: { type: "spring" as const, stiffness: 100, damping: 15 },
+  },
+};
+
+export default function Home() {
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const logoSrc =
+    theme === "dark"
+      ? "/Snappy/snappy_dark_nobg_resized.png"
+      : "/Snappy/snappy_light_nobg_resized.png";
+
+  return (
+    <div className="relative flex min-h-0 flex-1 flex-col justify-between overflow-y-auto">
+      {/* Hero Content - Full viewport utilization */}
+      <motion.div
+        className="flex flex-1 flex-col justify-center px-4 py-4 text-center sm:px-6 lg:px-8"
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+      >
+        <div className="mx-auto w-full max-w-6xl space-y-8">
+
+          {/* Brandmark */}
+          <motion.div variants={itemVariants}>
+            <div className="relative mx-auto flex hero-logo-frame items-center justify-center sm:hero-logo-frame-lg">
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-br from-primary/30 via-primary/15 to-transparent opacity-90 blur-2xl hero-logo-radiance"
+              />
+              {mounted && (
+                <Image
+                  src={logoSrc}
+                  alt="Snappy logo"
+                  width={270}
+                  height={270}
+                  priority
+                  className="relative hero-logo-image object-contain drop-shadow-2xl sm:hero-logo-image-lg"
+                />
+              )}
+            </div>
+            {/* Heading */}
+            <motion.h1
+              className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl"
+              variants={itemVariants}
+            >
+              <span className="bg-gradient-to-r from-primary via-chart-4 to-chart-1 bg-clip-text text-transparent">
+                Your Vision Retrieval Buddy!
+              </span>
+            </motion.h1>
+          </motion.div>
+
+
+
+          {/* Description */}
+          <motion.p
+            className="mx-auto max-w-2xl text-body text-muted-foreground"
+            variants={itemVariants}
+          >
+            Snappy combines lightning-fast ingestion with context-aware retrieval so your team can move
+            from document to decision in seconds.
+          </motion.p>
+
+          {/* CTA Buttons */}
+          <motion.div
+            className="flex flex-wrap items-center justify-center gap-3 sm:gap-4"
+            variants={itemVariants}
+          >
+            <AppButton
+              asChild
+              variant="hero"
+              size="xl"
+              elevated
+              iconShift
+            >
+              <Link href="/upload">
+                <Upload className="size-icon-lg" />
+                Get Started
+                <ArrowRight className="size-icon-xs transition-transform group-hover/app-button:translate-x-1" />
+              </Link>
+            </AppButton>
+            <AppButton
+              asChild
+              variant="glass"
+              size="xl"
+              elevated
+              iconShift
+            >
+              <Link href="/chat">
+                <MessageSquare className="size-icon-lg" />
+                Try Chat
+              </Link>
+            </AppButton>
+          </motion.div>
+
+          {/* Core Features Section */}
+          <motion.div className="pt-2" variants={itemVariants}>
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-muted px-4 py-1.5 text-body font-medium">
+              <Zap className="size-icon-sm text-primary" />
+              Core Features
             </div>
 
-            {/* 3-card grid */}
-            <motion.div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" {...staggeredListMotion}>
-              {workflow.map(({ title, description, icon, href, badges, features }) => (
-                <motion.div key={title} {...fadeInItemMotion} {...hoverLift}>
+            {/* Feature Cards */}
+            <motion.div className="grid gap-4 md:grid-cols-3" variants={containerVariants}>
+              {primaryFeatures.map((feature) => (
+                <motion.div
+                  key={feature.href}
+                  variants={cardVariants}
+                  whileHover={{ scale: 1.02, y: -4 }}
+                  whileTap={{ scale: 0.98 }}
+                >
                   <Link
-                    href={href}
-                    className="block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-2xl"
+                    href={feature.href}
+                    className="group relative block overflow-hidden rounded-2xl border border-border/50 bg-card/50 p-5 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10 touch-manipulation"
                   >
-                    <FeatureCard
-                      icon={icon}
-                      title={title}
-                      description={description}
-                      badges={badges}
-                      features={features}
-                      glass
+                    <div
+                      className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 transition-opacity group-hover:opacity-5`}
                     />
+
+                    <div className="relative flex items-start gap-3">
+                      <div
+                        className={`flex size-icon-3xl shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${feature.gradient} shadow-lg`}
+                      >
+                        <feature.icon className="size-icon-lg text-primary-foreground" />
+                      </div>
+
+                      <div className="flex-1 text-left">
+                        <h3 className="mb-1.5 text-lg font-bold">{feature.title}</h3>
+                        <p className="mb-2 text-body-sm text-muted-foreground">
+                          {feature.description}
+                        </p>
+                        <div className="inline-flex items-center gap-1.5 text-body-sm font-semibold text-primary">
+                          Explore
+                          <ArrowRight className="size-icon-2xs transition-transform group-hover:translate-x-2" />
+                        </div>
+                      </div>
+                    </div>
                   </Link>
                 </motion.div>
               ))}
             </motion.div>
-          </div>
-        </ScrollArea>
-      </motion.section>
-    </motion.div>
+
+            {/* Secondary Links */}
+            <motion.div
+              className="mt-6 flex flex-wrap items-center justify-center gap-3"
+              variants={itemVariants}
+            >
+              {secondaryLinks.map((link) => (
+                <AppButton key={link.href} asChild variant="ghost" size="sm">
+                  <Link href={link.href}>
+                    <link.icon className="size-icon-2xs" />
+                    {link.title}
+                  </Link>
+                </AppButton>
+              ))}
+            </motion.div>
+          </motion.div>
+        </div>
+      </motion.div>
+    </div>
   );
 }

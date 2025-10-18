@@ -1,4 +1,4 @@
-# Configuration Reference
+# Snappy - Configuration Reference
 
 This document describes every runtime configuration knob exposed by the FastAPI
 backend. All dynamic settings are defined in `backend/config_schema.py`. The
@@ -99,7 +99,7 @@ and port for the service you want to talk to.
 | Key                         | Type  | Default | Notes |
 |-----------------------------|-------|---------|-------|
 | `QDRANT_URL`                | str   | `http://localhost:6333` | External Qdrant endpoint (ignored when `QDRANT_EMBEDDED=True`). |
-| `QDRANT_EMBEDDED`           | bool  | `True`  | Launch an embedded in-memory Qdrant instance. Disable to connect to an external deployment. |
+| `QDRANT_EMBEDDED`           | bool  | `False` | Launch an embedded in-memory Qdrant instance. Enable when you want the backend to manage an in-process database instead of an external cluster. |
 | `QDRANT_COLLECTION_NAME`    | str   | `documents` | Collection name used for all vectors and metadata (also feeds the default MinIO bucket name). |
 | `QDRANT_PREFETCH_LIMIT`     | int   | `200`   | Number of multivector candidates prefetched for reranking when mean pooling is enabled. |
 | `QDRANT_ON_DISK`            | bool  | `True`  | Store primary vector data on disk (memory-mapped). |
@@ -120,8 +120,7 @@ and port for the service you want to talk to.
 
 | Key                | Type | Default | Notes |
 |--------------------|------|---------|-------|
-| `MINIO_ENABLED`    | bool | `False` | Toggle MinIO integration. When disabled, images are embedded inline in Qdrant payloads. |
-| `MINIO_URL`        | str  | `http://localhost:9000` | Internal S3 endpoint used by the backend (shown only when MinIO is enabled). |
+| `MINIO_URL`        | str  | `http://localhost:9000` | Internal S3 endpoint used by the backend. |
 | `MINIO_PUBLIC_URL` | str  | `http://localhost:9000` | Public URL embedded in payloads. Falls back to `MINIO_URL` when blank. |
 | `MINIO_ACCESS_KEY` | str  | `minioadmin` | Access key used to authenticate MinIO requests. Replace in production. |
 | `MINIO_SECRET_KEY` | str  | `minioadmin` | Secret key used with the access key. Replace in production. |
@@ -130,12 +129,14 @@ and port for the service you want to talk to.
 | `MINIO_RETRIES`    | int  | *(auto)* | Retry attempts per upload batch. Computed from the worker count. |
 | `MINIO_FAIL_FAST`  | bool | `False` | Abort immediately on the first upload error. Keep disabled for resiliency. |
 | `MINIO_PUBLIC_READ`| bool | `True`  | Apply a public-read bucket policy automatically. Disable when you intend to serve images through signed URLs or another private mechanism. |
-| `IMAGE_FORMAT`     | str  | `JPEG`  | Format used when storing rendered pages (`JPEG`, `PNG`, or `WEBP`). Applies to both MinIO uploads and inline payloads. |
+| `IMAGE_FORMAT`     | str  | `JPEG`  | Format used when storing rendered pages in MinIO (`JPEG`, `PNG`, or `WEBP`). |
 | `IMAGE_QUALITY`    | int  | `75`    | Quality setting for `JPEG` and `WEBP` images (1-100). Ignored for PNG. |
 
-A few helper methods inside `config.py` compute worker and retry counts when they
-are not explicitly set. That keeps the upload pipeline balanced without
-managing yet another environment variable.
+MinIO is now mandatory—if the service fails to initialise the backend surfaces
+an error rather than falling back to inline payload storage. Helper methods
+inside `config.py` still compute worker and retry counts when they are not
+explicitly set, keeping the upload pipeline balanced without managing yet
+another environment variable.
 
 ---
 
@@ -208,3 +209,4 @@ you need the new values to survive a rebuild or container restart.
 
 For a deeper dive into the configuration architecture see
 `backend/CONFIGURATION_GUIDE.md`.
+
