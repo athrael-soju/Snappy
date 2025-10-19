@@ -27,7 +27,12 @@ export default function Loading() {
     [theme],
   );
   return (
-    <div className="flex h-full w-full items-center justify-center" role="status" aria-live="polite" aria-busy="true">
+    <div
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-white/70 backdrop-blur-sm dark:bg-vultr-midnight/70"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
