@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { motion } from "framer-motion"
+import Link from "next/link";
+import { motion } from "framer-motion";
 import {
   ArrowRight,
   Braces,
@@ -12,16 +12,17 @@ import {
   Server,
   Sparkles,
   Workflow,
-} from "lucide-react"
-import { AppButton } from "@/components/app-button"
+} from "lucide-react";
+
+import { AppButton } from "@/components/app-button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { PageHeader } from "@/components/page-header"
+} from "@/components/ui/card";
+import { RoutePageShell } from "@/components/route-page-shell";
 
 const highlights = [
   {
@@ -42,7 +43,7 @@ const highlights = [
       "Next.js 15 App Router UI ships upload progress, streaming chat, runtime configuration, and maintenance tools.",
     icon: Rocket,
   },
-]
+] as const;
 
 const stack = [
   {
@@ -69,7 +70,7 @@ const stack = [
       "Keeps page imagery in sync with vector IDs so chat and search can surface visual citations instantly.",
     icon: Layers,
   },
-]
+] as const;
 
 const lifecycle = [
   {
@@ -97,232 +98,209 @@ const lifecycle = [
     detail:
       "Configuration and maintenance dashboards expose runtime tuning, resets, and system health at a glance.",
   },
-]
+] as const;
 
 export default function AboutPage() {
+  const heroActions = (
+    <>
+      <AppButton
+        asChild
+        variant="primary"
+        size="sm"
+        className="rounded-[var(--radius-button)] px-5"
+      >
+        <Link href="/chat">Explore chat demo</Link>
+      </AppButton>
+      <AppButton
+        asChild
+        variant="ghost"
+        size="sm"
+        className="rounded-[var(--radius-button)] border border-white/30 bg-white/10 px-4 py-2 text-white hover:border-white/50 hover:bg-white/20"
+      >
+        <Link href="/search">See search workflow</Link>
+      </AppButton>
+    </>
+  );
+
+  const heroMeta = (
+    <>
+      <span className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-sm font-medium text-white backdrop-blur">
+        <Sparkles className="size-icon-3xs" />
+        Vision-first retrieval
+      </span>
+      <span className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-sm font-medium text-white backdrop-blur">
+        <Server className="size-icon-3xs" />
+        FastAPI · Qdrant · MinIO stack
+      </span>
+      <span className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-sm font-medium text-white backdrop-blur">
+        <Workflow className="size-icon-3xs" />
+        End-to-end operations
+      </span>
+    </>
+  );
+
   return (
-    <div className="relative flex min-h-full flex-col overflow-x-hidden">
-      <section className="px-4 py-10 sm:px-6 lg:px-8">
-        <motion.div
-          className="mx-auto flex w-full max-w-5xl flex-col gap-10"
+    <RoutePageShell
+      eyebrow="Platform"
+      title="Vultr Vision brings ColPali intelligence to your cloud"
+      description="The turnkey template blends Vultr’s brand system with ColPali’s document vision pipeline so teams can launch grounded search, chat, and maintenance in record time."
+      actions={heroActions}
+      meta={heroMeta}
+    >
+      <motion.div
+        className="mx-auto flex w-full max-w-5xl flex-col gap-12"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+      >
+        <motion.section
+          className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.3 }}
+        >
+          {highlights.map((item, index) => (
+            <motion.div
+              key={item.title}
+              className="flex flex-col gap-3 rounded-2xl border border-border/20 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-white/15 dark:bg-vultr-midnight/60"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 + index * 0.05, duration: 0.3 }}
+            >
+              <div className="flex size-icon-lg items-center justify-center rounded-full bg-primary/10 text-primary shadow-sm">
+                <item.icon className="size-icon-sm" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-body sm:text-lg font-semibold text-foreground">{item.title}</h3>
+                <p className="text-body-xs text-muted-foreground leading-relaxed">{item.description}</p>
+              </div>
+            </motion.div>
+          ))}
+        </motion.section>
+
+        <motion.section
+          className="space-y-6"
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.3 }}
+        >
+          <Card className="border border-border/20 bg-white shadow-sm dark:border-white/15 dark:bg-vultr-midnight/60">
+            <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div className="space-y-2">
+                <CardTitle className="text-2xl font-semibold">Vultr Vision stack</CardTitle>
+                <CardDescription className="max-w-3xl text-body-sm leading-relaxed">
+                  Each service is optimised for fast setup on Vultr infrastructure. Customise connectors, GPU regions,
+                  and storage policies without rebuilding the UI.
+                </CardDescription>
+              </div>
+              <AppButton asChild variant="outline" size="sm" className="rounded-[var(--radius-button)]">
+                <Link href="/configuration">Review configuration</Link>
+              </AppButton>
+            </CardHeader>
+            <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {stack.map((item, index) => (
+                <motion.div
+                  key={item.title}
+                  className="flex flex-col gap-3 rounded-2xl border border-border/20 bg-background/70 p-4 shadow-sm transition hover:border-primary/40 dark:border-white/15 dark:bg-vultr-midnight/50"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 + index * 0.05, duration: 0.25 }}
+                >
+                  <div className="flex size-icon-lg items-center justify-center rounded-full bg-primary/10 text-primary shadow-sm">
+                    <item.icon className="size-icon-sm" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-body-sm font-semibold">{item.title}</h3>
+                    <p className="text-body-xs text-muted-foreground leading-relaxed">{item.description}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card className="border border-border/20 bg-white shadow-sm dark:border-white/15 dark:bg-vultr-midnight/60">
+            <CardHeader>
+              <CardTitle className="text-xl font-semibold">Built for developers</CardTitle>
+              <CardDescription className="text-body-sm leading-relaxed">
+                OpenAPI powered SDKs, typed stores, and shadcn UI primitives keep the codebase approachable.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 text-body-sm text-muted-foreground">
+              <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-background/70 p-3 dark:border-white/15 dark:bg-vultr-midnight/50">
+                <Braces className="size-icon-xs text-primary" />
+                <span>Generated TypeScript clients stay in sync with FastAPI routes.</span>
+              </div>
+              <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-background/70 p-3 dark:border-white/15 dark:bg-vultr-midnight/50">
+                <Workflow className="size-icon-xs text-primary" />
+                <span>Shared event bus keeps upload, search, and chat in lockstep.</span>
+              </div>
+              <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-background/70 p-3 dark:border-white/15 dark:bg-vultr-midnight/50">
+                <Rocket className="size-icon-xs text-primary" />
+                <span>Docker-first setup mirrors local testing and Vultr production.</span>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.section>
+
+        <motion.section
+          className="rounded-3xl border border-border/20 bg-white p-8 shadow-sm dark:border-white/15 dark:bg-vultr-midnight/60"
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.35 }}
+        >
+          <div className="mx-auto max-w-4xl space-y-6 text-center">
+            <h2 className="text-2xl font-semibold sm:text-3xl">From PDF to grounded answer</h2>
+            <p className="text-body-sm text-muted-foreground sm:text-body">
+              The end-to-end workflow keeps context intact, from ingestion through search and response streaming.
+            </p>
+          </div>
+          <ol className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
+            {lifecycle.map((item, index) => (
+              <motion.li
+                key={item.label}
+                className="relative flex h-full flex-col gap-3 rounded-2xl border border-border/20 bg-background/70 p-5 text-left shadow-sm transition hover:-translate-y-1 hover:border-primary/40 dark:border-white/15 dark:bg-vultr-midnight/50"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35 + index * 0.05, duration: 0.3 }}
+              >
+                <span className="flex size-icon-2xl items-center justify-center rounded-full border border-border/20 bg-muted/70 text-body-sm font-semibold text-muted-foreground shadow-sm dark:border-white/15 dark:bg-vultr-midnight/70">
+                  {index + 1}
+                </span>
+                <h3 className="text-body-sm sm:text-body font-semibold">{item.label}</h3>
+                <p className="text-body-xs sm:text-body-sm text-muted-foreground leading-relaxed">{item.detail}</p>
+              </motion.li>
+            ))}
+          </ol>
+        </motion.section>
+
+        <motion.section
+          className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-white to-chart-4/10 p-8 text-center shadow-sm dark:border-vultr-light-blue/30 dark:from-vultr-blue-20/40 dark:via-vultr-midnight dark:to-vultr-blue-20/50 lg:p-10"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
+          transition={{ delay: 0.4, duration: 0.35 }}
         >
-          <motion.header
-            className="shrink-0"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.4 }}
-          >
-            <PageHeader
-              align="center"
-              spacing="lg"
-              title={
-                <>
-                  <span className="bg-gradient-to-r from-vultr-sky-blue via-white to-vultr-blue bg-clip-text text-transparent">
-                    Vultr Vision
-                  </span>{" "}
-                  brings ColPali intelligence to your cloud
-                </>
-              }
-              description="This Vultr-branded workspace aligns FastAPI, Next.js, ColPali, Qdrant, and MinIO so you can deploy a production-ready vision retrieval stack without rebuilding the plumbing. Upload documents, search visually, and chat with grounded citations out of the box."
-              descriptionClassName="text-body-sm sm:text-body leading-relaxed text-muted-foreground max-w-3xl"
-              actionsClassName="gap-4 flex-wrap justify-center"
-              actions={
-                <>
-                  <AppButton
-                    asChild
-                    variant="cta"
-                    size="xl"
-                    elevated
-                    iconShift
-                  >
-                    <Link href="/upload">
-                      Start indexing
-                      <ArrowRight className="size-icon-xs transition-transform group-hover/app-button:translate-x-1" />
-                    </Link>
-                  </AppButton>
-                  <AppButton
-                    asChild
-                    variant="outline"
-                    size="xl"
-                    elevated
-                    iconShift
-                  >
-                    <Link href="/search">
-                      Explore search
-                      <ArrowRight className="size-icon-xs transition-transform group-hover/app-button:translate-x-1" />
-                    </Link>
-                  </AppButton>
-                </>
-              }
-            />
-          </motion.header>
-
-          <section className="grid gap-4 md:grid-cols-3">
-            {highlights.map((item, index) => (
-              <motion.div
-                key={item.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 + index * 0.1, duration: 0.4 }}
-                whileHover={{ scale: 1.03, y: -4 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Card className="border-border/50 bg-card/60 backdrop-blur transition hover:border-primary/50 hover:shadow-lg hover:shadow-primary/15 touch-manipulation">
-                  <CardHeader className="gap-4">
-                    <div className="flex size-icon-3xl items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-chart-4/20 text-primary shadow-md">
-                      <item.icon className="size-icon-lg" />
-                    </div>
-                    <CardTitle className="text-body sm:text-lg">{item.title}</CardTitle>
-                    <CardDescription className="text-body-sm sm:text-body leading-relaxed">
-                      {item.description}
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-              </motion.div>
-            ))}
-          </section>
-
-          <motion.section
-            className="grid gap-6 lg:grid-cols-3"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.5 }}
-          >
-            <Card className="lg:col-span-2 border-border/60 bg-card/70 backdrop-blur">
-              <CardHeader>
-                <CardTitle className="text-2xl font-semibold">How the pieces fit together</CardTitle>
-                <CardDescription className="text-body-sm leading-relaxed">
-                  Each service is container-ready and connected with sensible defaults so you can deploy locally or
-                  scale into production with minimal wiring.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <ul className="grid gap-4 sm:grid-cols-2">
-                  {stack.map((item, index) => (
-                    <motion.li
-                      key={item.title}
-                      className="flex gap-3 rounded-xl border border-border/40 bg-background/60 p-4 transition hover:border-primary/40 touch-manipulation"
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.6 + index * 0.1, duration: 0.3 }}
-                      whileHover={{ scale: 1.02, x: 4 }}
-                    >
-                      <div className="mt-1 flex size-icon-2xl items-center justify-center rounded-lg bg-primary/10 text-primary shadow-sm">
-                        <item.icon className="size-icon-md" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <p className="text-body-sm sm:text-body font-semibold">{item.title}</p>
-                        <p className="text-body-xs sm:text-body-sm text-muted-foreground leading-relaxed">
-                          {item.description}
-                        </p>
-                      </div>
-                    </motion.li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border/60 bg-card/70 backdrop-blur">
-              <CardHeader>
-                <CardTitle className="text-xl font-semibold">Built for developers</CardTitle>
-                <CardDescription className="text-body-sm leading-relaxed">
-                  OpenAPI powered SDKs, typed stores, and shadcn UI primitives keep the codebase approachable.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4 text-body-sm text-muted-foreground">
-                <div className="flex items-center gap-2 rounded-lg border border-border/40 bg-background/60 p-3">
-                  <Braces className="size-icon-xs text-primary" />
-                  <span>Generated TypeScript clients sync with FastAPI routes.</span>
-                </div>
-                <div className="flex items-center gap-2 rounded-lg border border-border/40 bg-background/60 p-3">
-                  <Workflow className="size-icon-xs text-primary" />
-                  <span>Shared event bus keeps upload, search, and chat in sync.</span>
-                </div>
-                <div className="flex items-center gap-2 rounded-lg border border-border/40 bg-background/60 p-3">
-                  <Rocket className="size-icon-xs text-primary" />
-                  <span>Docker-first setup mirrors local and production environments.</span>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.section>
-
-          <motion.section
-            className="rounded-3xl border border-border/40 bg-muted/30 p-6 backdrop-blur lg:p-10"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.7, duration: 0.5 }}
-          >
-            <div className="mx-auto max-w-4xl space-y-6 text-center">
-              <h2 className="text-2xl font-semibold sm:text-3xl">From PDF to grounded answer</h2>
-              <p className="text-body-sm text-muted-foreground sm:text-body">
-                The end-to-end workflow keeps context intact, from ingestion all the way to answer streaming.
-              </p>
-            </div>
-            <ol className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
-              {lifecycle.map((item, index) => (
-                <motion.li
-                  key={item.label}
-                  className="relative flex h-full flex-col gap-3 rounded-2xl border border-border/30 bg-background/60 p-5 text-left transition-all hover:border-primary/40 hover:shadow-md touch-manipulation"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.8 + index * 0.1, duration: 0.3 }}
-                  whileHover={{ scale: 1.05, y: -5 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <span className="flex size-icon-2xl items-center justify-center rounded-full border border-border/40 bg-muted/70 text-body-sm font-semibold text-muted-foreground shadow-sm">
-                    {index + 1}
-                  </span>
-                  <h3 className="text-body-sm sm:text-body font-semibold">{item.label}</h3>
-                  <p className="text-body-xs sm:text-body-sm text-muted-foreground leading-relaxed">{item.detail}</p>
-                </motion.li>
-              ))}
-            </ol>
-          </motion.section>
-
-          <motion.section
-            className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-background to-chart-4/10 p-6 text-center backdrop-blur lg:p-10"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.2, duration: 0.5 }}
-          >
-            <h2 className="text-2xl font-semibold sm:text-3xl">Ready to tailor it to your domain?</h2>
-            <p className="mt-3 text-body-sm text-muted-foreground sm:text-body">
-              Bring your PDFs, plug in your ColPali deployment, and start experimenting. The template includes
-              feature flags for MUVERA recall boosts, binary quantisation, and runtime configuration so you can
-              harden as you grow.
-            </p>
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
-              <AppButton
-                asChild
-                size="lg"
-                variant="cta"
-                elevated
-                iconShift
-              >
-                <Link href="/chat">
-                  Try grounded chat
-                  <ArrowRight className="size-icon-xs transition-transform group-hover/app-button:translate-x-1" />
-                </Link>
-              </AppButton>
-              <AppButton
-                asChild
-                size="lg"
-                variant="outline"
-                elevated
-                iconShift
-              >
-                <Link href="/maintenance">
-                  View maintenance tools
-                  <ArrowRight className="size-icon-xs transition-transform group-hover/app-button:translate-x-1" />
-                </Link>
-              </AppButton>
-            </div>
-          </motion.section>
-        </motion.div>
-      </section>
-    </div>
-  )
+          <h2 className="text-2xl font-semibold sm:text-3xl">Ready to tailor it to your domain?</h2>
+          <p className="mt-3 text-body-sm text-muted-foreground sm:text-body">
+            Bring your PDFs, plug in your ColPali deployment, and start experimenting. Feature flags cover MUVERA
+            recall boosts, binary quantisation, and runtime configuration so you can harden as you grow.
+          </p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
+            <AppButton asChild size="lg" variant="cta" elevated iconShift>
+              <Link href="/chat">
+                Try grounded chat
+                <ArrowRight className="size-icon-xs transition-transform group-hover/app-button:translate-x-1" />
+              </Link>
+            </AppButton>
+            <AppButton asChild size="lg" variant="outline" elevated iconShift>
+              <Link href="/maintenance">
+                View maintenance tools
+                <ArrowRight className="size-icon-xs transition-transform group-hover/app-button:translate-x-1" />
+              </Link>
+            </AppButton>
+          </div>
+        </motion.section>
+      </motion.div>
+    </RoutePageShell>
+  );
 }
+
