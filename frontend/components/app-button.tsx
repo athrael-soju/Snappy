@@ -59,39 +59,39 @@ type AppButtonProps = Omit<PrimitiveButtonProps, "className" | "size" | "variant
 }
 
 const baseClasses =
-  "inline-flex items-center gap-2 font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none"
+  "inline-flex items-center gap-2 font-semibold text-[var(--text-cta)] leading-[var(--leading-cta)] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vultr-light-blue focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none"
 
 const variantClasses: Record<AppButtonVariant, string> = {
   primary:
-    "bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-primary/30",
+    "bg-vultr-blue text-white shadow-[var(--shadow-soft)] hover:brightness-95 active:brightness-90",
   secondary:
-    "bg-secondary text-secondary-foreground hover:bg-secondary/80 focus-visible:ring-secondary/30",
+    "bg-vultr-light-blue text-vultr-navy hover:bg-vultr-light-blue/90 shadow-[var(--shadow-soft)]",
   outline:
-    "border border-border/60 bg-background text-foreground hover:border-primary/50 hover:bg-background/90 focus-visible:ring-primary/25",
+    "border border-vultr-blue text-vultr-blue hover:bg-vultr-blue hover:text-white",
   ghost:
-    "bg-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground focus-visible:ring-muted/40",
+    "text-vultr-blue hover:bg-vultr-sky-blue/40",
   destructive:
-    "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive/40",
+    "bg-destructive text-destructive-foreground hover:bg-destructive/90",
   hero:
-    "bg-gradient-to-r from-primary via-chart-4 to-chart-1 text-primary-foreground hover:from-primary/90 hover:via-chart-4/85 hover:to-chart-1/90 focus-visible:ring-primary/40",
+    "bg-gradient-to-r from-vultr-blue via-vultr-light-blue to-vultr-blue text-white shadow-[var(--shadow-soft)] hover:brightness-95",
   glass:
-    "border border-white/20 bg-white/10 text-foreground/90 backdrop-blur-xl saturate-150 shadow-[0_18px_40px_-18px_rgba(15,23,42,0.45)] hover:bg-white/15 hover:border-white/35 focus-visible:ring-white/40 dark:border-white/10 dark:bg-white/5 dark:text-white dark:shadow-[0_22px_45px_-20px_rgba(2,6,23,0.65)] dark:hover:border-primary/30",
+    "border border-white/20 bg-white/10 text-white backdrop-blur-xl shadow-[var(--shadow-soft)] hover:bg-white/15 hover:border-white/40 dark:border-white/15",
   muted:
-    "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 focus-visible:ring-muted/40",
+    "bg-cool-1 text-vultr-blue-20 hover:bg-cool-1/80",
   link:
-    "bg-transparent px-0 py-0 text-primary underline-offset-4 hover:underline focus-visible:ring-primary/25",
+    "bg-transparent px-0 py-0 text-vultr-blue underline-offset-4 hover:underline",
 }
 
 const sizeClasses: Record<AppButtonSize, string> = {
-  xs: "h-7 px-2 text-xs [&>svg]:size-icon-3xs",
-  sm: "h-9 px-3 text-sm [&>svg]:size-icon-2xs",
-  md: "h-10 px-4 text-sm [&>svg]:size-icon-xs",
-  lg: "h-12 px-5 text-base [&>svg]:size-icon-sm",
-  xl: "h-14 px-6 text-base [&>svg]:size-icon-md",
-  "icon-sm": "size-8 [&>svg]:size-icon-2xs",
-  icon: "size-10 [&>svg]:size-icon-xs",
-  "icon-lg": "size-12 [&>svg]:size-icon-md",
-  inline: "h-auto min-h-0 px-0 py-0 text-[inherit] leading-none [&>svg]:size-icon-3xs",
+  xs: "h-8 rounded-[calc(var(--radius-card)-0.75rem)] px-3 text-xs [&>svg]:h-3.5 [&>svg]:w-3.5",
+  sm: "h-10 px-4 text-sm [&>svg]:h-4 [&>svg]:w-4",
+  md: "h-12 px-5 [&>svg]:h-5 [&>svg]:w-5",
+  lg: "h-14 px-6 [&>svg]:h-5 [&>svg]:w-5",
+  xl: "h-16 px-7 text-lg [&>svg]:h-6 [&>svg]:w-6",
+  "icon-sm": "size-8 [&>svg]:h-3.5 [&>svg]:w-3.5",
+  icon: "size-10 [&>svg]:h-4 [&>svg]:w-4",
+  "icon-lg": "size-12 [&>svg]:h-5 [&>svg]:w-5",
+  inline: "h-auto min-h-0 px-0 py-0 text-[inherit] leading-none [&>svg]:h-3.5 [&>svg]:w-3.5",
 }
 
 const alignClasses: Record<NonNullable<AppButtonProps["align"]>, string> = {

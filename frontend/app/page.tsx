@@ -1,9 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useTheme } from "next-themes";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
@@ -11,41 +9,67 @@ import {
   Search,
   MessageSquare,
   Settings,
-  Wrench,
+  Shield,
   Sparkles,
-  Zap,
+  Cloud,
+  Globe,
 } from "lucide-react";
+
 import { AppButton } from "@/components/app-button";
 import { Badge } from "@/components/ui/badge";
 
 const primaryFeatures = [
   {
     title: "Upload & Index",
-    description: "Drop documents and let Snappy's ColPali vision model understand layout and content instantly.",
+    description:
+      "Streamline document ingress with Vultr’s object storage and ColPali-powered parsing across PDFs, slides, and scans.",
     href: "/upload",
     icon: Upload,
-    gradient: "from-chart-1 to-chart-2",
+    accent: "from-vultr-sky-blue via-vultr-light-blue to-vultr-blue",
   },
   {
-    title: "Search Naturally",
-    description: "Ask questions in plain language and Snappy surfaces precise, citation-ready answers.",
+    title: "Semantic Search",
+    description:
+      "Obtain grounded answers with cross-modal search tuned for global teams and regulatory workloads.",
     href: "/search",
     icon: Search,
-    gradient: "from-primary to-chart-4",
+    accent: "from-vultr-blue via-vultr-cobalt to-vultr-blue-60",
   },
   {
-    title: "Chat & Discover",
-    description: "Have conversations with your documents powered by Snappy's visual reasoning.",
+    title: "Vision Chat",
+    description:
+      "Collaborate in natural language with ColPali’s visual reasoning to accelerate reviews, audits, and deployments.",
     href: "/chat",
     icon: MessageSquare,
-    gradient: "from-chart-2 to-chart-3",
+    accent: "from-vultr-light-blue via-vultr-sky-blue to-white/80",
   },
-];
+] as const;
 
 const secondaryLinks = [
   { title: "Configuration", href: "/configuration", icon: Settings },
-  { title: "Maintenance", href: "/maintenance", icon: Wrench },
-];
+  { title: "Maintenance", href: "/maintenance", icon: Shield },
+] as const;
+
+const stats = [
+  {
+    value: "32",
+    unit: "regions",
+    description: "Global Vultr data centers keep low latency retrieval within reach.",
+    icon: Globe,
+  },
+  {
+    value: "GPU",
+    unit: "fleet",
+    description: "Deploy H100, A100, and L40S clusters for inference without overprovisioning.",
+    icon: Cloud,
+  },
+  {
+    value: "99.99%",
+    unit: "uptime",
+    description: "The reliability your AI workflows demand with transparent SLAs.",
+    icon: Shield,
+  },
+] as const;
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -59,183 +83,190 @@ const containerVariants = {
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 24 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { type: "spring" as const, stiffness: 100, damping: 10 },
+    transition: { type: "spring" as const, stiffness: 120, damping: 16 },
   },
 };
 
 const cardVariants = {
-  hidden: { opacity: 0, scale: 0.9 },
+  hidden: { opacity: 0, y: 24, scale: 0.96 },
   visible: {
     opacity: 1,
+    y: 0,
     scale: 1,
-    transition: { type: "spring" as const, stiffness: 100, damping: 15 },
+    transition: { type: "spring" as const, stiffness: 120, damping: 18 },
   },
 };
 
 export default function Home() {
-  const { theme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const logoSrc =
-    theme === "dark"
-      ? "/Snappy/snappy_dark_nobg_resized.png"
-      : "/Snappy/snappy_light_nobg_resized.png";
-
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col justify-between overflow-y-auto">
-      {/* Hero Content - Full viewport utilization */}
-      <motion.div
-        className="flex flex-1 flex-col justify-center px-4 py-4 text-center sm:px-6 lg:px-8"
+    <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <motion.section
+        className="bg-hero-vultr text-white"
         initial="hidden"
         animate="visible"
         variants={containerVariants}
       >
-        <div className="mx-auto w-full max-w-6xl space-y-8">
+        <div className="mx-auto max-w-7xl px-6 section-spacing grid grid-cols-4 gap-6">
+          <motion.div className="col-span-4 space-y-6 md:col-span-3" variants={itemVariants}>
+            <Image
+              src="/brand/vultr-logo-reversed.svg"
+              alt="Vultr"
+              width={180}
+              height={60}
+              priority
+              className="logo-min h-12 w-auto"
+            />
 
-          {/* Brandmark */}
-          <motion.div variants={itemVariants}>
-            <div className="relative mx-auto flex hero-logo-frame items-center justify-center sm:hero-logo-frame-lg">
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-br from-primary/30 via-primary/15 to-transparent opacity-90 blur-2xl hero-logo-radiance"
-              />
-              {mounted && (
-                <Image
-                  src={logoSrc}
-                  alt="Snappy logo"
-                  width={270}
-                  height={270}
-                  priority
-                  className="relative hero-logo-image object-contain drop-shadow-2xl sm:hero-logo-image-lg"
-                />
-              )}
-            </div>
-            {/* Heading */}
-            <motion.h1
-              className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl"
-              variants={itemVariants}
-            >
-              <span className="bg-gradient-to-r from-primary via-chart-4 to-chart-1 bg-clip-text text-transparent">
-                Your Vision Retrieval Buddy!
-              </span>
-            </motion.h1>
-          </motion.div>
-
-
-
-          {/* Description */}
-          <motion.p
-            className="mx-auto max-w-2xl text-body text-muted-foreground"
-            variants={itemVariants}
-          >
-            Snappy combines lightning-fast ingestion with context-aware retrieval so your team can move
-            from document to decision in seconds.
-          </motion.p>
-
-          {/* CTA Buttons */}
-          <motion.div
-            className="flex flex-wrap items-center justify-center gap-3 sm:gap-4"
-            variants={itemVariants}
-          >
-            <AppButton
-              asChild
-              variant="hero"
-              size="xl"
-              elevated
-              iconShift
-            >
-              <Link href="/upload">
-                <Upload className="size-icon-lg" />
-                Get Started
-                <ArrowRight className="size-icon-xs transition-transform group-hover/app-button:translate-x-1" />
-              </Link>
-            </AppButton>
-            <AppButton
-              asChild
-              variant="glass"
-              size="xl"
-              elevated
-              iconShift
-            >
-              <Link href="/chat">
-                <MessageSquare className="size-icon-lg" />
-                Try Chat
-              </Link>
-            </AppButton>
-          </motion.div>
-
-          {/* Core Features Section */}
-          <motion.div className="pt-2" variants={itemVariants}>
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-muted px-4 py-1.5 text-body font-medium">
-              <Zap className="size-icon-sm text-primary" />
-              Core Features
+            <div className="space-y-4">
+              <Badge variant="secondary" className="bg-white/20 text-white hover:bg-white/25">
+                Powered by ColPali
+              </Badge>
+              <h1>Global ColPali Vision at Vultr Speed</h1>
+              <p className="max-w-2xl text-white/80">
+                Activate Vultr’s ColPali template for rapid document intelligence. Move from ingestion to
+                insight with GPU acceleration, global availability, and the blueprints trusted by enterprise
+                teams.
+              </p>
             </div>
 
-            {/* Feature Cards */}
-            <motion.div className="grid gap-4 md:grid-cols-3" variants={containerVariants}>
-              {primaryFeatures.map((feature) => (
+            <div className="flex flex-wrap items-center gap-3">
+              <AppButton asChild variant="hero" size="lg" elevated>
+                <Link href="/upload">
+                  Deploy Workspace
+                </Link>
+              </AppButton>
+              <AppButton
+                asChild
+                variant="glass"
+                size="lg"
+                elevated
+              >
+                <Link href="https://www.vultr.com/company/contact/" target="_blank" rel="noopener noreferrer">
+                  Contact Sales
+                </Link>
+              </AppButton>
+            </div>
+
+            <motion.div className="grid gap-4 sm:grid-cols-3" variants={containerVariants}>
+              {stats.map((stat) => (
                 <motion.div
-                  key={feature.href}
+                  key={stat.value}
                   variants={cardVariants}
-                  whileHover={{ scale: 1.02, y: -4 }}
-                  whileTap={{ scale: 0.98 }}
+                  className="rounded-[var(--radius-card)] border border-white/15 bg-white/10 p-4 backdrop-blur-md"
                 >
-                  <Link
-                    href={feature.href}
-                    className="group relative block overflow-hidden rounded-2xl border border-border/50 bg-card/50 p-5 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10 touch-manipulation"
-                  >
-                    <div
-                      className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 transition-opacity group-hover:opacity-5`}
-                    />
-
-                    <div className="relative flex items-start gap-3">
-                      <div
-                        className={`flex size-icon-3xl shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${feature.gradient} shadow-lg`}
-                      >
-                        <feature.icon className="size-icon-lg text-primary-foreground" />
-                      </div>
-
-                      <div className="flex-1 text-left">
-                        <h3 className="mb-1.5 text-lg font-bold">{feature.title}</h3>
-                        <p className="mb-2 text-body-sm text-muted-foreground">
-                          {feature.description}
-                        </p>
-                        <div className="inline-flex items-center gap-1.5 text-body-sm font-semibold text-primary">
-                          Explore
-                          <ArrowRight className="size-icon-2xs transition-transform group-hover:translate-x-2" />
-                        </div>
-                      </div>
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15">
+                      <stat.icon className="h-5 w-5 text-vultr-sky-blue" />
+                    </span>
+                    <div>
+                      <p className="text-2xl font-semibold text-white">
+                        {stat.value}
+                        <span className="ml-1 text-base uppercase tracking-wider text-white/70">{stat.unit}</span>
+                      </p>
+                      <p className="text-sm text-white/70">{stat.description}</p>
                     </div>
-                  </Link>
+                  </div>
                 </motion.div>
               ))}
             </motion.div>
+          </motion.div>
 
-            {/* Secondary Links */}
-            <motion.div
-              className="mt-6 flex flex-wrap items-center justify-center gap-3"
-              variants={itemVariants}
-            >
-              {secondaryLinks.map((link) => (
-                <AppButton key={link.href} asChild variant="ghost" size="sm">
-                  <Link href={link.href}>
-                    <link.icon className="size-icon-2xs" />
+          <motion.aside className="col-span-4 md:col-span-1" variants={itemVariants}>
+            <div className="card-dark vultr-gradient-border flex h-full flex-col gap-4 p-6">
+              <h3 className="text-lg font-semibold text-white">Why teams choose Vultr</h3>
+              <ul className="space-y-3 text-sm text-white/80">
+                <li className="flex items-start gap-3">
+                  <Sparkles className="mt-0.5 h-5 w-5 text-vultr-light-blue" />
+                  <span>Unified ingestion, retrieval, and chat flows aligned to Vultr’s brand playbooks.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Cloud className="mt-0.5 h-5 w-5 text-vultr-sky-blue" />
+                  <span>GPU availability across 32 regions with predictable pricing.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Shield className="mt-0.5 h-5 w-5 text-white/80" />
+                  <span>Isolation-ready architecture for sovereignty and regulated workloads.</span>
+                </li>
+              </ul>
+
+              <div className="mt-auto rounded-[calc(var(--radius-card)-0.5rem)] bg-white/10 p-4 text-sm text-white/75 backdrop-blur-lg">
+                <p>
+                  Configure multiple ColPali deployments, enforce enterprise policy, and monitor pipelines from
+                  a single Vultr console.
+                </p>
+              </div>
+            </div>
+          </motion.aside>
+        </div>
+      </motion.section>
+
+      <section className="bg-warm-1">
+        <div className="mx-auto max-w-7xl px-6 section-spacing-sm">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="space-y-3">
+              <span className="badge badge-neutral uppercase tracking-[0.18em] text-xs">Platform Features</span>
+              <h2>From ingestion to insight in minutes</h2>
+              <p className="max-w-2xl text-base text-vultr-blue-20">
+                Orchestrate document intelligence workflows with Vultr’s design system. Use enterprise-ready
+                components to maintain consistency from upload through retrieval.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <AppButton asChild variant="outline" size="sm">
+                <Link href="/search">Explore Search</Link>
+              </AppButton>
+              <AppButton asChild variant="ghost" size="sm">
+                <Link href="/maintenance">Service Status</Link>
+              </AppButton>
+            </div>
+          </div>
+
+          <motion.div className="mt-10 grid gap-6 md:grid-cols-3" variants={containerVariants} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-80px" }}>
+            {primaryFeatures.map((feature) => (
+              <motion.div
+                key={feature.href}
+                variants={cardVariants}
+                whileHover={{ translateY: -6 }}
+                transition={{ type: "spring", stiffness: 200, damping: 20 }}
+              >
+                <Link
+                  href={feature.href}
+                  className="group card h-full overflow-hidden p-6 transition-transform duration-200 hover:shadow-xl"
+                >
+                  <div
+                    className={`inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${feature.accent} text-white shadow-[var(--shadow-soft)]`}
+                  >
+                    <feature.icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="mt-5 text-lg font-semibold text-vultr-navy">{feature.title}</h3>
+                  <p className="mt-2 text-sm text-vultr-blue-20">{feature.description}</p>
+                  <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-vultr-blue">
+                    Dive In
+                    <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1.5" />
+                  </span>
+                </Link>
+              </motion.div>
+            ))}
+          </motion.div>
+
+          <motion.div className="mt-10 flex flex-wrap items-center gap-3" variants={containerVariants} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-80px" }}>
+            {secondaryLinks.map((link) => (
+              <motion.div key={link.href} variants={itemVariants}>
+                <AppButton asChild variant="ghost" size="sm">
+                  <Link href={link.href} className="flex items-center gap-2">
+                    <link.icon className="h-4 w-4" />
                     {link.title}
                   </Link>
                 </AppButton>
-              ))}
-            </motion.div>
+              </motion.div>
+            ))}
           </motion.div>
         </div>
-      </motion.div>
+      </section>
     </div>
   );
 }

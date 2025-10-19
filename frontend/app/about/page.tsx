@@ -120,13 +120,13 @@ export default function AboutPage() {
               spacing="lg"
               title={
                 <>
-                  <span className="bg-gradient-to-r from-primary via-chart-4 to-chart-1 bg-clip-text text-transparent">
-                    Snappy!
+                  <span className="bg-gradient-to-r from-vultr-sky-blue via-white to-vultr-blue bg-clip-text text-transparent">
+                    Vultr Vision Workspace
                   </span>{" "}
-                  is your launchpad for multimodal retrieval
+                  brings ColPali intelligence to your cloud
                 </>
               }
-              description="This template stitches together FastAPI, Next.js, ColPali, Qdrant, and MinIO so you can stand up a production-ready vision retrieval stack without rebuilding the plumbing. Upload documents, search visually, and chat with grounded citations out of the box."
+              description="This Vultr-branded workspace aligns FastAPI, Next.js, ColPali, Qdrant, and MinIO so you can deploy a production-ready vision retrieval stack without rebuilding the plumbing. Upload documents, search visually, and chat with grounded citations out of the box."
               descriptionClassName="text-body-sm sm:text-body leading-relaxed text-muted-foreground max-w-3xl"
               actionsClassName="gap-4 flex-wrap justify-center"
               actions={

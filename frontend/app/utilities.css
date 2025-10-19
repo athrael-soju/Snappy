@@ -1,350 +1,280 @@
 @layer utilities {
-  .hero-logo-frame {
-    width: 10.5rem;
-    height: 10.5rem;
+  .section-spacing {
+    padding-block: var(--spacing-section);
   }
 
-  .hero-logo-frame-lg {
-    width: 13.5rem;
-    height: 13.5rem;
+  .section-spacing-sm {
+    padding-block: calc(var(--spacing-section) / 2);
   }
 
-  .hero-logo-image {
-    width: 9rem;
-    height: 9rem;
+  .vultr-gradient-border {
+    position: relative;
   }
 
-  .hero-logo-image-lg {
-    width: 12rem;
-    height: 12rem;
+  .vultr-gradient-border::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: calc(var(--radius-card) + 0.25rem);
+    padding: 1px;
+    background: linear-gradient(120deg, var(--color-vultr-blue), var(--color-vultr-light-blue));
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
   }
 
-  .hero-cta-text {
-    color: var(--hero-cta-text);
+  .vultr-glow {
+    box-shadow:
+      0 35px 65px -40px rgba(0, 123, 252, 0.45),
+      0 20px 45px -30px rgba(82, 186, 255, 0.5);
   }
 
-  .hero-logo-radiance {
-    box-shadow: 0 25px 75px -30px rgb(255 64 129 / 0.6);
+  .vultr-grid {
+    @apply grid grid-cols-4 gap-6 md:gap-8;
   }
 
-  /* Icon utilities that consume design tokens */
-  .icon-3xs {
-    width: var(--icon-3xs);
-    height: var(--icon-3xs);
+  .vultr-grid-col {
+    @apply col-span-4 md:col-span-2;
   }
 
-  .icon-2xs {
-    width: var(--icon-2xs);
-    height: var(--icon-2xs);
+  .vultr-grid-wide {
+    @apply col-span-4 md:col-span-3;
   }
 
-  .icon-xs {
-    width: var(--icon-xs);
-    height: var(--icon-xs);
+  .vultr-grid-tight {
+    @apply col-span-4 md:col-span-1;
   }
 
-  .icon-sm {
-    width: var(--icon-sm);
-    height: var(--icon-sm);
-  }
-
-  .icon-md {
-    width: var(--icon-md);
-    height: var(--icon-md);
-  }
-
-  .icon-lg {
-    width: var(--icon-lg);
-    height: var(--icon-lg);
-  }
-
-  .icon-xl {
-    width: var(--icon-xl);
-    height: var(--icon-xl);
-  }
-
-  .icon-2xl {
-    width: var(--icon-2xl);
-    height: var(--icon-2xl);
-  }
-
-  .icon-3xl {
-    width: var(--icon-3xl);
-    height: var(--icon-3xl);
-  }
-
-  /* Icon size utilities that map to our design system */
+  /* Icon sizing tokens aligned to Vultr guardrails */
   .size-icon-3xs {
-    width: var(--icon-3xs);
-    height: var(--icon-3xs);
+    width: 0.75rem;
+    height: 0.75rem;
   }
-
   .size-icon-2xs {
-    width: var(--icon-2xs);
-    height: var(--icon-2xs);
+    width: 0.875rem;
+    height: 0.875rem;
   }
-
   .size-icon-xs {
-    width: var(--icon-xs);
-    height: var(--icon-xs);
+    width: 1rem;
+    height: 1rem;
   }
-
   .size-icon-sm {
-    width: var(--icon-sm);
-    height: var(--icon-sm);
+    width: 1.125rem;
+    height: 1.125rem;
   }
-
   .size-icon-md {
-    width: var(--icon-md);
-    height: var(--icon-md);
+    width: 1.5rem;
+    height: 1.5rem;
   }
-
   .size-icon-lg {
-    width: var(--icon-lg);
-    height: var(--icon-lg);
+    width: 2rem;
+    height: 2rem;
   }
-
   .size-icon-xl {
-    width: var(--icon-xl);
-    height: var(--icon-xl);
+    width: 2.5rem;
+    height: 2.5rem;
   }
-
   .size-icon-2xl {
-    width: var(--icon-2xl);
-    height: var(--icon-2xl);
+    width: 3rem;
+    height: 3rem;
   }
-
   .size-icon-3xl {
-    width: var(--icon-3xl);
-    height: var(--icon-3xl);
+    width: 3.5rem;
+    height: 3.5rem;
   }
 
   @media (min-width: 640px) {
     .sm\:size-icon-3xs {
-      width: var(--icon-3xs);
-      height: var(--icon-3xs);
+      width: 0.75rem;
+      height: 0.75rem;
     }
-
     .sm\:size-icon-2xs {
-      width: var(--icon-2xs);
-      height: var(--icon-2xs);
+      width: 0.875rem;
+      height: 0.875rem;
     }
-
     .sm\:size-icon-xs {
-      width: var(--icon-xs);
-      height: var(--icon-xs);
+      width: 1rem;
+      height: 1rem;
     }
-
     .sm\:size-icon-sm {
-      width: var(--icon-sm);
-      height: var(--icon-sm);
+      width: 1.125rem;
+      height: 1.125rem;
     }
-
     .sm\:size-icon-md {
-      width: var(--icon-md);
-      height: var(--icon-md);
+      width: 1.5rem;
+      height: 1.5rem;
     }
-
     .sm\:size-icon-lg {
-      width: var(--icon-lg);
-      height: var(--icon-lg);
+      width: 2rem;
+      height: 2rem;
     }
-
     .sm\:size-icon-xl {
-      width: var(--icon-xl);
-      height: var(--icon-xl);
+      width: 2.5rem;
+      height: 2.5rem;
     }
-
     .sm\:size-icon-2xl {
-      width: var(--icon-2xl);
-      height: var(--icon-2xl);
+      width: 3rem;
+      height: 3rem;
     }
-
     .sm\:size-icon-3xl {
-      width: var(--icon-3xl);
-      height: var(--icon-3xl);
+      width: 3.5rem;
+      height: 3.5rem;
     }
   }
 
   @media (min-width: 768px) {
     .md\:size-icon-3xs {
-      width: var(--icon-3xs);
-      height: var(--icon-3xs);
+      width: 0.75rem;
+      height: 0.75rem;
     }
-
     .md\:size-icon-2xs {
-      width: var(--icon-2xs);
-      height: var(--icon-2xs);
+      width: 0.875rem;
+      height: 0.875rem;
     }
-
     .md\:size-icon-xs {
-      width: var(--icon-xs);
-      height: var(--icon-xs);
+      width: 1rem;
+      height: 1rem;
     }
-
     .md\:size-icon-sm {
-      width: var(--icon-sm);
-      height: var(--icon-sm);
+      width: 1.125rem;
+      height: 1.125rem;
     }
-
     .md\:size-icon-md {
-      width: var(--icon-md);
-      height: var(--icon-md);
+      width: 1.5rem;
+      height: 1.5rem;
     }
-
     .md\:size-icon-lg {
-      width: var(--icon-lg);
-      height: var(--icon-lg);
+      width: 2rem;
+      height: 2rem;
     }
-
     .md\:size-icon-xl {
-      width: var(--icon-xl);
-      height: var(--icon-xl);
+      width: 2.5rem;
+      height: 2.5rem;
     }
-
     .md\:size-icon-2xl {
-      width: var(--icon-2xl);
-      height: var(--icon-2xl);
+      width: 3rem;
+      height: 3rem;
     }
-
     .md\:size-icon-3xl {
-      width: var(--icon-3xl);
-      height: var(--icon-3xl);
+      width: 3.5rem;
+      height: 3.5rem;
     }
   }
 
   @media (min-width: 1024px) {
     .lg\:size-icon-3xs {
-      width: var(--icon-3xs);
-      height: var(--icon-3xs);
+      width: 0.75rem;
+      height: 0.75rem;
     }
-
     .lg\:size-icon-2xs {
-      width: var(--icon-2xs);
-      height: var(--icon-2xs);
+      width: 0.875rem;
+      height: 0.875rem;
     }
-
     .lg\:size-icon-xs {
-      width: var(--icon-xs);
-      height: var(--icon-xs);
+      width: 1rem;
+      height: 1rem;
     }
-
     .lg\:size-icon-sm {
-      width: var(--icon-sm);
-      height: var(--icon-sm);
+      width: 1.125rem;
+      height: 1.125rem;
     }
-
     .lg\:size-icon-md {
-      width: var(--icon-md);
-      height: var(--icon-md);
+      width: 1.5rem;
+      height: 1.5rem;
     }
-
     .lg\:size-icon-lg {
-      width: var(--icon-lg);
-      height: var(--icon-lg);
+      width: 2rem;
+      height: 2rem;
     }
-
     .lg\:size-icon-xl {
-      width: var(--icon-xl);
-      height: var(--icon-xl);
+      width: 2.5rem;
+      height: 2.5rem;
     }
-
     .lg\:size-icon-2xl {
-      width: var(--icon-2xl);
-      height: var(--icon-2xl);
+      width: 3rem;
+      height: 3rem;
     }
-
     .lg\:size-icon-3xl {
-      width: var(--icon-3xl);
-      height: var(--icon-3xl);
+      width: 3.5rem;
+      height: 3.5rem;
     }
   }
 
-  /* Responsive text sizes that work with our base font size */
+  /* Body typography helpers following Vultr hierarchy */
   .text-body-xs {
-    font-size: 1rem;
+    font-size: 0.875rem;
     line-height: 1.5;
   }
-
   .text-body {
     font-size: 1rem;
     line-height: 1.6;
   }
-
   .text-body-sm {
-    font-size: 0.875rem;
-    line-height: 1.5;
+    font-size: 0.9375rem;
+    line-height: 1.55;
   }
-
   .text-body-lg {
-    font-size: 1.125rem;
-    line-height: 1.7;
+    font-size: var(--text-body-lg);
+    line-height: var(--leading-body-lg);
   }
 
-  /* Responsive token variants */
   @media (min-width: 640px) {
     .sm\:text-body-xs {
-      font-size: 0.8125rem;
+      font-size: 0.85rem;
       line-height: 1.5;
     }
-
     .sm\:text-body {
       font-size: 1rem;
       line-height: 1.6;
     }
-
     .sm\:text-body-sm {
-      font-size: 0.875rem;
-      line-height: 1.5;
+      font-size: 0.95rem;
+      line-height: 1.55;
     }
-
     .sm\:text-body-lg {
-      font-size: 1.125rem;
-      line-height: 1.7;
+      font-size: calc(var(--text-body-lg) * 1.02);
+      line-height: var(--leading-body-lg);
     }
   }
 
   @media (min-width: 768px) {
     .md\:text-body-xs {
-      font-size: 0.8125rem;
+      font-size: 0.85rem;
       line-height: 1.5;
     }
-
     .md\:text-body {
       font-size: 1rem;
       line-height: 1.6;
     }
-
     .md\:text-body-sm {
-      font-size: 0.875rem;
-      line-height: 1.5;
+      font-size: 0.95rem;
+      line-height: 1.55;
     }
-
     .md\:text-body-lg {
-      font-size: 1.125rem;
-      line-height: 1.7;
+      font-size: calc(var(--text-body-lg) * 1.04);
+      line-height: var(--leading-body-lg);
     }
   }
 
   @media (min-width: 1024px) {
     .lg\:text-body-xs {
-      font-size: 0.8125rem;
+      font-size: 0.85rem;
       line-height: 1.5;
     }
-
     .lg\:text-body {
       font-size: 1rem;
       line-height: 1.6;
     }
-
     .lg\:text-body-sm {
-      font-size: 0.875rem;
-      line-height: 1.5;
+      font-size: 0.95rem;
+      line-height: 1.55;
     }
-
     .lg\:text-body-lg {
-      font-size: 1.125rem;
-      line-height: 1.7;
+      font-size: calc(var(--text-body-lg) * 1.08);
+      line-height: var(--leading-body-lg);
     }
   }
 }

@@ -4,191 +4,221 @@
 
 @custom-variant dark (&:is(.dark *));
 
-:root {
-  /* Updated to use gradient colors from the images */
-  --background: oklch(0.98 0.01 90);
-  --foreground: oklch(0.25 0.02 280);
-  --hero-cta-text: var(--foreground);
-  --card: oklch(0.99 0.01 85);
-  --card-foreground: oklch(0.25 0.02 280);
-  --popover: oklch(1.0 0 0);
-  --popover-foreground: oklch(0.25 0.02 280);
-  /* Pink from first gradient image */
-  --primary: oklch(0.72 0.18 350);
-  --primary-foreground: var(--foreground);
-  /* Cyan from second gradient image */
-  --secondary: oklch(0.78 0.12 195);
-  --secondary-foreground: oklch(0.15 0.02 280);
-  --muted: oklch(0.92 0.02 90);
-  --muted-foreground: oklch(0.55 0.01 280);
-  /* Yellow/lime accent from gradients */
-  --accent: oklch(0.88 0.14 95);
-  --accent-foreground: oklch(0.25 0.02 280);
-  /* Coral/peach from first gradient */
-  --destructive: oklch(0.68 0.19 25);
-  --destructive-foreground: oklch(1.0 0 0);
-  /* Pink border matching primary */
-  --border: oklch(0.85 0.08 350);
-  --input: oklch(0.92 0.02 90);
-  --ring: oklch(0.72 0.18 350);
-  /* Chart colors using gradient palette */
-  --chart-1: oklch(0.72 0.18 350);
-  --chart-2: oklch(0.78 0.12 195);
-  --chart-3: oklch(0.88 0.14 95);
-  --chart-4: oklch(0.75 0.16 40);
-  --chart-5: oklch(0.82 0.1 160);
-  /* </CHANGE> */
-  --font-sans: Poppins, sans-serif;
-  --font-serif: Lora, serif;
-  --font-mono: Fira Code, monospace;
-  --radius: 0.4rem;
-  --shadow-x: 3px;
-  --shadow-y: 3px;
-  --shadow-blur: 0px;
-  --shadow-spread: 0px;
-  --shadow-opacity: 1.0;
-  /* Updated shadow color to match pink gradient */
-  --shadow-color: hsl(350 70% 65% / 0.5);
-  --shadow-2xs: 3px 3px 0px 0px hsl(350 70% 65% / 0.5);
-  --shadow-xs: 3px 3px 0px 0px hsl(350 70% 65% / 0.5);
-  --shadow-sm: 3px 3px 0px 0px hsl(350 70% 65% / 1.0), 3px 1px 2px -1px hsl(350 70% 65% / 1.0);
-  --shadow: 3px 3px 0px 0px hsl(350 70% 65% / 1.0), 3px 1px 2px -1px hsl(350 70% 65% / 1.0);
-  --shadow-md: 3px 3px 0px 0px hsl(350 70% 65% / 1.0), 3px 2px 4px -1px hsl(350 70% 65% / 1.0);
-  --shadow-lg: 3px 3px 0px 0px hsl(350 70% 65% / 1.0), 3px 4px 6px -1px hsl(350 70% 65% / 1.0);
-  --shadow-xl: 3px 3px 0px 0px hsl(350 70% 65% / 1.0), 3px 8px 10px -1px hsl(350 70% 65% / 1.0);
-  --shadow-2xl: 3px 3px 0px 0px hsl(350 70% 65% / 2.5);
-  /* </CHANGE> */
-  --tracking-normal: 0em;
-  --spacing: 0.25rem;
-  /* Icon sizes */
-  --icon-3xs: 0.75rem;
-  --icon-2xs: 0.875rem;
-  --icon-xs: 1rem;
-  --icon-sm: 1.125rem;
-  --icon-md: 1.25rem;
-  --icon-lg: 1.5rem;
-  --icon-xl: 2rem;
-  --icon-2xl: 2.5rem;
-  --icon-3xl: 3rem;
-}
+/* -----------------------------
+   Vultr Brand Design Tokens
+   Source: Vultr Brand Book (colors pp.13–16, type pp.18–22)
+   ----------------------------- */
+@theme {
+  /* Brand colors — Core */
+  --color-vultr-navy: oklch(0.18 0.09 264);
+  --color-vultr-blue: oklch(0.55 0.19 246);
+  --color-vultr-light-blue: oklch(0.72 0.13 233);
+  --color-vultr-sky-blue: oklch(0.93 0.08 221);
 
-.dark {
-  /* Updated dark mode to complement gradient colors */
-  --background: oklch(0.18 0.03 260);
-  --foreground: oklch(0.95 0.02 90);
-  --hero-cta-text: var(--background);
-  --card: oklch(0.22 0.03 260);
-  --card-foreground: oklch(0.95 0.02 90);
-  --popover: oklch(0.22 0.03 260);
-  --popover-foreground: oklch(0.95 0.02 90);
-  /* Bright yellow/lime for dark mode primary */
-  --primary: oklch(0.88 0.14 95);
-  --primary-foreground: oklch(0.18 0.03 260);
-  /* Cyan for dark mode secondary */
-  --secondary: oklch(0.7 0.12 195);
-  --secondary-foreground: oklch(0.95 0.02 90);
-  --muted: oklch(0.28 0.02 260);
-  --muted-foreground: oklch(0.7 0.02 90);
-  /* Pink accent for dark mode */
-  --accent: oklch(0.68 0.16 350);
-  --accent-foreground: oklch(0.95 0.02 90);
-  /* Coral/orange destructive */
-  --destructive: oklch(0.65 0.18 25);
-  --destructive-foreground: oklch(0.95 0.02 90);
-  --border: oklch(0.35 0.04 260);
-  --input: oklch(0.25 0.03 260);
-  --ring: oklch(0.88 0.14 95);
-  /* Dark mode chart colors */
-  --chart-1: oklch(0.88 0.14 95);
-  --chart-2: oklch(0.7 0.12 195);
-  --chart-3: oklch(0.68 0.16 350);
-  --chart-4: oklch(0.72 0.15 40);
-  --chart-5: oklch(0.75 0.1 160);
-  /* </CHANGE> */
-  --font-sans: Poppins, sans-serif;
-  --font-serif: Lora, serif;
-  --font-mono: Fira Code, monospace;
-  --radius: 0.4rem;
-  --shadow-x: 3px;
-  --shadow-y: 3px;
-  --shadow-blur: 0px;
-  --shadow-spread: 0px;
-  --shadow-opacity: 1.0;
-  /* Updated dark mode shadow to use cyan tone */
-  --shadow-color: hsl(195 45% 35% / 0.5);
-  --shadow-2xs: 3px 3px 0px 0px hsl(195 45% 35% / 0.5);
-  --shadow-xs: 3px 3px 0px 0px hsl(195 45% 35% / 0.5);
-  --shadow-sm: 3px 3px 0px 0px hsl(195 45% 35% / 1.0), 3px 1px 2px -1px hsl(195 45% 35% / 1.0);
-  --shadow: 3px 3px 0px 0px hsl(195 45% 35% / 1.0), 3px 1px 2px -1px hsl(195 45% 35% / 1.0);
-  --shadow-md: 3px 3px 0px 0px hsl(195 45% 35% / 1.0), 3px 2px 4px -1px hsl(195 45% 35% / 1.0);
-  --shadow-lg: 3px 3px 0px 0px hsl(195 45% 35% / 1.0), 3px 4px 6px -1px hsl(195 45% 35% / 1.0);
-  --shadow-xl: 3px 3px 0px 0px hsl(195 45% 35% / 1.0), 3px 8px 10px -1px hsl(195 45% 35% / 1.0);
-  --shadow-2xl: 3px 3px 0px 0px hsl(195 45% 35% / 2.5);
-  /* </CHANGE> */
-  /* Icon sizes */
-  --icon-xs: 1rem;
-  --icon-sm: 1.125rem;
-  --icon-md: 1.25rem;
-  --icon-lg: 1.5rem;
-  --icon-xl: 2rem;
-}
+  /* Brand colors — Secondary */
+  --color-vultr-midnight: oklch(0.21 0.08 264);
+  --color-vultr-blue-20: oklch(0.26 0.09 264);
+  --color-vultr-cobalt: oklch(0.28 0.13 269);
+  --color-vultr-blue-60: oklch(0.42 0.15 263);
 
-@theme inline {
-  --font-sans: "Geist", "Geist Fallback";
-  --font-mono: "Geist Mono", "Geist Mono Fallback";
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
+  /* Neutrals */
+  --color-warm-1: oklch(0.97 0 0);
+  --color-warm-2: oklch(0.83 0 0);
+  --color-warm-3: oklch(0.33 0 0);
+  --color-warm-4: oklch(0.25 0 0);
+  --color-cool-1: oklch(0.92 0.01 240);
+  --color-cool-2: oklch(0.70 0.01 240);
+
+  /* Typography */
+  --font-sans: "Roboto", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+  --text-display-1: 4rem;
+  --leading-display-1: 1.2;
+  --text-display-2: 2.5rem;
+  --leading-display-2: 1.2;
+  --text-body-lg: 1.25rem;
+  --leading-body-lg: 1.2;
+  --text-cta: 1rem;
+  --leading-cta: 1.2;
+
+  /* Shape & elevation */
+  --radius-card: 1rem;
+  --shadow-soft: 0 10px 25px 0 rgb(0 0 0 / 0.1);
+  --spacing-section: 6rem;
+
+  /* Compatibility aliases */
+  --color-background: var(--color-warm-1);
+  --color-foreground: var(--color-vultr-navy);
+  --color-card: oklch(1 0 0);
+  --color-card-foreground: var(--color-vultr-navy);
+  --color-popover: oklch(1 0 0);
+  --color-popover-foreground: var(--color-vultr-navy);
+  --color-primary: var(--color-vultr-blue);
+  --color-primary-foreground: oklch(1 0 0);
+  --color-secondary: var(--color-vultr-light-blue);
+  --color-secondary-foreground: var(--color-vultr-navy);
+  --color-muted: var(--color-cool-1);
+  --color-muted-foreground: var(--color-vultr-blue-20);
+  --color-accent: var(--color-vultr-sky-blue);
+  --color-accent-foreground: var(--color-vultr-blue);
+  --color-destructive: oklch(0.58 0.20 27);
+  --color-destructive-foreground: oklch(1 0 0);
+  --color-border: var(--color-cool-2);
+  --color-input: var(--color-cool-1);
+  --color-ring: var(--color-vultr-light-blue);
+  --color-chart-1: var(--color-vultr-blue);
+  --color-chart-2: var(--color-vultr-light-blue);
+  --color-chart-3: var(--color-vultr-blue-20);
+  --color-chart-4: var(--color-vultr-cobalt);
+  --color-chart-5: var(--color-vultr-blue-60);
+  --radius: var(--radius-card);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/* -----------------------------
+   Base layer: font, color-scheme, default text colors
+   ----------------------------- */
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
+  :root {
+    color-scheme: light dark;
+    background-color: var(--color-background);
+  }
+
+  .dark {
+    color-scheme: dark;
+    --color-background: var(--color-vultr-midnight);
+    --color-foreground: oklch(1 0 0);
+    --color-card: oklch(0.17 0.08 264 / 0.75);
+    --color-card-foreground: oklch(1 0 0);
+    --color-popover: oklch(0.17 0.08 264 / 0.95);
+    --color-popover-foreground: oklch(1 0 0);
+    --color-muted: oklch(1 0 0 / 0.08);
+    --color-muted-foreground: oklch(1 0 0 / 0.7);
+    --color-accent-foreground: oklch(1 0 0);
+    --color-border: oklch(0.93 0.08 221 / 0.4);
+    --color-input: oklch(0.38 0.08 264 / 0.65);
   }
 
   body {
-    @apply bg-background text-foreground;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
     font-family: var(--font-sans);
-    font-size: 16px;
-    line-height: 1.6;
-    letter-spacing: var(--tracking-normal);
+    font-size: var(--text-body-lg);
+    line-height: var(--leading-body-lg);
+    min-height: 100%;
+    @apply antialiased;
   }
 
-  /* Improved readability on larger screens */
-  @media (min-width: 768px) {
-    body {
-      font-size: 17px;
-    }
+  h1 {
+    @apply text-display-1 leading-display-1 font-light;
   }
 
-  @media (min-width: 1024px) {
-    body {
-      font-size: 18px;
-    }
+  h2 {
+    @apply text-display-2 leading-display-2 font-light;
+  }
+
+  p {
+    @apply text-body-lg leading-body-lg font-light;
+  }
+
+  a {
+    @apply text-vultr-blue underline underline-offset-4 decoration-from-font;
+  }
+
+  a:focus-visible {
+    @apply outline-none ring-2 ring-offset-2 ring-vultr-light-blue;
+  }
+}
+
+/* -----------------------------
+   Reusable brand utilities & components
+   ----------------------------- */
+@layer utilities {
+  .icon {
+    @apply inline-block align-middle;
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .icon-sm {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+
+  .icon-lg {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .icon-xl {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .logo-min {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  .bg-hero-vultr {
+    background:
+      radial-gradient(1200px 600px at 85% 15%, color-mix(in oklab, var(--color-vultr-light-blue) 40%, transparent), transparent 60%),
+      linear-gradient(180deg, var(--color-vultr-navy), var(--color-vultr-blue));
+  }
+
+  .surface-dark {
+    @apply bg-vultr-midnight text-white;
+  }
+
+  .surface-light {
+    @apply bg-white text-vultr-navy;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center gap-2 rounded-[var(--radius-card)] px-5 py-3 text-cta leading-cta font-semibold transition;
+    @apply focus:outline-none focus:ring-2 focus:ring-vultr-light-blue focus:ring-offset-2;
+  }
+
+  .btn-primary {
+    @apply bg-vultr-blue text-white hover:brightness-95 active:brightness-90;
+  }
+
+  .btn-outline {
+    @apply border border-vultr-blue text-vultr-blue hover:bg-vultr-blue hover:text-white;
+  }
+
+  .btn-ghost {
+    @apply text-vultr-blue hover:bg-vultr-sky-blue/40;
+  }
+
+  .card {
+    @apply rounded-[var(--radius-card)] shadow-[var(--shadow-soft)] overflow-hidden bg-white text-vultr-navy;
+  }
+
+  .card-dark {
+    @apply rounded-[var(--radius-card)] shadow-[var(--shadow-soft)] overflow-hidden bg-vultr-midnight text-white;
+  }
+
+  .input,
+  .select,
+  .textarea {
+    @apply w-full rounded-[calc(var(--radius-card)-.25rem)] border border-cool-2/60 bg-white px-4 py-2 text-body-lg;
+    @apply placeholder:text-cool-2 focus:outline-none focus:ring-2 focus:ring-vultr-light-blue focus:border-vultr-light-blue;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full px-3 py-1 text-[0.875rem] font-normal;
+  }
+
+  .badge-brand {
+    @apply bg-vultr-sky-blue text-vultr-blue;
+  }
+
+  .badge-neutral {
+    @apply bg-cool-1 text-vultr-navy;
   }
 }

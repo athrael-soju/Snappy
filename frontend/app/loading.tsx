@@ -22,8 +22,8 @@ export default function Loading() {
   const logoSrc = useMemo(
     () =>
       theme === "dark"
-        ? "/Snappy/snappy_dark_nobg_resized.png"
-        : "/Snappy/snappy_light_nobg_resized.png",
+        ? "/brand/vultr-logo-reversed.svg"
+        : "/brand/vultr-logo.svg",
     [theme],
   );
   return (
@@ -36,9 +36,8 @@ export default function Loading() {
       >
         {/* Animated gradient spinner */}
         <div className="relative h-24 w-24">
-          {/* Pulsing gradient glow - behind everything */}
           <motion.div
-            className="absolute -inset-6 rounded-full bg-gradient-to-br from-chart-1/30 via-chart-2/30 to-chart-4/30 blur-2xl"
+            className="absolute -inset-6 rounded-full bg-gradient-to-br from-vultr-blue/30 via-vultr-light-blue/25 to-vultr-sky-blue/25 blur-2xl"
             animate={{
               scale: [1, 1.3, 1],
               opacity: [0.4, 0.7, 0.4],
@@ -47,7 +46,7 @@ export default function Loading() {
           />
           {/* Outer rotating gradient ring */}
           <motion.div
-            className="absolute inset-0 rounded-full bg-gradient-to-tr from-chart-1 via-chart-2 to-chart-4 opacity-30 blur-sm"
+            className="absolute inset-0 rounded-full bg-gradient-to-tr from-vultr-blue via-vultr-light-blue to-vultr-sky-blue opacity-40 blur-sm"
             animate={{ rotate: 360 }}
             transition={{ duration: 3, repeat: Infinity, ease: "linear", repeatType: "loop" }}
           />
@@ -58,7 +57,7 @@ export default function Loading() {
             transition={{ duration: 1.5, repeat: Infinity, ease: "linear", repeatType: "loop" }}
             style={{
               background:
-                "conic-gradient(from 0deg, transparent 0%, hsl(var(--chart-1)) 25%, hsl(var(--chart-2)) 50%, hsl(var(--chart-4)) 75%, transparent 100%)",
+                "conic-gradient(from 0deg, transparent 0%, #007bfc 20%, #52baff 50%, #2652ae 80%, transparent 100%)",
               WebkitMask:
                 "radial-gradient(farthest-side, transparent calc(100% - 6px), black calc(100% - 4px))",
               mask: "radial-gradient(farthest-side, transparent calc(100% - 6px), black calc(100% - 4px))",
@@ -74,7 +73,7 @@ export default function Loading() {
               >
                 <Image
                   src={logoSrc}
-                  alt="Snappy logo"
+                  alt="Vultr logo"
                   fill
                   sizes="80px"
                   className="object-contain drop-shadow-lg"

@@ -483,12 +483,12 @@ export default function ChatPage() {
                   <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
                     Chat with
                   </span>{" "}
-                  <span className="bg-gradient-to-r from-chart-1 via-chart-2 to-chart-1 bg-clip-text text-transparent">
-                    Snappy
+                  <span className="bg-gradient-to-r from-vultr-sky-blue via-white to-vultr-blue bg-clip-text text-transparent">
+                    Vultr Vision Workspace
                   </span>
                 </>
               }
-              description="Explore uploads with Snappy's grounded answers, inline citations, and visual cues from the ColPali stack."
+              description="Explore uploads with Vultr’s grounded answers, inline visual citations, and ColPali-powered context."
               childrenClassName="gap-2 text-body-xs"
             >
               <Badge variant={isReady ? "default" : "destructive"} className="gap-1.5 px-3 py-1.5">

@@ -46,139 +46,118 @@ export function Nav() {
   }, [])
 
   return (
-    <header className="relative sticky top-0 z-50 shrink-0 border-b border-border/40 bg-background/50 backdrop-blur-xl">
-      {/* Subtle gradient line at top */}
-      <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+    <header className="relative sticky top-0 z-50 shrink-0 border-b border-cool-1/60 bg-white/80 backdrop-blur-xl dark:border-vultr-blue-60/40 dark:bg-vultr-midnight/80">
+      <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-vultr-blue via-vultr-light-blue to-vultr-blue-60" />
 
-      <div className="container mx-auto px-4 py-3">
-        <div className="flex items-center justify-between gap-6">
-          {/* Logo with enhanced styling */}
-          <Link href="/" className="group flex shrink-0 items-center gap-3 transition-all">
-            <div className="relative flex items-center gap-4">
-              <div className="relative">
-                <div className="pointer-events-none absolute -inset-3 rounded-full bg-gradient-to-br from-primary/35 via-primary/15 to-transparent opacity-60 blur-2xl transition-opacity group-hover:opacity-90" />
-                <div className="relative h-14 w-14 sm:h-16 sm:w-16">
-                  {mounted && (
-                    <Image
-                      src={
-                        theme === "dark"
-                          ? "/Snappy/snappy_dark_nobg_resized.png"
-                          : "/Snappy/snappy_light_nobg_resized.png"
-                      }
-                      alt="Snappy"
-                      width={72}
-                      height={72}
-                      className="relative z-10 h-full w-full object-contain drop-shadow-[0_10px_20px_rgba(17,24,39,0.35)] transition-transform duration-200 group-hover:scale-110"
-                      priority
-                    />
-                  )}
-                </div>
-              </div>
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 py-3 md:px-6">
+        <Link href="/" className="group flex shrink-0 items-center gap-3 transition-all">
+          <div className="relative flex items-center">
+            <div className="pointer-events-none absolute -inset-3 rounded-full bg-vultr-light-blue/25 opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-100" />
+            <div className="relative flex items-center justify-center">
+              {mounted && (
+                <Image
+                  src={theme === "dark" ? "/brand/vultr-logo-reversed.svg" : "/brand/vultr-logo.svg"}
+                  alt="Vultr"
+                  width={136}
+                  height={42}
+                  priority
+                  className="logo-min h-9 w-auto transition duration-200 group-hover:scale-105"
+                />
+              )}
             </div>
-          </Link>
+          </div>
+        </Link>
 
-          {/* Desktop Navigation - Center */}
-          <nav className="hidden flex-1 items-center justify-center gap-1 lg:flex">
-            {links.map((link) => {
-              const isActive =
-                link.href === "/"
-                  ? pathname === "/"
-                  : pathname === link.href || pathname.startsWith(`${link.href}/`)
-              const isUploadLink = link.href === "/upload"
-              const shouldShowBadge = isUploadLink && showUploadBadge
+        <nav className="hidden flex-1 items-center justify-center gap-2 lg:flex">
+          {links.map((link) => {
+            const isActive =
+              link.href === "/"
+                ? pathname === "/"
+                : pathname === link.href || pathname.startsWith(`${link.href}/`)
+            const isUploadLink = link.href === "/upload"
+            const shouldShowBadge = isUploadLink && showUploadBadge
 
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={cn(
-                    "relative rounded-full px-5 py-2.5 text-body-sm font-medium transition-all duration-200 touch-manipulation",
-                    isActive
-                      ? "bg-primary/10 text-primary shadow-sm"
-                      : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                  )}
-                >
-                  {isActive && (
-                    <span className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/5 to-purple-500/5 animate-pulse" />
-                  )}
-                  <span className="relative">{link.label}</span>
-                  {shouldShowBadge && uploadPercent !== null && (
-                    <span className="absolute -top-2 -right-3 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground shadow-sm">
-                      {uploadPercent}%
-                    </span>
-                  )}
-                </Link>
-              )
-            })}
-          </nav>
-
-          {/* Actions */}
-          <div className="flex items-center gap-2">
-            {mounted && (
-              <AppButton
-                variant="ghost"
-                size="icon"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                iconShift
-              >
-                {theme === "dark" ? (
-                  <Sun className="size-icon-lg transition-transform group-hover/app-button:rotate-45 group-hover/app-button:scale-110" />
-                ) : (
-                  <Moon className="size-icon-lg transition-transform group-hover/app-button:-rotate-12 group-hover/app-button:scale-110" />
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  "relative rounded-full px-4 py-2 text-sm font-medium text-vultr-blue-20 transition-colors duration-200 hover:text-vultr-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vultr-light-blue/70 focus-visible:ring-offset-2",
+                  isActive ? "text-vultr-blue" : ""
                 )}
-                <span className="sr-only">Toggle theme</span>
-              </AppButton>
-            )}
+              >
+                {isActive && (
+                  <span className="absolute inset-x-3 -bottom-1 h-0.5 rounded-full bg-gradient-to-r from-vultr-light-blue to-vultr-blue" />
+                )}
+                <span className="relative">{link.label}</span>
+                {shouldShowBadge && uploadPercent !== null && (
+                  <span className="absolute -top-2 -right-3 rounded-full bg-vultr-blue px-2 py-0.5 text-[10px] font-semibold text-white shadow-[var(--shadow-soft)]">
+                    {uploadPercent}%
+                  </span>
+                )}
+              </Link>
+            )
+          })}
+        </nav>
 
-            {/* Mobile Menu */}
-            <div className="lg:hidden">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <AppButton
-                    variant="ghost"
-                    size="icon"
-                    iconShift
-                  >
-                    <Menu className="size-icon-lg transition-transform group-hover/app-button:scale-110" />
-                    <span className="sr-only">Open menu</span>
-                  </AppButton>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className="w-56 rounded-2xl border-border/50 bg-card/95 backdrop-blur-xl"
-                >
-                  {links.map((link) => {
-                    const isActive =
-                      link.href === "/"
-                        ? pathname === "/"
-                        : pathname === link.href || pathname.startsWith(`${link.href}/`)
-                    const isUploadLink = link.href === "/upload"
-                    const shouldShowBadge = isUploadLink && showUploadBadge
+        <div className="flex items-center gap-2">
+          {mounted && (
+            <AppButton
+              variant="ghost"
+              size="icon"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              iconShift
+            >
+              {theme === "dark" ? (
+                <Sun className="h-5 w-5 transition-transform group-hover/app-button:rotate-45 group-hover/app-button:scale-110" />
+              ) : (
+                <Moon className="h-5 w-5 transition-transform group-hover/app-button:-rotate-12 group-hover/app-button:scale-110" />
+              )}
+              <span className="sr-only">Toggle theme</span>
+            </AppButton>
+          )}
 
-                    return (
-                      <DropdownMenuItem key={link.href} asChild>
-                        <Link
-                          href={link.href}
-                          className={cn(
-                            "flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl px-3 py-2 text-body-sm transition-all",
-                            isActive
-                              ? "bg-primary/10 text-primary font-semibold"
-                              : "hover:bg-muted/50"
-                          )}
-                        >
-                          <span>{link.label}</span>
-                          {shouldShowBadge && uploadPercent !== null && (
-                            <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground shadow-sm">
-                              {uploadPercent}%
-                            </span>
-                          )}
-                        </Link>
-                      </DropdownMenuItem>
-                    )
-                  })}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+          <div className="lg:hidden">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <AppButton variant="ghost" size="icon" iconShift>
+                  <Menu className="h-5 w-5 transition-transform group-hover/app-button:scale-110" />
+                  <span className="sr-only">Open menu</span>
+                </AppButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-56 rounded-[var(--radius-card)] border-cool-1/60 bg-white/95 p-2 shadow-[var(--shadow-soft)] backdrop-blur-xl dark:border-vultr-blue-60/40 dark:bg-vultr-midnight/90"
+              >
+                {links.map((link) => {
+                  const isActive =
+                    link.href === "/"
+                      ? pathname === "/"
+                      : pathname === link.href || pathname.startsWith(`${link.href}/`)
+                  const isUploadLink = link.href === "/upload"
+                  const shouldShowBadge = isUploadLink && showUploadBadge
+
+                  return (
+                    <DropdownMenuItem key={link.href} asChild>
+                      <Link
+                        href={link.href}
+                        className={cn(
+                          "flex w-full cursor-pointer items-center justify-between gap-2 rounded-[calc(var(--radius-card)-0.5rem)] px-3 py-2 text-sm text-vultr-blue-20 transition-colors hover:bg-vultr-sky-blue/30 hover:text-vultr-blue",
+                          isActive ? "bg-vultr-sky-blue/40 text-vultr-blue font-semibold" : ""
+                        )}
+                      >
+                        <span>{link.label}</span>
+                        {shouldShowBadge && uploadPercent !== null && (
+                          <span className="rounded-full bg-vultr-blue px-2 py-0.5 text-[10px] font-semibold text-white shadow-[var(--shadow-soft)]">
+                            {uploadPercent}%
+                          </span>
+                        )}
+                      </Link>
+                    </DropdownMenuItem>
+                  )
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>

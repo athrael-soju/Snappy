@@ -113,7 +113,7 @@ export default function MaintenancePage() {
                     </span>
                   </>
                 }
-                description="Monitor Snappy's storage status and run maintenance operations. Handle destructive actions with care."
+                description="Monitor Vultr’s storage status and run maintenance operations. Handle destructive actions with care."
                 childrenClassName="gap-2 pt-2"
               >
                 <Badge

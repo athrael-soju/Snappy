@@ -39,7 +39,7 @@ const SETTING_OVERRIDES: Record<
   MINIO_WORKERS: {
     description: "Number of concurrent upload workers (auto-sized)",
     helpText:
-      "Snappy derives this from available CPU cores and pipeline concurrency. Override only if you need to cap or expand throughput manually.",
+      "Vultr auto-derives this from available CPU cores and pipeline concurrency. Override only if you need to cap or expand throughput manually.",
   },
 };
 
