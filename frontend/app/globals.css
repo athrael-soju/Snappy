@@ -69,6 +69,14 @@
   --size-icon-2xl: 3rem;
   --size-icon-3xl: 3.5rem;
 
+  /* Gradients */
+  --gradient-hero-light:
+    radial-gradient(900px 420px at 85% 15%, color-mix(in srgb, var(--color-vultr-light-blue) 50%, transparent), transparent 60%),
+    linear-gradient(180deg, var(--color-vultr-navy), var(--color-vultr-blue));
+  --gradient-hero-dark:
+    radial-gradient(900px 420px at 80% 20%, color-mix(in srgb, var(--color-vultr-blue-60) 45%, transparent), transparent 65%),
+    linear-gradient(180deg, color-mix(in srgb, var(--color-vultr-midnight) 88%, #010922 12%), color-mix(in srgb, var(--color-vultr-cobalt) 55%, var(--color-vultr-blue) 45%));
+
   /* Shape & elevation */
   --radius-card: 1rem;
   --shadow-soft: 0 28px 60px -30px rgba(2, 16, 72, 0.28);
@@ -111,6 +119,7 @@
   :root {
     color-scheme: light dark;
     background-color: var(--color-background);
+    --gradient-hero: var(--gradient-hero-light);
   }
 
   .dark {
@@ -126,6 +135,7 @@
     --color-accent-foreground: #ffffff;
     --color-border: rgba(121, 206, 255, 0.4);
     --color-input: rgba(32, 88, 167, 0.45);
+    --gradient-hero: var(--gradient-hero-dark);
   }
 
   * {
@@ -315,10 +325,9 @@
     }
   }
 
-  .bg-vultr-radial {
-    background:
-      radial-gradient(900px 420px at 85% 15%, color-mix(in srgb, var(--color-vultr-light-blue) 50%, transparent), transparent 60%),
-      linear-gradient(180deg, var(--color-vultr-navy), var(--color-vultr-blue));
+  .bg-vultr-radial,
+  .bg-hero-vultr {
+    background: var(--gradient-hero);
   }
 
   /* Icon sizing utilities */
@@ -365,6 +374,23 @@
   .size-icon-3xl {
     width: var(--size-icon-3xl);
     height: var(--size-icon-3xl);
+  }
+
+  /* Surface treatments */
+  .surface-light {
+    @apply text-foreground;
+    background-color: color-mix(in srgb, var(--color-warm-1) 86%, transparent);
+    backdrop-filter: saturate(140%) blur(12px);
+    -webkit-backdrop-filter: saturate(140%) blur(12px);
+    box-shadow: 0 22px 60px -36px rgba(2, 16, 72, 0.28);
+  }
+
+  .surface-dark {
+    @apply text-white;
+    background-color: color-mix(in srgb, var(--color-vultr-midnight) 92%, transparent);
+    backdrop-filter: saturate(140%) blur(12px);
+    -webkit-backdrop-filter: saturate(140%) blur(12px);
+    box-shadow: 0 24px 60px -34px rgba(3, 18, 76, 0.55);
   }
 
   /* Vultr display typography */

@@ -103,7 +103,7 @@ export function Nav() {
         <div className="flex items-center gap-2">
           {mounted && (
             <AppButton
-              variant="ghost"
+              variant="default"
               size="icon"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               iconShift
