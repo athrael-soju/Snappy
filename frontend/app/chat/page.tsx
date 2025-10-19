@@ -159,7 +159,7 @@ function ChatMessage({ message, isLoading, onOpenCitation }: ChatMessageProps) {
     >
       <div
         className={cn(
-          "max-w-[95%] sm:max-w-[85%] rounded-2xl p-4 text-body-sm sm:text-body transition overflow-hidden",
+          "max-w-[95%] sm:max-w-[85%] rounded-2xl p-4 text-body-xs sm:text-body-xs transition overflow-hidden",
           isUser
             ? "bg-primary/10 border-2 border-primary/30 text-foreground shadow-md dark:bg-primary/20 dark:border-primary/40"
             : "bg-card/80 border border-border/40 text-card-foreground shadow-lg backdrop-blur-sm dark:bg-card/60 dark:border-border/30",
@@ -174,13 +174,13 @@ function ChatMessage({ message, isLoading, onOpenCitation }: ChatMessageProps) {
           ) : (
             <>
               <Bot className="size-icon-sm text-accent" />
-              <span className="text-accent">Assistant</span>
+              <span className="text-accent">Morty</span>
             </>
           )}
         </div>
         {message.content ? (
           isUser ? (
-            <p className="min-w-0 break-words whitespace-pre-wrap text-body-sm leading-relaxed text-foreground/90 sm:text-body">
+            <p className="min-w-0 break-words whitespace-pre-wrap text-body-xs leading-relaxed text-foreground/90 sm:text-body-xs">
               {message.content}
             </p>
           ) : (

@@ -307,7 +307,7 @@ export default function MarkdownRenderer({
   return (
     <div
       className={cn(
-        'max-w-none space-y-3 text-body-sm leading-relaxed text-foreground sm:text-body',
+        'max-w-none space-y-3 text-body-xs leading-relaxed text-foreground sm:text-body-xs',
         className,
       )}
     >
