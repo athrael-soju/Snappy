@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -451,6 +452,52 @@ export default function ChatPage() {
     }
   };
 
+  const heroActions = (
+    <>
+      <AppButton
+        asChild
+        variant="primary"
+        size="sm"
+        className="rounded-[var(--radius-button)] bg-white px-5 text-vultr-blue hover:bg-vultr-sky-blue/80"
+      >
+        <Link href="/search">Browse search</Link>
+      </AppButton>
+      <AppButton
+        asChild
+        variant="ghost"
+        size="sm"
+        className="rounded-[var(--radius-button)] border border-white/30 bg-white/10 px-4 py-2 text-white hover:border-white/50 hover:bg-white/20"
+      >
+        <Link href="/upload">Upload files</Link>
+      </AppButton>
+    </>
+  );
+
+  const heroMeta = (
+    <>
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-sm font-medium text-white">
+        {isReady ? (
+          <Sparkles className="size-icon-3xs text-white" />
+        ) : (
+          <AlertCircle className="size-icon-3xs text-white" />
+        )}
+        {isReady ? "Connected to workspace" : "Setup required"}
+      </span>
+      {timeToFirstTokenMs !== null && (
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-sm font-medium text-white/85">
+          <Timer className="size-icon-3xs" />
+          {(timeToFirstTokenMs / 1000).toFixed(2)}s response time
+        </span>
+      )}
+      {toolCallingEnabled && (
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-sm font-medium text-white/85">
+          <Bot className="size-icon-3xs" />
+          Tool Calling Enabled
+        </span>
+      )}
+    </>
+  );
+
   const handleCitationOpen = (url: string, label?: string | null) => {
     if (!url) {
       return;
@@ -461,105 +508,108 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="relative flex min-h-full flex-1 flex-col overflow-hidden">
-      <div className="flex h-full flex-1 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-10">
-        <motion.div
-          className="mx-auto flex h-full w-full max-w-6xl flex-col gap-8"
+    <>
+      <RoutePageShell
+        eyebrow="Products"
+        title="Chat with Vultr Vision"
+        description="Explore uploads with Vultr's grounded answers, inline visual citations, and ColPali-powered context."
+        actions={heroActions}
+        meta={heroMeta}
+        innerClassName="flex min-h-0 flex-1 flex-col gap-6"
+      >
+        <motion.section
+          className="relative flex min-h-[520px] flex-1 flex-col overflow-hidden"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
         >
-          <section className="relative flex min-h-[520px] flex-1 flex-col overflow-hidden">
-
-
-            <div className="relative flex flex-1 overflow-hidden">
-              <ScrollArea className="h-full w-full">
-                <div className="space-y-6 px-6 pb-32 pr-4 sm:px-10">
-                  <AnimatePresence initial={false}>
-                    {messages.length === 0 && (
-                      <motion.div
-                        layout
-                        className="flex justify-center"
-                        initial={{ opacity: 0, y: 24 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -24 }}
-                        transition={{ duration: 0.3, ease: "easeInOut" }}
-                      >
-                        <div className="w-full max-w-3xl space-y-3 rounded-xl border border-border/20 bg-card/60 p-4 shadow-sm animate-in fade-in duration-500 dark:bg-card/40">
-                          <div className="space-y-2.5">
-                            <div className="flex items-center justify-center gap-2 text-body-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                              <Sparkles className="size-icon-sm text-primary" />
-                              Try asking
-                            </div>
-                            <div className="grid gap-2 sm:grid-cols-2">
-                              {starterPrompts.map((item, index) => (
-                                <motion.div
-                                  key={item.prompt}
-                                  initial={{ opacity: 0, y: 20 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  transition={{ delay: 0.1 + index * 0.1, duration: 0.3 }}
-                                >
-                                  <StarterPromptItem item={item} onClick={handleSuggestionClick} />
-                                </motion.div>
-                              ))}
-                            </div>
+          <div className="relative flex flex-1 overflow-hidden">
+            <ScrollArea className="h-full w-full">
+              <div className="space-y-6 px-6 pb-32 pr-4 sm:px-10">
+                <AnimatePresence initial={false}>
+                  {messages.length === 0 && (
+                    <motion.div
+                      layout
+                      className="flex justify-center"
+                      initial={{ opacity: 0, y: 24 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -24 }}
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                    >
+                      <div className="w-full max-w-3xl space-y-3 rounded-xl border border-border/20 bg-card/60 p-4 shadow-sm animate-in fade-in duration-500 dark:bg-card/40">
+                        <div className="space-y-2.5">
+                          <div className="flex items-center justify-center gap-2 text-body-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            <Sparkles className="size-icon-sm text-primary" />
+                            Try asking
                           </div>
-                          <RecentQuestions questions={recentQuestions} onSelect={handleSuggestionClick} />
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            {starterPrompts.map((item, index) => (
+                              <motion.div
+                                key={item.prompt}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.1 + index * 0.1, duration: 0.3 }}
+                              >
+                                <StarterPromptItem item={item} onClick={handleSuggestionClick} />
+                              </motion.div>
+                            ))}
+                          </div>
                         </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                        <RecentQuestions questions={recentQuestions} onSelect={handleSuggestionClick} />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-                  <AnimatePresence mode="popLayout">
-                    {messages.map((message, index) => {
-                      const isLastMessage = index === messages.length - 1;
-                      const isLastAssistantMessage = isLastMessage && message.role === "assistant";
-                      return (
-                        <ChatMessage
-                          key={message.id}
-                          message={message}
-                          isLoading={loading && isLastAssistantMessage}
-                          onOpenCitation={handleCitationOpen}
-                        />
-                      );
-                    })}
-                  </AnimatePresence>
-
-                  <AnimatePresence mode="wait">
-                    {loading && messages.length === 0 && (
+                <AnimatePresence mode="popLayout">
+                  {messages.map((message, index) => {
+                    const isLastMessage = index === messages.length - 1;
+                    const isLastAssistantMessage = isLastMessage && message.role === "assistant";
+                    return (
                       <ChatMessage
-                        key="loading"
-                        message={{ id: "loading", role: "assistant", content: "" }}
-                        isLoading={true}
+                        key={message.id}
+                        message={message}
+                        isLoading={loading && isLastAssistantMessage}
+                        onOpenCitation={handleCitationOpen}
                       />
-                    )}
-                  </AnimatePresence>
-                  <div ref={endOfMessagesRef} />
-                </div>
-              </ScrollArea>
-            </div>
-          </section>
-          <ChatComposer
-            input={input}
-            onInputChange={setInput}
-            isReady={isReady}
-            loading={loading}
-            isSendDisabled={isSendDisabled}
-            toolCallingEnabled={toolCallingEnabled}
-            onToolToggle={setToolCallingEnabled}
-            k={k}
-            maxTokens={maxTokens}
-            onNumberChange={handleNumberChange}
-            setK={setK}
-            setMaxTokens={setMaxTokens}
-            isSettingsValid={isSettingsValid}
-            sendMessage={sendMessage}
-            error={error}
-            reset={reset}
-            messages={messages}
-          />
-        </motion.div>
-      </div>
+                    );
+                  })}
+                </AnimatePresence>
+
+                <AnimatePresence mode="wait">
+                  {loading && messages.length === 0 && (
+                    <ChatMessage
+                      key="loading"
+                      message={{ id: "loading", role: "assistant", content: "" }}
+                      isLoading={true}
+                    />
+                  )}
+                </AnimatePresence>
+                <div ref={endOfMessagesRef} />
+              </div>
+            </ScrollArea>
+          </div>
+        </motion.section>
+        <ChatComposer
+          input={input}
+          onInputChange={setInput}
+          isReady={isReady}
+          loading={loading}
+          isSendDisabled={isSendDisabled}
+          toolCallingEnabled={toolCallingEnabled}
+          onToolToggle={setToolCallingEnabled}
+          k={k}
+          maxTokens={maxTokens}
+          onNumberChange={handleNumberChange}
+          setK={setK}
+          setMaxTokens={setMaxTokens}
+          isSettingsValid={isSettingsValid}
+          sendMessage={sendMessage}
+          error={error}
+          reset={reset}
+          messages={messages}
+        />
+      </RoutePageShell>
       <ImageLightbox
         open={lightboxOpen}
         src={lightboxSrc}
@@ -572,6 +622,6 @@ export default function ChatPage() {
           }
         }}
       />
-    </div>
+    </>
   );
 }

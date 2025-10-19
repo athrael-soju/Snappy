@@ -23,7 +23,7 @@ import {
 import { AppButton } from "@/components/app-button";
 import { Badge } from "@/components/ui/badge";
 import { InfoTooltip } from "@/components/info-tooltip";
-import { PageHeader } from "@/components/page-header";
+import { RoutePageShell } from "@/components/route-page-shell";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -94,164 +94,200 @@ export default function ConfigurationPage() {
   const draftCountLabel = draftCount === 1 ? "setting" : "settings";
   const draftUpdatedLabel = storedDraftUpdatedAt ? storedDraftUpdatedAt.toLocaleString() : null;
 
+  const heroMeta = (
+    <>
+      <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-sm font-medium text-white backdrop-blur">
+        <Hash className="size-icon-3xs" />
+        {configStats.totalSettings} settings
+      </span>
+      <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-sm font-medium text-white backdrop-blur">
+        {configStats.modifiedSettings > 0 ? (
+          <AlertCircle className="size-icon-3xs text-amber-200" />
+        ) : (
+          <CheckCircle2 className="size-icon-3xs text-emerald-200" />
+        )}
+        {configStats.modifiedSettings} modified
+      </span>
+      <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-sm font-medium text-white backdrop-blur capitalize">
+        <Info className="size-icon-3xs" />
+        {configStats.currentMode}
+      </span>
+      {lastSaved && (
+        <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-sm font-medium text-white backdrop-blur">
+          <History className="size-icon-3xs" />
+          Last saved {lastSaved.toLocaleTimeString()}
+        </span>
+      )}
+    </>
+  );
+
+  const heroActions = (
+    <>
+      <AppButton
+        type="button"
+        onClick={() => void saveChanges()}
+        disabled={!hasChanges || saving}
+        variant="primary"
+        size="sm"
+        className="rounded-[var(--radius-button)] px-5"
+      >
+        {saving ? (
+          <>
+            <Loader2 className="size-icon-xs animate-spin" />
+            Saving...
+          </>
+        ) : (
+          <>
+            <Save className="size-icon-xs" />
+            Save changes
+          </>
+        )}
+      </AppButton>
+      <AppButton
+        type="button"
+        onClick={() => resetToDefaults()}
+        disabled={saving}
+        variant="outline"
+        size="sm"
+        className="rounded-[var(--radius-button)]"
+      >
+        <RotateCcw className="size-icon-xs" />
+        Reset defaults
+      </AppButton>
+    </>
+  );
+
   return (
-    <div className="relative flex h-full min-h-full flex-col overflow-hidden">
-      <div className="flex h-full flex-1 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
-        <motion.div
-          className="mx-auto flex h-full w-full max-w-5xl flex-col space-y-4"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-        >
-          {/* Header Section */}
-          <motion.div
-            className="shrink-0"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.3 }}
-          >
-            <PageHeader
-              align="center"
-              title={
-                <>
-                  <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
-                    System
-                  </span>{" "}
-                  <span className="bg-gradient-to-r from-chart-4 via-chart-3 to-chart-4 bg-clip-text text-transparent">
-                    Configuration
-                  </span>
-                </>
-              }
-              description="Review and adjust backend behaviour without leaving the app. Save changes section by section when you are ready."
-            />
-            {error && (
-              <div className="mx-auto flex max-w-2xl items-center justify-center gap-2 rounded-lg bg-destructive/10 px-4 py-2 text-body-sm font-medium text-destructive">
-                <AlertCircle className="size-icon-xs" />
-                {error}
-              </div>
-            )}
-            <AnimatePresence>
-              {hasStoredDraft && (
-                <motion.div
-                  key="stored-draft-banner"
-                  initial={{ opacity: 0, y: -6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.2 }}
-                  className="mx-auto mt-4 flex w-full max-w-3xl flex-col gap-3 rounded-2xl border border-amber-200/40 bg-amber-100/30 p-4 text-amber-900 shadow-sm backdrop-blur-sm dark:border-amber-500/40 dark:bg-amber-400/10 dark:text-amber-50"
-                >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-start gap-3">
-                      <History className="mt-0.5 size-icon-sm shrink-0 text-amber-500 dark:text-amber-300" />
-                      <div className="space-y-1">
-                        <p className="text-body-sm font-semibold">Local draft available</p>
-                        <p className="text-body-xs text-amber-800/80 dark:text-amber-100/80">
-                          {draftCount} {draftCountLabel} differ from the server.
-                          {draftUpdatedLabel ? ` Last updated ${draftUpdatedLabel}.` : ""}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <AppButton
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={restoreStoredDraft}
-                        disabled={saving}
-                      >
-                        <Undo2 className="size-icon-2xs" />
-                        Review draft
-                      </AppButton>
-                      <AppButton
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={discardStoredDraft}
-                        disabled={saving}
-                      >
-                        <Trash2 className="size-icon-2xs" />
-                        Discard
-                      </AppButton>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
+    <RoutePageShell
+      eyebrow="Operations"
+      title="System Configuration"
+      description="Review and adjust backend behaviour without leaving the app. Save changes section by section when you are ready."
+      actions={heroActions}
+      meta={heroMeta}
+    >
+      <motion.div
+        className="mx-auto flex w-full max-w-5xl flex-col space-y-4"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+      >
+        {error && (
+          <div className="mx-auto flex max-w-2xl items-center justify-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-2 text-body-sm font-medium text-destructive">
+            <AlertCircle className="size-icon-xs" />
+            {error}
+          </div>
+        )}
 
-          {/* Controls & Stats */}
-          <motion.div
-            className="shrink-0 rounded-3xl border border-border/30 bg-card/10 p-5 shadow-sm backdrop-blur-sm"
-            initial={{ opacity: 0, scale: 0.97 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2, duration: 0.3 }}
-          >
-            <div className="flex flex-col gap-4">
+        <AnimatePresence>
+          {hasStoredDraft && (
+            <motion.div
+              key="stored-draft-banner"
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2 }}
+              className="mx-auto flex w-full max-w-3xl flex-col gap-3 rounded-2xl border border-amber-200/40 bg-amber-100/30 p-4 text-amber-900 shadow-sm backdrop-blur-sm dark:border-amber-500/40 dark:bg-amber-400/10 dark:text-amber-50"
+            >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex min-w-0 flex-1 flex-col gap-2">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Settings className="size-icon-sm shrink-0" />
-                    <span className="text-body-xs font-semibold uppercase tracking-wide">
-                      Configuration sections
-                    </span>
+                <div className="flex items-start gap-3">
+                  <History className="mt-0.5 size-icon-sm shrink-0 text-amber-500 dark:text-amber-300" />
+                  <div className="space-y-1">
+                    <p className="text-body-sm font-semibold">Local draft available</p>
+                    <p className="text-body-xs text-amber-800/80 dark:text-amber-100/80">
+                      {draftCount} {draftCountLabel} differ from the server.
+                      {draftUpdatedLabel ? ` Last updated ${draftUpdatedLabel}.` : ""}
+                    </p>
                   </div>
-                  <Tabs value={activeKey} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="flex w-full flex-nowrap justify-start gap-2 overflow-x-auto rounded-xl border border-border/30 bg-background/60 p-1 text-body-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                      {categories.map(([key, category]) => (
-                        <TabsTrigger
-                          key={key}
-                          value={key}
-                          className="grow-0 shrink-0 basis-auto whitespace-nowrap px-3 py-1 text-body-sm font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
-                        >
-                          {category.name}
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
-                  </Tabs>
                 </div>
-                <AppButton
-                  type="button"
-                  onClick={resetToDefaults}
-                  disabled={saving}
-                  variant="cta"
-                  size="lg"
-                >
-                  <RotateCcw className="size-icon-2xs" />
-                  Reset all
-                </AppButton>
+                <div className="flex flex-wrap items-center gap-2">
+                  <AppButton
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={restoreStoredDraft}
+                    disabled={saving}
+                  >
+                    <Undo2 className="size-icon-2xs" />
+                    Review draft
+                  </AppButton>
+                  <AppButton
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={discardStoredDraft}
+                    disabled={saving}
+                  >
+                    <Trash2 className="size-icon-2xs" />
+                    Discard
+                  </AppButton>
+                </div>
               </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-              <div className="flex flex-wrap items-center gap-3 text-body-sm text-muted-foreground">
-                <span className="inline-flex items-center gap-1 rounded-lg border border-border/30 bg-background/70 px-2.5 py-1">
-                  <Hash className="size-icon-3xs" />
-                  {configStats.totalSettings} settings
-                </span>
-                <span className="inline-flex items-center gap-1 rounded-lg border border-border/30 bg-background/70 px-2.5 py-1">
-                  {configStats.modifiedSettings > 0 ? (
-                    <AlertCircle className="size-icon-3xs text-orange-500" />
-                  ) : (
-                    <CheckCircle2 className="size-icon-3xs text-emerald-400" />
-                  )}
-                  {configStats.modifiedSettings} modified
-                </span>
-                <span className="inline-flex items-center gap-1 rounded-lg border border-border/30 bg-background/70 px-2.5 py-1 capitalize">
-                  <Info className="size-icon-3xs" />
-                  {configStats.currentMode}
-                </span>
-                {configStats.enabledFeatures.length > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-lg border border-border/30 bg-background/70 px-2.5 py-1">
-                    <Sparkles className="size-icon-3xs text-primary" />
-                    {configStats.enabledFeatures.join(", ")}
+        <motion.div
+          className="shrink-0 rounded-3xl border border-border/30 bg-card/10 p-5 shadow-sm backdrop-blur-sm"
+          initial={{ opacity: 0, scale: 0.97 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2, duration: 0.3 }}
+        >
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 flex-1 flex-col gap-2">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Settings className="size-icon-sm shrink-0" />
+                  <span className="text-body-xs font-semibold uppercase tracking-wide">
+                    Configuration sections
                   </span>
-                )}
-                {lastSaved && (
-                  <span className="ml-auto inline-flex items-center gap-1 rounded-lg border border-border/30 bg-background/70 px-2.5 py-1 text-body-xs">
-                    Last saved {lastSaved.toLocaleTimeString()}
-                  </span>
-                )}
+                </div>
+                <Tabs value={activeKey} onValueChange={setActiveTab} className="w-full">
+                  <TabsList className="flex w-full flex-nowrap justify-start gap-2 overflow-x-auto rounded-xl border border-border/30 bg-background/60 p-1 text-body-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {categories.map(([key, category]) => (
+                      <TabsTrigger
+                        key={key}
+                        value={key}
+                        className="grow-0 shrink-0 basis-auto whitespace-nowrap px-3 py-1 text-body-sm font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
+                      >
+                        {category.name}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </Tabs>
               </div>
             </div>
-          </motion.div>
+
+            <div className="flex flex-wrap items-center gap-3 text-body-sm text-muted-foreground">
+              <span className="inline-flex items-center gap-1 rounded-lg border border-border/30 bg-background/70 px-2.5 py-1">
+                <Hash className="size-icon-3xs" />
+                {configStats.totalSettings} settings
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-lg border border-border/30 bg-background/70 px-2.5 py-1">
+                {configStats.modifiedSettings > 0 ? (
+                  <AlertCircle className="size-icon-3xs text-orange-500" />
+                ) : (
+                  <CheckCircle2 className="size-icon-3xs text-emerald-400" />
+                )}
+                {configStats.modifiedSettings} modified
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-lg border border-border/30 bg-background/70 px-2.5 py-1 capitalize">
+                <Info className="size-icon-3xs" />
+                {configStats.currentMode}
+              </span>
+              {configStats.enabledFeatures.length > 0 && (
+                <span className="inline-flex items-center gap-1 rounded-lg border border-border/30 bg-background/70 px-2.5 py-1">
+                  <Sparkles className="size-icon-3xs text-primary" />
+                  {configStats.enabledFeatures.join(", ")}
+                </span>
+              )}
+              {lastSaved && (
+                <span className="ml-auto inline-flex items-center gap-1 rounded-lg border border-border/30 bg-background/70 px-2.5 py-1 text-body-xs">
+                  Last saved {lastSaved.toLocaleTimeString()}
+                </span>
+              )}
+            </div>
+          </div>
+        </motion.div>
 
           {/* Settings Section */}
           <AnimatePresence mode="wait">
@@ -477,8 +513,7 @@ export default function ConfigurationPage() {
               </div>
             </div>
           </motion.div>
-        </motion.div>
-      </div>
-    </div>
+      </motion.div>
+    </RoutePageShell>
   );
 }

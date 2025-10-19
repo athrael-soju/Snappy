@@ -46,18 +46,18 @@ const menuSections: NavSection[] = [
       {
         label: "Upload & Index",
         href: "/upload",
-        description: "Stage documents and create embeddings with Vultr storage pipelines.",
+        description: "Ingest and process documents with ColPali-powered vision models.",
         showUploadProgress: true,
       },
       {
         label: "Semantic Search",
         href: "/search",
-        description: "Query ColPali-powered retrieval tuned for compliance workloads.",
+        description: "Find relevant documents instantly using advanced vector search techniques.",
       },
       {
         label: "Vision Chat",
         href: "/chat",
-        description: "Collaborate on visual evidence through grounded conversational UI.",
+        description: "Interact with your documents through an AI-powered chat interface.",
       },
     ],
   },
@@ -65,14 +65,14 @@ const menuSections: NavSection[] = [
     label: "Management",
     items: [
       {
-        label: "Configuration Studio",
+        label: "Configuration",
         href: "/configuration",
-        description: "Control policies, connectors, and deployment parameters.",
+        description: "Customize and optimize your ColPali deployment settings easily.",
       },
       {
-        label: "Maintenance Console",
+        label: "Maintenance",
         href: "/maintenance",
-        description: "Monitor uptime, jobs, and GPU fleet health in real time.",
+        description: "Monitor system health and manage updates for seamless operation.",
       },
     ],
   }
