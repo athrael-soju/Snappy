@@ -35,7 +35,7 @@ export default function RootLayout({
       <body className="h-dvh overflow-hidden font-sans antialiased">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <NextTopLoader
-            color="#007bfc"
+            color="var(--color-vultr-blue)"
             initialPosition={0.12}
             crawlSpeed={250}
             height={3}
@@ -43,7 +43,7 @@ export default function RootLayout({
             showSpinner={false}
             easing="ease"
             speed={240}
-            shadow="0 0 18px rgba(0, 123, 252, 0.45)"
+            shadow="0 0 18px color-mix(in srgb, var(--color-vultr-light-blue) 45%, transparent)"
           />
           <AppStoreProvider>
             <Toaster position="top-right" toastOptions={{ className: "rounded-[var(--radius-card)] shadow-[var(--shadow-soft)]" }} />

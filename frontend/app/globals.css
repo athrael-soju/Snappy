@@ -5,24 +5,25 @@
 /* Vultr 2024 brand design tokens */
 @theme {
   /* Brand core */
-  --color-vultr-navy: oklch(0.18 0.09 264);
-  --color-vultr-blue: oklch(0.55 0.19 246);
-  --color-vultr-light-blue: oklch(0.72 0.13 233);
-  --color-vultr-sky-blue: oklch(0.93 0.08 221);
+  --color-vultr-navy: #031059;
+  --color-vultr-blue: #007BFC;
+  --color-vultr-light-blue: #52BAFF;
+  --color-vultr-sky-blue: #C9F4FF;
 
   /* Brand secondary */
-  --color-vultr-midnight: oklch(0.21 0.08 264);
-  --color-vultr-cobalt: oklch(0.28 0.13 269);
-  --color-vultr-blue-60: oklch(0.42 0.15 263);
-  --color-vultr-blue-20: oklch(0.26 0.09 264);
+  --color-vultr-midnight: #172147;
+  --color-vultr-cobalt: #1E308C;
+  --color-vultr-blue-60: #2652AE;
+  --color-vultr-blue-20: #1A3169;
 
   /* Neutral system */
-  --color-warm-1: oklch(from #ffffff l c h);
-  --color-warm-2: oklch(from #f3f4f7 l c h);
-  --color-warm-3: oklch(from #e6e7eb l c h);
-  --color-warm-4: oklch(from #d2d6e4 l c h);
-  --color-cool-1: oklch(from #e9f7ff l c h);
-  --color-cool-2: oklch(from #bac2e2 l c h);
+  --color-warm-0: #ffffff; /* Neutral alias for pure white surfaces */
+  --color-warm-1: #F7F7F7;
+  --color-warm-2: #CCCCCC;
+  --color-warm-3: #414141;
+  --color-warm-4: #303030;
+  --color-cool-1: #E6EAED;
+  --color-cool-2: #A5AFB8;
 
   /* Typography */
   --font-sans: "Roboto", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
@@ -68,11 +69,13 @@
   --size-icon-xl: 2.5rem;
   --size-icon-2xl: 3rem;
   --size-icon-3xl: 3.5rem;
+  --size-icon-functional: var(--size-icon-sm);
+  --size-icon-expressive: 1.5625rem;
 
   /* Shape & elevation */
   --radius-card: 1rem;
-  --shadow-soft: 0 28px 60px -30px rgba(2, 16, 72, 0.28);
-  --shadow-soft-strong: 0 40px 80px -40px rgba(2, 16, 72, 0.35);
+  --shadow-soft: 0 28px 60px -30px rgba(3, 16, 89, 0.28);
+  --shadow-soft-strong: 0 40px 80px -40px rgba(3, 16, 89, 0.35);
   --shadow-glow: 0 32px 80px -45px rgba(0, 123, 252, 0.45), 0 18px 54px -36px rgba(82, 186, 255, 0.5);
 
   /* Compatibility aliases */
@@ -91,9 +94,9 @@
   --color-accent: var(--color-vultr-sky-blue);
   --color-accent-foreground: var(--color-vultr-blue);
   --color-destructive: oklch(0.58 0.2 27);
-  --color-destructive-foreground: oklch(1 0 0);
-  --color-border: var(--color-warm-3);
-  --color-input: var(--color-warm-2);
+  --color-destructive-foreground: var(--color-warm-0);
+  --color-border: var(--color-cool-2);
+  --color-input: var(--color-cool-1);
   --color-ring: var(--color-vultr-light-blue);
   --color-chart-1: var(--color-vultr-blue);
   --color-chart-2: var(--color-vultr-light-blue);
@@ -117,16 +120,16 @@
   .dark {
     color-scheme: dark;
     --color-background: var(--color-vultr-midnight);
-    --color-foreground: #f3f4f7;
-    --color-card: rgba(8, 21, 77, 0.85);
-    --color-card-foreground: #f3f4f7;
-    --color-popover: rgba(3, 18, 76, 0.9);
-    --color-popover-foreground: #f3f4f7;
-    --color-muted: rgba(255, 255, 255, 0.08);
-    --color-muted-foreground: rgba(201, 223, 255, 0.78);
-    --color-accent-foreground: #ffffff;
-    --color-border: rgba(121, 206, 255, 0.4);
-    --color-input: rgba(32, 88, 167, 0.45);
+    --color-foreground: oklch(1 0 0);
+    --color-card: oklch(0.17 0.08 264 / 0.75);
+    --color-card-foreground: oklch(1 0 0);
+    --color-popover: oklch(0.17 0.08 264 / 0.95);
+    --color-popover-foreground: oklch(1 0 0);
+    --color-muted: oklch(1 0 0 / 0.08);
+    --color-muted-foreground: oklch(1 0 0 / 0.7);
+    --color-accent-foreground: var(--color-warm-0);
+    --color-border: oklch(0.93 0.08 221 / 0.4);
+    --color-input: oklch(0.38 0.08 264 / 0.65);
   }
 
   * {
@@ -193,8 +196,8 @@
   }
 
   ::selection {
-    background: color-mix(in srgb, var(--color-vultr-blue) 25%, transparent);
-    color: #ffffff;
+    background: color-mix(in srgb, var(--color-vultr-blue) 28%, transparent);
+    color: var(--color-warm-0);
   }
 }
 
@@ -228,7 +231,7 @@
 
   .bg-hero-vultr {
     background:
-      radial-gradient(1200px 600px at 85% 15%, color-mix(in srgb, var(--color-vultr-light-blue) 40%, transparent), transparent 60%),
+      radial-gradient(1200px 600px at 85% 15%, color-mix(in oklab, var(--color-vultr-light-blue) 40%, transparent), transparent 60%),
       linear-gradient(180deg, var(--color-vultr-navy), var(--color-vultr-blue));
   }
 
@@ -308,7 +311,7 @@
 
   .bg-vultr-radial {
     background:
-      radial-gradient(900px 420px at 85% 15%, color-mix(in srgb, var(--color-vultr-light-blue) 50%, transparent), transparent 60%),
+      radial-gradient(900px 420px at 85% 15%, color-mix(in oklab, var(--color-vultr-light-blue) 50%, transparent), transparent 60%),
       linear-gradient(180deg, var(--color-vultr-navy), var(--color-vultr-blue));
   }
 
@@ -358,21 +361,65 @@
     height: var(--size-icon-3xl);
   }
 
+  .icon-functional {
+    width: var(--size-icon-functional);
+    height: var(--size-icon-functional);
+  }
+
+  .icon-expressive {
+    width: var(--size-icon-expressive);
+    height: var(--size-icon-expressive);
+  }
+
   /* Surface treatments */
   .surface-light {
-    @apply text-foreground;
-    background-color: color-mix(in srgb, var(--color-warm-1) 86%, transparent);
+    @apply bg-white text-vultr-navy;
+    background-color: color-mix(in oklab, var(--color-warm-1) 86%, var(--color-warm-0) 14%);
     backdrop-filter: saturate(140%) blur(12px);
     -webkit-backdrop-filter: saturate(140%) blur(12px);
-    box-shadow: 0 22px 60px -36px rgba(2, 16, 72, 0.28);
+    box-shadow: 0 22px 60px -36px rgba(3, 16, 89, 0.28);
   }
 
   .surface-dark {
-    @apply text-white;
-    background-color: color-mix(in srgb, var(--color-vultr-midnight) 92%, transparent);
+    @apply bg-vultr-midnight text-white;
+    background-color: color-mix(in oklab, var(--color-vultr-midnight) 92%, var(--color-vultr-navy) 8%);
     backdrop-filter: saturate(140%) blur(12px);
     -webkit-backdrop-filter: saturate(140%) blur(12px);
-    box-shadow: 0 24px 60px -34px rgba(3, 18, 76, 0.55);
+    box-shadow: 0 24px 60px -34px rgba(23, 33, 71, 0.55);
+  }
+
+  .surface-contrast {
+    @apply text-white;
+    background: linear-gradient(132deg, var(--color-vultr-midnight) 10%, color-mix(in oklab, var(--color-vultr-blue) 70%, var(--color-vultr-midnight)) 55%, var(--color-vultr-blue-60) 100%);
+    box-shadow: 0 32px 80px -45px color-mix(in oklab, var(--color-vultr-midnight) 70%, transparent);
+  }
+
+  .dark .surface-contrast {
+    background: linear-gradient(148deg, color-mix(in oklab, var(--color-vultr-midnight) 75%, transparent) 0%, color-mix(in oklab, var(--color-vultr-blue) 55%, transparent) 100%);
+  }
+
+  .surface-subtle {
+    @apply text-vultr-navy;
+    background: linear-gradient(135deg, color-mix(in oklab, var(--color-warm-1) 80%, var(--color-vultr-sky-blue) 20%) 0%, color-mix(in oklab, var(--color-warm-1) 70%, var(--color-vultr-light-blue) 30%) 100%);
+    box-shadow: 0 28px 60px -38px color-mix(in oklab, var(--color-vultr-blue) 35%, transparent);
+  }
+
+  .dark .surface-subtle {
+    background: linear-gradient(140deg, color-mix(in oklab, var(--color-vultr-midnight) 78%, transparent) 0%, color-mix(in oklab, var(--color-vultr-blue) 40%, transparent) 100%);
+    @apply text-white;
+  }
+
+  .surface-glass {
+    background: color-mix(in oklab, var(--color-warm-0) 18%, transparent);
+    border: 1px solid color-mix(in oklab, var(--color-vultr-light-blue) 35%, transparent);
+    box-shadow: 0 26px 80px -48px color-mix(in oklab, var(--color-vultr-blue) 45%, transparent);
+    backdrop-filter: saturate(165%) blur(18px);
+    -webkit-backdrop-filter: saturate(165%) blur(18px);
+  }
+
+  .dark .surface-glass {
+    background: color-mix(in oklab, var(--color-vultr-midnight) 72%, transparent);
+    border-color: color-mix(in oklab, var(--color-vultr-blue-60) 45%, transparent);
   }
 
   /* Vultr display typography */
@@ -725,22 +772,16 @@
   .input,
   .select,
   .textarea {
-    @apply w-full rounded-[calc(var(--radius-card)-0.25rem)] border border-border px-4 py-2 shadow-xs transition-colors;
-    background-color: var(--color-input);
-    color: var(--color-foreground);
-    font-size: var(--text-body-lg);
-    line-height: var(--leading-body-lg);
+    @apply w-full rounded-[calc(var(--radius-card)-0.25rem)] border border-cool-2/60 bg-white px-4 py-2 text-body-lg font-light text-vultr-navy shadow-xs transition-colors;
     letter-spacing: 0.01em;
-    font-weight: var(--font-weight-light);
-    @apply placeholder:text-vultr-blue-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vultr-light-blue focus-visible:border-vultr-light-blue;
+    @apply placeholder:text-cool-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vultr-light-blue focus-visible:border-vultr-light-blue;
     @apply disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   .dark .input,
   .dark .select,
   .dark .textarea {
-    @apply placeholder:text-vultr-light-blue/60 border-white/20;
-    color: #f3f4f7;
+    @apply border-white/20 bg-vultr-midnight/60 text-white placeholder:text-vultr-light-blue/60;
   }
 
   .input[aria-invalid="true"],

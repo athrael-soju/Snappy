@@ -45,8 +45,10 @@ export function Nav() {
     setMounted(true)
   }, [])
 
+  const surfaceClass = mounted && theme === "dark" ? "surface-dark" : "surface-light"
+
   return (
-    <header className="relative sticky top-0 z-50 shrink-0 border-b border-vultr-blue-20/30 dark:border-vultr-light-blue/20 backdrop-blur-sm transition-colors">
+    <header className={cn(surfaceClass, "relative sticky top-0 z-50 shrink-0 border-b border-vultr-blue-20/30 dark:border-vultr-light-blue/20 backdrop-blur-sm transition-colors")}>
       <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-vultr-blue via-vultr-light-blue to-vultr-blue-60" />
 
       <div className="layout-container flex items-center justify-between gap-6 py-3">
@@ -68,7 +70,7 @@ export function Nav() {
           </div>
         </Link>
 
-        <nav className="hidden flex-1 items-center justify-center gap-2 lg:flex">
+        <nav className="hidden flex-1 items-center justify-center gap-3 lg:flex">
           {links.map((link) => {
             const isActive =
               link.href === "/"
@@ -82,7 +84,7 @@ export function Nav() {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "relative rounded-full px-4 py-2 text-body-xs font-light text-vultr-navy/80 transition-colors duration-200 hover:text-vultr-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vultr-light-blue focus-visible:ring-offset-2 focus-visible:ring-offset-transparent dark:text-white/70",
+                  "relative rounded-full px-4 py-2 text-body-sm font-light text-vultr-navy/80 transition-colors duration-200 hover:text-vultr-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vultr-light-blue focus-visible:ring-offset-2 focus-visible:ring-offset-transparent dark:text-white/70",
                   isActive ? "text-vultr-blue font-semibold dark:text-vultr-light-blue" : ""
                 )}
               >

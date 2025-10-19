@@ -57,7 +57,7 @@ export default function Loading() {
             transition={{ duration: 1.5, repeat: Infinity, ease: "linear", repeatType: "loop" }}
             style={{
               background:
-                "conic-gradient(from 0deg, transparent 0%, #007bfc 20%, #52baff 50%, #2652ae 80%, transparent 100%)",
+                "conic-gradient(from 0deg, transparent 0%, var(--color-vultr-blue) 20%, var(--color-vultr-light-blue) 50%, var(--color-vultr-blue-60) 80%, transparent 100%)",
               WebkitMask:
                 "radial-gradient(farthest-side, transparent calc(100% - 6px), black calc(100% - 4px))",
               mask: "radial-gradient(farthest-side, transparent calc(100% - 6px), black calc(100% - 4px))",

@@ -40,10 +40,10 @@ export function Footer() {
   return (
     <footer className="relative shrink-0 border-t border-vultr-blue-60/50 surface-contrast">
       <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-vultr-blue via-vultr-light-blue to-vultr-blue-60" />
-      <div className="mx-auto max-w-7xl px-4 py-6 md:px-6">
+      <div className="mx-auto max-w-7xl px-4 py-2 md:px-4 md:py-6 lg:px-8">
         <div className="flex flex-col gap-4 border-white/15 py-4 text-body-xs text-white/75 md:flex-row md:items-center md:justify-between">
           <p className="text-body-xs text-white/70">© {currentYear} Vultr Holdings Corporation. All rights reserved.</p>
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="flex flex-wrap items-center gap-2">
             <p className="eyebrow text-white/70">Powered By</p>
             {techStack.map((tech) => (
               <InfoTooltip
@@ -106,6 +106,14 @@ export function Footer() {
               className="transition hover:text-white"
             >
               Accessibility
+            </Link>
+            <Link
+              href="https://www.vultr.com/company/security/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition hover:text-white"
+            >
+              Security
             </Link>
           </div>
         </div>
