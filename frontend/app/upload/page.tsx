@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AppButton } from "@/components/app-button";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import "@/lib/api/client";
 import { useSystemStatus } from "@/stores/app-store";
@@ -185,7 +184,7 @@ export default function UploadPage() {
 
   const heroBadges = (
     <>
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-sm font-medium text-white backdrop-blur">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-body-sm font-medium text-white backdrop-blur">
         {isReady ? (
           <CheckCircle2 className="size-icon-3xs text-white" />
         ) : (
@@ -193,7 +192,7 @@ export default function UploadPage() {
         )}
         {isReady ? "Ready" : "Not Ready"}
       </span>
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-sm font-medium text-white backdrop-blur">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-body-sm font-medium text-white backdrop-blur">
         <Database className="size-icon-3xs text-white" />
         <span className="font-semibold">Vectors</span>
         {systemStatus?.collection?.exists ? (
@@ -203,12 +202,12 @@ export default function UploadPage() {
         )}
         {vectorCount ? <span>{vectorCount}</span> : null}
         {vectorName ? (
-          <span className="text-[10px] uppercase tracking-widest text-white/70">
+          <span className="text-body-xs uppercase tracking-[0.18em] text-white/70">
             {vectorName}
           </span>
         ) : null}
       </span>
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-sm font-medium text-white backdrop-blur">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-body-sm font-medium text-white backdrop-blur">
         <HardDrive className="size-icon-3xs text-white" />
         <span className="font-semibold">Images</span>
         {systemStatus?.bucket?.exists ? (
@@ -218,7 +217,7 @@ export default function UploadPage() {
         )}
         {bucketCount ? <span>{bucketCount}</span> : null}
         {bucketName ? (
-          <span className="text-[10px] uppercase tracking-widest text-white/70">
+          <span className="text-body-xs uppercase tracking-[0.18em] text-white/70">
             {bucketName}
           </span>
         ) : null}
@@ -227,7 +226,7 @@ export default function UploadPage() {
   );
 
   const heroMeta = (
-    <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-white/80">
+    <div className="flex flex-wrap items-center gap-2 text-body-sm font-medium text-white/80">
       {heroBadges}
       <AppButton
         onClick={fetchStatus}
@@ -260,321 +259,321 @@ export default function UploadPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
       >
-          {/* Upload Form */}
-          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col space-y-4">
-            {/* Drag & Drop Zone */}
-            <motion.div
-              className={`group relative overflow-hidden rounded-2xl border-2 border-dashed transition-all ${isDragOver
-                ? "border-primary bg-primary/5 shadow-xl shadow-primary/25"
-                : "border-border/50 bg-card/30 backdrop-blur-sm hover:border-primary/50"
-                }`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.4 }}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
-            >
-              <div className={`absolute inset-0 bg-gradient-to-br from-chart-1 to-chart-2 opacity-0 transition-opacity ${isDragOver ? "opacity-10" : "group-hover:opacity-5"}`} />
+        {/* Upload Form */}
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col space-y-4">
+          {/* Drag & Drop Zone */}
+          <motion.div
+            className={`group relative overflow-hidden rounded-2xl border-2 border-dashed transition-all ${isDragOver
+              ? "border-primary bg-primary/5 shadow-xl shadow-primary/25"
+              : "border-border/50 bg-card/30 backdrop-blur-sm hover:border-primary/50"
+              }`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.4 }}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+          >
+            <div className={`absolute inset-0 bg-gradient-to-br from-chart-1 to-chart-2 opacity-0 transition-opacity ${isDragOver ? "opacity-10" : "group-hover:opacity-5"}`} />
 
-              <div className="relative flex min-h-[200px] flex-col items-center justify-center gap-4 p-6 sm:p-8">
-                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-chart-1 to-chart-2 shadow-lg">
-                  <Upload className="h-7 w-7 text-primary-foreground" />
-                </div>
-
-                <div className="text-center space-y-2">
-                  <h3 className="text-body sm:text-lg font-bold">
-                    {isDragOver ? "Drop files here" : "Drag & drop your files"}
-                  </h3>
-                  <p className="text-body-sm text-muted-foreground">
-                    or browse • PDFs, images, and documents
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <AppButton
-                    type="button"
-                    variant="outline"
-                    size="md"
-                    onClick={triggerFileDialog}
-                    disabled={uploading}
-                  >
-                    <FileText className="size-icon-xs" />
-                    Browse Files
-                  </AppButton>
-
-                  {hasFiles && (
-                    <>
-                      <AppButton
-                        type="submit"
-                        size="md"
-                        elevated
-                        disabled={!hasFiles || uploading || !isReady}
-                      >
-                        {uploading ? (
-                          <>
-                            <Loader2 className="size-icon-xs animate-spin" />
-                            <span className="hidden sm:inline">Uploading...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="size-icon-xs" />
-                            <span className="hidden sm:inline">Upload</span>
-                          </>
-                        )}
-                      </AppButton>
-
-                      {uploading && (
-                        <AppButton
-                          type="button"
-                          onClick={handleCancel}
-                          size="md"
-                          variant="ghost"
-                          disabled={isCancelling}
-                        >
-                          <X className="size-icon-xs" />
-                          <span className="hidden sm:inline">
-                            {isCancelling ? "Cancelling..." : "Cancel"}
-                          </span>
-                        </AppButton>
-                      )}
-                    </>
-                  )}
-                </div>
-
-                <input
-                  id="file-input"
-                  type="file"
-                  multiple
-                  ref={fileInputRef}
-                  onChange={(event) => {
-                    handleFileSelect(event.target.files);
-                    if (event.target) {
-                      event.target.value = "";
-                    }
-                  }}
-                  disabled={uploading}
-                  className="hidden"
-                />
+            <div className="relative flex min-h-[200px] flex-col items-center justify-center gap-4 p-6 sm:p-8">
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-chart-1 to-chart-2 shadow-lg">
+                <Upload className="h-7 w-7 text-primary-foreground" />
               </div>
-            </motion.div>
 
-            {/* Selected Files */}
-            <AnimatePresence mode="wait">
-              {hasFiles && (
-                <motion.div
-                  className="flex min-h-0 flex-1 flex-col rounded-xl border border-border/50 bg-card/50 p-3 backdrop-blur-sm"
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3 }}
+              <div className="text-center space-y-2">
+                <h3 className="text-body font-bold">
+                  {isDragOver ? "Drop files here" : "Drag & drop your files"}
+                </h3>
+                <p className="text-body-sm text-muted-foreground">
+                  or browse • PDFs, images, and documents
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <AppButton
+                  type="button"
+                  variant="outline"
+                  size="md"
+                  onClick={triggerFileDialog}
+                  disabled={uploading}
                 >
-                  <div className="mb-2 flex shrink-0 items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="size-icon-xs text-primary" />
-                      <h3 className="text-body-sm font-bold">
-                        Ready to Upload ({fileCount} {fileCount === 1 ? "file" : "files"})
-                      </h3>
-                    </div>
+                  <FileText className="size-icon-xs" />
+                  Browse Files
+                </AppButton>
+
+                {hasFiles && (
+                  <>
                     <AppButton
-                      type="button"
-                      onClick={() => {
-                        handleClear();
-                        if (fileInputRef.current) {
-                          fileInputRef.current.value = "";
-                        }
-                      }}
-                      size="xs"
-                      variant="ghost"
-                      disabled={uploading}
+                      type="submit"
+                      size="md"
+                      elevated
+                      disabled={!hasFiles || uploading || !isReady}
                     >
-                      <X className="size-icon-3xs" />
-                      Clear
-                    </AppButton>
-                  </div>
-
-                  <ScrollArea className="min-h-0 flex-1">
-                    {usingPersistedMeta && (
-                      <p className="mb-2 px-1 text-body-xs text-muted-foreground">
-                        Upload resuming after refresh. You can still monitor progress or cancel while the server finishes.
-                      </p>
-                    )}
-                    <div className="space-y-1.5 pr-4">
-                      {displayFiles.map((file, index) => {
-                        const isFileObject = file instanceof File;
-                        const keyBase = isFileObject ? `${file.lastModified}` : "meta";
-                        const fileKey = `${file.name}-${keyBase}-${index}`;
-                        const sizeKb = (file.size / 1024).toFixed(1);
-
-                        return (
-                          <motion.div
-                            key={fileKey}
-                            className="flex items-center justify-between rounded-lg border border-border/50 bg-background/50 px-3 py-2.5 transition-colors hover:bg-muted/50"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
-                            transition={{ delay: index * 0.05, duration: 0.2 }}
-                            whileHover={{ scale: 1.02, x: 4 }}
-                          >
-                            <div className="flex items-center gap-2 min-w-0">
-                              <FileText className="size-icon-xs shrink-0 text-primary" />
-                              <div className="min-w-0">
-                                <p className="truncate text-body-xs font-medium">{file.name}</p>
-                                <p className="text-body-xs text-muted-foreground">{sizeKb} KB</p>
-                              </div>
-                            </div>
-                          </motion.div>
-                        );
-                      })}
-                    </div>
-                  </ScrollArea>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Progress & Status Messages */}
-            <AnimatePresence mode="wait">
-              {shouldShowStatusPanel && (
-                <motion.div
-                  className="space-y-2 rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  {uploading && (typeof uploadProgress !== "number" || uploadProgress === 0) && !statusText && (
-                    <div className="flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-2 text-body-xs text-muted-foreground">
-                      <Loader2 className="size-icon-3xs animate-spin" />
-                      Preparing upload...
-                    </div>
-                  )}
-
-                  {uploading && typeof uploadProgress === "number" && uploadProgress > 0 && (
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between text-body-xs">
-                        <span className="font-medium">Upload Progress</span>
-                        <span className="font-semibold text-primary">{Math.round(uploadProgress)}%</span>
-                      </div>
-                      <div className="h-2 overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full bg-gradient-to-r from-chart-1 to-chart-2 transition-all duration-300"
-                          style={{ width: `${uploadProgress}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {showStatusText && (
-                    <div className="flex items-center gap-2 text-body-xs text-muted-foreground">
-                      {isStatusLoading ? (
-                        <Loader2 className="size-icon-3xs animate-spin" />
-                      ) : error ? (
-                        <AlertCircle className="size-icon-3xs text-destructive" />
+                      {uploading ? (
+                        <>
+                          <Loader2 className="size-icon-xs animate-spin" />
+                          <span className="hidden sm:inline">Uploading...</span>
+                        </>
                       ) : (
-                        <CheckCircle2 className="size-icon-3xs text-chart-2" />
+                        <>
+                          <Upload className="size-icon-xs" />
+                          <span className="hidden sm:inline">Upload</span>
+                        </>
                       )}
-                      {statusText}
-                    </div>
-                  )}
+                    </AppButton>
 
-                  {jobId && (
-                    <div className="rounded-lg bg-muted/50 px-2 py-1.5">
-                      <p className="text-body-xs text-muted-foreground">
-                        Job ID: <span className="font-mono">{jobId}</span>
-                      </p>
-                    </div>
-                  )}
-
-                  <AnimatePresence initial={false} mode="sync">
-                    {message && (
-                      <motion.div
-                        key="upload-success"
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -6 }}
-                        transition={{ duration: 0.25, ease: "easeInOut" }}
-                        className="flex items-center gap-2 rounded-lg bg-chart-2/10 px-3 py-2 text-body-xs font-medium text-chart-2 dark:text-chart-2"
+                    {uploading && (
+                      <AppButton
+                        type="button"
+                        onClick={handleCancel}
+                        size="md"
+                        variant="ghost"
+                        disabled={isCancelling}
                       >
-                        <CheckCircle2 className="size-icon-xs" />
-                        {message}
-                      </motion.div>
+                        <X className="size-icon-xs" />
+                        <span className="hidden sm:inline">
+                          {isCancelling ? "Cancelling..." : "Cancel"}
+                        </span>
+                      </AppButton>
                     )}
-                  </AnimatePresence>
+                  </>
+                )}
+              </div>
 
-                  <AnimatePresence initial={false} mode="sync">
-                    {error && (
-                      <motion.div
-                        key="upload-error"
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -6 }}
-                        transition={{ duration: 0.25, ease: "easeInOut" }}
-                        className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-body-xs font-medium text-destructive dark:text-destructive"
-                      >
-                        <AlertCircle className="size-icon-xs" />
-                        {error}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              )}
-            </AnimatePresence>
+              <input
+                id="file-input"
+                type="file"
+                multiple
+                ref={fileInputRef}
+                onChange={(event) => {
+                  handleFileSelect(event.target.files);
+                  if (event.target) {
+                    event.target.value = "";
+                  }
+                }}
+                disabled={uploading}
+                className="hidden"
+              />
+            </div>
+          </motion.div>
 
-            {/* Helpful Guidance */}
-            <AnimatePresence mode="wait">
-              {shouldShowHelpfulCards && (
-                <motion.section
-                  className="space-y-3 rounded-2xl border border-border/50 bg-card/40 p-4 backdrop-blur-sm"
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.3 }}
-                >
+          {/* Selected Files */}
+          <AnimatePresence mode="wait">
+            {hasFiles && (
+              <motion.div
+                className="flex min-h-0 flex-1 flex-col rounded-xl border border-border/50 bg-card/50 p-3 backdrop-blur-sm"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="mb-2 flex shrink-0 items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <Sparkles className="size-icon-xs text-primary" />
-                    <h3 className="text-body font-bold">Keep Momentum Going</h3>
+                    <h3 className="text-body-sm font-bold">
+                      Ready to Upload ({fileCount} {fileCount === 1 ? "file" : "files"})
+                    </h3>
                   </div>
+                  <AppButton
+                    type="button"
+                    onClick={() => {
+                      handleClear();
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = "";
+                      }
+                    }}
+                    size="xs"
+                    variant="ghost"
+                    disabled={uploading}
+                  >
+                    <X className="size-icon-3xs" />
+                    Clear
+                  </AppButton>
+                </div>
 
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    {UPLOAD_HELPER_CARDS.map((card, index) => (
-                      <motion.article
-                        key={card.id}
-                        className="group relative overflow-hidden rounded-xl border border-border/50 bg-background/60 p-4 transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10"
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05, duration: 0.25 }}
-                        whileHover={{ y: -4, scale: 1.01 }}
-                        whileTap={{ scale: 0.99 }}
-                      >
-                        <div className={`absolute inset-0 bg-gradient-to-br ${card.gradient} opacity-0 transition-opacity group-hover:opacity-10`} />
-                        <div className="relative space-y-3">
-                          <div className="flex items-center gap-2">
-                            <div className="flex size-10 items-center justify-center rounded-lg bg-muted/70">
-                              <card.icon className="size-icon-xs text-primary" />
+                <ScrollArea className="h-[50vh] w-full max-w-6xl mx-auto">
+                  {usingPersistedMeta && (
+                    <p className="mb-2 px-1 text-body-xs text-muted-foreground">
+                      Upload resuming after refresh. You can still monitor progress or cancel while the server finishes.
+                    </p>
+                  )}
+                  <div className="space-y-1.5 pr-4">
+                    {displayFiles.map((file, index) => {
+                      const isFileObject = file instanceof File;
+                      const keyBase = isFileObject ? `${file.lastModified}` : "meta";
+                      const fileKey = `${file.name}-${keyBase}-${index}`;
+                      const sizeKb = (file.size / 1024).toFixed(1);
+
+                      return (
+                        <motion.div
+                          key={fileKey}
+                          className="flex items-center justify-between rounded-lg border border-border/50 bg-background/50 px-3 py-2.5 transition-colors hover:bg-muted/50"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 20 }}
+                          transition={{ delay: index * 0.05, duration: 0.2 }}
+                          whileHover={{ scale: 1.02, x: 4 }}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileText className="size-icon-xs shrink-0 text-primary" />
+                            <div className="min-w-0">
+                              <p className="truncate text-body-xs font-medium">{file.name}</p>
+                              <p className="text-body-xs text-muted-foreground">{sizeKb} KB</p>
                             </div>
-                            <h4 className="text-body-sm font-semibold">{card.title}</h4>
                           </div>
-                          <p className="text-body-xs text-muted-foreground">{card.description}</p>
-                          {card.href && card.actionLabel && (
-                            <Link
-                              href={card.href}
-                              className="inline-flex items-center gap-1 text-body-xs font-semibold text-primary transition-colors hover:text-primary/80"
-                            >
-                              {card.actionLabel}
-                              <ArrowRight className="size-icon-3xs" />
-                            </Link>
-                          )}
-                        </div>
-                      </motion.article>
-                    ))}
+                        </motion.div>
+                      );
+                    })}
                   </div>
-                </motion.section>
-              )}
-            </AnimatePresence>
+                </ScrollArea>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          </form>
+          {/* Progress & Status Messages */}
+          <AnimatePresence mode="wait">
+            {shouldShowStatusPanel && (
+              <motion.div
+                className="space-y-2 rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                {uploading && (typeof uploadProgress !== "number" || uploadProgress === 0) && !statusText && (
+                  <div className="flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-2 text-body-xs text-muted-foreground">
+                    <Loader2 className="size-icon-3xs animate-spin" />
+                    Preparing upload...
+                  </div>
+                )}
+
+                {uploading && typeof uploadProgress === "number" && uploadProgress > 0 && (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-body-xs">
+                      <span className="font-medium">Upload Progress</span>
+                      <span className="font-semibold text-primary">{Math.round(uploadProgress)}%</span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full bg-gradient-to-r from-chart-1 to-chart-2 transition-all duration-300"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {showStatusText && (
+                  <div className="flex items-center gap-2 text-body-xs text-muted-foreground">
+                    {isStatusLoading ? (
+                      <Loader2 className="size-icon-3xs animate-spin" />
+                    ) : error ? (
+                      <AlertCircle className="size-icon-3xs text-destructive" />
+                    ) : (
+                      <CheckCircle2 className="size-icon-3xs text-chart-2" />
+                    )}
+                    {statusText}
+                  </div>
+                )}
+
+                {jobId && (
+                  <div className="rounded-lg bg-muted/50 px-2 py-1.5">
+                    <p className="text-body-xs text-muted-foreground">
+                      Job ID: <span className="font-mono">{jobId}</span>
+                    </p>
+                  </div>
+                )}
+
+                <AnimatePresence initial={false} mode="sync">
+                  {message && (
+                    <motion.div
+                      key="upload-success"
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.25, ease: "easeInOut" }}
+                      className="flex items-center gap-2 rounded-lg bg-chart-2/10 px-3 py-2 text-body-xs font-medium text-chart-2 dark:text-chart-2"
+                    >
+                      <CheckCircle2 className="size-icon-xs" />
+                      {message}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <AnimatePresence initial={false} mode="sync">
+                  {error && (
+                    <motion.div
+                      key="upload-error"
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.25, ease: "easeInOut" }}
+                      className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-body-xs font-medium text-destructive dark:text-destructive"
+                    >
+                      <AlertCircle className="size-icon-xs" />
+                      {error}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Helpful Guidance */}
+          <AnimatePresence mode="wait">
+            {shouldShowHelpfulCards && (
+              <motion.section
+                className="space-y-3 rounded-2xl border border-border/50 bg-card/40 p-4 backdrop-blur-sm"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="flex items-center gap-2">
+                  <Sparkles className="size-icon-xs text-primary" />
+                  <h3 className="text-body font-bold">Keep Momentum Going</h3>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {UPLOAD_HELPER_CARDS.map((card, index) => (
+                    <motion.article
+                      key={card.id}
+                      className="group relative overflow-hidden rounded-xl border border-border/50 bg-background/60 p-4 transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10"
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05, duration: 0.25 }}
+                      whileHover={{ y: -4, scale: 1.01 }}
+                      whileTap={{ scale: 0.99 }}
+                    >
+                      <div className={`absolute inset-0 bg-gradient-to-br ${card.gradient} opacity-0 transition-opacity group-hover:opacity-10`} />
+                      <div className="relative space-y-3">
+                        <div className="flex items-center gap-2">
+                          <div className="flex size-10 items-center justify-center rounded-lg bg-muted/70">
+                            <card.icon className="size-icon-xs text-primary" />
+                          </div>
+                          <h4 className="text-body-sm font-semibold">{card.title}</h4>
+                        </div>
+                        <p className="text-body-xs text-muted-foreground">{card.description}</p>
+                        {card.href && card.actionLabel && (
+                          <Link
+                            href={card.href}
+                            className="inline-flex items-center gap-1 text-body-xs font-semibold text-primary transition-colors hover:text-primary/80"
+                          >
+                            {card.actionLabel}
+                            <ArrowRight className="size-icon-3xs" />
+                          </Link>
+                        )}
+                      </div>
+                    </motion.article>
+                  ))}
+                </div>
+              </motion.section>
+            )}
+          </AnimatePresence>
+
+        </form>
       </motion.div>
     </RoutePageShell>
   );

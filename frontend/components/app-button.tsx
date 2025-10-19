@@ -72,11 +72,11 @@ const variantClasses: Record<AppButtonVariant, string> = {
 }
 
 const sizeClasses: Record<AppButtonSize, string> = {
-  xs: "h-8 px-3 text-xs [&>svg]:h-3.5 [&>svg]:w-3.5",
-  sm: "h-10 px-4 text-sm [&>svg]:h-4 [&>svg]:w-4",
+  xs: "h-8 px-3 text-body-xs [&>svg]:h-3.5 [&>svg]:w-3.5",
+  sm: "h-10 px-4 text-body-sm [&>svg]:h-4 [&>svg]:w-4",
   md: "h-12 px-5 [&>svg]:h-5 [&>svg]:w-5",
   lg: "h-14 px-6 [&>svg]:h-5 [&>svg]:w-5",
-  xl: "h-16 px-7 text-lg [&>svg]:h-6 [&>svg]:w-6",
+  xl: "h-16 px-7 text-body-lg [&>svg]:h-6 [&>svg]:w-6",
   "icon-sm": "size-8 [&>svg]:h-3.5 [&>svg]:w-3.5",
   icon: "size-10 [&>svg]:h-4 [&>svg]:w-4",
   "icon-lg": "size-12 [&>svg]:h-5 [&>svg]:w-5",

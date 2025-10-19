@@ -153,7 +153,7 @@ export default function SearchPage() {
   );
 
   const heroMeta = !isReady ? (
-    <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-sm font-medium text-white">
+    <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-body-sm font-medium text-white">
       <AlertCircle className="size-icon-3xs" />
       System not ready
     </span>
@@ -209,14 +209,14 @@ export default function SearchPage() {
 
               <div className="relative flex items-center gap-3 p-3 sm:p-4">
                 <Search className="size-icon-md shrink-0 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                  <input
-                    type="text"
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Ask about content, visuals, or document details..."
-                    className="input flex-1 border-none bg-transparent px-0 text-body shadow-none focus-visible:border-transparent focus-visible:ring-0 placeholder:text-white/70"
-                    disabled={!isReady}
-                  />
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Ask about content, visuals, or document details..."
+                  className="input flex-1 border-none bg-transparent px-0 text-body shadow-none focus-visible:border-transparent focus-visible:ring-0 placeholder:text-white/70"
+                  disabled={!isReady}
+                />
 
                 {/* Inline Search Button */}
                 <div className="flex shrink-0 items-center gap-2">
@@ -450,7 +450,7 @@ export default function SearchPage() {
                           </AppButton>
                         </div>
 
-                        <ScrollArea className="min-h-0 flex-1">
+                        <ScrollArea className="h-[50vh] w-full max-w-6xl mx-auto">
                           <div className="space-y-2 pr-4">
                             {truncatedResults.map((item, index) => {
                               const filename = item.payload?.filename;

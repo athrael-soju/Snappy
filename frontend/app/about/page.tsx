@@ -124,15 +124,15 @@ export default function AboutPage() {
 
   const heroMeta = (
     <>
-      <span className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-sm font-medium text-white backdrop-blur">
+      <span className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-body-sm font-medium text-white backdrop-blur">
         <Sparkles className="size-icon-3xs" />
         Vision-first retrieval
       </span>
-      <span className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-sm font-medium text-white backdrop-blur">
+      <span className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-body-sm font-medium text-white backdrop-blur">
         <Server className="size-icon-3xs" />
         FastAPI · Qdrant · MinIO stack
       </span>
-      <span className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-sm font-medium text-white backdrop-blur">
+      <span className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-body-sm font-medium text-white backdrop-blur">
         <Workflow className="size-icon-3xs" />
         End-to-end operations
       </span>
@@ -171,7 +171,7 @@ export default function AboutPage() {
                 <item.icon className="size-icon-sm" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-body sm:text-lg font-semibold text-foreground">{item.title}</h3>
+                <h3 className="text-body font-semibold text-foreground">{item.title}</h3>
                 <p className="text-body-xs text-muted-foreground leading-relaxed">{item.description}</p>
               </div>
             </motion.div>
@@ -187,7 +187,7 @@ export default function AboutPage() {
           <Card className="border border-border/20 bg-white shadow-sm dark:border-white/15 dark:bg-vultr-midnight/60">
             <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div className="space-y-2">
-                <CardTitle className="text-2xl font-semibold">Vultr Vision stack</CardTitle>
+                <CardTitle className="text-digital-h4 font-semibold text-balance">Vultr Vision stack</CardTitle>
                 <CardDescription className="max-w-3xl text-body-sm leading-relaxed">
                   Each service is optimised for fast setup on Vultr infrastructure. Customise connectors, GPU regions,
                   and storage policies without rebuilding the UI.
@@ -220,21 +220,21 @@ export default function AboutPage() {
 
           <Card className="border border-border/20 bg-white shadow-sm dark:border-white/15 dark:bg-vultr-midnight/60">
             <CardHeader>
-              <CardTitle className="text-xl font-semibold">Built for developers</CardTitle>
+              <CardTitle className="text-digital-h5 font-semibold text-balance">Built for developers</CardTitle>
               <CardDescription className="text-body-sm leading-relaxed">
                 OpenAPI powered SDKs, typed stores, and shadcn UI primitives keep the codebase approachable.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 text-body-sm text-muted-foreground">
-              <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-background/70 p-3 dark:border-white/15 dark:bg-vultr-midnight/50">
+              <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-background/70 p-3 dark:border-white/15 dark:bg-vultr-midnight/50 text-body-xs ">
                 <Braces className="size-icon-xs text-primary" />
                 <span>Generated TypeScript clients stay in sync with FastAPI routes.</span>
               </div>
-              <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-background/70 p-3 dark:border-white/15 dark:bg-vultr-midnight/50">
+              <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-background/70 p-3 dark:border-white/15 dark:bg-vultr-midnight/50 text-body-xs ">
                 <Workflow className="size-icon-xs text-primary" />
                 <span>Shared event bus keeps upload, search, and chat in lockstep.</span>
               </div>
-              <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-background/70 p-3 dark:border-white/15 dark:bg-vultr-midnight/50">
+              <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-background/70 p-3 dark:border-white/15 dark:bg-vultr-midnight/50 text-body-xs ">
                 <Rocket className="size-icon-xs text-primary" />
                 <span>Docker-first setup mirrors local testing and Vultr production.</span>
               </div>
@@ -249,7 +249,7 @@ export default function AboutPage() {
           transition={{ delay: 0.3, duration: 0.35 }}
         >
           <div className="mx-auto max-w-4xl space-y-6 text-center">
-            <h2 className="text-2xl font-semibold sm:text-3xl">From PDF to grounded answer</h2>
+            <h2 className="text-editorial-h3 font-semibold">From PDF to grounded answer</h2>
             <p className="text-body-sm text-muted-foreground sm:text-body">
               The end-to-end workflow keeps context intact, from ingestion through search and response streaming.
             </p>
@@ -267,7 +267,7 @@ export default function AboutPage() {
                   {index + 1}
                 </span>
                 <h3 className="text-body-sm sm:text-body font-semibold">{item.label}</h3>
-                <p className="text-body-xs sm:text-body-sm text-muted-foreground leading-relaxed">{item.detail}</p>
+                <p className="text-body-xs text-muted-foreground leading-relaxed">{item.detail}</p>
               </motion.li>
             ))}
           </ol>
@@ -279,7 +279,7 @@ export default function AboutPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.35 }}
         >
-          <h2 className="text-2xl font-semibold sm:text-3xl">Ready to tailor it to your domain?</h2>
+          <h2 className="text-editorial-h3 font-semibold">Ready to tailor it to your domain?</h2>
           <p className="mt-3 text-body-sm text-muted-foreground sm:text-body">
             Bring your PDFs, plug in your ColPali deployment, and start experimenting. Feature flags cover MUVERA
             recall boosts, binary quantisation, and runtime configuration so you can harden as you grow.

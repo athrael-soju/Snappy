@@ -250,7 +250,7 @@ export default function MarkdownRenderer({
 
       if (line.startsWith('# ')) {
         elements.push(
-          <h1 key={`h1-${idx}`} className="mt-6 mb-3 text-2xl font-bold">
+          <h1 key={`h1-${idx}`} className="mt-6 mb-3 text-editorial-h3 font-semibold text-balance">
             {renderInlineFormatting(line.slice(2))}
           </h1>,
         );
@@ -258,7 +258,7 @@ export default function MarkdownRenderer({
       }
       if (line.startsWith('## ')) {
         elements.push(
-          <h2 key={`h2-${idx}`} className="mt-5 mb-2 text-xl font-bold">
+          <h2 key={`h2-${idx}`} className="mt-5 mb-2 text-editorial-h4 font-semibold text-balance">
             {renderInlineFormatting(line.slice(3))}
           </h2>,
         );
@@ -266,7 +266,7 @@ export default function MarkdownRenderer({
       }
       if (line.startsWith('### ')) {
         elements.push(
-          <h3 key={`h3-${idx}`} className="mt-4 mb-2 text-lg font-semibold">
+          <h3 key={`h3-${idx}`} className="mt-4 mb-2 text-editorial-h5 font-semibold text-balance">
             {renderInlineFormatting(line.slice(4))}
           </h3>,
         );
@@ -295,7 +295,7 @@ export default function MarkdownRenderer({
       }
 
       elements.push(
-        <p key={`p-${idx}`} className="my-2 leading-7">
+        <p key={`p-${idx}`} className="my-2 text-body-sm leading-relaxed">
           {renderInlineFormatting(line)}
         </p>,
       );

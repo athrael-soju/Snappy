@@ -79,7 +79,7 @@ export function PageHeader({
       {lead ? (
         <div
           className={cn(
-            "text-body-xs font-semibold uppercase tracking-wide text-muted-foreground",
+            "eyebrow text-muted-foreground",
             align === "center" ? "mx-auto" : undefined,
             leadClassName
           )}
@@ -96,7 +96,7 @@ export function PageHeader({
       >
         <h1
           className={cn(
-            "text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl",
+            "text-digital-h3 text-balance font-semibold",
             titleClassName
           )}
         >
@@ -105,7 +105,7 @@ export function PageHeader({
         {description ? (
           <div
             className={cn(
-              "text-body-xs leading-relaxed text-muted-foreground",
+              "text-body-sm text-muted-foreground",
               descriptionWidth,
               descriptionClassName
             )}

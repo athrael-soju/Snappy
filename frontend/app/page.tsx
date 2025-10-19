@@ -108,12 +108,12 @@ export default function Home() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(82,186,255,0.25),transparent_55%),radial-gradient(circle_at_85%_15%,rgba(0,123,252,0.35),transparent_60%)]" />
         <div className="relative mx-auto flex max-w-4xl flex-col items-center px-6 text-center sm:px-10">
           <motion.span
-            className="text-sm font-medium uppercase tracking-[0.28em] text-white/70"
+            className="eyebrow text-white/70"
             variants={itemVariants}
           >
             The Everywhere Cloud
           </motion.span>
-          <motion.h1 className="mt-5 max-w-3xl" variants={itemVariants}>
+          <motion.h1 className="mt-5 max-w-3xl text-digital-h1 text-balance font-bold" variants={itemVariants}>
             Global ColPali Vision at Vultr Speed
           </motion.h1>
           <motion.p className="mt-6 max-w-2xl text-body-lg text-white/85" variants={itemVariants}>
@@ -121,7 +121,7 @@ export default function Home() {
             upload, semantic search, and vision chat experiences with the same polish seen on Vultr.com.
           </motion.p>
 
-          <motion.p className="mt-4 text-xs text-white/65" variants={itemVariants}>
+          <motion.p className="mt-4 text-body-xs text-white/65" variants={itemVariants}>
             By signing up you agree to the{" "}
             <Link href="https://www.vultr.com/legal/privacy/" target="_blank" rel="noreferrer noopener" className="underline underline-offset-4 hover:text-white">
               GDPR Privacy Notice
@@ -146,7 +146,9 @@ export default function Home() {
       >
         <div className="layout-container max-w-7xl">
           <motion.div className="flex flex-col items-center text-center" variants={itemVariants}>
-            <h2 className="text-vultr-navy dark:text-white">Build on brand-perfect Vultr experiences</h2>
+            <h2 className="text-editorial-h3 font-semibold text-vultr-navy dark:text-white">
+              Build on brand-perfect Vultr experiences
+            </h2>
             <p className="mt-4 max-w-2xl text-body text-vultr-navy/70 dark:text-white/70">
               Every route in this template reflects an offering available in the ColPali + Vultr ecosystem.
               Explore product, operations, and company surfaces with consistent Vultr styling.
@@ -169,10 +171,10 @@ export default function Home() {
                     <span className="inline-flex size-12 items-center justify-center rounded-[var(--radius-button)] bg-vultr-sky-blue/25 text-vultr-blue dark:bg-vultr-blue-20/30 dark:text-white">
                       <card.icon className="size-icon-sm" />
                     </span>
-                    <h3 className="text-lg font-semibold text-vultr-navy dark:text-white">{card.title}</h3>
-                    <p className="text-sm text-vultr-navy/70 dark:text-white/75" dangerouslySetInnerHTML={{ __html: card.description }} />
+                    <h3 className="text-digital-h5 font-semibold text-vultr-navy dark:text-white">{card.title}</h3>
+                    <p className="text-body-sm text-vultr-navy/70 dark:text-white/75" dangerouslySetInnerHTML={{ __html: card.description }} />
                   </div>
-                  <span className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-vultr-blue transition group-hover:text-vultr-blue-60 dark:text-vultr-light-blue dark:group-hover:text-white">
+                  <span className="mt-6 inline-flex items-center gap-2 text-body-sm font-medium text-vultr-blue transition group-hover:text-vultr-blue-60 dark:text-vultr-light-blue dark:group-hover:text-white">
                     Explore
                     <ArrowRight className="size-icon-sm transition-transform duration-200 group-hover:translate-x-1.5" />
                   </span>
@@ -193,7 +195,9 @@ export default function Home() {
         <div className="layout-container max-w-7xl">
           <motion.div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between" variants={itemVariants}>
             <div className="space-y-3">
-              <h2 className="text-vultr-navy dark:text-white">Operate across regions with confidence</h2>
+            <h2 className="text-editorial-h3 font-semibold text-vultr-navy dark:text-white">
+              Operate across regions with confidence
+            </h2>
               <p className="max-w-3xl text-body text-vultr-navy/75 dark:text-white/75">
                 Engines, GPUs, and compliance tooling are available no matter where the workload runs. Track
                 infrastructure health and keep policies aligned with Vultr&rsquo;s SLAs.
@@ -204,7 +208,7 @@ export default function Home() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="inline-flex items-center gap-2 rounded-[var(--radius-button)] border border-vultr-blue/30 px-4 py-2 text-sm font-medium text-vultr-blue transition hover:bg-vultr-blue/10 dark:border-vultr-light-blue/40 dark:text-vultr-light-blue dark:hover:bg-vultr-blue-20/30"
+                  className="inline-flex items-center gap-2 rounded-[var(--radius-button)] border border-vultr-blue/30 px-4 py-2 text-body-sm font-medium text-vultr-blue transition hover:bg-vultr-blue/10 dark:border-vultr-light-blue/40 dark:text-vultr-light-blue dark:hover:bg-vultr-blue-20/30"
                 >
                   <link.icon className="size-icon-2xs" />
                   {link.title}
@@ -225,13 +229,13 @@ export default function Home() {
                     <stat.icon className="size-icon-sm" />
                   </span>
                   <div>
-                    <p className="text-3xl font-semibold text-vultr-navy dark:text-white">
+                    <p className="text-display-3 font-semibold text-vultr-navy dark:text-white">
                       {stat.value}
-                      <span className="ml-1 text-sm uppercase tracking-[0.16em] text-vultr-blue-60 dark:text-vultr-light-blue/80">
+                      <span className="ml-1 eyebrow text-vultr-blue-60 dark:text-vultr-light-blue/80">
                         {stat.unit}
                       </span>
                     </p>
-                    <p className="mt-2 text-sm text-vultr-navy/70 dark:text-white/70">{stat.description}</p>
+                    <p className="mt-2 text-body-sm text-vultr-navy/70 dark:text-white/70">{stat.description}</p>
                   </div>
                 </div>
               </motion.div>
@@ -249,8 +253,8 @@ export default function Home() {
       >
         <div className="layout-container max-w-6xl">
           <motion.div className="space-y-6 rounded-[var(--radius-card)] border border-black/5 bg-white p-10 shadow-[0_24px_56px_-30px_rgba(9,25,74,0.45)] dark:border-white/10 dark:bg-vultr-midnight/80" variants={itemVariants}>
-            <h3 className="text-lg font-semibold text-vultr-navy dark:text-white">Why teams choose Vultr Vision</h3>
-            <ul className="space-y-4 text-sm text-vultr-navy/75 dark:text-white/75">
+            <h3 className="text-digital-h5 font-semibold text-vultr-navy dark:text-white">Why teams choose Vultr Vision</h3>
+            <ul className="space-y-4 text-body-sm text-vultr-navy/75 dark:text-white/75">
               <li className="flex items-start gap-3">
                 <Sparkles className="mt-0.5 size-icon-sm text-vultr-blue" />
                 Brings Vultr.com&rsquo;s brand language, states, and interactions directly into your ColPali workflows.
@@ -264,7 +268,7 @@ export default function Home() {
                 Provides compliance controls, policy management, and observability out of the box.
               </li>
             </ul>
-            <div className="rounded-[var(--radius-button)] border border-dashed border-vultr-blue/30 bg-vultr-sky-blue/15 px-5 py-4 text-sm text-vultr-blue-60 dark:border-vultr-light-blue/40 dark:bg-vultr-blue-20/30 dark:text-vultr-light-blue/90">
+            <div className="rounded-[var(--radius-button)] border border-dashed border-vultr-blue/30 bg-vultr-sky-blue/15 px-5 py-4 text-body-sm text-vultr-blue-60 dark:border-vultr-light-blue/40 dark:bg-vultr-blue-20/30 dark:text-vultr-light-blue/90">
               Configure multiple ColPali deployments, enforce policy, and monitor pipelines from a single Vultr console.
             </div>
           </motion.div>

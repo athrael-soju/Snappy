@@ -105,12 +105,12 @@ export function Footer() {
                 className="h-9 w-auto dark:invert"
               />
             </Link>
-            <p className="max-w-sm text-sm text-vultr-navy/70 dark:text-white/70">
+            <p className="max-w-sm text-body-sm text-vultr-navy/70 dark:text-white/70">
               Deploy Vultr&rsquo;s ColPali-powered document intelligence with brand-correct surfaces, global
               infrastructure, and enterprise-grade controls.
             </p>
             <div className="space-y-3">
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-vultr-navy/60 dark:text-white/60">
+              <p className="eyebrow text-vultr-navy/60 dark:text-white/60">
                 Powered By
               </p>
               <div className="flex flex-wrap gap-3">
@@ -122,7 +122,7 @@ export function Footer() {
                         href={tech.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 rounded-[var(--radius-button)] border border-black/10 bg-white px-3 py-1.5 text-xs text-vultr-navy/70 transition hover:border-vultr-blue/30 hover:text-vultr-blue dark:border-white/15 dark:bg-vultr-midnight/70 dark:text-white/70 dark:hover:border-vultr-light-blue/30 dark:hover:text-white"
+                        className="flex items-center gap-2 rounded-[var(--radius-button)] border border-black/10 bg-white px-3 py-1.5 text-body-xs text-vultr-navy/70 transition hover:border-vultr-blue/30 hover:text-vultr-blue dark:border-white/15 dark:bg-vultr-midnight/70 dark:text-white/70 dark:hover:border-vultr-light-blue/30 dark:hover:text-white"
                         aria-label={tech.name}
                       >
                         <Image
@@ -156,10 +156,10 @@ export function Footer() {
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
             {footerColumns.map((column) => (
               <div key={column.title} className="space-y-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-vultr-navy/60 dark:text-white/60">
+                <p className="eyebrow text-vultr-navy/60 dark:text-white/60">
                   {column.title}
                 </p>
-                <ul className="space-y-3 text-sm">
+                <ul className="space-y-3 text-body-sm">
                   {column.links.map((link) => (
                     <li key={`${column.title}-${link.label}`}>
                       <Link
@@ -180,7 +180,7 @@ export function Footer() {
       </div>
 
       <div className="border-t border-black/5 bg-white/80 py-4 dark:border-white/10 dark:bg-vultr-midnight/85">
-        <div className="layout-container max-w-7xl flex flex-col gap-3 text-xs text-vultr-navy/60 dark:text-white/60 md:flex-row md:items-center md:justify-between">
+        <div className="layout-container max-w-7xl flex flex-col gap-3 text-body-xs text-vultr-navy/60 dark:text-white/60 md:flex-row md:items-center md:justify-between">
           <p>&copy; {currentYear} Vultr Holdings Corporation. All rights reserved.</p>
           <div className="flex flex-wrap gap-x-4 gap-y-2">
             <Link

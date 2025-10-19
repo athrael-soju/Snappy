@@ -141,16 +141,16 @@ export function Nav() {
                               pathname === item.href ? "border-white/40 bg-white/10" : ""
                             )}
                           >
-                            <span className="flex items-center gap-2 text-sm font-medium text-white group-hover:text-white">
+                            <span className="flex items-center gap-2 text-body-sm font-medium text-white group-hover:text-white">
                               {item.label}
                               {item.showUploadProgress && uploadPercent !== null && (
-                                <span className="rounded-sm bg-white/20 px-1.5 py-0.5 text-[11px] font-medium text-white shadow-sm">
+                                <span className="rounded-sm bg-white/20 px-1.5 py-0.5 text-body-xs font-medium text-white shadow-sm">
                                   {uploadPercent}%
                                 </span>
                               )}
                             </span>
                             {item.description && (
-                              <span className="text-xs text-white/70">{item.description}</span>
+                              <span className="text-body-xs text-white/70">{item.description}</span>
                             )}
                           </Link>
                         </NavigationMenuLink>
@@ -216,7 +216,7 @@ export function Nav() {
               >
                 {menuSections.map((section) => (
                   <div key={section.label} className="mb-2 last:mb-0">
-                    <p className="px-3 pb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-white/50">
+                    <p className="px-3 pb-2 eyebrow text-white/50">
                       {section.label}
                     </p>
                     {section.items.map((item) => (
@@ -226,20 +226,20 @@ export function Nav() {
                           target={item.external ? "_blank" : undefined}
                           rel={item.external ? "noreferrer noopener" : undefined}
                           className={cn(
-                            "flex w-full flex-col gap-1 rounded-[var(--radius-button)] px-3 py-2 text-left text-sm text-white/80 transition hover:bg-white/10",
+                            "flex w-full flex-col gap-1 rounded-[var(--radius-button)] px-3 py-2 text-left text-body-sm text-white/80 transition hover:bg-white/10",
                             pathname === item.href ? "bg-white/10 text-white" : ""
                           )}
                         >
                           <span className="flex items-center gap-2 font-medium">
                             {item.label}
                             {item.showUploadProgress && uploadPercent !== null && (
-                              <span className="rounded-sm bg-white/20 px-1.5 py-0.5 text-[11px] font-medium text-white shadow-sm">
+                              <span className="rounded-sm bg-white/20 px-1.5 py-0.5 text-body-xs font-medium text-white shadow-sm">
                                 {uploadPercent}%
                               </span>
                             )}
                           </span>
                           {item.description && (
-                            <span className="text-xs text-white/60">{item.description}</span>
+                            <span className="text-body-xs text-white/60">{item.description}</span>
                           )}
                         </Link>
                       </DropdownMenuItem>
@@ -255,7 +255,7 @@ export function Nav() {
                           href={link.href}
                           target={link.external ? "_blank" : undefined}
                           rel={link.external ? "noreferrer noopener" : undefined}
-                          className="flex w-full items-center justify-between gap-2 rounded-[var(--radius-button)] px-3 py-2 text-sm font-medium text-white/80 transition hover:bg-white/10"
+                          className="flex w-full items-center justify-between gap-2 rounded-[var(--radius-button)] px-3 py-2 text-body-sm font-medium text-white/80 transition hover:bg-white/10"
                         >
                           {link.label}
                         </Link>

@@ -266,7 +266,7 @@ function ChatComposer({
   return (
     <motion.form
       onSubmit={sendMessage}
-      className="sticky bottom-0 left-0 right-0 z-10 px-4 pb-10 sm:px-6"
+      className="relative z-10 px-4 pb-6 sm:px-6"
       initial={{ opacity: 0, y: 50 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
@@ -421,10 +421,17 @@ export default function ChatPage() {
   const [lightboxAlt, setLightboxAlt] = useState<string | null>(null);
 
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
+  const scrollAreaRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length, loading]);
+    // Only auto-scroll when a new message is added, not during loading
+    if (messages.length > 0 && !loading) {
+      const timer = setTimeout(() => {
+        endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [messages.length]);
 
   const recentQuestions = useMemo(
     () =>
@@ -515,17 +522,17 @@ export default function ChatPage() {
         description="Explore uploads with Vultr's grounded answers, inline visual citations, and ColPali-powered context."
         actions={heroActions}
         meta={heroMeta}
-        innerClassName="flex min-h-0 flex-1 flex-col gap-6"
+        innerClassName="flex min-h-0 flex-1 flex-col"
       >
         <motion.section
-          className="relative flex min-h-[520px] flex-1 flex-col overflow-hidden"
+          className="relative flex flex-1 flex-col overflow-hidden"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
         >
           <div className="relative flex flex-1 overflow-hidden">
-            <ScrollArea className="h-full w-full">
-              <div className="space-y-6 px-6 pb-32 pr-4 sm:px-10">
+            <ScrollArea className="h-[50vh] w-full max-w-6xl mx-auto">
+              <div className="space-y-6 px-6 pb-6 pr-4 sm:px-10 min-h-full">
                 <AnimatePresence initial={false}>
                   {messages.length === 0 && (
                     <motion.div

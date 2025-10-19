@@ -77,7 +77,7 @@ export default function ConfigurationPage() {
       <div className="relative flex h-full min-h-full flex-col overflow-hidden">
         <div className="flex h-full flex-1 flex-col items-center justify-center px-4 py-6">
           <AlertCircle className="size-icon-3xl text-muted-foreground/50" />
-          <h1 className="mt-3 text-xl font-bold">Configuration Unavailable</h1>
+          <h1 className="mt-3 text-digital-h4 font-semibold text-balance">Configuration Unavailable</h1>
           <p className="mt-2 text-center text-body-sm text-muted-foreground">
             Configuration data could not be loaded. Check that the API is reachable.
           </p>
@@ -96,11 +96,11 @@ export default function ConfigurationPage() {
 
   const heroMeta = (
     <>
-      <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-sm font-medium text-white backdrop-blur">
+      <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-body-sm font-medium text-white backdrop-blur">
         <Hash className="size-icon-3xs" />
         {configStats.totalSettings} settings
       </span>
-      <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-sm font-medium text-white backdrop-blur">
+      <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-body-sm font-medium text-white backdrop-blur">
         {configStats.modifiedSettings > 0 ? (
           <AlertCircle className="size-icon-3xs text-amber-200" />
         ) : (
@@ -108,12 +108,12 @@ export default function ConfigurationPage() {
         )}
         {configStats.modifiedSettings} modified
       </span>
-      <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-sm font-medium text-white backdrop-blur capitalize">
+      <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-body-sm font-medium text-white backdrop-blur capitalize">
         <Info className="size-icon-3xs" />
         {configStats.currentMode}
       </span>
       {lastSaved && (
-        <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-sm font-medium text-white backdrop-blur">
+        <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-body-sm font-medium text-white backdrop-blur">
           <History className="size-icon-3xs" />
           Last saved {lastSaved.toLocaleTimeString()}
         </span>
@@ -289,119 +289,77 @@ export default function ConfigurationPage() {
           </div>
         </motion.div>
 
-          {/* Settings Section */}
-          <AnimatePresence mode="wait">
-            {activeContent && (
-              <motion.div
-                key={activeKey}
-                className="flex min-h-0 flex-1 flex-col rounded-3xl border border-border/25 bg-card/15 p-6 shadow-sm backdrop-blur-sm"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="mb-4 shrink-0">
-                  <div className="flex items-center gap-2">
-                    <Settings className="size-icon-md text-primary" />
-                    <h2 className="text-lg font-bold">{activeContent.name}</h2>
-                    {activeContent.description && (
-                      <InfoTooltip description={activeContent.description} />
-                    )}
-                  </div>
+        {/* Settings Section */}
+        <AnimatePresence mode="wait">
+          {activeContent && (
+            <motion.div
+              key={activeKey}
+              className="flex min-h-0 flex-1 flex-col rounded-3xl border border-border/25 bg-card/15 p-6 shadow-sm backdrop-blur-sm"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="mb-4 shrink-0">
+                <div className="flex items-center gap-2">
+                  <Settings className="size-icon-md text-primary" />
+                  <h2 className="text-digital-h5 font-semibold text-balance">{activeContent.name}</h2>
+                  {activeContent.description && (
+                    <InfoTooltip description={activeContent.description} />
+                  )}
                 </div>
+              </div>
 
-                <ScrollArea className="min-h-0 flex-1">
-                  <motion.div
-                    className="space-y-3 pr-4"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.1, duration: 0.3 }}
-                  >
-                    {activeContent.settings
-                      .filter((setting) => isSettingVisible(setting))
-                      .map((setting) => {
-                        const currentValue = values[setting.key] ?? setting.default;
-                        const override = SETTING_OVERRIDES[setting.key] ?? {};
-                        const description = override.description ?? setting.description;
-                        const helpText = override.helpText ?? setting.help_text;
+              <ScrollArea className="h-[50vh] w-full max-w-6xl mx-auto">
+                <motion.div
+                  className="space-y-3 pr-4"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.1, duration: 0.3 }}
+                >
+                  {activeContent.settings
+                    .filter((setting) => isSettingVisible(setting))
+                    .map((setting) => {
+                      const currentValue = values[setting.key] ?? setting.default;
+                      const override = SETTING_OVERRIDES[setting.key] ?? {};
+                      const description = override.description ?? setting.description;
+                      const helpText = override.helpText ?? setting.help_text;
 
-                        const isDependent = !!setting.depends_on;
-                        const articleClass = isDependent
-                          ? "group relative ml-4 rounded-2xl border border-border/25 bg-background/60 p-4 shadow-sm sm:ml-6 before:absolute before:left-0 before:top-4 before:h-[calc(100%-2rem)] before:w-px before:-translate-x-3 before:rounded-full before:bg-primary/40"
-                          : "group rounded-2xl border border-border/25 bg-background/60 p-4 shadow-sm";
+                      const isDependent = !!setting.depends_on;
+                      const articleClass = isDependent
+                        ? "group relative ml-4 rounded-2xl border border-border/25 bg-background/60 p-4 shadow-sm sm:ml-6 before:absolute before:left-0 before:top-4 before:h-[calc(100%-2rem)] before:w-px before:-translate-x-3 before:rounded-full before:bg-primary/40"
+                        : "group rounded-2xl border border-border/25 bg-background/60 p-4 shadow-sm";
 
-                        if (setting.type === "boolean") {
-                          return (
-                            <motion.article
-                              key={setting.key}
-                              className={articleClass}
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ duration: 0.2 }}
-                            >
-                              <div className="flex items-center justify-between gap-4 min-h-[48px] touch-manipulation">
-                                <div className="flex min-w-0 flex-1 items-center gap-2">
-                                  <ToggleLeft className="size-icon-xs shrink-0 text-primary" />
-                                  <span className="text-body-sm font-semibold">{setting.label}</span>
-                                  <InfoTooltip
-                                    title={description}
-                                    description={helpText}
-                                    triggerClassName="shrink-0"
-                                  />
-                                </div>
-                                <Switch
-                                  checked={(currentValue || "").toLowerCase() === "true"}
-                                  onCheckedChange={(checked) => handleValueChange(setting.key, checked ? "True" : "False")}
-                                  disabled={saving}
+                      if (setting.type === "boolean") {
+                        return (
+                          <motion.article
+                            key={setting.key}
+                            className={articleClass}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <div className="flex items-center justify-between gap-4 min-h-[48px] touch-manipulation">
+                              <div className="flex min-w-0 flex-1 items-center gap-2">
+                                <ToggleLeft className="size-icon-xs shrink-0 text-primary" />
+                                <span className="text-body-sm font-semibold">{setting.label}</span>
+                                <InfoTooltip
+                                  title={description}
+                                  description={helpText}
+                                  triggerClassName="shrink-0"
                                 />
                               </div>
-                            </motion.article>
-                          );
-                        }
+                              <Switch
+                                checked={(currentValue || "").toLowerCase() === "true"}
+                                onCheckedChange={(checked) => handleValueChange(setting.key, checked ? "True" : "False")}
+                                disabled={saving}
+                              />
+                            </div>
+                          </motion.article>
+                        );
+                      }
 
-                        if (setting.type === "select" && Array.isArray(setting.options)) {
-                          return (
-                            <motion.article
-                              key={setting.key}
-                              className={`space-y-2 ${articleClass}`}
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ duration: 0.2 }}
-                            >
-                              <label className="flex flex-col gap-2 touch-manipulation">
-                                <div className="flex items-center gap-2">
-                                  <List className="size-icon-xs text-primary" />
-                                  <span className="text-body-sm font-semibold">{setting.label}</span>
-                                  <InfoTooltip
-                                    title={description}
-                                    description={helpText}
-                                    triggerClassName="shrink-0"
-                                  />
-                                </div>
-                                <select
-                                  value={currentValue}
-                                  onChange={(event) => handleValueChange(setting.key, event.target.value)}
-                                  disabled={saving}
-                                  className="input"
-                                >
-                                  {setting.options.map((option) => (
-                                    <option key={option} value={option}>
-                                      {option}
-                                    </option>
-                                  ))}
-                                </select>
-                              </label>
-                            </motion.article>
-                          );
-                        }
-
-                        const inputType = setting.type === "password" ? "password" : setting.type === "number" ? "number" : "text";
-                        const min = typeof setting.min === "number" ? setting.min : undefined;
-                        const max = typeof setting.max === "number" ? setting.max : undefined;
-                        const step = typeof setting.step === "number" ? setting.step : undefined;
-
-                        const Icon = setting.type === "password" ? Lock : setting.type === "number" ? Hash : Info;
-
+                      if (setting.type === "select" && Array.isArray(setting.options)) {
                         return (
                           <motion.article
                             key={setting.key}
@@ -412,7 +370,7 @@ export default function ConfigurationPage() {
                           >
                             <label className="flex flex-col gap-2 touch-manipulation">
                               <div className="flex items-center gap-2">
-                                <Icon className="size-icon-xs text-primary" />
+                                <List className="size-icon-xs text-primary" />
                                 <span className="text-body-sm font-semibold">{setting.label}</span>
                                 <InfoTooltip
                                   title={description}
@@ -420,99 +378,141 @@ export default function ConfigurationPage() {
                                   triggerClassName="shrink-0"
                                 />
                               </div>
-                              <input
-                                type={inputType}
+                              <select
                                 value={currentValue}
                                 onChange={(event) => handleValueChange(setting.key, event.target.value)}
                                 disabled={saving}
-                                min={min}
-                                max={max}
-                                step={step}
                                 className="input"
-                              />
+                              >
+                                {setting.options.map((option) => (
+                                  <option key={option} value={option}>
+                                    {option}
+                                  </option>
+                                ))}
+                              </select>
                             </label>
-                            {setting.depends_on && (
-                              <Badge variant="outline" className="w-fit gap-1.5 text-body-xs">
-                                <AlertCircle className="size-icon-3xs" />
-                                Visible when {setting.depends_on.key} = {setting.depends_on.value ? "True" : "False"}
-                              </Badge>
-                            )}
                           </motion.article>
                         );
-                      })}
-                  </motion.div>
-                </ScrollArea>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                      }
 
-          {/* Footer Actions */}
-          <motion.div
-            className="shrink-0 rounded-3xl border border-border/30 bg-card/10 p-5 shadow-sm backdrop-blur-sm"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.3 }}
-          >
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-wrap items-center gap-3">
-                <AppButton
-                  type="button"
-                  onClick={saveChanges}
-                  disabled={!hasChanges || saving}
-                  variant="cta"
-                  size="lg"
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="size-icon-xs animate-spin" />
-                      Saving…
-                    </>
-                  ) : (
-                    <>
-                      <Save className="size-icon-xs" />
-                      Save changes
-                    </>
-                  )}
-                </AppButton>
+                      const inputType = setting.type === "password" ? "password" : setting.type === "number" ? "number" : "text";
+                      const min = typeof setting.min === "number" ? setting.min : undefined;
+                      const max = typeof setting.max === "number" ? setting.max : undefined;
+                      const step = typeof setting.step === "number" ? setting.step : undefined;
 
-                <AppButton
-                  type="button"
-                  onClick={resetChanges}
-                  disabled={!hasChanges || saving}
-                  variant="outline"
-                  size="lg"
-                >
-                  <RotateCcw className="size-icon-xs" />
-                  Discard
-                </AppButton>
+                      const Icon = setting.type === "password" ? Lock : setting.type === "number" ? Hash : Info;
 
-                <AppButton
-                  type="button"
-                  onClick={() => resetSection(activeKey)}
-                  disabled={saving}
-                  variant="ghost"
-                  size="lg"
-                >
-                  <RotateCcw className="size-icon-xs" />
-                  Reset section
-                </AppButton>
-              </div>
+                      return (
+                        <motion.article
+                          key={setting.key}
+                          className={`space-y-2 ${articleClass}`}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <label className="flex flex-col gap-2 touch-manipulation">
+                            <div className="flex items-center gap-2">
+                              <Icon className="size-icon-xs text-primary" />
+                              <span className="text-body-sm font-semibold">{setting.label}</span>
+                              <InfoTooltip
+                                title={description}
+                                description={helpText}
+                                triggerClassName="shrink-0"
+                              />
+                            </div>
+                            <input
+                              type={inputType}
+                              value={currentValue}
+                              onChange={(event) => handleValueChange(setting.key, event.target.value)}
+                              disabled={saving}
+                              min={min}
+                              max={max}
+                              step={step}
+                              className="input"
+                            />
+                          </label>
+                          {setting.depends_on && (
+                            <Badge variant="outline" className="w-fit gap-1.5 text-body-xs">
+                              <AlertCircle className="size-icon-3xs" />
+                              Visible when {setting.depends_on.key} = {setting.depends_on.value ? "True" : "False"}
+                            </Badge>
+                          )}
+                        </motion.article>
+                      );
+                    })}
+                </motion.div>
+              </ScrollArea>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-              <div className="flex items-center gap-2 text-body-sm text-muted-foreground">
-                {hasChanges ? (
-                  <span className="inline-flex items-center gap-1">
-                    <AlertCircle className="size-icon-3xs text-orange-500" />
-                    Unsaved edits
-                  </span>
+        {/* Footer Actions */}
+        <motion.div
+          className="shrink-0 rounded-3xl border border-border/30 bg-card/10 p-5 shadow-sm backdrop-blur-sm"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.3 }}
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-3">
+              <AppButton
+                type="button"
+                onClick={saveChanges}
+                disabled={!hasChanges || saving}
+                variant="cta"
+                size="lg"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="size-icon-xs animate-spin" />
+                    Saving…
+                  </>
                 ) : (
-                  <span className="inline-flex items-center gap-1">
-                    <CheckCircle2 className="size-icon-3xs text-emerald-400" />
-                    No unsaved changes
-                  </span>
+                  <>
+                    <Save className="size-icon-xs" />
+                    Save changes
+                  </>
                 )}
-              </div>
+              </AppButton>
+
+              <AppButton
+                type="button"
+                onClick={resetChanges}
+                disabled={!hasChanges || saving}
+                variant="outline"
+                size="lg"
+              >
+                <RotateCcw className="size-icon-xs" />
+                Discard
+              </AppButton>
+
+              <AppButton
+                type="button"
+                onClick={() => resetSection(activeKey)}
+                disabled={saving}
+                variant="ghost"
+                size="lg"
+              >
+                <RotateCcw className="size-icon-xs" />
+                Reset section
+              </AppButton>
             </div>
-          </motion.div>
+
+            <div className="flex items-center gap-2 text-body-sm text-muted-foreground">
+              {hasChanges ? (
+                <span className="inline-flex items-center gap-1">
+                  <AlertCircle className="size-icon-3xs text-orange-500" />
+                  Unsaved edits
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1">
+                  <CheckCircle2 className="size-icon-3xs text-emerald-400" />
+                  No unsaved changes
+                </span>
+              )}
+            </div>
+          </div>
+        </motion.div>
       </motion.div>
     </RoutePageShell>
   );

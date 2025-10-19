@@ -47,16 +47,14 @@ export function RouteHero({
       <div className="relative mx-auto flex flex-col gap-6">
         <div className={cn("flex flex-col gap-4", alignment, containerWidth)}>
           {eyebrow ? (
-            <span className="text-sm font-medium uppercase tracking-[0.28em] text-white/70">
-              {eyebrow}
-            </span>
+            <span className="eyebrow text-white/70">{eyebrow}</span>
           ) : null}
           <div className="flex flex-col gap-4">
-            <h1 className="text-3xl font-semibold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
+            <h1 className="text-digital-h2 text-balance font-semibold text-white">
               {title}
             </h1>
             {description ? (
-              <p className="text-base leading-relaxed text-white/80 sm:text-lg">
+              <p className="text-body text-white/85">
                 {description}
               </p>
             ) : null}
@@ -64,7 +62,7 @@ export function RouteHero({
           {actions ? (
             <div
               className={cn(
-                "flex flex-wrap items-center gap-3",
+                "flex flex-wrap items-center gap-3 text-body-sm",
                 align === "center" ? "justify-center" : "justify-start",
               )}
             >
@@ -74,7 +72,7 @@ export function RouteHero({
           {meta ? (
             <div
               className={cn(
-                "flex flex-wrap items-center gap-2 text-sm text-white/75",
+                "flex flex-wrap items-center gap-2 text-body-xs text-white/80",
                 align === "center" ? "justify-center" : "justify-start",
               )}
             >
