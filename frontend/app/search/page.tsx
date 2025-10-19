@@ -208,7 +208,7 @@ export default function SearchPage() {
                 {/* Inline Search Button */}
                 <div className="flex shrink-0 items-center gap-2">
                   <AppButton
-                    variant="hero"
+                    variant="primary"
                     size="md"
                     elevated
                     disabled={loading || !isReady || !query.trim()}

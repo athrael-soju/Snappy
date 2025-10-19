@@ -133,7 +133,7 @@ export default function AboutPage() {
                 <>
                   <AppButton
                     asChild
-                    variant="hero"
+                    variant="cta"
                     size="xl"
                     elevated
                     iconShift
@@ -145,7 +145,7 @@ export default function AboutPage() {
                   </AppButton>
                   <AppButton
                     asChild
-                    variant="glass"
+                    variant="outline"
                     size="xl"
                     elevated
                     iconShift
@@ -298,7 +298,7 @@ export default function AboutPage() {
               <AppButton
                 asChild
                 size="lg"
-                variant="hero"
+                variant="cta"
                 elevated
                 iconShift
               >
@@ -310,7 +310,7 @@ export default function AboutPage() {
               <AppButton
                 asChild
                 size="lg"
-                variant="glass"
+                variant="outline"
                 elevated
                 iconShift
               >

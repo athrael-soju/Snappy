@@ -48,8 +48,9 @@ export default function CitationHoverCard({
         <span className="ml-1 align-super">
           <AppButton
             type="button"
-            variant="link"
+            variant="ghost"
             size="inline"
+            className="px-0 py-0 text-vultr-blue underline-offset-4 hover:underline dark:text-vultr-light-blue"
             aria-label={`View citation ${number}`}
             onMouseEnter={handleMouseEnter}
             onFocus={handleMouseEnter}

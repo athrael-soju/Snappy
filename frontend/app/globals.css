@@ -69,18 +69,11 @@
   --size-icon-2xl: 3rem;
   --size-icon-3xl: 3.5rem;
 
-  /* Gradients */
-  --gradient-hero-light:
-    radial-gradient(900px 420px at 85% 15%, color-mix(in srgb, var(--color-vultr-light-blue) 50%, transparent), transparent 60%),
-    linear-gradient(180deg, var(--color-vultr-navy), var(--color-vultr-blue));
-  --gradient-hero-dark:
-    radial-gradient(900px 420px at 80% 20%, color-mix(in srgb, var(--color-vultr-blue-60) 45%, transparent), transparent 65%),
-    linear-gradient(180deg, color-mix(in srgb, var(--color-vultr-midnight) 88%, #010922 12%), color-mix(in srgb, var(--color-vultr-cobalt) 55%, var(--color-vultr-blue) 45%));
-
   /* Shape & elevation */
   --radius-card: 1rem;
   --shadow-soft: 0 28px 60px -30px rgba(2, 16, 72, 0.28);
   --shadow-soft-strong: 0 40px 80px -40px rgba(2, 16, 72, 0.35);
+  --shadow-glow: 0 32px 80px -45px rgba(0, 123, 252, 0.45), 0 18px 54px -36px rgba(82, 186, 255, 0.5);
 
   /* Compatibility aliases */
   --color-background: var(--color-warm-1);
@@ -119,7 +112,6 @@
   :root {
     color-scheme: light dark;
     background-color: var(--color-background);
-    --gradient-hero: var(--gradient-hero-light);
   }
 
   .dark {
@@ -135,7 +127,6 @@
     --color-accent-foreground: #ffffff;
     --color-border: rgba(121, 206, 255, 0.4);
     --color-input: rgba(32, 88, 167, 0.45);
-    --gradient-hero: var(--gradient-hero-dark);
   }
 
   * {
@@ -312,22 +303,13 @@
   }
 
   .vultr-glow {
-    box-shadow:
-      0 32px 80px -45px rgba(0, 123, 252, 0.45),
-      0 18px 54px -36px rgba(82, 186, 255, 0.5);
+    box-shadow: var(--shadow-glow);
   }
 
-  @supports (color: color-mix(in srgb, transparent, transparent)) {
-    .vultr-glow {
-      box-shadow:
-        0 32px 80px -45px color-mix(in srgb, var(--color-vultr-blue) 45%, transparent),
-        0 18px 54px -36px color-mix(in srgb, var(--color-vultr-light-blue) 55%, transparent);
-    }
-  }
-
-  .bg-vultr-radial,
-  .bg-hero-vultr {
-    background: var(--gradient-hero);
+  .bg-vultr-radial {
+    background:
+      radial-gradient(900px 420px at 85% 15%, color-mix(in srgb, var(--color-vultr-light-blue) 50%, transparent), transparent 60%),
+      linear-gradient(180deg, var(--color-vultr-navy), var(--color-vultr-blue));
   }
 
   /* Icon sizing utilities */
@@ -729,9 +711,7 @@
 
   .btn-cta {
     @apply bg-vultr-blue text-white hover:brightness-95 active:brightness-90;
-    box-shadow:
-      0 32px 80px -45px rgba(0, 123, 252, 0.45),
-      0 18px 54px -36px rgba(82, 186, 255, 0.5);
+    box-shadow: var(--shadow-glow);
   }
 
   .card {
@@ -767,9 +747,8 @@
 }
 
 @supports (color: color-mix(in srgb, transparent, transparent)) {
-  .btn-cta {
-    box-shadow:
-      0 32px 80px -45px color-mix(in srgb, var(--color-vultr-blue) 45%, transparent),
+  :root {
+    --shadow-glow: 0 32px 80px -45px color-mix(in srgb, var(--color-vultr-blue) 45%, transparent),
       0 18px 54px -36px color-mix(in srgb, var(--color-vultr-light-blue) 55%, transparent);
   }
 }

@@ -110,8 +110,8 @@ export default function Home() {
         animate="visible"
         variants={containerVariants}
       >
-        <div className="mx-auto max-w-7xl px-6 section-spacing grid grid-cols-4 gap-6">
-          <motion.div className="col-span-4 space-y-6 md:col-span-3" variants={itemVariants}>
+        <div className="layout-container section-spacing vultr-grid">
+          <motion.div className="vultr-grid-wide space-y-6" variants={itemVariants}>
             <Image
               src="/brand/vultr-logo-reversed.svg"
               alt="Vultr"
@@ -134,14 +134,14 @@ export default function Home() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <AppButton asChild variant="hero" size="lg" elevated>
+              <AppButton asChild variant="cta" size="lg" elevated>
                 <Link href="/upload">
                   Deploy Workspace
                 </Link>
               </AppButton>
               <AppButton
                 asChild
-                variant="glass"
+                variant="outline"
                 size="lg"
                 elevated
               >
@@ -159,8 +159,8 @@ export default function Home() {
                   className="rounded-[var(--radius-card)] border border-white/15 bg-white/10 p-4 backdrop-blur-md"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15">
-                      <stat.icon className="h-5 w-5 text-vultr-sky-blue" />
+                    <span className="flex size-icon-xl items-center justify-center rounded-full bg-white/15">
+                      <stat.icon className="size-icon-sm text-vultr-sky-blue" />
                     </span>
                     <div>
                       <p className="text-2xl font-semibold text-white">
@@ -175,20 +175,20 @@ export default function Home() {
             </motion.div>
           </motion.div>
 
-          <motion.aside className="col-span-4 md:col-span-1" variants={itemVariants}>
-            <div className="card-dark vultr-gradient-border flex h-full flex-col gap-4 p-6">
+          <motion.aside className="vultr-grid-tight" variants={itemVariants}>
+            <div className="surface-dark vultr-gradient-border flex h-full flex-col gap-4 rounded-[var(--radius-card)] p-6">
               <h3 className="text-lg font-semibold text-white">Why teams choose Vultr</h3>
               <ul className="space-y-3 text-sm text-white/80">
                 <li className="flex items-start gap-3">
-                  <Sparkles className="mt-0.5 h-5 w-5 text-vultr-light-blue" />
+                  <Sparkles className="mt-0.5 size-icon-sm text-vultr-light-blue" />
                   <span>Unified ingestion, retrieval, and chat flows aligned to Vultr&rsquo;s brand playbooks.</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <Cloud className="mt-0.5 h-5 w-5 text-vultr-sky-blue" />
+                  <Cloud className="mt-0.5 size-icon-sm text-vultr-sky-blue" />
                   <span>GPU availability across 32 regions with predictable pricing.</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <Shield className="mt-0.5 h-5 w-5 text-white/80" />
+                  <Shield className="mt-0.5 size-icon-sm text-white/80" />
                   <span>Isolation-ready architecture for sovereignty and regulated workloads.</span>
                 </li>
               </ul>
@@ -205,7 +205,7 @@ export default function Home() {
       </motion.section>
 
       <section className="bg-warm-1">
-        <div className="mx-auto max-w-7xl px-6 section-spacing-sm">
+        <div className="layout-container section-spacing-sm">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div className="space-y-3">
               <span className="badge badge-neutral uppercase tracking-[0.18em] text-xs">Platform Features</span>
@@ -238,9 +238,9 @@ export default function Home() {
                   className="group card h-full overflow-hidden p-6 transition-transform duration-200 hover:shadow-xl"
                 >
                   <div
-                    className={`inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${feature.accent} text-white shadow-[var(--shadow-soft)]`}
+                    className={`inline-flex size-icon-2xl items-center justify-center rounded-xl bg-gradient-to-br ${feature.accent} text-white shadow-[var(--shadow-soft)]`}
                   >
-                    <feature.icon className="h-5 w-5" />
+                    <feature.icon className="size-icon-sm" />
                   </div>
                   <h3 className="mt-5 text-lg font-semibold text-vultr-navy">{feature.title}</h3>
                   <p className="mt-2 text-sm text-vultr-blue-20">{feature.description}</p>

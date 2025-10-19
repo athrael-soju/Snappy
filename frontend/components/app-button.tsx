@@ -8,16 +8,11 @@ import { Button as PrimitiveButton } from "@/components/ui/button"
 type PrimitiveButtonProps = React.ComponentProps<typeof PrimitiveButton>
 
 type AppButtonVariant =
-  | "default"
   | "primary"
-  | "secondary"
   | "outline"
   | "ghost"
+  | "cta"
   | "destructive"
-  | "hero"
-  | "glass"
-  | "muted"
-  | "link"
 
 type AppButtonSize =
   | "xs"
@@ -60,29 +55,19 @@ type AppButtonProps = Omit<PrimitiveButtonProps, "className" | "size" | "variant
 }
 
 const baseClasses =
-  "inline-flex items-center gap-2 font-semibold text-[var(--text-cta)] leading-[var(--leading-cta)] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vultr-light-blue focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none"
+  "inline-flex items-center justify-center gap-2 font-semibold text-[var(--text-cta)] leading-[var(--leading-cta)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vultr-light-blue focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none"
 
 const variantClasses: Record<AppButtonVariant, string> = {
-  default:
-    "bg-primary text-primary-foreground shadow-[var(--shadow-soft)] hover:bg-primary/90 active:bg-primary/95",
   primary:
-    "bg-primary text-primary-foreground shadow-[var(--shadow-soft)] hover:bg-primary/90 active:bg-primary/95",
-  secondary:
-    "bg-secondary text-secondary-foreground shadow-[var(--shadow-soft)] hover:bg-secondary/90 active:bg-secondary/95",
+    "bg-vultr-blue text-white shadow-[var(--shadow-soft)] hover:brightness-95 active:brightness-90",
   outline:
-    "border border-primary text-primary hover:bg-primary hover:text-primary-foreground",
+    "border border-vultr-blue bg-transparent text-vultr-blue hover:bg-vultr-blue hover:text-white",
   ghost:
-    "text-primary hover:bg-accent/40",
+    "bg-transparent text-vultr-blue hover:bg-vultr-sky-blue/40",
+  cta:
+    "bg-vultr-blue text-white shadow-[var(--shadow-glow)] hover:brightness-95 active:brightness-90",
   destructive:
     "bg-destructive text-destructive-foreground hover:bg-destructive/90 active:bg-destructive/95",
-  hero:
-    "bg-gradient-to-r from-vultr-blue via-vultr-light-blue to-vultr-blue text-primary-foreground shadow-[var(--shadow-soft)] hover:brightness-95",
-  glass:
-    "border border-white/20 bg-white/10 text-primary-foreground backdrop-blur-xl shadow-[var(--shadow-soft)] hover:bg-white/15 hover:border-white/40 dark:border-white/15 dark:text-white",
-  muted:
-    "bg-muted text-muted-foreground hover:bg-muted/80",
-  link:
-    "bg-transparent px-0 py-0 text-primary underline-offset-4 hover:underline",
 }
 
 const sizeClasses: Record<AppButtonSize, string> = {

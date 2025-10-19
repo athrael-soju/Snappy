@@ -155,7 +155,7 @@ export default function ConfigurationPage() {
                       <AppButton
                         type="button"
                         size="sm"
-                        variant="glass"
+                        variant="outline"
                         onClick={restoreStoredDraft}
                         disabled={saving}
                       >
@@ -213,7 +213,7 @@ export default function ConfigurationPage() {
                   type="button"
                   onClick={resetToDefaults}
                   disabled={saving}
-                  variant="hero"
+                  variant="cta"
                   size="lg"
                 >
                   <RotateCcw className="size-icon-2xs" />
@@ -423,7 +423,7 @@ export default function ConfigurationPage() {
                   type="button"
                   onClick={saveChanges}
                   disabled={!hasChanges || saving}
-                  variant="hero"
+                  variant="cta"
                   size="lg"
                 >
                   {saving ? (
@@ -443,7 +443,7 @@ export default function ConfigurationPage() {
                   type="button"
                   onClick={resetChanges}
                   disabled={!hasChanges || saving}
-                  variant="glass"
+                  variant="outline"
                   size="lg"
                 >
                   <RotateCcw className="size-icon-xs" />

@@ -291,7 +291,7 @@ function ChatComposer({
               <AppButton
                 type="submit"
                 size="icon-lg"
-                variant="hero"
+                variant="primary"
                 elevated
                 disabled={isSendDisabled}
                 aria-label="Send message"

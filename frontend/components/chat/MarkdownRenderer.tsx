@@ -38,7 +38,7 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
     <div className="relative group my-4">
       <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
         <AppButton
-          variant="glass"
+          variant="ghost"
           size="xs"
           onClick={handleCopy}
           elevated
