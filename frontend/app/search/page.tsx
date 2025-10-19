@@ -48,7 +48,7 @@ const SEARCH_HELPER_CARDS: SearchHelperCard[] = [
   {
     id: "start",
     title: "Start with a question",
-    description: "Ask about people, diagrams, or obligations. Vultr Vision Workspace ranks the most relevant page images instantly.",
+    description: "Ask about people, diagrams, or obligations. Vultr Vision ranks the most relevant page images instantly.",
     icon: Sparkles,
     gradient: "from-chart-1 to-chart-2",
   },
@@ -166,7 +166,7 @@ export default function SearchPage() {
                   </span>
                 </>
               }
-              description="Ask questions in natural language and let Vultr Vision Workspace surface the most relevant matches instantly."
+              description="Ask questions in natural language and let Vultr Vision surface the most relevant matches instantly."
               childrenClassName="gap-2 pt-2"
             >
               {!isReady && (

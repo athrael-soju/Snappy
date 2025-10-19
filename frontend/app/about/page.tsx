@@ -121,7 +121,7 @@ export default function AboutPage() {
               title={
                 <>
                   <span className="bg-gradient-to-r from-vultr-sky-blue via-white to-vultr-blue bg-clip-text text-transparent">
-                    Vultr Vision Workspace
+                    Vultr Vision
                   </span>{" "}
                   brings ColPali intelligence to your cloud
                 </>

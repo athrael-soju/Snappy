@@ -9,13 +9,13 @@ import { ThemeProvider } from "@/components/theme-provider";
 import NextTopLoader from "nextjs-toploader";
 
 export const metadata: Metadata = {
-  title: "Vultr Vision Workspace",
+  title: "Vultr Vision",
   description:
     "Deploy Vultr’s ColPali-powered document intelligence across your global infrastructure. Upload, search, and collaborate with Vultr’s signature performance.",
   icons: {
-    icon: "/brand/vultr-logo.svg",
-    shortcut: "/brand/vultr-logo.svg",
-    apple: "/brand/vultr-logo.svg",
+    icon: "/brand/signet__on-white.svg",
+    shortcut: "/brand/signet__on-white.svg",
+    apple: "/brand/signet__on-white.svg",
   },
 };
 

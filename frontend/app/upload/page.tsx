@@ -200,7 +200,7 @@ export default function UploadPage() {
                   </span>
                 </>
               }
-              description="Drop your documents and let Vultr Vision Workspace retrieve insights from them."
+              description="Drop your documents and let Vultr Vision retrieve insights from them."
             />
           </motion.div>
 

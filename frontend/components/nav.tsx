@@ -46,7 +46,7 @@ export function Nav() {
   }, [])
 
   return (
-    <header className="relative sticky top-0 z-50 shrink-0 border-b border-cool-1/60 bg-white/80 backdrop-blur-xl dark:border-vultr-blue-60/40 dark:bg-vultr-midnight/80">
+    <header className="relative sticky top-0 z-50 shrink-0 surface-glass border-b border-white/20 dark:border-vultr-blue-60/40">
       <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-vultr-blue via-vultr-light-blue to-vultr-blue-60" />
 
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 py-3 md:px-6">
@@ -82,12 +82,12 @@ export function Nav() {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "relative rounded-full px-4 py-2 text-sm font-medium text-vultr-blue-20 transition-colors duration-200 hover:text-vultr-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vultr-light-blue/70 focus-visible:ring-offset-2",
+                  "relative rounded-full px-4 py-2 text-body-xs font-medium text-vultr-blue-20 transition-colors duration-200 hover:text-vultr-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vultr-light-blue focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
                   isActive ? "text-vultr-blue" : ""
                 )}
               >
                 {isActive && (
-                  <span className="absolute inset-x-3 -bottom-1 h-0.5 rounded-full bg-gradient-to-r from-vultr-light-blue to-vultr-blue" />
+                  <span className="section-divider absolute inset-x-3 -bottom-1" />
                 )}
                 <span className="relative">{link.label}</span>
                 {shouldShowBadge && uploadPercent !== null && (
@@ -127,7 +127,7 @@ export function Nav() {
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="w-56 rounded-[var(--radius-card)] border-cool-1/60 bg-white/95 p-2 shadow-[var(--shadow-soft)] backdrop-blur-xl dark:border-vultr-blue-60/40 dark:bg-vultr-midnight/90"
+                className="w-56 rounded-[var(--radius-card)] border border-white/15 surface-glass p-2 shadow-[var(--shadow-soft)] dark:border-vultr-blue-60/40"
               >
                 {links.map((link) => {
                   const isActive =
@@ -142,7 +142,7 @@ export function Nav() {
                       <Link
                         href={link.href}
                         className={cn(
-                          "flex w-full cursor-pointer items-center justify-between gap-2 rounded-[calc(var(--radius-card)-0.5rem)] px-3 py-2 text-sm text-vultr-blue-20 transition-colors hover:bg-vultr-sky-blue/30 hover:text-vultr-blue",
+                          "flex w-full cursor-pointer items-center justify-between gap-2 rounded-[calc(var(--radius-card)-0.5rem)] px-3 py-2 text-body-xs text-vultr-blue-20 transition-colors hover:bg-vultr-sky-blue/30 hover:text-vultr-blue",
                           isActive ? "bg-vultr-sky-blue/40 text-vultr-blue font-semibold" : ""
                         )}
                       >

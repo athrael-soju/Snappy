@@ -484,7 +484,7 @@ export default function ChatPage() {
                     Chat with
                   </span>{" "}
                   <span className="bg-gradient-to-r from-vultr-sky-blue via-white to-vultr-blue bg-clip-text text-transparent">
-                    Vultr Vision Workspace
+                    Vultr Vision
                   </span>
                 </>
               }
