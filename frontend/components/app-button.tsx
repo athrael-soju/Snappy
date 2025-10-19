@@ -28,6 +28,7 @@ type AppButtonSize =
 type AppButtonProps = Omit<PrimitiveButtonProps, "className" | "size" | "variant"> & {
   variant?: AppButtonVariant
   size?: AppButtonSize
+  className?: string
   /**
    * Controls the horizontal padding/height preset.
    */
@@ -103,6 +104,7 @@ const groupOverlapClasses: Record<NonNullable<AppButtonProps["groupPosition"]>, 
 export function AppButton({
   variant = "primary",
   size = "md",
+  className,
   fullWidth,
   elevated,
   pill,
@@ -130,7 +132,8 @@ export function AppButton({
         fullWidth ? "w-full" : "w-fit",
         elevated ? "shadow-lg shadow-primary/20" : "shadow-none",
         iconShift ? "group/app-button" : "",
-        props.disabled ? "opacity-60" : ""
+        props.disabled ? "opacity-60" : "",
+        className
       )}
       data-variant={variant}
       data-size={size}

@@ -346,7 +346,7 @@ export default function ConfigurationPage() {
                                   value={currentValue}
                                   onChange={(event) => handleValueChange(setting.key, event.target.value)}
                                   disabled={saving}
-                                  className="w-full rounded-lg border border-border/25 bg-background/75 px-3 py-2.5 text-body-sm outline-none transition-colors focus:border-primary/40 focus:bg-background focus:ring-2 focus:ring-primary/15"
+                                  className="input"
                                 >
                                   {setting.options.map((option) => (
                                     <option key={option} value={option}>
@@ -392,7 +392,7 @@ export default function ConfigurationPage() {
                                 min={min}
                                 max={max}
                                 step={step}
-                                className="w-full rounded-lg border border-border/25 bg-background/75 px-3 py-2.5 text-body-sm outline-none transition-colors focus:border-primary/40 focus:bg-background focus:ring-2 focus:ring-primary/15"
+                                className="input"
                               />
                             </label>
                             {setting.depends_on && (

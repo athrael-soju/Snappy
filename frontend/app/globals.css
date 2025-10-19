@@ -725,12 +725,34 @@
   .input,
   .select,
   .textarea {
-    @apply w-full rounded-[calc(var(--radius-card)-0.25rem)] border bg-white px-4 py-2;
+    @apply w-full rounded-[calc(var(--radius-card)-0.25rem)] border border-border px-4 py-2 shadow-xs transition-colors;
+    background-color: var(--color-input);
+    color: var(--color-foreground);
     font-size: var(--text-body-lg);
     line-height: var(--leading-body-lg);
     letter-spacing: 0.01em;
     font-weight: var(--font-weight-light);
     @apply placeholder:text-vultr-blue-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vultr-light-blue focus-visible:border-vultr-light-blue;
+    @apply disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .dark .input,
+  .dark .select,
+  .dark .textarea {
+    @apply placeholder:text-vultr-light-blue/60 border-white/20;
+    color: #f3f4f7;
+  }
+
+  .input[aria-invalid="true"],
+  .select[aria-invalid="true"],
+  .textarea[aria-invalid="true"] {
+    border-color: var(--color-destructive);
+  }
+
+  .input[aria-invalid="true"]:focus-visible,
+  .select[aria-invalid="true"]:focus-visible,
+  .textarea[aria-invalid="true"]:focus-visible {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-destructive) 25%, transparent);
   }
 
   .badge {

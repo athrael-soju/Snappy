@@ -196,14 +196,14 @@ export default function SearchPage() {
 
               <div className="relative flex items-center gap-3 p-3 sm:p-4">
                 <Search className="size-icon-md shrink-0 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                <input
-                  type="text"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Ask about content, visuals, or document details..."
-                  className="flex-1 bg-transparent text-body outline-none placeholder:text-muted-foreground"
-                  disabled={!isReady}
-                />
+                  <input
+                    type="text"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Ask about content, visuals, or document details..."
+                    className="input flex-1 border-none bg-transparent px-0 text-body shadow-none focus-visible:border-transparent focus-visible:ring-0 placeholder:text-white/70"
+                    disabled={!isReady}
+                  />
 
                 {/* Inline Search Button */}
                 <div className="flex shrink-0 items-center gap-2">
@@ -245,7 +245,7 @@ export default function SearchPage() {
                     min={1}
                     value={k}
                     onChange={(event) => handleNumberChange(event, setK)}
-                    className="rounded-lg border border-border/50 bg-background px-3 py-2 text-body-sm outline-none transition-all focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+                    className="input"
                   />
                 </label>
               </div>

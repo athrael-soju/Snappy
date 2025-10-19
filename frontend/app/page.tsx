@@ -112,15 +112,6 @@ export default function Home() {
       >
         <div className="layout-container section-spacing vultr-grid">
           <motion.div className="vultr-grid-wide space-y-6" variants={itemVariants}>
-            <Image
-              src="/brand/vultr-logo-reversed.svg"
-              alt="Vultr"
-              width={180}
-              height={60}
-              priority
-              className="logo-min h-12 w-auto"
-            />
-
             <div className="space-y-4">
               <Badge variant="secondary" className="bg-white/20 text-white hover:bg-white/25">
                 Powered by ColPali
@@ -201,72 +192,89 @@ export default function Home() {
               </div>
             </div>
           </motion.aside>
+
+          <motion.div className="vultr-grid-full mt-16 space-y-8" variants={itemVariants}>
+            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div className="space-y-3">
+                <span className="badge badge-neutral uppercase tracking-[0.18em] text-xs text-vultr-navy">
+                  Platform Features
+                </span>
+                <h2 className="text-display-3 text-white">From ingestion to insight in minutes</h2>
+                <p className="max-w-3xl text-body text-white/80">
+                  Orchestrate document intelligence workflows with Vultr&rsquo;s design system. Use enterprise-ready
+                  components to maintain consistency from upload through retrieval.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <AppButton
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="border-white/60 text-white hover:border-white hover:bg-white/15 hover:text-white"
+                >
+                  <Link href="/search">Explore Search</Link>
+                </AppButton>
+                <AppButton
+                  asChild
+                  variant="ghost"
+                  size="sm"
+                  className="text-white hover:text-white hover:bg-white/15"
+                >
+                  <Link href="/maintenance" className="flex items-center gap-2">
+                    <Shield className="size-icon-2xs" />
+                    Service Status
+                  </Link>
+                </AppButton>
+              </div>
+            </div>
+
+            <motion.div className="grid gap-6 md:grid-cols-3" variants={containerVariants}>
+              {primaryFeatures.map((feature) => (
+                <motion.div
+                  key={feature.href}
+                  variants={cardVariants}
+                  whileHover={{ translateY: -6 }}
+                  transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                >
+                  <Link
+                    href={feature.href}
+                    className="group flex h-full flex-col justify-between rounded-[var(--radius-card)] border border-white/15 bg-white/10 p-6 shadow-[var(--shadow-soft)] backdrop-blur-lg transition-transform duration-200 hover:shadow-[var(--shadow-soft-strong)]"
+                  >
+                    <div className="space-y-4">
+                      <div
+                        className={`inline-flex size-icon-2xl items-center justify-center rounded-xl bg-gradient-to-br ${feature.accent} text-white shadow-[var(--shadow-soft)]`}
+                      >
+                        <feature.icon className="size-icon-sm" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-white">{feature.title}</h3>
+                      <p className="text-sm text-white/75">{feature.description}</p>
+                    </div>
+                    <span className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-vultr-light-blue transition-colors duration-200 group-hover:text-white">
+                      Dive In
+                      <ArrowRight className="size-icon-sm transition-transform duration-200 group-hover:translate-x-1.5" />
+                    </span>
+                  </Link>
+                </motion.div>
+              ))}
+            </motion.div>
+
+            <motion.div className="flex flex-wrap items-center gap-3 text-body-sm text-white/80" variants={containerVariants}>
+              {secondaryLinks.map((link) => (
+                <motion.div key={link.href} variants={itemVariants}>
+                  <Link
+                    href={link.href}
+                    className="inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-sm font-medium transition-colors hover:border-white hover:bg-white/15 hover:text-white"
+                  >
+                    <link.icon className="size-icon-2xs" />
+                    {link.title}
+                  </Link>
+                </motion.div>
+              ))}
+            </motion.div>
+          </motion.div>
         </div>
       </motion.section>
 
-      <section className="bg-warm-1">
-        <div className="layout-container section-spacing-sm">
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div className="space-y-3">
-              <span className="badge badge-neutral uppercase tracking-[0.18em] text-xs">Platform Features</span>
-              <h2>From ingestion to insight in minutes</h2>
-              <p className="max-w-2xl text-base text-vultr-blue-20">
-                Orchestrate document intelligence workflows with Vultr&rsquo;s design system. Use enterprise-ready
-                components to maintain consistency from upload through retrieval.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <AppButton asChild variant="outline" size="sm">
-                <Link href="/search">Explore Search</Link>
-              </AppButton>
-              <AppButton asChild variant="ghost" size="sm">
-                <Link href="/maintenance">Service Status</Link>
-              </AppButton>
-            </div>
-          </div>
-
-          <motion.div className="mt-10 grid gap-6 md:grid-cols-3" variants={containerVariants} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-80px" }}>
-            {primaryFeatures.map((feature) => (
-              <motion.div
-                key={feature.href}
-                variants={cardVariants}
-                whileHover={{ translateY: -6 }}
-                transition={{ type: "spring", stiffness: 200, damping: 20 }}
-              >
-                <Link
-                  href={feature.href}
-                  className="group card h-full overflow-hidden p-6 transition-transform duration-200 hover:shadow-xl"
-                >
-                  <div
-                    className={`inline-flex size-icon-2xl items-center justify-center rounded-xl bg-gradient-to-br ${feature.accent} text-white shadow-[var(--shadow-soft)]`}
-                  >
-                    <feature.icon className="size-icon-sm" />
-                  </div>
-                  <h3 className="mt-5 text-lg font-semibold text-vultr-navy">{feature.title}</h3>
-                  <p className="mt-2 text-sm text-vultr-blue-20">{feature.description}</p>
-                  <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-vultr-blue">
-                    Dive In
-                    <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1.5" />
-                  </span>
-                </Link>
-              </motion.div>
-            ))}
-          </motion.div>
-
-          <motion.div className="mt-10 flex flex-wrap items-center gap-3" variants={containerVariants} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-80px" }}>
-            {secondaryLinks.map((link) => (
-              <motion.div key={link.href} variants={itemVariants}>
-                <AppButton asChild variant="ghost" size="sm">
-                  <Link href={link.href} className="flex items-center gap-2">
-                    <link.icon className="h-4 w-4" />
-                    {link.title}
-                  </Link>
-                </AppButton>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
     </div>
   );
 }
