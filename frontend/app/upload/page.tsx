@@ -25,7 +25,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import "@/lib/api/client";
 import { useSystemStatus } from "@/stores/app-store";
 import { useFileUpload } from "@/lib/hooks/use-file-upload";
-import { PageHeader } from "@/components/page-header";
+import { RoutePageShell } from "@/components/route-page-shell";
 import type { UploadFileMeta } from "@/stores/types";
 
 const STATUS_PANEL_AUTO_DISMISS_MS = 4500;
@@ -172,117 +172,94 @@ export default function UploadPage() {
 
   const shouldShowHelpfulCards = showHelpfulCards && !uploading && !hasFiles;
 
+  const vectorCount =
+    typeof systemStatus?.collection?.vector_count === "number"
+      ? systemStatus.collection.vector_count.toLocaleString()
+      : null;
+  const vectorName = systemStatus?.collection?.name ?? null;
+  const bucketCount =
+    typeof systemStatus?.bucket?.object_count === "number"
+      ? systemStatus.bucket.object_count.toLocaleString()
+      : null;
+  const bucketName = systemStatus?.bucket?.name ?? null;
+
+  const heroBadges = (
+    <>
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-sm font-medium text-white backdrop-blur">
+        {isReady ? (
+          <CheckCircle2 className="size-icon-3xs text-white" />
+        ) : (
+          <AlertCircle className="size-icon-3xs text-white" />
+        )}
+        {isReady ? "Ready" : "Not Ready"}
+      </span>
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-sm font-medium text-white backdrop-blur">
+        <Database className="size-icon-3xs text-white" />
+        <span className="font-semibold">Vectors</span>
+        {systemStatus?.collection?.exists ? (
+          <CheckCircle2 className="size-icon-3xs text-white/80" />
+        ) : (
+          <AlertCircle className="size-icon-3xs text-white/80" />
+        )}
+        {vectorCount ? <span>{vectorCount}</span> : null}
+        {vectorName ? (
+          <span className="text-[10px] uppercase tracking-widest text-white/70">
+            {vectorName}
+          </span>
+        ) : null}
+      </span>
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-sm font-medium text-white backdrop-blur">
+        <HardDrive className="size-icon-3xs text-white" />
+        <span className="font-semibold">Images</span>
+        {systemStatus?.bucket?.exists ? (
+          <CheckCircle2 className="size-icon-3xs text-white/80" />
+        ) : (
+          <AlertCircle className="size-icon-3xs text-white/80" />
+        )}
+        {bucketCount ? <span>{bucketCount}</span> : null}
+        {bucketName ? (
+          <span className="text-[10px] uppercase tracking-widest text-white/70">
+            {bucketName}
+          </span>
+        ) : null}
+      </span>
+    </>
+  );
+
+  const heroMeta = (
+    <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-white/80">
+      {heroBadges}
+      <AppButton
+        onClick={fetchStatus}
+        disabled={statusLoading}
+        variant="ghost"
+        size="xs"
+        className="rounded-full border border-white/25 bg-white/10 text-white hover:border-white/40 hover:bg-white/20"
+      >
+        {statusLoading ? (
+          <Loader2 className="size-icon-3xs animate-spin" />
+        ) : (
+          <RefreshCw className="size-icon-3xs" />
+        )}
+        Refresh
+      </AppButton>
+    </div>
+  );
+
   return (
-    <div className="relative flex h-full min-h-full flex-col overflow-hidden">
-      <div className="flex h-full flex-1 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
-        <motion.div
-          className="mx-auto flex h-full w-full max-w-5xl flex-col space-y-4"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-        >
-          {/* Header Section */}
-          <motion.div
-            className="shrink-0"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.3 }}
-          >
-            <PageHeader
-              align="center"
-              title={
-                <>
-                  <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
-                    Upload & Index
-                  </span>{" "}
-                  <span className="bg-gradient-to-r from-chart-1 via-chart-2 to-chart-1 bg-clip-text text-transparent">
-                    Your Documents
-                  </span>
-                </>
-              }
-              description="Drop your documents and let Vultr Vision retrieve insights from them."
-            />
-          </motion.div>
-
-          {/* Compact System Status */}
-          <motion.div
-            className="flex shrink-0 flex-wrap items-center justify-center gap-2 text-body-xs"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2, duration: 0.3 }}
-          >
-            <Badge
-              variant={isReady ? "default" : "destructive"}
-              className="gap-1.5 px-3 py-1"
-            >
-              {isReady ? (
-                <>
-                  <CheckCircle2 className="size-icon-3xs" />
-                  Ready
-                </>
-              ) : (
-                <>
-                  <AlertCircle className="size-icon-3xs" />
-                  Not Ready
-                </>
-              )}
-            </Badge>
-
-            <Badge variant="outline" className="gap-1.5 px-3 py-1">
-              <Database className="size-icon-3xs" />
-              <span className="font-semibold">Vectors</span>
-              {systemStatus?.collection?.exists ? (
-                <CheckCircle2 className="size-icon-3xs text-chart-2" />
-              ) : (
-                <AlertCircle className="size-icon-3xs text-destructive" />
-              )}
-              {typeof systemStatus?.collection?.vector_count === "number" && (
-                <span className="ml-1 font-semibold">
-                  {systemStatus.collection.vector_count.toLocaleString()}
-                </span>
-              )}
-              {systemStatus?.collection?.name && (
-                <span className="ml-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-                  {systemStatus.collection.name}
-                </span>
-              )}
-            </Badge>
-
-            <Badge variant="outline" className="gap-1.5 px-3 py-1">
-              <HardDrive className="size-icon-3xs" />
-              <span className="font-semibold">Images</span>
-              {systemStatus?.bucket?.exists ? (
-                <CheckCircle2 className="size-icon-3xs text-chart-2" />
-              ) : (
-                <AlertCircle className="size-icon-3xs text-destructive" />
-              )}
-              {typeof systemStatus?.bucket?.object_count === "number" && (
-                <span className="ml-1 font-semibold">
-                  {systemStatus.bucket.object_count.toLocaleString()}
-                </span>
-              )}
-              {systemStatus?.bucket?.name && (
-                <span className="ml-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-                  {systemStatus.bucket.name}
-                </span>
-              )}
-            </Badge>
-
-            <AppButton
-              onClick={fetchStatus}
-              disabled={statusLoading}
-              variant="ghost"
-              size="xs"
-            >
-              {statusLoading ? (
-                <Loader2 className="size-icon-3xs animate-spin" />
-              ) : (
-                <RefreshCw className="size-icon-3xs" />
-              )}
-              Refresh
-            </AppButton>
-          </motion.div>
-
+    <RoutePageShell
+      eyebrow="Products"
+      title="Upload & Index your documents"
+      description="Drop your documents and let Vultr Vision retrieve insights from them."
+      meta={heroMeta}
+      innerClassName="space-y-6"
+    >
+      <motion.div
+        className="flex flex-col space-y-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+      >
           {/* Upload Form */}
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col space-y-4">
             {/* Drag & Drop Zone */}
@@ -598,8 +575,7 @@ export default function UploadPage() {
             </AnimatePresence>
 
           </form>
-        </motion.div>
-      </div>
-    </div>
+      </motion.div>
+    </RoutePageShell>
   );
 }

@@ -34,7 +34,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { PageHeader } from "@/components/page-header";
+import { RoutePageShell } from "@/components/route-page-shell";
 
 const starterPrompts = [
   {
@@ -469,56 +469,6 @@ export default function ChatPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
         >
-          <motion.div
-            className="shrink-0"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.3 }}
-          >
-            <PageHeader
-              align="center"
-              spacing="lg"
-              title={
-                <>
-                  <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
-                    Chat with
-                  </span>{" "}
-                  <span className="bg-gradient-to-r from-vultr-sky-blue via-white to-vultr-blue bg-clip-text text-transparent">
-                    Vultr Vision
-                  </span>
-                </>
-              }
-              description="Explore uploads with Vultr’s grounded answers, inline visual citations, and ColPali-powered context."
-              childrenClassName="gap-2 text-body-xs"
-            >
-              <Badge variant={isReady ? "default" : "destructive"} className="gap-1.5 px-3 py-1.5">
-                {isReady ? (
-                  <>
-                    <Sparkles className="size-icon-sm text-primary-foreground" />
-                    Connected to workspace
-                  </>
-                ) : (
-                  <>
-                    <AlertCircle className="size-icon-sm" />
-                    Setup required
-                  </>
-                )}
-              </Badge>
-              {timeToFirstTokenMs !== null && (
-                <Badge variant="secondary" className="gap-1.5 px-3 py-1.5">
-                  <Timer className="size-icon-sm" />
-                  {(timeToFirstTokenMs / 1000).toFixed(2)}s response time
-                </Badge>
-              )}
-              {toolCallingEnabled && (
-                <Badge variant="outline" className="gap-1.5 px-3 py-1.5 border-primary/30 text-primary">
-                  <Bot className="size-icon-sm" />
-                  Tool Calling Enabled
-                </Badge>
-              )}
-            </PageHeader>
-          </motion.div>
-
           <section className="relative flex min-h-[520px] flex-1 flex-col overflow-hidden">
 
 

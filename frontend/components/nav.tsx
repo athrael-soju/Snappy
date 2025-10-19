@@ -1,13 +1,23 @@
 "use client"
 
+import { useEffect, useMemo, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useTheme } from "next-themes"
-import { Moon, Sun, Menu } from "lucide-react"
+import { Menu } from "lucide-react"
+
 import { AppButton } from "@/components/app-button"
-import { useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuIndicator,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+  NavigationMenuViewport,
+} from "@/components/ui/navigation-menu"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,148 +26,266 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useUploadStore } from "@/stores/app-store"
 
-type NavLink = {
-  href: string
+type MenuLink = {
   label: string
+  href: string
+  description: string
+  external?: boolean
+  showUploadProgress?: boolean
 }
 
-const links: NavLink[] = [
-  { href: "/", label: "Home" },
-  { href: "/upload", label: "Upload" },
-  { href: "/search", label: "Search" },
-  { href: "/chat", label: "Chat" },
-  { href: "/configuration", label: "Configuration" },
-  { href: "/maintenance", label: "Maintenance" },
-  { href: "/about", label: "About" },
+type NavSection = {
+  label: string
+  items: MenuLink[]
+}
+
+const menuSections: NavSection[] = [
+  {
+    label: "Services",
+    items: [
+      {
+        label: "Upload & Index",
+        href: "/upload",
+        description: "Stage documents and create embeddings with Vultr storage pipelines.",
+        showUploadProgress: true,
+      },
+      {
+        label: "Semantic Search",
+        href: "/search",
+        description: "Query ColPali-powered retrieval tuned for compliance workloads.",
+      },
+      {
+        label: "Vision Chat",
+        href: "/chat",
+        description: "Collaborate on visual evidence through grounded conversational UI.",
+      },
+    ],
+  },
+  {
+    label: "Management",
+    items: [
+      {
+        label: "Configuration Studio",
+        href: "/configuration",
+        description: "Control policies, connectors, and deployment parameters.",
+      },
+      {
+        label: "Maintenance Console",
+        href: "/maintenance",
+        description: "Monitor uptime, jobs, and GPU fleet health in real time.",
+      },
+    ],
+  }
+]
+
+const directLinks: MenuLink[] = [
+  {
+    label: "About",
+    href: "/about",
+    description: "Understand the brand system and roadmap behind this template.",
+    external: false,
+  }
 ]
 
 export function Nav() {
   const pathname = usePathname()
-  const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const { uploading, uploadProgress } = useUploadStore()
-  const showUploadBadge = uploading && typeof uploadProgress === "number"
-  const uploadPercent = showUploadBadge
-    ? Math.min(100, Math.max(0, Math.round(uploadProgress ?? 0)))
-    : null
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  const surfaceClass = mounted && theme === "dark" ? "surface-dark" : "surface-light"
+  const uploadPercent = useMemo(() => {
+    if (!uploading || typeof uploadProgress !== "number") return null
+    return Math.min(100, Math.max(0, Math.round(uploadProgress)))
+  }, [uploading, uploadProgress])
 
   return (
-    <header className={cn(surfaceClass, "relative sticky top-0 z-50 shrink-0 border-b border-vultr-blue-20/30 dark:border-vultr-light-blue/20 backdrop-blur-sm transition-colors")}>
-      <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-vultr-blue via-vultr-light-blue to-vultr-blue-60" />
-
-      <div className="layout-container flex items-center justify-between gap-6 py-3">
-        <Link href="/" className="group flex shrink-0 items-center gap-3 transition-all">
-          <div className="relative flex items-center">
-            <div className="pointer-events-none absolute -inset-3 rounded-full bg-vultr-light-blue/25 opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-100" />
-            <div className="relative flex items-center justify-center">
-              {mounted && (
-                <Image
-                  src={theme === "dark" ? "/brand/vultr-logo-reversed.svg" : "/brand/vultr-logo.svg"}
-                  alt="Vultr"
-                  width={136}
-                  height={42}
-                  priority
-                  className="logo-min h-9 w-auto transition duration-200 group-hover:scale-105"
-                />
-              )}
-            </div>
+    <header className="fixed top-0 z-50 w-full border-b border-[#1331a0]/40 bg-gradient-to-br from-[#06175a] via-[#0c2f95] to-[#1244cd] text-white shadow-[0_6px_18px_rgba(6,14,56,0.35)]">
+      <div className="layout-container flex h-16 items-center gap-6 text-white">
+        <Link href="/" className="group flex shrink-0 items-center justify-center" aria-label="Vultr home">
+          <div className="relative flex items-center justify-center">
+            <span className="pointer-events-none absolute -left-6 -right-6 -top-4 h-16 rounded-full bg-vultr-sky-blue/20 opacity-0 blur-2xl transition-opacity duration-300 " />
+            {mounted && (
+              <Image
+                src="/brand/vultr-logo-reversed.svg"
+                alt="Vultr"
+                width={132}
+                height={36}
+                priority
+                className="h-9 w-auto transition-transform duration-200 group-hover:scale-[1.02]"
+              />
+            )}
           </div>
         </Link>
 
-        <nav className="hidden flex-1 items-center justify-center gap-3 lg:flex">
-          {links.map((link) => {
-            const isActive =
-              link.href === "/"
-                ? pathname === "/"
-                : pathname === link.href || pathname.startsWith(`${link.href}/`)
-            const isUploadLink = link.href === "/upload"
-            const shouldShowBadge = isUploadLink && showUploadBadge
+        <NavigationMenu className="hidden flex-1 justify-center lg:flex">
+          <NavigationMenuList className="gap-4">
+            {menuSections.map((section) => (
+              <NavigationMenuItem key={section.label}>
+                <NavigationMenuTrigger className="rounded-full border border-transparent bg-transparent px-3 py-2 text-body-sm font-medium text-white/80 transition hover:text-white data-[state=open]:border-white/30">
+                  {section.label}
+                </NavigationMenuTrigger>
+                <NavigationMenuContent className="rounded-[var(--radius-card)] border border-white/10 bg-[#0b1f69]/95 p-4 shadow-[0_18px_40px_-18px_rgba(8,24,80,0.75)] backdrop-blur-xl transition">
+                  <ul className="grid gap-2 sm:w-[400px]">
+                    {section.items.map((item) => (
+                      <li key={item.label}>
+                        <NavigationMenuLink asChild>
+                          <Link
+                            href={item.href}
+                            target={item.external ? "_blank" : undefined}
+                            rel={item.external ? "noreferrer noopener" : undefined}
+                            className={cn(
+                              "group flex flex-col gap-1 rounded-[var(--radius-card)] border border-white/10 bg-white/5 px-4 py-3 text-left transition hover:-translate-y-0.5 hover:border-white/30 hover:bg-white/10",
+                              pathname === item.href ? "border-white/40 bg-white/10" : ""
+                            )}
+                          >
+                            <span className="flex items-center gap-2 text-sm font-medium text-white group-hover:text-white">
+                              {item.label}
+                              {item.showUploadProgress && uploadPercent !== null && (
+                                <span className="rounded-sm bg-white/20 px-1.5 py-0.5 text-[11px] font-medium text-white shadow-sm">
+                                  {uploadPercent}%
+                                </span>
+                              )}
+                            </span>
+                            {item.description && (
+                              <span className="text-xs text-white/70">{item.description}</span>
+                            )}
+                          </Link>
+                        </NavigationMenuLink>
+                      </li>
+                    ))}
+                  </ul>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+            ))}
 
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  "relative rounded-full px-4 py-2 text-body-sm font-light text-vultr-navy/80 transition-colors duration-200 hover:text-vultr-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vultr-light-blue focus-visible:ring-offset-2 focus-visible:ring-offset-transparent dark:text-white/70",
-                  isActive ? "text-vultr-blue font-semibold dark:text-vultr-light-blue" : ""
-                )}
-              >
-                {isActive && (
-                  <span className="section-divider absolute inset-x-3 -bottom-1" />
-                )}
-                <span className="relative">{link.label}</span>
-                {shouldShowBadge && uploadPercent !== null && (
-                  <span className="absolute -top-2 -right-3 rounded-full bg-vultr-blue px-2 py-0.5 text-[10px] font-semibold text-white shadow-[var(--shadow-soft)]">
-                    {uploadPercent}%
-                  </span>
-                )}
-              </Link>
-            )
-          })}
-        </nav>
+            {directLinks.map((link) => (
+              <NavigationMenuItem key={link.label}>
+                <NavigationMenuLink asChild>
+                  <Link
+                    href={link.href}
+                    target={link.external ? "_blank" : undefined}
+                    rel={link.external ? "noreferrer noopener" : undefined}
+                    className="rounded-full px-3 py-2 text-body-sm font-medium text-white/80 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                  >
+                    {link.label}
+                  </Link>
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+            ))}
+          </NavigationMenuList>
+          <NavigationMenuIndicator className="hidden lg:flex" />
+          <NavigationMenuViewport className="rounded-[var(--radius-card)] border border-white/10 shadow-[0_18px_40px_-18px_rgba(8,24,80,0.75)]" />
+        </NavigationMenu>
 
-        <div className="flex items-center gap-2">
-          {mounted && (
-            <AppButton
-              variant="outline"
-              size="icon-lg"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              iconShift
-            >
-              {theme === "dark" ? (
-                <Sun className="size-icon-md transition-transform group-hover/app-button:rotate-45 group-hover/app-button:scale-110" />
-              ) : (
-                <Moon className="size-icon-md transition-transform group-hover/app-button:-rotate-12 group-hover/app-button:scale-110" />
-              )}
-              <span className="sr-only">Toggle theme</span>
-            </AppButton>
-          )}
+        <div className="ml-auto flex items-center gap-3">
+          <AppButton
+            asChild
+            variant="ghost"
+            size="sm"
+            className="hidden rounded-[var(--radius-button)] border border-white/20 text-body-sm font-medium text-white/80 hover:border-white/40 hover:bg-white/10 hover:text-white lg:inline-flex"
+          >
+            <Link href="https://my.vultr.com/" target="_blank" rel="noreferrer noopener">
+              Sign In
+            </Link>
+          </AppButton>
+          <AppButton
+            asChild
+            variant="primary"
+            size="sm"
+            className="hidden rounded-[var(--radius-button)] bg-white px-5 text-vultr-blue hover:bg-vultr-sky-blue/80 lg:inline-flex"
+          >
+            <Link href="https://www.vultr.com/company/contact/" target="_blank" rel="noreferrer noopener">
+              Contact Sales
+            </Link>
+          </AppButton>
 
           <div className="lg:hidden">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <AppButton variant="ghost" size="icon" iconShift>
-                  <Menu className="size-icon-md transition-transform group-hover/app-button:scale-110" />
-                  <span className="sr-only">Open menu</span>
+                <AppButton variant="outline" size="icon" className="rounded-[var(--radius-button)] border-white/30 bg-white/10 text-white hover:border-white/50 hover:bg-white/15">
+                  <Menu className="size-icon-md" />
+                  <span className="sr-only">Open navigation</span>
                 </AppButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="w-56 rounded-[var(--radius-card)] border border-vultr-blue-20/30 p-2 shadow-[var(--shadow-soft)] backdrop-blur-sm dark:border-vultr-light-blue/20"
+                className="w-72 rounded-[var(--radius-card)] border border-white/10 bg-[#0b1f69]/95 p-2 text-white shadow-[0_18px_40px_-18px_rgba(8,24,80,0.75)] backdrop-blur-xl"
               >
-                {links.map((link) => {
-                  const isActive =
-                    link.href === "/"
-                      ? pathname === "/"
-                      : pathname === link.href || pathname.startsWith(`${link.href}/`)
-                  const isUploadLink = link.href === "/upload"
-                  const shouldShowBadge = isUploadLink && showUploadBadge
-
-                  return (
-                    <DropdownMenuItem key={link.href} asChild>
-                      <Link
-                        href={link.href}
-                        className={cn(
-                          "flex w-full cursor-pointer items-center justify-between gap-2 rounded-[calc(var(--radius-card)-0.5rem)] px-3 py-2 text-body-xs text-vultr-navy/80 transition-colors hover:bg-vultr-sky-blue/30 hover:text-vultr-blue dark:text-white/70",
-                          isActive ? "bg-vultr-sky-blue/40 text-vultr-blue font-semibold dark:text-vultr-light-blue" : ""
-                        )}
-                      >
-                        <span>{link.label}</span>
-                        {shouldShowBadge && uploadPercent !== null && (
-                          <span className="rounded-full bg-vultr-blue px-2 py-0.5 text-[10px] font-semibold text-white shadow-[var(--shadow-soft)]">
-                            {uploadPercent}%
+                {menuSections.map((section) => (
+                  <div key={section.label} className="mb-2 last:mb-0">
+                    <p className="px-3 pb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-white/50">
+                      {section.label}
+                    </p>
+                    {section.items.map((item) => (
+                      <DropdownMenuItem key={item.label} asChild>
+                        <Link
+                          href={item.href}
+                          target={item.external ? "_blank" : undefined}
+                          rel={item.external ? "noreferrer noopener" : undefined}
+                          className={cn(
+                            "flex w-full flex-col gap-1 rounded-[var(--radius-button)] px-3 py-2 text-left text-sm text-white/80 transition hover:bg-white/10",
+                            pathname === item.href ? "bg-white/10 text-white" : ""
+                          )}
+                        >
+                          <span className="flex items-center gap-2 font-medium">
+                            {item.label}
+                            {item.showUploadProgress && uploadPercent !== null && (
+                              <span className="rounded-sm bg-white/20 px-1.5 py-0.5 text-[11px] font-medium text-white shadow-sm">
+                                {uploadPercent}%
+                              </span>
+                            )}
                           </span>
-                        )}
-                      </Link>
-                    </DropdownMenuItem>
-                  )
-                })}
+                          {item.description && (
+                            <span className="text-xs text-white/60">{item.description}</span>
+                          )}
+                        </Link>
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
+                ))}
+
+                {directLinks.length > 0 && (
+                  <div className="mt-2 border-t border-white/10 pt-2">
+                    {directLinks.map((link) => (
+                      <DropdownMenuItem key={link.label} asChild>
+                        <Link
+                          href={link.href}
+                          target={link.external ? "_blank" : undefined}
+                          rel={link.external ? "noreferrer noopener" : undefined}
+                          className="flex w-full items-center justify-between gap-2 rounded-[var(--radius-button)] px-3 py-2 text-sm font-medium text-white/80 transition hover:bg-white/10"
+                        >
+                          {link.label}
+                        </Link>
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
+                )}
+
+                <div className="mt-3 flex flex-col gap-2">
+                  <AppButton
+                    asChild
+                    variant="ghost"
+                    size="sm"
+                    className="w-full rounded-[var(--radius-button)] border border-transparent text-body-sm font-medium text-white/80 hover:border-white/40 hover:bg-white/10"
+                  >
+                    <Link href="https://my.vultr.com/" target="_blank" rel="noreferrer noopener">
+                      Sign In
+                    </Link>
+                  </AppButton>
+                  <AppButton
+                    asChild
+                    variant="primary"
+                    size="sm"
+                    className="w-full rounded-[var(--radius-button)] bg-white px-5 text-vultr-blue hover:bg-vultr-sky-blue/80"
+                  >
+                    <Link href="https://www.vultr.com/company/contact/" target="_blank" rel="noreferrer noopener">
+                      Contact Sales
+                    </Link>
+                  </AppButton>
+                </div>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

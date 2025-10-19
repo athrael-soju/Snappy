@@ -26,7 +26,7 @@ import { useSearchStore } from "@/lib/hooks/use-search-store";
 import { useSystemStatus } from "@/stores/app-store";
 import ImageLightbox from "@/components/lightbox";
 import { InfoTooltip } from "@/components/info-tooltip";
-import { PageHeader } from "@/components/page-header";
+import { RoutePageShell } from "@/components/route-page-shell";
 
 const suggestedQueries = [
   "Show recent upload summaries",
@@ -131,6 +131,34 @@ export default function SearchPage() {
     setError(null);
   };
 
+  const heroActions = (
+    <>
+      <AppButton
+        asChild
+        variant="primary"
+        size="sm"
+        className="rounded-[var(--radius-button)] bg-white px-5 text-vultr-blue hover:bg-vultr-sky-blue/80"
+      >
+        <Link href="/upload">Upload new docs</Link>
+      </AppButton>
+      <AppButton
+        asChild
+        variant="ghost"
+        size="sm"
+        className="rounded-[var(--radius-button)] border border-white/30 bg-white/10 px-4 py-2 text-white hover:border-white/50 hover:bg-white/20"
+      >
+        <Link href="/chat">Open vision chat</Link>
+      </AppButton>
+    </>
+  );
+
+  const heroMeta = !isReady ? (
+    <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-sm font-medium text-white">
+      <AlertCircle className="size-icon-3xs" />
+      System not ready
+    </span>
+  ) : null;
+
   const handleImageOpen = (url: string, label?: string) => {
     if (!url) return;
     setLightboxSrc(url);
@@ -139,45 +167,30 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="relative flex h-full min-h-full flex-col overflow-hidden">
-      <div className="flex h-full flex-1 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
+    <>
+      <RoutePageShell
+        eyebrow="Products"
+        title={
+          <>
+            <span className="bg-gradient-to-br from-white via-white to-white/70 bg-clip-text text-transparent">
+              Search &amp; Discover
+            </span>{" "}
+            <span className="bg-gradient-to-r from-[#9ddfff] via-[#6fb5ff] to-[#9ddfff] bg-clip-text text-transparent">
+              Visual Insights
+            </span>
+          </>
+        }
+        description="Ask questions in natural language and let Vultr Vision surface the most relevant matches instantly."
+        actions={heroActions}
+        meta={heroMeta}
+        innerClassName="space-y-6"
+      >
         <motion.div
-          className="mx-auto flex h-full w-full max-w-5xl flex-col space-y-4"
+          className="flex h-full flex-col space-y-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
         >
-          {/* Header Section */}
-          <motion.div
-            className="shrink-0"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.3 }}
-          >
-            <PageHeader
-              align="center"
-              title={
-                <>
-                  <span className="bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
-                    Search & Discover
-                  </span>{" "}
-                  <span className="bg-gradient-to-r from-primary via-chart-4 to-primary bg-clip-text text-transparent">
-                    Your Documents
-                  </span>
-                </>
-              }
-              description="Ask questions in natural language and let Vultr Vision surface the most relevant matches instantly."
-              childrenClassName="gap-2 pt-2"
-            >
-              {!isReady && (
-                <Badge variant="destructive" className="gap-2 text-body-xs">
-                  <AlertCircle className="size-icon-3xs" />
-                  System not ready
-                </Badge>
-              )}
-            </PageHeader>
-          </motion.div>
-
           {/* Search Form */}
           <motion.form
             onSubmit={handleSearch}
@@ -511,7 +524,7 @@ export default function SearchPage() {
             )}
           </AnimatePresence>
         </motion.div>
-      </div>
+      </RoutePageShell>
       <ImageLightbox
         open={lightboxOpen}
         src={lightboxSrc}
@@ -524,6 +537,6 @@ export default function SearchPage() {
           }
         }}
       />
-    </div>
+    </>
   );
 }

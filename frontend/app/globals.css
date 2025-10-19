@@ -17,7 +17,8 @@
   --color-vultr-blue-20: #1A3169;
 
   /* Neutral system */
-  --color-warm-0: #ffffff; /* Neutral alias for pure white surfaces */
+  --color-warm-0: #ffffff;
+  /* Neutral alias for pure white surfaces */
   --color-warm-1: #F7F7F7;
   --color-warm-2: #CCCCCC;
   --color-warm-3: #414141;
@@ -26,10 +27,12 @@
   --color-cool-2: #A5AFB8;
 
   /* Typography */
-  --font-sans: "Roboto", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
-  --font-weight-light: 300;
+  --font-sans: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  --font-weight-light: 400;
   --font-weight-regular: 400;
+  --font-weight-medium: 500;
   --font-weight-semibold: 600;
+  --font-weight-bold: 700;
   --text-display-1: 4rem;
   --leading-display-1: 1.1;
   --text-display-2: 2.5rem;
@@ -73,9 +76,10 @@
   --size-icon-expressive: 1.5625rem;
 
   /* Shape & elevation */
-  --radius-card: 1rem;
-  --shadow-soft: 0 28px 60px -30px rgba(3, 16, 89, 0.28);
-  --shadow-soft-strong: 0 40px 80px -40px rgba(3, 16, 89, 0.35);
+  --radius-card: 0.75rem;
+  --radius-button: 0.375rem;
+  --shadow-soft: 0 10px 40px -18px rgba(3, 16, 89, 0.18);
+  --shadow-soft-strong: 0 18px 50px -22px rgba(3, 16, 89, 0.28);
   --shadow-glow: 0 32px 80px -45px rgba(0, 123, 252, 0.45), 0 18px 54px -36px rgba(82, 186, 255, 0.5);
 
   /* Compatibility aliases */
@@ -140,10 +144,10 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
-    font-weight: var(--font-weight-light);
-    font-size: var(--text-body-lg);
-    line-height: var(--leading-body-lg);
-    letter-spacing: 0.01em;
+    font-weight: var(--font-weight-regular);
+    font-size: var(--text-body-base);
+    line-height: var(--leading-body-base);
+    letter-spacing: 0.005em;
     min-height: 100%;
     @apply antialiased;
   }
@@ -151,8 +155,8 @@
   h1 {
     font-size: clamp(2.75rem, 3vw + 2rem, var(--text-display-1));
     line-height: var(--leading-display-1);
-    letter-spacing: -0.015em;
-    font-weight: var(--font-weight-light);
+    letter-spacing: -0.02em;
+    font-weight: var(--font-weight-bold);
     color: inherit;
     text-wrap: balance;
   }
@@ -160,8 +164,8 @@
   h2 {
     font-size: clamp(2.125rem, 1.5vw + 1.75rem, var(--text-display-2));
     line-height: var(--leading-display-2);
-    letter-spacing: -0.01em;
-    font-weight: var(--font-weight-light);
+    letter-spacing: -0.012em;
+    font-weight: var(--font-weight-semibold);
     color: inherit;
     text-wrap: balance;
   }
@@ -169,22 +173,22 @@
   h3 {
     font-size: clamp(1.5rem, 1vw + 1.2rem, var(--text-display-3));
     line-height: var(--leading-display-3);
-    letter-spacing: -0.005em;
-    font-weight: var(--font-weight-light);
+    letter-spacing: -0.01em;
+    font-weight: var(--font-weight-semibold);
     color: inherit;
     text-wrap: balance;
   }
 
   p {
-    font-size: var(--text-body-lg);
-    line-height: var(--leading-body-lg);
-    letter-spacing: 0.01em;
-    font-weight: var(--font-weight-light);
+    font-size: var(--text-body-base);
+    line-height: var(--leading-body-base);
+    letter-spacing: 0.005em;
+    font-weight: var(--font-weight-regular);
     color: inherit;
   }
 
   a {
-    @apply text-vultr-blue underline underline-offset-4 decoration-from-font;
+    @apply text-vultr-blue decoration-from-font;
   }
 
   a:hover {
@@ -374,52 +378,51 @@
   /* Surface treatments */
   .surface-light {
     @apply bg-white text-vultr-navy;
-    background-color: color-mix(in oklab, var(--color-warm-1) 86%, var(--color-warm-0) 14%);
-    backdrop-filter: saturate(140%) blur(12px);
-    -webkit-backdrop-filter: saturate(140%) blur(12px);
-    box-shadow: 0 22px 60px -36px rgba(3, 16, 89, 0.28);
+    border: 1px solid rgba(3, 16, 89, 0.06);
+    box-shadow: 0 16px 44px -24px rgba(3, 16, 89, 0.18);
   }
 
   .surface-dark {
     @apply bg-vultr-midnight text-white;
-    background-color: color-mix(in oklab, var(--color-vultr-midnight) 92%, var(--color-vultr-navy) 8%);
-    backdrop-filter: saturate(140%) blur(12px);
-    -webkit-backdrop-filter: saturate(140%) blur(12px);
-    box-shadow: 0 24px 60px -34px rgba(23, 33, 71, 0.55);
+    border: 1px solid rgba(201, 244, 255, 0.16);
+    box-shadow: 0 24px 60px -34px rgba(23, 33, 71, 0.45);
   }
 
   .surface-contrast {
-    @apply text-white;
-    background: linear-gradient(132deg, var(--color-vultr-midnight) 10%, color-mix(in oklab, var(--color-vultr-blue) 70%, var(--color-vultr-midnight)) 55%, var(--color-vultr-blue-60) 100%);
-    box-shadow: 0 32px 80px -45px color-mix(in oklab, var(--color-vultr-midnight) 70%, transparent);
+    @apply bg-white text-vultr-navy;
+    border-top: 1px solid rgba(3, 16, 89, 0.08);
+    border-bottom: 1px solid rgba(3, 16, 89, 0.08);
+    background-image: linear-gradient(0deg, rgba(201, 244, 255, 0.4), rgba(201, 244, 255, 0));
   }
 
   .dark .surface-contrast {
-    background: linear-gradient(148deg, color-mix(in oklab, var(--color-vultr-midnight) 75%, transparent) 0%, color-mix(in oklab, var(--color-vultr-blue) 55%, transparent) 100%);
+    @apply bg-vultr-midnight text-white;
+    background-image: linear-gradient(0deg, rgba(38, 82, 174, 0.35), rgba(3, 16, 89, 0));
+    border-color: rgba(82, 186, 255, 0.2);
   }
 
   .surface-subtle {
-    @apply text-vultr-navy;
-    background: linear-gradient(135deg, color-mix(in oklab, var(--color-warm-1) 80%, var(--color-vultr-sky-blue) 20%) 0%, color-mix(in oklab, var(--color-warm-1) 70%, var(--color-vultr-light-blue) 30%) 100%);
-    box-shadow: 0 28px 60px -38px color-mix(in oklab, var(--color-vultr-blue) 35%, transparent);
+    @apply bg-white text-vultr-navy;
+    border: 1px solid rgba(82, 186, 255, 0.18);
+    box-shadow: 0 20px 48px -30px rgba(0, 123, 252, 0.25);
   }
 
   .dark .surface-subtle {
-    background: linear-gradient(140deg, color-mix(in oklab, var(--color-vultr-midnight) 78%, transparent) 0%, color-mix(in oklab, var(--color-vultr-blue) 40%, transparent) 100%);
-    @apply text-white;
+    @apply bg-vultr-midnight text-white;
+    border-color: rgba(82, 186, 255, 0.35);
   }
 
   .surface-glass {
-    background: color-mix(in oklab, var(--color-warm-0) 18%, transparent);
-    border: 1px solid color-mix(in oklab, var(--color-vultr-light-blue) 35%, transparent);
-    box-shadow: 0 26px 80px -48px color-mix(in oklab, var(--color-vultr-blue) 45%, transparent);
-    backdrop-filter: saturate(165%) blur(18px);
-    -webkit-backdrop-filter: saturate(165%) blur(18px);
+    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid rgba(3, 16, 89, 0.08);
+    box-shadow: 0 18px 48px -24px rgba(3, 16, 89, 0.16);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
 
   .dark .surface-glass {
-    background: color-mix(in oklab, var(--color-vultr-midnight) 72%, transparent);
-    border-color: color-mix(in oklab, var(--color-vultr-blue-60) 45%, transparent);
+    background: rgba(23, 33, 71, 0.72);
+    border-color: rgba(82, 186, 255, 0.28);
   }
 
   /* Vultr display typography */
@@ -430,7 +433,7 @@
   }
 
   :where(.text-display-1) {
-    font-weight: var(--font-weight-light);
+    font-weight: var(--font-weight-bold);
   }
 
   .text-display-2 {
@@ -440,7 +443,7 @@
   }
 
   :where(.text-display-2) {
-    font-weight: var(--font-weight-light);
+    font-weight: var(--font-weight-semibold);
   }
 
   .text-display-3 {
@@ -450,7 +453,7 @@
   }
 
   :where(.text-display-3) {
-    font-weight: var(--font-weight-light);
+    font-weight: var(--font-weight-semibold);
   }
 
   /* Vultr digital typography scale */
@@ -461,7 +464,7 @@
   }
 
   :where(.text-digital-h1) {
-    font-weight: var(--font-weight-light);
+    font-weight: var(--font-weight-bold);
   }
 
   .text-digital-h2 {
@@ -471,7 +474,7 @@
   }
 
   :where(.text-digital-h2) {
-    font-weight: var(--font-weight-light);
+    font-weight: var(--font-weight-semibold);
   }
 
   .text-digital-h3 {
@@ -481,7 +484,7 @@
   }
 
   :where(.text-digital-h3) {
-    font-weight: var(--font-weight-light);
+    font-weight: var(--font-weight-semibold);
   }
 
   .text-digital-h4 {
@@ -491,7 +494,7 @@
   }
 
   :where(.text-digital-h4) {
-    font-weight: var(--font-weight-light);
+    font-weight: var(--font-weight-medium);
   }
 
   .text-digital-h5 {
@@ -522,7 +525,7 @@
   }
 
   :where(.text-editorial-h1) {
-    font-weight: var(--font-weight-light);
+    font-weight: var(--font-weight-bold);
   }
 
   .text-editorial-h2 {
@@ -532,7 +535,7 @@
   }
 
   :where(.text-editorial-h2) {
-    font-weight: var(--font-weight-light);
+    font-weight: var(--font-weight-semibold);
   }
 
   .text-editorial-h3 {
@@ -542,7 +545,7 @@
   }
 
   :where(.text-editorial-h3) {
-    font-weight: var(--font-weight-light);
+    font-weight: var(--font-weight-semibold);
   }
 
   .text-editorial-h4 {
@@ -552,7 +555,7 @@
   }
 
   :where(.text-editorial-h4) {
-    font-weight: var(--font-weight-regular);
+    font-weight: var(--font-weight-medium);
   }
 
   .text-editorial-h5 {
@@ -562,7 +565,7 @@
   }
 
   :where(.text-editorial-h5) {
-    font-weight: var(--font-weight-regular);
+    font-weight: var(--font-weight-medium);
   }
 
   .text-editorial-h6 {
@@ -572,7 +575,7 @@
   }
 
   :where(.text-editorial-h6) {
-    font-weight: var(--font-weight-semibold);
+    font-weight: var(--font-weight-medium);
   }
 
   /* Vultr body typography scale */
@@ -583,7 +586,7 @@
   }
 
   :where(.text-body-2xl) {
-    font-weight: var(--font-weight-light);
+    font-weight: var(--font-weight-medium);
   }
 
   .text-body-xl {
@@ -593,7 +596,7 @@
   }
 
   :where(.text-body-xl) {
-    font-weight: var(--font-weight-light);
+    font-weight: var(--font-weight-medium);
   }
 
   .text-body-lg {
@@ -603,7 +606,7 @@
   }
 
   :where(.text-body-lg) {
-    font-weight: var(--font-weight-light);
+    font-weight: var(--font-weight-regular);
   }
 
   .text-body {
@@ -613,7 +616,7 @@
   }
 
   :where(.text-body) {
-    font-weight: var(--font-weight-light);
+    font-weight: var(--font-weight-regular);
   }
 
   .text-body-sm {
@@ -623,7 +626,7 @@
   }
 
   :where(.text-body-sm) {
-    font-weight: var(--font-weight-light);
+    font-weight: var(--font-weight-medium);
   }
 
   .text-body-xs {
@@ -633,7 +636,7 @@
   }
 
   :where(.text-body-xs) {
-    font-weight: var(--font-weight-light);
+    font-weight: var(--font-weight-medium);
   }
 
   .text-cta {
@@ -735,12 +738,12 @@
 
 @layer components {
   .btn {
-    @apply inline-flex items-center gap-2 rounded-[var(--radius-card)] px-5 py-3 transition;
+    @apply inline-flex items-center gap-2 rounded-[var(--radius-button)] px-5 py-3 transition;
     font-size: var(--text-cta);
     line-height: var(--leading-cta);
     letter-spacing: 0.02em;
     text-transform: uppercase;
-    font-weight: var(--font-weight-semibold);
+    font-weight: var(--font-weight-medium);
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vultr-light-blue focus-visible:ring-offset-2;
   }
 
@@ -763,10 +766,12 @@
 
   .card {
     @apply overflow-hidden rounded-[var(--radius-card)] bg-white text-vultr-navy shadow-[var(--shadow-soft)];
+    border: 1px solid rgba(3, 16, 89, 0.08);
   }
 
   .card-dark {
     @apply overflow-hidden rounded-[var(--radius-card)] bg-vultr-midnight text-white shadow-[var(--shadow-soft-strong)];
+    border: 1px solid rgba(82, 186, 255, 0.2);
   }
 
   .input,

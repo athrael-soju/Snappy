@@ -29,10 +29,10 @@ export default function RootLayout({
       <head>
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
         />
       </head>
-      <body className="h-dvh overflow-hidden font-sans antialiased">
+      <body className="min-h-screen bg-white font-sans text-vultr-navy antialiased dark:bg-vultr-midnight dark:text-white">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <NextTopLoader
             color="var(--color-vultr-blue)"
@@ -47,16 +47,9 @@ export default function RootLayout({
           />
           <AppStoreProvider>
             <Toaster position="top-right" toastOptions={{ className: "rounded-[var(--radius-card)] shadow-[var(--shadow-soft)]" }} />
-            <div className="relative flex h-full min-h-0 flex-col">
-              <div className="pointer-events-none fixed inset-0 -z-10">
-                <div className="bg-hero-vultr absolute inset-x-0 top-0 h-[55%]" />
-                <div className="absolute inset-0 bg-gradient-to-b from-vultr-blue/10 via-transparent to-warm-1" />
-                <div className="absolute left-1/2 top-1/3 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-vultr-light-blue/35 blur-[140px]" />
-                <div className="absolute bottom-[-10%] right-[12%] h-[320px] w-[320px] rounded-full bg-vultr-sky-blue/40 blur-[160px]" />
-              </div>
-
+            <div className="relative flex min-h-screen flex-col bg-white dark:bg-vultr-midnight">
               <Nav />
-              <main className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</main>
+              <main className="flex-1 overflow-x-hidden">{children}</main>
               <Footer />
             </div>
           </AppStoreProvider>

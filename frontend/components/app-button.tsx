@@ -56,7 +56,7 @@ type AppButtonProps = Omit<PrimitiveButtonProps, "className" | "size" | "variant
 }
 
 const baseClasses =
-  "inline-flex items-center justify-center gap-2 font-semibold text-[var(--text-cta)] leading-[var(--leading-cta)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vultr-light-blue focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none"
+  "inline-flex items-center justify-center gap-2 font-medium text-[var(--text-cta)] leading-[var(--leading-cta)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vultr-light-blue focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none"
 
 const variantClasses: Record<AppButtonVariant, string> = {
   primary:
@@ -72,7 +72,7 @@ const variantClasses: Record<AppButtonVariant, string> = {
 }
 
 const sizeClasses: Record<AppButtonSize, string> = {
-  xs: "h-8 rounded-[calc(var(--radius-card)-0.75rem)] px-3 text-xs [&>svg]:h-3.5 [&>svg]:w-3.5",
+  xs: "h-8 px-3 text-xs [&>svg]:h-3.5 [&>svg]:w-3.5",
   sm: "h-10 px-4 text-sm [&>svg]:h-4 [&>svg]:w-4",
   md: "h-12 px-5 [&>svg]:h-5 [&>svg]:w-5",
   lg: "h-14 px-6 [&>svg]:h-5 [&>svg]:w-5",
@@ -115,7 +115,7 @@ export function AppButton({
 }: AppButtonProps) {
   const isInline = size === "inline"
   const isGrouped = groupPosition !== undefined
-  const resolvedPill = isGrouped ? false : pill ?? !isInline
+  const resolvedPill = isGrouped ? false : pill ?? false
   const resolvedGroupPosition = groupPosition ?? null
 
   return (
@@ -126,7 +126,7 @@ export function AppButton({
         alignClasses[align],
         sizeClasses[size],
         variantClasses[variant],
-        resolvedPill ? "rounded-full" : "rounded-md",
+        resolvedPill ? "rounded-full" : "rounded-[var(--radius-button)]",
         resolvedGroupPosition ? groupShapeClasses[resolvedGroupPosition] : undefined,
         resolvedGroupPosition ? groupOverlapClasses[resolvedGroupPosition] : undefined,
         fullWidth ? "w-full" : "w-fit",
