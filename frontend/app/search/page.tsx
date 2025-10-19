@@ -136,7 +136,7 @@ export default function SearchPage() {
       <AppButton
         asChild
         variant="primary"
-        size="sm"
+        size="xs"
         className="rounded-[var(--radius-button)] bg-white px-5 text-vultr-blue hover:bg-vultr-sky-blue/80"
       >
         <Link href="/upload">Upload new docs</Link>
@@ -144,7 +144,7 @@ export default function SearchPage() {
       <AppButton
         asChild
         variant="ghost"
-        size="sm"
+        size="xs"
         className="rounded-[var(--radius-button)] border border-white/30 bg-white/10 px-4 py-2 text-white hover:border-white/50 hover:bg-white/20"
       >
         <Link href="/chat">Open vision chat</Link>
@@ -169,7 +169,7 @@ export default function SearchPage() {
   return (
     <>
       <RoutePageShell
-        eyebrow="Products"
+        eyebrow="Services"
         title={
           <>
             <span className="bg-gradient-to-br from-white via-white to-white/70 bg-clip-text text-transparent">
@@ -184,9 +184,10 @@ export default function SearchPage() {
         actions={heroActions}
         meta={heroMeta}
         innerClassName="space-y-6"
+        variant="compact"
       >
         <motion.div
-          className="flex h-full flex-col space-y-6"
+          className="flex h-full flex-col space-y-2"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
@@ -368,7 +369,7 @@ export default function SearchPage() {
           <AnimatePresence mode="wait">
             {(hasSearched || loading) && (
               <motion.div
-                className="flex min-h-0 flex-1 flex-col space-y-4"
+                className="flex min-h-0 flex-1 flex-col"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
@@ -450,7 +451,7 @@ export default function SearchPage() {
                           </AppButton>
                         </div>
 
-                        <ScrollArea className="h-[50vh] w-full max-w-6xl mx-auto">
+                        <ScrollArea className="h-[40vh] w-full max-w-6xl mx-auto">
                           <div className="space-y-2 pr-4">
                             {truncatedResults.map((item, index) => {
                               const filename = item.payload?.filename;
@@ -479,7 +480,7 @@ export default function SearchPage() {
 
                                   {/* Thumbnail */}
                                   {item.image_url ? (
-                                    <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg border border-border/50 bg-background/50">
+                                    <div className="relative h-18 w-18 shrink-0 overflow-hidden rounded-lg border border-border/50 bg-background/50">
                                       <Image
                                         src={item.image_url}
                                         alt={displayTitle}
@@ -499,7 +500,7 @@ export default function SearchPage() {
                                   <div className="relative flex min-w-0 flex-1 flex-col justify-between">
                                     {/* Header */}
                                     <div className="space-y-1.5">
-                                      <h3 className="line-clamp-2 text-body-sm sm:text-body font-bold text-foreground">
+                                      <h3 className="line-clamp-2 text-body-xs xs:text-body font-bold text-foreground">
                                         {displayTitle}
                                       </h3>
                                       <div className="flex flex-wrap gap-1.5">

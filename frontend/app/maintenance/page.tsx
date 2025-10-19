@@ -93,30 +93,6 @@ export default function MaintenancePage() {
   const vectorName = systemStatus?.collection?.name ?? null;
   const bucketName = systemStatus?.bucket?.name ?? null;
 
-  const heroMeta = (
-    <>
-      <span
-        className={cn(
-          "inline-flex items-center gap-1 rounded-full border px-3 py-1 text-body-sm font-medium text-white backdrop-blur",
-          isSystemReady ? "border-white/25 bg-white/10" : "border-amber-300/50 bg-amber-400/25"
-        )}
-      >
-        {isSystemReady ? <CheckCircle2 className="size-icon-3xs text-white" /> : <AlertCircle className="size-icon-3xs text-white" />}
-        {isSystemReady ? "System ready" : "Attention needed"}
-      </span>
-      <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-body-sm font-medium text-white backdrop-blur">
-        <Database className="size-icon-3xs" />
-        {vectorCount ?? "—"} vectors
-        {vectorName ? <span className="text-body-xs uppercase tracking-[0.18em] text-white/70">({vectorName})</span> : null}
-      </span>
-      <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-body-sm font-medium text-white backdrop-blur">
-        <HardDrive className="size-icon-3xs" />
-        {bucketCount ?? "—"} objects
-        {bucketName ? <span className="text-body-xs uppercase tracking-[0.18em] text-white/70">({bucketName})</span> : null}
-      </span>
-    </>
-  );
-
   const heroActions = (
     <>
       <AppButton
@@ -160,7 +136,7 @@ export default function MaintenancePage() {
         title="System Maintenance"
         description="Monitor storage health, verify resource readiness, and run core maintenance operations."
         actions={heroActions}
-        meta={heroMeta}
+        variant="compact"
       >
         <div className="px-4 py-6 sm:px-6 lg:px-8">
           <motion.div

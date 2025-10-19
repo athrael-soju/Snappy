@@ -78,7 +78,7 @@ export default function ConfigurationPage() {
         <div className="flex h-full flex-1 flex-col items-center justify-center px-4 py-6">
           <AlertCircle className="size-icon-3xl text-muted-foreground/50" />
           <h1 className="mt-3 text-digital-h4 font-semibold text-balance">Configuration Unavailable</h1>
-          <p className="mt-2 text-center text-body-sm text-muted-foreground">
+          <p className="mt-2 text-center text-body-xs text-muted-foreground">
             Configuration data could not be loaded. Check that the API is reachable.
           </p>
         </div>
@@ -93,33 +93,6 @@ export default function ConfigurationPage() {
   const draftCount = storedDraftKeys.length;
   const draftCountLabel = draftCount === 1 ? "setting" : "settings";
   const draftUpdatedLabel = storedDraftUpdatedAt ? storedDraftUpdatedAt.toLocaleString() : null;
-
-  const heroMeta = (
-    <>
-      <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-body-sm font-medium text-white backdrop-blur">
-        <Hash className="size-icon-3xs" />
-        {configStats.totalSettings} settings
-      </span>
-      <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-body-sm font-medium text-white backdrop-blur">
-        {configStats.modifiedSettings > 0 ? (
-          <AlertCircle className="size-icon-3xs text-amber-200" />
-        ) : (
-          <CheckCircle2 className="size-icon-3xs text-emerald-200" />
-        )}
-        {configStats.modifiedSettings} modified
-      </span>
-      <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-body-sm font-medium text-white backdrop-blur capitalize">
-        <Info className="size-icon-3xs" />
-        {configStats.currentMode}
-      </span>
-      {lastSaved && (
-        <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-body-sm font-medium text-white backdrop-blur">
-          <History className="size-icon-3xs" />
-          Last saved {lastSaved.toLocaleTimeString()}
-        </span>
-      )}
-    </>
-  );
 
   const heroActions = (
     <>
@@ -163,7 +136,7 @@ export default function ConfigurationPage() {
       title="System Configuration"
       description="Review and adjust backend behaviour without leaving the app. Save changes section by section when you are ready."
       actions={heroActions}
-      meta={heroMeta}
+      variant="compact"
     >
       <motion.div
         className="mx-auto flex w-full max-w-5xl flex-col space-y-4"
@@ -172,7 +145,7 @@ export default function ConfigurationPage() {
         transition={{ duration: 0.4, ease: "easeOut" }}
       >
         {error && (
-          <div className="mx-auto flex max-w-2xl items-center justify-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-2 text-body-sm font-medium text-destructive">
+          <div className="mx-auto flex max-w-2xl items-center justify-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-2 text-body-xs font-medium text-destructive">
             <AlertCircle className="size-icon-xs" />
             {error}
           </div>
@@ -192,7 +165,7 @@ export default function ConfigurationPage() {
                 <div className="flex items-start gap-3">
                   <History className="mt-0.5 size-icon-sm shrink-0 text-amber-500 dark:text-amber-300" />
                   <div className="space-y-1">
-                    <p className="text-body-sm font-semibold">Local draft available</p>
+                    <p className="text-body-xs font-semibold">Local draft available</p>
                     <p className="text-body-xs text-amber-800/80 dark:text-amber-100/80">
                       {draftCount} {draftCountLabel} differ from the server.
                       {draftUpdatedLabel ? ` Last updated ${draftUpdatedLabel}.` : ""}
@@ -242,12 +215,12 @@ export default function ConfigurationPage() {
                   </span>
                 </div>
                 <Tabs value={activeKey} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="flex w-full flex-nowrap justify-start gap-2 overflow-x-auto rounded-xl border border-border/30 bg-background/60 p-1 text-body-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <TabsList className="flex w-full flex-nowrap justify-start gap-2 overflow-x-auto rounded-xl border border-border/30 bg-background/60 p-1 text-body-xs [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     {categories.map(([key, category]) => (
                       <TabsTrigger
                         key={key}
                         value={key}
-                        className="grow-0 shrink-0 basis-auto whitespace-nowrap px-3 py-1 text-body-sm font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
+                        className="grow-0 shrink-0 basis-auto whitespace-nowrap px-3 py-1 text-body-xs font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
                       >
                         {category.name}
                       </TabsTrigger>
@@ -257,7 +230,7 @@ export default function ConfigurationPage() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 text-body-sm text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-3 text-body-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1 rounded-lg border border-border/30 bg-background/70 px-2.5 py-1">
                 <Hash className="size-icon-3xs" />
                 {configStats.totalSettings} settings
@@ -310,7 +283,7 @@ export default function ConfigurationPage() {
                 </div>
               </div>
 
-              <ScrollArea className="h-[50vh] w-full max-w-6xl mx-auto">
+              <ScrollArea className="h-[30vh] w-full max-w-6xl mx-auto">
                 <motion.div
                   className="space-y-3 pr-4"
                   initial={{ opacity: 0 }}
@@ -342,7 +315,7 @@ export default function ConfigurationPage() {
                             <div className="flex items-center justify-between gap-4 min-h-[48px] touch-manipulation">
                               <div className="flex min-w-0 flex-1 items-center gap-2">
                                 <ToggleLeft className="size-icon-xs shrink-0 text-primary" />
-                                <span className="text-body-sm font-semibold">{setting.label}</span>
+                                <span className="text-body-xs font-semibold">{setting.label}</span>
                                 <InfoTooltip
                                   title={description}
                                   description={helpText}
@@ -371,7 +344,7 @@ export default function ConfigurationPage() {
                             <label className="flex flex-col gap-2 touch-manipulation">
                               <div className="flex items-center gap-2">
                                 <List className="size-icon-xs text-primary" />
-                                <span className="text-body-sm font-semibold">{setting.label}</span>
+                                <span className="text-body-xs font-semibold">{setting.label}</span>
                                 <InfoTooltip
                                   title={description}
                                   description={helpText}
@@ -413,7 +386,7 @@ export default function ConfigurationPage() {
                           <label className="flex flex-col gap-2 touch-manipulation">
                             <div className="flex items-center gap-2">
                               <Icon className="size-icon-xs text-primary" />
-                              <span className="text-body-sm font-semibold">{setting.label}</span>
+                              <span className="text-body-xs font-semibold">{setting.label}</span>
                               <InfoTooltip
                                 title={description}
                                 description={helpText}
@@ -498,7 +471,7 @@ export default function ConfigurationPage() {
               </AppButton>
             </div>
 
-            <div className="flex items-center gap-2 text-body-sm text-muted-foreground">
+            <div className="flex items-center gap-2 text-body-xs text-muted-foreground">
               {hasChanges ? (
                 <span className="inline-flex items-center gap-1">
                   <AlertCircle className="size-icon-3xs text-orange-500" />

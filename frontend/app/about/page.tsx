@@ -101,51 +101,12 @@ const lifecycle = [
 ] as const;
 
 export default function AboutPage() {
-  const heroActions = (
-    <>
-      <AppButton
-        asChild
-        variant="primary"
-        size="sm"
-        className="rounded-[var(--radius-button)] px-5"
-      >
-        <Link href="/chat">Explore chat demo</Link>
-      </AppButton>
-      <AppButton
-        asChild
-        variant="ghost"
-        size="sm"
-        className="rounded-[var(--radius-button)] border border-white/30 bg-white/10 px-4 py-2 text-white hover:border-white/50 hover:bg-white/20"
-      >
-        <Link href="/search">See search workflow</Link>
-      </AppButton>
-    </>
-  );
-
-  const heroMeta = (
-    <>
-      <span className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-body-sm font-medium text-white backdrop-blur">
-        <Sparkles className="size-icon-3xs" />
-        Vision-first retrieval
-      </span>
-      <span className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-body-sm font-medium text-white backdrop-blur">
-        <Server className="size-icon-3xs" />
-        FastAPI · Qdrant · MinIO stack
-      </span>
-      <span className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-body-sm font-medium text-white backdrop-blur">
-        <Workflow className="size-icon-3xs" />
-        End-to-end operations
-      </span>
-    </>
-  );
-
   return (
     <RoutePageShell
       eyebrow="Platform"
       title="Vultr Vision brings ColPali intelligence to your cloud"
       description="The turnkey template blends Vultr’s brand system with ColPali’s document vision pipeline so teams can launch grounded search, chat, and maintenance in record time."
-      actions={heroActions}
-      meta={heroMeta}
+      variant="compact"
     >
       <motion.div
         className="mx-auto flex w-full max-w-5xl flex-col gap-12"

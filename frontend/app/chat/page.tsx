@@ -464,7 +464,7 @@ export default function ChatPage() {
       <AppButton
         asChild
         variant="primary"
-        size="sm"
+        size="xs"
         className="rounded-[var(--radius-button)] bg-white px-5 text-vultr-blue hover:bg-vultr-sky-blue/80"
       >
         <Link href="/search">Browse search</Link>
@@ -472,7 +472,7 @@ export default function ChatPage() {
       <AppButton
         asChild
         variant="ghost"
-        size="sm"
+        size="xs"
         className="rounded-[var(--radius-button)] border border-white/30 bg-white/10 px-4 py-2 text-white hover:border-white/50 hover:bg-white/20"
       >
         <Link href="/upload">Upload files</Link>
@@ -517,12 +517,13 @@ export default function ChatPage() {
   return (
     <>
       <RoutePageShell
-        eyebrow="Products"
+        eyebrow="Services"
         title="Chat with Vultr Vision"
         description="Explore uploads with Vultr's grounded answers, inline visual citations, and ColPali-powered context."
         actions={heroActions}
         meta={heroMeta}
         innerClassName="flex min-h-0 flex-1 flex-col"
+        variant="compact"
       >
         <motion.section
           className="relative flex flex-1 flex-col overflow-hidden"
@@ -531,7 +532,7 @@ export default function ChatPage() {
           transition={{ duration: 0.4, ease: "easeOut" }}
         >
           <div className="relative flex flex-1 overflow-hidden">
-            <ScrollArea className="h-[50vh] w-full max-w-6xl mx-auto">
+            <ScrollArea className="h-[60vh] w-full max-w-6xl mx-auto">
               <div className="space-y-6 px-6 pb-6 pr-4 sm:px-10 min-h-full">
                 <AnimatePresence initial={false}>
                   {messages.length === 0 && (

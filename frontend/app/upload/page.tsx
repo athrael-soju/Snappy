@@ -184,7 +184,7 @@ export default function UploadPage() {
 
   const heroBadges = (
     <>
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-body-sm font-medium text-white backdrop-blur">
+      <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-2.5 py-0.5 text-body-xs font-medium text-white backdrop-blur">
         {isReady ? (
           <CheckCircle2 className="size-icon-3xs text-white" />
         ) : (
@@ -192,42 +192,7 @@ export default function UploadPage() {
         )}
         {isReady ? "Ready" : "Not Ready"}
       </span>
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-body-sm font-medium text-white backdrop-blur">
-        <Database className="size-icon-3xs text-white" />
-        <span className="font-semibold">Vectors</span>
-        {systemStatus?.collection?.exists ? (
-          <CheckCircle2 className="size-icon-3xs text-white/80" />
-        ) : (
-          <AlertCircle className="size-icon-3xs text-white/80" />
-        )}
-        {vectorCount ? <span>{vectorCount}</span> : null}
-        {vectorName ? (
-          <span className="text-body-xs uppercase tracking-[0.18em] text-white/70">
-            {vectorName}
-          </span>
-        ) : null}
-      </span>
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-body-sm font-medium text-white backdrop-blur">
-        <HardDrive className="size-icon-3xs text-white" />
-        <span className="font-semibold">Images</span>
-        {systemStatus?.bucket?.exists ? (
-          <CheckCircle2 className="size-icon-3xs text-white/80" />
-        ) : (
-          <AlertCircle className="size-icon-3xs text-white/80" />
-        )}
-        {bucketCount ? <span>{bucketCount}</span> : null}
-        {bucketName ? (
-          <span className="text-body-xs uppercase tracking-[0.18em] text-white/70">
-            {bucketName}
-          </span>
-        ) : null}
-      </span>
-    </>
-  );
 
-  const heroMeta = (
-    <div className="flex flex-wrap items-center gap-2 text-body-sm font-medium text-white/80">
-      {heroBadges}
       <AppButton
         onClick={fetchStatus}
         disabled={statusLoading}
@@ -242,16 +207,23 @@ export default function UploadPage() {
         )}
         Refresh
       </AppButton>
+    </>
+  );
+
+  const heroMeta = (
+    <div className="flex flex-wrap items-center gap-2 text-body-sm font-medium text-white/80">
+      {heroBadges}
     </div>
   );
 
   return (
     <RoutePageShell
-      eyebrow="Products"
+      eyebrow="Services"
       title="Upload & Index your documents"
       description="Drop your documents and let Vultr Vision retrieve insights from them."
       meta={heroMeta}
       innerClassName="space-y-6"
+      variant="compact"
     >
       <motion.div
         className="flex flex-col space-y-6"
@@ -394,7 +366,7 @@ export default function UploadPage() {
                   </AppButton>
                 </div>
 
-                <ScrollArea className="h-[50vh] w-full max-w-6xl mx-auto">
+                <ScrollArea className="h-[30vh] w-full max-w-6xl mx-auto">
                   {usingPersistedMeta && (
                     <p className="mb-2 px-1 text-body-xs text-muted-foreground">
                       Upload resuming after refresh. You can still monitor progress or cancel while the server finishes.
