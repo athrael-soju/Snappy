@@ -46,7 +46,7 @@ export function Nav() {
   }, [])
 
   return (
-    <header className="relative sticky top-0 z-50 shrink-0 surface-light dark:surface-dark border-b border-vultr-blue-20/30 dark:border-vultr-light-blue/20 backdrop-blur-sm transition-colors">
+    <header className="relative sticky top-0 z-50 shrink-0 border-b border-vultr-blue-20/30 dark:border-vultr-light-blue/20 backdrop-blur-sm transition-colors">
       <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-vultr-blue via-vultr-light-blue to-vultr-blue-60" />
 
       <div className="layout-container flex items-center justify-between gap-6 py-3">
@@ -127,7 +127,7 @@ export function Nav() {
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="w-56 rounded-[var(--radius-card)] border border-vultr-blue-20/30 surface-light p-2 shadow-[var(--shadow-soft)] backdrop-blur-sm dark:border-vultr-light-blue/20 dark:surface-dark"
+                className="w-56 rounded-[var(--radius-card)] border border-vultr-blue-20/30 p-2 shadow-[var(--shadow-soft)] backdrop-blur-sm dark:border-vultr-light-blue/20"
               >
                 {links.map((link) => {
                   const isActive =

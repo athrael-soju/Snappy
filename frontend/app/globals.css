@@ -42,11 +42,32 @@
   --text-cta: 1rem;
   --leading-cta: 1.25;
 
-  /* Layout */
+  /* Layout & spacing */
   --spacing-unit: 0.25rem;
   --spacing-section: 6rem;
   --layout-max-width: 80rem;
   --layout-gutter: clamp(1.5rem, 4vw, 3rem);
+  --spacing-grid-1: calc(var(--spacing-unit) * 1);
+  --spacing-grid-2: calc(var(--spacing-unit) * 2);
+  --spacing-grid-3: calc(var(--spacing-unit) * 3);
+  --spacing-grid-4: calc(var(--spacing-unit) * 4);
+  --spacing-grid-6: calc(var(--spacing-unit) * 6);
+  --spacing-grid-8: calc(var(--spacing-unit) * 8);
+  --spacing-grid-10: calc(var(--spacing-unit) * 10);
+  --spacing-grid-12: calc(var(--spacing-unit) * 12);
+  --spacing-grid-16: calc(var(--spacing-unit) * 16);
+  --layout-content-max: var(--layout-max-width);
+
+  /* Iconography */
+  --size-icon-3xs: 0.75rem;
+  --size-icon-2xs: 0.875rem;
+  --size-icon-xs: 1rem;
+  --size-icon-sm: 1.125rem;
+  --size-icon-md: 1.5rem;
+  --size-icon-lg: 2rem;
+  --size-icon-xl: 2.5rem;
+  --size-icon-2xl: 3rem;
+  --size-icon-3xl: 3.5rem;
 
   /* Shape & elevation */
   --radius-card: 1rem;
@@ -180,23 +201,23 @@
 @layer utilities {
   .icon {
     @apply inline-block align-middle;
-    width: 1.5rem;
-    height: 1.5rem;
+    width: var(--size-icon-md);
+    height: var(--size-icon-md);
   }
 
   .icon-sm {
-    width: 1.125rem;
-    height: 1.125rem;
+    width: var(--size-icon-sm);
+    height: var(--size-icon-sm);
   }
 
   .icon-lg {
-    width: 2rem;
-    height: 2rem;
+    width: var(--size-icon-lg);
+    height: var(--size-icon-lg);
   }
 
   .icon-xl {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: var(--size-icon-xl);
+    height: var(--size-icon-xl);
   }
 
   .logo-min {
@@ -229,7 +250,7 @@
   }
 
   .layout-container {
-    width: min(100%, var(--layout-max-width));
+    width: min(100%, var(--layout-content-max));
     margin-inline: auto;
     padding-inline: var(--layout-gutter);
   }
@@ -298,6 +319,52 @@
     background:
       radial-gradient(900px 420px at 85% 15%, color-mix(in srgb, var(--color-vultr-light-blue) 50%, transparent), transparent 60%),
       linear-gradient(180deg, var(--color-vultr-navy), var(--color-vultr-blue));
+  }
+
+  /* Icon sizing utilities */
+  .size-icon-3xs {
+    width: var(--size-icon-3xs);
+    height: var(--size-icon-3xs);
+  }
+
+  .size-icon-2xs {
+    width: var(--size-icon-2xs);
+    height: var(--size-icon-2xs);
+  }
+
+  .size-icon-xs {
+    width: var(--size-icon-xs);
+    height: var(--size-icon-xs);
+  }
+
+  .size-icon-sm {
+    width: var(--size-icon-sm);
+    height: var(--size-icon-sm);
+  }
+
+  .size-icon-md {
+    width: var(--size-icon-md);
+    height: var(--size-icon-md);
+  }
+
+  .size-icon-lg {
+    width: var(--size-icon-lg);
+    height: var(--size-icon-lg);
+  }
+
+  .size-icon-xl {
+    width: var(--size-icon-xl);
+    height: var(--size-icon-xl);
+  }
+
+  .size-icon-2xl {
+    width: var(--size-icon-2xl);
+    height: var(--size-icon-2xl);
+  }
+
+  .size-icon-3xl {
+    width: var(--size-icon-3xl);
+    height: var(--size-icon-3xl);
   }
 
   /* Vultr display typography */

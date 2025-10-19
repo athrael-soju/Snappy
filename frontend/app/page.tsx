@@ -127,7 +127,7 @@ export default function Home() {
               </Badge>
               <h1>Global ColPali Vision at Vultr Speed</h1>
               <p className="max-w-2xl text-white/80">
-                Activate Vultr's ColPali template for rapid document intelligence. Move from ingestion to
+                Activate Vultr&rsquo;s ColPali template for rapid document intelligence. Move from ingestion to
                 insight with GPU acceleration, global availability, and the blueprints trusted by enterprise
                 teams.
               </p>
@@ -181,7 +181,7 @@ export default function Home() {
               <ul className="space-y-3 text-sm text-white/80">
                 <li className="flex items-start gap-3">
                   <Sparkles className="mt-0.5 h-5 w-5 text-vultr-light-blue" />
-                  <span>Unified ingestion, retrieval, and chat flows aligned to Vultr's brand playbooks.</span>
+                  <span>Unified ingestion, retrieval, and chat flows aligned to Vultr&rsquo;s brand playbooks.</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <Cloud className="mt-0.5 h-5 w-5 text-vultr-sky-blue" />
@@ -211,7 +211,7 @@ export default function Home() {
               <span className="badge badge-neutral uppercase tracking-[0.18em] text-xs">Platform Features</span>
               <h2>From ingestion to insight in minutes</h2>
               <p className="max-w-2xl text-base text-vultr-blue-20">
-                Orchestrate document intelligence workflows with Vultr's design system. Use enterprise-ready
+                Orchestrate document intelligence workflows with Vultr&rsquo;s design system. Use enterprise-ready
                 components to maintain consistency from upload through retrieval.
               </p>
             </div>
