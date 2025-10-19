@@ -114,7 +114,7 @@ export default function Home() {
             The Everywhere Cloud
           </motion.span>
           <motion.h1 className="mt-5 max-w-3xl text-digital-h1 text-balance font-bold" variants={itemVariants}>
-            Global ColPali Vision at Vultr Speed
+            Multimodal Document Retrieval Powered by Vultr Vision
           </motion.h1>
           <motion.p className="mt-6 max-w-2xl text-body-lg text-white/85" variants={itemVariants}>
             Deliver automated document intelligence on top of Vultr&rsquo;s worldwide infrastructure. Launch
@@ -122,7 +122,7 @@ export default function Home() {
           </motion.p>
 
           <motion.p className="mt-4 text-body-xs text-white/65" variants={itemVariants}>
-            By signing up you agree to the{" "}
+            By using this application you agree to the{" "}
             <Link href="https://www.vultr.com/legal/privacy/" target="_blank" rel="noreferrer noopener" className="underline underline-offset-4 hover:text-white">
               GDPR Privacy Notice
             </Link>
@@ -195,9 +195,9 @@ export default function Home() {
         <div className="layout-container max-w-7xl">
           <motion.div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between" variants={itemVariants}>
             <div className="space-y-3">
-            <h2 className="text-editorial-h3 font-semibold text-vultr-navy dark:text-white">
-              Operate across regions with confidence
-            </h2>
+              <h2 className="text-editorial-h3 font-semibold text-vultr-navy dark:text-white">
+                Operate across regions with confidence
+              </h2>
               <p className="max-w-3xl text-body text-vultr-navy/75 dark:text-white/75">
                 Engines, GPUs, and compliance tooling are available no matter where the workload runs. Track
                 infrastructure health and keep policies aligned with Vultr&rsquo;s SLAs.
