@@ -11,7 +11,7 @@ import NextTopLoader from "nextjs-toploader";
 export const metadata: Metadata = {
   title: "Vultr Vision",
   description:
-    "Deploy Vultr’s ColPali-powered document intelligence across your global infrastructure. Upload, search, and collaborate with Vultr’s signature performance.",
+    "Deploy Vultr's ColPali-powered document intelligence across your global infrastructure. Upload, search, and collaborate with Vultr's signature performance.",
   icons: {
     icon: "/brand/signet__on-white.svg",
     shortcut: "/brand/signet__on-white.svg",
