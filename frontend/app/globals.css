@@ -95,7 +95,6 @@
   --color-secondary-foreground: var(--color-vultr-navy);
   --color-muted: var(--color-cool-1);
   --color-muted-foreground: var(--color-vultr-blue-20);
-  --color-accent: var(--color-vultr-sky-blue);
   --color-accent-foreground: var(--color-vultr-blue);
   --color-destructive: oklch(0.58 0.2 27);
   --color-destructive-foreground: var(--color-warm-0);
@@ -373,56 +372,6 @@
   .icon-expressive {
     width: var(--size-icon-expressive);
     height: var(--size-icon-expressive);
-  }
-
-  /* Surface treatments */
-  .surface-light {
-    @apply bg-white text-vultr-navy;
-    border: 1px solid rgba(3, 16, 89, 0.06);
-    box-shadow: 0 16px 44px -24px rgba(3, 16, 89, 0.18);
-  }
-
-  .surface-dark {
-    @apply bg-vultr-midnight text-white;
-    border: 1px solid rgba(201, 244, 255, 0.16);
-    box-shadow: 0 24px 60px -34px rgba(23, 33, 71, 0.45);
-  }
-
-  .surface-contrast {
-    @apply bg-white text-vultr-navy;
-    border-top: 1px solid rgba(3, 16, 89, 0.08);
-    border-bottom: 1px solid rgba(3, 16, 89, 0.08);
-    background-image: linear-gradient(0deg, rgba(201, 244, 255, 0.4), rgba(201, 244, 255, 0));
-  }
-
-  .dark .surface-contrast {
-    @apply bg-vultr-midnight text-white;
-    background-image: linear-gradient(0deg, rgba(38, 82, 174, 0.35), rgba(3, 16, 89, 0));
-    border-color: rgba(82, 186, 255, 0.2);
-  }
-
-  .surface-subtle {
-    @apply bg-white text-vultr-navy;
-    border: 1px solid rgba(82, 186, 255, 0.18);
-    box-shadow: 0 20px 48px -30px rgba(0, 123, 252, 0.25);
-  }
-
-  .dark .surface-subtle {
-    @apply bg-vultr-midnight text-white;
-    border-color: rgba(82, 186, 255, 0.35);
-  }
-
-  .surface-glass {
-    background: rgba(255, 255, 255, 0.88);
-    border: 1px solid rgba(3, 16, 89, 0.08);
-    box-shadow: 0 18px 48px -24px rgba(3, 16, 89, 0.16);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-  }
-
-  .dark .surface-glass {
-    background: rgba(23, 33, 71, 0.72);
-    border-color: rgba(82, 186, 255, 0.28);
   }
 
   /* Vultr display typography */

@@ -124,7 +124,7 @@ export function Nav() {
           <NavigationMenuList className="gap-4">
             {menuSections.map((section) => (
               <NavigationMenuItem key={section.label}>
-                <NavigationMenuTrigger className="rounded-full border border-transparent bg-transparent px-3 py-2 text-body-sm font-medium text-white/80 transition hover:text-white data-[state=open]:border-white/30">
+                <NavigationMenuTrigger className="rounded-full border border-transparent bg-transparent px-3 py-2 text-body-sm font-medium text-white/80 transition hover:text-white">
                   {section.label}
                 </NavigationMenuTrigger>
                 <NavigationMenuContent className="rounded-[var(--radius-card)] border border-white/10 bg-[#0b1f69]/95 p-4 shadow-[0_18px_40px_-18px_rgba(8,24,80,0.75)] backdrop-blur-xl transition">
