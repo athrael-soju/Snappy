@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation"
 import { Menu } from "lucide-react"
 
 import { AppButton } from "@/components/app-button"
+import { ThemeSwitcher } from "@/components/theme-switcher"
 import { cn } from "@/lib/utils"
 import {
   NavigationMenu,
@@ -181,6 +182,7 @@ export function Nav() {
         </NavigationMenu>
 
         <div className="ml-auto flex items-center gap-3">
+          <ThemeSwitcher className="rounded-[var(--radius-button)] border border-white/20 text-white/80 hover:border-white/40 hover:bg-white/10 hover:text-white size-icon-xl" />
           <AppButton
             asChild
             variant="ghost"
@@ -201,7 +203,6 @@ export function Nav() {
               Contact Sales
             </Link>
           </AppButton>
-
           <div className="lg:hidden">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

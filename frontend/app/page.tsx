@@ -20,21 +20,21 @@ const productCards = [
   {
     title: "Upload & Index",
     description:
-      "Batch ingest PDFs, slides, and scans into Vultr storage while ColPali builds multimodal embeddings.",
+      "Batch ingest PDFs, slides, and scans into Vultr Vision&rsquo;s managed lake while ColPali builds multimodal embeddings.",
     href: "/upload",
     icon: Upload,
   },
   {
     title: "Semantic Search",
     description:
-      "Query enterprise corpora with grounded retrieval tailored for regulated, globally distributed teams.",
+      "Query enterprise corpora through Vultr Vision&rsquo;s retrieval orchestrator tailored for regulated, globally distributed teams.",
     href: "/search",
     icon: Search,
   },
   {
     title: "Vision Chat",
     description:
-      "Collaborate on visuals in real time with ColPali&rsquo;s reasoning to accelerate reviews and approvals.",
+      "Collaborate on visuals in real time with Vultr Vision copilots and ColPali&rsquo;s reasoning to accelerate reviews and approvals.",
     href: "/chat",
     icon: MessageSquare,
   },
@@ -49,19 +49,19 @@ const stats = [
   {
     value: "32",
     unit: "regions",
-    description: "Global Vultr data centers keep low-latency retrieval within reach.",
+    description: "Vultr Vision inference regions keep low-latency retrieval within reach.",
     icon: Globe,
   },
   {
     value: "GPU",
     unit: "fleet",
-    description: "Deploy H100, A100, and L40S clusters without overprovisioning.",
+    description: "Deploy H100, A100, and L40S clusters orchestrated by Vultr Vision without overprovisioning.",
     icon: Cloud,
   },
   {
     value: "99.99%",
     unit: "uptime",
-    description: "Reliability your AI workflows demand with transparent SLAs.",
+    description: "Reliability your AI workflows demand from the Vultr Vision service plane with transparent SLAs.",
     icon: Shield,
   },
 ] as const;
@@ -111,14 +111,14 @@ export default function Home() {
             className="eyebrow text-white/70"
             variants={itemVariants}
           >
-            The Everywhere Cloud
+            Vision Platform Preview
           </motion.span>
           <motion.h1 className="mt-5 max-w-3xl text-digital-h1 text-balance font-bold" variants={itemVariants}>
-            Multimodal Document Retrieval Powered by Vultr Vision
+            Multimodal Document Intelligence with Vultr Vision
           </motion.h1>
           <motion.p className="mt-6 max-w-2xl text-body-lg text-white/85" variants={itemVariants}>
-            Deliver automated document intelligence on top of Vultr&rsquo;s worldwide infrastructure. Launch
-            upload, semantic search, and vision chat experiences with the same polish seen on Vultr.com.
+            Vultr Vision orchestrates ingestion, retrieval, and visual reasoning so you can ship document copilots faster.
+            Activate upload, semantic search, and vision chat patterns that showcase the Vision design system.
           </motion.p>
 
           <motion.p className="mt-4 text-body-xs text-white/65" variants={itemVariants}>
@@ -147,11 +147,11 @@ export default function Home() {
         <div className="layout-container max-w-7xl">
           <motion.div className="flex flex-col items-center text-center" variants={itemVariants}>
             <h2 className="text-editorial-h3 font-semibold text-vultr-navy dark:text-white">
-              Build on brand-perfect Vultr experiences
+              Build with Vultr Vision blueprints
             </h2>
             <p className="mt-4 max-w-2xl text-body text-vultr-navy/70 dark:text-white/70">
-              Every route in this template reflects an offering available in the ColPali + Vultr ecosystem.
-              Explore product, operations, and company surfaces with consistent Vultr styling.
+              Every route in this template spotlights a core Vultr Vision capability for ColPali workflows.
+              Explore ingestion, operations, and collaboration surfaces anchored in the Vision design language.
             </p>
           </motion.div>
 
@@ -196,11 +196,11 @@ export default function Home() {
           <motion.div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between" variants={itemVariants}>
             <div className="space-y-3">
               <h2 className="text-editorial-h3 font-semibold text-vultr-navy dark:text-white">
-                Operate across regions with confidence
+                Operate Vultr Vision everywhere
               </h2>
               <p className="max-w-3xl text-body text-vultr-navy/75 dark:text-white/75">
-                Engines, GPUs, and compliance tooling are available no matter where the workload runs. Track
-                infrastructure health and keep policies aligned with Vultr&rsquo;s SLAs.
+                Engines, GPUs, and compliance tooling stay aligned wherever workloads land through the Vision control plane.
+                Track infrastructure health and keep policies synced with Vultr Vision guardrails.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -257,19 +257,19 @@ export default function Home() {
             <ul className="space-y-4 text-body-sm text-vultr-navy/75 dark:text-white/75">
               <li className="flex items-start gap-3">
                 <Sparkles className="mt-0.5 size-icon-sm text-vultr-blue" />
-                Brings Vultr.com&rsquo;s brand language, states, and interactions directly into your ColPali workflows.
+                Brings Vultr Vision&rsquo;s design system, states, and interactions directly into your ColPali workflows.
               </li>
               <li className="flex items-start gap-3">
                 <Cloud className="mt-0.5 size-icon-sm text-vultr-blue-60" />
-                Built atop GPU-ready infrastructure in every Vultr region, reducing deployment friction.
+                Built atop GPU-ready infrastructure in every Vultr region, orchestrated by the Vision platform to reduce deployment friction.
               </li>
               <li className="flex items-start gap-3">
                 <Shield className="mt-0.5 size-icon-sm text-vultr-navy/80 dark:text-white/80" />
-                Provides compliance controls, policy management, and observability out of the box.
+                Provides compliance controls, policy management, and observability out of the box via Vision guardrails.
               </li>
             </ul>
             <div className="rounded-[var(--radius-button)] border border-dashed border-vultr-blue/30 bg-vultr-sky-blue/15 px-5 py-4 text-body-sm text-vultr-blue-60 dark:border-vultr-light-blue/40 dark:bg-vultr-blue-20/30 dark:text-vultr-light-blue/90">
-              Configure multiple ColPali deployments, enforce policy, and monitor pipelines from a single Vultr console.
+              Configure multiple ColPali deployments, enforce policy, and monitor pipelines from a single Vultr Vision console.
             </div>
           </motion.div>
         </div>

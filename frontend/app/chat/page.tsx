@@ -283,8 +283,8 @@ function ChatComposer({
                   onChange={(event) => onInputChange(event.target.value)}
                   placeholder="Ask anything about your documents..."
                   disabled={!isReady}
-                  rows={3}
-                  className="min-h-[3.5rem] w-full resize-none border-0 bg-transparent px-4 py-3 text-body leading-relaxed placeholder:text-muted-foreground outline-none focus-visible:ring-0"
+                  rows={2}
+                  className="min-h-[3.5rem] max-h-[3.5rem] w-full resize-none border-0 bg-transparent px-4 py-3 text-body leading-relaxed placeholder:text-muted-foreground outline-none focus-visible:ring-0 overflow-y-auto text-body-xs sm:text-body-xs"
                 />
               </div>
             </div>
