@@ -10,7 +10,6 @@ import {
   HardDrive,
   CheckCircle2,
   AlertCircle,
-  RefreshCw,
   X,
   Sparkles,
   ArrowRight,
@@ -25,11 +24,6 @@ import "@/lib/api/client";
 import { useSystemStatus } from "@/stores/app-store";
 import { useFileUpload } from "@/lib/hooks/use-file-upload";
 import { RoutePageShell } from "@/components/route-page-shell";
-import {
-  HeroMetaAction,
-  HeroMetaGroup,
-  HeroMetaPill,
-} from "@/components/hero-meta";
 import type { UploadFileMeta } from "@/stores/types";
 import { MortyMetaCard } from "@/components/morty-meta-card";
 
@@ -74,7 +68,7 @@ const UPLOAD_HELPER_CARDS: UploadHelperCard[] = [
 ];
 
 export default function UploadPage() {
-  const { systemStatus, statusLoading, fetchStatus, isReady } = useSystemStatus();
+  const { systemStatus, isReady } = useSystemStatus();
   const {
     files,
     fileMeta,
@@ -189,56 +183,30 @@ export default function UploadPage() {
   const bucketName = systemStatus?.bucket?.name ?? null;
 
   const heroMeta = (
-    <>
-      <MortyMetaCard
-        label="Morty's upload control tower"
-        title="Banker Morty keeps ingestion orderly so every document hits the vector store with clean metadata."
-        bullets={[
-          {
-            icon: Upload,
-            text: "Guides drag-and-drop flows and tracks upload progress in real time.",
-          },
-          {
-            icon: Database,
-            text: "Aligns embeddings with Qdrant collections for consistent retrieval.",
-          },
-          {
-            icon: HardDrive,
-            text: "Verifies MinIO storage readiness before you process large batches.",
-          },
-        ]}
-        image={{
-          src: "/vultr/morty/banker_morty_nobg.png",
-          alt: "Banker Morty managing uploads",
-          width: 300,
-          height: 300,
-        }}
-      />
-      <HeroMetaGroup>
-        {isReady && (
-          <HeroMetaPill icon={CheckCircle2} tone="success">
-            Ready
-          </HeroMetaPill>
-        )}
-        <HeroMetaAction
-          onClick={fetchStatus}
-          disabled={statusLoading}
-          aria-label="Refresh system status"
-        >
-          {statusLoading ? (
-            <>
-              <Loader2 className="size-icon-2xs animate-spin" aria-hidden="true" />
-              Refreshing
-            </>
-          ) : (
-            <>
-              <RefreshCw className="size-icon-2xs" aria-hidden="true" />
-              Refresh
-            </>
-          )}
-        </HeroMetaAction>
-      </HeroMetaGroup>
-    </>
+    <MortyMetaCard
+      label="Morty's upload control tower"
+      title="Banker Morty keeps ingestion orderly so every document hits the vector store with clean metadata."
+      bullets={[
+        {
+          icon: Upload,
+          text: "Guides drag-and-drop flows and tracks upload progress in real time.",
+        },
+        {
+          icon: Database,
+          text: "Aligns embeddings with Qdrant collections for consistent retrieval.",
+        },
+        {
+          icon: HardDrive,
+          text: "Verifies MinIO storage readiness before you process large batches.",
+        },
+      ]}
+      image={{
+        src: "/vultr/morty/banker_morty_nobg.png",
+        alt: "Banker Morty managing uploads",
+        width: 300,
+        height: 300,
+      }}
+    />
   );
 
   return (
@@ -258,33 +226,6 @@ export default function UploadPage() {
       >
         {/* Upload Form */}
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col space-y-4">
-          {/* Morty's Upload Guide */}
-          <motion.div
-            className="rounded-2xl border border-vultr-blue/20 bg-gradient-to-r from-vultr-blue/5 to-purple-500/5 p-4"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-full bg-vultr-blue/10">
-                <motion.div
-                  animate={{ rotate: [0, 10, -10, 0] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                >
-                  📄
-                </motion.div>
-              </div>
-              <div>
-                <h3 className="text-body-sm font-semibold text-vultr-navy dark:text-white">
-                  Morty's Visual Processing Tips
-                </h3>
-                <p className="text-body-xs text-vultr-navy/70 dark:text-white/70">
-                  I work best with clear PDFs, scanned documents, and images with text. The clearer your documents, the better I can help you find what you need! 🤖✨
-                </p>
-              </div>
-            </div>
-          </motion.div>
-
           {/* Drag & Drop Zone */}
           <motion.div
             className={`group relative overflow-hidden rounded-2xl border-2 border-dashed transition-all ${isDragOver

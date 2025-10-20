@@ -461,27 +461,6 @@ export default function ChatPage() {
     }
   };
 
-  const heroActions = (
-    <>
-      <AppButton
-        asChild
-        variant="primary"
-        size="xs"
-        className="rounded-[var(--radius-button)] bg-white px-5 text-vultr-blue hover:bg-vultr-sky-blue/80"
-      >
-        <Link href="/search">Browse search</Link>
-      </AppButton>
-      <AppButton
-        asChild
-        variant="ghost"
-        size="xs"
-        className="rounded-[var(--radius-button)] border border-white/30 bg-white/10 px-4 py-2 text-white hover:border-white/50 hover:bg-white/20"
-      >
-        <Link href="/upload">Upload files</Link>
-      </AppButton>
-    </>
-  );
-
   const heroMeta = (
     <>
       <MortyMetaCard
@@ -543,7 +522,6 @@ export default function ChatPage() {
         eyebrow="Services"
         title="Chat with Morty, Your Visual Retrieval Buddy"
         description="Have a conversation with Morty about your documents. He understands images, charts, and text to give you grounded, visual answers."
-        actions={heroActions}
         meta={heroMeta}
         innerClassName="flex min-h-0 flex-1 flex-col"
         variant="compact"

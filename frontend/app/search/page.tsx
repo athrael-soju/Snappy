@@ -30,7 +30,6 @@ import { useSystemStatus } from "@/stores/app-store";
 import ImageLightbox from "@/components/lightbox";
 import { InfoTooltip } from "@/components/info-tooltip";
 import { RoutePageShell } from "@/components/route-page-shell";
-import { HeroMetaGroup, HeroMetaPill } from "@/components/hero-meta";
 import { MortyMetaCard } from "@/components/morty-meta-card";
 
 const suggestedQueries = [
@@ -136,27 +135,6 @@ export default function SearchPage() {
     setError(null);
   };
 
-  const heroActions = (
-    <>
-      <AppButton
-        asChild
-        variant="primary"
-        size="xs"
-        className="rounded-[var(--radius-button)] bg-white px-5 text-vultr-blue hover:bg-vultr-sky-blue/80"
-      >
-        <Link href="/upload">Upload new docs</Link>
-      </AppButton>
-      <AppButton
-        asChild
-        variant="ghost"
-        size="xs"
-        className="rounded-[var(--radius-button)] border border-white/30 bg-white/10 px-4 py-2 text-white hover:border-white/50 hover:bg-white/20"
-      >
-        <Link href="/chat">Open vision chat</Link>
-      </AppButton>
-    </>
-  );
-
   const heroMeta = (
     <>
       <MortyMetaCard
@@ -208,7 +186,6 @@ export default function SearchPage() {
           </>
         }
         description="Ask Morty questions in natural language and let him surface the most relevant visual matches instantly."
-        actions={heroActions}
         meta={heroMeta}
         innerClassName="space-y-6"
         variant="compact"

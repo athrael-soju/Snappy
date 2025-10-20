@@ -94,48 +94,11 @@ export default function ConfigurationPage() {
   const draftCountLabel = draftCount === 1 ? "setting" : "settings";
   const draftUpdatedLabel = storedDraftUpdatedAt ? storedDraftUpdatedAt.toLocaleString() : null;
 
-  const heroActions = (
-    <>
-      <AppButton
-        type="button"
-        onClick={() => void saveChanges()}
-        disabled={!hasChanges || saving}
-        variant="primary"
-        size="sm"
-        className="rounded-[var(--radius-button)] px-5"
-      >
-        {saving ? (
-          <>
-            <Loader2 className="size-icon-xs animate-spin" />
-            Saving...
-          </>
-        ) : (
-          <>
-            <Save className="size-icon-xs" />
-            Save changes
-          </>
-        )}
-      </AppButton>
-      <AppButton
-        type="button"
-        onClick={() => resetToDefaults()}
-        disabled={saving}
-        variant="outline"
-        size="sm"
-        className="rounded-[var(--radius-button)]"
-      >
-        <RotateCcw className="size-icon-xs" />
-        Reset defaults
-      </AppButton>
-    </>
-  );
-
   return (
     <RoutePageShell
       eyebrow="Operations"
       title="System Configuration"
       description="Review and adjust backend behaviour without leaving the app. Save changes section by section when you are ready."
-      actions={heroActions}
       variant="compact"
     >
       <motion.div

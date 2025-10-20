@@ -10,7 +10,6 @@ import {
   HardDrive,
   Play,
   Trash2,
-  RefreshCw,
   AlertCircle,
   CheckCircle2,
   Loader2,
@@ -93,29 +92,12 @@ export default function MaintenancePage() {
   const vectorName = systemStatus?.collection?.name ?? null;
   const bucketName = systemStatus?.bucket?.name ?? null;
 
-  const heroActions = (
-    <>
-      <AppButton
-        type="button"
-        onClick={() => fetchStatus()}
-        disabled={statusLoading}
-        variant="outline"
-        size="sm"
-        className="rounded-[var(--radius-button)]"
-      >
-        {statusLoading ? <Loader2 className="size-icon-2xs animate-spin" /> : <RefreshCw className="size-icon-2xs" />}
-        Refresh status
-      </AppButton>
-    </>
-  );
-
   return (
     <>
       <RoutePageShell
         eyebrow="Operations"
         title="System Maintenance"
         description="Monitor storage health, verify resource readiness, and run core maintenance operations."
-        actions={heroActions}
         variant="compact"
       >
         <div className="px-4 py-6 sm:px-6 lg:px-8">
