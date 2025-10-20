@@ -1,6 +1,88 @@
-import type { AppState } from '../types';
+import type { AppState } from "../types";
 
-const STORAGE_KEY = 'colpali-app-state';
+const STORAGE_KEY = "colpali-app-state";
+
+function getLocalStorage(): Storage | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    return window.localStorage;
+  } catch (error) {
+    console.warn("Unable to access localStorage:", error);
+    return null;
+  }
+}
+
+/**
+ * Safely read a raw string value from localStorage.
+ */
+export function readStorageValue(key: string): string | null {
+  const storage = getLocalStorage();
+  if (!storage) return null;
+
+  try {
+    return storage.getItem(key);
+  } catch (error) {
+    console.warn(`Failed to read "${key}" from localStorage:`, error);
+    return null;
+  }
+}
+
+/**
+ * Safely write a raw string value to localStorage.
+ */
+export function writeStorageValue(key: string, value: string): boolean {
+  const storage = getLocalStorage();
+  if (!storage) return false;
+
+  try {
+    storage.setItem(key, value);
+    return true;
+  } catch (error) {
+    console.warn(`Failed to write "${key}" to localStorage:`, error);
+    return false;
+  }
+}
+
+/**
+ * Remove a key from localStorage.
+ */
+export function removeStorageValue(key: string): boolean {
+  const storage = getLocalStorage();
+  if (!storage) return false;
+
+  try {
+    storage.removeItem(key);
+    return true;
+  } catch (error) {
+    console.warn(`Failed to remove "${key}" from localStorage:`, error);
+    return false;
+  }
+}
+
+/**
+ * Read a JSON value from localStorage.
+ */
+export function readJSONStorageValue<T>(key: string, fallback: T | null = null): T | null {
+  const raw = readStorageValue(key);
+  if (raw === null) return fallback;
+
+  try {
+    return JSON.parse(raw) as T;
+  } catch (error) {
+    console.warn(`Failed to parse JSON for "${key}" from localStorage:`, error);
+    return fallback;
+  }
+}
+
+/**
+ * Write a JSON value to localStorage.
+ */
+export function writeJSONStorageValue<T>(key: string, value: T): boolean {
+  return writeStorageValue(key, JSON.stringify(value));
+}
 
 /**
  * Serialize state for localStorage, excluding non-serializable data like File handles
@@ -42,25 +124,15 @@ export function serializeStateForStorage(state: AppState): any {
  * Load state from localStorage
  */
 export function loadStateFromStorage(): Partial<AppState> | null {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch (error) {
-    console.warn('Failed to load app state from localStorage:', error);
-  }
-  return null;
+  return readJSONStorageValue<Partial<AppState>>(STORAGE_KEY);
 }
 
 /**
  * Save state to localStorage
  */
 export function saveStateToStorage(state: AppState): void {
-  try {
-    const serialized = serializeStateForStorage(state);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(serialized));
-  } catch (error) {
-    console.warn('Failed to save app state to localStorage:', error);
+  const serialized = serializeStateForStorage(state);
+  if (!writeJSONStorageValue(STORAGE_KEY, serialized)) {
+    console.warn("Failed to save app state to localStorage");
   }
 }

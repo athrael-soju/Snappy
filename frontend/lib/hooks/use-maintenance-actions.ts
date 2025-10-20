@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MaintenanceService, ApiError } from "@/lib/api/generated";
 import { toast } from "sonner";
+import { readStorageValue, writeStorageValue } from "@/stores/utils/storage";
 
 export type ActionType = "q" | "m" | "all";
 
@@ -48,11 +49,9 @@ export function useMaintenanceActions({ onSuccess }: UseMaintenanceActionsOption
       toast.success(SUCCESS_MESSAGES[action], { description });
 
       try {
-        if (typeof localStorage !== "undefined") {
-          const previous = Number.parseInt(localStorage.getItem("maintenance_operations") ?? "0", 10) || 0;
-          localStorage.setItem("maintenance_operations", String(previous + 1));
-          localStorage.setItem("last_maintenance_action", new Date().toISOString());
-        }
+        const previous = Number.parseInt(readStorageValue("maintenance_operations") ?? "0", 10) || 0;
+        writeStorageValue("maintenance_operations", String(previous + 1));
+        writeStorageValue("last_maintenance_action", new Date().toISOString());
       } catch {
         // Ignore storage errors; they should not block the action.
       }

@@ -2,6 +2,12 @@
  * Configuration storage utility for persisting runtime config in localStorage
  */
 
+import {
+  readStorageValue,
+  removeStorageValue,
+  writeJSONStorageValue,
+} from "@/stores/utils/storage";
+
 const CONFIG_STORAGE_KEY = "colpali-runtime-config";
 const CONFIG_STORAGE_VERSION = 2;
 
@@ -54,9 +60,7 @@ function parseStoredPayload(raw: string | null): StoredConfigPayload | null {
  * Load configuration from localStorage
  */
 export function loadConfigFromStorage(): ConfigValues | null {
-  if (typeof window === "undefined") return null;
-
-  const payload = parseStoredPayload(localStorage.getItem(CONFIG_STORAGE_KEY));
+  const payload = parseStoredPayload(readStorageValue(CONFIG_STORAGE_KEY));
   if (payload) {
     return payload.values;
   }
@@ -68,8 +72,6 @@ export function loadConfigFromStorage(): ConfigValues | null {
  * Save configuration to localStorage
  */
 export function saveConfigToStorage(config: ConfigValues, updatedAt?: Date): boolean {
-  if (typeof window === "undefined") return false;
-
   try {
     const timestamp = updatedAt && !Number.isNaN(updatedAt.valueOf()) ? updatedAt : new Date();
     const payload: StoredConfigPayload = {
@@ -77,8 +79,11 @@ export function saveConfigToStorage(config: ConfigValues, updatedAt?: Date): boo
       updatedAt: timestamp.toISOString(),
       values: config,
     };
-    localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(payload));
-    return true;
+    const success = writeJSONStorageValue(CONFIG_STORAGE_KEY, payload);
+    if (!success) {
+      console.error("Failed to save config to localStorage");
+    }
+    return success;
   } catch (error) {
     console.error("Failed to save config to localStorage:", error);
     return false;
@@ -89,9 +94,7 @@ export function saveConfigToStorage(config: ConfigValues, updatedAt?: Date): boo
  * Return stored metadata (updatedAt) if available
  */
 export function loadStoredConfigMeta(): typeof DEFAULT_META {
-  if (typeof window === "undefined") return DEFAULT_META;
-
-  const payload = parseStoredPayload(localStorage.getItem(CONFIG_STORAGE_KEY));
+  const payload = parseStoredPayload(readStorageValue(CONFIG_STORAGE_KEY));
   if (payload?.updatedAt) {
     const timestamp = new Date(payload.updatedAt);
     return { updatedAt: Number.isNaN(timestamp.valueOf()) ? null : timestamp };
@@ -104,15 +107,11 @@ export function loadStoredConfigMeta(): typeof DEFAULT_META {
  * Clear configuration from localStorage
  */
 export function clearConfigFromStorage(): boolean {
-  if (typeof window === "undefined") return false;
-
-  try {
-    localStorage.removeItem(CONFIG_STORAGE_KEY);
-    return true;
-  } catch (error) {
-    console.error("Failed to clear config from localStorage:", error);
+  if (!removeStorageValue(CONFIG_STORAGE_KEY)) {
+    console.error("Failed to clear config from localStorage");
     return false;
   }
+  return true;
 }
 
 /**

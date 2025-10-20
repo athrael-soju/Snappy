@@ -9,6 +9,7 @@ import {
 } from '@/lib/api/chat'
 import { kSchema, messageSchema } from '@/lib/validation/chat'
 import { useChatStore } from '@/stores/app-store'
+import { writeStorageValue } from '@/stores/utils/storage';
 
 export type ChatMessage = {
   id: string
@@ -84,13 +85,7 @@ export function useChat() {
   const isSettingsValid = kSchema.safeParse(k).success
 
   const persistSetting = useCallback((key: string, value: string) => {
-    try {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(key, value)
-      }
-    } catch {
-      // ignore persistence failures (private browsing, quotas, etc.)
-    }
+    writeStorageValue(key, value);
   }, [])
 
   // persist preferences

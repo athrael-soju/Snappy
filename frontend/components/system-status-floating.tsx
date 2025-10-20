@@ -3,8 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
-import { SystemStatusActions, resolveSeverity } from "@/components/system-status-actions";
 import { useSystemStatus } from "@/stores/app-store";
+import {
+  readStorageValue,
+  removeStorageValue,
+  writeStorageValue,
+} from "@/stores/utils/storage";
+import { SystemStatusActions, resolveSeverity } from "@/components/system-status-actions";
 
 const FLOATING_VARIANTS = {
   hidden: { opacity: 0, y: 12, scale: 0.95 },
@@ -20,21 +25,11 @@ export function SystemStatusFloating() {
   const previousSeverityRef = useRef<ReturnType<typeof resolveSeverity> | null>(null);
 
   const persistDismissal = useCallback(() => {
-    if (typeof window === "undefined") return;
-    try {
-      window.localStorage.setItem(DISMISS_STORAGE_KEY, "true");
-    } catch {
-      // Ignore storage failures
-    }
+    writeStorageValue(DISMISS_STORAGE_KEY, "true");
   }, []);
 
   const clearDismissal = useCallback(() => {
-    if (typeof window === "undefined") return;
-    try {
-      window.localStorage.removeItem(DISMISS_STORAGE_KEY);
-    } catch {
-      // Ignore storage failures
-    }
+    removeStorageValue(DISMISS_STORAGE_KEY);
   }, []);
 
   const handleRefresh = useCallback(() => {
@@ -68,19 +63,13 @@ export function SystemStatusFloating() {
       clearDismissal();
     }
     previousSeverityRef.current = severity;
-  }, [severity]);
+  }, [severity, clearDismissal]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
     if (severity === "ok") {
-      try {
-        const stored = window.localStorage.getItem(DISMISS_STORAGE_KEY);
-        if (stored === "true") {
-          setDismissed(true);
-        }
-      } catch {
-        // Ignore storage failures
+      const stored = readStorageValue(DISMISS_STORAGE_KEY);
+      if (stored === "true") {
+        setDismissed(true);
       }
     } else if (systemStatus) {
       clearDismissal();
