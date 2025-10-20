@@ -35,6 +35,8 @@ import {
 } from "lucide-react";
 import { MortyLoader } from "@/components/morty-loader";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { InfoTooltip } from "@/components/info-tooltip";
 import { RoutePageShell } from "@/components/route-page-shell";
 import { HeroMetaGroup, HeroMetaPill } from "@/components/hero-meta";
 import { MortyMetaCard } from "@/components/morty-meta-card";
@@ -299,21 +301,28 @@ function ChatComposer({
                 disabled={isSendDisabled}
                 aria-label="Send message"
               >
-                {loading ? <MortyLoader size="md" /> : <Send className="size-icon-md" />}
+                <Send className="size-icon-md" />
               </AppButton>
               <div className="inline-flex items-center overflow-hidden rounded-full border border-border/40 bg-background/80 shadow-sm divide-x divide-border/40">
                 <Popover>
-                  <PopoverTrigger asChild>
-                    <AppButton
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      groupPosition="start"
-                      aria-label="Open retrieval settings"
-                    >
-                      <Settings className="size-icon-sm" />
-                    </AppButton>
-                  </PopoverTrigger>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <PopoverTrigger asChild>
+                        <AppButton
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          groupPosition="start"
+                          aria-label="Open retrieval settings"
+                        >
+                          <Settings className="size-icon-sm" />
+                        </AppButton>
+                      </PopoverTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" sideOffset={8}>
+                      Retrieval settings
+                    </TooltipContent>
+                  </Tooltip>
                   <PopoverContent className="w-80 space-y-4">
                     <div>
                       <h4 className="text-body-sm font-semibold text-foreground">Retrieval settings</h4>
@@ -323,21 +332,34 @@ function ChatComposer({
                     </div>
                     <div className="space-y-4 text-body-sm">
                       <div className="space-y-2">
-                        <Label htmlFor="chat-k">Top K</Label>
+                        <div className="flex items-center justify-between gap-2">
+                          <Label htmlFor="chat-k" className="text-body-sm font-medium text-foreground">
+                            Top K
+                          </Label>
+                          <InfoTooltip
+                            triggerAriaLabel="What does Top K control?"
+                            description="Controls how many nearest neighbors the assistant retrieves. Higher values surface more context but may introduce noise."
+                          />
+                        </div>
                         <Input
                           id="chat-k"
                           type="number"
                           min={1}
                           value={k}
                           onChange={(event) => onNumberChange(event, setK)}
+                          autoFocus
                         />
-                        <p className="text-body-xs text-muted-foreground">
-                          Controls how many nearest neighbors the assistant retrieves. Higher values surface more
-                          context but may introduce noise.
-                        </p>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="chat-max-tokens">Max tokens</Label>
+                        <div className="flex items-center justify-between gap-2">
+                          <Label htmlFor="chat-max-tokens" className="text-body-sm font-medium text-foreground">
+                            Max tokens
+                          </Label>
+                          <InfoTooltip
+                            triggerAriaLabel="What are max tokens?"
+                            description="Sets the maximum length of the assistant's response so you can balance speed with detail."
+                          />
+                        </div>
                         <Input
                           id="chat-max-tokens"
                           type="number"
@@ -345,16 +367,14 @@ function ChatComposer({
                           value={maxTokens}
                           onChange={(event) => onNumberChange(event, setMaxTokens)}
                         />
-                        <p className="text-body-xs text-muted-foreground">
-                          Control response length to balance speed with detail.
-                        </p>
                       </div>
                       <div className="flex items-center justify-between gap-3 rounded-xl border border-border/30 bg-card/40 px-3 py-2">
-                        <div>
+                        <div className="flex items-center gap-2">
                           <p className="text-body-sm font-medium text-foreground">Allow tool calling</p>
-                          <p className="text-body-xs text-muted-foreground">
-                            Let the assistant call retrieval tools when needed.
-                          </p>
+                          <InfoTooltip
+                            triggerAriaLabel="What is tool calling?"
+                            description="Lets the assistant trigger retrieval tools automatically when a conversation needs more context."
+                          />
                         </div>
                         <Switch
                           id="chat-tool-calling"
@@ -371,17 +391,24 @@ function ChatComposer({
                     </div>
                   </PopoverContent>
                 </Popover>
-                <AppButton
-                  type="button"
-                  onClick={reset}
-                  variant="ghost"
-                  size="icon"
-                  groupPosition="end"
-                  disabled={messages.length === 0 && !input}
-                  aria-label="Clear conversation"
-                >
-                  <Trash2 className="size-icon-sm" />
-                </AppButton>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <AppButton
+                      type="button"
+                      onClick={reset}
+                      variant="ghost"
+                      size="icon"
+                      groupPosition="end"
+                      disabled={messages.length === 0 && !input}
+                      aria-label="Clear conversation"
+                    >
+                      <Trash2 className="size-icon-sm" />
+                    </AppButton>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" sideOffset={8}>
+                    Clear conversation
+                  </TooltipContent>
+                </Tooltip>
               </div>
             </div>
           </div>
