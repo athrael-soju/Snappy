@@ -186,7 +186,7 @@ export function SystemStatusActions({
           <Link className="font-semibold text-primary underline-offset-2 hover:underline" href="/chat">
             open Chat
           </Link>{" "}
-          to start exploring.
+          to start exploring!
         </>
       ),
     };
