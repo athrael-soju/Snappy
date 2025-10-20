@@ -91,6 +91,7 @@ export function useUploadSSE({ uploadState, dispatch }: UseUploadSSEOptions) {
           // Show toast notification
           if (typeof window !== 'undefined') {
             toast.success('Upload Complete', { description: successMsg });
+            window.dispatchEvent(new CustomEvent('systemStatusChanged'));
           }
         } else if (data.status === 'failed') {
           closeSSEConnection();

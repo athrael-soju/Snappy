@@ -4,16 +4,16 @@ import { useEffect, useMemo, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { 
-  Menu, 
-  Database, 
-  Server, 
-  HardDrive, 
-  Network, 
-  Container, 
-  FileText, 
-  Upload, 
-  Search, 
+import {
+  Menu,
+  Database,
+  Server,
+  HardDrive,
+  Network,
+  Container,
+  FileText,
+  Upload,
+  Search,
   MessageSquare,
   Settings,
   Wrench,
@@ -110,7 +110,7 @@ const menuSections: NavSection[] = [
     ],
   },
   {
-    label: "Maintenance",
+    label: "Settings",
     categories: [
       {
         title: "System Management",
