@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { RoutePageShell } from "@/components/route-page-shell";
+import { HeroMetaGroup, HeroMetaPill } from "@/components/hero-meta";
 
 const starterPrompts = [
   {
@@ -481,28 +482,24 @@ export default function ChatPage() {
   );
 
   const heroMeta = (
-    <>
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-sm font-medium text-white">
-        {isReady ? (
-          <Sparkles className="size-icon-3xs text-white" />
-        ) : (
-          <AlertCircle className="size-icon-3xs text-white" />
-        )}
-        {isReady ? "Connected to workspace" : "Setup required"}
-      </span>
-      {timeToFirstTokenMs !== null && (
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-sm font-medium text-white/85">
-          <Timer className="size-icon-3xs" />
+    <HeroMetaGroup>
+      <HeroMetaPill
+        icon={isReady ? Sparkles : AlertCircle}
+        tone={isReady ? "success" : "warning"}
+      >
+        {isReady ? "Connected to workspace" : "System not ready"}
+      </HeroMetaPill>
+      {timeToFirstTokenMs !== null ? (
+        <HeroMetaPill icon={Timer} tone="info">
           {(timeToFirstTokenMs / 1000).toFixed(2)}s response time
-        </span>
-      )}
-      {toolCallingEnabled && (
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-sm font-medium text-white/85">
-          <Bot className="size-icon-3xs" />
-          Tool Calling Enabled
-        </span>
-      )}
-    </>
+        </HeroMetaPill>
+      ) : null}
+      {toolCallingEnabled ? (
+        <HeroMetaPill icon={Bot}>
+          Tool calling enabled
+        </HeroMetaPill>
+      ) : null}
+    </HeroMetaGroup>
   );
 
   const handleCitationOpen = (url: string, label?: string | null) => {

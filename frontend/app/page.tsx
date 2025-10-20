@@ -175,7 +175,7 @@ export default function Home() {
             className="eyebrow text-white/70"
             variants={itemVariants}
           >
-            Vision Platform Preview
+            Vultr Vision Platform Preview
           </motion.span>
 
           <motion.h1
@@ -203,12 +203,12 @@ export default function Home() {
             className="mt-4 flex items-center gap-3 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm lg:hidden"
             variants={itemVariants}
           >
-            <div className="flex size-8 items-center justify-center rounded-full bg-white p-1">
+            <div>
               <Image
-                src="/vultr/morty_notext.png"
+                src="/vultr/morty/super_morty_nobg.png"
                 alt="Morty"
-                width={32}
-                height={32}
+                width={128}
+                height={128}
                 className="rounded-full"
               />
             </div>
@@ -308,9 +308,9 @@ export default function Home() {
                   }}
                 />
                 <div className="relative flex items-center justify-center">
-                  <div className="rounded-full bg-white p-8 shadow-lg">
+                  <div>
                     <Image
-                      src="/vultr/morty_notext.png"
+                      src="/vultr/morty/banker_morty_nobg.png"
                       alt="Morty - Your Visual Retrieval Buddy"
                       width={400}
                       height={400}

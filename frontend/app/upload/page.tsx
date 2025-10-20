@@ -25,6 +25,11 @@ import "@/lib/api/client";
 import { useSystemStatus } from "@/stores/app-store";
 import { useFileUpload } from "@/lib/hooks/use-file-upload";
 import { RoutePageShell } from "@/components/route-page-shell";
+import {
+  HeroMetaAction,
+  HeroMetaGroup,
+  HeroMetaPill,
+} from "@/components/hero-meta";
 import type { UploadFileMeta } from "@/stores/types";
 
 const STATUS_PANEL_AUTO_DISMISS_MS = 4500;
@@ -182,38 +187,32 @@ export default function UploadPage() {
       : null;
   const bucketName = systemStatus?.bucket?.name ?? null;
 
-  const heroBadges = (
-    <>
-      <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-2.5 py-0.5 text-body-xs font-medium text-white backdrop-blur">
-        {isReady ? (
-          <CheckCircle2 className="size-icon-3xs text-white" />
-        ) : (
-          <AlertCircle className="size-icon-3xs text-white" />
-        )}
-        {isReady ? "Ready" : "Not Ready"}
-      </span>
-
-      <AppButton
+  const heroMeta = (
+    <HeroMetaGroup>
+      <HeroMetaPill
+        icon={isReady ? CheckCircle2 : AlertCircle}
+        tone={isReady ? "success" : "warning"}
+      >
+        {isReady ? "Ready" : "System not ready"}
+      </HeroMetaPill>
+      <HeroMetaAction
         onClick={fetchStatus}
         disabled={statusLoading}
-        variant="ghost"
-        size="xs"
-        className="rounded-full border border-white/25 bg-white/10 text-white hover:border-white/40 hover:bg-white/20"
+        aria-label="Refresh system status"
       >
         {statusLoading ? (
-          <Loader2 className="size-icon-3xs animate-spin" />
+          <>
+            <Loader2 className="size-icon-2xs animate-spin" aria-hidden="true" />
+            Refreshing
+          </>
         ) : (
-          <RefreshCw className="size-icon-3xs" />
+          <>
+            <RefreshCw className="size-icon-2xs" aria-hidden="true" />
+            Refresh
+          </>
         )}
-        Refresh
-      </AppButton>
-    </>
-  );
-
-  const heroMeta = (
-    <div className="flex flex-wrap items-center gap-2 text-body-sm font-medium text-white/80">
-      {heroBadges}
-    </div>
+      </HeroMetaAction>
+    </HeroMetaGroup>
   );
 
   return (

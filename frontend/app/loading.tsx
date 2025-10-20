@@ -91,17 +91,17 @@ export default function Loading() {
             {mounted && (
               <motion.div
                 className="relative flex h-16 w-16 items-center justify-center sm:h-20 sm:w-20 rounded-full bg-white p-2 shadow-lg"
-                animate={{ 
+                animate={{
                   rotate: 360,
                   scale: [1, 1.05, 1]
                 }}
-                transition={{ 
+                transition={{
                   rotate: { duration: 6, repeat: Infinity, ease: "linear", repeatType: "loop" },
                   scale: { duration: 2, repeat: Infinity, ease: "easeInOut" }
                 }}
               >
                 <Image
-                  src="/vultr/morty_notext.png"
+                  src="/vultr/morty/super_morty.png"
                   alt="Morty - Your Visual Retrieval Buddy"
                   width={64}
                   height={64}
@@ -121,7 +121,7 @@ export default function Loading() {
           >
             {message}
           </motion.p>
-          <motion.p 
+          <motion.p
             className="mt-2 text-body-xs text-foreground/60"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

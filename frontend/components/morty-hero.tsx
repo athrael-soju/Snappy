@@ -358,7 +358,7 @@ export function MortyHero({ mortyLeft, mortyCenterLeft }: MortyHeroProps) {
           </motion.div>
 
           <Image
-            src="/vultr/morty_notext.png"
+            src="/vultr/morty/super_morty_nobg.png"
             alt="Morty - Vultr Vision Mascot"
             width={MORTY_SIZE}
             height={MORTY_SIZE}

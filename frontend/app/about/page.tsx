@@ -172,12 +172,12 @@ export default function AboutPage() {
                   }}
                 />
                 <div className="relative flex items-center justify-center">
-                  <div className="rounded-full bg-white p-6 shadow-lg">
+                  <div>
                     <Image
-                      src="/vultr/morty_notext.png"
+                      src="/vultr/morty/engi_morty_nobg.png"
                       alt="Morty - Your Visual Retrieval Buddy"
-                      width={300}
-                      height={300}
+                      width={400}
+                      height={400}
                       className="relative z-10 drop-shadow-2xl rounded-full object-cover"
                       priority
                     />

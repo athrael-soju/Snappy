@@ -27,6 +27,7 @@ import { useSystemStatus } from "@/stores/app-store";
 import ImageLightbox from "@/components/lightbox";
 import { InfoTooltip } from "@/components/info-tooltip";
 import { RoutePageShell } from "@/components/route-page-shell";
+import { HeroMetaGroup, HeroMetaPill } from "@/components/hero-meta";
 
 const suggestedQueries = [
   "Show recent upload summaries",
@@ -153,10 +154,11 @@ export default function SearchPage() {
   );
 
   const heroMeta = !isReady ? (
-    <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-body-sm font-medium text-white">
-      <AlertCircle className="size-icon-3xs" />
-      System not ready
-    </span>
+    <HeroMetaGroup>
+      <HeroMetaPill icon={AlertCircle} tone="warning">
+        System not ready
+      </HeroMetaPill>
+    </HeroMetaGroup>
   ) : null;
 
   const handleImageOpen = (url: string, label?: string) => {
