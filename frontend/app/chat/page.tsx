@@ -488,11 +488,6 @@ export default function ChatPage() {
         }}
       />
       <HeroMetaGroup>
-        {isReady && (
-          <HeroMetaPill icon={Sparkles} tone="success">
-            Connected to workspace
-          </HeroMetaPill>
-        )}
         {timeToFirstTokenMs !== null ? (
           <HeroMetaPill icon={Timer} tone="info">
             {(timeToFirstTokenMs / 1000).toFixed(2)}s response time
