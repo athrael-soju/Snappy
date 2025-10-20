@@ -1,4 +1,6 @@
-# Component Style Guidelines
+# Morty™ Component Style Guidelines
+
+These guidelines keep Morty’s frontend consistent with the Vultr collaboration. Morty builds on Snappy’s foundations, so existing components remain valid; follow the rules below when creating or updating UI elements.
 
 ## Icons and Iconography
 
@@ -25,3 +27,7 @@
 - `.btn-cta`: Extends the primary style and adds the `vultr-glow` halo to create a hero call-to-action. Use sparingly for the marquee action on marketing surfaces.
 
 *Other historical button variants have been removed. Update components to rely on these four patterns so the brand system remains consistent in both light and dark themes.*
+
+---
+
+Morty is a rebrand based on the open-source project Snappy (https://github.com/athrael-soju/Snappy). Portions are licensed under the **MIT License**; license and attribution preserved.

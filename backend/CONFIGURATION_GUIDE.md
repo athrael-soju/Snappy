@@ -1,123 +1,70 @@
-# Configuration System Guide - Under the Hood! 🔧
+# Morty™ Configuration System Guide – Under the Hood
 
-Welcome to Snappy's configuration deep-dive! This guide shows you exactly how the backend loads, exposes, and updates settings at runtime. Perfect companion to `backend/docs/configuration.md`; this one's all about implementation details and pro tips! 💡
+This guide explains how Morty loads, validates, and persists configuration. Morty is a pro-bono rebrand based on Snappy, so everything here mirrors the upstream design with refreshed naming.
 
----
+Use this document as the implementation companion to the user-facing reference in `backend/docs/configuration.md`.
 
-## Architecture Overview 🏗️
+## Runtime Sources
 
-**The Configuration Flow**:
-```
-.env  →  os.environ  →  runtime_config  →  config.py (__getattr__)
-             │                              │
-             └─────── config_schema.py ─────┘
-```
+Morty merges settings from three layers (highest precedence last):
 
-**The Players**:
+1. Default values defined in `backend/config_schema.py`  
+2. Environment variables read at startup (dotenv support remains intact)  
+3. Ephemeral overrides issued through `/config/update`
 
-1. **Environment** (`.env`) – Loaded once via `python-dotenv` and merged with process environment
+`backend/config.py:get_settings()` handles this merge and memoizes the result. A reset triggers a cache invalidation so subsequent reads pick up defaults again.
 
-2. **runtime_config.py** – Thread-safe storage for all key/value pairs with smart type helpers (strings, ints, floats, bools)
+## Schema Anatomy
 
-3. **config_schema.py** – The blueprint! Defines defaults, types, UI metadata, and "critical" keys that need service refresh
+Each configuration section is modeled with Pydantic. Key fields:
 
-4. **config.py** – Magic `__getattr__` access! Reads schema, consults runtime_config, applies computed defaults (like auto-sized workers), raises `AttributeError` for unknown keys
+- `title`, `description`, and `category` for UI grouping  
+- `type` metadata for generating the Morty frontend controls  
+- `advanced` and `requires_restart` flags for contextual messaging  
+- Optional `choices` and `units` for select-like inputs
 
-5. **/config API** (`backend/api/routers/config.py`) – Exposes the schema and enables live edits. Critical changes trigger `invalidate_services()` to refresh Qdrant/MinIO/ColPali!
+See `backend/config_schema.py` for the authoritative model definitions.
 
----
+## Persisted Overrides
 
-## Module Cheat Sheet 📋
+Morty stores runtime overrides in `morty_state.json`. The file mirrors the schema shape and contains only keys that differ from defaults. `/config/reset` deletes the file; `/config/update` writes a fresh version.
 
-| Module | What It Does | Key Functions |
-|--------|--------------|---------------|
-| `config_schema.py` | Defines the blueprint | `get_config_defaults`, `get_api_schema`, `get_all_config_keys`, `get_critical_keys` |
-| `runtime_config.py` | Mutable store (backed by `os.environ`) | `get`, `set`, `get_int`, `get_float`, `get_bool`, `update`, `reload_from_env` |
-| `config.py` | Dynamic magic accessor | `__getattr__`, `get_ingestion_worker_threads`, `get_pipeline_max_concurrency` |
-| `api/routers/config.py` | REST API for live changes | `/config/schema`, `/config/values`, `/config/update`, `/config/reset`, `/config/optimize` |
-| `api/dependencies.py` | Service cache manager | `invalidate_services()` refreshes ColPali/MinIO/Qdrant |
+The backend locks writes to guarantee atomic updates and avoid race conditions when multiple requests attempt to save simultaneously.
 
----
+## Optimize Endpoint
 
-## Configuration Types 🎨
+`POST /config/optimize` inspects the environment and suggests tuned values:
 
-**Supported Types**: `str`, `int`, `float`, `bool`, and `list`
+- Applies MUVERA configuration when GPU resources are present  
+- Adjusts Qdrant binary quantization flags for low-memory deployments  
+- Recommends MinIO concurrency based on CPU count
 
-For lists, we split comma-separated strings and trim whitespace automatically!
+Optimization runs are idempotent; Morty reports recommended changes without forcing them so operators retain control.
 
-**Special Cases** ⭐:
+## Validation Pipeline
 
-- **`ALLOWED_ORIGINS`** – `["*"]` for wide-open CORS, or comma-separated URLs for production
-- **`MINIO_PUBLIC_URL`** – Falls back to `MINIO_URL` when empty
-- **`MINIO_WORKERS` / `MINIO_RETRIES`** – Auto-calculated from CPU + pipeline concurrency (unless you override)
+1. Requests land in `backend/api/routers/config.py`.  
+2. Input is validated against `ConfigUpdateRequest`.  
+3. Settings merge with existing overrides; conflicts are resolved in favor of the newest values.  
+4. Pydantic re-validation occurs on the merged object before persistence.  
+5. Cache invalidation ensures subsequent dependency injections use the latest configuration.
 
-💡 **Pro Tip**: Need a computed default? Add the logic to `config.py` so everyone accesses it via `config.MY_SETTING`!
+Errors surface with actionable messages describing which field failed and why.
 
----
+## Frontend Experience
 
-## Updating Configuration at Runtime ⚡
+The Morty frontend renders configuration forms directly from the schema:
 
-**The Update Dance**:
+- Draft state banner highlights un-applied browser changes.  
+- Field-level helpers describe default values and acceptable ranges.  
+- Reset controls revert to defaults section-by-section or globally.  
+- The optimize action triggers the endpoint described above and previews changes before applying.
 
-1. **Call** `POST /config/update` with `{ "key": "...", "value": "..." }`
-2. **Validate** – Router checks the key exists in `get_all_config_keys()`
-3. **Store** – `runtime_config.set()` updates the value and `os.environ`
-4. **Refresh** – If it's a critical key, `invalidate_services()` clears cached clients
+## Migration Considerations
 
-⚠️ **Remember**: Runtime updates are temporary! They vanish on restart. For permanent changes, update `.env` or your deployment secrets.
-
----
-
-## Adding a New Setting 🆕
-
-**Three Easy Steps**:
-
-1. **Define** in `config_schema.py` (category, default, type, UI metadata)
-2. **Access** in code via `config.MY_SETTING`
-3. **Expose** (optional) in the frontend by using the updated schema
-
-🚨 **Critical Warning**: Never use `from config import MY_SETTING`! This caches the value at import time. Always do `import config` and access dynamically: `config.MY_SETTING`
+- File names and env var prefixes still use `SNAPPY_` in code where applicable; the rebrand touches documentation only.  
+- Review `MIGRATION.md` for end-user guidance and compatibility FAQs.
 
 ---
 
-## Best Practices - Pro Tips! 🌟
-
-**Read Lazily** 🦥: Access config inside functions or via `@property` for long-lived objects. Keeps things dynamic when values change!
-
-**Log Smart** 📝: When debugging, log the `config.*` value alongside actions. Confirms you're using the right defaults!
-
-**Guard Against Bad Input** 🛡️: `runtime_config` handles invalid ints/floats, but always validate user input in calculations (buffer sizes, etc.)
-
-**Mark Critical Keys** 🚨: Adding a setting that affects Qdrant collections or MinIO storage? Include it in `get_critical_keys()` for automatic cache invalidation!
-
----
-
-## Debugging Checklist 🔍
-
-**Not Working as Expected?** Try these:
-
-✅ `GET /config/schema` – Verify the key exists and check its default
-
-✅ `GET /config/values` – See what's currently set
-
-✅ `runtime_config.reload_from_env()` – Reload env vars (useful for REPL/testing)
-
-✅ **Check logs** for `invalidate_services()` messages – Confirms cache clearing
-
-💡 **Still stuck?** Double-check that your key is in `config_schema.py` and spelled correctly!
-
----
-
-## Summary - The Big Picture! 🎯
-
-✨ **The Schema** – `config_schema.py` defines everything (settings, defaults, metadata)
-
-🔧 **Dynamic Access** – Backend reads config via the `config` module in real-time
-
-🎛️ **Live Tuning** – `/config/*` API + UI let you tweak without restarts
-
-🔄 **Smart Refresh** – Critical changes auto-invalidate cached services
-
-💾 **Persistence** – Remember: update `.env` or deployment secrets for permanent changes!
-
-That's Snappy's configuration system in a nutshell! Questions? Check out `backend/docs/configuration.md` for the user-friendly reference. 🚀
+Morty is a rebrand based on the open-source project Snappy (https://github.com/athrael-soju/Snappy). Portions are licensed under the **MIT License**; license and attribution preserved.

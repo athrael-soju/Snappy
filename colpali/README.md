@@ -1,82 +1,75 @@
-# ColPali Embedding API - The Vision Brain! 🧠✨
+# ColPali Embedding API – Morty™’s Vision Engine
 
-This is where the visual understanding magic happens! Our FastAPI service serves up query and image embeddings using the powerful ColQwen2.5 model, complete with image-token boundary metadata.
+Morty inherits this FastAPI service from Snappy to generate page-level embeddings and patch metadata. The branding is new, but the endpoints and behaviors remain identical.
 
-- **App**: `colpali/app.py`
-- **Ports**: Listens on 7000 in-container
-  - 🖥️ CPU mode → `localhost:7001`
-  - 🚀 GPU mode → `localhost:7002`
-- **Model**: `vidore/colqwen2.5-v0.2` (state-of-the-art vision-language model!)
+- **Application:** `colpali/app.py`  
+- **In-container port:** `7000`  
+- **Published ports:** `7001` (CPU) and `7002` (GPU) via docker compose  
+- **Default model:** `vidore/colqwen2.5-v0.2`
 
-## API Endpoints 🎯
-- `GET /health` - Check if we're alive and which device we're running on
-- `GET /info` - Device info, data type, dimensions, and `image_token_id`
-- `POST /patches` - Calculate patch grids (`n_patches_x/y`) for your images
-- `POST /embed/queries` - Turn text queries into embeddings
-- `POST /embed/images` - Transform images into embeddings (with patch boundaries!)
+## API Endpoints
 
-## Docker Compose - The Easy Way! 🐳
+- `GET /health` – Reports readiness and selected device.  
+- `GET /info` – Returns device details, dtype, embedding dimensionality, and `image_token_id`.  
+- `POST /patches` – Computes grid boundaries for image patches.  
+- `POST /embed/queries` – Generates embeddings for text queries.  
+- `POST /embed/images` – Produces image embeddings with patch metadata.
+
+## Docker Compose Workflow
 
 ```bash
-# From the colpali/ directory
+# From colpali/
 
-# CPU Mode (everyone can use this!)
+# CPU profile
 docker compose up -d api-cpu
-# → Available at http://localhost:7001
+# -> http://localhost:7001
 
-# GPU Mode (requires NVIDIA runtime - FAST!)
+# GPU profile (requires NVIDIA Container Toolkit)
 docker compose up -d api-gpu
-# → Available at http://localhost:7002
+# -> http://localhost:7002
 ```
 
-**Smart Caching** 💾: We use a named volume (`hf-cache`) to persist your Hugging Face model downloads at `/data/hf-cache`. Download once, use forever!
+Model downloads persist in the shared `hf-cache` volume mounted at `/data/hf-cache`.
 
-## Connect Snappy to ColPali 🔌
+## Connecting Morty
 
-In your root `.env` file (the backend reads this):
+Configure the root `.env` consumed by the backend:
+
 ```bash
-# Choose your fighter: cpu or gpu
-COLPALI_MODE=cpu
-
-# Tell Snappy where to find the services
+COLPALI_MODE=cpu      # or gpu
 COLPALI_CPU_URL=http://localhost:7001
 COLPALI_GPU_URL=http://localhost:7002
 ```
 
-Snappy's backend will automatically pick the right URL based on your `COLPALI_MODE` setting. Easy! 🎉
+Morty selects the appropriate URL based on `COLPALI_MODE`. The backend skips proxying calls, so keep the service accessible from wherever Morty runs.
 
-## Running Locally (No Docker) 💻
+## Running Without Docker
 
 ```bash
-# From the colpali/ directory
-
-# Set up your virtual environment
 python -m venv .venv
-. .venv/bin/activate  # Windows: .venv\Scripts\Activate.ps1
-
-# Install dependencies
+. .venv/bin/activate        # Windows: .venv\Scripts\Activate.ps1
 pip install -U pip setuptools wheel
 pip install -r requirements.txt
-
-# Fire it up!
 uvicorn app:app --host 0.0.0.0 --port 7000 --reload
 ```
 
-**Access Points**:
-- 🏠 Local direct: http://localhost:7000
-- 🐳 Docker Compose style: http://localhost:7001 (CPU) or :7002 (GPU)
+- Direct access: `http://localhost:7000`  
+- Match the docker compose ports by adding `--port 7001` or `7002` when needed.
 
-## Good to Know 📝
-- **Model Access**: ColQwen2.5 is public, but it's a big download! First run might take a minute.
-- **GPU Requirements**: Need NVIDIA Container Toolkit for GPU mode (worth it for the speed!)
-- **Gated Models**: If you switch to a gated model, authenticate with Hugging Face first
+## Operational Notes
 
-## How It All Connects 🔗
+- First run downloads the ColQwen weights; expect a sizable initial pull.  
+- GPU mode requires the NVIDIA Container Toolkit (or equivalent drivers when running bare-metal).  
+- For gated Hugging Face models, authenticate before starting the service.  
+- Morty does not alter request or response formats; any Snappy automation continues to work.
 
-This embedding service is Snappy's visual brain:
-1. 🧠 Provides query & image embeddings to the backend
-2. 🔍 Powers the search functionality (`GET /search`)
-3. 💬 Enables the chat route to find relevant document pages
-4. ✨ Makes visual citations possible!
+## How Morty Uses ColPali
 
-When the Next.js chat route finds relevant images, it emits a `kb.images` Server-Sent Event, and the UI lights up with that beautiful "Visual citations included" chip and image gallery. It's all connected! 🎭
+1. Morty’s backend requests embeddings during ingestion.  
+2. Qdrant stores multivectors to enable high-recall visual search.  
+3. The chat endpoint retrieves relevant page images and emits `kb.images` events for citation thumbnails.  
+4. The Morty frontend combines streamed responses and citations to keep answers audit-ready.
+
+---
+
+Morty is a rebrand based on the open-source project Snappy (https://github.com/athrael-soju/Snappy). Portions are licensed under the **MIT License**; license and attribution preserved.

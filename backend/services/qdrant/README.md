@@ -1,6 +1,6 @@
-# Qdrant Client Module
+# Morty™ Qdrant Client Module
 
-This module has been refactored for better separation of concerns from a single monolithic file into multiple focused modules.
+This module powers Morty's vector storage layer. It was originally refactored in Snappy to improve separation of concerns; the Morty rebrand keeps that structure intact while updating documentation and naming.
 
 ## Module Structure
 
@@ -142,3 +142,7 @@ This refactoring maintains 100% functional compatibility:
 - All optimizations retained (parallel pooling, pipelined indexing)
 - All error handling preserved
 - All progress tracking maintained
+
+---
+
+Morty is a rebrand based on the open-source project Snappy (https://github.com/athrael-soju/Snappy). Portions are licensed under the **MIT License**; license and attribution preserved.

@@ -1,27 +1,46 @@
 <p align="center">
-  <img width="754" height="643" alt="snappy_light_nobg_resized" src="https://github.com/user-attachments/assets/2ebd2908-42a7-46d4-84a1-cad8aeca1847" />
+  <img width="754" height="643" alt="morty_primary_mark_light" src="https://github.com/user-attachments/assets/2ebd2908-42a7-46d4-84a1-cad8aeca1847" />
 </p>
 
 ---
 
-# Snappy - Your Vision Retrieval Buddy! 📸
+> **Rebrand Notice (2025-10-20):** This project has been rebranded from **Snappy** to **Morty™** as part of a **pro-bono** promotional collaboration with Vultr. Morty is **based on** the original Snappy project and remains compatible with existing Snappy documentation where applicable. Learn more about Snappy here: https://github.com/athrael-soju/Snappy.  
+> _Morty™ is a trademark of Vultr.com. All other trademarks are the property of their respective owners._
 
-[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688)](https://fastapi.tiangolo.com/)
-[![Qdrant](https://img.shields.io/badge/VectorDB-Qdrant-ff6b6b)](https://qdrant.tech/)
-[![MinIO](https://img.shields.io/badge/Storage-MinIO-f79533)](https://min.io/)
-[![Next.js](https://img.shields.io/badge/Frontend-Next.js-000000)](https://nextjs.org/)
-[![Docker Compose](https://img.shields.io/badge/Orchestration-Docker%20Compose-2496ed)](https://docs.docker.com/compose/)
+# Morty™ – Your Vision Retrieval Buddy!
+
+[![Morty Backend · FastAPI](https://img.shields.io/badge/Morty%20Backend-FastAPI-009688)](https://fastapi.tiangolo.com/)
+[![Morty VectorDB · Qdrant](https://img.shields.io/badge/Morty%20VectorDB-Qdrant-ff6b6b)](https://qdrant.tech/)
+[![Morty Storage · MinIO](https://img.shields.io/badge/Morty%20Storage-MinIO-f79533)](https://min.io/)
+[![Morty Frontend · Next.js](https://img.shields.io/badge/Morty%20Frontend-Next.js-000000)](https://nextjs.org/)
+[![Morty Orchestration · Docker Compose](https://img.shields.io/badge/Morty%20Orchestration-Docker%20Compose-2496ed)](https://docs.docker.com/compose/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Hey there! 👋 Snappy is your friendly companion for **vision-first document retrieval**. Drop in your PDFs, and watch as Snappy transforms them into searchable page images with state-of-the-art ColPali embeddings. No OCR headaches, no text extraction gymnastics; just pure visual understanding!
+Morty is an energetic, approachable, infrastructure-savvy companion for vision-first document retrieval. Drop in PDFs and Morty turns them into searchable, citation-ready experiences powered by ColPali embeddings, Qdrant multivectors, MinIO object storage, and a polished Next.js interface.
 
-We're talking multivector embeddings in Qdrant, object storage in MinIO, streaming AI chat with visual citations, and a sleek Next.js interface that makes document search feel like magic. ✨
-
-> Looking for component-level docs?  
-> - Backend: `backend/README.md`  
-> - Frontend: `frontend/README.md`  
+> Looking for component-level documentation?  
+> - Backend implementation: `backend/README.md`  
+> - Frontend guide: `frontend/README.md`  
 > - ColPali service: `colpali/README.md`  
 > - Configuration reference: `backend/docs/configuration.md`
+
+---
+
+## Background
+
+- Morty inherits its core from the Snappy project and continues to honor the upstream MIT-licensed codebase.  
+- This Vultr collaboration is strictly **pro-bono**; no payment or consideration is involved.  
+- Morty retains existing CLI names, configuration schemas, and API routes so existing Snappy deployments remain compatible.  
+- Brand voice: energetic, approachable, infrastructure-savvy. Palette: Vultr blues accented with neutral grays; ensure AA contrast in both light and dark themes.
+
+---
+
+## Why Morty Stands Out
+
+- **Vision-first retrieval:** Page-level multivectors let Morty understand document layout without OCR. Optional MUVERA acceleration balances recall and throughput.  
+- **Grounded responses:** Morty pairs streamed OpenAI responses with thumbnail citations so readers can validate answers instantly.  
+- **Live tuning:** Runtime configuration, typed validation, and draft detection keep deployments aligned without restarts.  
+- **Deployment flexibility:** One `docker compose` call gets you Qdrant, MinIO, FastAPI, Next.js, and ColPali. Prefer bespoke infrastructure? Morty plays nicely with external services too.
 
 ---
 
@@ -60,204 +79,149 @@ flowchart TB
   CHAT -- SSE --> USER
 ```
 
-See `backend/docs/architecture.md` and `backend/docs/analysis.md` for a deeper
-walkthrough of the indexing and retrieval flows.
+See `backend/docs/architecture.md` and `backend/docs/analysis.md` for deeper dives into ingestion, retrieval, and scaling strategies.
 
 ---
 
-## What Makes Snappy Special? 🌟
+## Quick Start
 
-- **🎯 Page-level Vision Retrieval** - Multivector embeddings for every PDF page with optional MUVERA acceleration. No text extraction needed; Snappy sees your documents the way you do!
-
-- **💬 Smart Chat with Visual Proof** - Stream responses from OpenAI with actual page images as citations. When Snappy answers, it shows its work with a glowing "Visual citations included" chip and image gallery.
-
-- **⚡ Blazing Fast Indexing** - Pipelined processing with real-time progress updates via Server-Sent Events. Cancel anytime, batch smartly, and watch the magic happen.
-
-- **🎛️ Live Configuration** - Tweak runtime settings on the fly through a beautiful web UI. Review drafts, manage by section, reset to defaults; all without restarting a thing.
-
-- **🐳 Docker-Ready** - One command gets you Qdrant, MinIO, FastAPI backend, Next.js frontend, and ColPali embedding services (CPU or GPU, you choose!).
-
----
-
-## Snappy's Look & Feel 🎨
-
-We've crafted a gorgeous Next.js 15 interface that's as functional as it is beautiful. Think real-time streaming, smooth animations, and visual citations that pop!
-
-- **Design Tokens**: Everything stays pixel-perfect with our tokenized utilities in `frontend/app/globals.css` (`text-body-*`, `size-icon-*`). Extend Snappy's UI with these helpers to maintain that consistent, professional vibe.
-
-- **Smart Configuration**: Organized tabs, live stats, and a helpful draft banner that lets you know when your browser settings drift from the server. No surprises, just smooth sailing! 🚢
-
----
-
-## See Snappy in Action 🎬
-
-https://github.com/user-attachments/assets/99438b0d-c62e-4e47-bdc8-623ee1d2236c
-
----
-
-## Get Snappy Running in 5 Minutes! ⚡
-
-**Step 1:** Set up your environment files
+**Step 1 — Environment files**
 
 ```bash
 cp .env.example .env
 cp frontend/.env.example frontend/.env.local
 ```
 
-- Choose `COLPALI_MODE=cpu` or `gpu` (GPU is faster if you have the hardware!)
-- Pop in your OpenAI API key in `frontend/.env.local`
+Set `COLPALI_MODE=cpu` or `gpu`, then add your OpenAI API key to `frontend/.env.local`.
 
-**Step 2:** Fire up the ColPali embedding service
+**Step 2 — ColPali embeddings**
 
 ```bash
-# From the colpali/ directory
-docker compose up -d api-cpu      # CPU mode → http://localhost:7001
-# OR for the speedy option
-docker compose up -d api-gpu      # GPU mode → http://localhost:7002
+# From colpali/
+docker compose up -d api-cpu   # http://localhost:7001
+# or GPU acceleration
+docker compose up -d api-gpu   # http://localhost:7002
 ```
 
-**Step 3:** Launch the whole Snappy stack
+**Step 3 — Morty stack**
 
 ```bash
 docker compose up -d --build
 ```
 
-**Step 4:** Start exploring! 🎉
-- 📚 Backend API docs: http://localhost:8000/docs
-- 🎨 Snappy UI: http://localhost:3000
-- 🗄️ MinIO console: http://localhost:9001 (optional)
+**Step 4 — Explore**
+
+- Backend API docs: http://localhost:8000/docs  
+- Morty UI: http://localhost:3000  
+- MinIO console (optional): http://localhost:9001
+
+All services communicate over the `morty-network` bridge defined in `docker-compose.yml`.
+
+Need a manual deployment? Follow the local workflow below and keep existing Snappy environment variables; only the branding changes.
 
 ---
 
-## Prefer Local Development? We Got You! 💻
+## Local Workflow Without Docker
 
-1. Install Poppler (required by `pdf2image`).
-2. Create a virtual environment and install backend dependencies:
-
+1. Start Qdrant and MinIO (self-hosted or managed) and update `.env`.  
+2. Launch the ColPali API:
    ```bash
-   cd backend
-   python -m venv .venv
-   . .venv/Scripts/activate  # PowerShell: .venv\Scripts\Activate.ps1
-   pip install -U pip setuptools wheel
-   pip install -r requirements.txt
+   uvicorn colpali.api:app --host 0.0.0.0 --port 7001
    ```
-
-3. Run the backend:
-
+3. Configure a virtual environment and start FastAPI:
    ```bash
+   python -m venv .venv
+   .\.venv\Scripts\activate
+   pip install -r backend/requirements.txt
    uvicorn backend:app --host 0.0.0.0 --port 8000 --reload
    ```
-
-4. In `frontend/`, install and run the Next.js app:
-
+4. Install and run the Next.js frontend:
    ```bash
    yarn install --frozen-lockfile
    yarn dev
    ```
-
-5. Start a ColPali embedding service (via Docker or locally with `uvicorn
-   colpali/app.py`).
+5. Prefer GPU embeddings? Run `uvicorn colpali.app:app --port 7002` or use the Docker services above.
 
 ---
 
-## Environment variables
+## Configuration Essentials
 
 ### Backend highlights
 
-- `COLPALI_MODE`, `COLPALI_CPU_URL`, `COLPALI_GPU_URL`,
-  `COLPALI_API_TIMEOUT`
-- `QDRANT_EMBEDDED` (defaults to `False`), `QDRANT_URL`, `QDRANT_COLLECTION_NAME`,
-  `QDRANT_PREFETCH_LIMIT`, quantisation toggles (`QDRANT_USE_BINARY`, etc.)
-- `MINIO_URL`, `MINIO_PUBLIC_URL`, credentials, `MINIO_BUCKET_NAME`,
-  `IMAGE_FORMAT` and `IMAGE_QUALITY`
-- `MUVERA_ENABLED` and related parameters (requires `fastembed[postprocess]`)
+- `COLPALI_MODE`, `COLPALI_CPU_URL`, `COLPALI_GPU_URL`, `COLPALI_API_TIMEOUT`  
+- `QDRANT_URL`, `QDRANT_COLLECTION_NAME`, `QDRANT_USE_BINARY`, `QDRANT_PREFETCH_LIMIT`  
+- `MINIO_URL`, `MINIO_PUBLIC_URL`, `MINIO_BUCKET_NAME`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`  
+- `MUVERA_ENABLED`, `MUVERA_CONFIG`, and related post-processing flags  
 - `LOG_LEVEL`, `ALLOWED_ORIGINS`, `UVICORN_RELOAD`
 
-All schema-backed settings (and their defaults) are documented in
-`backend/docs/configuration.md`. To change values permanently update your
-`.env`. Runtime updates via `/config/update` are ephemeral. MinIO credentials
-must be supplied; the backend no longer falls back to inline image storage.
+Schema-backed defaults live in `backend/docs/configuration.md`. Runtime updates through `/config/update` are ephemeral; commit long-term changes to `.env`.
 
 ### Frontend highlights (`frontend/.env.local`)
 
-- `NEXT_PUBLIC_API_BASE_URL` - defaults to `http://localhost:8000`
-- `OPENAI_API_KEY`, `OPENAI_MODEL`, optional `OPENAI_TEMPERATURE`,
-  `OPENAI_MAX_TOKENS`
+- `NEXT_PUBLIC_API_BASE_URL` (default `http://localhost:8000`)  
+- `OPENAI_API_KEY`, `OPENAI_MODEL`, optional `OPENAI_TEMPERATURE`, `OPENAI_MAX_TOKENS`
 
 ---
 
-## API overview
+## API Overview
 
 | Area         | Endpoint(s)                              | Description |
 |--------------|------------------------------------------|-------------|
 | Meta         | `GET /health`                            | Service and dependency status |
 | Retrieval    | `GET /search?q=...&k=5`                  | Page-level search (defaults to 10 results when `k` is omitted) |
-| Indexing     | `POST /index`                            | Start a background indexing job (multipart PDF upload) |
-|              | `GET /progress/stream/{job_id}`          | Real-time job progress (SSE) |
-|              | `POST /index/cancel/{job_id}`            | Cancel an in-flight job |
-| Maintenance  | `GET /status`                            | Collection/bucket statistics |
-|              | `POST /initialize` / `DELETE /delete`    | Provision or tear down collection + bucket |
-|              | `POST /clear/qdrant` / `/clear/minio` / `/clear/all` | Data reset helpers |
-| Configuration| `GET /config/schema` / `GET /config/values` | Expose runtime schema and values |
-|              | `POST /config/update` / `/config/reset` / `/config/optimize` | Runtime configuration management |
+| Indexing     | `POST /index`                            | Start background ingestion (multipart PDF upload) |
+|              | `GET /progress/stream/{job_id}`          | Real-time Server-Sent Events |
+|              | `POST /index/cancel/{job_id}`            | Cancel an active job |
+| Maintenance  | `GET /status`                            | Collection and storage metrics |
+|              | `POST /initialize` / `DELETE /delete`    | Provision or tear down collection and bucket |
+|              | `POST /clear/qdrant` / `/clear/minio` / `/clear/all` | Targeted cleanup helpers |
+| Configuration| `GET /config/schema` / `GET /config/values` | Inspect schema and runtime values |
+|              | `POST /config/update` / `/config/reset` / `/config/optimize` | Manage live configuration |
 
-Chat streaming is implemented in the Next.js API route
-`frontend/app/api/chat/route.ts`. It calls the backend search endpoint, invokes
-the OpenAI Responses API, and streams Server-Sent Events to the browser. The
-backend does not proxy OpenAI calls.
+Chat streaming lives in `frontend/app/api/chat/route.ts`. It calls the backend search endpoint, invokes the OpenAI Responses API, and streams Server-Sent Events to the browser. The backend intentionally avoids proxying OpenAI directly.
 
 ---
 
-## Troubleshooting - Snappy's Here to Help! 🔧
+## Troubleshooting
 
-**ColPali timing out?** Bump up `COLPALI_API_TIMEOUT` or switch to GPU mode. CPU works but it's like running through molasses!
-
-**Progress bar stuck?** Make sure Poppler is installed and playing nice. Check those backend logs for PDF conversion drama.
-
-**Missing images?** Double-check your MinIO credentials and URLs. Also peek at `next.config.ts` to ensure image domains are whitelisted.
-
-**CORS giving you grief?** Lock down `ALLOWED_ORIGINS` with explicit URLs before going public. Wildcards are great for dev, not so much for production!
-
-**Config changes vanishing?** Remember: `/config/update` is temporary magic. For permanent changes, update that `.env` file!
-
-💡 **Pro tip**: Check out `backend/docs/configuration.md` for deep-dive troubleshooting guidance.
+- **ColPali timeouts:** Increase `COLPALI_API_TIMEOUT` or use the GPU service.  
+- **Stalled progress:** Confirm Poppler is installed and inspect backend logs for PDF conversion errors.  
+- **Missing thumbnails:** Validate MinIO credentials and permitted image domains in `next.config.ts`.  
+- **CORS issues:** Restrict `ALLOWED_ORIGINS` to explicit URLs before production rollout.  
+- **Config drift:** `/config/update` is temporary; commit permanent values to `.env`.  
+- Need more? `backend/docs/configuration.md` contains deep-dive remediation notes.
 
 ---
 
-## Developer Notes 🛠️
+## Developer Notes
 
-- **Background Jobs**: PDF ingestion uses FastAPI `BackgroundTasks`. Simple and effective! For production scale, consider a proper job queue.
-
-- **Smart Upload Pools**: MinIO automatically sizes worker pools based on your hardware. Only tweak `MINIO_WORKERS`/`MINIO_RETRIES` if you really know what you're doing!
-
-- **Type Safety FTW**: The frontend auto-generates TypeScript types from OpenAPI specs (`yarn gen:sdk`, `yarn gen:zod`). Always in sync, always type-safe!
-
-- **Code Quality**: Pre-commit hooks keep things tidy with autoflake, isort, black, and pyright. Clean code is happy code! ✨
+- Background ingestion relies on FastAPI `BackgroundTasks`. For large workloads consider an external task queue.  
+- MinIO upload pools auto-size based on hardware; only adjust `MINIO_WORKERS` or `MINIO_RETRIES` for advanced tuning.  
+- Type safety comes from generated SDKs: `yarn gen:sdk` and `yarn gen:zod`.  
+- Pre-commit hooks enforce formatting (`autoflake`, `isort`, `black`) and static analysis (`pyright`).
 
 ---
 
-## What's Next for Snappy? 🚀
+## Roadmap
 
-Curious about future features? Check out `feature-list.md` for our production roadmap; think authentication, distributed workers, observability dashboards, CI/CD pipelines, and infrastructure scaling. Snappy's just getting started!
-
----
-
-## License
-
-MIT License - see [LICENSE](LICENSE).
+Upcoming improvements include authentication, distributed workers, observability dashboards, CI/CD hardening, and scale-oriented infrastructure playbooks. Track progress and contribute ideas via GitHub issues and discussions.
 
 ---
 
-## Standing on the Shoulders of Giants 🙏
+## Rebrand & Migration
 
-Snappy wouldn't exist without these amazing projects:
+- Review `MIGRATION.md` for a concise summary of what changed, what stayed the same, and frequently asked questions.  
+- Legal and brand usage guidelines are consolidated in `TRADEMARKS.md`.  
+- Redirect map and updated doc slugs are tracked in `docs/redirects.md` (or your site generator of choice).
 
-- **ColPali / ColQwen** - The brilliant vision-language models that power our understanding  
-  📄 https://arxiv.org/abs/2407.01449
+---
 
-- **Qdrant** - Lightning-fast vector search with killer optimization guides  
-  📚 https://qdrant.tech/blog/colpali-qdrant-optimization/  
-  📚 https://qdrant.tech/articles/binary-quantization/
+## Attribution & Licensing
 
-- **PyTorch** - The deep learning framework that makes it all possible  
-  🔥 https://pytorch.org/
+- Morty remains licensed under the **MIT License**; see [LICENSE](LICENSE) for current terms.  
+- Upstream Snappy license text is preserved in `LICENSES/SNAPPY_MIT_LICENSE.txt`.  
+- Trademark usage guidance and the pro-bono disclosure live in `TRADEMARKS.md`.
+
+---
+
+Morty is a rebrand based on the open-source project Snappy (https://github.com/athrael-soju/Snappy). Portions are licensed under the **MIT License**; license and attribution preserved.

@@ -1,98 +1,102 @@
-# App Store Architecture
+# Morty™ App Store Architecture
 
-This directory contains the refactored application state management system, organized by separation of concerns.
+Morty’s client-side state management system mirrors the structure introduced in Snappy, now updated with Morty branding and documentation.
 
 ## Structure
 
 ```
 stores/
-├── app-store.tsx          # Main store provider and context
-├── types.ts               # Type definitions for state and actions
+├── app-store.tsx          # Provider and context
+├── types.ts               # Shared types for state and actions
 ├── reducers/              # Domain-specific reducers
-│   ├── index.ts           # Main reducer composition
-│   ├── search-reducer.ts  # Search state logic
-│   ├── chat-reducer.ts    # Chat state logic
-│   ├── upload-reducer.ts  # Upload state logic
-│   ├── system-reducer.ts  # System status logic
-│   └── global-reducer.ts  # Global actions (hydration, page tracking)
-├── hooks/                 # Domain-specific hooks
-│   ├── index.ts           # Hook exports
+│   ├── index.ts           # Reducer composition
+│   ├── search-reducer.ts  # Search state
+│   ├── chat-reducer.ts    # Chat state
+│   ├── upload-reducer.ts  # Upload workflow
+│   ├── system-reducer.ts  # System status
+│   └── global-reducer.ts  # Hydration and page tracking
+├── hooks/                 # Domain hooks
+│   ├── index.ts
 │   ├── use-search-store.ts
 │   ├── use-chat-store.ts
 │   ├── use-upload-store.ts
 │   ├── use-system-status.ts
-│   └── use-upload-sse.ts  # SSE connection management for uploads
-└── utils/                 # Utility functions
-    └── storage.ts         # LocalStorage serialization/deserialization
+│   └── use-upload-sse.ts  # Upload SSE management
+└── utils/
+    └── storage.ts        # LocalStorage helpers
 ```
 
 ## Usage
 
-### Using the Store Provider
-
-Wrap your app with the provider:
+### Provider
 
 ```tsx
 import { AppStoreProvider } from '@/stores/app-store';
 
-<AppStoreProvider>
-  <YourApp />
-</AppStoreProvider>
+export function MortyApp() {
+  return (
+    <AppStoreProvider>
+      <YourApp />
+    </AppStoreProvider>
+  );
+}
 ```
 
-### Using Domain Hooks
-
-Import and use the specific hook you need:
+### Domain Hooks
 
 ```tsx
 import { useSearchStore } from '@/stores/app-store';
 
-function SearchComponent() {
+export function SearchPane() {
   const { query, results, setQuery, setResults } = useSearchStore();
-  // ... component logic
+  // Component logic here
 }
 ```
 
 Available hooks:
-- `useSearchStore()` - Search state and actions
-- `useChatStore()` - Chat state and actions
-- `useUploadStore()` - Upload state and actions
-- `useSystemStatus()` - System status and health checks
 
-### Accessing Raw State/Dispatch
+- `useSearchStore()` – Search state and actions  
+- `useChatStore()` – Chat state and actions  
+- `useUploadStore()` – Upload state and actions  
+- `useSystemStatus()` – System health and maintenance status  
+- `useUploadSse()` – Server-Sent Event lifecycle for the upload page
 
-For advanced use cases:
+### Direct Access
 
 ```tsx
 import { useAppStore } from '@/stores/app-store';
 
-function Component() {
+export function AdvancedComponent() {
   const { state, dispatch } = useAppStore();
-  // Direct access to full state and dispatch
+  // Direct access to the full store
 }
 ```
 
-## Benefits of This Architecture
+## Benefits
 
-1. **Separation of Concerns** - Each module has a single, well-defined responsibility
-2. **Maintainability** - Easy to locate and modify specific functionality
-3. **Testability** - Individual reducers and utilities can be tested in isolation
-4. **Scalability** - New domains can be added without modifying existing code
-5. **Type Safety** - Centralized types ensure consistency across the application
-6. **Code Reusability** - Utilities and hooks can be shared across components
+1. Separation of concerns: reducers, hooks, and utilities stay focused.  
+2. Maintainability: each domain evolves independently.  
+3. Testability: reducers and utilities are easy to unit test.  
+4. Scalability: add domains without touching existing code.  
+5. Type safety: shared types guard actions and selectors.  
+6. Reusability: hooks centralize repeated logic for UI components.
 
-## Adding New Features
+## Adding Features
 
-### Adding a New Action
+### New Action
 
-1. Add the action type to `types.ts`
-2. Create/update the appropriate reducer in `reducers/`
-3. Add action creators to the relevant hook in `hooks/`
+1. Define the action type in `types.ts`.  
+2. Update the relevant reducer under `reducers/`.  
+3. Expose the action through the matching hook.
 
-### Adding a New Domain
+### New Domain
 
-1. Define types in `types.ts`
-2. Create a new reducer in `reducers/[domain]-reducer.ts`
-3. Add reducer to composition in `reducers/index.ts`
-4. Create a new hook in `hooks/use-[domain]-store.ts`
-5. Export the hook from `app-store.tsx`
+1. Add domain types to `types.ts`.  
+2. Create `reducers/<domain>-reducer.ts`.  
+3. Register it in `reducers/index.ts`.  
+4. Add `hooks/use-<domain>-store.ts`.  
+5. Export the hook from `app-store.tsx`.
+
+---
+
+Morty is a rebrand based on the open-source project Snappy (https://github.com/athrael-soju/Snappy). Portions are licensed under the **MIT License**; license and attribution preserved.

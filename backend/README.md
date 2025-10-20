@@ -1,134 +1,110 @@
-# Snappy Backend - Where the Magic Happens! ✨
+# Morty™ Backend – Where the Magic Happens
 
-Welcome to Snappy's brain! This FastAPI service is the powerhouse behind PDF ingestion, lightning-fast page-level retrieval, and all those sweet system maintenance features. 
+The Morty backend is a FastAPI service that powers PDF ingestion, page-level retrieval, and system maintenance. It is a direct continuation of the Snappy backend, delivered as part of a **pro-bono** collaboration with Vultr and the Morty™ mascot. All API routes, configuration schemas, and job orchestration remain compatible with existing Snappy deployments.
 
-Everything's neatly organized in modular routers under `backend/api/routers/` (`meta`, `retrieval`, `indexing`, `maintenance`, `config`), all fired up through `backend/api/app.py:create_app()`. Clean architecture? You bet! 🏛️
+## Requirements
 
-## What You'll Need 📦
+- Python 3.10 or newer  
+- Poppler utilities (`pdftoppm` must be on `PATH`)  
+- Docker and Docker Compose (optional but recommended for local parity)  
+- Optional: `fastembed[postprocess]` for MUVERA acceleration
 
-- **Python 3.10+** - The newer, the better!
-- **Poppler** - Must be on your `PATH` (Snappy uses `pdftoppm` for PDF magic)
-- **Docker + Docker Compose** - Optional but highly recommended for a smooth ride
-- **`fastembed[postprocess]`** - Optional, only if you want MUVERA superpowers
-
-## Getting Started Locally 🚀
+## Quick Start
 
 ```bash
-# Create a cozy virtual environment
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-
-# Update the essentials
+.\\.venv\\Scripts\\activate
 pip install -U pip setuptools wheel
-
-# Install Snappy's backend dependencies
 pip install -r backend/requirements.txt
 ```
 
-## Environment Setup 🌟
+Then configure your environment:
 
 ```bash
-# Copy the example env file
 copy .env.example .env
 ```
 
-**Essential Variables** (peek at `.env.example` and `backend/config.py` for details):
+Key variables (see `backend/config.py` for defaults):
 
-- **ColPali Config**: `COLPALI_MODE`, `COLPALI_CPU_URL`, `COLPALI_GPU_URL`, `COLPALI_API_TIMEOUT`
-- **Qdrant Setup**: `QDRANT_EMBEDDED`, `QDRANT_URL`, `QDRANT_COLLECTION_NAME`, plus quantization options
-- **MinIO Storage**: `MINIO_URL`, `MINIO_PUBLIC_URL`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`
+- `COLPALI_MODE`, `COLPALI_CPU_URL`, `COLPALI_GPU_URL`, `COLPALI_API_TIMEOUT`  
+- `QDRANT_URL`, `QDRANT_COLLECTION_NAME`, `QDRANT_USE_BINARY`, `QDRANT_PREFETCH_LIMIT`  
+- `MINIO_URL`, `MINIO_PUBLIC_URL`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`
 
-**Default Endpoints** (works out of the box!):
-- 🕸️ Qdrant: `http://localhost:6333`
-- 🗄️ MinIO: `http://localhost:9000`
-- 🧠 ColPali CPU: `http://localhost:7001`
-- 🚀 ColPali GPU: `http://localhost:7002`
-
-📚 **Deep Dive**: Check out `backend/docs/configuration.md` for the complete configuration encyclopedia!
-
-## Fire Up the Backend 🔥
+## Run the Service
 
 ```bash
-# Option 1: The uvicorn way (with hot reload!)
 uvicorn backend:app --host 0.0.0.0 --port 8000 --reload
+```
 
-# Option 2: The direct approach
+Prefer the legacy entry point?
+
+```bash
 python backend/main.py
 ```
 
-🎉 **Ready to explore?** Head to http://localhost:8000/docs for interactive API documentation!
+Automatic OpenAPI docs are served at http://localhost:8000/docs.
 
-## Docker Compose - The Easy Button 🐳
+## Docker Compose Workflow
 
-Our root `docker-compose.yml` orchestrates the whole gang: `qdrant`, `minio`, `backend`, and `frontend`. Everything just works!
+The root `docker-compose.yml` brings up Qdrant, MinIO, the Morty backend, and the Morty frontend. Default container environment variables are configured for host-based ColPali services:
 
-**Container Configuration**:
-- `COLPALI_CPU_URL=http://host.docker.internal:7001`
-- `COLPALI_GPU_URL=http://host.docker.internal:7002`
-- `QDRANT_URL=http://qdrant:6333`
-- `MINIO_URL=http://minio:9000`
+- `COLPALI_CPU_URL=http://host.docker.internal:7001`  
+- `COLPALI_GPU_URL=http://host.docker.internal:7002`  
+- `QDRANT_URL=http://qdrant:6333`  
+- `MINIO_URL=http://minio:9000`  
 - `MINIO_PUBLIC_URL=http://localhost:9000`
 
-**Launch Everything**:
+Launch everything with:
+
 ```bash
 docker compose up -d --build
 ```
 
-⚠️ **Important**: MinIO credentials are mandatory. Snappy needs proper object storage; no shortcuts here!
+MinIO credentials remain mandatory; Morty continues to rely on object storage for generated page images.
 
-## API Endpoints - Your Command Center 🎮
+## API Surface
 
-### 💓 Meta (Health Checks)
+### Meta
+- `GET /health` – Check Morty’s dependency status.
 
-- `GET /health` – See how ColPali, MinIO, and Qdrant are feeling
+### Retrieval
+- `GET /search?q=...&k=5` – Perform page-level searches (defaults to 10 results when `k` is omitted).
 
-### 🔍 Retrieval (The Search Magic)
+### Indexing
+- `POST /index` – Upload one or more PDFs for ingestion.  
+- `GET /progress/stream/{job_id}` – Receive live Server-Sent Events while indexing.  
+- `POST /index/cancel/{job_id}` – Cancel a running ingestion job.
 
-- `GET /search?q=...&k=5` – Visual search across all indexed documents  
-  (Leave out `k` for a sensible 10 results)
+### Maintenance
+- `GET /status` – Inspect Qdrant and MinIO statistics.  
+- `POST /initialize` – Provision the collection and bucket.  
+- `DELETE /delete` – Remove both resources.  
+- `POST /clear/qdrant`, `POST /clear/minio`, `POST /clear/all` – Perform targeted resets with audit details.
 
-### 📚 Indexing (Document Processing)
+### Configuration
+- `GET /config/schema`, `GET /config/values` – Review typed schema metadata and active values.  
+- `POST /config/update`, `POST /config/reset`, `POST /config/optimize` – Tune runtime values, revert to defaults, or let Morty auto-tune based on detected hardware.
 
-- `POST /index` – Upload PDFs (multipart `files[]`) and start the magic
-- `GET /progress/stream/{job_id}` – Real-time progress via Server-Sent Events
-- `POST /index/cancel/{job_id}` – Changed your mind? Cancel away!
+## Chat and Visual Citations
 
-### 🛠️ Maintenance (System Management)
+The Morty backend focuses on retrieval and system management. Chat streaming continues to live in `frontend/app/api/chat/route.ts`, which calls the backend search endpoint, forwards context to the OpenAI Responses API, and streams updates to the client.
 
-- `GET /status` – Quick stats on your collection and bucket
-- `POST /initialize` – Set up collection + bucket (first time? Start here!)
-- `DELETE /delete` – Nuclear option: removes collection and bucket
-- `POST /clear/qdrant` – Wipe Qdrant data only
-- `POST /clear/minio` – Clear MinIO objects only
-- `POST /clear/all` – Fresh start: clear everything!
+## Configuration UI
 
-*Note: MinIO deletes give you detailed reports, even when things go sideways.*
+The `/configuration` page in the Morty frontend interacts with the endpoints above to provide:
 
-### ⚙️ Configuration (Runtime Tuning)
+- Typed inputs with validation  
+- Draft detection when browser overrides diverge from server state  
+- Smart cache invalidation for configuration changes that affect search
 
-- `GET /config/schema` – The blueprint: categories, defaults, and metadata
-- `GET /config/values` – What's currently configured
-- `POST /config/update` – Tweak settings on the fly
-- `POST /config/reset` – Back to factory defaults
-- `POST /config/optimize` – Let Snappy auto-tune based on your hardware
+Runtime changes remain ephemeral. Persist long-term adjustments in `.env`.
 
-⚠️ **Remember**: Runtime changes are temporary! Update `.env` for permanent tweaks.
+## Migration Notes
 
-## Chat & Visual Citations 💬
+- No API signatures changed as part of the Morty rebrand. Client SDKs and automation scripts continue to operate.  
+- Morty introduces new documentation (`MIGRATION.md`, `TRADEMARKS.md`) to explain the pro-bono collaboration and branding guidelines.  
+- Review `LICENSES/SNAPPY_MIT_LICENSE.txt` to see the preserved upstream MIT License.
 
-The chat magic happens in the frontend at `frontend/app/api/chat/route.ts`. This Next.js route:
-1. Calls the OpenAI Responses API
-2. Streams responses via Server-Sent Events
-3. Injects beautiful page images through custom `kb.images` events
+---
 
-Snappy's backend? It handles the heavy lifting: document search (`GET /search`) and system maintenance. But it stays out of the chat proxy game; that's the frontend's jam! 🎵
-
-## Configuration UI - Settings Made Simple 🎛️
-
-The `/configuration` page is where you become the maestro! It connects to the `/config/*` API and gives you:
-- ✅ Typed inputs with validation
-- 📊 Real-time updates
-- 💾 Draft detection (when browser and server disagree)
-- ♻️ Smart cache invalidation (critical changes refresh services automatically)
-
-No restarts, no yaml wrestling, no config file archaeology. Just smooth, intuitive tuning! 🎶
+Morty is a rebrand based on the open-source project Snappy (https://github.com/athrael-soju/Snappy). Portions are licensed under the **MIT License**; license and attribution preserved.

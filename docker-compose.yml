@@ -14,7 +14,7 @@ services:
     depends_on:
       - minio
     networks:
-      - snappy-network
+      - morty-network
     restart: unless-stopped
 
   minio:
@@ -30,7 +30,7 @@ services:
       - MINIO_ROOT_PASSWORD=minioadmin
     command: server /data --console-address ":9001"
     networks:
-      - snappy-network
+      - morty-network
     restart: unless-stopped
 
   backend:
@@ -62,7 +62,7 @@ services:
       - qdrant
       - minio
     networks:
-      - snappy-network
+      - morty-network
 
   frontend:
     build:
@@ -78,13 +78,13 @@ services:
       - NEXT_PUBLIC_API_BASE_URL=http://backend:8000
       - PUBLIC_MINIO_URL_SET=true
     networks:
-      - snappy-network
+      - morty-network
     restart: unless-stopped
     depends_on:
       - backend
 
 networks:
-  snappy-network:
+  morty-network:
     driver: bridge
 
 volumes:
