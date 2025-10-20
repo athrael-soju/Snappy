@@ -22,7 +22,6 @@ import {
   AlertCircle,
   Bot,
   Clock3,
-  Loader2,
   MessageCircle,
   Send,
   Sparkles,
@@ -34,6 +33,7 @@ import {
   Settings,
   Trash2,
 } from "lucide-react";
+import { MortyLoader } from "@/components/morty-loader";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { RoutePageShell } from "@/components/route-page-shell";
 import { HeroMetaGroup, HeroMetaPill } from "@/components/hero-meta";
@@ -203,7 +203,7 @@ function ChatMessage({ message, isLoading, onOpenCitation }: ChatMessageProps) {
               />
               {isLoading && (
                 <div className="mt-2 flex items-center gap-2 text-body-xs text-muted-foreground">
-                  <Loader2 className="size-icon-sm animate-spin" />
+                  <MortyLoader size="sm" />
                   <span>Streaming response...</span>
                 </div>
               )}
@@ -299,7 +299,7 @@ function ChatComposer({
                 disabled={isSendDisabled}
                 aria-label="Send message"
               >
-                {loading ? <Loader2 className="size-icon-md animate-spin" /> : <Send className="size-icon-md" />}
+                {loading ? <MortyLoader size="md" /> : <Send className="size-icon-md" />}
               </AppButton>
               <div className="inline-flex items-center overflow-hidden rounded-full border border-border/40 bg-background/80 shadow-sm divide-x divide-border/40">
                 <Popover>

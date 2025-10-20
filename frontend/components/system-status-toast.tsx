@@ -9,20 +9,19 @@ import { useSystemStatus } from "@/stores/app-store";
 /**
  * Component that shows a toast notification when the system is not ready.
  * Prompts the user to configure the system via the maintenance page.
+ * Toast persists until manually dismissed or system becomes ready.
  */
 export function SystemStatusToast() {
   const { isReady } = useSystemStatus();
   const router = useRouter();
-  const hasShownToast = useRef(false);
+  const toastIdRef = useRef<string | number | null>(null);
 
   useEffect(() => {
-    // Only show toast once per session when system is not ready
-    if (!isReady && !hasShownToast.current) {
-      hasShownToast.current = true;
-      
-      toast.warning("System Configuration Required", {
+    // Show toast when system is not ready
+    if (!isReady && toastIdRef.current === null) {
+      toastIdRef.current = toast.warning("System Configuration Required", {
         description: "Please configure the system before using the services.",
-        duration: 10000, // Show for 10 seconds
+        duration: Infinity, // Toast stays until dismissed or system is ready
         action: {
           label: "Go to Maintenance",
           onClick: () => router.push("/maintenance"),
@@ -31,9 +30,10 @@ export function SystemStatusToast() {
       });
     }
 
-    // Reset the flag when system becomes ready
-    if (isReady) {
-      hasShownToast.current = false;
+    // Dismiss toast when system becomes ready
+    if (isReady && toastIdRef.current !== null) {
+      toast.dismiss(toastIdRef.current);
+      toastIdRef.current = null;
     }
   }, [isReady, router]);
 

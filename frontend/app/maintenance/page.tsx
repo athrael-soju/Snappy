@@ -97,26 +97,6 @@ export default function MaintenancePage() {
     <>
       <AppButton
         type="button"
-        onClick={() => void handleInitialize()}
-        disabled={initLoading || statusLoading}
-        variant="primary"
-        size="sm"
-        className="rounded-[var(--radius-button)] px-5"
-      >
-        {initLoading ? (
-          <>
-            <Loader2 className="size-icon-2xs animate-spin" />
-            Initializing...
-          </>
-        ) : (
-          <>
-            <Play className="size-icon-2xs" />
-            Initialize storage
-          </>
-        )}
-      </AppButton>
-      <AppButton
-        type="button"
         onClick={() => fetchStatus()}
         disabled={statusLoading}
         variant="outline"

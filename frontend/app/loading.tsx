@@ -2,6 +2,15 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
+
+const mortyImages = [
+  "/vultr/morty/engi_morty_nobg.png",
+  "/vultr/morty/banker_morty_nobg.png",
+  "/vultr/morty/dr_morty_nobg.png",
+  "/vultr/morty/gamer_morty_nobg.png",
+  "/vultr/morty/super_morty_nobg.png",
+];
+
 const MORTY_LOADING_MESSAGES = [
   "🚀 Morty is warming up his visual circuits",
   "👀 Scanning documents with eagle eyes",
@@ -33,8 +42,13 @@ function getRandomMortyMessage(): string {
 export default function Loading() {
   const [mounted, setMounted] = useState(false);
   const [message, setMessage] = useState("Morty is getting ready to help");
+  const [mortyImage, setMortyImage] = useState<string>("");
+  
   useEffect(() => {
     setMounted(true);
+    // Select a random Morty image
+    const randomImage = mortyImages[Math.floor(Math.random() * mortyImages.length)];
+    setMortyImage(randomImage);
   }, []);
   useEffect(() => {
     if (!mounted) return;
@@ -88,7 +102,7 @@ export default function Loading() {
           />
           {/* Center icon - Morty */}
           <div className="absolute inset-0 flex items-center justify-center">
-            {mounted && (
+            {mounted && mortyImage && (
               <motion.div
                 className="relative flex h-16 w-16 items-center justify-center sm:h-20 sm:w-20 rounded-full bg-white p-2 shadow-lg"
                 animate={{
@@ -101,7 +115,7 @@ export default function Loading() {
                 }}
               >
                 <Image
-                  src="/vultr/morty/super_morty.png"
+                  src={mortyImage}
                   alt="Morty - Your Visual Retrieval Buddy"
                   width={64}
                   height={64}

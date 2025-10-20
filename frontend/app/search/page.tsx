@@ -7,15 +7,18 @@ import "@/lib/api/client";
 import Image from "next/image";
 import {
   Search,
-  Loader2,
   X,
   AlertCircle,
   Sparkles,
   ArrowRight,
   FileText,
-  Clock,
+  Bot,
+  MessageSquare,
+  ScanSearch,
   Compass,
+  Clock,
 } from "lucide-react";
+import { MortyLoader } from "@/components/morty-loader";
 import type { LucideIcon } from "lucide-react";
 import { AppButton } from "@/components/app-button";
 import { Badge } from "@/components/ui/badge";
@@ -253,7 +256,7 @@ export default function SearchPage() {
                   >
                     {loading ? (
                       <>
-                        <Loader2 className="size-icon-sm animate-spin" />
+                        <MortyLoader size="sm" />
                         <span className="hidden sm:inline">Searching...</span>
                       </>
                     ) : (
@@ -418,7 +421,7 @@ export default function SearchPage() {
                       transition={{ duration: 0.2 }}
                     >
                       <div className="flex items-center justify-center gap-2 rounded-xl border border-border/50 bg-card/50 p-8 backdrop-blur-sm">
-                        <Loader2 className="size-icon-md animate-spin text-primary" />
+                        <MortyLoader size="md" />
                         <p className="text-body-sm text-muted-foreground">Searching your documents...</p>
                       </div>
                     </motion.div>
