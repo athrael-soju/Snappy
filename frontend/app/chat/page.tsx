@@ -174,7 +174,7 @@ function ChatMessage({ message, isLoading, onOpenCitation }: ChatMessageProps) {
           ) : (
             <>
               <Bot className="size-icon-sm text-accent" />
-              <span className="text-accent">Morty 🤖</span>
+              <span className="text-accent">Morty</span>
             </>
           )}
         </div>
