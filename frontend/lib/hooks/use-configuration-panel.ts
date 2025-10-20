@@ -45,7 +45,6 @@ interface ConfigStats {
   totalSettings: number;
   modifiedSettings: number;
   enabledFeatures: string[];
-  currentMode: string;
 }
 
 export function useConfigurationPanel() {
@@ -137,7 +136,6 @@ export function useConfigurationPanel() {
         values.ENABLE_PIPELINE_INDEXING === "True" ? "Pipeline Indexing" : null,
         values.QDRANT_USE_BINARY === "True" ? "Binary Quantization" : null,
       ].filter(Boolean) as string[],
-      currentMode: values.COLPALI_MODE || "gpu",
     }),
     [values, originalValues]
   );
