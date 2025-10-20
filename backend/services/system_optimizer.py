@@ -178,7 +178,6 @@ def build_recommendations() -> Dict[str, Any]:
         "ENABLE_PIPELINE_INDEXING": pipeline_indexing,
         "MINIO_WORKERS": minio_workers,
         "MINIO_RETRIES": minio_retries,
-        "COLPALI_MODE": "gpu" if gpu_count > 0 else "cpu",
     }
 
     detection = {

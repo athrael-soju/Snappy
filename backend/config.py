@@ -89,9 +89,6 @@ def __getattr__(name: str) -> Any:
             return [o.strip() for o in raw.split(",") if o.strip()]
         else:  # str
             value = _runtime.get(name, str(default))
-            # Handle special cases
-            if name == "COLPALI_MODE":
-                return value.lower()
             if name == "MINIO_PUBLIC_URL" and not value:
                 return __getattr__("MINIO_URL")
             if name == "MINIO_BUCKET_NAME" and not value.strip():

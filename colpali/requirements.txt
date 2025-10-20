@@ -1,6 +1,6 @@
-# torch and torchvision are installed in Dockerfile.gpu with the matching CUDA build
+# torch, torchvision, and flash-attn (GPU-only) are installed during the Dockerfile.gpu build
 transformers
-git+https://github.com/illuin-tech/colpali.git
+git+https://github.com/illuin-tech/colpali.git@vbert
 fastapi
 uvicorn
 Pillow

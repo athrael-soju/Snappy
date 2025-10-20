@@ -4,7 +4,7 @@ from typing import List, Optional, Union
 
 import numpy as np
 import requests
-from config import COLPALI_API_TIMEOUT, COLPALI_CPU_URL, COLPALI_GPU_URL, COLPALI_MODE
+from config import COLPALI_API_TIMEOUT, COLPALI_URL
 from PIL import Image
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -14,7 +14,7 @@ class ColPaliService:
     """Client for ColPali Embedding API"""
 
     def __init__(self, base_url: Optional[str] = None, timeout: Optional[int] = None):
-        default_base = COLPALI_GPU_URL if COLPALI_MODE == "gpu" else COLPALI_CPU_URL
+        default_base = COLPALI_URL or "http://localhost:7000"
         self.base_url = base_url or default_base
         self.timeout = timeout or COLPALI_API_TIMEOUT
 

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Configuration schema - Single source of truth for all configuration settings.
 
 This module defines:
@@ -108,32 +108,13 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
         "description": "ColPali embedding model configuration",
         "settings": [
             {
-                "key": "COLPALI_MODE",
+                "key": "COLPALI_URL",
                 "type": "str",
-                "default": "gpu",
-                "label": "Processing Mode",
-                "ui_type": "select",
-                "options": ["cpu", "gpu"],
-                "description": "Use CPU or GPU for embeddings",
-                "help_text": "Selects the hardware for generating document embeddings. GPU mode is 10-50x faster and recommended for production with NVIDIA GPUs. CPU mode works on any hardware but is much slower. Choose CPU only if you don't have a compatible GPU. This setting determines which service URL is used.",
-            },
-            {
-                "key": "COLPALI_CPU_URL",
-                "type": "str",
-                "default": "http://localhost:7001",
-                "label": "CPU Service URL",
+                "default": "http://localhost:7000",
+                "label": "ColPali Service URL",
                 "ui_type": "text",
-                "description": "URL for CPU-based ColPali service",
-                "help_text": "Endpoint for the CPU-based embedding service. Used when COLPALI_MODE is set to 'cpu'. Change this if running the CPU service on a different host or port. Format: http://hostname:port. Must be accessible from the backend application.",
-            },
-            {
-                "key": "COLPALI_GPU_URL",
-                "type": "str",
-                "default": "http://localhost:7002",
-                "label": "GPU Service URL",
-                "ui_type": "text",
-                "description": "URL for GPU-based ColPali service",
-                "help_text": "Endpoint for the GPU-accelerated embedding service. Used when COLPALI_MODE is set to 'gpu'. Change this if running the GPU service on a different host or port. Requires NVIDIA GPU with CUDA support on the target machine.",
+                "description": "URL for ColPali service",
+                "help_text": "Endpoint for the embedding service. Format: http://hostname:port. Must be accessible from the backend application.",
             },
             {
                 "key": "COLPALI_API_TIMEOUT",

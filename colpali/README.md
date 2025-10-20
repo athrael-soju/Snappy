@@ -1,51 +1,52 @@
-# ColPali Embedding API - The Vision Brain! 🧠✨
+# ColPali Embedding API - The Vision Brain!
 
-This is where the visual understanding magic happens! Our FastAPI service serves up query and image embeddings using the powerful ColQwen2.5 model, complete with image-token boundary metadata.
+This service generates query and image embeddings with the ColModernVBert late-interaction retriever (`ModernVBERT/colmodernvbert-merged`) and exposes image-token boundary metadata.
 
 - **App**: `colpali/app.py`
-- **Ports**: Listens on 7000 in-container
-  - 🖥️ CPU mode → `localhost:7001`
-  - 🚀 GPU mode → `localhost:7002`
-- **Model**: `vidore/colqwen2.5-v0.2` (state-of-the-art vision-language model!)
+- **Ports**: listen on 7000 in-container
+- **Model**: `ModernVBERT/colmodernvbert-merged` (late-interaction ModernVBERT retriever)
 
-## API Endpoints 🎯
-- `GET /health` - Check if we're alive and which device we're running on
-- `GET /info` - Device info, data type, dimensions, and `image_token_id`
-- `POST /patches` - Calculate patch grids (`n_patches_x/y`) for your images
-- `POST /embed/queries` - Turn text queries into embeddings
-- `POST /embed/images` - Transform images into embeddings (with patch boundaries!)
+## API Endpoints
+- `GET /health` - runtime status and active device
+- `GET /info` - device, dtype, model id, and optional image-token metadata
+- `POST /patches` - patch grid counts when supported (returns an informative error for ColModernVBert)
+- `POST /embed/queries` - text embeddings
+- `POST /embed/images` - image embeddings with image-token boundaries
 
-## Docker Compose - The Easy Way! 🐳
+## Docker Compose - The Easy Way
 
 ```bash
 # From the colpali/ directory
 
-# CPU Mode (everyone can use this!)
-docker compose up -d api-cpu
-# → Available at http://localhost:7001
+# GPU profile (builds with CUDA + flash-attn support)
+docker compose --profile gpu up -d --build
+# api available at http://localhost:7000
 
-# GPU Mode (requires NVIDIA runtime - FAST!)
-docker compose up -d api-gpu
-# → Available at http://localhost:7002
+# CPU profile (lighter image, no GPU requirements)
+docker compose --profile cpu up -d --build
+
+# Override port/GPU exposure as needed
+PUBLIC_PORT=7010 COLPALI_GPUS=all docker compose --profile gpu up -d --build
 ```
 
-**Smart Caching** 💾: We use a named volume (`hf-cache`) to persist your Hugging Face model downloads at `/data/hf-cache`. Download once, use forever!
+> Profiles are mutually exclusive—run with either `--profile gpu` or `--profile cpu` depending on your host.
 
-## Connect Snappy to ColPali 🔌
+**Smart Caching**: We use a named volume (`hf-cache`) to persist your Hugging Face model downloads at `/data/hf-cache`. Download once, use forever.
+
+`Dockerfile.cpu` keeps things lightweight for local development, while `Dockerfile.gpu` builds on NVIDIA's `pytorch/pytorch:2.9.0-cuda13.0-cudnn9-devel` image and layers in `flash-attn` so recent GPUs work out of the box. You can override `PUBLIC_PORT`/`PUBLIC_HOST` the same way.
+
+## Connect Snappy to ColPali
 
 In your root `.env` file (the backend reads this):
-```bash
-# Choose your fighter: cpu or gpu
-COLPALI_MODE=cpu
 
+```bash
 # Tell Snappy where to find the services
-COLPALI_CPU_URL=http://localhost:7001
-COLPALI_GPU_URL=http://localhost:7002
+COLPALI_URL=http://localhost:7000
 ```
 
-Snappy's backend will automatically pick the right URL based on your `COLPALI_MODE` setting. Easy! 🎉
+> If you override `PUBLIC_PORT` when starting the container, keep the `COLPALI_URL` in sync.
 
-## Running Locally (No Docker) 💻
+## Running Locally (No Docker)
 
 ```bash
 # From the colpali/ directory
@@ -63,20 +64,21 @@ uvicorn app:app --host 0.0.0.0 --port 7000 --reload
 ```
 
 **Access Points**:
-- 🏠 Local direct: http://localhost:7000
-- 🐳 Docker Compose style: http://localhost:7001 (CPU) or :7002 (GPU)
+- Local direct: http://localhost:7000
+- Docker Compose style: http://localhost:7000 or your chosen `PUBLIC_PORT` 
 
-## Good to Know 📝
-- **Model Access**: ColQwen2.5 is public, but it's a big download! First run might take a minute.
-- **GPU Requirements**: Need NVIDIA Container Toolkit for GPU mode (worth it for the speed!)
-- **Gated Models**: If you switch to a gated model, authenticate with Hugging Face first
+## Good to Know
+- **Model Access**: ColModernVBert is public but it is a large download; the first run may take a minute.
+- **GPU Requirements**: You need the NVIDIA Container Toolkit for GPU mode (`COLPALI_GPUS` controls how many devices are exposed).
+- **First GPU build pulls CUDA 12.6 tooling**: The image installs the minimal CUDA compiler stack so `flash-attn` can build; expect the first `--build` to download a few extra packages.
+- **Gated Models**: If you switch to a gated model, authenticate with Hugging Face first.
 
-## How It All Connects 🔗
+## How It All Connects
 
 This embedding service is Snappy's visual brain:
-1. 🧠 Provides query & image embeddings to the backend
-2. 🔍 Powers the search functionality (`GET /search`)
-3. 💬 Enables the chat route to find relevant document pages
-4. ✨ Makes visual citations possible!
+1. Provides query and image embeddings to the backend
+2. Powers the search functionality (`GET /search`)
+3. Enables the chat route to find relevant document pages
+4. Makes visual citations possible
 
-When the Next.js chat route finds relevant images, it emits a `kb.images` Server-Sent Event, and the UI lights up with that beautiful "Visual citations included" chip and image gallery. It's all connected! 🎭
+When the Next.js chat route finds relevant images, it emits a `kb.images` Server-Sent Event so the UI can highlight that visual citations are available.

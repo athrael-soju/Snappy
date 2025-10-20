@@ -104,16 +104,29 @@ cp .env.example .env
 cp frontend/.env.example frontend/.env.local
 ```
 
-- Choose `COLPALI_MODE=cpu` or `gpu` (GPU is faster if you have the hardware!)
 - Pop in your OpenAI API key in `frontend/.env.local`
 
 **Step 2:** Fire up the ColPali embedding service
 
 ```bash
 # From the colpali/ directory
-docker compose up -d api-cpu      # CPU mode → http://localhost:7001
-# OR for the speedy option
-docker compose up -d api-gpu      # GPU mode → http://localhost:7002
+
+# GPU profile (includes CUDA + flash-attn build tooling)
+docker compose --profile gpu up -d --build
+
+# CPU profile (lean image, no GPU requirements)
+docker compose --profile cpu up -d --build
+
+# Need a different port or to pin GPU usage? Override env vars as you go.
+PUBLIC_PORT=7010 COLPALI_GPUS=1 docker compose --profile gpu up -d --build
+
+> Heads up: the GPU profile installs the CUDA 12.6 compiler packages so `flash-attn` can compile—expect an extra couple of minutes and a larger download the first time.
+
+> Pick exactly one profile per run—`--profile gpu` or `--profile cpu`—to avoid port clashes.
+
+Behind the scenes the GPU profile uses NVIDIA's `pytorch/pytorch:2.9.0-cuda13.0-cudnn9-devel` image, so torch/torchvision come preinstalled and we just add the ColPali bits plus `flash-attn`.
+
+# Update your .env (COLPALI_URL) to match the port you expose.
 ```
 
 **Step 3:** Launch the whole Snappy stack
@@ -164,7 +177,6 @@ docker compose up -d --build
 
 ### Backend highlights
 
-- `COLPALI_MODE`, `COLPALI_CPU_URL`, `COLPALI_GPU_URL`,
   `COLPALI_API_TIMEOUT`
 - `QDRANT_EMBEDDED` (defaults to `False`), `QDRANT_URL`, `QDRANT_COLLECTION_NAME`,
   `QDRANT_PREFETCH_LIMIT`, quantisation toggles (`QDRANT_USE_BINARY`, etc.)
@@ -252,7 +264,7 @@ MIT License - see [LICENSE](LICENSE).
 
 Snappy wouldn't exist without these amazing projects:
 
-- **ColPali / ColQwen** - The brilliant vision-language models that power our understanding  
+- **ColPali / ColModernVBert** - The brilliant vision-language models that power our understanding  
   📄 https://arxiv.org/abs/2407.01449
 
 - **Qdrant** - Lightning-fast vector search with killer optimization guides  

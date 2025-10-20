@@ -97,8 +97,6 @@ flowchart TB
 
 **Deployment Options**: CPU and GPU variants via `colpali/docker-compose.yml`
 
-**Smart Routing**: Backend auto-selects URLs based on `COLPALI_MODE` and respects `COLPALI_API_TIMEOUT`. Simple! 🎯
-
 ## Configuration Lifecycle ⚙️
 
 **From Schema to Runtime**:
