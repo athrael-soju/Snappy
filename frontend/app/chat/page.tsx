@@ -39,36 +39,36 @@ import { RoutePageShell } from "@/components/route-page-shell";
 
 const starterPrompts = [
   {
-    title: "Find visual information",
-    description: "Search for charts, diagrams, or images showing specific data or concepts.",
+    title: "Ask Morty about visuals",
+    description: "Let Morty search for charts, diagrams, or images showing specific data or concepts.",
     tag: "Visual",
     icon: Telescope,
     emoji: "🔍",
-    prompt: "Find all charts and diagrams related to [your topic] and describe what they show.",
+    prompt: "Morty, find all charts and diagrams related to [your topic] and describe what they show.",
   },
   {
-    title: "Extract from tables",
-    description: "Pull specific data from tables and structured content in documents.",
+    title: "Have Morty extract data",
+    description: "Ask Morty to pull specific data from tables and structured content in documents.",
     tag: "Data",
     icon: ClipboardCheck,
     emoji: "📊",
-    prompt: "What information is shown in the tables about [your topic]? List the key data points.",
+    prompt: "Morty, what information is shown in the tables about [your topic]? List the key data points.",
   },
   {
-    title: "Analyze document layout",
-    description: "Understand how information is organized across pages and sections.",
+    title: "Get Morty's layout insights",
+    description: "Let Morty analyze how information is organized across pages and sections.",
     tag: "Layout",
     icon: MessageCircle,
     emoji: "📑",
-    prompt: "Describe the layout and structure of documents covering [your topic]. Where is the key information located?",
+    prompt: "Morty, describe the layout and structure of documents covering [your topic]. Where is the key information located?",
   },
   {
-    title: "Compare visual elements",
-    description: "Identify differences and similarities between images and diagrams.",
+    title: "Ask Morty to compare",
+    description: "Have Morty identify differences and similarities between images and diagrams.",
     tag: "Compare",
     icon: Wand2,
     emoji: "🔬",
-    prompt: "Compare the visual elements across different documents about [your topic]. What patterns or differences do you notice?",
+    prompt: "Morty, compare the visual elements across different documents about [your topic]. What patterns or differences do you notice?",
   },
 ];
 
@@ -174,7 +174,7 @@ function ChatMessage({ message, isLoading, onOpenCitation }: ChatMessageProps) {
           ) : (
             <>
               <Bot className="size-icon-sm text-accent" />
-              <span className="text-accent">Morty</span>
+              <span className="text-accent">Morty 🤖</span>
             </>
           )}
         </div>
@@ -281,7 +281,7 @@ function ChatComposer({
                   id="chat-input-area"
                   value={input}
                   onChange={(event) => onInputChange(event.target.value)}
-                  placeholder="Ask anything about your documents..."
+                  placeholder="Ask Morty anything about your documents! He loves visual questions..."
                   disabled={!isReady}
                   rows={2}
                   className="min-h-[3.5rem] max-h-[3.5rem] w-full resize-none border-0 bg-transparent px-4 py-3 text-body leading-relaxed placeholder:text-muted-foreground outline-none focus-visible:ring-0 overflow-y-auto text-body-xs sm:text-body-xs"
@@ -518,8 +518,8 @@ export default function ChatPage() {
     <>
       <RoutePageShell
         eyebrow="Services"
-        title="Chat with Vultr Vision"
-        description="Explore uploads with Vultr's grounded answers, inline visual citations, and ColPali-powered context."
+        title="Chat with Morty, Your Visual Retrieval Buddy"
+        description="Have a conversation with Morty about your documents. He understands images, charts, and text to give you grounded, visual answers."
         actions={heroActions}
         meta={heroMeta}
         innerClassName="flex min-h-0 flex-1 flex-col"

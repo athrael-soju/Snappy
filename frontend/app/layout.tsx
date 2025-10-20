@@ -9,9 +9,9 @@ import { ThemeProvider } from "@/components/theme-provider";
 import NextTopLoader from "nextjs-toploader";
 
 export const metadata: Metadata = {
-  title: "Vultr Vision",
+  title: "Morty - Your Visual Retrieval Buddy | Vultr",
   description:
-    "Deploy Vultr's ColPali-powered document intelligence across your global infrastructure. Upload, search, and collaborate with Vultr's signature performance.",
+    "Meet Morty, your friendly Visual Retrieval Buddy powered by Vultr's global infrastructure and ColPali's advanced vision models. Upload, search, and chat with your documents using visual intelligence that understands charts, layouts, and images.",
   icons: {
     icon: "/brand/signet__on-white.svg",
     shortcut: "/brand/signet__on-white.svg",

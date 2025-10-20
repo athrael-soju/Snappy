@@ -47,15 +47,15 @@ type SearchHelperCard = {
 const SEARCH_HELPER_CARDS: SearchHelperCard[] = [
   {
     id: "start",
-    title: "Start with a question",
-    description: "Ask about people, diagrams, or obligations. Vultr Vision ranks the most relevant page images instantly.",
+    title: "Ask Morty anything",
+    description: "Morty loves questions about people, diagrams, or document details. He ranks the most relevant visual matches instantly.",
     icon: Sparkles,
     gradient: "from-chart-1 to-chart-2",
   },
   {
     id: "uploads",
-    title: "Spot-check uploads",
-    description: "Recently indexed? Search by filename or topic to verify that your latest PDFs are retrievable.",
+    title: "Check what Morty indexed",
+    description: "Recently uploaded? Ask Morty to search by filename or topic to verify your latest PDFs are ready.",
     icon: FileText,
     gradient: "from-chart-3 to-chart-4",
     href: "/upload",
@@ -63,8 +63,8 @@ const SEARCH_HELPER_CARDS: SearchHelperCard[] = [
   },
   {
     id: "status",
-    title: "Monitor system health",
-    description: "Confirm Qdrant and MinIO are ready before large queries or new ingestion sessions.",
+    title: "Keep Morty healthy",
+    description: "Make sure Qdrant and MinIO are ready before big searches so Morty can work at full speed.",
     icon: Compass,
     gradient: "from-chart-2 to-primary",
     href: "/maintenance",
@@ -173,14 +173,14 @@ export default function SearchPage() {
         title={
           <>
             <span className="bg-gradient-to-br from-white via-white to-white/70 bg-clip-text text-transparent">
-              Search &amp; Discover
+              Search with Morty's
             </span>{" "}
             <span className="bg-gradient-to-r from-[#9ddfff] via-[#6fb5ff] to-[#9ddfff] bg-clip-text text-transparent">
-              Visual Insights
+              Visual Intelligence
             </span>
           </>
         }
-        description="Ask questions in natural language and let Vultr Vision surface the most relevant matches instantly."
+        description="Ask Morty questions in natural language and let him surface the most relevant visual matches instantly."
         actions={heroActions}
         meta={heroMeta}
         innerClassName="space-y-6"
@@ -214,7 +214,7 @@ export default function SearchPage() {
                   type="text"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Ask about content, visuals, or document details..."
+                  placeholder="Ask Morty about content, visuals, or document details..."
                   className="input flex-1 border-none bg-transparent px-0 text-body shadow-none focus-visible:border-transparent focus-visible:ring-0 placeholder:text-white/70"
                   disabled={!isReady}
                 />

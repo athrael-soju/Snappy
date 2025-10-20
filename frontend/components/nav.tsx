@@ -47,18 +47,18 @@ const menuSections: NavSection[] = [
       {
         label: "Upload & Index",
         href: "/upload",
-        description: "Ingest and process documents with ColPali-powered vision models.",
+        description: "Let Morty process and understand your documents with ColPali-powered vision models.",
         showUploadProgress: true,
       },
       {
         label: "Semantic Search",
         href: "/search",
-        description: "Find relevant documents instantly using advanced vector search techniques.",
+        description: "Ask Morty to find relevant documents using advanced visual search techniques.",
       },
       {
         label: "Vision Chat",
         href: "/chat",
-        description: "Interact with your documents through an AI-powered chat interface.",
+        description: "Have a conversation with Morty about your documents through AI-powered chat.",
       },
     ],
   },
@@ -68,12 +68,12 @@ const menuSections: NavSection[] = [
       {
         label: "Configuration",
         href: "/configuration",
-        description: "Customize and optimize your ColPali deployment settings easily.",
+        description: "Customize and optimize Morty's ColPali deployment settings easily.",
       },
       {
         label: "Maintenance",
         href: "/maintenance",
-        description: "Monitor system health and manage updates for seamless operation.",
+        description: "Monitor Morty's system health and manage updates for seamless operation.",
       },
     ],
   }
@@ -83,7 +83,7 @@ const directLinks: MenuLink[] = [
   {
     label: "About",
     href: "/about",
-    description: "Understand the brand system and roadmap behind this template.",
+    description: "Learn about Morty, your Visual Retrieval Buddy, and the technology behind the magic.",
     external: false,
   }
 ]
@@ -105,7 +105,7 @@ export function Nav() {
   return (
     <header className="fixed top-0 z-50 w-full border-b border-[#1331a0]/40 bg-gradient-to-br from-[#06175a] via-[#0c2f95] to-[#1244cd] text-white shadow-[0_6px_18px_rgba(6,14,56,0.35)]">
       <div className="layout-container flex h-16 items-center gap-6 text-white">
-        <Link href="/" className="group flex shrink-0 items-center justify-center" aria-label="Vultr home">
+        <Link href="/" className="group flex shrink-0 items-center justify-center gap-3" aria-label="Vultr home">
           <div className="relative flex items-center justify-center">
             <span className="pointer-events-none absolute -left-6 -right-6 -top-4 h-16 rounded-full bg-vultr-sky-blue/20 opacity-0 blur-2xl transition-opacity duration-300 " />
             {mounted && (

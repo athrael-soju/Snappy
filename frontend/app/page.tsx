@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
@@ -16,26 +17,31 @@ import {
 } from "lucide-react";
 
 import { AppButton } from "@/components/app-button";
+import {
+  MORTY_CENTER_OFFSET,
+  MORTY_SIZE,
+  MortyHero,
+} from "@/components/morty-hero";
 
 const productCards = [
   {
-    title: "Upload & Index",
+    title: "Visual Upload with Morty",
     description:
-      "Batch ingest PDFs, slides, and scans into Vultr Vision&rsquo;s managed lake while ColPali builds multimodal embeddings.",
+      "Let Morty help you upload and process your documents. He&rsquo;ll guide you through visual indexing with ColPali&rsquo;s advanced understanding.",
     href: "/upload",
     icon: Upload,
   },
   {
-    title: "Semantic Search",
+    title: "Smart Search by Morty",
     description:
-      "Query enterprise corpora through Vultr Vision&rsquo;s retrieval orchestrator tailored for regulated, globally distributed teams.",
+      "Morty&rsquo;s visual intelligence finds exactly what you need. Search across images, charts, and text with multimodal precision.",
     href: "/search",
     icon: Search,
   },
   {
-    title: "Vision Chat",
+    title: "Chat with Morty",
     description:
-      "Collaborate on visuals in real time with Vultr Vision copilots and ColPali&rsquo;s reasoning to accelerate reviews and approvals.",
+      "Have a conversation with your Visual Retrieval Buddy. Morty understands your documents and provides grounded, visual answers.",
     href: "/chat",
     icon: MessageSquare,
   },
@@ -97,34 +103,61 @@ const cardVariants = {
   },
 };
 
-const mortyVariants = {
-  hidden: {
-    opacity: 0,
-    x: "100vw",
-    y: -100,
-    rotate: 45,
-    scale: 0.5,
-  },
-  visible: {
-    opacity: 1,
-    x: 375,
-    y: -75,
-    rotate: 0,
-    scale: 1,
-    transition: {
-      type: "spring" as const,
-      stiffness: 80,
-      damping: 20,
-      delay: 0.6,
-      duration: 1.2,
-    },
-  },
-};
+const MIN_MORTY_LEFT = 16;
+const DEFAULT_MORTY_LEFT = 32;
+const DEFAULT_TRAIL_LEFT = DEFAULT_MORTY_LEFT + MORTY_CENTER_OFFSET;
 
 export default function Home() {
+  const heroRef = useRef<HTMLElement | null>(null);
+  const titleRef = useRef<HTMLHeadingElement | null>(null);
+  const [mortyLeft, setMortyLeft] = useState(DEFAULT_MORTY_LEFT);
+  const [mortyCenterLeft, setMortyCenterLeft] = useState(DEFAULT_TRAIL_LEFT);
+
+  // Keep Morty aligned with the hero title regardless of text width.
+  useEffect(() => {
+    const updatePosition = () => {
+      if (!heroRef.current || !titleRef.current) {
+        return;
+      }
+
+      const heroRect = heroRef.current.getBoundingClientRect();
+      const titleRect = titleRef.current.getBoundingClientRect();
+      const gap = 40;
+      const flushLeft = titleRect.left - heroRect.left - MORTY_SIZE;
+      const desiredLeft = flushLeft - gap;
+
+      let nextLeft = Math.max(Math.min(desiredLeft, flushLeft), 0);
+      if (flushLeft >= MIN_MORTY_LEFT) {
+        nextLeft = Math.max(nextLeft, MIN_MORTY_LEFT);
+      }
+
+      setMortyLeft((prev) => (Math.abs(prev - nextLeft) < 0.5 ? prev : nextLeft));
+      const nextCenter = nextLeft + MORTY_CENTER_OFFSET;
+      setMortyCenterLeft((prev) =>
+        Math.abs(prev - nextCenter) < 0.5 ? prev : nextCenter,
+      );
+    };
+
+    const raf = requestAnimationFrame(updatePosition);
+    window.addEventListener("resize", updatePosition);
+
+    let observer: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined" && titleRef.current) {
+      observer = new ResizeObserver(() => updatePosition());
+      observer.observe(titleRef.current);
+    }
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", updatePosition);
+      observer?.disconnect();
+    };
+  }, []);
+
   return (
     <div className="relative flex flex-1 flex-col bg-white pt-16 dark:bg-vultr-midnight">
       <motion.section
+        ref={heroRef}
         className="relative isolate overflow-hidden bg-gradient-to-br from-[#06175a] via-[#0d2c96] to-[#1647d1] pb-28 pt-20 text-white sm:pt-24"
         initial="hidden"
         animate="visible"
@@ -132,37 +165,10 @@ export default function Home() {
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(82,186,255,0.25),transparent_55%),radial-gradient(circle_at_85%_15%,rgba(0,123,252,0.35),transparent_60%)]" />
 
-        {/* Morty Mascot - Overlay positioned absolutely */}
-        <motion.div
-          className="absolute left-8 top-1/2 z-20 hidden -translate-y-1/2 lg:block xl:left-16"
-          variants={mortyVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          <motion.div
-            className="relative"
-            animate={{
-              y: [0, -8, 0],
-              rotate: [-1, 1, -1],
-            }}
-            transition={{
-              duration: 4,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          >
-            <Image
-              src="/vultr/morty_notext.png"
-              alt="Morty - Vultr Vision Mascot"
-              width={240}
-              height={240}
-              className="drop-shadow-2xl"
-              priority
-            />
-            {/* Subtle glow effect behind Morty */}
-            <div className="absolute inset-0 -z-10 rounded-full bg-white/20 blur-xl" />
-          </motion.div>
-        </motion.div>
+        <MortyHero
+          mortyLeft={mortyLeft}
+          mortyCenterLeft={mortyCenterLeft}
+        />
 
         <div className="relative mx-auto flex max-w-4xl flex-col items-center px-6 text-center sm:px-10">
           <motion.span
@@ -173,11 +179,12 @@ export default function Home() {
           </motion.span>
 
           <motion.h1
+            ref={titleRef}
             className="mt-5 max-w-3xl text-digital-h1 text-balance font-bold"
             variants={itemVariants}
           >
-            <span>Multimodal Document Intelligence with Morty's Vision</span>{" "}
-            <span className="text-body-xs font-semibold text-white/85">Based on </span>
+            <span>Meet Morty, Your Visual Retrieval Buddy</span>{" "}
+            <span className="text-body-xs font-semibold text-white/85">Powered by </span>
             <Link
               href="https://github.com/athrael-soju/Snappy"
               target="_blank"
@@ -188,8 +195,7 @@ export default function Home() {
             </Link>
           </motion.h1>
           <motion.p className="mt-6 max-w-2xl text-body-lg text-white/85" variants={itemVariants}>
-            Vultr Vision orchestrates ingestion, retrieval, and visual reasoning so you can ship document copilots faster.
-            Activate upload, semantic search, and vision chat patterns that showcase the Vision design system.
+            Morty combines Vultr's global infrastructure with advanced ColPali vision models to help you find, understand, and chat with your documents like never before. Your friendly mascot makes multimodal document intelligence effortless.
           </motion.p>
 
           {/* Welcome message from Morty - appears on mobile/tablet */}
@@ -197,7 +203,7 @@ export default function Home() {
             className="mt-4 flex items-center gap-3 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm lg:hidden"
             variants={itemVariants}
           >
-            <div className="flex size-8 items-center justify-center">
+            <div className="flex size-8 items-center justify-center rounded-full bg-white p-1">
               <Image
                 src="/vultr/morty_notext.png"
                 alt="Morty"
@@ -207,7 +213,7 @@ export default function Home() {
               />
             </div>
             <span className="text-body-xs text-white/90">
-              Hi! I&rsquo;m Morty, your Vultr Vision guide
+              Hey there! I&rsquo;m Morty, your Visual Retrieval Buddy 🚀
             </span>
           </motion.div>
 
@@ -227,6 +233,98 @@ export default function Home() {
         />
       </motion.section>
 
+      {/* Meet Morty Section */}
+      <motion.section
+        className="bg-gradient-to-b from-white to-vultr-sky-blue/10 py-24 dark:from-vultr-midnight dark:to-vultr-blue-20/20"
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.25 }}
+        variants={containerVariants}
+      >
+        <div className="layout-container max-w-6xl">
+          <motion.div
+            className="grid gap-12 items-center lg:grid-cols-2"
+            variants={containerVariants}
+          >
+            <motion.div className="space-y-6" variants={itemVariants}>
+              <div className="space-y-4">
+                <div className="inline-flex items-center gap-2 rounded-full bg-vultr-blue/10 px-4 py-2 text-body-sm font-semibold text-vultr-blue">
+                  <Sparkles className="size-icon-xs" />
+                  Meet Your Visual Retrieval Buddy
+                </div>
+                <h2 className="text-editorial-h2 font-bold text-vultr-navy dark:text-white">
+                  Morty Makes Document Intelligence Personal
+                </h2>
+                <p className="text-body-lg text-vultr-navy/70 dark:text-white/70">
+                  More than just a mascot, Morty is your intelligent companion who understands the visual context of your documents. He combines Vultr&rsquo;s powerful infrastructure with ColPali&rsquo;s advanced vision models to deliver insights that go beyond simple text search.
+                </p>
+              </div>
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex size-8 items-center justify-center rounded-full bg-vultr-blue/10 text-vultr-blue">
+                    <Sparkles className="size-icon-xs" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-vultr-navy dark:text-white">Visual Understanding</h3>
+                    <p className="text-body-sm text-vultr-navy/70 dark:text-white/70">Morty sees charts, diagrams, and layouts just like you do</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="flex size-8 items-center justify-center rounded-full bg-vultr-blue/10 text-vultr-blue">
+                    <MessageSquare className="size-icon-xs" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-vultr-navy dark:text-white">Conversational Intelligence</h3>
+                    <p className="text-body-sm text-vultr-navy/70 dark:text-white/70">Chat naturally about your documents with grounded, visual responses</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="flex size-8 items-center justify-center rounded-full bg-vultr-blue/10 text-vultr-blue">
+                    <Globe className="size-icon-xs" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-vultr-navy dark:text-white">Global Performance</h3>
+                    <p className="text-body-sm text-vultr-navy/70 dark:text-white/70">Powered by Vultr&rsquo;s worldwide infrastructure for instant results</p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+            <motion.div
+              className="relative"
+              variants={itemVariants}
+            >
+              <div className="relative">
+                {/* Background glow effect */}
+                <motion.div
+                  className="absolute inset-0 scale-110 rounded-full bg-gradient-to-r from-vultr-blue/20 via-purple-500/20 to-pink-500/20 blur-3xl"
+                  animate={{
+                    opacity: [0.4, 0.8, 0.4],
+                    scale: [1.1, 1.2, 1.1],
+                  }}
+                  transition={{
+                    duration: 4,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                />
+                <div className="relative flex items-center justify-center">
+                  <div className="rounded-full bg-white p-8 shadow-lg">
+                    <Image
+                      src="/vultr/morty_notext.png"
+                      alt="Morty - Your Visual Retrieval Buddy"
+                      width={400}
+                      height={400}
+                      className="relative z-10 drop-shadow-2xl"
+                      priority
+                    />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        </div>
+      </motion.section>
+
       <motion.section
         className="bg-white py-24 dark:bg-vultr-midnight"
         initial="hidden"
@@ -237,11 +335,11 @@ export default function Home() {
         <div className="layout-container max-w-7xl">
           <motion.div className="flex flex-col items-center text-center" variants={itemVariants}>
             <h2 className="text-editorial-h3 font-semibold text-vultr-navy dark:text-white">
-              Build with Vultr Vision
+              Morty&rsquo;s Visual Intelligence Suite
             </h2>
             <p className="mt-4 max-w-2xl text-body text-vultr-navy/70 dark:text-white/70">
-              Every route in this template spotlights a core Vultr Vision capability for ColPali workflows.
-              Explore ingestion, operations, and collaboration surfaces anchored in the Vision design language.
+              Let Morty guide you through powerful document intelligence features. From visual uploads to smart chat,
+              your friendly retrieval buddy makes every interaction intuitive and effective.
             </p>
           </motion.div>
 
@@ -343,23 +441,23 @@ export default function Home() {
       >
         <div className="layout-container max-w-6xl">
           <motion.div className="space-y-6 rounded-[var(--radius-card)] border border-black/5 bg-white p-10 shadow-[0_24px_56px_-30px_rgba(9,25,74,0.45)] dark:border-white/10 dark:bg-vultr-midnight/80" variants={itemVariants}>
-            <h3 className="text-digital-h5 font-semibold text-vultr-navy dark:text-white">Why teams choose Vultr Vision</h3>
+            <h3 className="text-digital-h5 font-semibold text-vultr-navy dark:text-white">Why teams love working with Morty</h3>
             <ul className="space-y-4 text-body-sm text-vultr-navy/75 dark:text-white/75">
               <li className="flex items-start gap-3">
                 <Sparkles className="mt-0.5 size-icon-sm text-vultr-blue" />
-                Brings Vultr Vision&rsquo;s design system, states, and interactions directly into your ColPali workflows.
+                Morty makes complex visual retrieval accessible with intuitive interactions and friendly guidance.
               </li>
               <li className="flex items-start gap-3">
                 <Cloud className="mt-0.5 size-icon-sm text-vultr-blue-60" />
-                Built atop GPU-ready infrastructure in every Vultr region, orchestrated by the Vision platform to reduce deployment friction.
+                Your Visual Retrieval Buddy leverages Vultr&rsquo;s global GPU infrastructure for lightning-fast document processing.
               </li>
               <li className="flex items-start gap-3">
                 <Shield className="mt-0.5 size-icon-sm text-vultr-navy/80 dark:text-white/80" />
-                Provides compliance controls, policy management, and observability out of the box via Vision guardrails.
+                Morty ensures your documents are processed securely with enterprise-grade compliance and privacy controls.
               </li>
             </ul>
             <div className="rounded-[var(--radius-button)] border border-dashed border-vultr-blue/30 bg-vultr-sky-blue/15 px-5 py-4 text-body-sm text-vultr-blue-60 dark:border-vultr-light-blue/40 dark:bg-vultr-blue-20/30 dark:text-vultr-light-blue/90">
-              Configure multiple ColPali deployments, enforce policy, and monitor pipelines from a single Vultr Vision console.
+              💫 "Morty transforms how we interact with documents - it&rsquo;s like having a visual intelligence expert on our team!" - Happy User
             </div>
           </motion.div>
         </div>

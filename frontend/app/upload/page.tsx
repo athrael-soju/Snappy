@@ -42,8 +42,8 @@ type UploadHelperCard = {
 const UPLOAD_HELPER_CARDS: UploadHelperCard[] = [
   {
     id: "maintenance",
-    title: "Check System Health",
-    description: "Verify the Qdrant collection and MinIO bucket are ready before large uploads.",
+    title: "Let Morty Check System Health",
+    description: "Before uploading, Morty recommends verifying that Qdrant and MinIO are ready for your documents.",
     icon: Wrench,
     gradient: "from-chart-2 to-chart-3",
     href: "/maintenance",
@@ -51,15 +51,15 @@ const UPLOAD_HELPER_CARDS: UploadHelperCard[] = [
   },
   {
     id: "prepare",
-    title: "Organize Your Files",
-    description: "Group related documents together and prefer small batches for faster indexing feedback.",
+    title: "Organize for Morty",
+    description: "Group related documents together - Morty processes them faster and understands context better this way.",
     icon: ListChecks,
     gradient: "from-chart-4 to-chart-3",
   },
   {
     id: "search",
-    title: "Validate Results",
-    description: "Head to Search after indexing finishes to spot-check newly embedded content.",
+    title: "Test Morty's Results",
+    description: "After Morty indexes your documents, head to Search to see how well he understood your content.",
     icon: Sparkles,
     gradient: "from-chart-1 to-chart-2",
     href: "/search",
@@ -219,8 +219,8 @@ export default function UploadPage() {
   return (
     <RoutePageShell
       eyebrow="Services"
-      title="Upload & Index your documents"
-      description="Drop your documents and let Vultr Vision retrieve insights from them."
+      title="Upload & Index with Morty's Help"
+      description="Let Morty guide you through document upload. He'll process your files with advanced visual intelligence and ColPali embeddings."
       meta={heroMeta}
       innerClassName="space-y-6"
       variant="compact"
@@ -233,6 +233,33 @@ export default function UploadPage() {
       >
         {/* Upload Form */}
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col space-y-4">
+          {/* Morty's Upload Guide */}
+          <motion.div
+            className="rounded-2xl border border-vultr-blue/20 bg-gradient-to-r from-vultr-blue/5 to-purple-500/5 p-4"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-full bg-vultr-blue/10">
+                <motion.div
+                  animate={{ rotate: [0, 10, -10, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  📄
+                </motion.div>
+              </div>
+              <div>
+                <h3 className="text-body-sm font-semibold text-vultr-navy dark:text-white">
+                  Morty's Visual Processing Tips
+                </h3>
+                <p className="text-body-xs text-vultr-navy/70 dark:text-white/70">
+                  I work best with clear PDFs, scanned documents, and images with text. The clearer your documents, the better I can help you find what you need! 🤖✨
+                </p>
+              </div>
+            </div>
+          </motion.div>
+
           {/* Drag & Drop Zone */}
           <motion.div
             className={`group relative overflow-hidden rounded-2xl border-2 border-dashed transition-all ${isDragOver
@@ -257,10 +284,10 @@ export default function UploadPage() {
 
               <div className="text-center space-y-2">
                 <h3 className="text-body font-bold">
-                  {isDragOver ? "Drop files here" : "Drag & drop your files"}
+                  {isDragOver ? "Morty's ready! Drop files here" : "Share your documents with Morty"}
                 </h3>
                 <p className="text-body-sm text-muted-foreground">
-                  or browse • PDFs, images, and documents
+                  or browse • Morty loves PDFs, images, and documents! 📄✨
                 </p>
               </div>
 
@@ -505,7 +532,7 @@ export default function UploadPage() {
               >
                 <div className="flex items-center gap-2">
                   <Sparkles className="size-icon-xs text-primary" />
-                  <h3 className="text-body font-bold">Keep Momentum Going</h3>
+                  <h3 className="text-body font-bold">Morty's Working His Magic ✨</h3>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-3">
