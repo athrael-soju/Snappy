@@ -29,7 +29,7 @@ function formatCount(value: number | undefined | null): string {
   return value.toLocaleString();
 }
 
-function resolveSeverity(status: SystemStatus | null | undefined): Severity {
+export function resolveSeverity(status: SystemStatus | null | undefined): Severity {
   if (!status) {
     return "warning";
   }
@@ -179,12 +179,14 @@ export function SystemStatusActions({
       description: (
         <>
           Morty indexed {formatCount(uniqueFiles)} documents with {formatCount(vectorCount)} vectors.{" "}
+          Visit{" "}
           <Link className="font-semibold text-primary underline-offset-2 hover:underline" href="/search">
-            Visit Search
+            Search
           </Link>{" "}
           or{" "}
+          open{" "}
           <Link className="font-semibold text-primary underline-offset-2 hover:underline" href="/chat">
-            open Chat
+            Chat
           </Link>{" "}
           to start exploring!
         </>
