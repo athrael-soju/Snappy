@@ -12,6 +12,7 @@ type RoutePageShellProps = {
   align?: "center" | "left";
   actions?: ReactNode;
   meta?: ReactNode;
+  metaWrapperClassName?: string;
   className?: string;
   contentWrapperClassName?: string;
   innerClassName?: string;
@@ -31,6 +32,7 @@ export function RoutePageShell({
   align = "center",
   actions,
   meta,
+  metaWrapperClassName,
   className,
   contentWrapperClassName,
   innerClassName,
@@ -54,6 +56,7 @@ export function RoutePageShell({
         align={align}
         actions={actions}
         meta={meta}
+        metaWrapperClassName={metaWrapperClassName}
         variant={variant}
       />
       <div

@@ -37,6 +37,7 @@ import {
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { RoutePageShell } from "@/components/route-page-shell";
 import { HeroMetaGroup, HeroMetaPill } from "@/components/hero-meta";
+import { MortyMetaCard } from "@/components/morty-meta-card";
 
 const starterPrompts = [
   {
@@ -482,24 +483,50 @@ export default function ChatPage() {
   );
 
   const heroMeta = (
-    <HeroMetaGroup>
-      <HeroMetaPill
-        icon={isReady ? Sparkles : AlertCircle}
-        tone={isReady ? "success" : "warning"}
-      >
-        {isReady ? "Connected to workspace" : "System not ready"}
-      </HeroMetaPill>
-      {timeToFirstTokenMs !== null ? (
-        <HeroMetaPill icon={Timer} tone="info">
-          {(timeToFirstTokenMs / 1000).toFixed(2)}s response time
+    <>
+      <MortyMetaCard
+        label="Morty's real-time chat arcade"
+        title="Gamer Morty loves fast back-and-forth conversations while he anchors answers to your documents."
+        bullets={[
+          {
+            icon: Bot,
+            text: "Streams grounded responses and visual citations as Morty reasons.",
+          },
+          {
+            icon: MessageCircle,
+            text: "Keeps multi-turn context so follow-up questions stay natural.",
+          },
+          {
+            icon: Wand2,
+            text: "Switch tool calling on demand when you need deeper dives.",
+          },
+        ]}
+        image={{
+          src: "/vultr/morty/gamer_morty_nobg.png",
+          alt: "Gamer Morty ready for chat",
+          width: 300,
+          height: 300,
+        }}
+      />
+      <HeroMetaGroup>
+        <HeroMetaPill
+          icon={isReady ? Sparkles : AlertCircle}
+          tone={isReady ? "success" : "warning"}
+        >
+          {isReady ? "Connected to workspace" : "System not ready"}
         </HeroMetaPill>
-      ) : null}
-      {toolCallingEnabled ? (
-        <HeroMetaPill icon={Bot}>
-          Tool calling enabled
-        </HeroMetaPill>
-      ) : null}
-    </HeroMetaGroup>
+        {timeToFirstTokenMs !== null ? (
+          <HeroMetaPill icon={Timer} tone="info">
+            {(timeToFirstTokenMs / 1000).toFixed(2)}s response time
+          </HeroMetaPill>
+        ) : null}
+        {toolCallingEnabled ? (
+          <HeroMetaPill icon={Bot}>
+            Tool calling enabled
+          </HeroMetaPill>
+        ) : null}
+      </HeroMetaGroup>
+    </>
   );
 
   const handleCitationOpen = (url: string, label?: string | null) => {

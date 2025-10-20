@@ -12,6 +12,7 @@ type RouteHeroProps = {
   actions?: ReactNode;
   meta?: ReactNode;
   className?: string;
+  metaWrapperClassName?: string;
   variant?: "default" | "compact";
 };
 
@@ -28,12 +29,13 @@ export function RouteHero({
   actions,
   meta,
   className,
+  metaWrapperClassName,
   variant = "default",
 }: RouteHeroProps) {
   if (variant === "compact") {
     const leftAlignment =
       align === "center"
-        ? "items-center text-center md:items-start md:text-left"
+        ? "items-center text-center"
         : "items-start text-left";
 
     return (
@@ -44,12 +46,11 @@ export function RouteHero({
         )}
       >
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_25%,rgba(82,186,255,0.25),transparent_55%),radial-gradient(circle_at_85%_20%,rgba(0,123,252,0.35),transparent_60%)]" />
-        <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-6 md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] md:items-start md:gap-8">
+        <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-6">
           <div
             className={cn(
-              "flex flex-col gap-2 md:max-w-3xl",
+              "flex flex-col gap-2",
               leftAlignment,
-              align === "center" ? "mx-auto md:mx-0" : "",
             )}
           >
             {eyebrow ? <span className="eyebrow text-white/70">{eyebrow}</span> : null}
@@ -63,31 +64,26 @@ export function RouteHero({
                 </p>
               ) : null}
             </div>
+            {actions ? (
+              <div
+                className={cn(
+                  "flex flex-wrap items-center gap-2 text-body-sm md:gap-3 mt-2",
+                  align === "center" ? "justify-center" : "justify-start",
+                )}
+              >
+                {actions}
+              </div>
+            ) : null}
           </div>
 
-          {(actions || meta) ? (
-            <div className="flex w-full flex-col gap-3 md:max-w-sm md:justify-self-end">
-              {actions ? (
-                <div
-                  className={cn(
-                    "flex flex-wrap items-center gap-2 text-body-sm md:gap-3",
-                    align === "center" ? "justify-center md:justify-end" : "justify-start md:justify-end",
-                  )}
-                >
-                  {actions}
-                </div>
-              ) : null}
-
-              {meta ? (
-                <div
-                  className={cn(
-                    "flex flex-wrap items-center gap-2 rounded-xl px-3 py-2 text-body-xs text-white/75 backdrop-blur-sm md:justify-end",
-                    align === "center" ? "justify-center md:justify-end" : "justify-start md:justify-end",
-                  )}
-                >
-                  {meta}
-                </div>
-              ) : null}
+          {meta ? (
+            <div
+              className={cn(
+                "flex flex-col gap-3",
+                metaWrapperClassName,
+              )}
+            >
+              {meta}
             </div>
           ) : null}
         </div>
@@ -154,6 +150,7 @@ export function RouteHero({
               className={cn(
                 "flex flex-wrap items-center gap-2 text-body-xs text-white/80",
                 align === "center" ? "justify-center" : "justify-start",
+                metaWrapperClassName,
               )}
             >
               {meta}
@@ -172,4 +169,3 @@ export function RouteHero({
     </section>
   );
 }
-

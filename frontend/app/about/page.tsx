@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
@@ -24,6 +23,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { RoutePageShell } from "@/components/route-page-shell";
+import { MortyMetaCard } from "@/components/morty-meta-card";
 
 const highlights = [
   {
@@ -102,11 +102,39 @@ const lifecycle = [
 ] as const;
 
 export default function AboutPage() {
+  const heroMeta = (
+    <MortyMetaCard
+      label="Morty's visual intelligence lab"
+      title="Engineer Morty calibrates Vultr infrastructure with ColPali models so vision search stays fast and friendly."
+      bullets={[
+        {
+          icon: Sparkles,
+          text: "Understands complex layouts, charts, and imagery like a human analyst.",
+        },
+        {
+          icon: Workflow,
+          text: "Keeps ingestion, retrieval, and chat pipelines synchronized across services.",
+        },
+        {
+          icon: Rocket,
+          text: "Taps Vultr's global GPU network to deliver lightning-fast responses.",
+        },
+      ]}
+      image={{
+        src: "/vultr/morty/engi_morty_nobg.png",
+        alt: "Engineer Morty fine-tuning the platform",
+        width: 300,
+        height: 300,
+      }}
+    />
+  );
+
   return (
     <RoutePageShell
       eyebrow="Platform"
       title="Meet Morty: Your Visual Retrieval Buddy"
       description="Discover how Morty combines Vultr's global infrastructure with ColPali's advanced vision models to revolutionize how you interact with documents."
+      meta={heroMeta}
       variant="compact"
     >
       <motion.div
@@ -122,66 +150,36 @@ export default function AboutPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
         >
-          <div className="grid gap-8 items-center lg:grid-cols-2">
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <div className="inline-flex items-center gap-2 rounded-full bg-vultr-blue/10 px-4 py-2 text-body-sm font-semibold text-vultr-blue">
-                  <Sparkles className="size-icon-xs" />
-                  Meet Your Visual Intelligence Companion
-                </div>
-                <h2 className="text-editorial-h2 font-bold text-vultr-navy dark:text-white">
-                  Morty: More Than a Mascot
-                </h2>
-                <p className="text-body-lg text-vultr-navy/70 dark:text-white/70">
-                  Morty isn't just Vultr's friendly face - he's your intelligent Visual Retrieval Buddy who understands documents the way humans do. Powered by cutting-edge ColPali vision models and Vultr's global infrastructure, Morty sees charts, reads layouts, and finds exactly what you're looking for.
-                </p>
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 rounded-full bg-vultr-blue/10 px-4 py-2 text-body-sm font-semibold text-vultr-blue">
+                <Sparkles className="size-icon-xs" />
+                Meet Your Visual Intelligence Companion
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="flex items-center gap-3 rounded-xl border border-vultr-blue/20 bg-white/50 p-4 dark:bg-vultr-midnight/50">
-                  <div className="flex size-10 items-center justify-center rounded-full bg-vultr-blue/10 text-vultr-blue">
-                    <Sparkles className="size-icon-sm" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-vultr-navy dark:text-white">Visual Intelligence</h3>
-                    <p className="text-body-xs text-vultr-navy/70 dark:text-white/70">Understands images, charts, and layouts</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 rounded-xl border border-vultr-blue/20 bg-white/50 p-4 dark:bg-vultr-midnight/50">
-                  <div className="flex size-10 items-center justify-center rounded-full bg-vultr-blue/10 text-vultr-blue">
-                    <Rocket className="size-icon-sm" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-vultr-navy dark:text-white">Lightning Fast</h3>
-                    <p className="text-body-xs text-vultr-navy/70 dark:text-white/70">Powered by Vultr's global GPU network</p>
-                  </div>
-                </div>
-              </div>
+              <h2 className="text-editorial-h2 font-bold text-vultr-navy dark:text-white">
+                Morty: More Than a Mascot
+              </h2>
+              <p className="text-body-lg text-vultr-navy/70 dark:text-white/70">
+                Morty isn't just Vultr's friendly face - he's your intelligent Visual Retrieval Buddy who understands documents the way humans do. Powered by cutting-edge ColPali vision models and Vultr's global infrastructure, Morty sees charts, reads layouts, and finds exactly what you're looking for.
+              </p>
             </div>
-            <div className="relative">
-              <div className="relative">
-                <motion.div
-                  className="absolute inset-0 scale-110 rounded-full bg-gradient-to-r from-vultr-blue/30 via-purple-500/30 to-pink-500/30 blur-3xl"
-                  animate={{
-                    opacity: [0.3, 0.6, 0.3],
-                    scale: [1.1, 1.3, 1.1],
-                  }}
-                  transition={{
-                    duration: 4,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                />
-                <div className="relative flex items-center justify-center">
-                  <div>
-                    <Image
-                      src="/vultr/morty/engi_morty_nobg.png"
-                      alt="Morty - Your Visual Retrieval Buddy"
-                      width={400}
-                      height={400}
-                      className="relative z-10 drop-shadow-2xl rounded-full object-cover"
-                      priority
-                    />
-                  </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="flex items-center gap-3 rounded-xl border border-vultr-blue/20 bg-white/50 p-4 dark:bg-vultr-midnight/50">
+                <div className="flex size-10 items-center justify-center rounded-full bg-vultr-blue/10 text-vultr-blue">
+                  <Sparkles className="size-icon-sm" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-vultr-navy dark:text-white">Visual Intelligence</h3>
+                  <p className="text-body-xs text-vultr-navy/70 dark:text-white/70">Understands images, charts, and layouts</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 rounded-xl border border-vultr-blue/20 bg-white/50 p-4 dark:bg-vultr-midnight/50">
+                <div className="flex size-10 items-center justify-center rounded-full bg-vultr-blue/10 text-vultr-blue">
+                  <Rocket className="size-icon-sm" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-vultr-navy dark:text-white">Lightning Fast</h3>
+                  <p className="text-body-xs text-vultr-navy/70 dark:text-white/70">Powered by Vultr's global GPU network</p>
                 </div>
               </div>
             </div>

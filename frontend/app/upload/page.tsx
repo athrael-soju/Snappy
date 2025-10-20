@@ -31,6 +31,7 @@ import {
   HeroMetaPill,
 } from "@/components/hero-meta";
 import type { UploadFileMeta } from "@/stores/types";
+import { MortyMetaCard } from "@/components/morty-meta-card";
 
 const STATUS_PANEL_AUTO_DISMISS_MS = 4500;
 
@@ -188,31 +189,57 @@ export default function UploadPage() {
   const bucketName = systemStatus?.bucket?.name ?? null;
 
   const heroMeta = (
-    <HeroMetaGroup>
-      <HeroMetaPill
-        icon={isReady ? CheckCircle2 : AlertCircle}
-        tone={isReady ? "success" : "warning"}
-      >
-        {isReady ? "Ready" : "System not ready"}
-      </HeroMetaPill>
-      <HeroMetaAction
-        onClick={fetchStatus}
-        disabled={statusLoading}
-        aria-label="Refresh system status"
-      >
-        {statusLoading ? (
-          <>
-            <Loader2 className="size-icon-2xs animate-spin" aria-hidden="true" />
-            Refreshing
-          </>
-        ) : (
-          <>
-            <RefreshCw className="size-icon-2xs" aria-hidden="true" />
-            Refresh
-          </>
-        )}
-      </HeroMetaAction>
-    </HeroMetaGroup>
+    <>
+      <MortyMetaCard
+        label="Morty's upload control tower"
+        title="Banker Morty keeps ingestion orderly so every document hits the vector store with clean metadata."
+        bullets={[
+          {
+            icon: Upload,
+            text: "Guides drag-and-drop flows and tracks upload progress in real time.",
+          },
+          {
+            icon: Database,
+            text: "Aligns embeddings with Qdrant collections for consistent retrieval.",
+          },
+          {
+            icon: HardDrive,
+            text: "Verifies MinIO storage readiness before you process large batches.",
+          },
+        ]}
+        image={{
+          src: "/vultr/morty/banker_morty_nobg.png",
+          alt: "Banker Morty managing uploads",
+          width: 300,
+          height: 300,
+        }}
+      />
+      <HeroMetaGroup>
+        <HeroMetaPill
+          icon={isReady ? CheckCircle2 : AlertCircle}
+          tone={isReady ? "success" : "warning"}
+        >
+          {isReady ? "Ready" : "System not ready"}
+        </HeroMetaPill>
+        <HeroMetaAction
+          onClick={fetchStatus}
+          disabled={statusLoading}
+          aria-label="Refresh system status"
+        >
+          {statusLoading ? (
+            <>
+              <Loader2 className="size-icon-2xs animate-spin" aria-hidden="true" />
+              Refreshing
+            </>
+          ) : (
+            <>
+              <RefreshCw className="size-icon-2xs" aria-hidden="true" />
+              Refresh
+            </>
+          )}
+        </HeroMetaAction>
+      </HeroMetaGroup>
+    </>
   );
 
   return (
