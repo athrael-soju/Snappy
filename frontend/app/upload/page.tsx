@@ -215,12 +215,11 @@ export default function UploadPage() {
         }}
       />
       <HeroMetaGroup>
-        <HeroMetaPill
-          icon={isReady ? CheckCircle2 : AlertCircle}
-          tone={isReady ? "success" : "warning"}
-        >
-          {isReady ? "Ready" : "System not ready"}
-        </HeroMetaPill>
+        {isReady && (
+          <HeroMetaPill icon={CheckCircle2} tone="success">
+            Ready
+          </HeroMetaPill>
+        )}
         <HeroMetaAction
           onClick={fetchStatus}
           disabled={statusLoading}

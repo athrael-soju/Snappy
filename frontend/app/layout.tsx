@@ -4,6 +4,7 @@ import "@/lib/api/client";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
 import { Toaster } from "@/components/ui/sonner";
+import { SystemStatusToast } from "@/components/system-status-toast";
 import { AppStoreProvider } from "@/stores/app-store";
 import { ThemeProvider } from "@/components/theme-provider";
 import NextTopLoader from "nextjs-toploader";
@@ -47,6 +48,7 @@ export default function RootLayout({
           />
           <AppStoreProvider>
             <Toaster position="top-right" toastOptions={{ className: "rounded-[var(--radius-card)] shadow-[var(--shadow-soft)]" }} />
+            <SystemStatusToast />
             <div className="relative flex min-h-screen flex-col bg-white dark:bg-vultr-midnight">
               <Nav />
               <main className="flex-1 overflow-x-hidden">{children}</main>

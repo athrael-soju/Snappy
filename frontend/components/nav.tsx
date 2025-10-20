@@ -4,7 +4,25 @@ import { useEffect, useMemo, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu } from "lucide-react"
+import { 
+  Menu, 
+  Database, 
+  Server, 
+  HardDrive, 
+  Network, 
+  Container, 
+  FileText, 
+  Upload, 
+  Search, 
+  MessageSquare,
+  Settings,
+  Wrench,
+  Info,
+  ArrowRight,
+  Sparkles,
+  Cloud,
+  Cpu
+} from "lucide-react"
 
 import { AppButton } from "@/components/app-button"
 import { ThemeSwitcher } from "@/components/theme-switcher"
@@ -30,53 +48,90 @@ import { useUploadStore } from "@/stores/app-store"
 type MenuLink = {
   label: string
   href: string
-  description: string
+  description?: string
   external?: boolean
   showUploadProgress?: boolean
+  icon?: any
+}
+
+type MenuCategory = {
+  title: string
+  icon?: any
+  items: MenuLink[]
 }
 
 type NavSection = {
   label: string
-  items: MenuLink[]
+  categories: MenuCategory[]
+}
+
+type PromoCard = {
+  title: string
+  description: string
+  linkText: string
+  linkHref: string
+}
+
+type BottomTab = {
+  label: string
+  href: string
+  external?: boolean
 }
 
 const menuSections: NavSection[] = [
   {
     label: "Services",
-    items: [
+    categories: [
       {
-        label: "Upload & Index",
-        href: "/upload",
-        description: "Let Morty process and understand your documents with ColPali-powered vision models.",
-        showUploadProgress: true,
-      },
-      {
-        label: "Semantic Search",
-        href: "/search",
-        description: "Ask Morty to find relevant documents using advanced visual search techniques.",
-      },
-      {
-        label: "Vision Chat",
-        href: "/chat",
-        description: "Have a conversation with Morty about your documents through AI-powered chat.",
+        title: "Core Services",
+        icon: Sparkles,
+        items: [
+          {
+            label: "Upload & Index",
+            href: "/upload",
+            description: "Process documents with ColPali vision models",
+            icon: Upload,
+            showUploadProgress: true,
+          },
+          {
+            label: "Semantic Search",
+            href: "/search",
+            description: "Find documents using visual search",
+            icon: Search,
+          },
+          {
+            label: "Vision Chat",
+            href: "/chat",
+            description: "Chat with AI about your documents",
+            icon: MessageSquare,
+          },
+        ],
       },
     ],
   },
   {
-    label: "Management",
-    items: [
+    label: "Maintenance",
+    categories: [
       {
-        label: "Configuration",
-        href: "/configuration",
-        description: "Customize and optimize Morty's ColPali deployment settings easily.",
-      },
-      {
-        label: "Maintenance",
-        href: "/maintenance",
-        description: "Monitor Morty's system health and manage updates for seamless operation.",
+        title: "System Management",
+        icon: Settings,
+        items: [
+          {
+            label: "Configuration",
+            href: "/configuration",
+            description: "Optimize deployment settings",
+            icon: Settings,
+          },
+          {
+            label: "Maintenance",
+            href: "/maintenance",
+            description: "Monitor system health",
+            icon: Wrench,
+          },
+        ],
       },
     ],
-  }
+  },
 ]
 
 const directLinks: MenuLink[] = [
@@ -86,6 +141,30 @@ const directLinks: MenuLink[] = [
     description: "Learn about Morty, your Visual Retrieval Buddy, and the technology behind the magic.",
     external: false,
   }
+]
+
+const promoCards: PromoCard[] = [
+  {
+    title: "Morty is part of the Vultr Cloud Alliance",
+    description: "Accelerate Your AI and HPC Workloads with AMD or Vultr",
+    linkText: "Learn more",
+    linkHref: "https://www.vultr.com/partners/amd/",
+  },
+  {
+    title: "Spend less than DO, get more.",
+    description: "Get better performance, global reach, and more for less than DigitalOcean.",
+    linkText: "Learn more",
+    linkHref: "https://www.vultr.com/",
+  },
+]
+
+const bottomTabs: BottomTab[] = [
+  { label: "Resources", href: "https://www.vultr.com/resources/", external: true },
+  { label: "Events", href: "https://www.vultr.com/events/", external: true },
+  { label: "Support", href: "https://www.vultr.com/support/", external: true },
+  { label: "Docs", href: "https://docs.vultr.com/", external: true },
+  { label: "Community", href: "https://www.vultr.com/community/", external: true },
+  { label: "Compliance", href: "https://www.vultr.com/legal/compliance/", external: true },
 ]
 
 export function Nav() {
@@ -128,36 +207,99 @@ export function Nav() {
                 <NavigationMenuTrigger className="rounded-full border border-transparent bg-transparent px-3 py-2 text-body-sm font-medium text-white/80 transition hover:text-white">
                   {section.label}
                 </NavigationMenuTrigger>
-                <NavigationMenuContent className="rounded-[var(--radius-card)] border border-white/10 bg-[#0b1f69]/95 p-4 shadow-[0_18px_40px_-18px_rgba(8,24,80,0.75)] backdrop-blur-xl transition">
-                  <ul className="grid gap-2 sm:w-[400px]">
-                    {section.items.map((item) => (
-                      <li key={item.label}>
-                        <NavigationMenuLink asChild>
-                          <Link
-                            href={item.href}
-                            target={item.external ? "_blank" : undefined}
-                            rel={item.external ? "noreferrer noopener" : undefined}
-                            className={cn(
-                              "group flex flex-col gap-1 rounded-[var(--radius-card)] border border-white/10 bg-white/5 px-4 py-3 text-left transition hover:-translate-y-0.5 hover:border-white/30 hover:bg-white/10",
-                              pathname === item.href ? "border-white/40 bg-white/10" : ""
-                            )}
+                <NavigationMenuContent className="rounded-[var(--radius-card)] border border-white/10 bg-white/95 shadow-[0_18px_40px_-18px_rgba(8,24,80,0.75)] backdrop-blur-xl transition dark:bg-[#0b1f69]/95">
+                  <div className="grid gap-6 p-6 sm:w-[750px] lg:grid-cols-[1fr_300px]">
+                    {/* Main content area with categories */}
+                    <div className="space-y-6">
+                      {section.categories.map((category) => (
+                        <div key={category.title} className="space-y-3">
+                          <div className="flex items-center gap-2 text-body-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            {category.icon && <category.icon className="size-icon-xs" />}
+                            {category.title}
+                          </div>
+                          <ul className="grid gap-2">
+                            {category.items.map((item) => (
+                              <li key={item.label}>
+                                <NavigationMenuLink asChild>
+                                  <Link
+                                    href={item.href}
+                                    target={item.external ? "_blank" : undefined}
+                                    rel={item.external ? "noreferrer noopener" : undefined}
+                                    className={cn(
+                                      "group flex items-start gap-3 rounded-lg border border-border/40 bg-background/50 px-3 py-2.5 text-left transition hover:border-primary/40 hover:bg-accent/50",
+                                      pathname === item.href ? "border-primary/60 bg-accent" : ""
+                                    )}
+                                  >
+                                    {item.icon && (
+                                      <item.icon className="size-icon-sm mt-0.5 shrink-0 text-primary" />
+                                    )}
+                                    <div className="flex flex-1 flex-col gap-0.5">
+                                      <span className="flex items-center gap-2 text-body-sm font-medium text-foreground">
+                                        {item.label}
+                                        {item.showUploadProgress && uploadPercent !== null && (
+                                          <span className="rounded-sm bg-primary/20 px-1.5 py-0.5 text-body-xs font-medium text-primary">
+                                            {uploadPercent}%
+                                          </span>
+                                        )}
+                                      </span>
+                                      {item.description && (
+                                        <span className="text-body-xs text-muted-foreground">{item.description}</span>
+                                      )}
+                                    </div>
+                                  </Link>
+                                </NavigationMenuLink>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+
+                      {/* Bottom tabs */}
+                      <div className="border-t border-border/40 pt-4">
+                        <div className="flex flex-wrap gap-2">
+                          {bottomTabs.map((tab) => (
+                            <Link
+                              key={tab.label}
+                              href={tab.href}
+                              target={tab.external ? "_blank" : undefined}
+                              rel={tab.external ? "noreferrer noopener" : undefined}
+                              className="rounded-md px-3 py-1.5 text-body-xs font-medium text-primary transition hover:bg-accent"
+                            >
+                              {tab.label}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Promotional sidebar */}
+                    <div className="hidden lg:block">
+                      <div className="space-y-4">
+                        {promoCards.map((promo, index) => (
+                          <div
+                            key={index}
+                            className="space-y-2 rounded-lg border border-primary/20 bg-primary/5 p-4"
                           >
-                            <span className="flex items-center gap-2 text-body-sm font-medium text-white group-hover:text-white">
-                              {item.label}
-                              {item.showUploadProgress && uploadPercent !== null && (
-                                <span className="rounded-sm bg-white/20 px-1.5 py-0.5 text-body-xs font-medium text-white shadow-sm">
-                                  {uploadPercent}%
-                                </span>
-                              )}
-                            </span>
-                            {item.description && (
-                              <span className="text-body-xs text-white/70">{item.description}</span>
-                            )}
-                          </Link>
-                        </NavigationMenuLink>
-                      </li>
-                    ))}
-                  </ul>
+                            <h4 className="text-body-sm font-semibold leading-snug text-foreground">
+                              {promo.title}
+                            </h4>
+                            <p className="text-body-xs leading-relaxed text-muted-foreground">
+                              {promo.description}
+                            </p>
+                            <Link
+                              href={promo.linkHref}
+                              target="_blank"
+                              rel="noreferrer noopener"
+                              className="inline-flex items-center gap-1 text-body-xs font-medium text-primary transition hover:gap-2"
+                            >
+                              {promo.linkText}
+                              <ArrowRight className="size-icon-2xs" />
+                            </Link>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </NavigationMenuContent>
               </NavigationMenuItem>
             ))}
@@ -216,34 +358,44 @@ export function Nav() {
                 className="w-72 rounded-[var(--radius-card)] border border-white/10 bg-[#0b1f69]/95 p-2 text-white shadow-[0_18px_40px_-18px_rgba(8,24,80,0.75)] backdrop-blur-xl"
               >
                 {menuSections.map((section) => (
-                  <div key={section.label} className="mb-2 last:mb-0">
+                  <div key={section.label} className="mb-3 last:mb-0">
                     <p className="px-3 pb-2 eyebrow text-white/50">
                       {section.label}
                     </p>
-                    {section.items.map((item) => (
-                      <DropdownMenuItem key={item.label} asChild>
-                        <Link
-                          href={item.href}
-                          target={item.external ? "_blank" : undefined}
-                          rel={item.external ? "noreferrer noopener" : undefined}
-                          className={cn(
-                            "flex w-full flex-col gap-1 rounded-[var(--radius-button)] px-3 py-2 text-left text-body-sm text-white/80 transition hover:bg-white/10",
-                            pathname === item.href ? "bg-white/10 text-white" : ""
-                          )}
-                        >
-                          <span className="flex items-center gap-2 font-medium">
-                            {item.label}
-                            {item.showUploadProgress && uploadPercent !== null && (
-                              <span className="rounded-sm bg-white/20 px-1.5 py-0.5 text-body-xs font-medium text-white shadow-sm">
-                                {uploadPercent}%
-                              </span>
-                            )}
-                          </span>
-                          {item.description && (
-                            <span className="text-body-xs text-white/60">{item.description}</span>
-                          )}
-                        </Link>
-                      </DropdownMenuItem>
+                    {section.categories.map((category) => (
+                      <div key={category.title} className="mb-2">
+                        <p className="px-3 pb-1.5 text-body-xs font-semibold uppercase tracking-wide text-white/40">
+                          {category.title}
+                        </p>
+                        {category.items.map((item) => (
+                          <DropdownMenuItem key={item.label} asChild>
+                            <Link
+                              href={item.href}
+                              target={item.external ? "_blank" : undefined}
+                              rel={item.external ? "noreferrer noopener" : undefined}
+                              className={cn(
+                                "flex w-full items-start gap-2 rounded-[var(--radius-button)] px-3 py-2 text-left text-body-sm text-white/80 transition hover:bg-white/10",
+                                pathname === item.href ? "bg-white/10 text-white" : ""
+                              )}
+                            >
+                              {item.icon && <item.icon className="size-icon-sm shrink-0" />}
+                              <div className="flex flex-1 flex-col gap-0.5">
+                                <span className="flex items-center gap-2 font-medium">
+                                  {item.label}
+                                  {item.showUploadProgress && uploadPercent !== null && (
+                                    <span className="rounded-sm bg-white/20 px-1.5 py-0.5 text-body-xs font-medium text-white shadow-sm">
+                                      {uploadPercent}%
+                                    </span>
+                                  )}
+                                </span>
+                                {item.description && (
+                                  <span className="text-body-xs text-white/60">{item.description}</span>
+                                )}
+                              </div>
+                            </Link>
+                          </DropdownMenuItem>
+                        ))}
+                      </div>
                     ))}
                   </div>
                 ))}

@@ -180,13 +180,6 @@ export default function SearchPage() {
           height: 300,
         }}
       />
-      {!isReady ? (
-        <HeroMetaGroup>
-          <HeroMetaPill icon={AlertCircle} tone="warning">
-            System not ready
-          </HeroMetaPill>
-        </HeroMetaGroup>
-      ) : null}
     </>
   );
 
