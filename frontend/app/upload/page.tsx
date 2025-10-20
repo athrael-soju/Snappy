@@ -366,7 +366,7 @@ export default function UploadPage() {
                   </AppButton>
                 </div>
 
-                <ScrollArea className="h-[30vh] w-full max-w-6xl mx-auto">
+                <ScrollArea className="h-[20vh] w-full max-w-6xl mx-auto">
                   {usingPersistedMeta && (
                     <p className="mb-2 px-1 text-body-xs text-muted-foreground">
                       Upload resuming after refresh. You can still monitor progress or cancel while the server finishes.

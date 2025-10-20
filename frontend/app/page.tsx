@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
@@ -96,6 +97,30 @@ const cardVariants = {
   },
 };
 
+const mortyVariants = {
+  hidden: {
+    opacity: 0,
+    x: "100vw",
+    y: -100,
+    rotate: 45,
+    scale: 0.5,
+  },
+  visible: {
+    opacity: 1,
+    x: 375,
+    y: -75,
+    rotate: 0,
+    scale: 1,
+    transition: {
+      type: "spring" as const,
+      stiffness: 80,
+      damping: 20,
+      delay: 0.6,
+      duration: 1.2,
+    },
+  },
+};
+
 export default function Home() {
   return (
     <div className="relative flex flex-1 flex-col bg-white pt-16 dark:bg-vultr-midnight">
@@ -106,6 +131,39 @@ export default function Home() {
         variants={containerVariants}
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(82,186,255,0.25),transparent_55%),radial-gradient(circle_at_85%_15%,rgba(0,123,252,0.35),transparent_60%)]" />
+
+        {/* Morty Mascot - Overlay positioned absolutely */}
+        <motion.div
+          className="absolute left-8 top-1/2 z-20 hidden -translate-y-1/2 lg:block xl:left-16"
+          variants={mortyVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <motion.div
+            className="relative"
+            animate={{
+              y: [0, -8, 0],
+              rotate: [-1, 1, -1],
+            }}
+            transition={{
+              duration: 4,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          >
+            <Image
+              src="/vultr/morty_notext.png"
+              alt="Morty - Vultr Vision Mascot"
+              width={240}
+              height={240}
+              className="drop-shadow-2xl"
+              priority
+            />
+            {/* Subtle glow effect behind Morty */}
+            <div className="absolute inset-0 -z-10 rounded-full bg-white/20 blur-xl" />
+          </motion.div>
+        </motion.div>
+
         <div className="relative mx-auto flex max-w-4xl flex-col items-center px-6 text-center sm:px-10">
           <motion.span
             className="eyebrow text-white/70"
@@ -113,13 +171,45 @@ export default function Home() {
           >
             Vision Platform Preview
           </motion.span>
-          <motion.h1 className="mt-5 max-w-3xl text-digital-h1 text-balance font-bold" variants={itemVariants}>
-            Multimodal Document Intelligence with Vultr Vision
+
+          <motion.h1
+            className="mt-5 max-w-3xl text-digital-h1 text-balance font-bold"
+            variants={itemVariants}
+          >
+            <span>Multimodal Document Intelligence with Morty's Vision</span>{" "}
+            <span className="text-body-xs font-semibold text-white/85">Based on </span>
+            <Link
+              href="https://github.com/athrael-soju/Snappy"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="text-body-xs font-semibold text-white/85 underline underline-offset-8 hover:text-white"
+            >
+              Snappy
+            </Link>
           </motion.h1>
           <motion.p className="mt-6 max-w-2xl text-body-lg text-white/85" variants={itemVariants}>
             Vultr Vision orchestrates ingestion, retrieval, and visual reasoning so you can ship document copilots faster.
             Activate upload, semantic search, and vision chat patterns that showcase the Vision design system.
           </motion.p>
+
+          {/* Welcome message from Morty - appears on mobile/tablet */}
+          <motion.div
+            className="mt-4 flex items-center gap-3 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm lg:hidden"
+            variants={itemVariants}
+          >
+            <div className="flex size-8 items-center justify-center">
+              <Image
+                src="/vultr/morty_notext.png"
+                alt="Morty"
+                width={32}
+                height={32}
+                className="rounded-full"
+              />
+            </div>
+            <span className="text-body-xs text-white/90">
+              Hi! I&rsquo;m Morty, your Vultr Vision guide
+            </span>
+          </motion.div>
 
           <motion.p className="mt-4 text-body-xs text-white/65" variants={itemVariants}>
             By using this application you agree to the{" "}
@@ -147,7 +237,7 @@ export default function Home() {
         <div className="layout-container max-w-7xl">
           <motion.div className="flex flex-col items-center text-center" variants={itemVariants}>
             <h2 className="text-editorial-h3 font-semibold text-vultr-navy dark:text-white">
-              Build with Vultr Vision blueprints
+              Build with Vultr Vision
             </h2>
             <p className="mt-4 max-w-2xl text-body text-vultr-navy/70 dark:text-white/70">
               Every route in this template spotlights a core Vultr Vision capability for ColPali workflows.
