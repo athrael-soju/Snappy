@@ -120,11 +120,11 @@ docker compose --profile cpu up -d --build
 # Need a different port or to pin GPU usage? Override env vars as you go.
 PUBLIC_PORT=7010 COLPALI_GPUS=1 docker compose --profile gpu up -d --build
 
-> Heads up: the GPU profile installs the CUDA 12.6 compiler packages so `flash-attn` can compile—expect an extra couple of minutes and a larger download the first time.
+> Heads up: the first GPU build compiles `flash-attn`; thanks to the multi-stage build the wheel is cached, so subsequent rebuilds are much faster.
 
 > Pick exactly one profile per run—`--profile gpu` or `--profile cpu`—to avoid port clashes.
 
-Behind the scenes the GPU profile uses NVIDIA's `pytorch/pytorch:2.9.0-cuda13.0-cudnn9-devel` image, so torch/torchvision come preinstalled and we just add the ColPali bits plus `flash-attn`.
+Behind the scenes the GPU profile uses NVIDIA's nightly `pytorch/pytorch:nightly-cu130` image, then reinstalls the matching PyTorch CU130 nightly wheel so Blackwell (`sm_120`) cards work; the flash-attn wheel is prebuilt in a builder stage and layered on top.
 
 # Update your .env (COLPALI_URL) to match the port you expose.
 ```

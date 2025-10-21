@@ -1,84 +1,107 @@
-# ColPali Embedding API - The Vision Brain!
+# ColModernVBert Microservice
 
-This service generates query and image embeddings with the ColModernVBert late-interaction retriever (`ModernVBERT/colmodernvbert-merged`) and exposes image-token boundary metadata.
+This folder packages the FastAPI microservice that serves ColModernVBert query and image embeddings. The service runs fine inside Docker (CPU or GPU) but you can also run it directly on your machine for local development or lightweight demos.
 
-- **App**: `colpali/app.py`
-- **Ports**: listen on 7000 in-container
-- **Model**: `ModernVBERT/colmodernvbert-merged` (late-interaction ModernVBERT retriever)
+---
 
-## API Endpoints
-- `GET /health` - runtime status and active device
-- `GET /info` - device, dtype, model id, and optional image-token metadata
-- `POST /patches` - patch grid counts when supported (returns an informative error for ColModernVBert)
-- `POST /embed/queries` - text embeddings
-- `POST /embed/images` - image embeddings with image-token boundaries
+## 1. Prerequisites
 
-## Docker Compose - The Easy Way
+- **Python**: 3.12 (3.10+ works, but the Docker images use 3.12).
+- **Git**: required because `colpali_engine` is installed from a Git repo.
+- **Torch**:
+  - CPU only: install `torch`/`torchvision` from the PyTorch CPU index.
+  - GPU (Linux/WSL preferred): install the CUDA build that matches your driver. FlashAttention requires a working C/C++ toolchain (`gcc`, `g++`, `ninja`) to compile its kernels. On Windows you’ll need Build Tools for Visual Studio *or* run inside WSL.
+- (Optional) **FlashAttention 2**: only needed if you want the fastest GPU inference. Install the wheel published for your exact torch build, or rely on the one baked into the GPU Dockerfile.
 
+---
+
+## 2. Environment Setup
+
+1. **Create a virtual environment** (recommended):
+   ```bash
+   cd colpali
+   python -m venv .venv
+   source .venv/bin/activate          # on Windows PowerShell: .venv\Scripts\Activate.ps1
+   python -m pip install --upgrade pip
+   ```
+
+2. **Install PyTorch** before the rest of the requirements:
+   ```bash
+   # CPU
+   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+   # GPU (example for CUDA 12.1 – adjust to your setup)
+   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+   ```
+
+3. **Install service dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **(Optional) FlashAttention 2 on GPU** – pick the wheel matching your environment:
+   ```bash
+   pip install <flash_attn_wheel.whl>
+   ```
+
+---
+
+## 3. Configuration
+
+The service honours the following environment variables:
+
+| Variable | Default | Notes |
+|----------|---------|-------|
+| `COLPALI_MODEL_ID` | `ModernVBERT/colmodernvbert-merged` | Any Hugging Face ID supported by `ColModernVBert`. |
+| `CPU_THREADS` | `4` | CPU thread count when running without a GPU. |
+| `ENABLE_CPU_MULTIPROCESSING` | `false` | Reserved flag; currently unused. |
+| `HUGGINGFACE_HUB_CACHE` / `HF_HOME` | unset | Set to reuse a local HF cache. |
+
+Example:
 ```bash
-# From the colpali/ directory
-
-# GPU profile (builds with CUDA + flash-attn support)
-docker compose --profile gpu up -d --build
-# api available at http://localhost:7000
-
-# CPU profile (lighter image, no GPU requirements)
-docker compose --profile cpu up -d --build
-
-# Override port/GPU exposure as needed
-PUBLIC_PORT=7010 COLPALI_GPUS=all docker compose --profile gpu up -d --build
+export COLPALI_MODEL_ID="ModernVBERT/colmodernvbert-merged"
+export HUGGINGFACE_HUB_CACHE="$HOME/.cache/huggingface"
 ```
 
-> Profiles are mutually exclusive—run with either `--profile gpu` or `--profile cpu` depending on your host.
+---
 
-**Smart Caching**: We use a named volume (`hf-cache`) to persist your Hugging Face model downloads at `/data/hf-cache`. Download once, use forever.
-
-`Dockerfile.cpu` keeps things lightweight for local development, while `Dockerfile.gpu` builds on NVIDIA's `pytorch/pytorch:2.9.0-cuda13.0-cudnn9-devel` image and layers in `flash-attn` so recent GPUs work out of the box. You can override `PUBLIC_PORT`/`PUBLIC_HOST` the same way.
-
-## Connect Snappy to ColPali
-
-In your root `.env` file (the backend reads this):
+## 4. Running the API Locally
 
 ```bash
-# Tell Snappy where to find the services
-COLPALI_URL=http://localhost:7000
-```
-
-> If you override `PUBLIC_PORT` when starting the container, keep the `COLPALI_URL` in sync.
-
-## Running Locally (No Docker)
-
-```bash
-# From the colpali/ directory
-
-# Set up your virtual environment
-python -m venv .venv
-. .venv/bin/activate  # Windows: .venv\Scripts\Activate.ps1
-
-# Install dependencies
-pip install -U pip setuptools wheel
-pip install -r requirements.txt
-
-# Fire it up!
+cd colpali
 uvicorn app:app --host 0.0.0.0 --port 7000 --reload
 ```
 
-**Access Points**:
-- Local direct: http://localhost:7000
-- Docker Compose style: http://localhost:7000 or your chosen `PUBLIC_PORT` 
+Then open http://localhost:7000/docs for the Swagger UI (syntax highlighting is disabled to keep huge embedding payloads from crashing the viewer).
 
-## Good to Know
-- **Model Access**: ColModernVBert is public but it is a large download; the first run may take a minute.
-- **GPU Requirements**: You need the NVIDIA Container Toolkit for GPU mode (`COLPALI_GPUS` controls how many devices are exposed).
-- **First GPU build pulls CUDA 12.6 tooling**: The image installs the minimal CUDA compiler stack so `flash-attn` can build; expect the first `--build` to download a few extra packages.
-- **Gated Models**: If you switch to a gated model, authenticate with Hugging Face first.
+When using a GPU, confirm that:
 
-## How It All Connects
+```python
+python - <<'PY'
+import torch
+print(torch.cuda.is_available(), torch.cuda.get_device_name(0))
+PY
+```
 
-This embedding service is Snappy's visual brain:
-1. Provides query and image embeddings to the backend
-2. Powers the search functionality (`GET /search`)
-3. Enables the chat route to find relevant document pages
-4. Makes visual citations possible
+reports `True` and the expected device name before starting the server.
 
-When the Next.js chat route finds relevant images, it emits a `kb.images` Server-Sent Event so the UI can highlight that visual citations are available.
+---
+
+## 5. Troubleshooting
+
+- **FlashAttention warnings during start-up**: ensure the model is on CUDA and loaded in `float16/bfloat16`. The app already takes care of this but the warning can appear briefly if PyTorch loads lazily – it is safe to ignore after the “Model dtype: torch.float16” line.
+- **“Failed to find C compiler”**: install the system build tools (Linux: `build-essential ninja pkg-config`; Windows: MSVC build tools or use WSL). FlashAttention triggers this when the compiler is missing.
+- **Token boundary warning** (`Non-contiguous image tokens`): indicates the tokenizer returned image tokens in multiple spans. Usually harmless unless you expect a single contiguous block – double-check the upstream processor if it’s frequent.
+- **Hugging Face throttling**: set `HF_HOME`/`HUGGINGFACE_HUB_CACHE` to a persistent directory so you don’t re-download the 5 GB model every run.
+
+---
+
+## 6. Docker vs Local
+
+| Scenario | Recommendation |
+|----------|----------------|
+| Quick local tweaks on CPU | Follow the steps above, run via `uvicorn --reload`. |
+| Production GPU inference | Use the `Dockerfile.gpu` via `docker compose --profile gpu up`. |
+| CPU-only deployment | Build `Dockerfile.cpu` or install CPU torch locally. |
+
+Both the Docker images and the local setup ultimately run `colpali/app.py`; keep them in sync when you update the service logic.

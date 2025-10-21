@@ -3,8 +3,9 @@ from io import BytesIO
 from typing import Any, List, Optional, Tuple, Union, cast
 
 import torch
-from colpali_engine.models import ColQwen2_5, ColQwen2_5_Processor
+from colpali_engine.models import ColModernVBert, ColModernVBertProcessor
 from fastapi import Body, FastAPI, File, HTTPException, UploadFile
+from fastapi.openapi.docs import get_swagger_ui_html
 from PIL import Image
 from pydantic import BaseModel
 from transformers.utils.import_utils import is_flash_attn_2_available
@@ -19,8 +20,10 @@ ENABLE_CPU_MULTIPROCESSING = (
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="ColQwen2.5 Embedding API",
+    title="ColModernVBert Embedding API",
     description="API for generating embeddings from images and queries",
+    docs_url=None,  # We'll mount custom docs to tweak Swagger UI behaviour.
+    redoc_url=None,
 )
 
 # Determine device
@@ -36,30 +39,52 @@ if device == "cpu":
     torch.set_num_interop_threads(CPU_THREADS)
     print(f"CPU mode: Set torch threads to {CPU_THREADS}")
 
+MODEL_ID = os.getenv("COLPALI_MODEL_ID", "ModernVBERT/colmodernvbert-merged")
+
+preferred_dtype = torch.float32 if device in ("cpu", "mps") else torch.float16
+API_VERSION = "0.1.0"
+
 # Load model and processor
-model = cast(
-    Any,
-    ColQwen2_5.from_pretrained(
-        "vidore/colqwen2.5-v0.2",
-        torch_dtype=torch.bfloat16,
-        device_map=device,
-        attn_implementation=(
-            "flash_attention_2" if is_flash_attn_2_available() else None
-        ),
-    ).eval(),
+model = ColModernVBert.from_pretrained(
+    MODEL_ID,
+    torch_dtype=preferred_dtype,
+    attn_implementation=("flash_attention_2" if is_flash_attn_2_available() else None),
+    trust_remote_code=True,
 )
 
+# Move the model to the target device and dtype in one shot to avoid FlashAttention warnings.
+model = model.to(device=device, dtype=preferred_dtype).eval()
+
+model = cast(Any, model)
+
 _processor_loaded: Union[
-    ColQwen2_5_Processor, Tuple[ColQwen2_5_Processor, dict[str, Any]]
-] = ColQwen2_5_Processor.from_pretrained("vidore/colqwen2.5-v0.2")
+    ColModernVBertProcessor, Tuple[ColModernVBertProcessor, dict[str, Any]]
+] = ColModernVBertProcessor.from_pretrained(
+    MODEL_ID,
+    trust_remote_code=True,
+)
 if isinstance(_processor_loaded, tuple):
     processor = cast(Any, _processor_loaded[0])
 else:
     processor = cast(Any, _processor_loaded)
 
-print(f"ColPali model loaded on device: {device}")
+print(f"ColModernVBert model loaded on device: {device}")
 print(f"Model dtype: {model.dtype}")
 print(f"Flash Attention 2: {'enabled' if is_flash_attn_2_available() else 'disabled'}")
+
+
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_docs():
+    """Serve Swagger UI with syntax highlighting disabled to avoid stack overflows on huge payloads."""
+    return get_swagger_ui_html(
+        openapi_url=app.openapi_url,
+        title=f"{app.title} - Docs",
+        swagger_ui_parameters={
+            "syntaxHighlight": False,
+            "defaultModelsExpandDepth": -1,
+            "defaultModelExpandDepth": -1,
+        },
+    )
 
 
 class QueryRequest(BaseModel):
@@ -111,7 +136,12 @@ def generate_query_embeddings(queries: List[str]) -> List[torch.Tensor]:
     """Generate embeddings for text queries"""
     device = model.device
     with torch.no_grad():
-        batch_query = processor.process_queries(queries).to(device)
+        if not hasattr(processor, "process_texts"):
+            raise RuntimeError(
+                "The active processor does not expose `process_texts`; query embeddings cannot be generated."
+            )
+        batch_query = cast(Any, processor.process_texts(queries))
+        batch_query = batch_query.to(device)
         query_embeddings = cast(torch.Tensor, model(**batch_query))  # [batch, seq, dim]
         # Unbind into per-sample tensors on CPU
         return list(torch.unbind(query_embeddings.to("cpu")))
@@ -194,7 +224,7 @@ def generate_image_embeddings_with_boundaries(
 
 @app.get("/")
 async def root():
-    return {"message": "ColQwen2.5 Embedding API", "version": "0.0.2"}
+    return {"message": "ColModernVBert Embedding API", "version": API_VERSION}
 
 
 @app.get("/health")
@@ -206,15 +236,25 @@ async def health_check():
 @app.get("/info")
 async def version():
     """Version endpoint"""
-    return {
-        "version": "0.0.2",
+    info = {
+        "version": API_VERSION,
+        "model_id": MODEL_ID,
         "device": str(model.device),
         "dtype": str(model.dtype),
         "flash_attn": is_flash_attn_2_available(),
-        "spatial_merge_size": model.spatial_merge_size,
-        "dim": model.dim,
-        "image_token_id": processor.image_token_id,
     }
+
+    optional_fields = {
+        "spatial_merge_size": getattr(model, "spatial_merge_size", None),
+        "dim": getattr(model, "dim", None),
+        "image_token_id": getattr(processor, "image_token_id", None),
+        "image_seq_len": getattr(processor, "image_seq_len", None),
+    }
+
+    info.update(
+        {key: value for key, value in optional_fields.items() if value is not None}
+    )
+    return info
 
 
 @app.post(
@@ -232,13 +272,30 @@ async def get_n_patches(
     Args:
         request: PatchRequest containing a list of dimensions with 'width' and 'height' keys
     """
+    supports_patch_counts = hasattr(model, "spatial_merge_size") and callable(
+        getattr(processor, "get_n_patches", None)
+    )
+
+    if not supports_patch_counts:
+        return {
+            "results": [
+                PatchResult(
+                    width=dim.width,
+                    height=dim.height,
+                    error="Patch counting is not supported for the active model.",
+                )
+                for dim in request.dimensions
+            ]
+        }
+
     try:
+        spatial_merge_size = getattr(model, "spatial_merge_size", None)
         results = []
         for dim in request.dimensions:
             try:
                 image_size = (dim.width, dim.height)
                 n_patches_x, n_patches_y = processor.get_n_patches(
-                    image_size, spatial_merge_size=model.spatial_merge_size
+                    image_size, spatial_merge_size=spatial_merge_size
                 )
                 results.append(
                     PatchResult(
