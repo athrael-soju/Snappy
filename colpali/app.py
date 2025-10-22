@@ -1,3 +1,4 @@
+import inspect
 import os
 from io import BytesIO
 from typing import Any, List, Optional, Tuple, Union, cast
@@ -263,27 +264,71 @@ async def get_n_patches(
     """
     try:
         results = []
-        spatial_merge_size = getattr(model, "spatial_merge_size", None)
         get_n_patches_fn = getattr(processor, "get_n_patches", None)
-        supports_patches = callable(get_n_patches_fn) and spatial_merge_size is not None
+        supports_patches = callable(get_n_patches_fn)
+        call_kwargs: dict[str, Any] = {}
+        unsupported_reason: Optional[str] = None
+
+        if supports_patches:
+            try:
+                if get_n_patches_fn is not None:
+                    signature = inspect.signature(get_n_patches_fn)
+                else:
+                    signature = None
+            except (TypeError, ValueError):
+                signature = None
+
+            if signature is not None:
+                for name, param in signature.parameters.items():
+                    if name == "image_size":
+                        continue
+
+                    value: Any = None
+                    if name in {"patch_size", "spatial_merge_size"}:
+                        value = getattr(model, "spatial_merge_size", None)
+                    elif hasattr(processor, name):
+                        value = getattr(processor, name)
+                    elif hasattr(model, name):
+                        value = getattr(model, name)
+
+                    if value is None:
+                        if param.default is inspect._empty:
+                            supports_patches = False
+                            unsupported_reason = f"Required parameter '{name}' is not provided by the current model."
+                            break
+                        continue
+
+                    call_kwargs[name] = value
+
+            if supports_patches and signature is None:
+                # Unable to inspect signature safely; proceed without extra kwargs.
+                call_kwargs = {}
+
+        if not supports_patches:
+            unsupported_reason = (
+                unsupported_reason
+                or "Patch estimation is not available for the current model."
+            )
 
         for dim in request.dimensions:
             try:
                 if not supports_patches:
-                    raise NotImplementedError(
-                        "Patch estimation is not available for the current model."
-                    )
+                    raise NotImplementedError(unsupported_reason)
 
                 image_size = (dim.width, dim.height)
-                n_patches_x, n_patches_y = processor.get_n_patches(  # type: ignore[call-arg]
-                    image_size, spatial_merge_size=spatial_merge_size
-                )
+                try:
+                    n_patches_x, n_patches_y = get_n_patches_fn(  # type: ignore[misc]
+                        image_size, **call_kwargs
+                    )
+                except NotImplementedError:
+                    raise
+
                 results.append(
                     PatchResult(
                         width=dim.width,
                         height=dim.height,
-                        n_patches_x=n_patches_x,
-                        n_patches_y=n_patches_y,
+                        n_patches_x=int(n_patches_x),
+                        n_patches_y=int(n_patches_y),
                     )
                 )
             except Exception as e:

@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, List
 
-from api.dependencies import invalidate_services
+from api.dependencies import get_colpali_client, invalidate_services
 from config_schema import get_all_config_keys, get_api_schema, get_critical_keys
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
@@ -34,6 +34,66 @@ _CRITICAL_KEYS = get_critical_keys()
 
 # Use schema from single source of truth
 CONFIG_SCHEMA = _API_SCHEMA
+
+
+def _is_truthy(value: str) -> bool:
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _ensure_mean_pooling_supported() -> None:
+    """
+    Validate that the current ColPali deployment exposes patch metadata.
+
+    Raises:
+        HTTPException: if the embedding service does not support patch estimation.
+    """
+    client = get_colpali_client()
+    try:
+        probe = client.get_patches([{"width": 256, "height": 256}])
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Cannot enable mean pooling: failed to query ColPali /patches endpoint"
+                f" ({exc})."
+            ),
+        ) from exc
+
+    if not probe:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Cannot enable mean pooling: ColPali /patches endpoint returned no"
+                " results."
+            ),
+        )
+
+    first = probe[0]
+    if isinstance(first, dict):
+        if first.get("error"):
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Cannot enable mean pooling: "
+                    f"ColPali reported patch estimation unavailable ({first['error']})."
+                ),
+            )
+        if "n_patches_x" not in first or "n_patches_y" not in first:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Cannot enable mean pooling: ColPali did not return"
+                    " 'n_patches_x'/'n_patches_y'."
+                ),
+            )
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Cannot enable mean pooling: unexpected response format from ColPali"
+                " /patches endpoint."
+            ),
+        )
 
 
 @router.get("/schema")
@@ -72,6 +132,9 @@ async def update_config(update: ConfigUpdate) -> Dict[str, Any]:
         raise HTTPException(
             status_code=400, detail=f"Invalid configuration key: {update.key}"
         )
+
+    if update.key == "QDRANT_MEAN_POOLING_ENABLED" and _is_truthy(update.value):
+        _ensure_mean_pooling_supported()
 
     # Update the runtime configuration
     runtime_cfg.set(update.key, update.value)
