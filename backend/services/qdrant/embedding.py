@@ -52,25 +52,43 @@ class EmbeddingProcessor:
         patch_len: int,
         x_patches: int,
         y_patches: int,
+        patch_indices: Optional[List[int]] = None,
     ) -> Tuple[List[List[float]], List[List[float]]]:
         """Mean-pool image tokens by rows and columns, preserving prefix/postfix tokens."""
         total_tokens = image_embedding_np.shape[0]
 
-        if start < 0 or patch_len <= 0:
+        if patch_len <= 0:
             raise ValueError(
                 f"Invalid image token boundaries: start={start}, patch_len={patch_len}"
             )
 
-        end = start + patch_len
-        if end > total_tokens:
-            raise ValueError(
-                f"Image token slice out of bounds: end={end}, total_tokens={total_tokens}"
-            )
+        indices: Optional[np.ndarray]
+        if patch_indices:
+            indices_array = np.array(sorted(set(int(idx) for idx in patch_indices)))
+            if indices_array.size != patch_len:
+                raise ValueError(
+                    "image_patch_len does not match the number of image_patch_indices"
+                )
+            indices = indices_array
+        else:
+            if start < 0:
+                raise ValueError("image_patch_start was not provided")
+            end = start + patch_len
+            if end > total_tokens:
+                raise ValueError(
+                    f"Image token slice out of bounds: end={end}, total_tokens={total_tokens}"
+                )
+            indices = None
 
-        # Extract sections
-        prefix_tokens = image_embedding_np[:start]
-        image_patch_tokens = image_embedding_np[start:end]
-        postfix_tokens = image_embedding_np[end:]
+        if indices is None:
+            # Contiguous legacy path
+            prefix_tokens = image_embedding_np[:start]
+            image_patch_tokens = image_embedding_np[start : start + patch_len]
+            postfix_tokens = image_embedding_np[start + patch_len :]
+        else:
+            image_patch_tokens = image_embedding_np[indices]
+            prefix_tokens = np.array([])
+            postfix_tokens = np.array([])
 
         # Reshape to [x_patches, y_patches, dim]
         if patch_len != x_patches * y_patches:
@@ -85,13 +103,38 @@ class EmbeddingProcessor:
         pooled_by_rows = np.mean(image_tokens, axis=0)  # [y_patches, dim]
         pooled_by_columns = np.mean(image_tokens, axis=1)  # [x_patches, dim]
 
-        # Add back prefix/postfix
-        pooled_by_rows = np.concatenate(
-            [prefix_tokens, pooled_by_rows.reshape(-1, dim), postfix_tokens], axis=0
-        ).tolist()
-        pooled_by_columns = np.concatenate(
-            [prefix_tokens, pooled_by_columns.reshape(-1, dim), postfix_tokens], axis=0
-        ).tolist()
+        pooled_rows_replacement = pooled_by_rows.reshape(-1, dim)
+        pooled_cols_replacement = pooled_by_columns.reshape(-1, dim)
+
+        if indices is None:
+            # Add back prefix/postfix using contiguous slice boundaries
+            postfix_tokens = image_embedding_np[start + patch_len :]
+            pooled_by_rows = np.concatenate(
+                [prefix_tokens, pooled_rows_replacement, postfix_tokens], axis=0
+            ).tolist()
+            pooled_by_columns = np.concatenate(
+                [prefix_tokens, pooled_cols_replacement, postfix_tokens], axis=0
+            ).tolist()
+        else:
+            indices_set = set(indices.tolist())
+
+            def replace_tokens(
+                replacement: np.ndarray,
+            ) -> List[List[float]]:
+                emitted_replacement = False
+                output: List[np.ndarray] = []
+                for idx in range(total_tokens):
+                    if idx in indices_set:
+                        if not emitted_replacement:
+                            for token in replacement:
+                                output.append(token)
+                            emitted_replacement = True
+                        continue
+                    output.append(image_embedding_np[idx])
+                return [token.tolist() for token in output]
+
+            pooled_by_rows = replace_tokens(pooled_rows_replacement)
+            pooled_by_columns = replace_tokens(pooled_cols_replacement)
 
         return pooled_by_rows, pooled_by_columns
 
@@ -101,6 +144,12 @@ class EmbeddingProcessor:
             embedding_list = item.get("embedding")
             start = item.get("image_patch_start", -1)
             patch_len = item.get("image_patch_len", 0)
+            raw_indices = item.get("image_patch_indices")
+            patch_indices = (
+                [int(idx) for idx in raw_indices]
+                if isinstance(raw_indices, list)
+                else None
+            )
         else:
             raise ValueError(
                 "embed_images() returned embeddings without image-token boundaries"
@@ -120,6 +169,7 @@ class EmbeddingProcessor:
             patch_len=int(patch_len),
             x_patches=int(x_patches),
             y_patches=int(y_patches),
+            patch_indices=patch_indices,
         )
 
         return image_embedding_np.tolist(), pooled_by_rows, pooled_by_columns
@@ -127,7 +177,7 @@ class EmbeddingProcessor:
     def embed_and_mean_pool_batch(self, image_batch: List[Image.Image]):
         """Embed images via API and optionally perform mean pooling."""
         api_client = self._require_client()
-        # API returns per-image dicts: {embedding, image_patch_start, image_patch_len}
+        # API returns per-image dicts: {embedding, image_patch_start, image_patch_len, image_patch_indices}
         api_items_raw = api_client.embed_images(image_batch)
         api_items: List[dict[str, Any]] = []
         for raw_item in api_items_raw:

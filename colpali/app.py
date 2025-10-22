@@ -122,6 +122,7 @@ class ImageEmbeddingItem(BaseModel):
     embedding: List[List[float]]  # [sequence_length, hidden_dim]
     image_patch_start: int  # index where image tokens begin
     image_patch_len: int  # number of image tokens (should equal x_patches * y_patches)
+    image_patch_indices: List[int]  # explicit positions of every image token
 
 
 class ImageEmbeddingBatchResponse(BaseModel):
@@ -175,40 +176,23 @@ def generate_image_embeddings_with_boundaries(
             emb = image_embeddings[i]  # [seq, dim]
 
             mask = ids.eq(image_token_id)  # bool mask for image tokens
-            indices = torch.nonzero(mask, as_tuple=False).squeeze(
-                -1
-            )  # [num_image_tokens] or []
+            indices = torch.nonzero(mask, as_tuple=True)[0]  # [num_image_tokens] or []
+            indices_list = indices.view(-1).tolist() if indices.numel() > 0 else []
 
-            if indices.numel() == 0:
+            if not indices_list:
                 # No image tokens found; return sentinel values
                 start = -1
                 length = 0
             else:
-                start = int(indices[0].item())
-                length = int(indices.numel())
-
-                # Sanity: ensure all indices are contiguous (as expected for image patches)
-                # If there are gaps, we still use [start:length] but this flags a potential tokenizer change.
-                # We won't throw here to avoid breaking callers; they can validate further.
-                start_idx = int(indices[0].item())
-                token_count = int(indices.numel())
-                contiguous = torch.arange(
-                    start_idx,
-                    start_idx + token_count,
-                    device=indices.device,
-                    dtype=indices.dtype,
-                )
-                if not torch.all(indices == contiguous):
-                    # Non-contiguous; still report start and length, but you may want to log this server-side.
-                    print(
-                        "Warning: Non-contiguous image tokens found. This may indicate a tokenizer change."
-                    )
+                start = int(indices_list[0])
+                length = len(indices_list)
 
             batch_items.append(
                 ImageEmbeddingItem(
                     embedding=emb.tolist(),
                     image_patch_start=start,
                     image_patch_len=length,
+                    image_patch_indices=[int(idx) for idx in indices_list],
                 )
             )
 
