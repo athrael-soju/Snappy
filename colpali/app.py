@@ -1,3 +1,4 @@
+import logging
 import os
 from io import BytesIO
 from typing import Any, List, Optional, Tuple, Union, cast
@@ -9,6 +10,12 @@ from fastapi.openapi.docs import get_swagger_ui_html
 from PIL import Image
 from pydantic import BaseModel
 from transformers.utils.import_utils import is_flash_attn_2_available
+
+logger = logging.getLogger("colmodernvbert.app")
+logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO").upper())
+
+# Track whether we've warned about non-contiguous tokens already.
+_warned_non_contiguous_tokens = False
 
 # Configuration for CPU parallelism
 CPU_THREADS = int(
@@ -39,16 +46,48 @@ if device == "cpu":
     torch.set_num_interop_threads(CPU_THREADS)
     print(f"CPU mode: Set torch threads to {CPU_THREADS}")
 
-MODEL_ID = os.getenv("COLPALI_MODEL_ID", "ModernVBERT/colmodernvbert-merged")
+MODEL_ID = os.getenv("COLPALI_MODEL_ID", "ModernVBERT/colmodernvbert")
+print(f"Loading ColModernVBert model: {MODEL_ID}")
 
-preferred_dtype = torch.float32 if device in ("cpu", "mps") else torch.float16
+_DTYPE_ALIASES = {
+    "float32": torch.float32,
+    "fp32": torch.float32,
+    "float16": torch.float16,
+    "fp16": torch.float16,
+    "half": torch.float16,
+    "bfloat16": torch.bfloat16,
+    "bf16": torch.bfloat16,
+}
+
+dtype_env = os.getenv("COLPALI_TORCH_DTYPE", "").strip().lower()
+if dtype_env:
+    if dtype_env not in _DTYPE_ALIASES:
+        raise RuntimeError(f"Unsupported COLPALI_TORCH_DTYPE value: {dtype_env}")
+    preferred_dtype = _DTYPE_ALIASES[dtype_env]
+else:
+    # Default to fp32 – the merged ModernVBert weights are numerically unstable in fp16.
+    preferred_dtype = torch.float32
+
 API_VERSION = "0.1.0"
+
+disable_flash_attn_env = os.getenv("COLPALI_DISABLE_FLASH_ATTN", "").strip().lower()
+flash_allowed = disable_flash_attn_env not in ("1", "true", "yes")
+if preferred_dtype not in (torch.float16, torch.bfloat16):
+    flash_allowed = False
+attn_impl = (
+    "flash_attention_2" if flash_allowed and is_flash_attn_2_available() else None
+)
+
+mask_non_image_embeddings = (
+    os.getenv("COLPALI_MASK_NON_IMAGE_EMBEDDINGS", "true").lower() != "false"
+)
 
 # Load model and processor
 model = ColModernVBert.from_pretrained(
     MODEL_ID,
     torch_dtype=preferred_dtype,
-    attn_implementation=("flash_attention_2" if is_flash_attn_2_available() else None),
+    attn_implementation=attn_impl,
+    mask_non_image_embeddings=mask_non_image_embeddings,
     trust_remote_code=True,
 )
 
@@ -70,7 +109,8 @@ else:
 
 print(f"ColModernVBert model loaded on device: {device}")
 print(f"Model dtype: {model.dtype}")
-print(f"Flash Attention 2: {'enabled' if is_flash_attn_2_available() else 'disabled'}")
+print(f"Flash Attention 2: {'enabled' if attn_impl else 'disabled'}")
+print(f"Mask non-image embeddings: {mask_non_image_embeddings}")
 
 
 @app.get("/docs", include_in_schema=False)
@@ -132,6 +172,18 @@ def load_image_from_bytes(image_bytes: bytes) -> Image.Image:
     return Image.open(BytesIO(image_bytes)).convert("RGB")
 
 
+def _ensure_finite(tensor: torch.Tensor, context: str) -> torch.Tensor:
+    """Ensure tensors do not contain NaN or Inf; raise to prevent silent corruption."""
+    if torch.isfinite(tensor).all():
+        return tensor
+    invalid = (~torch.isfinite(tensor)).sum().item()
+    logger.error("%s produced %d non-finite values", context, invalid)
+    raise HTTPException(
+        status_code=500,
+        detail=f"{context} produced {invalid} non-finite values (NaN or Inf).",
+    )
+
+
 def generate_query_embeddings(queries: List[str]) -> List[torch.Tensor]:
     """Generate embeddings for text queries"""
     device = model.device
@@ -143,6 +195,7 @@ def generate_query_embeddings(queries: List[str]) -> List[torch.Tensor]:
         batch_query = cast(Any, processor.process_texts(queries))
         batch_query = batch_query.to(device)
         query_embeddings = cast(torch.Tensor, model(**batch_query))  # [batch, seq, dim]
+        query_embeddings = _ensure_finite(query_embeddings, "Query embedding")
         # Unbind into per-sample tensors on CPU
         return list(torch.unbind(query_embeddings.to("cpu")))
 
@@ -160,7 +213,9 @@ def generate_image_embeddings_with_boundaries(
         image_embeddings = cast(
             torch.Tensor, model(**batch_images)
         )  # [batch, seq, dim]
-        image_embeddings = image_embeddings.to("cpu")
+        image_embeddings = _ensure_finite(image_embeddings, "Image embedding batch").to(
+            "cpu"
+        )
 
         # Expect token ids to be present, so we can find image-token spans
         if "input_ids" not in batch_images:
@@ -203,10 +258,13 @@ def generate_image_embeddings_with_boundaries(
                     dtype=indices.dtype,
                 )
                 if not torch.all(indices == contiguous):
-                    # Non-contiguous; still report start and length, but you may want to log this server-side.
-                    print(
-                        "Warning: Non-contiguous image tokens found. This may indicate a tokenizer change."
-                    )
+                    global _warned_non_contiguous_tokens
+                    if not _warned_non_contiguous_tokens:
+                        logger.warning(
+                            "Image tokens are not contiguous; continuing with recorded spans. "
+                            "This may indicate tokenizer/layout changes."
+                        )
+                        _warned_non_contiguous_tokens = True
 
             batch_items.append(
                 ImageEmbeddingItem(
