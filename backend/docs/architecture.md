@@ -97,15 +97,13 @@ flowchart TB
 
 **Deployment Options**: CPU and GPU variants via `colpali/docker-compose.yml`
 
-**Smart Routing**: Backend auto-selects URLs based on `COLPALI_MODE` and respects `COLPALI_API_TIMEOUT`. Simple! 🎯
-
 ## Configuration Lifecycle ⚙️
 
 **From Schema to Runtime**:
 
 1. **Blueprint** → Defaults and metadata defined in `config_schema.py`
 2. **Load** → Values flow from `.env`/environment into `runtime_config`
-3. **Expose** → Configuration API (`/config/schema`, `/config/values`, `/config/update`, `/config/reset`, `/config/optimize`) makes everything accessible and mutable
+3. **Expose** → Configuration API (`/config/schema`, `/config/values`, `/config/update`, `/config/reset`) makes everything accessible and mutable
 4. **Refresh** → Critical updates auto-invalidate service caches for instant effect! ⚡
 
 📚 **Learn More**:

@@ -73,12 +73,8 @@ Welcome to Snappy's complete configuration reference! This is your go-to guide f
 
 | Key               | Type | Default              | What It Does |
 |-------------------|------|----------------------|-------------|
-| `COLPALI_MODE`    | str  | `gpu`                | Choose your weapon: `cpu` or `gpu` |
-| `COLPALI_CPU_URL` | str  | `http://localhost:7001` | Where to find the CPU service |
-| `COLPALI_GPU_URL` | str  | `http://localhost:7002` | Where to find the GPU service (much faster!) |
+| `COLPALI_URL` | str  | `http://localhost:7000` | Where to find the ColPali service |
 | `COLPALI_API_TIMEOUT` | int | `300` seconds | Patience is a virtue! Bump this up for large docs on CPU |
-
-💡 **How It Works**: Snappy picks the right URL based on `COLPALI_MODE`. No single override; just point to the service you want!
 
 ---
 
@@ -170,7 +166,6 @@ and restart the process instead.
 | `GET /config/values`     | See current runtime values |
 | `POST /config/update`    | Change a setting instantly (auto-invalidates critical services) |
 | `POST /config/reset`     | Back to defaults (clears service cache too) |
-| `POST /config/optimize`  | Let Snappy auto-tune based on your hardware! |
 
 💨 **Remember**: Runtime changes are temporary! Update `.env` for permanent tweaks.
 

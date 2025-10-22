@@ -104,16 +104,29 @@ cp .env.example .env
 cp frontend/.env.example frontend/.env.local
 ```
 
-- Choose `COLPALI_MODE=cpu` or `gpu` (GPU is faster if you have the hardware!)
 - Pop in your OpenAI API key in `frontend/.env.local`
 
 **Step 2:** Fire up the ColPali embedding service
 
 ```bash
 # From the colpali/ directory
-docker compose up -d api-cpu      # CPU mode → http://localhost:7001
-# OR for the speedy option
-docker compose up -d api-gpu      # GPU mode → http://localhost:7002
+
+# GPU profile (includes CUDA + flash-attn build tooling)
+docker compose --profile gpu up -d --build
+
+# CPU profile (lean image, no GPU requirements)
+docker compose --profile cpu up -d --build
+
+# Need a different port or to pin GPU usage? Override env vars as you go.
+PUBLIC_PORT=7010 COLPALI_GPUS=1 docker compose --profile gpu up -d --build
+
+> Heads up: the first GPU build compiles `flash-attn`; thanks to the multi-stage build the wheel is cached, so subsequent rebuilds are much faster.
+
+> Pick exactly one profile per run—`--profile gpu` or `--profile cpu`—to avoid port clashes.
+
+Behind the scenes the GPU profile uses NVIDIA's nightly `pytorch/pytorch:nightly-cu130` image, then reinstalls the matching PyTorch CU130 nightly wheel so Blackwell (`sm_120`) cards work; the flash-attn wheel is prebuilt in a builder stage and layered on top.
+
+# Update your .env (COLPALI_URL) to match the port you expose.
 ```
 
 **Step 3:** Launch the whole Snappy stack
@@ -164,7 +177,6 @@ docker compose up -d --build
 
 ### Backend highlights
 
-- `COLPALI_MODE`, `COLPALI_CPU_URL`, `COLPALI_GPU_URL`,
   `COLPALI_API_TIMEOUT`
 - `QDRANT_EMBEDDED` (defaults to `False`), `QDRANT_URL`, `QDRANT_COLLECTION_NAME`,
   `QDRANT_PREFETCH_LIMIT`, quantisation toggles (`QDRANT_USE_BINARY`, etc.)
@@ -199,7 +211,7 @@ must be supplied; the backend no longer falls back to inline image storage.
 |              | `POST /initialize` / `DELETE /delete`    | Provision or tear down collection + bucket |
 |              | `POST /clear/qdrant` / `/clear/minio` / `/clear/all` | Data reset helpers |
 | Configuration| `GET /config/schema` / `GET /config/values` | Expose runtime schema and values |
-|              | `POST /config/update` / `/config/reset` / `/config/optimize` | Runtime configuration management |
+|              | `POST /config/update` / `/config/reset` | Runtime configuration management |
 
 Chat streaming is implemented in the Next.js API route
 `frontend/app/api/chat/route.ts`. It calls the backend search endpoint, invokes
@@ -252,7 +264,7 @@ MIT License - see [LICENSE](LICENSE).
 
 Snappy wouldn't exist without these amazing projects:
 
-- **ColPali / ColQwen** - The brilliant vision-language models that power our understanding  
+- **ColPali / ColModernVBert** - The brilliant vision-language models that power our understanding  
   📄 https://arxiv.org/abs/2407.01449
 
 - **Qdrant** - Lightning-fast vector search with killer optimization guides  

@@ -3,7 +3,7 @@ from io import BytesIO
 from typing import Any, List, Optional, Tuple, Union, cast
 
 import torch
-from colpali_engine.models import ColQwen2_5, ColQwen2_5_Processor
+from colpali_engine.models import ColModernVBert, ColModernVBertProcessor
 from fastapi import Body, FastAPI, File, HTTPException, UploadFile
 from PIL import Image
 from pydantic import BaseModel
@@ -17,9 +17,13 @@ ENABLE_CPU_MULTIPROCESSING = (
     os.getenv("ENABLE_CPU_MULTIPROCESSING", "false").lower() == "true"
 )
 
+# Hugging Face model identifier (overridable via environment variable)
+MODEL_ID = os.getenv("COLPALI_MODEL_ID", "ModernVBERT/colmodernvbert-merged")
+API_VERSION = os.getenv("COLPALI_API_VERSION", "0.1.0")
+
 # Initialize FastAPI app
 app = FastAPI(
-    title="ColQwen2.5 Embedding API",
+    title="ColModernVBert Embedding API",
     description="API for generating embeddings from images and queries",
 )
 
@@ -36,30 +40,51 @@ if device == "cpu":
     torch.set_num_interop_threads(CPU_THREADS)
     print(f"CPU mode: Set torch threads to {CPU_THREADS}")
 
+TORCH_DTYPE = torch.bfloat16 if device != "cpu" else torch.float32
+
 # Load model and processor
 model = cast(
     Any,
-    ColQwen2_5.from_pretrained(
-        "vidore/colqwen2.5-v0.2",
-        torch_dtype=torch.bfloat16,
+    ColModernVBert.from_pretrained(
+        MODEL_ID,
+        torch_dtype=TORCH_DTYPE,
         device_map=device,
         attn_implementation=(
             "flash_attention_2" if is_flash_attn_2_available() else None
         ),
+        trust_remote_code=True,
     ).eval(),
 )
 
 _processor_loaded: Union[
-    ColQwen2_5_Processor, Tuple[ColQwen2_5_Processor, dict[str, Any]]
-] = ColQwen2_5_Processor.from_pretrained("vidore/colqwen2.5-v0.2")
+    ColModernVBertProcessor, Tuple[ColModernVBertProcessor, dict[str, Any]]
+] = ColModernVBertProcessor.from_pretrained(MODEL_ID, trust_remote_code=True)
 if isinstance(_processor_loaded, tuple):
     processor = cast(Any, _processor_loaded[0])
 else:
     processor = cast(Any, _processor_loaded)
 
-print(f"ColPali model loaded on device: {device}")
+print(f"ColModernVBert model loaded on device: {device}")
+print(f"Model id: {MODEL_ID}")
 print(f"Model dtype: {model.dtype}")
 print(f"Flash Attention 2: {'enabled' if is_flash_attn_2_available() else 'disabled'}")
+
+
+def _resolve_image_token_id() -> int:
+    """Best-effort resolution of the image token id for the current processor."""
+    if hasattr(processor, "image_token_id"):
+        return int(processor.image_token_id)  # type: ignore[arg-type]
+
+    image_token = getattr(processor, "image_token", None)
+    if image_token is not None and hasattr(processor, "tokenizer"):
+        token_id = processor.tokenizer.convert_tokens_to_ids(image_token)  # type: ignore[attr-defined]
+        if token_id is not None:
+            return int(token_id)
+
+    raise AttributeError("Processor does not expose an image_token_id.")
+
+
+IMAGE_TOKEN_ID = _resolve_image_token_id()
 
 
 class QueryRequest(BaseModel):
@@ -139,7 +164,7 @@ def generate_image_embeddings_with_boundaries(
             )
 
         input_ids = batch_images["input_ids"].to("cpu")  # [batch, seq]
-        image_token_id = int(processor.image_token_id)
+        image_token_id = IMAGE_TOKEN_ID
 
         batch_items: List[ImageEmbeddingItem] = []
         batch_size = input_ids.shape[0]
@@ -194,7 +219,7 @@ def generate_image_embeddings_with_boundaries(
 
 @app.get("/")
 async def root():
-    return {"message": "ColQwen2.5 Embedding API", "version": "0.0.2"}
+    return {"message": "ColModernVBert Embedding API", "version": API_VERSION}
 
 
 @app.get("/health")
@@ -206,14 +231,18 @@ async def health_check():
 @app.get("/info")
 async def version():
     """Version endpoint"""
+    spatial_merge_size = getattr(model, "spatial_merge_size", None)
+    image_seq_len = getattr(processor, "image_seq_len", None)
     return {
-        "version": "0.0.2",
+        "version": API_VERSION,
+        "model_id": MODEL_ID,
         "device": str(model.device),
         "dtype": str(model.dtype),
         "flash_attn": is_flash_attn_2_available(),
-        "spatial_merge_size": model.spatial_merge_size,
-        "dim": model.dim,
-        "image_token_id": processor.image_token_id,
+        "spatial_merge_size": spatial_merge_size,
+        "dim": getattr(model, "dim", None),
+        "image_token_id": IMAGE_TOKEN_ID,
+        "image_seq_len": image_seq_len,
     }
 
 
@@ -234,11 +263,20 @@ async def get_n_patches(
     """
     try:
         results = []
+        spatial_merge_size = getattr(model, "spatial_merge_size", None)
+        get_n_patches_fn = getattr(processor, "get_n_patches", None)
+        supports_patches = callable(get_n_patches_fn) and spatial_merge_size is not None
+
         for dim in request.dimensions:
             try:
+                if not supports_patches:
+                    raise NotImplementedError(
+                        "Patch estimation is not available for the current model."
+                    )
+
                 image_size = (dim.width, dim.height)
-                n_patches_x, n_patches_y = processor.get_n_patches(
-                    image_size, spatial_merge_size=model.spatial_merge_size
+                n_patches_x, n_patches_y = processor.get_n_patches(  # type: ignore[call-arg]
+                    image_size, spatial_merge_size=spatial_merge_size
                 )
                 results.append(
                     PatchResult(

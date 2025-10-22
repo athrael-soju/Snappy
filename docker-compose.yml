@@ -44,9 +44,7 @@ services:
     env_file:
       - ./.env
     environment:
-      - COLPALI_MODE=${COLPALI_MODE:-cpu}
-      - COLPALI_CPU_URL=${COLPALI_CPU_URL:-http://host.docker.internal:7001}
-      - COLPALI_GPU_URL=${COLPALI_GPU_URL:-http://host.docker.internal:7002}
+      - COLPALI_URL=${COLPALI_URL:-http://host.docker.internal:7000}
       - QDRANT_EMBEDDED=false
       - QDRANT_URL=http://qdrant:6333
       - MINIO_URL=http://minio:9000

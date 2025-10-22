@@ -1,82 +1,111 @@
-# ColPali Embedding API - The Vision Brain! 🧠✨
+# ColPali Embedding Service
 
-This is where the visual understanding magic happens! Our FastAPI service serves up query and image embeddings using the powerful ColQwen2.5 model, complete with image-token boundary metadata.
+This service wraps the ColModernVBert family of ColPali models behind a focused
+FastAPI app. The FastAPI backend calls it whenever it needs to create text or
+image embeddings; you can also run it independently for local experiments.
 
-- **App**: `colpali/app.py`
-- **Ports**: Listens on 7000 in-container
-  - 🖥️ CPU mode → `localhost:7001`
-  - 🚀 GPU mode → `localhost:7002`
-- **Model**: `vidore/colqwen2.5-v0.2` (state-of-the-art vision-language model!)
+The service can run on CPU or GPU, exposes lightweight health and metadata
+endpoints, and ships with Docker Compose profiles to make switching between CPU
+and GPU builds trivial.
 
-## API Endpoints 🎯
-- `GET /health` - Check if we're alive and which device we're running on
-- `GET /info` - Device info, data type, dimensions, and `image_token_id`
-- `POST /patches` - Calculate patch grids (`n_patches_x/y`) for your images
-- `POST /embed/queries` - Turn text queries into embeddings
-- `POST /embed/images` - Transform images into embeddings (with patch boundaries!)
+---
 
-## Docker Compose - The Easy Way! 🐳
+## Quick Start (Docker)
 
 ```bash
-# From the colpali/ directory
+cd colpali
 
-# CPU Mode (everyone can use this!)
-docker compose up -d api-cpu
-# → Available at http://localhost:7001
+# GPU profile (builds flash-attn and enables CUDA)
+docker compose --profile gpu up -d --build
 
-# GPU Mode (requires NVIDIA runtime - FAST!)
-docker compose up -d api-gpu
-# → Available at http://localhost:7002
+# CPU profile (lean image, no GPU requirements)
+docker compose --profile cpu up -d --build
 ```
 
-**Smart Caching** 💾: We use a named volume (`hf-cache`) to persist your Hugging Face model downloads at `/data/hf-cache`. Download once, use forever!
+Environment overrides:
 
-## Connect Snappy to ColPali 🔌
+- `PUBLIC_PORT=7010 docker compose --profile gpu up -d --build`  
+  Publishes the API on port 7010.
+- `COLPALI_GPUS=0,1 docker compose --profile gpu up -d --build`  
+  Pins the service to specific GPU IDs (defaults to `all`).
 
-In your root `.env` file (the backend reads this):
-```bash
-# Choose your fighter: cpu or gpu
-COLPALI_MODE=cpu
+Compose mounts a shared Hugging Face cache (`hf-cache` volume) and exposes the
+API on `http://{PUBLIC_HOST}:{PUBLIC_PORT}` (defaults to `http://localhost:7000`).
+Set `COLPALI_URL` in `backend/.env` to match the published URL.
 
-# Tell Snappy where to find the services
-COLPALI_CPU_URL=http://localhost:7001
-COLPALI_GPU_URL=http://localhost:7002
-```
+---
 
-Snappy's backend will automatically pick the right URL based on your `COLPALI_MODE` setting. Easy! 🎉
-
-## Running Locally (No Docker) 💻
+## Running Locally
 
 ```bash
-# From the colpali/ directory
-
-# Set up your virtual environment
+cd colpali
 python -m venv .venv
-. .venv/bin/activate  # Windows: .venv\Scripts\Activate.ps1
-
-# Install dependencies
-pip install -U pip setuptools wheel
+. .venv/Scripts/activate  # on PowerShell use .venv\Scripts\Activate.ps1
+pip install --upgrade pip
 pip install -r requirements.txt
 
-# Fire it up!
 uvicorn app:app --host 0.0.0.0 --port 7000 --reload
 ```
 
-**Access Points**:
-- 🏠 Local direct: http://localhost:7000
-- 🐳 Docker Compose style: http://localhost:7001 (CPU) or :7002 (GPU)
+The service picks the device automatically:
 
-## Good to Know 📝
-- **Model Access**: ColQwen2.5 is public, but it's a big download! First run might take a minute.
-- **GPU Requirements**: Need NVIDIA Container Toolkit for GPU mode (worth it for the speed!)
-- **Gated Models**: If you switch to a gated model, authenticate with Hugging Face first
+- `cuda` when a compatible GPU is available.
+- `mps` on Apple Silicon.
+- `cpu` otherwise (torch thread counts are set via `CPU_THREADS`).
 
-## How It All Connects 🔗
+---
 
-This embedding service is Snappy's visual brain:
-1. 🧠 Provides query & image embeddings to the backend
-2. 🔍 Powers the search functionality (`GET /search`)
-3. 💬 Enables the chat route to find relevant document pages
-4. ✨ Makes visual citations possible!
+## Configuration Reference
 
-When the Next.js chat route finds relevant images, it emits a `kb.images` Server-Sent Event, and the UI lights up with that beautiful "Visual citations included" chip and image gallery. It's all connected! 🎭
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `COLPALI_MODEL_ID` | `ModernVBERT/colmodernvbert-merged` | Hugging Face model used for embeddings (override for custom checkpoints). |
+| `COLPALI_API_VERSION` | `0.1.0` | Version string returned by the service. |
+| `CPU_THREADS` | `4` | Torch intra/inter-op thread count when running on CPU. |
+| `ENABLE_CPU_MULTIPROCESSING` | `false` | Reserved flag for future CPU parallelism tweaks. |
+| `PUBLIC_HOST` | `localhost` | Compose helper used for port publishing. |
+| `PUBLIC_PORT` | `7000` | Compose helper; adjust to avoid clashes. |
+| `COLPALI_GPUS` | `all` | GPU selector passed to Compose when using the GPU profile. |
+| `HUGGINGFACE_HUB_CACHE`, `HF_HOME` | `/data/hf-cache` | Cache location inside the container so model downloads persist across restarts. |
+
+The backend connects with `COLPALI_URL` and honours `COLPALI_API_TIMEOUT`.
+Update those values in `.env` to point at the correct host/port.
+
+---
+
+## API Surface
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/` | Basic welcome payload with the reported version. |
+| `GET` | `/health` | Runtime health and current device. |
+| `GET` | `/info` | Detailed model metadata (model id, dtype, flash attention, token stats). |
+| `POST` | `/patches` | Estimate patch grid counts for supplied image dimensions. |
+| `POST` | `/embed/queries` | Accepts a string or list of strings, returns pooled query embeddings. |
+| `POST` | `/embed/images` | Accepts image files (`multipart/form-data`); returns embeddings and token boundaries per image. |
+
+Example request:
+
+```bash
+curl -X POST http://localhost:7000/embed/queries \
+  -H "Content-Type: application/json" \
+  -d '{"queries": ["modern architecture", "structured cabling"]}'
+```
+
+Error responses follow FastAPI's default shape. The `/embed/images` endpoint
+validates content types and reports per-image failures with an `error` field in
+the response payload.
+
+---
+
+## Implementation Notes
+
+- Uses `ColModernVBert.from_pretrained(..., trust_remote_code=True)` to load both
+  model and processor.
+- Automatically enables Flash Attention 2 when available.
+- Normalises embeddings and intermediate tensors to CPU memory before returning
+  them, keeping responses device-agnostic.
+- The Hugging Face cache is shared between CPU and GPU builds, so the first
+  download is the slowest; subsequent rebuilds reuse the weights.
+
+For deeper changes inspect `colpali/app.py` and the Dockerfiles in this folder.

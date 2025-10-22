@@ -3,7 +3,6 @@ import { z } from "zod";
 import { schemas } from "@/lib/api/zod";
 
 const searchResultsSchema = schemas.SearchItem.array();
-const optimizationResponseSchema = schemas.ConfigOptimizationResponse;
 
 export type SearchPayload = {
   filename?: string;
@@ -17,7 +16,6 @@ export type SearchItem = {
   payload: SearchPayload;
   score?: number | null;
 };
-export type ConfigOptimization = z.infer<typeof schemas.ConfigOptimizationResponse>;
 
 export function parseSearchResults(data: unknown): SearchItem[] {
   const parsed = searchResultsSchema.safeParse(data);
@@ -62,13 +60,4 @@ export function parseSearchResults(data: unknown): SearchItem[] {
 
 export function parseKnowledgeBaseItems(data: unknown): SearchItem[] {
   return parseSearchResults(data);
-}
-
-export function parseOptimizationResponse(data: unknown): ConfigOptimization {
-  const parsed = optimizationResponseSchema.safeParse(data);
-  if (parsed.success) {
-    return parsed.data;
-  }
-
-  throw new Error("Received invalid optimization response from backend");
 }

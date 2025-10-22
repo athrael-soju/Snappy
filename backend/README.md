@@ -34,15 +34,14 @@ copy .env.example .env
 
 **Essential Variables** (peek at `.env.example` and `backend/config.py` for details):
 
-- **ColPali Config**: `COLPALI_MODE`, `COLPALI_CPU_URL`, `COLPALI_GPU_URL`, `COLPALI_API_TIMEOUT`
+- **ColPali Config**: `COLPALI_GPU_URL`, `COLPALI_API_TIMEOUT`
 - **Qdrant Setup**: `QDRANT_EMBEDDED`, `QDRANT_URL`, `QDRANT_COLLECTION_NAME`, plus quantization options
 - **MinIO Storage**: `MINIO_URL`, `MINIO_PUBLIC_URL`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`
 
 **Default Endpoints** (works out of the box!):
 - 🕸️ Qdrant: `http://localhost:6333`
 - 🗄️ MinIO: `http://localhost:9000`
-- 🧠 ColPali CPU: `http://localhost:7001`
-- 🚀 ColPali GPU: `http://localhost:7002`
+- 🧠 ColPali: `http://localhost:7000`
 
 📚 **Deep Dive**: Check out `backend/docs/configuration.md` for the complete configuration encyclopedia!
 
@@ -110,7 +109,6 @@ docker compose up -d --build
 - `GET /config/values` – What's currently configured
 - `POST /config/update` – Tweak settings on the fly
 - `POST /config/reset` – Back to factory defaults
-- `POST /config/optimize` – Let Snappy auto-tune based on your hardware
 
 ⚠️ **Remember**: Runtime changes are temporary! Update `.env` for permanent tweaks.
 
