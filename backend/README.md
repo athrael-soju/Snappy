@@ -109,7 +109,6 @@ docker compose up -d --build
 - `GET /config/values` – What's currently configured
 - `POST /config/update` – Tweak settings on the fly
 - `POST /config/reset` – Back to factory defaults
-- `POST /config/optimize` – Let Snappy auto-tune based on your hardware
 
 ⚠️ **Remember**: Runtime changes are temporary! Update `.env` for permanent tweaks.
 

@@ -463,28 +463,6 @@
           }
         }
       }
-    },
-    "/config/optimize": {
-      "post": {
-        "tags": [
-          "configuration"
-        ],
-        "summary": "Optimize Config",
-        "description": "Optimise configuration for the current host hardware.\n\nRuns hardware detection (CPU, memory, GPU) and applies recommended\nruntime configuration values. Returns a summary of applied settings.",
-        "operationId": "optimize_config_config_optimize_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ConfigOptimizationResponse"
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {
@@ -505,54 +483,6 @@
           "files"
         ],
         "title": "Body_index_index_post"
-      },
-      "ConfigOptimizationResponse": {
-        "properties": {
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
-          "message": {
-            "type": "string",
-            "title": "Message"
-          },
-          "profile": {
-            "type": "string",
-            "title": "Profile"
-          },
-          "applied": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "type": "object",
-            "title": "Applied"
-          },
-          "unchanged": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Unchanged"
-          },
-          "detection": {
-            "$ref": "#/components/schemas/HardwareSnapshot"
-          },
-          "services_invalidated": {
-            "type": "boolean",
-            "title": "Services Invalidated"
-          }
-        },
-        "type": "object",
-        "required": [
-          "status",
-          "message",
-          "profile",
-          "applied",
-          "unchanged",
-          "detection",
-          "services_invalidated"
-        ],
-        "title": "ConfigOptimizationResponse"
       },
       "ConfigUpdate": {
         "properties": {
@@ -587,76 +517,6 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
-      },
-      "HardwareSnapshot": {
-        "properties": {
-          "cpu_cores": {
-            "type": "integer",
-            "title": "Cpu Cores"
-          },
-          "cpu_model": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Cpu Model"
-          },
-          "cpu_frequency_ghz": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Cpu Frequency Ghz"
-          },
-          "total_ram_gb": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Total Ram Gb"
-          },
-          "nvidia_gpu_count": {
-            "type": "integer",
-            "title": "Nvidia Gpu Count"
-          },
-          "nvidia_gpu_names": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Nvidia Gpu Names"
-          },
-          "profile": {
-            "type": "string",
-            "title": "Profile"
-          }
-        },
-        "type": "object",
-        "required": [
-          "cpu_cores",
-          "nvidia_gpu_count",
-          "profile"
-        ],
-        "title": "HardwareSnapshot"
       },
       "SearchItem": {
         "properties": {

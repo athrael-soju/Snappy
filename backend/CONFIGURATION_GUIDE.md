@@ -34,7 +34,7 @@ Welcome to Snappy's configuration deep-dive! This guide shows you exactly how th
 | `config_schema.py` | Defines the blueprint | `get_config_defaults`, `get_api_schema`, `get_all_config_keys`, `get_critical_keys` |
 | `runtime_config.py` | Mutable store (backed by `os.environ`) | `get`, `set`, `get_int`, `get_float`, `get_bool`, `update`, `reload_from_env` |
 | `config.py` | Dynamic magic accessor | `__getattr__`, `get_ingestion_worker_threads`, `get_pipeline_max_concurrency` |
-| `api/routers/config.py` | REST API for live changes | `/config/schema`, `/config/values`, `/config/update`, `/config/reset`, `/config/optimize` |
+| `api/routers/config.py` | REST API for live changes | `/config/schema`, `/config/values`, `/config/update`, `/config/reset` |
 | `api/dependencies.py` | Service cache manager | `invalidate_services()` refreshes ColPali/MinIO/Qdrant |
 
 ---

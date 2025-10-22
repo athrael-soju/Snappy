@@ -211,7 +211,7 @@ must be supplied; the backend no longer falls back to inline image storage.
 |              | `POST /initialize` / `DELETE /delete`    | Provision or tear down collection + bucket |
 |              | `POST /clear/qdrant` / `/clear/minio` / `/clear/all` | Data reset helpers |
 | Configuration| `GET /config/schema` / `GET /config/values` | Expose runtime schema and values |
-|              | `POST /config/update` / `/config/reset` / `/config/optimize` | Runtime configuration management |
+|              | `POST /config/update` / `/config/reset` | Runtime configuration management |
 
 Chat streaming is implemented in the Next.js API route
 `frontend/app/api/chat/route.ts`. It calls the backend search endpoint, invokes

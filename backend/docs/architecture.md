@@ -103,7 +103,7 @@ flowchart TB
 
 1. **Blueprint** → Defaults and metadata defined in `config_schema.py`
 2. **Load** → Values flow from `.env`/environment into `runtime_config`
-3. **Expose** → Configuration API (`/config/schema`, `/config/values`, `/config/update`, `/config/reset`, `/config/optimize`) makes everything accessible and mutable
+3. **Expose** → Configuration API (`/config/schema`, `/config/values`, `/config/update`, `/config/reset`) makes everything accessible and mutable
 4. **Refresh** → Critical updates auto-invalidate service caches for instant effect! ⚡
 
 📚 **Learn More**:

@@ -166,7 +166,6 @@ and restart the process instead.
 | `GET /config/values`     | See current runtime values |
 | `POST /config/update`    | Change a setting instantly (auto-invalidates critical services) |
 | `POST /config/reset`     | Back to defaults (clears service cache too) |
-| `POST /config/optimize`  | Let Snappy auto-tune based on your hardware! |
 
 💨 **Remember**: Runtime changes are temporary! Update `.env` for permanent tweaks.
 
