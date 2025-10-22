@@ -1,4 +1,3 @@
-import logging
 import os
 from io import BytesIO
 from typing import Any, List, Optional, Tuple, Union, cast
@@ -6,16 +5,9 @@ from typing import Any, List, Optional, Tuple, Union, cast
 import torch
 from colpali_engine.models import ColModernVBert, ColModernVBertProcessor
 from fastapi import Body, FastAPI, File, HTTPException, UploadFile
-from fastapi.openapi.docs import get_swagger_ui_html
 from PIL import Image
 from pydantic import BaseModel
 from transformers.utils.import_utils import is_flash_attn_2_available
-
-logger = logging.getLogger("colmodernvbert.app")
-logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO").upper())
-
-# Track whether we've warned about non-contiguous tokens already.
-_warned_non_contiguous_tokens = False
 
 # Configuration for CPU parallelism
 CPU_THREADS = int(
@@ -25,12 +17,14 @@ ENABLE_CPU_MULTIPROCESSING = (
     os.getenv("ENABLE_CPU_MULTIPROCESSING", "false").lower() == "true"
 )
 
+# Hugging Face model identifier (overridable via environment variable)
+MODEL_ID = os.getenv("COLPALI_MODEL_ID", "ModernVBERT/colmodernvbert-merged")
+API_VERSION = os.getenv("COLPALI_API_VERSION", "0.1.0")
+
 # Initialize FastAPI app
 app = FastAPI(
     title="ColModernVBert Embedding API",
     description="API for generating embeddings from images and queries",
-    docs_url=None,  # We'll mount custom docs to tweak Swagger UI behaviour.
-    redoc_url=None,
 )
 
 # Determine device
@@ -46,85 +40,51 @@ if device == "cpu":
     torch.set_num_interop_threads(CPU_THREADS)
     print(f"CPU mode: Set torch threads to {CPU_THREADS}")
 
-MODEL_ID = os.getenv("COLPALI_MODEL_ID", "ModernVBERT/colmodernvbert")
-print(f"Loading ColModernVBert model: {MODEL_ID}")
-
-_DTYPE_ALIASES = {
-    "float32": torch.float32,
-    "fp32": torch.float32,
-    "float16": torch.float16,
-    "fp16": torch.float16,
-    "half": torch.float16,
-    "bfloat16": torch.bfloat16,
-    "bf16": torch.bfloat16,
-}
-
-dtype_env = os.getenv("COLPALI_TORCH_DTYPE", "").strip().lower()
-if dtype_env:
-    if dtype_env not in _DTYPE_ALIASES:
-        raise RuntimeError(f"Unsupported COLPALI_TORCH_DTYPE value: {dtype_env}")
-    preferred_dtype = _DTYPE_ALIASES[dtype_env]
-else:
-    # Default to fp32 – the merged ModernVBert weights are numerically unstable in fp16.
-    preferred_dtype = torch.float32
-
-API_VERSION = "0.1.0"
-
-disable_flash_attn_env = os.getenv("COLPALI_DISABLE_FLASH_ATTN", "").strip().lower()
-flash_allowed = disable_flash_attn_env not in ("1", "true", "yes")
-if preferred_dtype not in (torch.float16, torch.bfloat16):
-    flash_allowed = False
-attn_impl = (
-    "flash_attention_2" if flash_allowed and is_flash_attn_2_available() else None
-)
-
-mask_non_image_embeddings = (
-    os.getenv("COLPALI_MASK_NON_IMAGE_EMBEDDINGS", "true").lower() != "false"
-)
+TORCH_DTYPE = torch.bfloat16 if device != "cpu" else torch.float32
 
 # Load model and processor
-model = ColModernVBert.from_pretrained(
-    MODEL_ID,
-    torch_dtype=preferred_dtype,
-    attn_implementation=attn_impl,
-    mask_non_image_embeddings=mask_non_image_embeddings,
-    trust_remote_code=True,
+model = cast(
+    Any,
+    ColModernVBert.from_pretrained(
+        MODEL_ID,
+        torch_dtype=TORCH_DTYPE,
+        device_map=device,
+        attn_implementation=(
+            "flash_attention_2" if is_flash_attn_2_available() else None
+        ),
+        trust_remote_code=True,
+    ).eval(),
 )
-
-# Move the model to the target device and dtype in one shot to avoid FlashAttention warnings.
-model = model.to(device=device, dtype=preferred_dtype).eval()
-
-model = cast(Any, model)
 
 _processor_loaded: Union[
     ColModernVBertProcessor, Tuple[ColModernVBertProcessor, dict[str, Any]]
-] = ColModernVBertProcessor.from_pretrained(
-    MODEL_ID,
-    trust_remote_code=True,
-)
+] = ColModernVBertProcessor.from_pretrained(MODEL_ID, trust_remote_code=True)
 if isinstance(_processor_loaded, tuple):
     processor = cast(Any, _processor_loaded[0])
 else:
     processor = cast(Any, _processor_loaded)
 
 print(f"ColModernVBert model loaded on device: {device}")
+print(f"Model id: {MODEL_ID}")
 print(f"Model dtype: {model.dtype}")
-print(f"Flash Attention 2: {'enabled' if attn_impl else 'disabled'}")
-print(f"Mask non-image embeddings: {mask_non_image_embeddings}")
+print(f"Flash Attention 2: {'enabled' if is_flash_attn_2_available() else 'disabled'}")
 
 
-@app.get("/docs", include_in_schema=False)
-async def custom_swagger_docs():
-    """Serve Swagger UI with syntax highlighting disabled to avoid stack overflows on huge payloads."""
-    return get_swagger_ui_html(
-        openapi_url=app.openapi_url,
-        title=f"{app.title} - Docs",
-        swagger_ui_parameters={
-            "syntaxHighlight": False,
-            "defaultModelsExpandDepth": -1,
-            "defaultModelExpandDepth": -1,
-        },
-    )
+def _resolve_image_token_id() -> int:
+    """Best-effort resolution of the image token id for the current processor."""
+    if hasattr(processor, "image_token_id"):
+        return int(processor.image_token_id)  # type: ignore[arg-type]
+
+    image_token = getattr(processor, "image_token", None)
+    if image_token is not None and hasattr(processor, "tokenizer"):
+        token_id = processor.tokenizer.convert_tokens_to_ids(image_token)  # type: ignore[attr-defined]
+        if token_id is not None:
+            return int(token_id)
+
+    raise AttributeError("Processor does not expose an image_token_id.")
+
+
+IMAGE_TOKEN_ID = _resolve_image_token_id()
 
 
 class QueryRequest(BaseModel):
@@ -172,30 +132,12 @@ def load_image_from_bytes(image_bytes: bytes) -> Image.Image:
     return Image.open(BytesIO(image_bytes)).convert("RGB")
 
 
-def _ensure_finite(tensor: torch.Tensor, context: str) -> torch.Tensor:
-    """Ensure tensors do not contain NaN or Inf; raise to prevent silent corruption."""
-    if torch.isfinite(tensor).all():
-        return tensor
-    invalid = (~torch.isfinite(tensor)).sum().item()
-    logger.error("%s produced %d non-finite values", context, invalid)
-    raise HTTPException(
-        status_code=500,
-        detail=f"{context} produced {invalid} non-finite values (NaN or Inf).",
-    )
-
-
 def generate_query_embeddings(queries: List[str]) -> List[torch.Tensor]:
     """Generate embeddings for text queries"""
     device = model.device
     with torch.no_grad():
-        if not hasattr(processor, "process_texts"):
-            raise RuntimeError(
-                "The active processor does not expose `process_texts`; query embeddings cannot be generated."
-            )
-        batch_query = cast(Any, processor.process_texts(queries))
-        batch_query = batch_query.to(device)
+        batch_query = processor.process_queries(queries).to(device)
         query_embeddings = cast(torch.Tensor, model(**batch_query))  # [batch, seq, dim]
-        query_embeddings = _ensure_finite(query_embeddings, "Query embedding")
         # Unbind into per-sample tensors on CPU
         return list(torch.unbind(query_embeddings.to("cpu")))
 
@@ -213,9 +155,7 @@ def generate_image_embeddings_with_boundaries(
         image_embeddings = cast(
             torch.Tensor, model(**batch_images)
         )  # [batch, seq, dim]
-        image_embeddings = _ensure_finite(image_embeddings, "Image embedding batch").to(
-            "cpu"
-        )
+        image_embeddings = image_embeddings.to("cpu")
 
         # Expect token ids to be present, so we can find image-token spans
         if "input_ids" not in batch_images:
@@ -224,7 +164,7 @@ def generate_image_embeddings_with_boundaries(
             )
 
         input_ids = batch_images["input_ids"].to("cpu")  # [batch, seq]
-        image_token_id = int(processor.image_token_id)
+        image_token_id = IMAGE_TOKEN_ID
 
         batch_items: List[ImageEmbeddingItem] = []
         batch_size = input_ids.shape[0]
@@ -258,13 +198,10 @@ def generate_image_embeddings_with_boundaries(
                     dtype=indices.dtype,
                 )
                 if not torch.all(indices == contiguous):
-                    global _warned_non_contiguous_tokens
-                    if not _warned_non_contiguous_tokens:
-                        logger.warning(
-                            "Image tokens are not contiguous; continuing with recorded spans. "
-                            "This may indicate tokenizer/layout changes."
-                        )
-                        _warned_non_contiguous_tokens = True
+                    # Non-contiguous; still report start and length, but you may want to log this server-side.
+                    print(
+                        "Warning: Non-contiguous image tokens found. This may indicate a tokenizer change."
+                    )
 
             batch_items.append(
                 ImageEmbeddingItem(
@@ -294,25 +231,19 @@ async def health_check():
 @app.get("/info")
 async def version():
     """Version endpoint"""
-    info = {
+    spatial_merge_size = getattr(model, "spatial_merge_size", None)
+    image_seq_len = getattr(processor, "image_seq_len", None)
+    return {
         "version": API_VERSION,
         "model_id": MODEL_ID,
         "device": str(model.device),
         "dtype": str(model.dtype),
         "flash_attn": is_flash_attn_2_available(),
-    }
-
-    optional_fields = {
-        "spatial_merge_size": getattr(model, "spatial_merge_size", None),
+        "spatial_merge_size": spatial_merge_size,
         "dim": getattr(model, "dim", None),
-        "image_token_id": getattr(processor, "image_token_id", None),
-        "image_seq_len": getattr(processor, "image_seq_len", None),
+        "image_token_id": IMAGE_TOKEN_ID,
+        "image_seq_len": image_seq_len,
     }
-
-    info.update(
-        {key: value for key, value in optional_fields.items() if value is not None}
-    )
-    return info
 
 
 @app.post(
@@ -330,29 +261,21 @@ async def get_n_patches(
     Args:
         request: PatchRequest containing a list of dimensions with 'width' and 'height' keys
     """
-    supports_patch_counts = hasattr(model, "spatial_merge_size") and callable(
-        getattr(processor, "get_n_patches", None)
-    )
-
-    if not supports_patch_counts:
-        return {
-            "results": [
-                PatchResult(
-                    width=dim.width,
-                    height=dim.height,
-                    error="Patch counting is not supported for the active model.",
-                )
-                for dim in request.dimensions
-            ]
-        }
-
     try:
-        spatial_merge_size = getattr(model, "spatial_merge_size", None)
         results = []
+        spatial_merge_size = getattr(model, "spatial_merge_size", None)
+        get_n_patches_fn = getattr(processor, "get_n_patches", None)
+        supports_patches = callable(get_n_patches_fn) and spatial_merge_size is not None
+
         for dim in request.dimensions:
             try:
+                if not supports_patches:
+                    raise NotImplementedError(
+                        "Patch estimation is not available for the current model."
+                    )
+
                 image_size = (dim.width, dim.height)
-                n_patches_x, n_patches_y = processor.get_n_patches(
+                n_patches_x, n_patches_y = processor.get_n_patches(  # type: ignore[call-arg]
                     image_size, spatial_merge_size=spatial_merge_size
                 )
                 results.append(
