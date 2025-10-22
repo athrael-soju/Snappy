@@ -83,6 +83,7 @@ Welcome to Snappy's complete configuration reference! This is your go-to guide f
 | Key                         | Type  | Default | What It Does |
 |-----------------------------|-------|---------|-------------|
 | `QDRANT_URL`                | str   | `http://localhost:6333` | External Qdrant endpoint (ignored in embedded mode) |
+| `QDRANT_HTTP_TIMEOUT`       | int   | `5` seconds | REST timeout for indexing calls. Bump if large batches trigger write timeouts. |
 | `QDRANT_EMBEDDED`           | bool  | `False` | Run Qdrant in-process. Great for testing, not for production! |
 | `QDRANT_COLLECTION_NAME`    | str   | `documents` | Collection name (also used for MinIO bucket by default) |
 | `QDRANT_PREFETCH_LIMIT`     | int   | `200`   | Multivector candidates for reranking (when mean pooling is on) |
