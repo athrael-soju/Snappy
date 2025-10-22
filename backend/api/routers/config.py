@@ -1,6 +1,7 @@
 """Configuration management API endpoints."""
 
-from typing import Any, Dict, List
+from copy import deepcopy
+from typing import Any, Dict, List, Tuple
 
 from api.dependencies import get_colpali_client, invalidate_services
 from config_schema import get_all_config_keys, get_api_schema, get_critical_keys
@@ -40,6 +41,34 @@ def _is_truthy(value: str) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _check_mean_pooling_support() -> Tuple[bool, str | None]:
+    """Probe the ColPali service to determine if patch metadata is available."""
+    client = get_colpali_client()
+    try:
+        probe = client.get_patches([{"width": 256, "height": 256}])
+    except Exception as exc:
+        return False, f"Failed to query ColPali /patches endpoint ({exc})."
+
+    if not probe:
+        return False, "ColPali /patches endpoint returned no results."
+
+    first = probe[0]
+    if isinstance(first, dict):
+        if first.get("error"):
+            return (
+                False,
+                f"ColPali reported patch estimation unavailable ({first['error']}).",
+            )
+        if "n_patches_x" not in first or "n_patches_y" not in first:
+            return (
+                False,
+                "ColPali did not return 'n_patches_x'/'n_patches_y'.",
+            )
+        return True, None
+
+    return False, "Unexpected response format from ColPali /patches endpoint."
+
+
 def _ensure_mean_pooling_supported() -> None:
     """
     Validate that the current ColPali deployment exposes patch metadata.
@@ -47,59 +76,43 @@ def _ensure_mean_pooling_supported() -> None:
     Raises:
         HTTPException: if the embedding service does not support patch estimation.
     """
-    client = get_colpali_client()
-    try:
-        probe = client.get_patches([{"width": 256, "height": 256}])
-    except Exception as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Cannot enable mean pooling: failed to query ColPali /patches endpoint"
-                f" ({exc})."
-            ),
-        ) from exc
-
-    if not probe:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Cannot enable mean pooling: ColPali /patches endpoint returned no"
-                " results."
-            ),
+    supported, reason = _check_mean_pooling_support()
+    if not supported:
+        detail = (
+            "Cannot enable mean pooling: "
+            "the active model does not expose patch metadata."
         )
-
-    first = probe[0]
-    if isinstance(first, dict):
-        if first.get("error"):
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    "Cannot enable mean pooling: "
-                    f"ColPali reported patch estimation unavailable ({first['error']})."
-                ),
-            )
-        if "n_patches_x" not in first or "n_patches_y" not in first:
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    "Cannot enable mean pooling: ColPali did not return"
-                    " 'n_patches_x'/'n_patches_y'."
-                ),
-            )
-    else:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Cannot enable mean pooling: unexpected response format from ColPali"
-                " /patches endpoint."
-            ),
-        )
+        if reason:
+            detail = f"{detail} {reason}"
+        raise HTTPException(status_code=400, detail=detail)
 
 
 @router.get("/schema")
 async def get_config_schema() -> Dict[str, Any]:
     """Get the configuration schema with categories and settings."""
-    return CONFIG_SCHEMA
+    schema = deepcopy(CONFIG_SCHEMA)
+    supported, reason = _check_mean_pooling_support()
+    if not supported:
+        explanation = (
+            "Mean pooling requires patch metadata from the embedding model. "
+            "The current ColPali deployment does not expose patch counts."
+        )
+        if reason:
+            explanation = f"{explanation} {reason}"
+
+        for category in schema.values():
+            for setting in category["settings"]:
+                if setting.get("key") == "QDRANT_MEAN_POOLING_ENABLED":
+                    setting["ui_disabled"] = True
+                    existing_help = setting.get("help_text") or ""
+                    disabled_help = f"Why disabled: {explanation}"
+                    setting["help_text"] = (
+                        f"{existing_help}\n\n{disabled_help}".strip()
+                        if existing_help
+                        else disabled_help
+                    )
+                    break
+    return schema
 
 
 @router.get("/values")

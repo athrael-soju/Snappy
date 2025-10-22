@@ -28,6 +28,7 @@ export interface ConfigSetting {
     value: boolean;
   };
   ui_hidden?: boolean;
+  ui_disabled?: boolean;
 }
 
 export interface ConfigCategory {
@@ -159,9 +160,27 @@ export function useConfigurationPanel() {
     });
   }, [originalValues]);
 
-  const handleValueChange = useCallback((key: string, value: string) => {
-    setValues(prev => ({ ...prev, [key]: value }));
-  }, []);
+  const handleValueChange = useCallback(
+    (key: string, value: string) => {
+      if (schema) {
+        for (const category of Object.values(schema)) {
+          const setting = category.settings.find((item) => item.key === key);
+          if (setting) {
+            if (
+              setting.ui_disabled &&
+              value.toLowerCase() === "true"
+            ) {
+              return;
+            }
+            break;
+          }
+        }
+      }
+
+      setValues(prev => ({ ...prev, [key]: value }));
+    },
+    [schema]
+  );
 
   const isSettingVisible = useCallback(
     (setting: ConfigSetting): boolean => {

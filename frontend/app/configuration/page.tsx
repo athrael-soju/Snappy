@@ -285,9 +285,11 @@ export default function ConfigurationPage() {
                       .filter((setting) => isSettingVisible(setting))
                       .map((setting) => {
                         const currentValue = values[setting.key] ?? setting.default;
+                        const currentValueBool = (currentValue || "").toLowerCase() === "true";
                         const override = SETTING_OVERRIDES[setting.key] ?? {};
                         const description = override.description ?? setting.description;
                         const helpText = override.helpText ?? setting.help_text;
+                        const disabled = Boolean(setting.ui_disabled);
 
                         const isDependent = !!setting.depends_on;
                         const articleClass = isDependent
@@ -314,9 +316,9 @@ export default function ConfigurationPage() {
                                   />
                                 </div>
                                 <Switch
-                                  checked={(currentValue || "").toLowerCase() === "true"}
+                                  checked={currentValueBool}
                                   onCheckedChange={(checked) => handleValueChange(setting.key, checked ? "True" : "False")}
-                                  disabled={saving}
+                                  disabled={saving || (disabled && !currentValueBool)}
                                 />
                               </div>
                             </motion.article>
