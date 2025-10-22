@@ -3,9 +3,6 @@ import { useUploadStore } from "@/stores/app-store";
 import { ApiError } from "@/lib/api/generated";
 import { toast } from "sonner";
 
-const SUCCESS_MESSAGE_DISMISS_MS = 4500;
-const ERROR_MESSAGE_DISMISS_MS = 6000;
-
 const toFileArray = (input: FileList | File[] | null): File[] | null => {
   if (!input) {
     return null;
@@ -36,25 +33,6 @@ export function useFileUpload() {
 
   const [isDragOver, setIsDragOver] = useState(false);
   const isCancellingRef = useRef(false);
-
-  // Clear success/error messages after some time
-  useEffect(() => {
-    if (message && !uploading) {
-      const timer = setTimeout(() => {
-        setMessage(null);
-      }, SUCCESS_MESSAGE_DISMISS_MS);
-      return () => clearTimeout(timer);
-    }
-  }, [message, uploading, setMessage]);
-
-  useEffect(() => {
-    if (error && !uploading) {
-      const timer = setTimeout(() => {
-        setError(null);
-      }, ERROR_MESSAGE_DISMISS_MS);
-      return () => clearTimeout(timer);
-    }
-  }, [error, uploading, setError]);
 
   // Reset cancelling flag after cancellation completes
   useEffect(() => {

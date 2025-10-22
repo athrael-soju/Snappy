@@ -7,6 +7,9 @@ import { loadStateFromStorage, saveStateToStorage } from './utils/storage';
 import { useUploadSSE } from '../lib/hooks/use-upload-sse';
 import type { AppState, AppAction } from './types';
 
+const SUCCESS_MESSAGE_DISMISS_MS = 4500;
+const ERROR_MESSAGE_DISMISS_MS = 6000;
+
 // Re-export types for convenience
 export type { 
   AppState, 
@@ -46,6 +49,30 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
     return () => clearTimeout(timeoutId);
   }, [state]);
+
+  useEffect(() => {
+    if (!state.upload.message || state.upload.uploading) {
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      dispatch({ type: 'UPLOAD_SET_MESSAGE', payload: null });
+    }, SUCCESS_MESSAGE_DISMISS_MS);
+
+    return () => clearTimeout(timeoutId);
+  }, [state.upload.message, state.upload.uploading, dispatch]);
+
+  useEffect(() => {
+    if (!state.upload.error || state.upload.uploading) {
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      dispatch({ type: 'UPLOAD_SET_ERROR', payload: null });
+    }, ERROR_MESSAGE_DISMISS_MS);
+
+    return () => clearTimeout(timeoutId);
+  }, [state.upload.error, state.upload.uploading, dispatch]);
 
   return (
     <AppContext.Provider value={{ state, dispatch }}>
