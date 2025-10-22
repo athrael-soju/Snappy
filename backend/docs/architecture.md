@@ -1,6 +1,6 @@
-# Snappy Architecture - How It All Fits Together! 🏗️
+# Snappy Architecture 🏗️
 
-Welcome to the architectural tour of Snappy! Let's see how all the pieces work together to deliver vision-first document retrieval magic. ✨
+This document outlines how the major components in Snappy work together to deliver vision-grounded document search.
 
 ```mermaid
 ---
@@ -35,77 +35,71 @@ flowchart TB
   CHAT -- SSE Stream --> USER
 ```
 
-## The Component Cast 🎭
+---
 
-**Core Services**:
-- **FastAPI App** (`backend/api/app.py`) – The conductor! Wires up all routers: `meta`, `retrieval`, `indexing`, `maintenance`, and `config`
-- **Qdrant Service** (`backend/services/qdrant/`) – Vector storage maestro handling collections, indexing, search, and optional MUVERA magic
-- **MinIO Service** (`backend/services/minio.py`) – Image upload champion with smart batching, auto-sized workers, and retry logic
-- **ColPali Client** (`backend/services/colpali.py`) – The vision brain connector, handling embeddings, patches, and timeouts
-- **Configuration** (`backend/config.py`) – Dynamic settings manager that reads from `config_schema.py` and invalidates services when needed
+## Components
 
-**Supporting Cast**:
-- `backend/api/utils.py` – PDF-to-image conversion wizardry
-- `backend/api/progress.py` – Real-time job tracking for SSE streams
-- `backend/api/dependencies.py` – Smart service caching with error recovery
+- **FastAPI application** (`backend/api/app.py`) wires the routers for health, retrieval, indexing, maintenance, and configuration.
+- **Qdrant service** (`backend/services/qdrant/`) manages vector collections, indexing, search, and optional MUVERA post-processing.
+- **MinIO service** (`backend/services/minio.py`) stores page images with concurrent uploads and retry handling.
+- **ColPali client** (`backend/services/colpali.py`) communicates with the embedding service for both queries and images.
+- **Configuration layer** (`backend/config.py`, `backend/config_schema.py`) keeps runtime settings consistent across the API and UI.
+- **Support modules**
+  - `backend/api/utils.py` – PDF-to-image conversion
+  - `backend/api/progress.py` – Job state tracking for SSE
+  - `backend/api/dependencies.py` – Cached service instances and cache invalidation
 
-## The Indexing Journey 📚➡️🔍
+---
 
-**Step-by-Step Magic**:
+## Indexing Flow
 
-1. **Upload** → `POST /index` receives PDFs and schedules a background task
-2. **Rasterize** → `convert_pdf_paths_to_images` transforms PDFs into page images via `pdf2image`
-3. **Process** → `DocumentIndexer` (`services/qdrant/indexing.py`) does the heavy lifting:
-   - 📦 Chunks pages into batches (`BATCH_SIZE`)
-   - 🧠 Embeds via ColPali API (original + mean-pooled variants)
-   - 🗄️ Stores images in MinIO
-   - 📊 Upserts multivector data into Qdrant
-4. **Pipeline Power** → When `ENABLE_PIPELINE_INDEXING=True`, dual thread pools overlap embedding, storage, and upserts for maximum throughput (auto-sized based on CPU cores!)
-5. **Live Updates** → Progress streams through `/progress/stream/{job_id}` as Server-Sent Events. Watch it happen in real-time! 🎬
+1. `POST /index` receives one or more PDFs and starts a background task.
+2. `convert_pdf_paths_to_images` rasterises each page.
+3. `DocumentIndexer` (`services/qdrant/indexing.py`) handles batching, embedding, image uploads, and Qdrant upserts.
+4. When `ENABLE_PIPELINE_INDEXING=True`, dual executors overlap embedding, storage, and upserts based on `get_pipeline_max_concurrency()`.
+5. `/progress/stream/{job_id}` streams progress updates so the UI can reflect status in real time.
 
-## The Search Flow 🔍✨
+---
 
-**Finding the Perfect Match**:
+## Search Flow
 
-1. **Query In** → `GET /search` embeds your text query via ColPali
-2. **Smart Search** → `SearchManager` (`services/qdrant/search.py`) does multi-stage retrieval:
-   - 🚀 Optional MUVERA first-stage (when enabled) for speed
-   - 📊 Prefetch from mean-pooled vectors (when `QDRANT_MEAN_POOLING_ENABLED=True`)
-   - 🎯 Final reranking with full-precision original vectors
-3. **Results** → Returns metadata + `image_url` (images loaded lazily by the frontend for snappy performance!)
+1. `GET /search` embeds the incoming query via ColPali.
+2. `SearchManager` (`services/qdrant/search.py`) performs two-stage retrieval:
+   - Optional MUVERA first-stage vector for quick prefiltering.
+   - Prefetch via pooled vectors when mean pooling is enabled.
+   - Final rerank on the original multivectors.
+3. Results include metadata and public image URLs; the frontend decides how to display them.
 
-## Frontend Integration 🎨
+---
 
-**The User Experience Layer**:
+## Frontend Integration
 
-- **Pages** → Live under `frontend/app/*`: `/upload`, `/search`, `/chat`, `/configuration`, `/maintenance`, and more
-- **API Client** → `frontend/lib/api/client.ts` wires up the auto-generated OpenAPI client (points to `NEXT_PUBLIC_API_BASE_URL`, defaults to `http://localhost:8000`)
-- **Chat Magic** → Implemented in `frontend/app/api/chat/route.ts`:
-  - 🔍 Searches docs via `/search` or exposes `document_search` tool to the AI
-  - 🖼️ Converts images to data URLs when needed
-  - 🌊 Streams OpenAI responses + custom `kb.images` events for visual citations
+- Pages live under `frontend/app/*` (`/upload`, `/search`, `/chat`, `/configuration`, `/maintenance`, etc.).
+- `frontend/lib/api/client.ts` wraps the generated OpenAPI client using `NEXT_PUBLIC_API_BASE_URL`.
+- `frontend/app/api/chat/route.ts` runs in the Edge runtime, calls `GET /search`, invokes the OpenAI Responses API, and streams events (`text-delta`, `kb.images`) back to the browser.
 
-## ColPali Service - The Vision Brain 🧠
+---
 
-**Standalone Embedding Service** (`colpali/`):
+## ColPali Service
 
-**Endpoints**:
-- `GET /health`, `GET /info` – Health checks and model info
-- `POST /patches` – Patch grid calculations
-- `POST /embed/queries` – Text → embeddings
-- `POST /embed/images` – Images → embeddings
+Located in `colpali/`, this FastAPI app powers embeddings.
 
-**Deployment Options**: CPU and GPU variants via `colpali/docker-compose.yml`
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/health`, `/info` | Health and model metadata |
+| `POST` | `/patches` | Patch grid estimation |
+| `POST` | `/embed/queries` | Text → embeddings |
+| `POST` | `/embed/images` | Images → embeddings + token boundaries |
 
-## Configuration Lifecycle ⚙️
+Docker Compose profiles are provided for CPU and GPU deployments, each sharing a Hugging Face cache volume.
 
-**From Schema to Runtime**:
+---
 
-1. **Blueprint** → Defaults and metadata defined in `config_schema.py`
-2. **Load** → Values flow from `.env`/environment into `runtime_config`
-3. **Expose** → Configuration API (`/config/schema`, `/config/values`, `/config/update`, `/config/reset`) makes everything accessible and mutable
-4. **Refresh** → Critical updates auto-invalidate service caches for instant effect! ⚡
+## Configuration Lifecycle
 
-📚 **Learn More**:
-- Settings reference: `backend/docs/configuration.md`
-- Implementation deep-dive: `backend/CONFIGURATION_GUIDE.md`
+1. **Schema** – `config_schema.py` defines defaults, metadata, and critical keys.
+2. **Runtime store** – Values load from `.env` into `runtime_config`.
+3. **Access** – `config.py` exposes typed getters and computed defaults.
+4. **API/UI** – `/config/*` endpoints feed the configuration UI; updates trigger cache invalidation for dependent services.
+
+See `backend/docs/configuration.md` and `backend/CONFIGURATION_GUIDE.md` for details.

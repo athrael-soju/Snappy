@@ -1,160 +1,109 @@
-# Snappy System Analysis - Vision vs. Text RAG 🔬
+# Snappy System Analysis – Vision vs. Text RAG 🔬
 
-Let's dive deep into what makes Snappy tick and how it stacks up against traditional text-based RAG systems!
-
-## The Big Picture 🖼️
-
-**What Makes Snappy Different**:
-- 👁️ **Vision-First**: Retrieves actual page images, not extracted text
-- 🧱 **Multivector Magic**: Stores patch-level embeddings (original + pooled variants) per page
-- 🎯 **Smart Retrieval**: Two-stage Qdrant search with prefetch + reranking, then feeds top-k images to multimodal LLM
-- ⚖️ **Trade-offs**: Perfect for scanned PDFs, forms, charts, and layout-heavy docs. Not the best for pure text corpora (no OCR/chunking)
+This note explains how Snappy approaches document retrieval and how it compares with text-only RAG systems.
 
 ---
 
-## Snappy's Architecture Breakdown 🏛️
+## Overview
 
-**The Backend** 🚀:
-- **API Server**: `main.py` boots `api.app.create_app()` with modular routers (`meta`, `retrieval`, `indexing`, `maintenance`)
-
-**Vector Storage** (`services/qdrant/`):
-- `service.py` – Main `QdrantService` orchestrator
-- `collection.py` – Manages multivector collections: `original`, `mean_pooling_rows`, `mean_pooling_columns` with `MAX_SIM` comparator
-- `search.py` – Two-stage search magic: prefetch on pooled vectors, final ranking on originals
-- `embedding.py` – Parallel embedding and pooling wizardry
-- `indexing.py` – Pipelined document indexing with concurrent batching
-
-**The Vision Brain** (`services/colpali.py`):
-- Connects to external ColPali API for embeddings, patches, and model info
-
-**Image Storage** (`services/minio.py`):
-- Smart batch uploads with retries, auto-sized workers, and public-read policy
-
-**Chat Interface** (`frontend/app/api/chat/route.ts`):
-- Streams OpenAI responses via SSE with retrieved images as data URLs or links
+**What sets Snappy apart**
+- 👁️ Vision-first: works with page images instead of extracted text.
+- 🧱 Multivector embeddings: stores patch-level tokens plus pooled variants for each page.
+- 🎯 Two-stage retrieval: pooled vectors prefetch, original vectors rerank; optional MUVERA can accelerate the first stage.
+- ⚖️ Trade-offs: excels on scans, forms, charts, and layout-heavy docs; pure text corpora are usually better served by classic RAG.
 
 ---
 
-## Indexing Pipeline (What Happens on Upload)
+## Backend Architecture
 
-- __PDF to images__: The API route uses `api/utils.py::convert_pdf_paths_to_images(...)` (via the `/index` endpoint). Each page becomes one PIL image with payload metadata: `filename`, `pdf_page_index`, `page_width_px`, `page_height_px`, etc.
-- __Pipelined processing__: `DocumentIndexer._index_documents_pipelined(...)` (in `services/qdrant/indexing.py`, when `ENABLE_PIPELINE_INDEXING=True`)
-  - Uses dual thread pools: one for batch processing (embedding + MinIO upload), one for Qdrant upserts
-  - Concurrency is derived from hardware via `config.get_pipeline_max_concurrency()`
-  - Allows embedding, MinIO uploads, and Qdrant upserts to overlap for maximum throughput
-- __Embeddings__: `EmbeddingProcessor` (in `services/qdrant/embedding.py`)
-  - Calls `ColPaliService.embed_images(...)` to get image patch embeddings (image encoding parallelized for high-CPU systems)
-  - Calls `ColPaliService.get_patches(...)` to obtain the patch grid (`n_patches_x`, `n_patches_y`)
-  - Mean-pools the image patch tokens into two variants: by rows and by columns, preserving prefix/postfix tokens via parallelized pooling operations
-  - Produces three multivectors per page: `original`, `mean_pooling_rows`, `mean_pooling_columns`
-- __Image persistence__: `MinioService.store_images_batch(...)` uploads images concurrently with an internal thread pool (`MINIO_WORKERS` threads). Worker counts and retry attempts are auto-sized based on CPU cores and pipeline concurrency.
-- __Upsert to Qdrant__: Non-blocking upserts submitted to separate executor, allowing next batch to start embedding immediately. The `/index` route starts this as a background job and you can poll `/progress/{job_id}` for status.
-
-Notes:
-- Collection schema is created on startup in `QdrantService._create_collection_if_not_exists()` using model dimension from `/info`.
-- Images are stored under an S3-like path (`images/<uuid>.<ext>`), publicly readable by default.
-- Sequential mode (`ENABLE_PIPELINE_INDEXING=False`) processes one batch fully before starting the next.
+- **API server** – `backend/main.py` boots `api.app.create_app()` with routers for `meta`, `retrieval`, `indexing`, `maintenance`, and `config`.
+- **Vector storage** (`services/qdrant/`)
+  - `service.py` – orchestrates collection lifecycle and search
+  - `collection.py` – manages multivector schemas (`original`, `mean_pooling_rows`, `mean_pooling_columns`, optional `muvera_fde`)
+  - `search.py` – two-stage search (prefetch + rerank)
+  - `embedding.py` – handles ColPali calls, pooling, and MUVERA
+  - `indexing.py` – pipelined document indexing with concurrent batches
+- **ColPali client** (`services/colpali.py`) – talks to the embedding service for images, patches, and queries.
+- **MinIO service** (`services/minio.py`) – uploads images with auto-sized worker pools and retries.
+- **Chat interface** (`frontend/app/api/chat/route.ts`) – streams OpenAI responses with page citations.
 
 ---
 
-## Retrieval Pipeline (What Happens on Query)
+## Indexing Pipeline
 
-- __Query embedding__: `EmbeddingProcessor.batch_embed_query(...)` (in `services/qdrant/embedding.py`) calls `/embed/queries` and returns per-token embeddings
-- __Two-stage search__: `SearchManager._reranking_search_batch(...)` (in `services/qdrant/search.py`, optionally MUVERA-first stage when enabled)
-  - Prefetch against `mean_pooling_columns` and `mean_pooling_rows` with `prefetch_limit`
-  - Final rank against `original` with `search_limit`, `with_payload=True`
-- __Result assembly__:
-  - `SearchManager.search_with_metadata(...)` returns metadata with image URLs without fetching actual images (optimized for latency)
-  - The API `/search` route (`api/routers/retrieval.py`) formats and returns structured results with URLs
-- __Multimodal answer__:
-  - The frontend chat API route (`frontend/app/api/chat/route.ts`) sends the user text and retrieved images to OpenAI's Responses API and streams tokens back to the UI via SSE
+1. **Upload** – `POST /index` schedules a background job.
+2. **PDF → images** – `api/utils.py::convert_pdf_paths_to_images` rasterises each page via `pdf2image`.
+3. **Batch processing** – `DocumentIndexer` in `services/qdrant/indexing.py`
+   - Splits pages into batches (`BATCH_SIZE`)
+   - Embeds via `ColPaliService` (original + pooled vectors)
+   - Stores images in MinIO
+   - Upserts vectors into Qdrant
+4. **Pipeline mode** – When `ENABLE_PIPELINE_INDEXING=True`, embedding, storage, and upserts overlap using dual thread pools sized from `config.get_pipeline_max_concurrency()`.
+5. **Progress** – `/progress/stream/{job_id}` streams status updates over SSE.
 
----
-
-## Multivector Design and Why It Matters
-
-- __Patch-aware__: Image embedding returns patch-level tokens. Retrieval uses `MAX_SIM` across tokens to mimic ColPali-style maximum patch similarity.
-- __Row/Column pooling__: `mean_pooling_rows` and `mean_pooling_columns` preserve coarse spatial structure, often improving recall on layout-heavy pages.
-- __Two-stage retrieval__: Prefetch with pooled vectors broadens candidate coverage; final scoring on `original` improves precision.
+Collection schemas come from the model dimension reported by `/info`. Images live under `images/<uuid>.<ext>` with public URLs unless configured otherwise. Disabling pipeline mode processes one batch at a time for easier debugging.
 
 ---
 
-## The Showdown: Snappy vs. Traditional Text RAG 🥊
+## Retrieval Pipeline
 
-**Data Modality** 🖼️🆚️📝:
-- **Snappy (Vision RAG)**: Works with actual page images; no OCR needed! Handles scans, stamps, tables, and charts like a champ
-- **Traditional RAG**: Relies on extracted text chunks. Struggles with graphics-heavy or poorly scanned content
-
-**Representation** 🧱:
-- **Snappy**: Multivectors per page (patch tokens + pooled variants), stored in Qdrant with MAX_SIM scoring
-- **Traditional RAG**: Single vector per text chunk (512-1k tokens), often with overlapping chunks for context
-
-**Indexing Cost** 💰:
-- **Snappy**: PDF rasterization + image embedding + S3 storage = higher per-page cost, larger payloads
-- **Traditional RAG**: Text extraction + embedding = cheaper per token, smaller storage footprint
-
-**Retrieval Quality** 🎯:
-- **Snappy**: Excels at layout understanding, handwriting, scans, and visual elements. Perfect when OCR fails!
-- **Traditional RAG**: Dominates on clean text corpora with semantic understanding of language
-
-**Latency** ⏱️:
-- **Snappy**: Text embedding is fast, but multivector ranking + image loading + large multimodal prompts add overhead
-- **Traditional RAG**: Lean vector lookups + compact text contexts = speedy responses
-
-**Context Assembly** 📝:
-- **Snappy**: Sends actual images to multimodal LLM; answers grounded in visual proof!
-- **Traditional RAG**: Concatenates text chunks; answers based on extracted text
-
-- __Reranking__
-  - Vision RAG: multivector `prefetch` + final `using="original"` scoring; MAX_SIM emphasizes best-matching patch.
-  - Traditional RAG: often uses cross-encoder or LLM re-ranking on top of ANN results.
-
-**Storage Requirements** 🗄️:
-- **Snappy**: MinIO (images) + Qdrant (multivectors), public-read by default (configurable)
-- **Traditional RAG**: Vector DB only (optional blob storage for source docs)
-
-- __Failure modes__
-  - Vision RAG: if the image encoder misses tiny text or fine semantics, answers may be shallow; sending many images to LLM can be costly.
-  - Traditional RAG: OCR errors, chunk boundary issues, and loss of layout can hurt grounding and factuality.
-
-- __Cost profile__
-  - Vision RAG: higher storage (images + multivectors) and prompt costs (image inputs); good ROI when OCR is unreliable or visuals dominate.
-  - Traditional RAG: lower storage and prompt costs; ideal when content is mostly text and extractable.
-
-**When to Choose What** 🤔:
-- **Choose Snappy**: Scanned PDFs, invoices, forms, heavy tables/figures, diagrams, handwritten notes
-- **Choose Traditional RAG**: Clean text corpora, codebases, documentation with reliable text extraction
+1. **Query embedding** – `EmbeddingProcessor.batch_embed_query` calls `/embed/queries`.
+2. **Two-stage search** – `SearchManager._reranking_search_batch`
+   - Optional MUVERA first-stage when enabled
+   - Prefetch against pooled vectors when `QDRANT_MEAN_POOLING_ENABLED=True`
+   - Final rerank with original vectors (`with_payload=True`)
+3. **Response assembly** – `SearchManager.search_with_metadata` returns metadata and image URLs; `/search` formats the API response.
+4. **Multimodal answer** – The frontend chat route streams OpenAI responses and emits `kb.images` events for the UI gallery.
 
 ---
 
-## Future Enhancements - Making Snappy Even Snappier! 🚀
+## Multivector Design
 
-**Hybrid Power** 🔋: Add text extraction + chunking alongside vision for best-of-both-worlds retrieval
-
-**Smarter Reranking** 🧠: Deploy cross-encoders or LLM judges for ultimate precision
-
-**Precise Citations** 🎯: Add bounding boxes and highlight specific regions in the gallery
-
-**Security & Privacy** 🔒: Switch to signed URLs, add authentication layers
-
-**Observability** 📈: Full query logging, latency metrics, evaluation harnesses, and benchmarks
-
-**Performance Tuning** ⚙️: Fine-tune HNSW configs, quantization per field, prefetch limits for optimal speed/recall balance
+- Patch-aware scoring uses `MAX_SIM` across tokens to mirror ColPali search behaviour.
+- Row/column pooling preserves coarse layout information and often improves recall on complex pages.
+- MUVERA (when enabled) adds a single-vector projection to accelerate the first selection stage before reranking with multivectors.
 
 ---
 
-## Implementation Pointers (for this repo)
+## Vision RAG vs. Text RAG
 
-- __Indexing paths__: `api/utils.py::convert_pdf_paths_to_images()`, `DocumentIndexer.index_documents()` (in `services/qdrant/indexing.py`)
-- __Collection schema__: `CollectionManager.create_collection_if_not_exists()` (in `services/qdrant/collection.py`)
-- __Pooling logic__: `EmbeddingProcessor._pool_image_tokens()` (in `services/qdrant/embedding.py`)
-- __Two-stage query__: `SearchManager._reranking_search_batch()` (in `services/qdrant/search.py`)
-- __MinIO URLs__: `MinioService._get_image_url()` and `_extract_object_name_from_url()`
-- __Chat streaming__: `frontend/app/api/chat/route.ts` (SSE) and `frontend/lib/api/chat.ts` (helpers for request and stream parsing)
+| Aspect | Snappy (Vision) | Traditional Text RAG |
+|--------|-----------------|----------------------|
+| **Modality** | Works on page images; no OCR required. Handles scans, handwriting, diagrams. | Requires text extraction; struggles on low-quality scans or heavy layout. |
+| **Representation** | Multivectors per page (patch tokens + pooled variants + optional MUVERA FDE). | Single vector per text chunk, often with overlapping windows. |
+| **Indexing cost** | Higher: rasterisation, image embeddings, object storage. | Lower: text extraction and embeddings only. |
+| **Retrieval quality** | Strong on layout awareness and visual context. | Strong on semantic text understanding when OCR is clean. |
+| **Latency** | Multivector search + multimodal prompts cost more. | Typically faster lookups and lighter prompts. |
+| **Context delivery** | Sends images to multimodal LLM for grounded answers. | Sends text chunks; grounding depends on OCR fidelity. |
+| **Failure modes** | Missing fine text, higher prompt costs. | OCR errors, chunk boundary issues, loss of layout. |
+| **Best for** | Scanned PDFs, forms, tables, diagrams, handwritten notes. | Plain text corpora, code, documents with reliable OCR. |
 
 ---
 
-## Caveats Noted from Code
+## Possible Enhancements
 
- - The ColPali image embedding API is expected to return per-image embeddings with token boundaries, which are processed by `EmbeddingProcessor` in `services/qdrant/embedding.py`. The current implementation in `ColPaliService.embed_images(...)` returns embeddings in the expected format.
- - The default OpenAI model for chat is configured on the frontend via `OPENAI_MODEL` (default `gpt-5-nano`) in `frontend/.env.local`. The backend does not manage chat or OpenAI client configuration.
+- Hybrid vision/text pipeline combining OCR when it helps.
+- Cross-encoder or LLM-based reranking for even tighter precision.
+- Region-of-interest citations (bounding boxes and highlights).
+- Signed URLs and authentication for production deployments.
+- Telemetry, evaluation harnesses, and richer observability.
+- Fine-tuned HNSW parameters and quantisation layouts for large collections.
+
+---
+
+## Implementation Pointers
+
+- Indexing paths: `api/utils.py::convert_pdf_paths_to_images`, `DocumentIndexer.index_documents` in `services/qdrant/indexing.py`.
+- Collection schema management: `CollectionManager.create_collection_if_not_exists` in `services/qdrant/collection.py`.
+- Pooling logic: `EmbeddingProcessor._pool_image_tokens` in `services/qdrant/embedding.py`.
+- Two-stage query: `SearchManager._reranking_search_batch` in `services/qdrant/search.py`.
+- MinIO URLs: `MinioService._get_image_url()` and `_extract_object_name_from_url()`.
+- Chat streaming: `frontend/app/api/chat/route.ts` (SSE) and `frontend/lib/api/chat.ts`.
+
+---
+
+## Notes from the Code
+
+- The ColPali API is expected to return embeddings with token boundaries; `ColPaliService.embed_images` already matches that contract.
+- The frontend controls the OpenAI model via `OPENAI_MODEL` (`frontend/.env.local`). The backend stays focused on retrieval and system duties.
+

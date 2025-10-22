@@ -1,123 +1,94 @@
-# Configuration System Guide - Under the Hood! 🔧
+# Configuration System Guide 🔧
 
-Welcome to Snappy's configuration deep-dive! This guide shows you exactly how the backend loads, exposes, and updates settings at runtime. Perfect companion to `backend/docs/configuration.md`; this one's all about implementation details and pro tips! 💡
+This guide explains how Snappy's backend loads, exposes, and updates configuration at runtime. Use it alongside `backend/docs/configuration.md`: that file lists every setting, while this one focuses on implementation details and best practices.
 
 ---
 
-## Architecture Overview 🏗️
+## Architecture Overview
 
-**The Configuration Flow**:
 ```
 .env  →  os.environ  →  runtime_config  →  config.py (__getattr__)
              │                              │
              └─────── config_schema.py ─────┘
 ```
 
-**The Players**:
+**Key modules**
 
-1. **Environment** (`.env`) – Loaded once via `python-dotenv` and merged with process environment
-
-2. **runtime_config.py** – Thread-safe storage for all key/value pairs with smart type helpers (strings, ints, floats, bools)
-
-3. **config_schema.py** – The blueprint! Defines defaults, types, UI metadata, and "critical" keys that need service refresh
-
-4. **config.py** – Magic `__getattr__` access! Reads schema, consults runtime_config, applies computed defaults (like auto-sized workers), raises `AttributeError` for unknown keys
-
-5. **/config API** (`backend/api/routers/config.py`) – Exposes the schema and enables live edits. Critical changes trigger `invalidate_services()` to refresh Qdrant/MinIO/ColPali!
+1. **Environment (`.env`)** – Loaded once with `python-dotenv` and merged with the process environment.
+2. **`runtime_config.py`** – Thread-safe store that keeps every key/value pair with helpers for strings, ints, floats, bools.
+3. **`config_schema.py`** – Single source of truth: defaults, types, UI metadata, and critical-key definitions.
+4. **`config.py`** – Lazy access via `config.MY_SETTING`; applies computed defaults and raises `AttributeError` for unknown keys.
+5. **`/config` routers** – `backend/api/routers/config.py` serves schema/data and applies runtime updates. Critical updates call `invalidate_services()` so cached clients refresh automatically.
 
 ---
 
-## Module Cheat Sheet 📋
+## Module Quick Reference
 
-| Module | What It Does | Key Functions |
-|--------|--------------|---------------|
-| `config_schema.py` | Defines the blueprint | `get_config_defaults`, `get_api_schema`, `get_all_config_keys`, `get_critical_keys` |
-| `runtime_config.py` | Mutable store (backed by `os.environ`) | `get`, `set`, `get_int`, `get_float`, `get_bool`, `update`, `reload_from_env` |
-| `config.py` | Dynamic magic accessor | `__getattr__`, `get_ingestion_worker_threads`, `get_pipeline_max_concurrency` |
-| `api/routers/config.py` | REST API for live changes | `/config/schema`, `/config/values`, `/config/update`, `/config/reset` |
-| `api/dependencies.py` | Service cache manager | `invalidate_services()` refreshes ColPali/MinIO/Qdrant |
-
----
-
-## Configuration Types 🎨
-
-**Supported Types**: `str`, `int`, `float`, `bool`, and `list`
-
-For lists, we split comma-separated strings and trim whitespace automatically!
-
-**Special Cases** ⭐:
-
-- **`ALLOWED_ORIGINS`** – `["*"]` for wide-open CORS, or comma-separated URLs for production
-- **`MINIO_PUBLIC_URL`** – Falls back to `MINIO_URL` when empty
-- **`MINIO_WORKERS` / `MINIO_RETRIES`** – Auto-calculated from CPU + pipeline concurrency (unless you override)
-
-💡 **Pro Tip**: Need a computed default? Add the logic to `config.py` so everyone accesses it via `config.MY_SETTING`!
+| Module | Purpose | Highlights |
+|--------|---------|------------|
+| `config_schema.py` | Defines defaults, types, UI metadata | `get_config_defaults`, `get_api_schema`, `get_all_config_keys`, `get_critical_keys` |
+| `runtime_config.py` | Mutable backing store | `get`, `set`, `get_int`, `get_float`, `get_bool`, `update`, `reload_from_env` |
+| `config.py` | Public accessor | Dynamic `__getattr__`, computed helpers like `get_pipeline_max_concurrency()` |
+| `api/routers/config.py` | REST surface | `/config/schema`, `/config/values`, `/config/update`, `/config/reset` |
+| `api/dependencies.py` | Service cache invalidation | `invalidate_services()` handles ColPali, MinIO, Qdrant clients |
 
 ---
 
-## Updating Configuration at Runtime ⚡
+## Supported Types
 
-**The Update Dance**:
-
-1. **Call** `POST /config/update` with `{ "key": "...", "value": "..." }`
-2. **Validate** – Router checks the key exists in `get_all_config_keys()`
-3. **Store** – `runtime_config.set()` updates the value and `os.environ`
-4. **Refresh** – If it's a critical key, `invalidate_services()` clears cached clients
-
-⚠️ **Remember**: Runtime updates are temporary! They vanish on restart. For permanent changes, update `.env` or your deployment secrets.
+- `str`, `int`, `float`, `bool`, `list`
+- Lists are comma-separated; whitespace is trimmed automatically.
+- Computed defaults live in `config.py` (e.g., auto-sized MinIO workers).
 
 ---
 
-## Adding a New Setting 🆕
+## Runtime Updates
 
-**Three Easy Steps**:
+1. Client calls `POST /config/update` with `{ "key": "...", "value": "..." }`.
+2. Router validates the key via `get_all_config_keys()`.
+3. `runtime_config.set()` stores the value and mirrors it in `os.environ`.
+4. Critical keys trigger `invalidate_services()` so the next request reconnects.
 
-1. **Define** in `config_schema.py` (category, default, type, UI metadata)
-2. **Access** in code via `config.MY_SETTING`
-3. **Expose** (optional) in the frontend by using the updated schema
-
-🚨 **Critical Warning**: Never use `from config import MY_SETTING`! This caches the value at import time. Always do `import config` and access dynamically: `config.MY_SETTING`
-
----
-
-## Best Practices - Pro Tips! 🌟
-
-**Read Lazily** 🦥: Access config inside functions or via `@property` for long-lived objects. Keeps things dynamic when values change!
-
-**Log Smart** 📝: When debugging, log the `config.*` value alongside actions. Confirms you're using the right defaults!
-
-**Guard Against Bad Input** 🛡️: `runtime_config` handles invalid ints/floats, but always validate user input in calculations (buffer sizes, etc.)
-
-**Mark Critical Keys** 🚨: Adding a setting that affects Qdrant collections or MinIO storage? Include it in `get_critical_keys()` for automatic cache invalidation!
+Updates affect the running process only—restart the app or edit `.env` to persist changes.
 
 ---
 
-## Debugging Checklist 🔍
+## Adding a Setting
 
-**Not Working as Expected?** Try these:
+1. Define it in `config_schema.py` (category, default, metadata).
+2. Reference it via `config.MY_SETTING`.
+3. Optionally surface it in the UI; the schema already contains the metadata the frontend needs.
 
-✅ `GET /config/schema` – Verify the key exists and check its default
-
-✅ `GET /config/values` – See what's currently set
-
-✅ `runtime_config.reload_from_env()` – Reload env vars (useful for REPL/testing)
-
-✅ **Check logs** for `invalidate_services()` messages – Confirms cache clearing
-
-💡 **Still stuck?** Double-check that your key is in `config_schema.py` and spelled correctly!
+Avoid `from config import MY_SETTING`; import the module and access `config.MY_SETTING` so values remain dynamic.
 
 ---
 
-## Summary - The Big Picture! 🎯
+## Recommended Practices
 
-✨ **The Schema** – `config_schema.py` defines everything (settings, defaults, metadata)
+- **Access lazily**: Read configuration inside functions or properties instead of module-level constants.
+- **Log clearly**: When debugging, include the relevant `config.*` value in log messages.
+- **Validate inputs**: `runtime_config` guards type coercion, but downstream calculations should handle edge cases (e.g., buffer sizes).
+- **Label critical keys**: Anything that changes Qdrant collections or MinIO endpoints should be marked in `get_critical_keys()` so clients refresh automatically.
 
-🔧 **Dynamic Access** – Backend reads config via the `config` module in real-time
+---
 
-🎛️ **Live Tuning** – `/config/*` API + UI let you tweak without restarts
+## Debugging Checklist
 
-🔄 **Smart Refresh** – Critical changes auto-invalidate cached services
+- `GET /config/schema` – confirm the key exists and review metadata.
+- `GET /config/values` – inspect the live value.
+- `runtime_config.reload_from_env()` – reload the environment during tests or REPL sessions.
+- Watch logs for `invalidate_services()` messages to confirm cache refreshes.
 
-💾 **Persistence** – Remember: update `.env` or deployment secrets for permanent changes!
+If a value still refuses to change, double-check the spelling in `config_schema.py`.
 
-That's Snappy's configuration system in a nutshell! Questions? Check out `backend/docs/configuration.md` for the user-friendly reference. 🚀
+---
+
+## Summary
+
+- `config_schema.py` holds defaults, metadata, and critical-key definitions.
+- `runtime_config` and `config.py` provide dynamic, typed access.
+- `/config/*` endpoints enable live updates, with automatic cache invalidation.
+- Persistent changes belong in `.env` or your deployment secrets.
+
+For the full list of settings and recommended values, see `backend/docs/configuration.md`.
+
