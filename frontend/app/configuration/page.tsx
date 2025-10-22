@@ -234,10 +234,6 @@ export default function ConfigurationPage() {
                   )}
                   {configStats.modifiedSettings} modified
                 </span>
-                <span className="inline-flex items-center gap-1 rounded-lg border border-border/30 bg-background/70 px-2.5 py-1 capitalize">
-                  <Info className="size-icon-3xs" />
-                  {configStats.currentMode}
-                </span>
                 {configStats.enabledFeatures.length > 0 && (
                   <span className="inline-flex items-center gap-1 rounded-lg border border-border/30 bg-background/70 px-2.5 py-1">
                     <Sparkles className="size-icon-3xs text-primary" />
@@ -397,12 +393,6 @@ export default function ConfigurationPage() {
                                 className="w-full rounded-lg border border-border/25 bg-background/75 px-3 py-2.5 text-body-sm outline-none transition-colors focus:border-primary/40 focus:bg-background focus:ring-2 focus:ring-primary/15"
                               />
                             </label>
-                            {setting.depends_on && (
-                              <Badge variant="outline" className="w-fit gap-1.5 text-body-xs">
-                                <AlertCircle className="size-icon-3xs" />
-                                Visible when {setting.depends_on.key} = {setting.depends_on.value ? "True" : "False"}
-                              </Badge>
-                            )}
                           </motion.article>
                         );
                       })}
