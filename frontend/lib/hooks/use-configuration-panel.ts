@@ -12,10 +12,12 @@ import {
 } from "@/lib/config/config-store";
 import type { ConfigValues } from "@/lib/config/config-store";
 
+const RUNTIME_CONFIG_EVENT = "runtimeConfigUpdated";
+
 export interface ConfigSetting {
   key: string;
   label: string;
-  type: "text" | "number" | "boolean" | "select" | "password";
+  type: "text" | "number" | "boolean" | "select" | "password" | "multiselect";
   options?: string[];
   default: string;
   description: string;
@@ -62,6 +64,12 @@ export function useConfigurationPanel() {
   const [storedDraftKeys, setStoredDraftKeys] = useState<string[]>([]);
   const [storedDraftUpdatedAt, setStoredDraftUpdatedAt] = useState<Date | null>(null);
 
+  const notifyRuntimeConfigUpdated = useCallback(() => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event(RUNTIME_CONFIG_EVENT));
+    }
+  }, []);
+
   const loadConfiguration = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -98,6 +106,7 @@ export function useConfigurationPanel() {
           setStoredDraftKeys([]);
           setStoredDraftUpdatedAt(null);
           setLastSaved(timestamp);
+          notifyRuntimeConfigUpdated();
         }
       } else {
         const timestamp = new Date();
@@ -106,6 +115,7 @@ export function useConfigurationPanel() {
         setStoredDraftKeys([]);
         setStoredDraftUpdatedAt(null);
         setLastSaved(timestamp);
+        notifyRuntimeConfigUpdated();
       }
     } catch (err) {
       const errorMsg = err instanceof ApiError ? err.message : "Failed to load configuration";
@@ -114,7 +124,7 @@ export function useConfigurationPanel() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [notifyRuntimeConfigUpdated]);
 
   useEffect(() => {
     loadConfiguration();
@@ -216,6 +226,7 @@ export function useConfigurationPanel() {
       setStoredDraft(null);
       setStoredDraftKeys([]);
       setStoredDraftUpdatedAt(savedAt);
+      notifyRuntimeConfigUpdated();
       toast.success("Configuration saved", {
         description: `${changedKeys.length} setting${changedKeys.length !== 1 ? "s" : ""} updated`,
       });
@@ -229,7 +240,7 @@ export function useConfigurationPanel() {
     } finally {
       setSaving(false);
     }
-  }, [values, originalValues]);
+  }, [values, originalValues, notifyRuntimeConfigUpdated]);
 
   const resetChanges = useCallback(() => {
     setValues({ ...originalValues });
@@ -264,6 +275,7 @@ export function useConfigurationPanel() {
         setStoredDraft(null);
         setStoredDraftKeys([]);
         setStoredDraftUpdatedAt(savedAt);
+        notifyRuntimeConfigUpdated();
 
         toast.success("Section reset", {
           description: `${category.name} settings restored to defaults`,
@@ -280,7 +292,7 @@ export function useConfigurationPanel() {
         setSaving(false);
       }
     },
-    [schema, values]
+    [schema, values, notifyRuntimeConfigUpdated]
   );
 
   const resetToDefaults = useCallback(async () => {
@@ -292,6 +304,7 @@ export function useConfigurationPanel() {
       await ConfigurationService.resetConfigConfigResetPost();
       await loadConfiguration();
       setLastSaved(new Date());
+      notifyRuntimeConfigUpdated();
 
       toast.success("Configuration reset", { description: "All settings restored to defaults" });
       if (typeof window !== "undefined") {
@@ -304,7 +317,7 @@ export function useConfigurationPanel() {
     } finally {
       setSaving(false);
     }
-  }, [loadConfiguration]);
+  }, [loadConfiguration, notifyRuntimeConfigUpdated]);
 
   return {
     schema,

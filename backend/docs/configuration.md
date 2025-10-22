@@ -61,6 +61,19 @@ Helpers:
 
 ---
 
+## Upload Controls
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `UPLOAD_ALLOWED_FILE_TYPES` | list | `pdf` | Comma-separated extensions accepted during upload. Snappy currently ships with PDF support only; the configuration UI prevents deselecting the last remaining type. |
+| `UPLOAD_MAX_FILE_SIZE_MB` | int | `10` | Maximum size (MB) for a single file. Values are clamped between 1 and 200 MB. |
+| `UPLOAD_MAX_FILES` | int | `5` | Maximum number of files per upload request. Clamped between 1 and 20. |
+| `UPLOAD_CHUNK_SIZE_BYTES` | int | `4194304` | Chunk size used when streaming uploads to disk. Values outside 64 KB to 16 MB are clamped automatically. |
+
+> The upload endpoint validates all limits server-side. Adjusting these values affects both the backend acceptance criteria and the frontend hints.
+
+---
+
 ## ColPali Embedding Service
 
 | Key | Type | Default | Description |

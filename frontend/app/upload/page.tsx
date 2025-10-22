@@ -83,6 +83,10 @@ export default function UploadPage() {
     fileCount,
     hasFiles,
     isCancelling,
+    allowedFileTypesLabel,
+    maxFilesAllowed,
+    maxFileSizeMb,
+    fileAccept,
     handleDragOver,
     handleDragLeave,
     handleDrop,
@@ -311,8 +315,8 @@ export default function UploadPage() {
                   <h3 className="text-body sm:text-lg font-bold">
                     {isDragOver ? "Drop files here" : "Drag & drop your files"}
                   </h3>
-                  <p className="text-body-sm text-muted-foreground">
-                    or browse • PDFs, images, and documents
+                  <p className="text-body-xs text-muted-foreground">
+                    Up to {maxFilesAllowed} ({allowedFileTypesLabel}) files | {maxFileSizeMb} MB each
                   </p>
                 </div>
 
@@ -372,6 +376,7 @@ export default function UploadPage() {
                   type="file"
                   multiple
                   ref={fileInputRef}
+                  accept={fileAccept || undefined}
                   onChange={(event) => {
                     handleFileSelect(event.target.files);
                     if (event.target) {
@@ -434,19 +439,21 @@ export default function UploadPage() {
                         return (
                           <motion.div
                             key={fileKey}
-                            className="flex items-center justify-between rounded-lg border border-border/50 bg-background/50 px-3 py-2.5 transition-colors hover:bg-muted/50"
+                            className="flex items-center rounded-lg border border-border/50 bg-background/50 px-3 py-2.5 transition-colors hover:bg-muted/50"
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: 20 }}
                             transition={{ delay: index * 0.05, duration: 0.2 }}
                             whileHover={{ scale: 1.02, x: 4 }}
                           >
-                            <div className="flex items-center gap-2 min-w-0">
-                              <FileText className="size-icon-xs shrink-0 text-primary" />
-                              <div className="min-w-0">
-                                <p className="truncate text-body-xs font-medium">{file.name}</p>
-                                <p className="text-body-xs text-muted-foreground">{sizeKb} KB</p>
-                              </div>
+                            <FileText className="size-icon-xs mr-2 shrink-0 text-primary" />
+                            <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
+                              <span className="truncate text-body-xs font-medium">
+                                {file.name}
+                              </span>
+                              <span className="whitespace-nowrap text-body-xs text-muted-foreground">
+                                {sizeKb} KB
+                              </span>
                             </div>
                           </motion.div>
                         );

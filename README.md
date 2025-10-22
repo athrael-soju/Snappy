@@ -197,6 +197,7 @@ Chat streaming lives in `frontend/app/api/chat/route.ts`. The route calls the ba
 - **Missing images?** Verify MinIO credentials/URLs and confirm `next.config.ts` allows the domains you expect.
 - **CORS issues?** Replace wildcard `ALLOWED_ORIGINS` entries with explicit URLs before exposing the API publicly.
 - **Config changes vanish?** `/config/update` modifies runtime state only—update `.env` for anything you need to keep after a restart.
+- **Upload rejected?** The uploader currently accepts PDFs only. Adjust max size, chunk size, or file count limits in the “Uploads” section of the configuration UI.
 
 `backend/docs/configuration.md` and `backend/CONFIGURATION_GUIDE.md` cover advanced troubleshooting and implementation details.
 

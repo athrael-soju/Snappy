@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Literal, Tuple
 # Type definitions
 ConfigType = Literal["str", "int", "float", "bool", "list"]
 ConfigDefault = Any  # The actual default value (typed)
-ConfigUIType = Literal["text", "number", "boolean", "select", "password"]
+ConfigUIType = Literal["text", "number", "boolean", "select", "password", "multiselect"]
 
 
 def _infer_ui_type(config_type: ConfigType, has_options: bool = False) -> ConfigUIType:
@@ -97,6 +97,60 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "boolean",
                 "description": "Overlap embedding, storage, and upserts",
                 "help_text": "When enabled the system automatically chooses a safe level of concurrency based on your hardware and batch size. Disable only for debugging or very resource-constrained hosts.",
+            },
+        ],
+    },
+    "uploads": {
+        "order": 2.5,
+        "icon": "upload",
+        "name": "Uploads",
+        "description": "Control allowed file types and user upload limits.",
+        "settings": [
+            {
+                "key": "UPLOAD_ALLOWED_FILE_TYPES",
+                "type": "list",
+                "default": "pdf",
+                "label": "Supported File Types",
+                "ui_type": "multiselect",
+                "options": ["pdf"],
+                "description": "File extensions accepted during upload.",
+                "help_text": "Select which file types end users can upload. The pipeline currently supports PDF files; additional types can be enabled as support is added.",
+            },
+            {
+                "key": "UPLOAD_MAX_FILE_SIZE_MB",
+                "type": "int",
+                "default": 10,
+                "label": "Maximum Size Per File (MB)",
+                "ui_type": "number",
+                "min": 1,
+                "max": 200,
+                "step": 1,
+                "description": "Reject individual files larger than this size.",
+                "help_text": "Protect your service from oversized uploads. Accepts values between 1 MB and 200 MB. Default keeps uploads lightweight while balancing usability.",
+            },
+            {
+                "key": "UPLOAD_MAX_FILES",
+                "type": "int",
+                "default": 5,
+                "label": "Maximum Files Per Upload",
+                "ui_type": "number",
+                "min": 1,
+                "max": 20,
+                "step": 1,
+                "description": "Limit how many files a user can submit at once.",
+                "help_text": "Restrict batch submissions to prevent overload. Accepts 1-20 files per request. Default allows modest batches without stressing the system.",
+            },
+            {
+                "key": "UPLOAD_CHUNK_SIZE_BYTES",
+                "type": "int",
+                "default": 4 * 1024 * 1024,
+                "label": "Upload Chunk Size (bytes)",
+                "ui_type": "number",
+                "min": 64 * 1024,
+                "max": 16 * 1024 * 1024,
+                "step": 64 * 1024,
+                "description": "Chunk size used when streaming uploads to disk.",
+                "help_text": "Controls how uploaded files are split into chunks while streaming to disk. Larger values reduce overhead but increase peak memory usage. Accepts values between 64 KB and 16 MB. Default 4 MB balances throughput and resource usage.",
             },
         ],
     },
