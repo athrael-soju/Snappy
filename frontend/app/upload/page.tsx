@@ -121,9 +121,9 @@ export default function UploadPage() {
   useEffect(() => clearDismissTimer, [clearDismissTimer]);
 
   const triggerFileDialog = useCallback(() => {
-    if (uploading) return;
+    if (uploading || !isReady) return;
     fileInputRef.current?.click();
-  }, [uploading]);
+  }, [uploading, isReady]);
 
   useEffect(() => {
     const hasStatusCopy = Boolean(statusText || jobId || message || error);
@@ -322,7 +322,7 @@ export default function UploadPage() {
                     variant="outline"
                     size="md"
                     onClick={triggerFileDialog}
-                    disabled={uploading}
+                    disabled={uploading || !isReady}
                   >
                     <FileText className="size-icon-xs" />
                     Browse Files
@@ -378,7 +378,7 @@ export default function UploadPage() {
                       event.target.value = "";
                     }
                   }}
-                  disabled={uploading}
+                  disabled={uploading || !isReady}
                   className="hidden"
                 />
               </div>

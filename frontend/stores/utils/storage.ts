@@ -27,7 +27,7 @@ export function serializeStateForStorage(state: AppState): any {
     upload: {
       files: null, // Never persist selected files
       fileMeta: state.upload.fileMeta,
-      uploading: state.upload.uploading,
+      uploading: state.upload.uploading && !!state.upload.jobId,
       uploadProgress: state.upload.uploadProgress,
       message: state.upload.message,
       error: state.upload.error,
