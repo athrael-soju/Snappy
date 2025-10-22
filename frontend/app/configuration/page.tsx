@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { AppButton } from "@/components/app-button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { InfoTooltip } from "@/components/info-tooltip";
 import { PageHeader } from "@/components/page-header";
 import { Switch } from "@/components/ui/switch";
@@ -316,6 +317,103 @@ export default function ConfigurationPage() {
                                   onCheckedChange={(checked) => handleValueChange(setting.key, checked ? "True" : "False")}
                                   disabled={saving || (disabled && !currentValueBool)}
                                 />
+                              </div>
+                            </motion.article>
+                          );
+                        }
+
+                        if (setting.type === "multiselect") {
+                          const optionEntries =
+                            setting.options?.map((option) => {
+                              const trimmed = option.trim();
+                              return {
+                                raw: trimmed,
+                                normalized: trimmed.toLowerCase(),
+                              };
+                            }) ?? [];
+                          const selectedValues = new Set(
+                            (currentValue || "")
+                              .split(",")
+                              .map((value) => value.trim().toLowerCase())
+                              .filter(Boolean)
+                          );
+                          const handleToggle = (optionRaw: string, nextState: boolean) => {
+                            const normalized = optionRaw.trim().toLowerCase();
+                            const nextSelected = new Set(selectedValues);
+                            if (nextState) {
+                              nextSelected.add(normalized);
+                            } else {
+                              if (nextSelected.has(normalized) && nextSelected.size <= 1) {
+                                return;
+                              }
+                              nextSelected.delete(normalized);
+                            }
+                            const nextValue = optionEntries
+                              .filter(({ normalized: opt }) => nextSelected.has(opt))
+                              .map(({ raw }) => raw)
+                              .join(",");
+                            handleValueChange(setting.key, nextValue);
+                          };
+
+                          const selectedBadges = optionEntries
+                            .filter(({ normalized }) => selectedValues.has(normalized))
+                            .map(({ raw }) => raw.toUpperCase());
+
+                          return (
+                            <motion.article
+                              key={setting.key}
+                              className={articleClass}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              <div className="flex flex-col gap-2">
+                                <div className="flex items-center justify-between gap-4 min-h-[48px] touch-manipulation">
+                                  <div className="flex min-w-0 flex-1 items-center gap-2">
+                                    <List className="size-icon-xs shrink-0 text-primary" />
+                                    <span className="text-body-sm font-semibold">{setting.label}</span>
+                                    <InfoTooltip
+                                      title={description}
+                                      description={helpText}
+                                      triggerClassName="shrink-0"
+                                    />
+                                  </div>
+                                  <div className="flex flex-wrap items-center justify-end gap-3">
+                                    {optionEntries.length === 0 ? (
+                                      <span className="text-body-xs text-muted-foreground">
+                                        No options configured.
+                                      </span>
+                                    ) : (
+                                      optionEntries.map(({ raw, normalized }) => {
+                                        const optionId = `${setting.key}-${normalized}`;
+                                        const isChecked = selectedValues.has(normalized);
+                                        const labelText = raw.toUpperCase();
+                                        return (
+                                          <label
+                                            key={normalized}
+                                            htmlFor={optionId}
+                                            className="inline-flex items-center gap-2 text-body-sm font-medium"
+                                          >
+                                            <Checkbox
+                                              id={optionId}
+                                              checked={isChecked}
+                                              disabled={
+                                                saving ||
+                                                disabled ||
+                                                (isChecked && selectedValues.size <= 1)
+                                              }
+                                              onCheckedChange={(value) => {
+                                                if (value === "indeterminate") return;
+                                                handleToggle(raw, Boolean(value));
+                                              }}
+                                            />
+                                            <span>{labelText}</span>
+                                          </label>
+                                        );
+                                      })
+                                    )}
+                                  </div>
+                                </div>
                               </div>
                             </motion.article>
                           );

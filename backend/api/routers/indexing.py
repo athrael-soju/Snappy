@@ -4,8 +4,9 @@ import logging
 import os
 import tempfile
 import uuid
-from typing import List
+from typing import Iterable, List
 
+import config
 from api.dependencies import get_qdrant_service, qdrant_init_error
 from api.progress import progress_manager
 from api.utils import convert_pdf_paths_to_images
@@ -18,6 +19,102 @@ router = APIRouter(prefix="", tags=["indexing"])
 
 
 UPLOAD_CHUNK_SIZE_BYTES = 4 * 1024 * 1024  # 4MB streaming chunks
+DEFAULT_ALLOWED_TYPES = ["pdf"]
+SUPPORTED_FILE_TYPES = {
+    "pdf": {
+        "extensions": {".pdf"},
+        "mime_types": {"application/pdf"},
+        "label": "PDF",
+    },
+}
+DEFAULT_UPLOAD_CHUNK_SIZE_BYTES = 4 * 1024 * 1024
+MIN_UPLOAD_CHUNK_SIZE_BYTES = 64 * 1024
+MAX_UPLOAD_CHUNK_SIZE_BYTES = 16 * 1024 * 1024
+
+
+def _normalise_type(value: str) -> str:
+    return value.strip().lower()
+
+
+def _resolve_upload_constraints() -> tuple[list[str], int, int]:
+    raw_types = getattr(config, "UPLOAD_ALLOWED_FILE_TYPES", DEFAULT_ALLOWED_TYPES)
+    allowed_types: list[str] = []
+
+    for entry in raw_types:
+        key = _normalise_type(str(entry))
+        if not key:
+            continue
+        if key in SUPPORTED_FILE_TYPES:
+            allowed_types.append(key)
+        else:
+            logger.warning(
+                "Ignoring unsupported file type '%s' in UPLOAD_ALLOWED_FILE_TYPES",
+                entry,
+            )
+
+    if not allowed_types:
+        allowed_types = DEFAULT_ALLOWED_TYPES.copy()
+
+    max_files = getattr(config, "UPLOAD_MAX_FILES", 5)
+    max_file_size_mb = getattr(config, "UPLOAD_MAX_FILE_SIZE_MB", 10)
+
+    max_files = max(1, min(20, max_files))
+    max_file_size_mb = max(1, min(200, max_file_size_mb))
+
+    return allowed_types, max_files, max_file_size_mb
+
+
+def _describe_allowed_types(type_keys: Iterable[str]) -> str:
+    labels = []
+    for key in type_keys:
+        meta = SUPPORTED_FILE_TYPES.get(key)
+        labels.append(meta.get("label", key.upper()) if meta else key.upper())
+    return ", ".join(labels) if labels else "unknown"
+
+
+def _is_allowed_file(
+    filename: str | None,
+    content_type: str | None,
+    allowed_extensions: set[str],
+    allowed_mime_types: set[str],
+) -> bool:
+    extension = os.path.splitext(filename or "")[1].lower()
+    mime = (content_type or "").lower()
+
+    if extension and extension in allowed_extensions:
+        return True
+    if mime and mime in allowed_mime_types:
+        return True
+    return False
+
+
+def _get_upload_chunk_size_bytes() -> int:
+    raw_value = getattr(
+        config, "UPLOAD_CHUNK_SIZE_BYTES", DEFAULT_UPLOAD_CHUNK_SIZE_BYTES
+    )
+    try:
+        chunk_size = int(raw_value)
+    except (TypeError, ValueError):
+        logger.warning(
+            "Invalid UPLOAD_CHUNK_SIZE_BYTES value '%s'; using default", raw_value
+        )
+        return DEFAULT_UPLOAD_CHUNK_SIZE_BYTES
+
+    if chunk_size < MIN_UPLOAD_CHUNK_SIZE_BYTES:
+        logger.warning(
+            "UPLOAD_CHUNK_SIZE_BYTES %s below minimum; clamping to %s",
+            chunk_size,
+            MIN_UPLOAD_CHUNK_SIZE_BYTES,
+        )
+        return MIN_UPLOAD_CHUNK_SIZE_BYTES
+    if chunk_size > MAX_UPLOAD_CHUNK_SIZE_BYTES:
+        logger.warning(
+            "UPLOAD_CHUNK_SIZE_BYTES %s above maximum; clamping to %s",
+            chunk_size,
+            MAX_UPLOAD_CHUNK_SIZE_BYTES,
+        )
+        return MAX_UPLOAD_CHUNK_SIZE_BYTES
+    return chunk_size
 
 
 @router.post("/index")
@@ -25,18 +122,68 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
     if not files:
         raise HTTPException(status_code=400, detail="No files uploaded")
 
+    allowed_types, max_files, max_file_size_mb = _resolve_upload_constraints()
+    if len(files) > max_files:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Too many files. Maximum allowed per upload is {max_files}.",
+        )
+
+    allowed_extensions: set[str] = set()
+    allowed_mime_types: set[str] = set()
+    for type_key in allowed_types:
+        meta = SUPPORTED_FILE_TYPES.get(type_key) or {}
+        allowed_extensions.update(
+            {str(ext).lower() for ext in meta.get("extensions", [])}
+        )
+        allowed_mime_types.update(
+            {str(mime).lower() for mime in meta.get("mime_types", [])}
+        )
+    allowed_label = _describe_allowed_types(allowed_types)
+    max_file_size_bytes = max_file_size_mb * 1024 * 1024
+
     temp_paths: List[str] = []
     original_filenames: dict[str, str] = {}
 
     try:
-        chunk_size = UPLOAD_CHUNK_SIZE_BYTES
+        chunk_size = _get_upload_chunk_size_bytes()
         for upload in files:
             suffix = os.path.splitext(upload.filename or "")[1] or ".pdf"
+
+            if not _is_allowed_file(
+                upload.filename,
+                upload.content_type,
+                allowed_extensions,
+                allowed_mime_types,
+            ):
+                await upload.close()
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"File '{upload.filename or 'unnamed'}' is not an allowed type. "
+                    f"Accepted formats: {allowed_label}.",
+                )
+
             with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                written_bytes = 0
                 while True:
                     chunk = await upload.read(chunk_size)
                     if not chunk:
                         break
+                    written_bytes += len(chunk)
+                    if written_bytes > max_file_size_bytes:
+                        await upload.close()
+                        tmp.close()
+                        try:
+                            os.unlink(tmp.name)
+                        except OSError:
+                            pass
+                        raise HTTPException(
+                            status_code=413,
+                            detail=(
+                                f"File '{upload.filename or 'unnamed'}' exceeds the "
+                                f"maximum allowed size of {max_file_size_mb} MB."
+                            ),
+                        )
                     tmp.write(chunk)
                 temp_paths.append(tmp.name)
                 original_filenames[tmp.name] = upload.filename or "document.pdf"
