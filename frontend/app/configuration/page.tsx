@@ -234,10 +234,6 @@ export default function ConfigurationPage() {
                   )}
                   {configStats.modifiedSettings} modified
                 </span>
-                <span className="inline-flex items-center gap-1 rounded-lg border border-border/30 bg-background/70 px-2.5 py-1 capitalize">
-                  <Info className="size-icon-3xs" />
-                  {configStats.currentMode}
-                </span>
                 {configStats.enabledFeatures.length > 0 && (
                   <span className="inline-flex items-center gap-1 rounded-lg border border-border/30 bg-background/70 px-2.5 py-1">
                     <Sparkles className="size-icon-3xs text-primary" />
@@ -285,9 +281,11 @@ export default function ConfigurationPage() {
                       .filter((setting) => isSettingVisible(setting))
                       .map((setting) => {
                         const currentValue = values[setting.key] ?? setting.default;
+                        const currentValueBool = (currentValue || "").toLowerCase() === "true";
                         const override = SETTING_OVERRIDES[setting.key] ?? {};
                         const description = override.description ?? setting.description;
                         const helpText = override.helpText ?? setting.help_text;
+                        const disabled = Boolean(setting.ui_disabled);
 
                         const isDependent = !!setting.depends_on;
                         const articleClass = isDependent
@@ -314,9 +312,9 @@ export default function ConfigurationPage() {
                                   />
                                 </div>
                                 <Switch
-                                  checked={(currentValue || "").toLowerCase() === "true"}
+                                  checked={currentValueBool}
                                   onCheckedChange={(checked) => handleValueChange(setting.key, checked ? "True" : "False")}
-                                  disabled={saving}
+                                  disabled={saving || (disabled && !currentValueBool)}
                                 />
                               </div>
                             </motion.article>
@@ -327,14 +325,14 @@ export default function ConfigurationPage() {
                           return (
                             <motion.article
                               key={setting.key}
-                              className={`space-y-2 ${articleClass}`}
+                              className={articleClass}
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ duration: 0.2 }}
                             >
-                              <label className="flex flex-col gap-2 touch-manipulation">
-                                <div className="flex items-center gap-2">
-                                  <List className="size-icon-xs text-primary" />
+                              <div className="flex items-center justify-between gap-4 min-h-[48px] touch-manipulation">
+                                <div className="flex min-w-0 flex-1 items-center gap-2">
+                                  <List className="size-icon-xs shrink-0 text-primary" />
                                   <span className="text-body-sm font-semibold">{setting.label}</span>
                                   <InfoTooltip
                                     title={description}
@@ -346,7 +344,7 @@ export default function ConfigurationPage() {
                                   value={currentValue}
                                   onChange={(event) => handleValueChange(setting.key, event.target.value)}
                                   disabled={saving}
-                                  className="w-full rounded-lg border border-border/25 bg-background/75 px-3 py-2.5 text-body-sm outline-none transition-colors focus:border-primary/40 focus:bg-background focus:ring-2 focus:ring-primary/15"
+                                  className="w-auto min-w-[120px] max-w-[200px] rounded-lg border border-border/25 bg-background/75 px-3 py-2.5 text-body-sm text-right outline-none transition-colors focus:border-primary/40 focus:bg-background focus:ring-2 focus:ring-primary/15"
                                 >
                                   {setting.options.map((option) => (
                                     <option key={option} value={option}>
@@ -354,7 +352,7 @@ export default function ConfigurationPage() {
                                     </option>
                                   ))}
                                 </select>
-                              </label>
+                              </div>
                             </motion.article>
                           );
                         }
@@ -369,14 +367,14 @@ export default function ConfigurationPage() {
                         return (
                           <motion.article
                             key={setting.key}
-                            className={`space-y-2 ${articleClass}`}
+                            className={articleClass}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.2 }}
                           >
-                            <label className="flex flex-col gap-2 touch-manipulation">
-                              <div className="flex items-center gap-2">
-                                <Icon className="size-icon-xs text-primary" />
+                            <div className="flex items-center justify-between gap-4 min-h-[48px] touch-manipulation">
+                              <div className="flex min-w-0 flex-1 items-center gap-2">
+                                <Icon className="size-icon-xs shrink-0 text-primary" />
                                 <span className="text-body-sm font-semibold">{setting.label}</span>
                                 <InfoTooltip
                                   title={description}
@@ -392,15 +390,9 @@ export default function ConfigurationPage() {
                                 min={min}
                                 max={max}
                                 step={step}
-                                className="w-full rounded-lg border border-border/25 bg-background/75 px-3 py-2.5 text-body-sm outline-none transition-colors focus:border-primary/40 focus:bg-background focus:ring-2 focus:ring-primary/15"
+                                className="w-auto min-w-[120px] max-w-[200px] rounded-lg border border-border/25 bg-background/75 px-3 py-2.5 text-body-sm text-right outline-none transition-colors focus:border-primary/40 focus:bg-background focus:ring-2 focus:ring-primary/15"
                               />
-                            </label>
-                            {setting.depends_on && (
-                              <Badge variant="outline" className="w-fit gap-1.5 text-body-xs">
-                                <AlertCircle className="size-icon-3xs" />
-                                Visible when {setting.depends_on.key} = {setting.depends_on.value ? "True" : "False"}
-                              </Badge>
-                            )}
+                            </div>
                           </motion.article>
                         );
                       })}

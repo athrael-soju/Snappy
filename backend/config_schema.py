@@ -81,7 +81,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
             {
                 "key": "BATCH_SIZE",
                 "type": "int",
-                "default": 12,
+                "default": 4,
                 "label": "Batch Size",
                 "ui_type": "number",
                 "min": 1,
@@ -144,6 +144,17 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "text",
                 "description": "URL for Qdrant vector database",
                 "help_text": "Connection endpoint for the Qdrant vector database service. Default port is 6333. Change if Qdrant runs on a different host or port. Format: http://hostname:port. Ensure the backend can reach this URL and that Qdrant is running.",
+            },
+            {
+                "key": "QDRANT_HTTP_TIMEOUT",
+                "type": "int",
+                "default": 5,
+                "label": "HTTP Timeout (seconds)",
+                "ui_type": "number",
+                "min": 5,
+                "max": 600,
+                "description": "Timeout for REST requests to Qdrant",
+                "help_text": "Maximum time in seconds to wait when sending data to Qdrant over HTTP. Larger multi-vector batches (especially with MUVERA enabled) may need higher values to avoid write timeouts. Increase if you see 'WriteTimeout' errors during indexing.",
             },
             {
                 "key": "QDRANT_EMBEDDED",
@@ -445,7 +456,7 @@ def get_config_defaults() -> Dict[str, Tuple[ConfigType, Any]]:
 
     Returns:
         Dict mapping config key to (type, default_value)
-        Example: {"LOG_LEVEL": ("str", "INFO"), "BATCH_SIZE": ("int", 12)}
+        Example: {"LOG_LEVEL": ("str", "INFO"), "BATCH_SIZE": ("int", 4)}
     """
     defaults = {}
     for category in CONFIG_SCHEMA.values():

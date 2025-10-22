@@ -49,7 +49,11 @@ class CollectionManager:
             if getattr(config, "QDRANT_EMBEDDED", False):
                 self._service = QdrantClient(":memory:")
             else:
-                self._service = QdrantClient(url=config.QDRANT_URL)
+                timeout = int(getattr(config, "QDRANT_HTTP_TIMEOUT", 5))
+                self._service = QdrantClient(
+                    url=config.QDRANT_URL,
+                    timeout=timeout,
+                )
         return self._service
 
     @property
