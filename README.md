@@ -4,7 +4,7 @@
 
 ---
 
-# Snappy - Your Vision Retrieval Buddy! 📸
+# Snappy – Vision-Grounded Document Retrieval 📸
 
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688)](https://fastapi.tiangolo.com/)
 [![Qdrant](https://img.shields.io/badge/VectorDB-Qdrant-ff6b6b)](https://qdrant.tech/)
@@ -13,14 +13,12 @@
 [![Docker Compose](https://img.shields.io/badge/Orchestration-Docker%20Compose-2496ed)](https://docs.docker.com/compose/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Hey there! 👋 Snappy is your friendly companion for **vision-first document retrieval**. Drop in your PDFs, and watch as Snappy transforms them into searchable page images with state-of-the-art ColPali embeddings. No OCR headaches, no text extraction gymnastics; just pure visual understanding!
+Snappy pairs a FastAPI backend, a ColPali embedding service, and a Next.js frontend to deliver vision-first retrieval over PDFs. Each page is rasterised, embedded as multivectors, and stored alongside images so you can search by how documents look—not just by extracted text.
 
-We're talking multivector embeddings in Qdrant, object storage in MinIO, streaming AI chat with visual citations, and a sleek Next.js interface that makes document search feel like magic. ✨
-
-> Looking for component-level docs?  
-> - Backend: `backend/README.md`  
-> - Frontend: `frontend/README.md`  
-> - ColPali service: `colpali/README.md`  
+> Component docs:
+> - Backend: `backend/README.md`
+> - Frontend: `frontend/README.md`
+> - ColPali service: `colpali/README.md`
 > - Configuration reference: `backend/docs/configuration.md`
 
 ---
@@ -60,216 +58,186 @@ flowchart TB
   CHAT -- SSE --> USER
 ```
 
-See `backend/docs/architecture.md` and `backend/docs/analysis.md` for a deeper
-walkthrough of the indexing and retrieval flows.
+Head to `backend/docs/architecture.md` and `backend/docs/analysis.md` for a deeper walkthrough of the indexing and retrieval flows.
 
 ---
 
-## What Makes Snappy Special? 🌟
+## Highlights
 
-- **🎯 Page-level Vision Retrieval** - Multivector embeddings for every PDF page with optional MUVERA acceleration. No text extraction needed; Snappy sees your documents the way you do!
-
-- **💬 Smart Chat with Visual Proof** - Stream responses from OpenAI with actual page images as citations. When Snappy answers, it shows its work with a glowing "Visual citations included" chip and image gallery.
-
-- **⚡ Blazing Fast Indexing** - Pipelined processing with real-time progress updates via Server-Sent Events. Cancel anytime, batch smartly, and watch the magic happen.
-
-- **🎛️ Live Configuration** - Tweak runtime settings on the fly through a beautiful web UI. Review drafts, manage by section, reset to defaults; all without restarting a thing.
-
-- **🐳 Docker-Ready** - One command gets you Qdrant, MinIO, FastAPI backend, Next.js frontend, and ColPali embedding services (CPU or GPU, you choose!).
+- 🎯 Page-level vision retrieval powered by ColPali multivector embeddings—no OCR pipeline to maintain.
+- 💬 Streaming chat responses from the OpenAI Responses API with inline visual citations so you can see each supporting page.
+- ⚡ Pipelined indexing with live Server-Sent Events progress updates and optional MUVERA-assisted first-stage search.
+- 🎛️ Runtime configuration UI backed by a typed schema, with reset/draft flows that make experimentation safe.
+- 🐳 Docker Compose profiles for ColPali (GPU or CPU) plus an all-in-one stack for local development.
 
 ---
 
-## Snappy's Look & Feel 🎨
+## Frontend Experience
 
-We've crafted a gorgeous Next.js 15 interface that's as functional as it is beautiful. Think real-time streaming, smooth animations, and visual citations that pop!
-
-- **Design Tokens**: Everything stays pixel-perfect with our tokenized utilities in `frontend/app/globals.css` (`text-body-*`, `size-icon-*`). Extend Snappy's UI with these helpers to maintain that consistent, professional vibe.
-
-- **Smart Configuration**: Organized tabs, live stats, and a helpful draft banner that lets you know when your browser settings drift from the server. No surprises, just smooth sailing! 🚢
+The Next.js 15 frontend keeps things fast and friendly: real-time streaming, responsive layouts, and design tokens (`text-body-*`, `size-icon-*`) that make extending the UI consistent. Configuration and maintenance pages expose everything the backend can do, while upload/search/chat give you the workflows you need day to day.
 
 ---
 
-## See Snappy in Action 🎬
+## Demo
 
 https://github.com/user-attachments/assets/99438b0d-c62e-4e47-bdc8-623ee1d2236c
 
 ---
 
-## Get Snappy Running in 5 Minutes! ⚡
+## Quick Start
 
-**Step 1:** Set up your environment files
+### 1. Prepare environment files
 
 ```bash
 cp .env.example .env
 cp frontend/.env.example frontend/.env.local
 ```
 
-- Pop in your OpenAI API key in `frontend/.env.local`
+Add your OpenAI API key to `frontend/.env.local` and review the backend defaults in `.env`.
 
-**Step 2:** Fire up the ColPali embedding service
+### 2. Start the ColPali embedding service
+
+From `colpali/` pick one profile:
 
 ```bash
-# From the colpali/ directory
-
-# GPU profile (includes CUDA + flash-attn build tooling)
+# GPU profile (CUDA + flash-attn tooling)
 docker compose --profile gpu up -d --build
 
-# CPU profile (lean image, no GPU requirements)
+# CPU profile (no GPU dependencies)
 docker compose --profile cpu up -d --build
-
-# Need a different port or to pin GPU usage? Override env vars as you go.
-PUBLIC_PORT=7010 COLPALI_GPUS=1 docker compose --profile gpu up -d --build
-
-> Heads up: the first GPU build compiles `flash-attn`; thanks to the multi-stage build the wheel is cached, so subsequent rebuilds are much faster.
-
-> Pick exactly one profile per run—`--profile gpu` or `--profile cpu`—to avoid port clashes.
-
-Behind the scenes the GPU profile uses NVIDIA's nightly `pytorch/pytorch:nightly-cu130` image, then reinstalls the matching PyTorch CU130 nightly wheel so Blackwell (`sm_120`) cards work; the flash-attn wheel is prebuilt in a builder stage and layered on top.
-
-# Update your .env (COLPALI_URL) to match the port you expose.
 ```
 
-**Step 3:** Launch the whole Snappy stack
+Only start one profile at a time to avoid port clashes. The first GPU build compiles `flash-attn`; subsequent builds reuse the cached wheel.
+
+---
+
+### Option A – Run the full stack with Docker Compose
+
+At the project root:
 
 ```bash
 docker compose up -d --build
 ```
 
-**Step 4:** Start exploring! 🎉
-- 📚 Backend API docs: http://localhost:8000/docs
-- 🎨 Snappy UI: http://localhost:3000
-- 🗄️ MinIO console: http://localhost:9001 (optional)
+Services will come online at:
+- Backend: http://localhost:8000
+- Frontend: http://localhost:3000
+- Qdrant: http://localhost:6333
+- MinIO: http://localhost:9000 (console at :9001)
 
----
+Update `.env` and `frontend/.env.local` if you need to expose different hostnames or ports.
 
-## Prefer Local Development? We Got You! 💻
+### Option B – Run services locally
 
-1. Install Poppler (required by `pdf2image`).
-2. Create a virtual environment and install backend dependencies:
+1. In `backend/`, install dependencies and launch FastAPI:
 
    ```bash
-   cd backend
    python -m venv .venv
-   . .venv/Scripts/activate  # PowerShell: .venv\Scripts\Activate.ps1
+   source .venv/bin/activate  # Windows: .venv\Scripts\Activate.ps1
    pip install -U pip setuptools wheel
-   pip install -r requirements.txt
-   ```
-
-3. Run the backend:
-
-   ```bash
+   pip install -r backend/requirements.txt
    uvicorn backend:app --host 0.0.0.0 --port 8000 --reload
    ```
 
-4. In `frontend/`, install and run the Next.js app:
+2. Start Qdrant and MinIO (via Docker or your preferred deployment).
+
+3. In `frontend/`, install and run the Next.js app:
 
    ```bash
    yarn install --frozen-lockfile
    yarn dev
    ```
 
-5. Start a ColPali embedding service (via Docker or locally with `uvicorn
-   colpali/app.py`).
+4. Keep the ColPali service from step 2 running (Docker or `uvicorn colpali/app.py`).
 
 ---
 
-## Environment variables
+## Environment Variables
 
 ### Backend highlights
 
-  `COLPALI_API_TIMEOUT`
-- `QDRANT_EMBEDDED` (defaults to `False`), `QDRANT_URL`, `QDRANT_COLLECTION_NAME`,
-  `QDRANT_PREFETCH_LIMIT`, quantisation toggles (`QDRANT_USE_BINARY`, etc.)
-- `MINIO_URL`, `MINIO_PUBLIC_URL`, credentials, `MINIO_BUCKET_NAME`,
-  `IMAGE_FORMAT` and `IMAGE_QUALITY`
-- `MUVERA_ENABLED` and related parameters (requires `fastembed[postprocess]`)
+- `COLPALI_URL`, `COLPALI_API_TIMEOUT`
+- `QDRANT_EMBEDDED`, `QDRANT_URL`, `QDRANT_COLLECTION_NAME`, `QDRANT_PREFETCH_LIMIT`, `QDRANT_MEAN_POOLING_ENABLED`, optional quantisation toggles
+- `MINIO_URL`, `MINIO_PUBLIC_URL`, credentials, bucket naming, `IMAGE_FORMAT`, `IMAGE_QUALITY`
+- `MUVERA_ENABLED` and related settings (requires `fastembed[postprocess]` in your environment)
 - `LOG_LEVEL`, `ALLOWED_ORIGINS`, `UVICORN_RELOAD`
 
-All schema-backed settings (and their defaults) are documented in
-`backend/docs/configuration.md`. To change values permanently update your
-`.env`. Runtime updates via `/config/update` are ephemeral. MinIO credentials
-must be supplied; the backend no longer falls back to inline image storage.
+All schema-backed settings (and defaults) are documented in `backend/docs/configuration.md`. Runtime updates via `/config/update` are ephemeral; update `.env` for persistence.
 
 ### Frontend highlights (`frontend/.env.local`)
 
-- `NEXT_PUBLIC_API_BASE_URL` - defaults to `http://localhost:8000`
-- `OPENAI_API_KEY`, `OPENAI_MODEL`, optional `OPENAI_TEMPERATURE`,
-  `OPENAI_MAX_TOKENS`
+- `NEXT_PUBLIC_API_BASE_URL` (defaults to `http://localhost:8000`)
+- `OPENAI_API_KEY`, `OPENAI_MODEL`, optional `OPENAI_TEMPERATURE`, `OPENAI_MAX_TOKENS`
 
 ---
 
-## API overview
+## API Overview
 
-| Area         | Endpoint(s)                              | Description |
-|--------------|------------------------------------------|-------------|
+| Area         | Endpoint(s)                              | Notes |
+|--------------|------------------------------------------|-------|
 | Meta         | `GET /health`                            | Service and dependency status |
-| Retrieval    | `GET /search?q=...&k=5`                  | Page-level search (defaults to 10 results when `k` is omitted) |
-| Indexing     | `POST /index`                            | Start a background indexing job (multipart PDF upload) |
-|              | `GET /progress/stream/{job_id}`          | Real-time job progress (SSE) |
-|              | `POST /index/cancel/{job_id}`            | Cancel an in-flight job |
+| Retrieval    | `GET /search?q=...&k=5`                  | Page-level search (defaults to 10 when `k` omitted) |
+| Indexing     | `POST /index`                            | Background indexing job (multipart PDF upload) |
+|              | `GET /progress/stream/{job_id}`          | Real-time progress (SSE) |
+|              | `POST /index/cancel/{job_id}`            | Cancel an active job |
 | Maintenance  | `GET /status`                            | Collection/bucket statistics |
-|              | `POST /initialize` / `DELETE /delete`    | Provision or tear down collection + bucket |
-|              | `POST /clear/qdrant` / `/clear/minio` / `/clear/all` | Data reset helpers |
-| Configuration| `GET /config/schema` / `GET /config/values` | Expose runtime schema and values |
-|              | `POST /config/update` / `/config/reset` | Runtime configuration management |
+|              | `POST /initialize`, `DELETE /delete`     | Provision or tear down collection + bucket |
+|              | `POST /clear/qdrant`, `/clear/minio`, `/clear/all` | Data reset helpers |
+| Configuration| `GET /config/schema`, `/config/values`   | Expose runtime schema and values |
+|              | `POST /config/update`, `/config/reset`   | Runtime configuration management |
 
-Chat streaming is implemented in the Next.js API route
-`frontend/app/api/chat/route.ts`. It calls the backend search endpoint, invokes
-the OpenAI Responses API, and streams Server-Sent Events to the browser. The
-backend does not proxy OpenAI calls.
+Chat streaming lives in `frontend/app/api/chat/route.ts`. The route calls the backend search endpoint, invokes the OpenAI Responses API, and streams Server-Sent Events to the browser. The backend does not proxy OpenAI calls.
 
 ---
 
-## Troubleshooting - Snappy's Here to Help! 🔧
+## Troubleshooting
 
-**ColPali timing out?** Bump up `COLPALI_API_TIMEOUT` or switch to GPU mode. CPU works but it's like running through molasses!
+- **ColPali timing out?** Increase `COLPALI_API_TIMEOUT` or run the GPU profile for heavy workloads.
+- **Progress bar stuck?** Ensure Poppler is installed and check backend logs for PDF conversion errors.
+- **Missing images?** Verify MinIO credentials/URLs and confirm `next.config.ts` allows the domains you expect.
+- **CORS issues?** Replace wildcard `ALLOWED_ORIGINS` entries with explicit URLs before exposing the API publicly.
+- **Config changes vanish?** `/config/update` modifies runtime state only—update `.env` for anything you need to keep after a restart.
 
-**Progress bar stuck?** Make sure Poppler is installed and playing nice. Check those backend logs for PDF conversion drama.
-
-**Missing images?** Double-check your MinIO credentials and URLs. Also peek at `next.config.ts` to ensure image domains are whitelisted.
-
-**CORS giving you grief?** Lock down `ALLOWED_ORIGINS` with explicit URLs before going public. Wildcards are great for dev, not so much for production!
-
-**Config changes vanishing?** Remember: `/config/update` is temporary magic. For permanent changes, update that `.env` file!
-
-💡 **Pro tip**: Check out `backend/docs/configuration.md` for deep-dive troubleshooting guidance.
+`backend/docs/configuration.md` and `backend/CONFIGURATION_GUIDE.md` cover advanced troubleshooting and implementation details.
 
 ---
 
-## Developer Notes 🛠️
+## Developer Notes
 
-- **Background Jobs**: PDF ingestion uses FastAPI `BackgroundTasks`. Simple and effective! For production scale, consider a proper job queue.
-
-- **Smart Upload Pools**: MinIO automatically sizes worker pools based on your hardware. Only tweak `MINIO_WORKERS`/`MINIO_RETRIES` if you really know what you're doing!
-
-- **Type Safety FTW**: The frontend auto-generates TypeScript types from OpenAPI specs (`yarn gen:sdk`, `yarn gen:zod`). Always in sync, always type-safe!
-
-- **Code Quality**: Pre-commit hooks keep things tidy with autoflake, isort, black, and pyright. Clean code is happy code! ✨
+- Background indexing uses FastAPI `BackgroundTasks`. For larger deployments consider a dedicated task queue.
+- MinIO worker pools auto-size based on hardware. Override only when you have specific throughput limits.
+- TypeScript types and Zod schemas regenerate from the OpenAPI spec (`yarn gen:sdk`, `yarn gen:zod`) to keep the frontend in sync.
+- Pre-commit hooks (autoflake, isort, black, pyright) keep the codebase tidy—run them before contributing.
 
 ---
 
-## What's Next for Snappy? 🚀
+## Further Reading
 
-Curious about future features? Check out `feature-list.md` for our production roadmap; think authentication, distributed workers, observability dashboards, CI/CD pipelines, and infrastructure scaling. Snappy's just getting started!
+- `backend/docs/analysis.md` – vision vs. text RAG comparison
+- `backend/docs/architecture.md` – collection, indexing, and search deep dive
+- `colpali/README.md` – details on the standalone embedding service
 
 ---
 
 ## License
 
-MIT License - see [LICENSE](LICENSE).
+MIT License – see [LICENSE](LICENSE).
 
 ---
 
-## Standing on the Shoulders of Giants 🙏
+## Acknowledgements
 
-Snappy wouldn't exist without these amazing projects:
+Snappy builds on the work of:
 
-- **ColPali / ColModernVBert** - The brilliant vision-language models that power our understanding  
+- **ColPali / ColModernVBert** – multimodal models for visual retrieval  
   📄 https://arxiv.org/abs/2407.01449
+  📄 https://arxiv.org/abs/2510.01149
 
-- **Qdrant** - Lightning-fast vector search with killer optimization guides  
+- **Qdrant** – the vector database powering multivector search  
   📚 https://qdrant.tech/blog/colpali-qdrant-optimization/  
   📚 https://qdrant.tech/articles/binary-quantization/
+  📚 https://qdrant.tech/articles/muvera-embeddings/
 
-- **PyTorch** - The deep learning framework that makes it all possible  
-  🔥 https://pytorch.org/
+- **PyTorch** – core deep learning framework  
+  🔥 https://pytorch.org/  
+

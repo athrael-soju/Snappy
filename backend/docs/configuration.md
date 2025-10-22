@@ -1,17 +1,12 @@
-# Snappy Configuration Guide - Master Your Settings! ⚙️
+# Snappy Configuration Guide ⚙️
 
-Welcome to Snappy's complete configuration reference! This is your go-to guide for every runtime setting in the FastAPI backend. All the magic is defined in `backend/config_schema.py`, which powers:
-- 🎛️ The beautiful web configuration panel
-- 🔌 The `/config/*` API endpoints
-- 📦 The `config` module used throughout the app
+This document lists every runtime setting exposed by the FastAPI backend. Defaults and metadata live in `backend/config_schema.py`, which also powers:
 
-**How It Works** 🔧:
-- 📚 Defaults are defined in `config_schema.py`
-- 🌱 Settings load from your environment (`.env` file) into `runtime_config`
-- 🔑 Access via `config.MY_SETTING` (reads from runtime, falls back to defaults)
-- ⚡ Updates via `/config/update` API change runtime values instantly (`.env` untouched)
+- the `/config/*` API endpoints,
+- the configuration UI,
+- and the `config` module used throughout the application.
 
-**Critical Settings** 🚨: Some settings are marked as **critical**. Changing these invalidates cached services (Qdrant, MinIO, ColPali) so your next request picks up the new values automatically!
+Runtime updates take effect immediately but do not persist across restarts—update your `.env` or deployment secrets for changes you want to keep.
 
 ---
 
@@ -30,161 +25,135 @@ Welcome to Snappy's complete configuration reference! This is your go-to guide f
 
 ---
 
-## How Configuration Is Resolved 🔍
+## How Configuration Is Resolved
 
-1. **Startup**: `.env` (or shell environment) loads once
-2. **Runtime Store**: `runtime_config` maintains a mutable copy of all settings
-3. **Smart Accessors**: The `config` module provides typed access:
-   - 🔍 Looks up keys in the schema
-   - 🔄 Coerces to the correct type
-   - 🧠 Supplies computed values (like auto-sized MinIO workers)
-4. **Live Updates**: Calling `/config/update` or `/config/reset` updates the cache instantly and invalidates critical services
+1. `.env` (and other environment values) load on startup.
+2. `runtime_config` keeps a mutable copy of every setting.
+3. The `config` module looks up values in the schema, coerces them to the correct type, and applies computed defaults when needed (for example, auto-sized MinIO workers).
+4. `/config/update` and `/config/reset` change the runtime store and invalidate cached service clients if a critical setting changed.
 
-🔒 **Important**: Only settings in the schema can be changed dynamically. Everything else requires an environment update + restart.
+Only keys defined in the schema can be updated at runtime.
 
 ---
 
-## Core Application 🏛️
+## Core Application
 
-| Key             | Type | Default | What It Does |
-|-----------------|------|---------|-------------|
-| `LOG_LEVEL`     | str  | `INFO`  | Controls verbosity: `DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL` |
-| `ALLOWED_ORIGINS` | list | `*`   | CORS settings. Use `*` for dev, explicit URLs for production! |
-| `UVICORN_RELOAD` | bool | `True` | Hot reload in dev. Turn OFF for production (saves resources) |
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `LOG_LEVEL` | str | `INFO` | Logging verbosity (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`). |
+| `ALLOWED_ORIGINS` | list | `*` | CORS policy. Use explicit URLs for production. |
+| `UVICORN_RELOAD` | bool | `True` | Hot reload in development. Disable in production. |
 
-🚨 **Security Note**: `ALLOWED_ORIGINS=["*"]` is wide open! Lock it down with specific URLs before going live.
-
----
-
-## Document Ingestion 📚
-
-| Key                       | Type | Default | What It Does |
-|---------------------------|------|---------|-------------|
-| `BATCH_SIZE`              | int  | `12`    | Pages per batch. Lower = smoother progress, less memory. Higher = faster (but spikier) |
-| `ENABLE_PIPELINE_INDEXING`| bool | `True`  | Overlaps embedding, uploads, and upserts for max speed. Disable for debugging only! |
-
-**Smart Defaults** 🧠:
-- `config.get_ingestion_worker_threads()` auto-sizes PDF rasterization threads based on your CPU count
-- `config.get_pipeline_max_concurrency()` calculates optimal batch concurrency; no manual tuning needed!
+⚠️ `ALLOWED_ORIGINS=["*"]` is permissive; lock it down when exposing the API.
 
 ---
 
-## ColPali Embedding Service 🧠✨
+## Document Ingestion
 
-| Key               | Type | Default              | What It Does |
-|-------------------|------|----------------------|-------------|
-| `COLPALI_URL` | str  | `http://localhost:7000` | Where to find the ColPali service |
-| `COLPALI_API_TIMEOUT` | int | `300` seconds | Patience is a virtue! Bump this up for large docs on CPU |
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `BATCH_SIZE` | int | `4` | Pages processed per batch. Higher values increase throughput but need more memory. |
+| `ENABLE_PIPELINE_INDEXING` | bool | `True` | Overlaps embedding, storage, and upserts. Disable for debugging or very small machines. |
 
----
-
-## Qdrant Vector Database 🕸️
-
-| Key                         | Type  | Default | What It Does |
-|-----------------------------|-------|---------|-------------|
-| `QDRANT_URL`                | str   | `http://localhost:6333` | External Qdrant endpoint (ignored in embedded mode) |
-| `QDRANT_HTTP_TIMEOUT`       | int   | `5` seconds | REST timeout for indexing calls. Bump if large batches trigger write timeouts. |
-| `QDRANT_EMBEDDED`           | bool  | `False` | Run Qdrant in-process. Great for testing, not for production! |
-| `QDRANT_COLLECTION_NAME`    | str   | `documents` | Collection name (also used for MinIO bucket by default) |
-| `QDRANT_PREFETCH_LIMIT`     | int   | `200`   | Multivector candidates for reranking (when mean pooling is on) |
-| `QDRANT_ON_DISK`            | bool  | `True`  | Memory-map vectors to disk (saves RAM!) |
-| `QDRANT_ON_DISK_PAYLOAD`    | bool  | `True`  | Store payloads on disk too |
-| `QDRANT_USE_BINARY`         | bool  | `False` | Binary quantization for huge datasets (trades some recall for speed) |
-| `QDRANT_BINARY_ALWAYS_RAM`  | bool  | `True`  | Keep quantized vectors in RAM (faster searches) |
-| `QDRANT_SEARCH_IGNORE_QUANT`| bool  | `False` | Skip quantization during search (use full precision) |
-| `QDRANT_SEARCH_RESCORE`     | bool  | `True`  | Rescore with full precision after quantized search |
-| `QDRANT_SEARCH_OVERSAMPLING`| float | `2.0`   | Fetch 2× candidates before rescoring (improves recall) |
-| `QDRANT_MEAN_POOLING_ENABLED` | bool | `False` | Enable row/column pooling for better reranking (slower indexing) |
-
-🔄 **Critical Settings**: Changing collection name, URL, or quantization options refreshes the Qdrant client automatically.
+Helpers:
+- `config.get_ingestion_worker_threads()` estimates PDF conversion threads from CPU count.
+- `config.get_pipeline_max_concurrency()` sizes pipeline concurrency.
 
 ---
 
-## Object Storage (MinIO) 🗄️
+## ColPali Embedding Service
 
-| Key                | Type | Default | What It Does |
-|--------------------|------|---------|-------------|
-| `MINIO_URL`        | str  | `http://localhost:9000` | Internal endpoint for backend uploads |
-| `MINIO_PUBLIC_URL` | str  | `http://localhost:9000` | Public URL for browser access (defaults to MINIO_URL) |
-| `MINIO_ACCESS_KEY` | str  | `minioadmin` | Access credentials (CHANGE IN PRODUCTION!) |
-| `MINIO_SECRET_KEY` | str  | `minioadmin` | Secret credentials (CHANGE IN PRODUCTION!) |
-| `MINIO_BUCKET_NAME`| str  | *(auto)* | Bucket name (auto-derived from collection name if blank) |
-| `MINIO_WORKERS`    | int  | *(auto)* | Upload workers (auto-sized based on CPU + pipeline) |
-| `MINIO_RETRIES`    | int  | *(auto)* | Retry attempts (computed from worker count) |
-| `MINIO_FAIL_FAST`  | bool | `False` | Stop on first error? Keep OFF for resilience! |
-| `MINIO_PUBLIC_READ`| bool | `True`  | Public bucket policy (turn OFF for private signed URLs) |
-| `IMAGE_FORMAT`     | str  | `JPEG`  | Image format: `JPEG`, `PNG`, or `WEBP` |
-| `IMAGE_QUALITY`    | int  | `75`    | Quality (1-100) for JPEG/WEBP (PNG ignores this) |
-
-🚨 **MinIO is Required**: No fallback to inline storage anymore! Snappy needs proper object storage to work its magic.
-
-🧠 **Smart Defaults**: The config system auto-calculates worker and retry counts based on your hardware. Less config, more performance!
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `COLPALI_URL` | str | `http://localhost:7000` | Endpoint for the ColPali service. |
+| `COLPALI_API_TIMEOUT` | int | `300` | Timeout (seconds) for embedding requests. Increase for large documents, especially on CPU. |
 
 ---
 
-## MUVERA Post-Processing 🚀
+## Qdrant Vector Database
 
-| Key                | Type | Default | What It Does |
-|--------------------|------|---------|-------------|
-| `MUVERA_ENABLED`   | bool | `False` | Speed up searches with single-vector encodings (needs `fastembed[postprocess]`) |
-| `MUVERA_K_SIM`     | int  | `6`     | Similar tokens to sample for FDE generation |
-| `MUVERA_DIM_PROJ`  | int  | `32`    | Projection dimension (lower = faster, less precise) |
-| `MUVERA_R_REPS`    | int  | `20`    | Projection repetitions (more = better quality) |
-| `MUVERA_RANDOM_SEED` | int | `42`   | Random seed (keep it consistent for reproducibility!) |
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `QDRANT_URL` | str | `http://localhost:6333` | External Qdrant endpoint (ignored in embedded mode). |
+| `QDRANT_HTTP_TIMEOUT` | int | `5` | REST timeout for indexing calls. Increase for large batches. |
+| `QDRANT_EMBEDDED` | bool | `False` | Run Qdrant in-process (handy for tests). |
+| `QDRANT_COLLECTION_NAME` | str | `documents` | Collection name (also drives the MinIO bucket when unset). |
+| `QDRANT_PREFETCH_LIMIT` | int | `200` | Multivector candidates when mean pooling is enabled. Higher values improve recall. |
+| `QDRANT_ON_DISK` | bool | `True` | Store vectors on disk (memory-mapped). |
+| `QDRANT_ON_DISK_PAYLOAD` | bool | `True` | Store payloads on disk. |
+| `QDRANT_USE_BINARY` | bool | `False` | Enable binary quantisation. |
+| `QDRANT_BINARY_ALWAYS_RAM` | bool | `True` | Keep binary vectors in RAM (only when quantisation is enabled). |
+| `QDRANT_SEARCH_IGNORE_QUANT` | bool | `False` | Skip quantisation during search (diagnostic). |
+| `QDRANT_SEARCH_RESCORE` | bool | `True` | Rescore with full precision after quantised search. |
+| `QDRANT_SEARCH_OVERSAMPLING` | float | `2.0` | Candidate oversampling factor for rescoring. |
+| `QDRANT_MEAN_POOLING_ENABLED` | bool | `False` | Enable row/column pooling (improves recall, increases indexing cost). |
 
-**How It Works** ⚙️: When enabled, Snappy creates an extra vector space (`muvera_fde`) in Qdrant for lightning-fast first-stage searches, then reranks with full multivectors for precision!
-
----
-## Operational environment variables
-
-The following values are not part of the dynamic schema but are still read by
-the runtime:
-
-- `HOST` and `PORT` - consumed by `backend/main.py` when launching uvicorn.
-- `LOG_LEVEL` - the environment value takes precedence when spawning uvicorn; it is still exposed through the schema for runtime adjustments.
-
-Because they are not defined in `config_schema.py`, these variables cannot be
-updated via the configuration API. Edit your `.env` file or shell environment
-and restart the process instead.
+Changing collection names, URLs, or quantisation settings triggers client invalidation automatically.
 
 ---
 
-- `HOST` and `PORT` – consumed by `backend/main.py` when launching uvicorn.
-- `LOG_LEVEL` – the environment value takes precedence when spawning uvicorn;
-  it is still exposed through the schema for runtime adjustments.
+## Object Storage (MinIO)
 
-Because they are not defined in `config_schema.py`, these variables cannot be
-updated via the configuration API. Edit your `.env` file or shell environment
-and restart the process instead.
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `MINIO_URL` | str | `http://localhost:9000` | Internal endpoint for uploads. |
+| `MINIO_PUBLIC_URL` | str | `http://localhost:9000` | Public URL for image links (defaults to `MINIO_URL` when empty). |
+| `MINIO_ACCESS_KEY` | str | `minioadmin` | Access key (change in production). |
+| `MINIO_SECRET_KEY` | str | `minioadmin` | Secret key (change in production). |
+| `MINIO_BUCKET_NAME` | str | `` (auto) | Bucket name; auto-derived from collection name when blank. |
+| `MINIO_WORKERS` | int | `12` (auto) | Concurrent upload workers. Auto-sized if not set. |
+| `MINIO_RETRIES` | int | `3` (auto) | Retry attempts per object. Auto-sized with workers. |
+| `MINIO_FAIL_FAST` | bool | `False` | Stop on first upload failure. |
+| `MINIO_PUBLIC_READ` | bool | `True` | Apply a public-read bucket policy automatically. |
+| `IMAGE_FORMAT` | str | `JPEG` | Output format (`JPEG`, `PNG`, `WEBP`). |
+| `IMAGE_QUALITY` | int | `75` | JPEG/WEBP quality (ignored for PNG). |
 
----
-
-## Runtime Updates via API 🔌
-
-| Endpoint                 | What It Does |
-|--------------------------|-------------|
-| `GET /config/schema`     | Get the config blueprint (powers the UI) |
-| `GET /config/values`     | See current runtime values |
-| `POST /config/update`    | Change a setting instantly (auto-invalidates critical services) |
-| `POST /config/reset`     | Back to defaults (clears service cache too) |
-
-💨 **Remember**: Runtime changes are temporary! Update `.env` for permanent tweaks.
+Snappy requires object storage; inline image storage is not supported.
 
 ---
 
-## Troubleshooting - We've Got Your Back! 🔧
+## MUVERA Post-Processing
 
-**Changes won't stick?**  
-Make sure the key exists in `config_schema.py`. Only schema keys work with the runtime API!
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `MUVERA_ENABLED` | bool | `False` | Enable MUVERA Fixed Dimensional Encoding for faster first-stage search. |
+| `MUVERA_K_SIM` | int | `6` | Similar tokens sampled during MUVERA search. |
+| `MUVERA_DIM_PROJ` | int | `32` | Projection dimension. |
+| `MUVERA_R_REPS` | int | `20` | Random projection repetitions. |
+| `MUVERA_RANDOM_SEED` | int | `42` | Seed for reproducible projections. |
 
-**Service ignoring new values?**  
-Some settings are cached in Qdrant/MinIO clients. Critical changes auto-invalidate, but manual `.env` updates need a restart.
+Requires `fastembed[postprocess]` in the environment.
 
-**MinIO upload issues?**  
-Try lowering `BATCH_SIZE` or temporarily disable `ENABLE_PIPELINE_INDEXING` to reduce load.
+---
 
-**Quantization not working?**  
-Qdrant needs to reinitialize. For existing collections, you might need to recreate them for new layouts to apply.
+## Operational Environment Variables
 
-📘 **Deep Dive**: Check `backend/CONFIGURATION_GUIDE.md` for implementation details and best practices!
+These values are read directly from the environment and are not part of the dynamic schema:
+
+- `HOST`, `PORT` – used by `backend/main.py` when launching uvicorn.
+- `LOG_LEVEL` – uvicorn respects the environment value at process launch; it remains exposed in the schema for runtime adjustments.
+
+Because they are absent from `config_schema.py`, they cannot be updated through the configuration API.
+
+---
+
+## Runtime Updates via API
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /config/schema` | Fetch schema metadata (used by the UI). |
+| `GET /config/values` | Inspect the current runtime values. |
+| `POST /config/update` | Set a single value. Critical keys trigger cache invalidation. |
+| `POST /config/reset` | Restore defaults and clear runtime overrides. |
+
+---
+
+## Troubleshooting
+
+- **Updates ignored?** Ensure the key exists in `config_schema.py`; only schema keys are allowed.
+- **Clients not refreshing?** Critical keys invalidate caches automatically, but manual `.env` changes still require a restart.
+- **MinIO upload failures?** Try reducing `BATCH_SIZE` or temporarily disabling pipeline indexing.
+- **Quantisation changes not applied?** Recreate the Qdrant collection if schema-altering settings changed.
+
+`backend/CONFIGURATION_GUIDE.md` covers how the configuration system is implemented internally.
 
