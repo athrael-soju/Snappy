@@ -438,7 +438,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "key": "MINIO_WORKERS",
                 "ui_hidden": False,
                 "type": "int",
-                "default": 12,
+                "default": 6,
                 "label": "Worker Threads",
                 "ui_type": "number",
                 "min": 1,
