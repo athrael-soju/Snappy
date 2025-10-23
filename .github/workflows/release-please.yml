@@ -3,8 +3,10 @@ name: Release Please
 on:
   push:
     branches:
+      # Only create releases from main
+      # Merge to main accumulates changes in Release PR
+      # Merge Release PR when ready for consolidated release
       - main
-      - release  # Optional: test releases on this branch before merging to main
 
 permissions:
   contents: write
