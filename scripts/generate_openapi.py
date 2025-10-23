@@ -18,13 +18,13 @@ from pathlib import Path
 def main() -> int:
     # Resolve project structure
     script_path = Path(__file__).resolve()
-    # backend/ directory (parent of scripts/)
-    backend_path = script_path.parent.parent
-    # repo root (parent of backend/)
-    project_root = backend_path.parent
+    # repo root (parent of scripts/)
+    project_root = script_path.parent.parent
+    # backend/ directory
+    backend_path = project_root / "backend"
     # frontend/docs directory
     docs_dir = project_root / "frontend" / "docs"
-    # Default output at repo root
+    # Default output
     docs_default = docs_dir / "openapi.json"
 
     # Ensure backend is importable so `from api.app import create_app` works
@@ -38,13 +38,13 @@ def main() -> int:
         "--out",
         dest="out_path",
         default=str(docs_default),
-        help="Output file path for the OpenAPI JSON (default: backend/docs/openapi.json)",
+        help="Output file path for the OpenAPI JSON (default: frontend/docs/openapi.json)",
     )
     args = parser.parse_args()
 
     # Import after sys.path adjustment
     try:
-        from api.app import create_app
+        from api.app import create_app  # type: ignore[import-not-found]
     except Exception as e:
         print(f"[ERROR] Failed to import FastAPI app factory: {e}")
         return 1

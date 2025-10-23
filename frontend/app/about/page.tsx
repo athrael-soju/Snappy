@@ -12,8 +12,10 @@ import {
   Server,
   Sparkles,
   Workflow,
+  Info,
 } from "lucide-react"
 import { AppButton } from "@/components/app-button"
+import packageJson from "../../package.json"
 import {
   Card,
   CardContent,
@@ -321,6 +323,20 @@ export default function AboutPage() {
               </AppButton>
             </div>
           </motion.section>
+
+          <motion.footer
+            className="mt-6 text-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.4, duration: 0.5 }}
+          >
+            <div className="inline-flex items-center gap-2 rounded-full border border-border/40 bg-muted/50 px-4 py-2 text-body-xs text-muted-foreground backdrop-blur">
+              <Info className="size-icon-xs" />
+              <span>
+                Version <span className="font-mono font-semibold text-foreground">{packageJson.version}</span>
+              </span>
+            </div>
+          </motion.footer>
         </motion.div>
       </section>
     </div>

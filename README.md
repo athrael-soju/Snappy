@@ -20,6 +20,7 @@ Snappy pairs a FastAPI backend, a ColPali embedding service, and a Next.js front
 > - Frontend: `frontend/README.md`
 > - ColPali service: `colpali/README.md`
 > - Configuration reference: `backend/docs/configuration.md`
+> - **Version management: `VERSIONING.md`**
 
 ---
 
@@ -209,6 +210,7 @@ Chat streaming lives in `frontend/app/api/chat/route.ts`. The route calls the ba
 - MinIO worker pools auto-size based on hardware. Override only when you have specific throughput limits.
 - TypeScript types and Zod schemas regenerate from the OpenAPI spec (`yarn gen:sdk`, `yarn gen:zod`) to keep the frontend in sync.
 - Pre-commit hooks (autoflake, isort, black, pyright) keep the codebase tidy—run them before contributing.
+- **Version management:** Uses Release Please + Conventional Commits for automated releases. See `VERSIONING.md` for details.
 
 ---
 

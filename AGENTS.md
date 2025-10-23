@@ -257,7 +257,7 @@ External APIs/DBs (Qdrant, MinIO, ColPali)
 
 ```bash
 # In WSL terminal
-cd /mnt/c/Users/athra/Projects/Personal/fastapi-nextjs-colpali-template
+cd Snappy
 
 # Backend
 cd backend
@@ -340,8 +340,8 @@ docker compose logs -f [service_name]
 
 **Generate OpenAPI spec:**
 ```bash
-# In WSL
-cd backend
+# In WSL (from project root)
+cd Snappy
 uv run python scripts/generate_openapi.py
 ```
 
@@ -711,10 +711,9 @@ yarn start
 
 **Problem:** Type errors after API changes
 - **Cause:** OpenAPI spec out of sync
-- **Solution:** 
+- **Solution:**
   ```bash
-  # WSL
-  cd backend
+  # WSL (from project root)
   uv run python scripts/generate_openapi.py
   
   # bash
@@ -893,8 +892,7 @@ uv pip install -r backend/requirements.txt
 # Run
 uv run uvicorn backend.main:app --reload
 
-# Generate OpenAPI
-cd backend
+# Generate OpenAPI (from project root)
 uv run python scripts/generate_openapi.py
 
 # Pre-commit hooks
@@ -938,6 +936,24 @@ docker compose --profile gpu up -d --build
 docker compose --profile cpu up -d --build
 ```
 
+### Versioning & Releases
+
+```bash
+# Check version sync status
+python scripts/sync_version.py
+
+# Sync versions manually
+python scripts/sync_version.py 1.2.3
+
+# Create release (bash)
+./scripts/create_release.sh
+
+# Commit with conventional format
+git commit -m "feat: add new feature"  # Minor bump
+git commit -m "fix: bug fix"           # Patch bump
+git commit -m "feat!: breaking change" # Major bump
+```
+
 ---
 
 ## Additional Resources
@@ -945,6 +961,8 @@ docker compose --profile cpu up -d --build
 ### Documentation Files
 
 - `README.md` - Project overview, quick start
+- `VERSIONING.md` - **Version management and release guide**
+- `scripts/README.md` - **Project utility scripts documentation**
 - `backend/README.md` - Backend-specific guide
 - `frontend/README.md` - Frontend-specific guide
 - `colpali/README.md` - ColPali service guide
@@ -971,10 +989,33 @@ When contributing to this project:
 
 1. **Follow the patterns** established in existing code
 2. **Use the correct terminal** (WSL for backend, bash for frontend)
-3. **Test thoroughly** before committing
-4. **Update documentation** for any new features or changes
-5. **Regenerate types** if API contracts change
-6. **Run pre-commit hooks** to ensure code quality
+3. **Use Conventional Commits** for all commit messages (see `VERSIONING.md`)
+4. **Test thoroughly** before committing
+5. **Update documentation** for any new features or changes
+6. **Regenerate types** if API contracts change
+7. **Run pre-commit hooks** to ensure code quality
+
+### Commit Message Format
+
+Use [Conventional Commits](https://www.conventionalcommits.org/):
+
+```bash
+# Feature (minor version bump)
+git commit -m "feat: add MUVERA support"
+
+# Bug fix (patch version bump)
+git commit -m "fix: resolve search timeout issue"
+
+# Breaking change (major version bump)
+git commit -m "feat!: redesign search API
+
+BREAKING CHANGE: /search endpoint requires 'collection' parameter"
+
+# No version bump
+git commit -m "docs: update configuration guide"
+```
+
+See `VERSIONING.md` for complete release workflow.
 
 ---
 
