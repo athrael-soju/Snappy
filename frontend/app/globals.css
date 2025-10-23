@@ -192,3 +192,38 @@
     }
   }
 }
+
+/* NextTopLoader gradient styling */
+#nprogress .bar {
+  background: linear-gradient(90deg,
+      oklch(0.72 0.18 350),
+      oklch(0.75 0.16 40),
+      oklch(0.88 0.14 95)) !important;
+  box-shadow: 0 0 10px oklch(0.72 0.18 350 / 0.6), 0 0 5px oklch(0.88 0.14 95 / 0.4) !important;
+}
+
+.dark #nprogress .bar {
+  background: linear-gradient(90deg,
+      oklch(0.88 0.14 95),
+      oklch(0.7 0.12 195),
+      oklch(0.68 0.16 350)) !important;
+  box-shadow: 0 0 10px oklch(0.88 0.14 95 / 0.6), 0 0 5px oklch(0.68 0.16 350 / 0.4) !important;
+}
+
+#nprogress .peg {
+  box-shadow: 0 0 10px oklch(0.72 0.18 350), 0 0 5px oklch(0.88 0.14 95) !important;
+}
+
+.dark #nprogress .peg {
+  box-shadow: 0 0 10px oklch(0.88 0.14 95), 0 0 5px oklch(0.68 0.16 350) !important;
+}
+
+#nprogress .spinner-icon {
+  border-top-color: oklch(0.72 0.18 350) !important;
+  border-left-color: oklch(0.72 0.18 350) !important;
+}
+
+.dark #nprogress .spinner-icon {
+  border-top-color: oklch(0.88 0.14 95) !important;
+  border-left-color: oklch(0.88 0.14 95) !important;
+}
