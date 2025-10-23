@@ -7,9 +7,8 @@
             "bump-patch-for-minor-pre-major": true,
             "extra-files": [
                 {
-                    "type": "plain-text",
-                    "path": "backend/__version__.py",
-                    "glob": false
+                    "type": "generic",
+                    "path": "backend/__version__.py"
                 }
             ],
             "changelog-sections": [
