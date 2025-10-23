@@ -6,12 +6,28 @@
 
 # Snappy – Vision-Grounded Document Retrieval 📸
 
-[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688)](https://fastapi.tiangolo.com/)
-[![Qdrant](https://img.shields.io/badge/VectorDB-Qdrant-ff6b6b)](https://qdrant.tech/)
-[![MinIO](https://img.shields.io/badge/Storage-MinIO-f79533)](https://min.io/)
-[![Next.js](https://img.shields.io/badge/Frontend-Next.js-000000)](https://nextjs.org/)
-[![Docker Compose](https://img.shields.io/badge/Orchestration-Docker%20Compose-2496ed)](https://docs.docker.com/compose/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+<!-- Project Stats -->
+[![GitHub Release](https://img.shields.io/github/v/release/athrael-soju/fastapi-nextjs-colpali-template?include_prereleases&sort=semver&display_name=tag&style=flat-square&logo=github&color=blue)](https://github.com/athrael-soju/fastapi-nextjs-colpali-template/releases)
+[![GitHub Stars](https://img.shields.io/github/stars/athrael-soju/fastapi-nextjs-colpali-template?style=flat-square&logo=github&color=yellow)](https://github.com/athrael-soju/fastapi-nextjs-colpali-template/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/athrael-soju/fastapi-nextjs-colpali-template?style=flat-square&logo=github&color=green)](https://github.com/athrael-soju/fastapi-nextjs-colpali-template/network/members)
+[![GitHub Issues](https://img.shields.io/github/issues/athrael-soju/fastapi-nextjs-colpali-template?style=flat-square&logo=github&color=red)](https://github.com/athrael-soju/fastapi-nextjs-colpali-template/issues)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
+
+<!-- Build & Quality -->
+[![CI/CD](https://img.shields.io/github/actions/workflow/status/athrael-soju/fastapi-nextjs-colpali-template/release-please.yml?style=flat-square&logo=githubactions&label=CI%2FCD)](https://github.com/athrael-soju/fastapi-nextjs-colpali-template/actions)
+[![CodeQL](https://img.shields.io/github/actions/workflow/status/athrael-soju/fastapi-nextjs-colpali-template/codeql.yml?style=flat-square&logo=github&label=CodeQL)](https://github.com/athrael-soju/fastapi-nextjs-colpali-template/security/code-scanning)
+[![Code Quality](https://img.shields.io/badge/code%20quality-A+-brightgreen?style=flat-square&logo=codacy)](https://github.com/athrael-soju/fastapi-nextjs-colpali-template)
+[![Pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?style=flat-square&logo=pre-commit)](https://github.com/pre-commit/pre-commit)
+
+<!-- Tech Stack -->
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
+[![Next.js](https://img.shields.io/badge/Frontend-Next.js%2016-000000?style=flat-square&logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19.2-61DAFB?style=flat-square&logo=react)](https://react.dev/)
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Qdrant](https://img.shields.io/badge/VectorDB-Qdrant-ff6b6b?style=flat-square&logo=qdrant)](https://qdrant.tech/)
+[![MinIO](https://img.shields.io/badge/Storage-MinIO-f79533?style=flat-square&logo=minio)](https://min.io/)
+[![Docker](https://img.shields.io/badge/Orchestration-Docker-2496ed?style=flat-square&logo=docker)](https://docs.docker.com/compose/)
 
 Snappy pairs a FastAPI backend, a ColPali embedding service, and a Next.js frontend to deliver vision-first retrieval over PDFs. Each page is rasterised, embedded as multivectors, and stored alongside images so you can search by how documents look—not just by extracted text.
 
