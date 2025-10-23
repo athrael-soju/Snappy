@@ -483,30 +483,6 @@
           }
         }
       }
-    },
-    "/config/persist": {
-      "post": {
-        "tags": [
-          "configuration"
-        ],
-        "summary": "Persist Config",
-        "description": "Persist current runtime configuration to .env file.\n\nThis writes all current configuration values to the .env file,\nmaking them permanent across server restarts.\n\nNote: This will overwrite your existing .env file with current runtime values.",
-        "operationId": "persist_config_config_persist_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Persist Config Config Persist Post"
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {

@@ -1,7 +1,6 @@
 """Configuration management API endpoints."""
 
 from copy import deepcopy
-from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 from api.dependencies import get_colpali_client, invalidate_services
@@ -193,57 +192,3 @@ async def reset_config() -> Dict[str, Any]:
         "message": f"Reset {reset_count} configuration values to defaults",
         "services_invalidated": True,
     }
-
-
-@router.post("/persist")
-async def persist_config() -> Dict[str, Any]:
-    """
-    Persist current runtime configuration to .env file.
-
-    This writes all current configuration values to the .env file,
-    making them permanent across server restarts.
-
-    Note: This will overwrite your existing .env file with current runtime values.
-    """
-    runtime_cfg = get_runtime_config()
-
-    # Determine the .env file path (project root)
-    env_path = Path(__file__).parent.parent.parent.parent / ".env"
-
-    try:
-        # Collect all config values
-        config_lines = []
-        config_lines.append("# Configuration persisted from runtime settings")
-        config_lines.append(f"# Generated automatically - edit with care\n")
-
-        for category in CONFIG_SCHEMA.values():
-            config_lines.append(f"\n# {category['name']}")
-            if category.get("description"):
-                config_lines.append(f"# {category['description']}")
-
-            for setting in category["settings"]:
-                key = setting["key"]
-                current_value = runtime_cfg.get(key, setting.get("default", ""))
-
-                # Add helpful comment with description
-                if setting.get("description"):
-                    config_lines.append(f"# {setting['description']}")
-
-                config_lines.append(f"{key}={current_value}")
-
-        # Write to .env file
-        env_content = "\n".join(config_lines)
-        env_path.write_text(env_content, encoding="utf-8")
-
-        return {
-            "status": "ok",
-            "message": "Configuration persisted to .env file",
-            "path": str(env_path),
-            "settings_count": len(_ALL_KEYS),
-        }
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to persist configuration to .env file: {str(e)}",
-        )

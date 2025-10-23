@@ -16,10 +16,6 @@ import {
   Hash,
   ToggleLeft,
   List,
-  History,
-  Undo2,
-  Trash2,
-  Download,
 } from "lucide-react";
 import { AppButton } from "@/components/app-button";
 import { Badge } from "@/components/ui/badge";
@@ -57,16 +53,10 @@ export default function ConfigurationPage() {
     values,
     configStats,
     lastSaved,
-    hasStoredDraft,
-    storedDraftUpdatedAt,
-    storedDraftKeys,
     saveChanges,
     resetChanges,
     resetSection,
     resetToDefaults,
-    restoreStoredDraft,
-    discardStoredDraft,
-    applyDraftPermanently,
     handleValueChange,
     isSettingVisible,
   } = useConfigurationPanel();
@@ -93,10 +83,6 @@ export default function ConfigurationPage() {
   const activeCategory = categories.find(([key]) => key === activeTab) ?? categories[0];
   const activeKey = activeCategory?.[0] ?? activeTab;
   const activeContent = activeCategory?.[1];
-  const draftCount = storedDraftKeys.length;
-  const draftCountLabel = draftCount === 1 ? "setting" : "settings";
-  const draftUpdatedLabel = storedDraftUpdatedAt ? storedDraftUpdatedAt.toLocaleString() : null;
-
   return (
     <div className="relative flex h-full min-h-full flex-col overflow-hidden">
       <div className="flex h-full flex-1 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
@@ -133,66 +119,6 @@ export default function ConfigurationPage() {
                 {error}
               </div>
             )}
-            <AnimatePresence>
-              {hasStoredDraft && (
-                <motion.div
-                  key="stored-draft-banner"
-                  initial={{ opacity: 0, y: -6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.2 }}
-                  className="mx-auto mt-4 flex w-full max-w-3xl flex-col gap-3 rounded-2xl border border-amber-200/40 bg-amber-100/30 p-4 text-amber-900 shadow-sm backdrop-blur-sm dark:border-amber-500/40 dark:bg-amber-400/10 dark:text-amber-50"
-                >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-start gap-3">
-                      <History className="mt-0.5 size-icon-sm shrink-0 text-amber-500 dark:text-amber-300" />
-                      <div className="space-y-1">
-                        <p className="text-body-sm font-semibold">Local draft available</p>
-                        <p className="text-body-xs text-amber-800/80 dark:text-amber-100/80">
-                          {draftCount} {draftCountLabel} differ from the server.
-                          {draftUpdatedLabel ? ` Last updated ${draftUpdatedLabel}.` : ""}
-                        </p>
-                        <p className="text-body-xs text-amber-700/70 dark:text-amber-200/70">
-                          Apply permanently to save to .env file and persist across restarts.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <AppButton
-                        type="button"
-                        size="sm"
-                        variant="hero"
-                        onClick={applyDraftPermanently}
-                        disabled={saving}
-                      >
-                        <Download className="size-icon-2xs" />
-                        Apply permanently
-                      </AppButton>
-                      <AppButton
-                        type="button"
-                        size="sm"
-                        variant="glass"
-                        onClick={restoreStoredDraft}
-                        disabled={saving}
-                      >
-                        <Undo2 className="size-icon-2xs" />
-                        Review draft
-                      </AppButton>
-                      <AppButton
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={discardStoredDraft}
-                        disabled={saving}
-                      >
-                        <Trash2 className="size-icon-2xs" />
-                        Discard
-                      </AppButton>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </motion.div>
 
           {/* Controls & Stats */}
@@ -203,38 +129,26 @@ export default function ConfigurationPage() {
             transition={{ delay: 0.2, duration: 0.3 }}
           >
             <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex min-w-0 flex-1 flex-col gap-2">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Settings className="size-icon-sm shrink-0" />
-                    <span className="text-body-xs font-semibold uppercase tracking-wide">
-                      Configuration sections
-                    </span>
-                  </div>
-                  <Tabs value={activeKey} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="flex w-full flex-nowrap justify-start gap-2 overflow-x-auto rounded-xl border border-border/30 bg-background/60 p-1 text-body-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                      {categories.map(([key, category]) => (
-                        <TabsTrigger
-                          key={key}
-                          value={key}
-                          className="grow-0 shrink-0 basis-auto whitespace-nowrap px-3 py-1 text-body-sm font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
-                        >
-                          {category.name}
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
-                  </Tabs>
+              <div className="flex min-w-0 flex-1 flex-col gap-2">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Settings className="size-icon-sm shrink-0" />
+                  <span className="text-body-xs font-semibold uppercase tracking-wide">
+                    Configuration sections
+                  </span>
                 </div>
-                <AppButton
-                  type="button"
-                  onClick={resetToDefaults}
-                  disabled={saving}
-                  variant="hero"
-                  size="lg"
-                >
-                  <RotateCcw className="size-icon-2xs" />
-                  Reset all
-                </AppButton>
+                <Tabs value={activeKey} onValueChange={setActiveTab} className="w-full">
+                  <TabsList className="grid w-full grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-2 rounded-xl border border-border/30 bg-background/60 p-1 text-body-sm">
+                    {categories.map(([key, category]) => (
+                      <TabsTrigger
+                        key={key}
+                        value={key}
+                        className="whitespace-nowrap px-3 py-1 text-body-sm font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
+                      >
+                        {category.name}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </Tabs>
               </div>
 
               <div className="flex flex-wrap items-center gap-3 text-body-sm text-muted-foreground">
@@ -522,64 +436,56 @@ export default function ConfigurationPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.3 }}
           >
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-wrap items-center gap-3">
-                <AppButton
-                  type="button"
-                  onClick={saveChanges}
-                  disabled={!hasChanges || saving}
-                  variant="hero"
-                  size="lg"
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="size-icon-xs animate-spin" />
-                      Saving…
-                    </>
-                  ) : (
-                    <>
-                      <Save className="size-icon-xs" />
-                      Save changes
-                    </>
-                  )}
-                </AppButton>
-
-                <AppButton
-                  type="button"
-                  onClick={resetChanges}
-                  disabled={!hasChanges || saving}
-                  variant="glass"
-                  size="lg"
-                >
-                  <RotateCcw className="size-icon-xs" />
-                  Discard
-                </AppButton>
-
-                <AppButton
-                  type="button"
-                  onClick={() => resetSection(activeKey)}
-                  disabled={saving}
-                  variant="ghost"
-                  size="lg"
-                >
-                  <RotateCcw className="size-icon-xs" />
-                  Reset section
-                </AppButton>
-              </div>
-
-              <div className="flex items-center gap-2 text-body-sm text-muted-foreground">
-                {hasChanges ? (
-                  <span className="inline-flex items-center gap-1">
-                    <AlertCircle className="size-icon-3xs text-orange-500" />
-                    Unsaved edits
-                  </span>
+            <div className="grid w-full grid-cols-4 gap-2 rounded-xl border border-border/30 bg-background/60 p-1">
+              <button
+                type="button"
+                onClick={saveChanges}
+                disabled={!hasChanges || saving}
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 py-2.5 text-body-sm font-medium transition-colors hover:bg-primary/10 hover:text-primary disabled:pointer-events-none disabled:opacity-60 data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
+                data-state={hasChanges ? "active" : "inactive"}
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="size-icon-xs animate-spin" />
+                    Saving…
+                  </>
                 ) : (
-                  <span className="inline-flex items-center gap-1">
-                    <CheckCircle2 className="size-icon-3xs text-emerald-400" />
-                    No unsaved changes
-                  </span>
+                  <>
+                    <Save className="size-icon-xs" />
+                    Save changes
+                  </>
                 )}
-              </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={resetChanges}
+                disabled={!hasChanges || saving}
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 py-2.5 text-body-sm font-medium transition-colors hover:bg-primary/10 hover:text-primary disabled:pointer-events-none disabled:opacity-60"
+              >
+                <RotateCcw className="size-icon-xs" />
+                Discard
+              </button>
+
+              <button
+                type="button"
+                onClick={() => resetSection(activeKey)}
+                disabled={saving}
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 py-2.5 text-body-sm font-medium transition-colors hover:bg-primary/10 hover:text-primary disabled:pointer-events-none disabled:opacity-60"
+              >
+                <RotateCcw className="size-icon-xs" />
+                Reset section
+              </button>
+
+              <button
+                type="button"
+                onClick={resetToDefaults}
+                disabled={false}
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 py-2.5 text-body-sm font-medium transition-colors hover:bg-primary/10 hover:text-primary disabled:pointer-events-none disabled:opacity-60"
+              >
+                <RotateCcw className="size-icon-xs" />
+                Reset all
+              </button>
             </div>
           </motion.div>
         </motion.div>
