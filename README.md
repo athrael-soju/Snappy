@@ -238,7 +238,7 @@ Snappy builds on the work of:
 
 - **Qdrant** – the vector database powering multivector search  
   📚 https://qdrant.tech/blog/colpali-qdrant-optimization/  
-  📚 https://qdrant.tech/articles/binary-quantization/
+  📚 https://qdrant.tech/articles/binary-quantization/  
   📚 https://qdrant.tech/articles/muvera-embeddings/
 
 - **PyTorch** – core deep learning framework  
