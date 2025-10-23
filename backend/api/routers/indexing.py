@@ -18,7 +18,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="", tags=["indexing"])
 
 
-UPLOAD_CHUNK_SIZE_BYTES = 4 * 1024 * 1024  # 4MB streaming chunks
+# Default upload chunk size in MB
+DEFAULT_UPLOAD_CHUNK_SIZE_MB = 4.0
+MIN_UPLOAD_CHUNK_SIZE_MB = 0.5
+MAX_UPLOAD_CHUNK_SIZE_MB = 16.0
+
 DEFAULT_ALLOWED_TYPES = ["pdf"]
 SUPPORTED_FILE_TYPES = {
     "pdf": {
@@ -27,9 +31,6 @@ SUPPORTED_FILE_TYPES = {
         "label": "PDF",
     },
 }
-DEFAULT_UPLOAD_CHUNK_SIZE_BYTES = 4 * 1024 * 1024
-MIN_UPLOAD_CHUNK_SIZE_BYTES = 64 * 1024
-MAX_UPLOAD_CHUNK_SIZE_BYTES = 16 * 1024 * 1024
 
 
 def _normalise_type(value: str) -> str:
@@ -89,32 +90,35 @@ def _is_allowed_file(
 
 
 def _get_upload_chunk_size_bytes() -> int:
-    raw_value = getattr(
-        config, "UPLOAD_CHUNK_SIZE_BYTES", DEFAULT_UPLOAD_CHUNK_SIZE_BYTES
-    )
+    """Get upload chunk size in bytes, reading value in MB from config."""
+    raw_value = getattr(config, "UPLOAD_CHUNK_SIZE_BYTES", DEFAULT_UPLOAD_CHUNK_SIZE_MB)
     try:
-        chunk_size = int(raw_value)
+        # Value is stored in MB, convert to bytes only for actual file reading
+        chunk_size_mb = float(raw_value)
     except (TypeError, ValueError):
         logger.warning(
             "Invalid UPLOAD_CHUNK_SIZE_BYTES value '%s'; using default", raw_value
         )
-        return DEFAULT_UPLOAD_CHUNK_SIZE_BYTES
+        chunk_size_mb = DEFAULT_UPLOAD_CHUNK_SIZE_MB
 
-    if chunk_size < MIN_UPLOAD_CHUNK_SIZE_BYTES:
+    # Clamp to valid range (in MB)
+    if chunk_size_mb < MIN_UPLOAD_CHUNK_SIZE_MB:
         logger.warning(
-            "UPLOAD_CHUNK_SIZE_BYTES %s below minimum; clamping to %s",
-            chunk_size,
-            MIN_UPLOAD_CHUNK_SIZE_BYTES,
+            "UPLOAD_CHUNK_SIZE_BYTES %.1f MB below minimum; clamping to %.1f MB",
+            chunk_size_mb,
+            MIN_UPLOAD_CHUNK_SIZE_MB,
         )
-        return MIN_UPLOAD_CHUNK_SIZE_BYTES
-    if chunk_size > MAX_UPLOAD_CHUNK_SIZE_BYTES:
+        chunk_size_mb = MIN_UPLOAD_CHUNK_SIZE_MB
+    if chunk_size_mb > MAX_UPLOAD_CHUNK_SIZE_MB:
         logger.warning(
-            "UPLOAD_CHUNK_SIZE_BYTES %s above maximum; clamping to %s",
-            chunk_size,
-            MAX_UPLOAD_CHUNK_SIZE_BYTES,
+            "UPLOAD_CHUNK_SIZE_BYTES %.1f MB above maximum; clamping to %.1f MB",
+            chunk_size_mb,
+            MAX_UPLOAD_CHUNK_SIZE_MB,
         )
-        return MAX_UPLOAD_CHUNK_SIZE_BYTES
-    return chunk_size
+        chunk_size_mb = MAX_UPLOAD_CHUNK_SIZE_MB
+
+    # Convert to bytes only at the end
+    return int(chunk_size_mb * 1024 * 1024)
 
 
 @router.post("/index")

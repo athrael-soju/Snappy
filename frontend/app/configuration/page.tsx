@@ -19,6 +19,7 @@ import {
   History,
   Undo2,
   Trash2,
+  Download,
 } from "lucide-react";
 import { AppButton } from "@/components/app-button";
 import { Badge } from "@/components/ui/badge";
@@ -65,6 +66,7 @@ export default function ConfigurationPage() {
     resetToDefaults,
     restoreStoredDraft,
     discardStoredDraft,
+    applyDraftPermanently,
     handleValueChange,
     isSettingVisible,
   } = useConfigurationPanel();
@@ -150,9 +152,22 @@ export default function ConfigurationPage() {
                           {draftCount} {draftCountLabel} differ from the server.
                           {draftUpdatedLabel ? ` Last updated ${draftUpdatedLabel}.` : ""}
                         </p>
+                        <p className="text-body-xs text-amber-700/70 dark:text-amber-200/70">
+                          Apply permanently to save to .env file and persist across restarts.
+                        </p>
                       </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
+                      <AppButton
+                        type="button"
+                        size="sm"
+                        variant="hero"
+                        onClick={applyDraftPermanently}
+                        disabled={saving}
+                      >
+                        <Download className="size-icon-2xs" />
+                        Apply permanently
+                      </AppButton>
                       <AppButton
                         type="button"
                         size="sm"

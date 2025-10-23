@@ -68,4 +68,21 @@ export class ConfigurationService {
             url: '/config/reset',
         });
     }
+    /**
+     * Persist Config
+     * Persist current runtime configuration to .env file.
+     *
+     * This writes all current configuration values to the .env file,
+     * making them permanent across server restarts.
+     *
+     * Note: This will overwrite your existing .env file with current runtime values.
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static persistConfigConfigPersistPost(): CancelablePromise<Record<string, any>> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/config/persist',
+        });
+    }
 }

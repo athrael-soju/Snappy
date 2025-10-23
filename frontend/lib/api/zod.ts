@@ -68,6 +68,19 @@ const endpoints = makeApi([
   },
   {
     method: "post",
+    path: "/config/persist",
+    alias: "persist_config_config_persist_post",
+    description: `Persist current runtime configuration to .env file.
+
+This writes all current configuration values to the .env file,
+making them permanent across server restarts.
+
+Note: This will overwrite your existing .env file with current runtime values.`,
+    requestFormat: "json",
+    response: z.object({}).partial().passthrough(),
+  },
+  {
+    method: "post",
     path: "/config/reset",
     alias: "reset_config_config_reset_post",
     description: `Reset all configuration to defaults from schema.
@@ -235,6 +248,14 @@ To persist changes across restarts, update your .env file manually.`,
     path: "/status",
     alias: "get_status_status_get",
     description: `Get the status of collection and bucket including statistics.`,
+    requestFormat: "json",
+    response: z.unknown(),
+  },
+  {
+    method: "get",
+    path: "/version",
+    alias: "version_version_get",
+    description: `Get the current version of the backend API.`,
     requestFormat: "json",
     response: z.unknown(),
   },
