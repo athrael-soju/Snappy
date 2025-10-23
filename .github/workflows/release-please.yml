@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - release  # Optional: test releases on this branch before merging to main
 
 permissions:
   contents: write
