@@ -28,4 +28,16 @@ export class MetaService {
             url: '/health',
         });
     }
+    /**
+     * Version
+     * Get the current version of the backend API.
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static versionVersionGet(): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/version',
+        });
+    }
 }

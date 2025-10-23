@@ -245,11 +245,11 @@ External APIs/DBs (Qdrant, MinIO, ColPali)
 
 **CRITICAL:** Use the correct terminal for each component:
 
-| Component | Terminal | Package Manager | Example Commands |
-|-----------|----------|-----------------|------------------|
-| **Backend** | WSL | `uv` | `uv pip install -r requirements.txt`<br>`uv run uvicorn backend.main:app --reload` |
-| **ColPali Service** | WSL | `uv` | `uv pip install -r colpali/requirements.txt`<br>`uv run uvicorn colpali.app:app --port 8080` |
-| **Frontend** | bash | `yarn` | `yarn install --frozen-lockfile`<br>`yarn dev`<br>`yarn gen:sdk` |
+| Component | Terminal | Package Manager | Setup Steps | Example Commands |
+|-----------|----------|-----------------|-------------|------------------|
+| **Backend** | WSL | `uv` + `venv` | 1. Open WSL terminal<br>2. Navigate to project root<br>3. `cd backend`<br>4. `source .venv/bin/activate` | `uv run uvicorn backend.main:app --reload`<br>`uv pip install -r requirements.txt` |
+| **ColPali Service** | WSL | `uv` + `venv` | 1. Open WSL terminal<br>2. Navigate to project root<br>3. `cd colpali`<br>4. `source .venv/bin/activate` | `uv run uvicorn colpali.app:app --port 8080`<br>`uv pip install -r requirements.txt` |
+| **Frontend** | bash/PowerShell | `yarn` | 1. Open bash or PowerShell terminal<br>2. Navigate to project root<br>3. `cd frontend` | `yarn install --frozen-lockfile`<br>`yarn dev`<br>`yarn gen:sdk` |
 
 ### Environment Setup
 

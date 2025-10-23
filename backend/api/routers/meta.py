@@ -1,5 +1,6 @@
 import asyncio
 
+from __version__ import __version__
 from api.dependencies import (
     get_colpali_client,
     get_minio_service,
@@ -8,8 +9,6 @@ from api.dependencies import (
     qdrant_init_error,
 )
 from fastapi import APIRouter
-
-from backend.__version__ import __version__
 
 router = APIRouter(tags=["meta"])
 

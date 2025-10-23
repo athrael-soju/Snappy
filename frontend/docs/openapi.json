@@ -43,6 +43,26 @@
         }
       }
     },
+    "/version": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "Version",
+        "description": "Get the current version of the backend API.",
+        "operationId": "version_version_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/search": {
       "get": {
         "tags": [

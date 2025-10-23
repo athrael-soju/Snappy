@@ -122,9 +122,11 @@ The backend does not proxy OpenAI traffic.
 The `/configuration` frontend page consumes the `/config/*` APIs to provide:
 
 - Typed inputs with validation
-- Real-time value updates
-- Draft detection when local changes differ from the server
-- Automatic cache invalidation for critical settings (Qdrant, MinIO, ColPali)
+- Real-time value updates with draft detection
+- "Save Changes" button to batch-apply all modifications
+- "Reset section" and "Reset all" buttons to restore defaults (requires save to apply)
+- Discard button to revert unsaved changes
+- Automatic cache invalidation for critical settings (Qdrant, MinIO, ColPali) when changes are saved
 
 For implementation details, see `backend/CONFIGURATION_GUIDE.md`.
 

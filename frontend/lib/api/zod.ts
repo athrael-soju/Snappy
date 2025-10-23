@@ -238,6 +238,14 @@ To persist changes across restarts, update your .env file manually.`,
     requestFormat: "json",
     response: z.unknown(),
   },
+  {
+    method: "get",
+    path: "/version",
+    alias: "version_version_get",
+    description: `Get the current version of the backend API.`,
+    requestFormat: "json",
+    response: z.unknown(),
+  },
 ]);
 
 export const api = new Zodios(endpoints);
