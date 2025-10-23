@@ -39,7 +39,7 @@ const highlights = [
   {
     title: "Modern operator experience",
     description:
-      "Next.js 15 App Router UI ships upload progress, streaming chat, runtime configuration, and maintenance tools.",
+      "Next.js 16 (React 19.2) App Router UI ships upload progress, streaming chat, runtime configuration, and maintenance tools.",
     icon: Rocket,
   },
 ]

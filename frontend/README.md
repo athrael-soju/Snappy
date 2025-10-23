@@ -1,6 +1,6 @@
 # Snappy Frontend – Next.js Interface 🎨
 
-This Next.js 15 application provides upload, search, chat, configuration, and maintenance workflows for Snappy. Types and SDKs are generated from the backend OpenAPI schema and wired through `frontend/lib/api/client.ts`.
+This Next.js 16 application (with React 19.2) provides upload, search, chat, configuration, and maintenance workflows for Snappy. Types and SDKs are generated from the backend OpenAPI schema and wired through `frontend/lib/api/client.ts`.
 
 ---
 

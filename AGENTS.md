@@ -30,7 +30,7 @@ A vision-first document retrieval system that uses ColPali embeddings to search 
 
 **Tech Stack:**
 - **Backend:** FastAPI (Python 3.11+) with async/await patterns
-- **Frontend:** Next.js 15 (App Router, Server Components, TypeScript)
+- **Frontend:** Next.js 16 (App Router, Server Components, TypeScript) with React 19.2
 - **Vector DB:** Qdrant (multivector search with optional MUVERA)
 - **Storage:** MinIO (S3-compatible object storage)
 - **Embeddings:** ColPali service (standalone FastAPI app)
@@ -87,7 +87,7 @@ A vision-first document retrieval system that uses ColPali embeddings to search 
 │   ├── app.py                # ColPali FastAPI server
 │   └── Dockerfile.{cpu,gpu}  # Environment-specific builds
 │
-├── frontend/                  # Next.js 15 frontend
+├── frontend/                  # Next.js 16 frontend with React 19.2
 │   ├── app/                  # App Router pages & API routes
 │   │   ├── api/chat/        # SSE streaming chat endpoint
 │   │   └── [feature]/       # Feature pages (upload, search, chat, etc.)
@@ -163,7 +163,7 @@ External APIs/DBs (Qdrant, MinIO, ColPali)
 
 ### Frontend Architecture
 
-**Framework:** Next.js 15 App Router
+**Framework:** Next.js 16 App Router with React 19.2
 
 **Key Patterns:**
 

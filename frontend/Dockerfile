@@ -1,6 +1,5 @@
-# Multi-stage Dockerfile for Next.js 15 (Yarn)
-# Stage 1: deps
-FROM node:22-alpine AS deps
+# Multi-stage Dockerfile for Next.js 16 with React 19.2 (Yarn)
+FROM node:23-alpine AS base
 WORKDIR /app
 
 # Fixes for native deps on Alpine (usually harmless even if unused)
