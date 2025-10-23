@@ -14,15 +14,20 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        
       - uses: googleapis/release-please-action@v4
         id: release
         with:
           # Configuration is loaded from release-please-config.json
           # and .release-please-manifest.json in the repository root
           token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
 
       # Optional: Create Docker images on release
-      - name: Checkout Code
+      - name: Checkout Code for Tagging
         if: ${{ steps.release.outputs.release_created }}
         uses: actions/checkout@v4
 
