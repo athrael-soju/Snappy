@@ -4,7 +4,7 @@
 
 ---
 
-# Snappy – Vision-Grounded Document Retrieval 📸
+# Snappy - Vision-Grounded Document Retrieval
 
 <!-- Project Stats -->
 [![GitHub Release](https://img.shields.io/github/v/release/athrael-soju/Snappy?include_prereleases&sort=semver&display_name=tag&style=flat-square&logo=github&color=blue)](https://github.com/athrael-soju/Snappy/releases)
@@ -29,14 +29,36 @@
 [![MinIO](https://img.shields.io/badge/Storage-MinIO-f79533?style=flat-square&logo=minio)](https://min.io/)
 [![Docker](https://img.shields.io/badge/Orchestration-Docker-2496ed?style=flat-square&logo=docker)](https://docs.docker.com/compose/)
 
-Snappy pairs a FastAPI backend, a ColPali embedding service, and a Next.js frontend to deliver vision-first retrieval over PDFs. Each page is rasterised, embedded as multivectors, and stored alongside images so you can search by how documents look—not just by extracted text.
+Snappy pairs a FastAPI backend, a ColPali embedding service, and a Next.js frontend to deliver vision-first retrieval over PDFs. Each page is rasterized, embedded as multivectors, and stored alongside images so you can search by how documents look rather than only extracted text.
 
-> Component docs:
-> - Backend: `backend/README.md`
-> - Frontend: `frontend/README.md`
-> - ColPali service: `colpali/README.md`
-> - Configuration reference: `backend/docs/configuration.md`
-> - **Version management: `VERSIONING.md`**
+**TL;DR**
+
+- Vision-focused retrieval and chat with ColPali multivector embeddings, MinIO image storage, and Qdrant search.
+- Streaming responses, live indexing progress, and a schema-driven configuration UI to keep changes safe.
+- One Docker Compose stack or individual services for local development and production-style deployments.
+
+**Table of Contents**
+
+- [Quick Start](#quick-start)
+- [Highlights](#highlights)
+- [Use Cases](#use-cases)
+- [Architecture](#architecture)
+- [Frontend Experience](#frontend-experience)
+- [Demo](#demo)
+- [Environment Variables](#environment-variables)
+- [API Overview](#api-overview)
+- [Troubleshooting](#troubleshooting)
+- [Developer Notes](#developer-notes)
+- [Documentation](#documentation)
+- [Further Reading](#further-reading)
+- [License](#license)
+- [Acknowledgements](#acknowledgements)
+
+---
+
+## Showcase
+
+https://github.com/user-attachments/assets/99438b0d-c62e-4e47-bdc8-623ee1d2236c
 
 ---
 
@@ -79,53 +101,9 @@ Head to `backend/docs/architecture.md` and `backend/docs/analysis.md` for a deep
 
 ---
 
-## Highlights
-
-- 🎯 Page-level vision retrieval powered by ColPali multivector embeddings—no OCR pipeline to maintain.
-- 💬 Streaming chat responses from the OpenAI Responses API with inline visual citations so you can see each supporting page.
-- ⚡ Pipelined indexing with live Server-Sent Events progress updates and optional MUVERA-assisted first-stage search.
-- 🎛️ Runtime configuration UI backed by a typed schema, with reset/draft flows that make experimentation safe.
-- 🐳 Docker Compose profiles for ColPali (GPU or CPU) plus an all-in-one stack for local development.
-
----
-
-## Use Cases
-
-Snappy excels at retrieval scenarios where visual layout, formatting, and appearance matter as much as textual content:
-
-- **📋 Legal Document Analysis** – Search case files, contracts, and legal briefs by visual layout, annotations, and document structure without relying on OCR accuracy.
-
-- **🏥 Medical Records Retrieval** – Find patient charts, diagnostic reports, and medical forms by handwritten notes, stamps, diagrams, and visual markers that traditional text search misses.
-
-- **💰 Financial Auditing & Compliance** – Locate invoices, receipts, financial statements, and compliance documents by visual characteristics like logos, stamps, signatures, and table layouts.
-
-- **🔬 Academic Research & Papers** – Search scientific papers, technical documents, and research archives by figures, tables, equations, charts, and visual presentation—ideal for literature reviews.
-
-- **📚 Archive & Document Management** – Retrieve historical documents, scanned archives, and legacy records by visual appearance, preserving context that text extraction destroys.
-
-- **🏗️ Engineering & Technical Documentation** – Find blueprints, schematics, technical drawings, and specification sheets by visual elements, diagrams, and layout patterns.
-
-- **📰 Media & Publishing** – Search newspaper archives, magazine layouts, and published materials by visual design, page composition, and formatting.
-
-- **🎓 Educational Content** – Organize and retrieve textbooks, lecture notes, and educational materials by visual structure, highlighting, and annotations.
-
----
-
-## Frontend Experience
-
-The Next.js 16 frontend with React 19.2 keeps things fast and friendly: real-time streaming, responsive layouts, and design tokens (`text-body-*`, `size-icon-*`) that make extending the UI consistent. Configuration and maintenance pages expose everything the backend can do, while upload/search/chat give you the workflows you need day to day.
-
----
-
-## Demo
-
-https://github.com/user-attachments/assets/99438b0d-c62e-4e47-bdc8-623ee1d2236c
-
----
-
 ## Quick Start
 
-> 🚀 **Using Pre-built Images?** Skip to [Option A](#option-a--run-with-pre-built-docker-images) for the fastest deployment using our pre-built containers from GitHub Container Registry.
+> **Using pre-built images?** Skip to [Option A](#option-a--run-with-pre-built-docker-images) for the fastest deployment using the pre-built containers from GitHub Container Registry.
 
 ### 1. Prepare environment files
 
@@ -152,9 +130,9 @@ Only start one profile at a time to avoid port clashes. The first GPU build comp
 
 ---
 
-### Option A – Run with Pre-built Docker Images
+### Option A - Run with Pre-built Docker Images
 
-Use our pre-built images from GitHub Container Registry for instant deployment:
+Use the pre-built images from GitHub Container Registry for instant deployment:
 
 ```bash
 # Pull pre-built images
@@ -173,11 +151,11 @@ docker compose up -d
 - `colpali-cpu:latest` - CPU embedding service (amd64/arm64)
 - `colpali-gpu:latest` - GPU embedding service (amd64 only)
 
-📖 **Full guide**: See [`docs/DOCKER_IMAGES.md`](docs/DOCKER_IMAGES.md) for complete documentation on using pre-built images, version tags, configuration, and production deployment examples.
+**Full guide**: See [`docs/DOCKER_IMAGES.md`](docs/DOCKER_IMAGES.md) for complete documentation on using pre-built images, version tags, configuration, and production deployment examples.
 
 ---
 
-### Option B – Run the full stack with Docker Compose (Build from Source)
+### Option B - Run the full stack with Docker Compose (Build from Source)
 
 At the project root:
 
@@ -195,7 +173,7 @@ Update `.env` and `frontend/.env.local` if you need to expose different hostname
 
 ---
 
-### Option C – Run services locally
+### Option C - Run services locally
 
 1. In `backend/`, install dependencies and launch FastAPI:
 
@@ -217,6 +195,37 @@ Update `.env` and `frontend/.env.local` if you need to expose different hostname
    ```
 
 4. Keep the ColPali service from step 2 running (Docker or `uvicorn colpali/app.py`).
+
+---
+
+## Highlights
+
+- Page-level vision retrieval powered by ColPali multivector embeddings; no OCR pipeline to maintain.
+- Streaming chat responses from the OpenAI Responses API with inline visual citations so you can see each supporting page.
+- Pipelined indexing with live Server-Sent Events progress updates and optional MUVERA-assisted first-stage search.
+- Runtime configuration UI backed by a typed schema, with reset and draft flows that make experimentation safe.
+- Docker Compose profiles for ColPali (GPU or CPU) plus an all-in-one stack for local development.
+
+---
+
+## Use Cases
+
+Snappy excels at retrieval scenarios where visual layout, formatting, and appearance matter as much as textual content:
+
+- **Legal Document Analysis** - Search case files, contracts, and legal briefs by visual layout, annotations, and document structure without relying on OCR accuracy.
+- **Medical Records Retrieval** - Find patient charts, diagnostic reports, and medical forms by handwritten notes, stamps, diagrams, and visual markers that traditional text search misses.
+- **Financial Auditing and Compliance** - Locate invoices, receipts, financial statements, and compliance documents by visual characteristics like logos, stamps, signatures, and table layouts.
+- **Academic Research and Papers** - Search scientific papers, technical documents, and research archives by figures, tables, equations, charts, and visual presentation; ideal for literature reviews.
+- **Archive and Document Management** - Retrieve historical documents, scanned archives, and legacy records by visual appearance, preserving context that text extraction destroys.
+- **Engineering and Technical Documentation** - Find blueprints, schematics, technical drawings, and specification sheets by visual elements, diagrams, and layout patterns.
+- **Media and Publishing** - Search newspaper archives, magazine layouts, and published materials by visual design, page composition, and formatting.
+- **Educational Content** - Organize and retrieve textbooks, lecture notes, and educational materials by visual structure, highlighting, and annotations.
+
+---
+
+## Frontend Experience
+
+The Next.js 16 frontend with React 19.2 keeps things fast and friendly: real-time streaming, responsive layouts, and design tokens (`text-body-*`, `size-icon-*`) that make extending the UI consistent. Configuration and maintenance pages expose everything the backend can do, while upload/search/chat give you the workflows you need day to day.
 
 ---
 
@@ -264,8 +273,8 @@ Chat streaming lives in `frontend/app/api/chat/route.ts`. The route calls the ba
 - **Progress bar stuck?** Ensure Poppler is installed and check backend logs for PDF conversion errors.
 - **Missing images?** Verify MinIO credentials/URLs and confirm `next.config.ts` allows the domains you expect.
 - **CORS issues?** Replace wildcard `ALLOWED_ORIGINS` entries with explicit URLs before exposing the API publicly.
-- **Config changes vanish?** `/config/update` modifies runtime state only—update `.env` for anything you need to keep after a restart.
-- **Upload rejected?** The uploader currently accepts PDFs only. Adjust max size, chunk size, or file count limits in the “Uploads” section of the configuration UI.
+- **Config changes vanish?** `/config/update` modifies runtime state only-update `.env` for anything you need to keep after a restart.
+- **Upload rejected?** The uploader currently accepts PDFs only. Adjust max size, chunk size, or file count limits in the "Uploads" section of the configuration UI.
 
 `backend/docs/configuration.md` and `backend/CONFIGURATION_GUIDE.md` cover advanced troubleshooting and implementation details.
 
@@ -276,22 +285,32 @@ Chat streaming lives in `frontend/app/api/chat/route.ts`. The route calls the ba
 - Background indexing uses FastAPI `BackgroundTasks`. For larger deployments consider a dedicated task queue.
 - MinIO worker pools auto-size based on hardware. Override only when you have specific throughput limits.
 - TypeScript types and Zod schemas regenerate from the OpenAPI spec (`yarn gen:sdk`, `yarn gen:zod`) to keep the frontend in sync.
-- Pre-commit hooks (autoflake, isort, black, pyright) keep the codebase tidy—run them before contributing.
+- Pre-commit hooks (autoflake, isort, black, pyright) keep the codebase tidy-run them before contributing.
 - **Version management:** Uses Release Please + Conventional Commits for automated releases. See `VERSIONING.md` for details.
+
+---
+
+## Documentation
+
+- `backend/README.md` - FastAPI backend guide
+- `frontend/README.md` - Next.js frontend guide
+- `colpali/README.md` - ColPali embedding service guide
+- `backend/docs/configuration.md` - Configuration reference
+- `VERSIONING.md` - Release and version workflow
 
 ---
 
 ## Further Reading
 
-- `backend/docs/analysis.md` – vision vs. text RAG comparison
-- `backend/docs/architecture.md` – collection, indexing, and search deep dive
-- `colpali/README.md` – details on the standalone embedding service
+- `backend/docs/analysis.md` - vision vs. text RAG comparison
+- `backend/docs/architecture.md` - collection, indexing, and search deep dive
+- `colpali/README.md` - details on the standalone embedding service
 
 ---
 
 ## License
 
-MIT License – see [LICENSE](LICENSE).
+MIT License - see [LICENSE](LICENSE).
 
 ---
 
@@ -299,15 +318,15 @@ MIT License – see [LICENSE](LICENSE).
 
 Snappy builds on the work of:
 
-- **ColPali / ColModernVBert** – multimodal models for visual retrieval  
-  📄 https://arxiv.org/abs/2407.01449
-  📄 https://arxiv.org/abs/2510.01149
+- **ColPali / ColModernVBert** - multimodal models for visual retrieval  
+   https://arxiv.org/abs/2407.01449
+   https://arxiv.org/abs/2510.01149
 
-- **Qdrant** – the vector database powering multivector search  
-  📚 https://qdrant.tech/blog/colpali-qdrant-optimization/  
-  📚 https://qdrant.tech/articles/binary-quantization/  
-  📚 https://qdrant.tech/articles/muvera-embeddings/
+- **Qdrant** - the vector database powering multivector search  
+   https://qdrant.tech/blog/colpali-qdrant-optimization/  
+   https://qdrant.tech/articles/binary-quantization/  
+   https://qdrant.tech/articles/muvera-embeddings/
 
-- **PyTorch** – core deep learning framework  
-  🔥 https://pytorch.org/  
+- **PyTorch** - core deep learning framework  
+   https://pytorch.org/  
 
