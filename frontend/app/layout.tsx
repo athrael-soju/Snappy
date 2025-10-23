@@ -33,15 +33,15 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <NextTopLoader
-            color="linear-gradient(90deg, hsl(var(--chart-1)), hsl(var(--chart-2)), hsl(var(--chart-4)))"
             initialPosition={0.08}
             crawlSpeed={200}
             height={3}
             crawl={true}
-            showSpinner={false}
+            showSpinner={true}
             easing="ease"
             speed={200}
-            shadow="0 0 10px hsl(var(--chart-1)),0 0 5px hsl(var(--chart-2))"
+            zIndex={1600}
+            showAtBottom={false}
           />
           <AppStoreProvider>
             <Toaster position="top-right" />
