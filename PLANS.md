@@ -1,7 +1,7 @@
 # Snappy Feature Implementation Plan Template
 
 > **Project:** Snappy – Vision-Grounded Document Retrieval  
-> **Stack:** FastAPI Backend + Next.js 15 Frontend + ColPali Embeddings + Qdrant + MinIO  
+> **Stack:** FastAPI Backend + Next.js 16 Frontend (React 19.2) + ColPali Embeddings + Qdrant + MinIO  
 > **Planning Methodology:** Understand → Clarify → Plan → Implement
 
 ---
@@ -208,7 +208,7 @@ Before proceeding to planning, ensure these are clear:
 - Follow the config schema pattern from `backend/config_schema.py`
 
 **Frontend (Next.js/TypeScript):**
-- Use Server Components where possible (Next.js 15 App Router)
+- Use Server Components where possible (Next.js 16 App Router)
 - Follow existing design token system (`text-body-*`, `size-icon-*`)
 - Implement loading states with `loading.tsx` pattern
 - Use shadcn/ui components from `components/ui/`

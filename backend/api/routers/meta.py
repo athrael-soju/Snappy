@@ -9,6 +9,8 @@ from api.dependencies import (
 )
 from fastapi import APIRouter
 
+from backend.__version__ import __version__
+
 router = APIRouter(tags=["meta"])
 
 
@@ -46,6 +48,15 @@ async def health():
     if minio_init_error:
         response["minio_init_error"] = minio_init_error
     return response
+
+
+@router.get("/version")
+async def version():
+    """Get the current version of the backend API."""
+    return {
+        "version": __version__,
+        "name": "Snappy Backend",
+    }
 
 
 def _check_colpali() -> bool:

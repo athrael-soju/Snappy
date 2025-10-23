@@ -20,7 +20,7 @@ ENABLE_CPU_MULTIPROCESSING = (
 
 # Hugging Face model identifier (overridable via environment variable)
 MODEL_ID = os.getenv("COLPALI_MODEL_ID", "ModernVBERT/colmodernvbert-merged")
-API_VERSION = os.getenv("COLPALI_API_VERSION", "0.1.0")
+API_VERSION = os.getenv("COLPALI_API_VERSION", "0.0.2")
 
 # Initialize FastAPI app
 app = FastAPI(
