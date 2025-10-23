@@ -17,7 +17,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const logo = `<p align="center">
-              <img src="./frontend/public/Snappy/Snappy_light_readme.png" alt="Snappy" width="400"/>
+              <img src="https://raw.githubusercontent.com/${context.repo.owner}/${context.repo.repo}/main/frontend/public/Snappy/Snappy_light_readme.png" alt="Snappy" width="400"/>
             </p>
             
             ---
