@@ -2,9 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { documentSearchTool, executeDocumentSearch } from '../functions/document_search';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy initialization - only create OpenAI client when needed (at runtime)
+let openaiClient: OpenAI | null = null;
+function getOpenAIClient(): OpenAI {
+  if (!openaiClient) {
+    openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openaiClient;
+}
 
 // Shared constants
 const MODEL = process.env.OPENAI_MODEL || 'gpt-5-nano';
@@ -128,6 +135,7 @@ function appendCitationReminder(input: any[], results: KnowledgeBaseItem[] | nul
 // Helper: stream a model response with or without tools
 async function streamModel(params: { input: any[]; instructions: string; withTools: boolean }) {
   const { input, instructions, withTools } = params;
+  const openai = getOpenAIClient();
   const stream = await openai.responses.create({
     model: MODEL,
     ...(withTools ? { tools: [documentSearchTool] } : {}),
@@ -165,6 +173,7 @@ export async function POST(request: NextRequest) {
     let response: any | undefined;
     if (toolEnabled) {
       // 1. Initial API call with tools defined
+      const openai = getOpenAIClient();
       response = await openai.responses.create({
         model: MODEL,
         tools: [documentSearchTool],
