@@ -2,6 +2,40 @@
   "name": "frontend",
   "version": "0.1.2",
   "private": true,
+  "description": "Vision-first document retrieval system using ColPali embeddings for visual PDF search with Next.js 16 and React 19.2",
+  "keywords": [
+    "colpali",
+    "document-retrieval",
+    "vision-ai",
+    "pdf-search",
+    "nextjs",
+    "fastapi",
+    "qdrant",
+    "vector-database",
+    "multimodal-search",
+    "rag",
+    "retrieval-augmented-generation",
+    "computer-vision",
+    "ai-search",
+    "minio",
+    "document-understanding",
+    "visual-embeddings",
+    "multivector-search",
+    "muvera",
+    "react-19",
+    "nextjs-16",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/athrael-soju/Snappy.git"
+  },
+  "homepage": "https://github.com/athrael-soju/Snappy#readme",
+  "bugs": {
+    "url": "https://github.com/athrael-soju/Snappy/issues"
+  },
+  "author": "athrael-soju",
+  "license": "MIT",
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build",

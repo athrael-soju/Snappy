@@ -89,6 +89,28 @@ Head to `backend/docs/architecture.md` and `backend/docs/analysis.md` for a deep
 
 ---
 
+## Use Cases
+
+Snappy excels at retrieval scenarios where visual layout, formatting, and appearance matter as much as textual content:
+
+- **📋 Legal Document Analysis** – Search case files, contracts, and legal briefs by visual layout, annotations, and document structure without relying on OCR accuracy.
+
+- **🏥 Medical Records Retrieval** – Find patient charts, diagnostic reports, and medical forms by handwritten notes, stamps, diagrams, and visual markers that traditional text search misses.
+
+- **💰 Financial Auditing & Compliance** – Locate invoices, receipts, financial statements, and compliance documents by visual characteristics like logos, stamps, signatures, and table layouts.
+
+- **🔬 Academic Research & Papers** – Search scientific papers, technical documents, and research archives by figures, tables, equations, charts, and visual presentation—ideal for literature reviews.
+
+- **📚 Archive & Document Management** – Retrieve historical documents, scanned archives, and legacy records by visual appearance, preserving context that text extraction destroys.
+
+- **🏗️ Engineering & Technical Documentation** – Find blueprints, schematics, technical drawings, and specification sheets by visual elements, diagrams, and layout patterns.
+
+- **📰 Media & Publishing** – Search newspaper archives, magazine layouts, and published materials by visual design, page composition, and formatting.
+
+- **🎓 Educational Content** – Organize and retrieve textbooks, lecture notes, and educational materials by visual structure, highlighting, and annotations.
+
+---
+
 ## Frontend Experience
 
 The Next.js 16 frontend with React 19.2 keeps things fast and friendly: real-time streaming, responsive layouts, and design tokens (`text-body-*`, `size-icon-*`) that make extending the UI consistent. Configuration and maintenance pages expose everything the backend can do, while upload/search/chat give you the workflows you need day to day.
