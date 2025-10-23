@@ -1,0 +1,42 @@
+name: Enhance Release Notes
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  add-logo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update Release with Logo
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const logo = `<p align="center">
+              <img src="./frontend/public/Snappy/Snappy_light_readme.png" alt="Snappy" width="400"/>
+            </p>
+            
+            ---
+            
+            `;
+            
+            const release = await github.rest.repos.getRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: context.payload.release.id
+            });
+            
+            const updatedBody = logo + release.data.body;
+            
+            await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: context.payload.release.id,
+              body: updatedBody
+            });
+            
+            console.log('✅ Added Snappy logo to release notes');
