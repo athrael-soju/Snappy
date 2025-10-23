@@ -5,7 +5,11 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: '200mb',
     },
+    // Turbopack filesystem caching for faster dev server restarts (beta in Next.js 16)
+    turbopackFileSystemCacheForDev: true,
   },
+  // Cache Components - opt-in caching model (new in Next.js 16)
+  cacheComponents: true,
   images: {
     unoptimized: true,
     remotePatterns: [

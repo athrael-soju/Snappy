@@ -14,7 +14,7 @@ const PROGRESS_RESET_DELAY_MS = 4000;
  */
 export function useUploadSSE({ uploadState, dispatch }: UseUploadSSEOptions) {
   const eventSourceRef = useRef<EventSource | null>(null);
-  const lastProgressTimeRef = useRef<number>(Date.now());
+  const lastProgressTimeRef = useRef<number>(0);
   const stallCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const resetProgressTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -59,10 +59,10 @@ export function useUploadSSE({ uploadState, dispatch }: UseUploadSSEOptions) {
     }
 
     clearProgressResetTimer();
-   
+
     // Reset last progress time when starting new connection
     lastProgressTimeRef.current = Date.now();
-    
+
     const es = new EventSource(`${process.env.NEXT_PUBLIC_API_BASE_URL || ''}/progress/stream/${uploadState.jobId}`);
     eventSourceRef.current = es;
 
@@ -87,7 +87,7 @@ export function useUploadSSE({ uploadState, dispatch }: UseUploadSSEOptions) {
           dispatch({ type: 'UPLOAD_SET_FILES', payload: null }); // Clear files on completion
           dispatch({ type: 'UPLOAD_SET_FILE_META', payload: null });
           scheduleProgressReset();
-          
+
           // Show toast notification
           if (typeof window !== 'undefined') {
             toast.success('Upload Complete', { description: successMsg });
@@ -101,7 +101,7 @@ export function useUploadSSE({ uploadState, dispatch }: UseUploadSSEOptions) {
           dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
           dispatch({ type: 'UPLOAD_SET_FILE_META', payload: null });
           scheduleProgressReset();
-          
+
           // Show toast notification
           if (typeof window !== 'undefined') {
             toast.error('Upload Failed', { description: errMsg });
@@ -116,7 +116,7 @@ export function useUploadSSE({ uploadState, dispatch }: UseUploadSSEOptions) {
           dispatch({ type: 'UPLOAD_SET_FILES', payload: null });
           dispatch({ type: 'UPLOAD_SET_FILE_META', payload: null });
           scheduleProgressReset();
-          
+
           // Show toast notification
           if (typeof window !== 'undefined') {
             toast.info('Upload Status', { description: cancelMsg });
@@ -153,10 +153,10 @@ export function useUploadSSE({ uploadState, dispatch }: UseUploadSSEOptions) {
             dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
             dispatch({ type: 'UPLOAD_SET_FILE_META', payload: null });
             scheduleProgressReset();
-            
+
             if (typeof window !== 'undefined') {
-              toast.error('Upload Failed', { 
-                description: 'Connection lost. The collection may have been deleted.' 
+              toast.error('Upload Failed', {
+                description: 'Connection lost. The collection may have been deleted.'
               });
             }
           }
@@ -176,10 +176,10 @@ export function useUploadSSE({ uploadState, dispatch }: UseUploadSSEOptions) {
         dispatch({ type: 'UPLOAD_SET_JOB_ID', payload: null });
         dispatch({ type: 'UPLOAD_SET_FILE_META', payload: null });
         scheduleProgressReset();
-        
+
         if (typeof window !== 'undefined') {
-          toast.error('Upload Failed', { 
-            description: 'Upload stalled. The collection may have been deleted.' 
+          toast.error('Upload Failed', {
+            description: 'Upload stalled. The collection may have been deleted.'
           });
         }
       }
