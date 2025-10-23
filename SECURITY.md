@@ -36,7 +36,7 @@ We provide security updates for the following versions:
 If you discover a security vulnerability, please **do not** open a public GitHub issue. Instead:
 
 1. **Email us directly** at: `security@yourdomain.com` (or create a private security advisory on GitHub)
-2. **Use GitHub Security Advisories**: Navigate to the [Security tab](https://github.com/athrael-soju/fastapi-nextjs-colpali-template/security/advisories) and click "Report a vulnerability"
+2. **Use GitHub Security Advisories**: Navigate to the [Security tab](https://github.com/athrael-soju/Snappy/security/advisories) and click "Report a vulnerability"
 
 ### What to Include
 

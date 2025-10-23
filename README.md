@@ -7,16 +7,16 @@
 # Snappy – Vision-Grounded Document Retrieval 📸
 
 <!-- Project Stats -->
-[![GitHub Release](https://img.shields.io/github/v/release/athrael-soju/fastapi-nextjs-colpali-template?include_prereleases&sort=semver&display_name=tag&style=flat-square&logo=github&color=blue)](https://github.com/athrael-soju/fastapi-nextjs-colpali-template/releases)
-[![GitHub Stars](https://img.shields.io/github/stars/athrael-soju/fastapi-nextjs-colpali-template?style=flat-square&logo=github&color=yellow)](https://github.com/athrael-soju/fastapi-nextjs-colpali-template/stargazers)
-[![GitHub Forks](https://img.shields.io/github/forks/athrael-soju/fastapi-nextjs-colpali-template?style=flat-square&logo=github&color=green)](https://github.com/athrael-soju/fastapi-nextjs-colpali-template/network/members)
-[![GitHub Issues](https://img.shields.io/github/issues/athrael-soju/fastapi-nextjs-colpali-template?style=flat-square&logo=github&color=red)](https://github.com/athrael-soju/fastapi-nextjs-colpali-template/issues)
+[![GitHub Release](https://img.shields.io/github/v/release/athrael-soju/Snappy?include_prereleases&sort=semver&display_name=tag&style=flat-square&logo=github&color=blue)](https://github.com/athrael-soju/Snappy/releases)
+[![GitHub Stars](https://img.shields.io/github/stars/athrael-soju/Snappy?style=flat-square&logo=github&color=yellow)](https://github.com/athrael-soju/Snappy/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/athrael-soju/Snappy?style=flat-square&logo=github&color=green)](https://github.com/athrael-soju/Snappy/network/members)
+[![GitHub Issues](https://img.shields.io/github/issues/athrael-soju/Snappy?style=flat-square&logo=github&color=red)](https://github.com/athrael-soju/Snappy/issues)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 
 <!-- Build & Quality -->
-[![CI/CD](https://img.shields.io/github/actions/workflow/status/athrael-soju/fastapi-nextjs-colpali-template/release-please.yml?style=flat-square&logo=githubactions&label=CI%2FCD)](https://github.com/athrael-soju/fastapi-nextjs-colpali-template/actions)
-[![CodeQL](https://img.shields.io/github/actions/workflow/status/athrael-soju/fastapi-nextjs-colpali-template/codeql.yml?style=flat-square&logo=github&label=CodeQL)](https://github.com/athrael-soju/fastapi-nextjs-colpali-template/security/code-scanning)
-[![Code Quality](https://img.shields.io/badge/code%20quality-A+-brightgreen?style=flat-square&logo=codacy)](https://github.com/athrael-soju/fastapi-nextjs-colpali-template)
+[![CI/CD](https://img.shields.io/github/actions/workflow/status/athrael-soju/Snappy/release-please.yml?style=flat-square&logo=githubactions&label=CI%2FCD)](https://github.com/athrael-soju/Snappy/actions)
+[![CodeQL](https://img.shields.io/github/actions/workflow/status/athrael-soju/Snappy/codeql.yml?style=flat-square&logo=github&label=CodeQL)](https://github.com/athrael-soju/Snappy/security/code-scanning)
+[![Code Quality](https://img.shields.io/badge/code%20quality-A+-brightgreen?style=flat-square&logo=codacy)](https://github.com/athrael-soju/Snappy)
 [![Pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?style=flat-square&logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 
 <!-- Tech Stack -->
@@ -103,6 +103,8 @@ https://github.com/user-attachments/assets/99438b0d-c62e-4e47-bdc8-623ee1d2236c
 
 ## Quick Start
 
+> 🚀 **Using Pre-built Images?** Skip to [Option A](#option-a--run-with-pre-built-docker-images) for the fastest deployment using our pre-built containers from GitHub Container Registry.
+
 ### 1. Prepare environment files
 
 ```bash
@@ -128,7 +130,32 @@ Only start one profile at a time to avoid port clashes. The first GPU build comp
 
 ---
 
-### Option A – Run the full stack with Docker Compose
+### Option A – Run with Pre-built Docker Images
+
+Use our pre-built images from GitHub Container Registry for instant deployment:
+
+```bash
+# Pull pre-built images
+docker pull ghcr.io/athrael-soju/Snappy/backend:latest
+docker pull ghcr.io/athrael-soju/Snappy/frontend:latest
+docker pull ghcr.io/athrael-soju/Snappy/colpali-cpu:latest
+
+# Create minimal docker-compose.yml (see docs/DOCKER_IMAGES.md)
+# Then start services
+docker compose up -d
+```
+
+**Available images:**
+- `backend:latest` - FastAPI backend (amd64/arm64)
+- `frontend:latest` - Next.js frontend (amd64/arm64)
+- `colpali-cpu:latest` - CPU embedding service (amd64/arm64)
+- `colpali-gpu:latest` - GPU embedding service (amd64 only)
+
+📖 **Full guide**: See [`docs/DOCKER_IMAGES.md`](docs/DOCKER_IMAGES.md) for complete documentation on using pre-built images, version tags, configuration, and production deployment examples.
+
+---
+
+### Option B – Run the full stack with Docker Compose (Build from Source)
 
 At the project root:
 
@@ -144,7 +171,9 @@ Services will come online at:
 
 Update `.env` and `frontend/.env.local` if you need to expose different hostnames or ports.
 
-### Option B – Run services locally
+---
+
+### Option C – Run services locally
 
 1. In `backend/`, install dependencies and launch FastAPI:
 

@@ -65,13 +65,13 @@ Before contributing, ensure you have:
 1. **Fork the repository** on GitHub
 2. **Clone your fork** locally:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/fastapi-nextjs-colpali-template.git
-   cd fastapi-nextjs-colpali-template
+   git clone https://github.com/athrael.soju/Snappy.git
+   cd Snappy
    ```
 
 3. **Add upstream remote**:
    ```bash
-   git remote add upstream https://github.com/athrael-soju/fastapi-nextjs-colpali-template.git
+   git remote add upstream https://github.com/athrael-soju/Snappy.git
    ```
 
 4. **Review the documentation**:
@@ -173,7 +173,7 @@ We welcome various types of contributions:
 
 ### Finding Issues to Work On
 
-- Check the [GitHub Issues](https://github.com/athrael-soju/fastapi-nextjs-colpali-template/issues)
+- Check the [GitHub Issues](https://github.com/athrael-soju/Snappy/issues)
 - Look for issues labeled `good first issue` or `help wanted`
 - Comment on an issue to express interest before starting work
 - Ask questions if anything is unclear
@@ -721,8 +721,8 @@ Contributors are recognized in:
 If you have questions not covered in this guide:
 
 1. Check the [documentation](README.md)
-2. Search [existing issues](https://github.com/athrael-soju/fastapi-nextjs-colpali-template/issues)
-3. Ask in [GitHub Discussions](https://github.com/athrael-soju/fastapi-nextjs-colpali-template/discussions)
+2. Search [existing issues](https://github.com/athrael-soju/Snappy/issues)
+3. Ask in [GitHub Discussions](https://github.com/athrael-soju/Snappy/discussions)
 4. Open a new issue
 
 ---
