@@ -115,9 +115,12 @@ Behaviour:
 ## Configuration UI
 
 - Fetches schema via `GET /config/schema` and values via `GET /config/values`.
-- Updates a single setting with `POST /config/update` and restores defaults with `POST /config/reset`.
-- Drafts live in `localStorage` (`colpali-runtime-config`) so you can compose changes before applying them.
-- Critical settings trigger backend cache invalidation automatically.
+- Allows editing settings locally with real-time validation and draft detection.
+- Changes are only applied to the backend when clicking "Save Changes".
+- Provides "Reset section" and "Reset all" buttons to restore defaults without auto-applying.
+- Drafts persist in `localStorage` (`colpali-runtime-config`) so you can compose changes before applying them.
+- Critical settings trigger backend cache invalidation automatically when saved.
+- All updates (including resets) are applied via individual `POST /config/update` calls for safety.
 
 For the full backend configuration reference see `../backend/docs/configuration.md`.
 
