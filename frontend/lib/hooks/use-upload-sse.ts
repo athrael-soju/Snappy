@@ -90,6 +90,7 @@ export function useUploadSSE({ uploadState, dispatch }: UseUploadSSEOptions) {
 
           // Show toast notification
           if (typeof window !== 'undefined') {
+            window.dispatchEvent(new Event('systemStatusChanged'));
             toast.success('Upload Complete', { description: successMsg });
           }
         } else if (data.status === 'failed') {
