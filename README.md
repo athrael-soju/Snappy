@@ -2,45 +2,282 @@
   <img width="754" height="643" alt="snappy_light_nobg_resized" src="https://github.com/user-attachments/assets/2ebd2908-42a7-46d4-84a1-cad8aeca1847" style="background-color: white;" />
 </p>
 
----
+<h1 align="center">Snappy – Vision-Grounded Document Retrieval 📸</h1>
 
-# Snappy – Vision-Grounded Document Retrieval 📸
+<p align="center">
+  <strong>Search documents the way you see them, not just the words inside</strong>
+  <br>
+  <em>Production-ready template for building visual retrieval systems with ColPali, FastAPI, and Next.js</em>
+</p>
+
+<p align="center">
+  <a href="#-quick-start">Quick Start</a> •
+  <a href="#-key-features">Features</a> •
+  <a href="#-demo">Demo</a> •
+  <a href="#-use-cases">Use Cases</a> •
+  <a href="#-documentation">Docs</a> •
+  <a href="#-contributing">Contributing</a>
+</p>
+
+---
 
 <!-- Project Stats -->
-[![GitHub Release](https://img.shields.io/github/v/release/athrael-soju/Snappy?include_prereleases&sort=semver&display_name=tag&style=flat-square&logo=github&color=blue)](https://github.com/athrael-soju/Snappy/releases)
-[![GitHub Stars](https://img.shields.io/github/stars/athrael-soju/Snappy?style=flat-square&logo=github&color=yellow)](https://github.com/athrael-soju/Snappy/stargazers)
-[![GitHub Forks](https://img.shields.io/github/forks/athrael-soju/Snappy?style=flat-square&logo=github&color=green)](https://github.com/athrael-soju/Snappy/network/members)
-[![GitHub Issues](https://img.shields.io/github/issues/athrael-soju/Snappy?style=flat-square&logo=github&color=red)](https://github.com/athrael-soju/Snappy/issues)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
+<p align="center">
+  <a href="https://github.com/athrael-soju/Snappy/releases"><img src="https://img.shields.io/github/v/release/athrael-soju/Snappy?include_prereleases&sort=semver&display_name=tag&style=flat-square&logo=github&color=blue" alt="GitHub Release" /></a>
+  <a href="https://github.com/athrael-soju/Snappy/stargazers"><img src="https://img.shields.io/github/stars/athrael-soju/Snappy?style=flat-square&logo=github&color=yellow" alt="GitHub Stars" /></a>
+  <a href="https://github.com/athrael-soju/Snappy/network/members"><img src="https://img.shields.io/github/forks/athrael-soju/Snappy?style=flat-square&logo=github&color=green" alt="GitHub Forks" /></a>
+  <a href="https://github.com/athrael-soju/Snappy/issues"><img src="https://img.shields.io/github/issues/athrael-soju/Snappy?style=flat-square&logo=github&color=red" alt="GitHub Issues" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square" alt="License: MIT" /></a>
+</p>
 
 <!-- Build & Quality -->
-[![CI/CD](https://img.shields.io/github/actions/workflow/status/athrael-soju/Snappy/release-please.yml?style=flat-square&logo=githubactions&label=CI%2FCD)](https://github.com/athrael-soju/Snappy/actions)
-[![CodeQL](https://img.shields.io/github/actions/workflow/status/athrael-soju/Snappy/codeql.yml?style=flat-square&logo=github&label=CodeQL)](https://github.com/athrael-soju/Snappy/security/code-scanning)
-[![Code Quality](https://img.shields.io/badge/code%20quality-A+-brightgreen?style=flat-square&logo=codacy)](https://github.com/athrael-soju/Snappy)
-[![Pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?style=flat-square&logo=pre-commit)](https://github.com/pre-commit/pre-commit)
+<p align="center">
+  <a href="https://github.com/athrael-soju/Snappy/actions"><img src="https://img.shields.io/github/actions/workflow/status/athrael-soju/Snappy/release-please.yml?style=flat-square&logo=githubactions&label=CI%2FCD" alt="CI/CD" /></a>
+  <a href="https://github.com/athrael-soju/Snappy/security/code-scanning"><img src="https://img.shields.io/github/actions/workflow/status/athrael-soju/Snappy/codeql.yml?style=flat-square&logo=github&label=CodeQL" alt="CodeQL" /></a>
+  <img src="https://img.shields.io/badge/code%20quality-A+-brightgreen?style=flat-square&logo=codacy" alt="Code Quality" />
+  <img src="https://img.shields.io/badge/pre--commit-enabled-brightgreen?style=flat-square&logo=pre-commit" alt="Pre-commit" />
+</p>
 
 <!-- Tech Stack -->
-[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
-[![Next.js](https://img.shields.io/badge/Frontend-Next.js%2016-000000?style=flat-square&logo=next.js)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19.2-61DAFB?style=flat-square&logo=react)](https://react.dev/)
-[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Qdrant](https://img.shields.io/badge/VectorDB-Qdrant-ff6b6b?style=flat-square&logo=qdrant)](https://qdrant.tech/)
-[![MinIO](https://img.shields.io/badge/Storage-MinIO-f79533?style=flat-square&logo=minio)](https://min.io/)
-[![Docker](https://img.shields.io/badge/Orchestration-Docker-2496ed?style=flat-square&logo=docker)](https://docs.docker.com/compose/)
-
-Snappy pairs a FastAPI backend, a ColPali embedding service, and a Next.js frontend to deliver vision-first retrieval over PDFs. Each page is rasterised, embedded as multivectors, and stored alongside images so you can search by how documents look—not just by extracted text.
-
-> Component docs:
-> - Backend: `backend/README.md`
-> - Frontend: `frontend/README.md`
-> - ColPali service: `colpali/README.md`
-> - Configuration reference: `backend/docs/configuration.md`
-> - **Version management: `VERSIONING.md`**
+<p align="center">
+  <a href="https://fastapi.tiangolo.com/"><img src="https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square&logo=fastapi" alt="FastAPI" /></a>
+  <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Frontend-Next.js%2016-000000?style=flat-square&logo=next.js" alt="Next.js" /></a>
+  <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19.2-61DAFB?style=flat-square&logo=react" alt="React" /></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" /></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" /></a>
+  <a href="https://qdrant.tech/"><img src="https://img.shields.io/badge/VectorDB-Qdrant-ff6b6b?style=flat-square&logo=qdrant" alt="Qdrant" /></a>
+  <a href="https://min.io/"><img src="https://img.shields.io/badge/Storage-MinIO-f79533?style=flat-square&logo=minio" alt="MinIO" /></a>
+  <a href="https://docs.docker.com/compose/"><img src="https://img.shields.io/badge/Orchestration-Docker-2496ed?style=flat-square&logo=docker" alt="Docker" /></a>
+</p>
 
 ---
 
-## Architecture
+## 🎯 What is Snappy?
+
+**Snappy** is a production-ready template for building **vision-first document retrieval systems**. Instead of relying solely on text extraction (OCR), Snappy searches PDFs by **visual appearance**—layout, formatting, diagrams, handwriting, and more.
+
+Each document page is:
+1. **Rasterized** into an image
+2. **Embedded** using ColPali's multivector model
+3. **Stored** in Qdrant vector database with visual metadata
+4. **Searchable** by how it looks, not just what text it contains
+
+Perfect for documents where **visual context matters**: legal contracts, medical records, financial forms, technical diagrams, and research papers.
+
+---
+
+## 📺 Demo
+
+https://github.com/user-attachments/assets/99438b0d-c62e-4e47-bdc8-623ee1d2236c
+
+---
+
+## ✨ Key Features
+
+<table>
+<tr>
+<td width="50%">
+
+### 🎯 Vision-First Retrieval
+- **No OCR required** – search by visual appearance
+- **ColPali multivector embeddings** for page-level precision
+- **Layout-aware** – finds diagrams, tables, handwriting
+- **MUVERA-assisted** first-stage search (optional)
+
+</td>
+<td width="50%">
+
+### 💬 AI-Powered Chat
+- **Streaming responses** from OpenAI Responses API
+- **Visual citations** – see supporting pages inline
+- **Context-aware** – grounded in your documents
+- **Real-time** – Server-Sent Events for live updates
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### ⚡ Production Ready
+- **Type-safe** – end-to-end TypeScript + Python typing
+- **Schema-driven config** – runtime updates with UI
+- **Background processing** – parallel indexing pipeline
+- **Pre-built images** – deploy in minutes
+
+</td>
+<td width="50%">
+
+### 🐳 Developer Friendly
+- **Docker Compose** – one command to start
+- **GPU/CPU profiles** – flexible deployment
+- **Live reload** – fast development cycle
+- **Comprehensive docs** – architecture, config, APIs
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🚀 Quick Start
+
+> **⚡ Fastest Path:** Use [pre-built Docker images](#option-a--pre-built-images-recommended) from GitHub Container Registry
+
+### Prerequisites
+
+- Docker & Docker Compose
+- OpenAI API key
+- (Optional) NVIDIA GPU with CUDA for faster embeddings
+
+### 5-Minute Setup
+
+1️⃣ **Clone and configure**
+```bash
+git clone https://github.com/athrael-soju/Snappy.git
+cd Snappy
+cp .env.example .env
+cp frontend/.env.example frontend/.env.local
+```
+
+2️⃣ **Add your OpenAI API key** to `frontend/.env.local`:
+```bash
+OPENAI_API_KEY=sk-...
+```
+
+3️⃣ **Choose your deployment method:**
+
+#### Option A – Pre-built Images (Recommended)
+
+```bash
+# Pull images
+docker pull ghcr.io/athrael-soju/Snappy/backend:latest
+docker pull ghcr.io/athrael-soju/Snappy/frontend:latest
+docker pull ghcr.io/athrael-soju/Snappy/colpali-cpu:latest
+
+# Start services
+docker compose up -d
+```
+
+📖 **Complete guide:** [`docs/DOCKER_IMAGES.md`](docs/DOCKER_IMAGES.md)
+
+#### Option B – Build from Source
+
+```bash
+# Start ColPali service (choose GPU or CPU)
+cd colpali
+docker compose --profile gpu up -d --build  # or --profile cpu
+
+# Start full stack
+cd ..
+docker compose up -d --build
+```
+
+4️⃣ **Access the application**
+
+- 🌐 Frontend: http://localhost:3000
+- 🔌 Backend API: http://localhost:8000
+- 📊 API Docs: http://localhost:8000/docs
+- 🗄️ Qdrant Dashboard: http://localhost:6333/dashboard
+- 📦 MinIO Console: http://localhost:9001
+
+---
+
+<details>
+<summary><b>🛠️ Option C – Local Development (Advanced)</b></summary>
+
+For development without Docker:
+
+**Backend:**
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\Activate.ps1
+pip install -U pip setuptools wheel
+pip install -r requirements.txt
+uvicorn backend:app --host 0.0.0.0 --port 8000 --reload
+```
+
+**Frontend:**
+```bash
+cd frontend
+yarn install --frozen-lockfile
+yarn dev
+```
+
+**Services:** Start Qdrant, MinIO, and ColPali separately (Docker recommended).
+
+</details>
+
+---
+
+## 💼 Use Cases
+
+Snappy excels where **visual layout and formatting matter as much as textual content**:
+
+<table>
+<tr>
+<td width="33%">
+
+### 📋 Legal & Compliance
+- Contracts with annotations
+- Case files with stamps
+- Legal briefs by structure
+- Compliance documents
+
+</td>
+<td width="33%">
+
+### 🏥 Healthcare
+- Patient charts
+- Diagnostic reports
+- Medical forms
+- Handwritten notes
+
+</td>
+<td width="33%">
+
+### 💰 Finance
+- Invoices with logos
+- Receipt verification
+- Financial statements
+- Audit documents
+
+</td>
+</tr>
+<tr>
+<td width="33%">
+
+### 🔬 Research
+- Scientific papers
+- Technical documents
+- Figures & charts
+- Equations & formulas
+
+</td>
+<td width="33%">
+
+### 📚 Archives
+- Historical documents
+- Scanned records
+- Legacy files
+- Visual preservation
+
+</td>
+<td width="33%">
+
+### 🏗️ Engineering
+- Blueprints
+- Schematics
+- Technical drawings
+- Specification sheets
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🏗️ Architecture
 
 ```mermaid
 ---
@@ -75,7 +312,350 @@ flowchart TB
   CHAT -- SSE --> USER
 ```
 
-Head to `backend/docs/architecture.md` and `backend/docs/analysis.md` for a deeper walkthrough of the indexing and retrieval flows.
+---
+
+## 🏗️ Architecture
+
+```mermaid
+---
+config:
+  theme: neutral
+  layout: elk
+---
+flowchart TB
+  subgraph Frontend["Next.js Frontend"]
+    UI["Pages (/upload, /search, /chat, /configuration, /maintenance)"]
+    CHAT["Chat API Route"]
+  end
+
+  subgraph Backend["FastAPI Backend"]
+    API["REST Routers"]
+  end
+
+  subgraph Services["Supporting Services"]
+    QDRANT["Qdrant"]
+    MINIO["MinIO"]
+    COLPALI["ColPali Embedding API"]
+    OPENAI["OpenAI Responses API"]
+  end
+
+  USER["Browser"] <--> UI
+  UI --> API
+  API --> QDRANT
+  API --> MINIO
+  API --> COLPALI
+  CHAT --> API
+  CHAT --> OPENAI
+  CHAT -- SSE --> USER
+```
+
+### Components
+
+| Component | Technology | Purpose |
+|-----------|-----------|---------|
+| **Frontend** | Next.js 16 + React 19.2 | Modern UI with Server Components, streaming, and type-safe API client |
+| **Backend** | FastAPI + Python 3.11+ | RESTful API, background jobs, SSE progress tracking |
+| **Vector DB** | Qdrant | Multivector search with optional quantization and MUVERA |
+| **Storage** | MinIO | S3-compatible object storage for page images |
+| **Embeddings** | ColPali Service | Standalone FastAPI app for vision embeddings (GPU/CPU) |
+| **AI Chat** | OpenAI Responses API | Streaming responses with visual citations |
+
+📖 **Deep dive:** [`backend/docs/architecture.md`](backend/docs/architecture.md) • [`backend/docs/analysis.md`](backend/docs/analysis.md)
+
+---
+
+## 📚 Documentation
+
+<table>
+<tr>
+<td width="50%">
+
+### Component Guides
+- 📘 [Backend README](backend/README.md)
+- 📗 [Frontend README](frontend/README.md)
+- 📙 [ColPali Service README](colpali/README.md)
+
+### Technical Docs
+- 🏛️ [Architecture Deep Dive](backend/docs/architecture.md)
+- ⚙️ [Configuration Reference](backend/docs/configuration.md)
+- 📊 [Vision vs Text RAG Analysis](backend/docs/analysis.md)
+
+</td>
+<td width="50%">
+
+### Deployment
+- 🐳 [Docker Images Guide](docs/DOCKER_IMAGES.md)
+- 🔧 [Configuration Guide](backend/CONFIGURATION_GUIDE.md)
+- 📦 [Version Management](VERSIONING.md)
+
+### API Reference
+- 🔌 [OpenAPI Spec](http://localhost:8000/docs) (when running)
+- 📝 [API Overview](#api-overview)
+- 🔍 [Troubleshooting](#troubleshooting)
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🔌 API Overview
+
+<details>
+<summary><b>Click to expand API endpoints</b></summary>
+
+| Area | Endpoint | Method | Description |
+|------|----------|--------|-------------|
+| **Meta** | `/health` | GET | Service and dependency health status |
+| **Retrieval** | `/search` | GET | Page-level visual search (`?q=...&k=5`) |
+| **Indexing** | `/index` | POST | Upload PDFs and start background indexing |
+| | `/progress/stream/{job_id}` | GET | Real-time SSE progress updates |
+| | `/index/cancel/{job_id}` | POST | Cancel active indexing job |
+| **Maintenance** | `/status` | GET | Collection and bucket statistics |
+| | `/initialize` | POST | Create collection and bucket |
+| | `/delete` | DELETE | Remove collection and bucket |
+| | `/clear/all` | POST | Clear all data (Qdrant + MinIO) |
+| **Configuration** | `/config/schema` | GET | Configuration schema with defaults |
+| | `/config/values` | GET | Current runtime configuration |
+| | `/config/update` | POST | Update runtime configuration |
+| | `/config/reset` | POST | Reset to defaults |
+
+💡 **Chat streaming** is implemented in `frontend/app/api/chat/route.ts` using the OpenAI Responses API
+
+📖 **Full API documentation:** http://localhost:8000/docs (when backend is running)
+
+</details>
+
+---
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+<details>
+<summary><b>Backend Configuration (`.env`)</b></summary>
+
+**ColPali Service:**
+- `COLPALI_URL` – Embedding service endpoint (default: `http://localhost:8080`)
+- `COLPALI_API_TIMEOUT` – Request timeout in seconds (default: `300`)
+
+**Qdrant:**
+- `QDRANT_EMBEDDED` – Use embedded Qdrant (default: `false`)
+- `QDRANT_URL` – Vector database endpoint
+- `QDRANT_COLLECTION_NAME` – Collection name (default: `snappy_collection`)
+- `QDRANT_PREFETCH_LIMIT` – Prefetch limit for search (default: `500`)
+- `QDRANT_MEAN_POOLING_ENABLED` – Enable mean pooling (default: `true`)
+
+**MinIO:**
+- `MINIO_URL` – Object storage endpoint
+- `MINIO_PUBLIC_URL` – Public-facing URL for images
+- `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY` – Credentials
+- `MINIO_BUCKET_NAME` – Bucket for images (default: `snappy-images`)
+- `IMAGE_FORMAT` – Output format (default: `webp`)
+- `IMAGE_QUALITY` – Compression quality 1-100 (default: `85`)
+
+**MUVERA (Optional):**
+- `MUVERA_ENABLED` – Enable MUVERA first-stage search (default: `false`)
+- Requires: `pip install fastembed[postprocess]`
+
+**API:**
+- `LOG_LEVEL` – Logging level (default: `INFO`)
+- `ALLOWED_ORIGINS` – CORS origins (comma-separated)
+- `UVICORN_RELOAD` – Enable auto-reload (default: `false`)
+
+📖 **Complete reference:** [`backend/docs/configuration.md`](backend/docs/configuration.md)
+
+</details>
+
+<details>
+<summary><b>Frontend Configuration (`frontend/.env.local`)</b></summary>
+
+**Required:**
+- `OPENAI_API_KEY` – Your OpenAI API key
+
+**Optional:**
+- `NEXT_PUBLIC_API_BASE_URL` – Backend URL (default: `http://localhost:8000`)
+- `OPENAI_MODEL` – Model to use (default: `gpt-4o-mini`)
+- `OPENAI_TEMPERATURE` – Response randomness 0-2 (default: `0.7`)
+- `OPENAI_MAX_TOKENS` – Max response length (default: `4096`)
+
+</details>
+
+---
+
+## 🐛 Troubleshooting
+
+<details>
+<summary><b>Common Issues & Solutions</b></summary>
+
+### ColPali Timing Out
+**Cause:** Heavy workload on CPU-only service  
+**Solution:** 
+- Increase `COLPALI_API_TIMEOUT` in `.env`
+- Use GPU profile: `docker compose --profile gpu up -d --build`
+
+### Progress Bar Stuck During Indexing
+**Cause:** PDF conversion failure (missing Poppler)  
+**Solution:** 
+- Install `poppler-utils` in backend environment
+- Check backend logs for conversion errors
+
+### Missing Images
+**Cause:** MinIO URL misconfiguration  
+**Solution:**
+- Verify `MINIO_PUBLIC_URL` in `.env`
+- Add MinIO domain to `next.config.ts` `images.remotePatterns`
+
+### CORS Errors
+**Cause:** `ALLOWED_ORIGINS` not configured  
+**Solution:** 
+- Set explicit origins in `.env` (avoid `*` in production)
+- Example: `ALLOWED_ORIGINS=http://localhost:3000,https://your-domain.com`
+
+### Config Changes Not Persisting
+**Cause:** `/config/update` only affects runtime  
+**Solution:** 
+- Update `.env` file for persistent changes
+- Restart services after editing `.env`
+
+### Type Errors After API Changes
+**Cause:** OpenAPI spec out of sync  
+**Solution:**
+```bash
+# Regenerate OpenAPI spec
+python scripts/generate_openapi.py
+
+# Update frontend types
+cd frontend
+yarn gen:sdk
+yarn gen:zod
+```
+
+</details>
+
+📖 **More troubleshooting:** [`backend/CONFIGURATION_GUIDE.md`](backend/CONFIGURATION_GUIDE.md)
+
+---
+
+## 🧪 Development
+
+### Prerequisites
+
+- **Backend:** Python 3.11+, `uv` (recommended) or `pip`
+- **Frontend:** Node.js 18+, `yarn`
+- **Services:** Docker for Qdrant, MinIO, ColPali
+
+### Development Workflow
+
+**Generate OpenAPI spec:**
+```bash
+python scripts/generate_openapi.py
+```
+
+**Update frontend types:**
+```bash
+cd frontend
+yarn gen:sdk    # TypeScript types
+yarn gen:zod    # Zod schemas
+```
+
+**Run pre-commit hooks:**
+```bash
+cd backend
+pre-commit run --all-files
+```
+
+**Type checking:**
+```bash
+# Backend
+cd backend
+pyright
+
+# Frontend
+cd frontend
+yarn type-check
+```
+
+### Version Management
+
+Snappy uses **Release Please** with **Conventional Commits** for automated versioning:
+
+```bash
+# Feature (minor bump)
+git commit -m "feat: add new search filter"
+
+# Bug fix (patch bump)
+git commit -m "fix: resolve timeout issue"
+
+# Breaking change (major bump)
+git commit -m "feat!: redesign API
+
+BREAKING CHANGE: /search now requires collection parameter"
+```
+
+📖 **Full guide:** [`VERSIONING.md`](VERSIONING.md)
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please see:
+
+- 📋 [Contributing Guide](CONTRIBUTING.md)
+- 📜 [Code of Conduct](CODE_OF_CONDUCT.md)
+- 🔒 [Security Policy](SECURITY.md)
+
+### Quick Contribution Steps
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feat/amazing-feature`)
+3. Make your changes following our [code patterns](AGENTS.md#best-practices)
+4. Run tests and pre-commit hooks
+5. Commit using [Conventional Commits](https://www.conventionalcommits.org/)
+6. Push and create a Pull Request
+
+---
+
+## 📄 License
+
+MIT License – see [LICENSE](LICENSE) for details.
+
+---
+
+## 🙏 Acknowledgements
+
+Snappy builds on outstanding work from:
+
+### Research & Models
+- **[ColPali](https://arxiv.org/abs/2407.01449)** – Efficient Document Retrieval with Vision Language Models
+- **[ColModernVBert](https://arxiv.org/abs/2510.01149)** – Improved Vision Language Model for Document Retrieval
+
+### Infrastructure
+- **[Qdrant](https://qdrant.tech/)** – Vector database with multivector search
+  - [ColPali Optimization Guide](https://qdrant.tech/blog/colpali-qdrant-optimization/)
+  - [Binary Quantization](https://qdrant.tech/articles/binary-quantization/)
+  - [MUVERA Embeddings](https://qdrant.tech/articles/muvera-embeddings/)
+- **[PyTorch](https://pytorch.org/)** – Deep learning framework
+
+### Frameworks & Tools
+- **[FastAPI](https://fastapi.tiangolo.com/)** – Modern Python web framework
+- **[Next.js](https://nextjs.org/)** – React framework for production
+- **[MinIO](https://min.io/)** – High-performance object storage
+- **[OpenAI](https://openai.com/)** – AI-powered chat capabilities
+
+---
+
+<p align="center">
+  <strong>Built with ❤️ for the developer community</strong>
+  <br>
+  <sub>Star ⭐ this repo if you find it useful!</sub>
+</p>
+
+<p align="center">
+  <a href="#-quick-start">Get Started</a> •
+  <a href="https://github.com/athrael-soju/Snappy/issues">Report Bug</a> •
+  <a href="https://github.com/athrael-soju/Snappy/issues">Request Feature</a>
+</p>
 
 ---
 
