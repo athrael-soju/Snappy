@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="754" height="643" alt="snappy_light_nobg_resized" src="https://github.com/user-attachments/assets/2ebd2908-42a7-46d4-84a1-cad8aeca1847" style="background-color: white;" />
+  <img width="754" height="643" alt="Snappy_light_readme" src="https://github.com/user-attachments/assets/1da5d693-2b1b-483b-8c50-88c53aae3b59" />
 </p>
 
 ---
