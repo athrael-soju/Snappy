@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.4](https://github.com/athrael-soju/Snappy/compare/v0.1.3...v0.1.4) (2025-10-24)
+
+
+### Documentation
+
+* enhance README with detailed sections on demo, key features, use cases, and architecture ([9539c0b](https://github.com/athrael-soju/Snappy/commit/9539c0b13a62eede302a75fa281b5a7a61fd06f7))
+* update README for clarity and structure; enhance highlights and use cases sections ([aa2b0b9](https://github.com/athrael-soju/Snappy/commit/aa2b0b9a3d1cb6646b4a2bdabbc19c27fb92c7a1))
+
+
+### Code Refactoring
+
+* update Docker build platforms to only include linux/amd64 ([e0b9c9e](https://github.com/athrael-soju/Snappy/commit/e0b9c9e4e6104c629c6de943a2fc2afc91e8d9f4))
+
 ## [0.1.3](https://github.com/athrael-soju/Snappy/compare/0.1.2...v0.1.3) (2025-10-23)
 
 
