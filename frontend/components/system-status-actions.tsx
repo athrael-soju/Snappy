@@ -109,7 +109,7 @@ export function SystemStatusActions({
           .filter(Boolean) as string[];
         const summary = downTargets.join(" and ");
         return {
-          title: "Morty systems require attention",
+          title: "Vultr systems require attention",
           description: downTargets.length
             ? `${summary} container${downTargets.length > 1 ? "s are" : " is"} not reachable. Start the Docker services, then refresh the status.`
             : "Morty cannot reach the storage services. Start the Qdrant and MinIO containers, then refresh the status.",
@@ -123,7 +123,7 @@ export function SystemStatusActions({
         ].filter(Boolean) as string[];
         const summary = missingTargets.join(" and ");
         return {
-          title: "Morty systems require attention",
+          title: "Vultr systems require attention",
           description: (
             <>
               {summary} {missingTargets.length > 1 ? "are" : "is"} not initialized.{" "}
@@ -137,7 +137,7 @@ export function SystemStatusActions({
       }
 
       return {
-        title: "Morty systems require attention",
+        title: "Vultr systems require attention",
         description: collectionError ?? bucketError ?? "Morty reported a storage error.",
       };
     }
@@ -175,7 +175,7 @@ export function SystemStatusActions({
     }
 
     return {
-      title: "Morty systems nominal",
+      title: "Vultr systems nominal",
       description: (
         <>
           Morty indexed {formatCount(uniqueFiles)} documents with {formatCount(vectorCount)} vectors.{" "}

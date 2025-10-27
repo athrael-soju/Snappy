@@ -1,5 +1,6 @@
 "use client";
 
+import "@/lib/api/client";
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import { appReducer } from './reducers';
 import { initialState } from './types';

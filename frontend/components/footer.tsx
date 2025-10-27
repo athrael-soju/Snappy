@@ -65,7 +65,7 @@ const footerColumns: FooterColumn[] = [
   {
     title: "Resources",
     links: [
-      { label: "Brand Book", href: "/vultr/vultr-brand-book.pdf", external: true },
+      { label: "Brand Book", href: "https://www.vultr.com/company/brand-assets/", external: true },
       { label: "Support Center", href: "https://www.vultr.com/support/", external: true },
 
     ],
@@ -73,9 +73,9 @@ const footerColumns: FooterColumn[] = [
   {
     title: "Company",
     links: [
-      { label: "About Vultr", href: "https://www.vultr.com/company/about/", external: true },
+      { label: "About Vultr", href: "https://www.vultr.com/company/about-us/", external: true },
       { label: "Careers", href: "https://www.vultr.com/company/careers/", external: true },
-      { label: "Press", href: "https://www.vultr.com/company/press/", external: true },
+      { label: "Press", href: "https://www.vultr.com/news/", external: true },
     ],
   },
   {
@@ -83,7 +83,7 @@ const footerColumns: FooterColumn[] = [
     links: [
       { label: "Privacy", href: "https://www.vultr.com/legal/privacy/", external: true },
       { label: "Terms of Service", href: "https://www.vultr.com/legal/tos/", external: true },
-      { label: "Security", href: "https://www.vultr.com/company/security/", external: true },
+      { label: "Compliance", href: "https://www.vultr.com/legal/compliance/", external: true },
     ],
   },
 ];
@@ -93,24 +93,31 @@ export function Footer() {
 
   return (
     <footer className="border-t border-black/5 bg-white text-vultr-navy dark:border-white/10 dark:bg-vultr-midnight/95 dark:text-white">
-      <div className="layout-container max-w-7xl py-12 md:py-16">
-        <div className="grid gap-10 lg:grid-cols-[1.2fr,3fr]">
-          <div className="space-y-6">
+      <div className="layout-container max-w-7xl py-10 md:py-14">
+        <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex flex-col gap-4 lg:max-w-md">
             <Link href="/" className="inline-flex items-center" aria-label="Vultr home">
               <Image
                 src="/brand/vultr-logo.svg"
                 alt="Vultr"
                 width={140}
                 height={42}
-                className="h-9 w-auto dark:invert"
+                className="h-9 w-auto dark:hidden"
+              />
+              <Image
+                src="/brand/vultr-logo-reversed.svg"
+                alt="Vultr"
+                width={140}
+                height={42}
+                className="hidden h-9 w-auto dark:block"
               />
             </Link>
-            <p className="max-w-sm text-body-sm text-vultr-navy/70 dark:text-white/70">
+            <p className="max-w-md text-body-sm text-vultr-navy/70 dark:text-white/70">
               Deploy Vultr&rsquo;s ColPali-powered document intelligence with brand-correct surfaces, global
               infrastructure, and enterprise-grade controls.
             </p>
-            <div className="space-y-3">
-              <p className="eyebrow text-vultr-navy/60 dark:text-white/60">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+              <p className="eyebrow text-vultr-navy/60 dark:text-white/60 sm:min-w-[110px]">
                 Powered By
               </p>
               <div className="flex flex-wrap gap-3">
@@ -153,13 +160,13 @@ export function Footer() {
             </div>
           </div>
 
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5 lg:gap-8">
             {footerColumns.map((column) => (
-              <div key={column.title} className="space-y-4">
+              <div key={column.title} className="space-y-3">
                 <p className="eyebrow text-vultr-navy/60 dark:text-white/60">
                   {column.title}
                 </p>
-                <ul className="space-y-3 text-body-sm">
+                <ul className="space-y-2 text-body-sm">
                   {column.links.map((link) => (
                     <li key={`${column.title}-${link.label}`}>
                       <Link
@@ -184,36 +191,36 @@ export function Footer() {
           <p>&copy; {currentYear} Vultr Holdings Corporation. All rights reserved.</p>
           <div className="flex flex-wrap gap-x-4 gap-y-2">
             <Link
-              href="https://www.vultr.com/legal/privacy/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="transition hover:text-vultr-blue dark:hover:text-vultr-light-blue"
-            >
-              Privacy
-            </Link>
-            <Link
               href="https://www.vultr.com/legal/tos/"
               target="_blank"
               rel="noopener noreferrer"
               className="transition hover:text-vultr-blue dark:hover:text-vultr-light-blue"
             >
-              Terms
+              Terms of Service
             </Link>
             <Link
-              href="https://www.vultr.com/company/accessibility/"
+              href="https://www.vultr.com/legal/use-policy/"
               target="_blank"
               rel="noopener noreferrer"
               className="transition hover:text-vultr-blue dark:hover:text-vultr-light-blue"
             >
-              Accessibility
+              AUP/DMCA
             </Link>
             <Link
-              href="https://www.vultr.com/company/security/"
+              href="https://www.vultr.com/legal/privacy/"
               target="_blank"
               rel="noopener noreferrer"
               className="transition hover:text-vultr-blue dark:hover:text-vultr-light-blue"
             >
-              Security
+              Privacy Policy
+            </Link>
+            <Link
+              href="https://www.vultr.com/legal/cookie-policy/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition hover:text-vultr-blue dark:hover:text-vultr-light-blue"
+            >
+              Cookie Policy
             </Link>
           </div>
         </div>
