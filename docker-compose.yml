@@ -45,6 +45,7 @@ services:
       - ./.env
     environment:
       - COLPALI_URL=${COLPALI_URL:-http://host.docker.internal:7000}
+      - PADDLEOCR_URL=${PADDLEOCR_URL:-http://host.docker.internal:8118}
       - QDRANT_EMBEDDED=false
       - QDRANT_URL=http://qdrant:6333
       - MINIO_URL=http://minio:9000

@@ -183,6 +183,35 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
             },
         ],
     },
+    "paddleocr": {
+        "order": 3.1,
+        "ui_hidden": True,
+        "icon": "scan",
+        "name": "PaddleOCR",
+        "description": "PaddleOCR-VL service configuration",
+        "settings": [
+            {
+                "key": "PADDLEOCR_URL",
+                "type": "str",
+                "default": "http://localhost:8118",
+                "label": "PaddleOCR Service URL",
+                "ui_type": "text",
+                "description": "URL for the PaddleOCR-VL docker service",
+                "help_text": "Public endpoint for the PaddleOCR container. If you are running docker compose locally, leave as http://localhost:8118. When the backend runs inside Docker, point to the container hostname (e.g. http://paddleocr:8118).",
+            },
+            {
+                "key": "PADDLEOCR_API_TIMEOUT",
+                "type": "int",
+                "default": 120,
+                "label": "PaddleOCR Timeout (seconds)",
+                "ui_type": "number",
+                "min": 10,
+                "max": 600,
+                "description": "Request timeout when calling the PaddleOCR-VL API",
+                "help_text": "Maximum time (in seconds) the backend waits for PaddleOCR to complete a layout parsing request. Complex documents or cold starts may require higher values.",
+            },
+        ],
+    },
     "qdrant": {
         "order": 4,
         "icon": "database",
@@ -595,4 +624,5 @@ def get_critical_keys() -> set:
         "QDRANT_URL",
         "QDRANT_USE_BINARY",
         "QDRANT_ON_DISK",
+        "PADDLEOCR_URL",
     }

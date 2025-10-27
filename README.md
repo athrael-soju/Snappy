@@ -29,11 +29,12 @@
 [![MinIO](https://img.shields.io/badge/Storage-MinIO-f79533?style=flat-square&logo=minio)](https://min.io/)
 [![Docker](https://img.shields.io/badge/Orchestration-Docker-2496ed?style=flat-square&logo=docker)](https://docs.docker.com/compose/)
 
-Snappy pairs a FastAPI backend, a ColPali embedding service, and a Next.js frontend to deliver vision-first retrieval over PDFs. Each page is rasterized, embedded as multivectors, and stored alongside images so you can search by how documents look rather than only extracted text.
+Snappy pairs a FastAPI backend, a ColPali embedding service, an optional PaddleOCR-VL layout parser, and a Next.js frontend to deliver vision-first retrieval over PDFs. Each page is rasterized, embedded as multivectors, and stored alongside images so you can search by how documents look rather than only extracted text—plus structured OCR when you need it.
 
 **TL;DR**
 
 - Vision-focused retrieval and chat with ColPali multivector embeddings, MinIO image storage, and Qdrant search.
+- Optional PaddleOCR-VL GPU service for layout-aware OCR and text extraction.
 - Streaming responses, live indexing progress, and a schema-driven configuration UI to keep changes safe.
 - One Docker Compose stack or individual services for local development and production-style deployments.
 
@@ -84,6 +85,7 @@ flowchart TB
     QDRANT["Qdrant"]
     MINIO["MinIO"]
     COLPALI["ColPali Embedding API"]
+    PADDLE["PaddleOCR-VL OCR"]
     OPENAI["OpenAI Responses API"]
   end
 
@@ -92,6 +94,7 @@ flowchart TB
   API --> QDRANT
   API --> MINIO
   API --> COLPALI
+  API --> PADDLE
   CHAT --> API
   CHAT --> OPENAI
   CHAT -- SSE --> USER
@@ -127,6 +130,19 @@ docker compose --profile cpu up -d --build
 ```
 
 Only start one profile at a time to avoid port clashes. The first GPU build compiles `flash-attn`; subsequent builds reuse the cached wheel.
+
+### 3. Start the PaddleOCR layout service (GPU)
+
+The PaddleOCR-VL container requires an NVIDIA GPU with the container toolkit installed:
+
+```bash
+cd paddleocr
+docker compose up
+# In another terminal (within paddleocr/)
+docker compose logs -f paddleocr
+```
+
+Once the logs report `Uvicorn running on ...:8118`, the OCR API is ready. The stack writes cache artifacts to the `paddleocr/paddleocr_cache` volume so subsequent startups are faster.
 
 ---
 
@@ -233,7 +249,7 @@ The Next.js 16 frontend with React 19.2 keeps things fast and friendly: real-tim
 
 ### Backend highlights
 
-- `COLPALI_URL`, `COLPALI_API_TIMEOUT`
+- `COLPALI_URL`, `COLPALI_API_TIMEOUT`, `PADDLEOCR_URL`, `PADDLEOCR_API_TIMEOUT`
 - `QDRANT_EMBEDDED`, `QDRANT_URL`, `QDRANT_COLLECTION_NAME`, `QDRANT_PREFETCH_LIMIT`, `QDRANT_MEAN_POOLING_ENABLED`, optional quantisation toggles
 - `MINIO_URL`, `MINIO_PUBLIC_URL`, credentials, bucket naming, `IMAGE_FORMAT`, `IMAGE_QUALITY`
 - `MUVERA_ENABLED` and related settings (requires `fastembed[postprocess]` in your environment)
@@ -260,6 +276,7 @@ All schema-backed settings (and defaults) are documented in `backend/docs/config
 | Maintenance  | `GET /status`                            | Collection/bucket statistics |
 |              | `POST /initialize`, `DELETE /delete`     | Provision or tear down collection + bucket |
 |              | `POST /clear/qdrant`, `/clear/minio`, `/clear/all` | Data reset helpers |
+| OCR          | `POST /ocr/layout-parsing`               | Forward file uploads to PaddleOCR-VL, returns structured text |
 | Configuration| `GET /config/schema`, `/config/values`   | Expose runtime schema and values |
 |              | `POST /config/update`, `/config/reset`   | Runtime configuration management |
 

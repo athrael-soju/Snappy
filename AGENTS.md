@@ -34,6 +34,7 @@ A vision-first document retrieval system that uses ColPali embeddings to search 
 - **Vector DB:** Qdrant (multivector search with optional MUVERA)
 - **Storage:** MinIO (S3-compatible object storage)
 - **Embeddings:** ColPali service (standalone FastAPI app)
+- **Vision OCR:** PaddleOCR-VL service (layout parsing + OCR via Docker)
 - **Orchestration:** Docker Compose (GPU/CPU profiles)
 - **Package Management:** `uv` (Python), `yarn` (Node.js)
 
@@ -43,6 +44,7 @@ A vision-first document retrieval system that uses ColPali embeddings to search 
 - Real-time indexing progress (Server-Sent Events)
 - Runtime configuration with schema-driven UI
 - Background job management for long-running tasks
+- Optional PaddleOCR-VL layout parsing service for structured OCR text
 
 ### First Steps When Engaging with This Project
 
@@ -113,7 +115,8 @@ FastAPI Backend (Port 8000)
     ↓ ↑ (parallel)
     ├─→ Qdrant (Port 6333)     - Vector search
     ├─→ MinIO (Port 9000)       - Image storage
-    └─→ ColPali (Port 8080)     - Embeddings
+    ├─→ ColPali (Port 8080)     - Embeddings
+    └─→ PaddleOCR (Port 8118)   - Layout parsing & OCR
 
 Chat Flow (separate):
 User Browser ←SSE← Next.js Chat API ←→ OpenAI API
@@ -237,6 +240,25 @@ External APIs/DBs (Qdrant, MinIO, ColPali)
 - `COLPALI_URL` - Service endpoint
 - `COLPALI_API_TIMEOUT` - Request timeout (default 300s)
 
+#### PaddleOCR Service (`backend/services/paddleocr.py`)
+
+**Capabilities:**
+- `POST /layout-parsing` - Layout parsing and OCR results for images or PDF pages
+- Intelligent payload builder that accepts bytes, file paths, file-like objects, or PIL images
+- `extract_text` helper flattens recognised text out of nested `layoutParsingResults`
+
+**Configuration:**
+- `PADDLEOCR_URL` - PaddleOCR-VL service endpoint (defaults to `http://localhost:8118`)
+- `PADDLEOCR_API_TIMEOUT` - Request timeout (default 120s)
+
+**API Exposure:**
+- Backend router `POST /ocr/layout-parsing` accepts `multipart/form-data` uploads with optional JSON `options`
+
+**Runtime Notes:**
+- Docker image `ccr-2vdh3abv-pub.cnc.bj.baidubce.com/paddlepaddle/paddlex-genai-vllm-server`
+- Requires GPU access (`--gpus all`) and installs `flash-attn==2.8.3` prior to serving
+- Default port `8118`, exposed by the standalone compose file in `paddleocr/docker-compose.yml`
+
 ---
 
 ## Development Environment
@@ -249,6 +271,7 @@ External APIs/DBs (Qdrant, MinIO, ColPali)
 |-----------|----------|-----------------|-------------|------------------|
 | **Backend** | WSL | `uv` + `venv` | 1. Open WSL terminal<br>2. Navigate to project root<br>3. `cd backend`<br>4. `source .venv/bin/activate` | `uv run uvicorn backend.main:app --reload`<br>`uv pip install -r requirements.txt` |
 | **ColPali Service** | WSL | `uv` + `venv` | 1. Open WSL terminal<br>2. Navigate to project root<br>3. `cd colpali`<br>4. `source .venv/bin/activate` | `uv run uvicorn colpali.app:app --port 8080`<br>`uv pip install -r requirements.txt` |
+| **PaddleOCR Service** | Docker | `docker compose` | 1. Ensure NVIDIA Container Toolkit is installed<br>2. `cd paddleocr`<br>3. `docker compose up` and wait for model download | `cd paddleocr && docker compose up`<br>`docker compose logs -f paddleocr` |
 | **Frontend** | bash/PowerShell | `yarn` | 1. Open bash or PowerShell terminal<br>2. Navigate to project root<br>3. `cd frontend` | `yarn install --frozen-lockfile`<br>`yarn dev`<br>`yarn gen:sdk` |
 
 ### Environment Setup
@@ -274,6 +297,16 @@ uv venv
 source .venv/bin/activate
 uv pip install -r requirements.txt
 uv run uvicorn colpali.app:app --host 0.0.0.0 --port 8080
+```
+
+#### PaddleOCR (Docker)
+
+```bash
+# GPU-enabled host
+cd paddleocr
+docker compose up
+# In another terminal (still inside paddleocr/)
+docker compose logs -f paddleocr
 ```
 
 #### Frontend (bash + yarn)

@@ -1,0 +1,24 @@
+services:
+  paddleocr:
+    image: ccr-2vdh3abv-pub.cnc.bj.baidubce.com/paddlepaddle/paddlex-genai-vllm-server
+    container_name: paddleocr
+    command: >
+      /bin/bash -lc "python -m pip install --no-cache-dir
+      'https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.3/flash_attn-2.8.3+cu12torch2.8cxx11abiTRUE-cp310-cp310-linux_x86_64.whl' &&
+      paddlex_genai_server --model_name PaddleOCR-VL-0.9B --backend vllm --port 8118"
+    ports:
+      - "8118:8118"
+    volumes:
+      - paddleocr_cache:/workspace/cache
+    environment:
+      - HF_HOME=/workspace/cache
+      - CUDA_HOME=/usr/local/cuda
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: ["gpu"]
+    restart: unless-stopped
+
+volumes:
+  paddleocr_cache:

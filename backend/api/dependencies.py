@@ -7,12 +7,14 @@ from typing import Optional
 import config
 from services.colpali import ColPaliService
 from services.minio import MinioService
+from services.paddleocr import PaddleOCRService
 from services.qdrant import MuveraPostprocessor, QdrantService
 
 logger = logging.getLogger(__name__)
 
 qdrant_init_error: Optional[str] = None
 minio_init_error: Optional[str] = None
+paddleocr_init_error: Optional[str] = None
 
 
 @lru_cache(maxsize=1)
@@ -69,6 +71,25 @@ def get_minio_service() -> MinioService:
 
 
 @lru_cache(maxsize=1)
+def _get_paddleocr_service_cached() -> PaddleOCRService:
+    return PaddleOCRService()
+
+
+def get_paddleocr_service() -> PaddleOCRService:
+    """Return the cached PaddleOCR service instance."""
+    global paddleocr_init_error
+    try:
+        service = _get_paddleocr_service_cached()
+        paddleocr_init_error = None
+        return service
+    except Exception as exc:  # pragma: no cover - defensive guard
+        logger.error("Failed to initialize PaddleOCR service: %s", exc)
+        paddleocr_init_error = str(exc)
+        _get_paddleocr_service_cached.cache_clear()
+        raise
+
+
+@lru_cache(maxsize=1)
 def _get_qdrant_service_cached() -> QdrantService:
     minio_service = get_minio_service()
 
@@ -106,11 +127,13 @@ def get_qdrant_service() -> Optional[QdrantService]:
 
 def invalidate_services():
     """Invalidate cached services so they are recreated on next access."""
-    global qdrant_init_error, minio_init_error
+    global qdrant_init_error, minio_init_error, paddleocr_init_error
     logger.info("Invalidating cached services to apply new configuration")
     qdrant_init_error = None
     minio_init_error = None
+    paddleocr_init_error = None
     _get_qdrant_service_cached.cache_clear()
     _get_muvera_postprocessor_cached.cache_clear()
     _get_minio_service_cached.cache_clear()
     _get_colpali_client_cached.cache_clear()
+    _get_paddleocr_service_cached.cache_clear()
