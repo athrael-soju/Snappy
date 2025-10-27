@@ -142,7 +142,7 @@ docker compose up
 docker compose logs -f paddleocr
 ```
 
-Once the logs report `Uvicorn running on ...:8118`, the OCR API is ready. The stack writes cache artifacts to the `paddleocr/paddleocr_cache` volume so subsequent startups are faster.
+Once the logs report `Uvicorn running on ...:8118`, visit http://localhost:8118/docs for the interactive OpenAPI UI. The stack writes cache artifacts to the `paddleocr/paddleocr_cache` volume so subsequent startups are faster.
 
 ---
 

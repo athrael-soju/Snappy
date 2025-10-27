@@ -6,18 +6,18 @@ repos:
         args: [--in-place, --remove-all-unused-imports, --remove-unused-variables]
 
   - repo: https://github.com/PyCQA/isort
-    rev: 5.13.2
+    rev: 7.0.0
     hooks:
       - id: isort
         args: ["--profile", "black"]
 
   - repo: https://github.com/psf/black
-    rev: 24.4.2
+    rev: 25.9.0
     hooks:
       - id: black
 
   # ✅ Pyright mirror for pre-commit
   - repo: https://github.com/ComPWA/pyright-pre-commit
-    rev: ""           # leave empty; we'll pin it next
+    rev: "v1.1.407"           # leave empty; we'll pin it next
     hooks:
       - id: pyright

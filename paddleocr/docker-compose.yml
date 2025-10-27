@@ -1,13 +1,13 @@
 services:
-  paddleocr:
+  paddleocr-upstream:
     image: ccr-2vdh3abv-pub.cnc.bj.baidubce.com/paddlepaddle/paddlex-genai-vllm-server
-    container_name: paddleocr
+    container_name: paddleocr-upstream
     command: >
       /bin/bash -lc "python -m pip install --no-cache-dir
       'https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.3/flash_attn-2.8.3+cu12torch2.8cxx11abiTRUE-cp310-cp310-linux_x86_64.whl' &&
       paddlex_genai_server --model_name PaddleOCR-VL-0.9B --backend vllm --port 8118"
-    ports:
-      - "8118:8118"
+    expose:
+      - "8118"
     volumes:
       - paddleocr_cache:/workspace/cache
     environment:
@@ -18,6 +18,21 @@ services:
         reservations:
           devices:
             - capabilities: ["gpu"]
+    restart: unless-stopped
+
+  paddleocr:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: paddleocr
+    environment:
+      - PADDLEOCR_UPSTREAM_URL=http://paddleocr-upstream:8118
+      - PADDLEOCR_API_TIMEOUT=120
+      - PADDLEOCR_ALLOW_ORIGINS=*
+    ports:
+      - "8118:8118"
+    depends_on:
+      - paddleocr-upstream
     restart: unless-stopped
 
 volumes:

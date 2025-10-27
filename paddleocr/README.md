@@ -1,8 +1,9 @@
 # PaddleOCR-VL Service
 
-Standalone Docker Compose stack for running the PaddleOCR-VL layout parsing server used by Snappy.
+Standalone Docker Compose stack for running the PaddleOCR-VL layout parsing server with an accompanying FastAPI proxy that provides OpenAPI docs.
 
-The container wraps the official `paddlex-genai-vllm-server` image, installs the matching FlashAttention wheel for CUDA 12.8 and PyTorch 2.8.0, and exposes the API on port `8118`.
+- `paddleocr-upstream`: official `paddlex-genai-vllm-server` image with FlashAttention 2.8.3 preinstalled
+- `paddleocr`: lightweight FastAPI proxy that forwards requests to the upstream service and exposes Swagger UI at `http://localhost:8118/docs`
 
 ## Prerequisites
 
@@ -17,7 +18,7 @@ cd paddleocr
 docker compose up --pull always
 ```
 
-The first startup pulls model weights and builds FlashAttention; subsequent runs reuse the cached volume (`paddleocr_cache`).
+The first startup pulls model weights and builds FlashAttention; subsequent runs reuse the cached volume (`paddleocr_cache`). When the proxy reports `Uvicorn running on http://0.0.0.0:8118`, open http://localhost:8118/docs for the interactive UI.
 
 Stop the service with:
 
@@ -31,12 +32,4 @@ The Snappy backend expects the service at `http://localhost:8118` by default. Ad
 
 ## Health Check
 
-Once the logs show `Uvicorn running on http://0.0.0.0:8118`, test the service with:
-
-```bash
-curl -X POST http://localhost:8118/layout-parsing \
-  -H "Content-Type: application/json" \
-  -d '{"file":"<base64_encoded_image>","fileType":1}'
-```
-
-You should receive a JSON payload containing `layoutParsingResults`.
+Use the `/health` endpoint exposed by the proxy or the OpenAPI UI to verify connectivity to the upstream container.

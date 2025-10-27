@@ -255,9 +255,9 @@ External APIs/DBs (Qdrant, MinIO, ColPali)
 - Backend router `POST /ocr/layout-parsing` accepts `multipart/form-data` uploads with optional JSON `options`
 
 **Runtime Notes:**
-- Docker image `ccr-2vdh3abv-pub.cnc.bj.baidubce.com/paddlepaddle/paddlex-genai-vllm-server`
+- Standalone compose launches the upstream `paddlex-genai-vllm-server` plus a lightweight FastAPI proxy with docs at `http://localhost:8118/docs`
 - Requires GPU access (`--gpus all`) and installs `flash-attn==2.8.3` prior to serving
-- Default port `8118`, exposed by the standalone compose file in `paddleocr/docker-compose.yml`
+- Default port `8118`, exposed by the proxy service defined in `paddleocr/docker-compose.yml`
 
 ---
 
@@ -271,7 +271,7 @@ External APIs/DBs (Qdrant, MinIO, ColPali)
 |-----------|----------|-----------------|-------------|------------------|
 | **Backend** | WSL | `uv` + `venv` | 1. Open WSL terminal<br>2. Navigate to project root<br>3. `cd backend`<br>4. `source .venv/bin/activate` | `uv run uvicorn backend.main:app --reload`<br>`uv pip install -r requirements.txt` |
 | **ColPali Service** | WSL | `uv` + `venv` | 1. Open WSL terminal<br>2. Navigate to project root<br>3. `cd colpali`<br>4. `source .venv/bin/activate` | `uv run uvicorn colpali.app:app --port 8080`<br>`uv pip install -r requirements.txt` |
-| **PaddleOCR Service** | Docker | `docker compose` | 1. Ensure NVIDIA Container Toolkit is installed<br>2. `cd paddleocr`<br>3. `docker compose up` and wait for model download | `cd paddleocr && docker compose up`<br>`docker compose logs -f paddleocr` |
+| **PaddleOCR Service** | Docker | `docker compose` | 1. Ensure NVIDIA Container Toolkit is installed<br>2. `cd paddleocr`<br>3. `docker compose up` and wait for model download | `cd paddleocr && docker compose up`<br>`docker compose logs -f paddleocr`<br>Docs: `http://localhost:8118/docs` |
 | **Frontend** | bash/PowerShell | `yarn` | 1. Open bash or PowerShell terminal<br>2. Navigate to project root<br>3. `cd frontend` | `yarn install --frozen-lockfile`<br>`yarn dev`<br>`yarn gen:sdk` |
 
 ### Environment Setup
@@ -307,6 +307,7 @@ cd paddleocr
 docker compose up
 # In another terminal (still inside paddleocr/)
 docker compose logs -f paddleocr
+# When ready, open http://localhost:8118/docs for the interactive UI
 ```
 
 #### Frontend (bash + yarn)
