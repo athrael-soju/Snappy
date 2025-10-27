@@ -108,7 +108,7 @@ const DEFAULT_MORTY_LEFT = 32;
 const DEFAULT_TRAIL_LEFT = DEFAULT_MORTY_LEFT + MORTY_CENTER_OFFSET;
 
 export default function Home() {
-  const heroRef = useRef<HTMLElement | null>(null);
+  const heroRef = useRef<HTMLDivElement | null>(null);
   const titleRef = useRef<HTMLHeadingElement | null>(null);
   const [mortyLeft, setMortyLeft] = useState(DEFAULT_MORTY_LEFT);
   const [mortyCenterLeft, setMortyCenterLeft] = useState(DEFAULT_TRAIL_LEFT);
@@ -156,82 +156,85 @@ export default function Home() {
 
   return (
     <div className="relative flex flex-1 flex-col bg-white pt-16 dark:bg-vultr-midnight">
-      <motion.section
-        ref={heroRef}
-        className="relative isolate overflow-hidden bg-gradient-to-br from-[#06175a] via-[#0d2c96] to-[#1647d1] pb-28 pt-20 text-white sm:pt-24"
-        initial="hidden"
-        animate="visible"
-        variants={containerVariants}
-      >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(82,186,255,0.25),transparent_55%),radial-gradient(circle_at_85%_15%,rgba(0,123,252,0.35),transparent_60%)]" />
+      <div ref={heroRef} className="relative">
+        <motion.section
+          className="relative isolate overflow-hidden bg-gradient-to-br from-[#06175a] via-[#0d2c96] to-[#1647d1] pb-28 pt-20 text-white sm:pt-24"
+          initial="hidden"
+          animate="visible"
+          variants={containerVariants}
+        >
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(82,186,255,0.25),transparent_55%),radial-gradient(circle_at_85%_15%,rgba(0,123,252,0.35),transparent_60%)]" />
 
-        <MortyHero
-          mortyLeft={mortyLeft}
-          mortyCenterLeft={mortyCenterLeft}
-        />
-
-        <div className="relative mx-auto flex max-w-4xl flex-col items-center px-6 text-center sm:px-10">
-          <motion.span
-            className="eyebrow text-white/70"
-            variants={itemVariants}
-          >
-            Vultr Vision Platform Preview
-          </motion.span>
-
-          <motion.h1
-            ref={titleRef}
-            className="mt-5 max-w-3xl text-digital-h1 text-balance font-bold"
-            variants={itemVariants}
-          >
-            <span>Meet Morty, Your Visual Retrieval Buddy</span>{" "}
-            <span className="text-body-xs font-semibold text-white/85">Powered by </span>
-            <Link
-              href="https://github.com/athrael-soju/Snappy"
-              target="_blank"
-              rel="noreferrer noopener"
-              className="text-body-xs font-semibold text-white/85 underline underline-offset-8 hover:text-white"
+          <div className="relative mx-auto flex max-w-4xl flex-col items-center px-6 text-center sm:px-10">
+            <motion.span
+              className="eyebrow text-white/70"
+              variants={itemVariants}
             >
-              Snappy
-            </Link>
-          </motion.h1>
-          <motion.p className="mt-6 max-w-2xl text-body-lg text-white/85" variants={itemVariants}>
-            Morty combines Vultr's global infrastructure with advanced ColPali vision models to help you find, understand, and chat with your documents like never before. Your friendly mascot makes multimodal document intelligence effortless.
-          </motion.p>
+              Vultr Vision Platform Preview
+            </motion.span>
 
-          {/* Welcome message from Morty - appears on mobile/tablet */}
-          <motion.div
-            className="mt-4 flex items-center gap-3 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm lg:hidden"
-            variants={itemVariants}
-          >
-            <div>
-              <Image
-                src="/vultr/morty/super_morty_nobg.png"
-                alt="Morty"
-                width={128}
-                height={128}
-                className="rounded-full"
-              />
-            </div>
-            <span className="text-body-xs text-white/90">
-              Hey there! I&rsquo;m Morty, your Visual Retrieval Buddy 🚀
-            </span>
-          </motion.div>
+            <motion.h1
+              ref={titleRef}
+              className="mt-5 max-w-3xl text-digital-h1 text-balance font-bold"
+              variants={itemVariants}
+            >
+              <span>Meet Morty, Your Visual Retrieval Buddy</span>{" "}
+              <span className="text-body-xs font-semibold text-white/85">Powered by </span>
+              <Link
+                href="https://github.com/athrael-soju/Snappy"
+                target="_blank"
+                rel="noreferrer noopener"
+                className="text-body-xs font-semibold text-white/85 underline underline-offset-8 hover:text-white"
+              >
+                Snappy
+              </Link>
+            </motion.h1>
+            <motion.p className="mt-6 max-w-2xl text-body-lg text-white/85" variants={itemVariants}>
+              Morty combines Vultr's global infrastructure with advanced ColPali vision models to help you find, understand, and chat with your documents like never before. Your friendly mascot makes multimodal document intelligence effortless.
+            </motion.p>
 
-          <motion.p className="mt-4 text-body-xs text-white/65" variants={itemVariants}>
-            By using this application you agree to the{" "}
-            <Link href="https://www.vultr.com/legal/privacy/" target="_blank" rel="noreferrer noopener" className="underline underline-offset-4 hover:text-white">
-              GDPR Privacy Notice
-            </Link>
-            .
-          </motion.p>
+            {/* Welcome message from Morty - appears on mobile/tablet */}
+            <motion.div
+              className="mt-4 flex items-center gap-3 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm lg:hidden"
+              variants={itemVariants}
+            >
+              <div>
+                <Image
+                  src="/vultr/morty/super_morty_nobg.png"
+                  alt="Morty"
+                  width={128}
+                  height={128}
+                  className="rounded-full"
+                />
+              </div>
+              <span className="text-body-xs text-white/90">
+                Hey there! I&rsquo;m Morty, your Visual Retrieval Buddy 🚀
+              </span>
+            </motion.div>
+
+            <motion.p className="mt-4 text-body-xs text-white/65" variants={itemVariants}>
+              By using this application you agree to the{" "}
+              <Link href="https://www.vultr.com/legal/privacy/" target="_blank" rel="noreferrer noopener" className="underline underline-offset-4 hover:text-white">
+                GDPR Privacy Notice
+              </Link>
+              .
+            </motion.p>
+          </div>
+
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute bottom-0 left-1/2 h-24 w-[160%] -translate-x-1/2 bg-white dark:bg-vultr-midnight"
+            style={{ clipPath: "polygon(0 0, 100% 45%, 100% 100%, 0 100%)" }}
+          />
+        </motion.section>
+
+        <div className="pointer-events-none absolute inset-0">
+          <MortyHero
+            mortyLeft={mortyLeft}
+            mortyCenterLeft={mortyCenterLeft}
+          />
         </div>
-
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute bottom-0 left-1/2 h-24 w-[160%] -translate-x-1/2 bg-white dark:bg-vultr-midnight"
-          style={{ clipPath: "polygon(0 0, 100% 45%, 100% 100%, 0 100%)" }}
-        />
-      </motion.section>
+      </div>
 
       {/* Meet Morty Section */}
       <motion.section
