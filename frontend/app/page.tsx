@@ -6,6 +6,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
+  Clock3,
   Upload,
   Search,
   MessageSquare,
@@ -13,6 +14,7 @@ import {
   Shield,
   Sparkles,
   Cloud,
+  FileText,
   Globe,
 } from "lucide-react";
 
@@ -190,7 +192,7 @@ export default function Home() {
               </Link>
             </motion.h1>
             <motion.p className="mt-6 max-w-2xl text-body-lg text-white/85" variants={itemVariants}>
-              Morty combines Vultr's global infrastructure with advanced ColPali vision models to help you find, understand, and chat with your documents like never before. Your friendly mascot makes multimodal document intelligence effortless.
+              Morty combines the global Vultr infrastructure with advanced ColPali vision models to help you find, understand, and chat with your documents like never before. Your friendly mascot makes multimodal document intelligence effortless.
             </motion.p>
 
             {/* Welcome message from Morty - appears on mobile/tablet */}
@@ -292,35 +294,66 @@ export default function Home() {
                 </div>
               </div>
             </motion.div>
-            <motion.div
-              className="relative"
-              variants={itemVariants}
-            >
+            <motion.div className="relative" variants={itemVariants}>
               <div className="relative">
                 {/* Background glow effect */}
                 <motion.div
                   className="absolute inset-0 scale-110 rounded-full bg-gradient-to-r from-vultr-blue/20 via-purple-500/20 to-pink-500/20 blur-3xl"
                   animate={{
-                    opacity: [0.4, 0.8, 0.4],
-                    scale: [1.1, 1.2, 1.1],
+                    opacity: [0.35, 0.75, 0.35],
+                    scale: [1.1, 1.22, 1.1],
                   }}
                   transition={{
-                    duration: 4,
+                    duration: 5,
                     repeat: Infinity,
                     ease: "easeInOut",
                   }}
                 />
                 <div className="relative flex items-center justify-center">
-                  <div>
-                    <Image
-                      src="/vultr/morty/banker_morty_nobg.png"
-                      alt="Morty - Your Visual Retrieval Buddy"
-                      width={400}
-                      height={400}
-                      className="relative z-10 drop-shadow-2xl"
-                      priority
-                    />
-                  </div>
+                  <motion.div
+                    className="relative flex w-full max-w-sm flex-col gap-4 rounded-3xl border border-white/20 bg-white/70 p-6 text-left shadow-xl backdrop-blur-md dark:border-white/15 dark:bg-vultr-midnight/60"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2, duration: 0.4, ease: "easeOut" }}
+                  >
+                    <div className="space-y-1">
+                      <p className="text-body-xs font-semibold uppercase tracking-wide text-vultr-navy/60 dark:text-white/60">
+                        Morty status snapshot
+                      </p>
+                      <h3 className="text-body font-semibold text-vultr-navy dark:text-white">
+                        Visual intelligence ready
+                      </h3>
+                    </div>
+                    <div className="grid gap-3">
+                      <div className="flex items-start gap-3 rounded-2xl border border-vultr-blue/20 bg-vultr-sky-blue/10 p-3 dark:border-vultr-light-blue/25 dark:bg-vultr-midnight/40">
+                        <Sparkles className="mt-0.5 size-icon-sm text-vultr-blue" />
+                        <div>
+                          <p className="text-body-sm font-semibold text-vultr-navy dark:text-white">Model cache primed</p>
+                          <p className="text-body-xs text-vultr-navy/70 dark:text-white/70">
+                            ColPali embeddings warmed to serve multimodal prompts without cold starts.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3 rounded-2xl border border-vultr-blue/15 bg-white/70 p-3 dark:border-vultr-light-blue/20 dark:bg-vultr-midnight/40">
+                        <FileText className="mt-0.5 size-icon-sm text-vultr-blue" />
+                        <div>
+                          <p className="text-body-sm font-semibold text-vultr-navy dark:text-white">48k vectors online</p>
+                          <p className="text-body-xs text-vultr-navy/70 dark:text-white/70">
+                            Qdrant collections stay synced with the latest batches ready for retrieval.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3 rounded-2xl border border-vultr-blue/10 bg-white/60 p-3 dark:border-vultr-light-blue/15 dark:bg-vultr-midnight/35">
+                        <Clock3 className="mt-0.5 size-icon-sm text-vultr-blue" />
+                        <div>
+                          <p className="text-body-sm font-semibold text-vultr-navy dark:text-white">1.4s median response</p>
+                          <p className="text-body-xs text-vultr-navy/70 dark:text-white/70">
+                            Morty streams answers with citations ready to inspect the matching PDF page.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
                 </div>
               </div>
             </motion.div>
@@ -460,7 +493,7 @@ export default function Home() {
               </li>
             </ul>
             <div className="rounded-[var(--radius-button)] border border-dashed border-vultr-blue/30 bg-vultr-sky-blue/15 px-5 py-4 text-body-sm text-vultr-blue-60 dark:border-vultr-light-blue/40 dark:bg-vultr-blue-20/30 dark:text-vultr-light-blue/90">
-              💫 "Morty transforms how we interact with documents - it&rsquo;s like having a visual intelligence expert on our team!" - Happy User
+              💫 &ldquo;Morty transforms how we interact with documents - it&rsquo;s like having a visual intelligence expert on our team!&rdquo; - Happy User
             </div>
           </motion.div>
         </div>

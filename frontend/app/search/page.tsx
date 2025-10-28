@@ -30,7 +30,6 @@ import { useSystemStatus } from "@/stores/app-store";
 import ImageLightbox from "@/components/lightbox";
 import { InfoTooltip } from "@/components/info-tooltip";
 import { RoutePageShell } from "@/components/route-page-shell";
-import { MortyMetaCard } from "@/components/morty-meta-card";
 
 const suggestedQueries = [
   "Show recent upload summaries",
@@ -135,35 +134,6 @@ export default function SearchPage() {
     setError(null);
   };
 
-  const heroMeta = (
-    <>
-      <MortyMetaCard
-        label="Morty's visual search clinic"
-        title="Dr. Morty inspects layouts, tables, and imagery so your queries stay grounded in context."
-        bullets={[
-          {
-            icon: FileText,
-            text: "Understands document structure before ranking each answer.",
-          },
-          {
-            icon: Compass,
-            text: "Guides you toward the most relevant visual matches Morty finds.",
-          },
-          {
-            icon: Clock,
-            text: "Surfaces fresh uploads quickly so you can validate Morty's indexing.",
-          },
-        ]}
-        image={{
-          src: "/vultr/morty/dr_morty_nobg.png",
-          alt: "Dr. Morty reviewing visual search results",
-          width: 300,
-          height: 300,
-        }}
-      />
-    </>
-  );
-
   const handleImageOpen = (url: string, label?: string) => {
     if (!url) return;
     setLightboxSrc(url);
@@ -178,7 +148,7 @@ export default function SearchPage() {
         title={
           <>
             <span className="bg-gradient-to-br from-white via-white to-white/70 bg-clip-text text-transparent">
-              Search with Morty's
+              Search with Morty&rsquo;s
             </span>{" "}
             <span className="bg-gradient-to-r from-[#9ddfff] via-[#6fb5ff] to-[#9ddfff] bg-clip-text text-transparent">
               Visual Intelligence
@@ -186,7 +156,6 @@ export default function SearchPage() {
           </>
         }
         description="Ask Morty questions in natural language and let him surface the most relevant visual matches instantly."
-        meta={heroMeta}
         innerClassName="space-y-6"
         variant="compact"
       >

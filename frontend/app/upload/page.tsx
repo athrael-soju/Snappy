@@ -25,7 +25,6 @@ import { useSystemStatus } from "@/stores/app-store";
 import { useFileUpload } from "@/lib/hooks/use-file-upload";
 import { RoutePageShell } from "@/components/route-page-shell";
 import type { UploadFileMeta } from "@/stores/types";
-import { MortyMetaCard } from "@/components/morty-meta-card";
 
 const STATUS_PANEL_AUTO_DISMISS_MS = 4500;
 
@@ -58,7 +57,7 @@ const UPLOAD_HELPER_CARDS: UploadHelperCard[] = [
   },
   {
     id: "search",
-    title: "Test Morty's Results",
+    title: "Test Morty&rsquo;s Results",
     description: "After Morty indexes your documents, head to Search to see how well he understood your content.",
     icon: Sparkles,
     gradient: "from-chart-1 to-chart-2",
@@ -182,39 +181,11 @@ export default function UploadPage() {
       : null;
   const bucketName = systemStatus?.bucket?.name ?? null;
 
-  const heroMeta = (
-    <MortyMetaCard
-      label="Morty's upload control tower"
-      title="Banker Morty keeps ingestion orderly so every document hits the vector store with clean metadata."
-      bullets={[
-        {
-          icon: Upload,
-          text: "Guides drag-and-drop flows and tracks upload progress in real time.",
-        },
-        {
-          icon: Database,
-          text: "Aligns embeddings with Qdrant collections for consistent retrieval.",
-        },
-        {
-          icon: HardDrive,
-          text: "Verifies MinIO storage readiness before you process large batches.",
-        },
-      ]}
-      image={{
-        src: "/vultr/morty/banker_morty_nobg.png",
-        alt: "Banker Morty managing uploads",
-        width: 300,
-        height: 300,
-      }}
-    />
-  );
-
   return (
     <RoutePageShell
       eyebrow="Services"
-      title="Upload & Index with Morty's Help"
-      description="Let Morty guide you through document upload. He'll process your files with advanced visual intelligence and ColPali embeddings."
-      meta={heroMeta}
+      title="Upload & Index with Morty&rsquo;s Help"
+      description="Let Morty guide you through document upload. He will process your files with advanced visual intelligence and ColPali embeddings."
       innerClassName="space-y-6"
       variant="compact"
     >
@@ -250,7 +221,7 @@ export default function UploadPage() {
 
               <div className="text-center space-y-2">
                 <h3 className="text-body font-bold">
-                  {isDragOver ? "Morty's ready! Drop files here" : "Share your documents with Morty"}
+                  {isDragOver ? "Morty&rsquo;s ready! Drop files here" : "Share your documents with Morty"}
                 </h3>
                 <p className="text-body-sm text-muted-foreground">
                   or browse • Morty loves PDFs, images, and documents! 📄✨
@@ -498,7 +469,7 @@ export default function UploadPage() {
               >
                 <div className="flex items-center gap-2">
                   <Sparkles className="size-icon-xs text-primary" />
-                  <h3 className="text-body font-bold">Morty's Working His Magic ✨</h3>
+                  <h3 className="text-body font-bold">Morty&rsquo;s Working His Magic ✨</h3>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-3">

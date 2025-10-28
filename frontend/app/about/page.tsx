@@ -23,25 +23,24 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { RoutePageShell } from "@/components/route-page-shell";
-import { MortyMetaCard } from "@/components/morty-meta-card";
 
 const highlights = [
   {
-    title: "Morty's Visual Intelligence",
+    title: "Morty Visual Intelligence",
     description:
-      "Morty sees your documents like you do - understanding charts, layouts, and visuals through advanced ColPali vision models.",
+      "Morty sees your documents like you do and understands charts, layouts, and visuals through advanced ColPali vision models.",
     icon: Sparkles,
   },
   {
     title: "Your Friendly Guide",
     description:
-      "More than AI, Morty is your companion who makes complex document intelligence accessible and intuitive for everyone.",
+      "More than AI, Morty acts as a companion who makes complex document intelligence accessible and intuitive for everyone.",
     icon: Workflow,
   },
   {
     title: "Powered by Vultr",
     description:
-      "Morty leverages Vultr's global GPU infrastructure and modern tech stack to deliver lightning-fast visual search and chat.",
+      "Morty runs on the global Vultr GPU infrastructure and a modern tech stack to deliver lightning-fast visual search and chat.",
     icon: Rocket,
   },
 ] as const;
@@ -102,39 +101,12 @@ const lifecycle = [
 ] as const;
 
 export default function AboutPage() {
-  const heroMeta = (
-    <MortyMetaCard
-      label="Morty's visual intelligence lab"
-      title="Engineer Morty calibrates Vultr infrastructure with ColPali models so vision search stays fast and friendly."
-      bullets={[
-        {
-          icon: Sparkles,
-          text: "Understands complex layouts, charts, and imagery like a human analyst.",
-        },
-        {
-          icon: Workflow,
-          text: "Keeps ingestion, retrieval, and chat pipelines synchronized across services.",
-        },
-        {
-          icon: Rocket,
-          text: "Taps Vultr's global GPU network to deliver lightning-fast responses.",
-        },
-      ]}
-      image={{
-        src: "/vultr/morty/engi_morty_nobg.png",
-        alt: "Engineer Morty fine-tuning the platform",
-        width: 300,
-        height: 300,
-      }}
-    />
-  );
 
   return (
     <RoutePageShell
       eyebrow="Platform"
       title="Meet Morty: Your Visual Retrieval Buddy"
-      description="Discover how Morty combines Vultr's global infrastructure with ColPali's advanced vision models to revolutionize how you interact with documents."
-      meta={heroMeta}
+      description="Discover how Morty combines the global Vultr infrastructure with ColPali advanced vision models to revolutionize how you interact with documents."
       variant="compact"
     >
       <motion.div
@@ -160,7 +132,7 @@ export default function AboutPage() {
                 Morty: More Than a Mascot
               </h2>
               <p className="text-body-lg text-vultr-navy/70 dark:text-white/70">
-                Morty isn't just Vultr's friendly face - he's your intelligent Visual Retrieval Buddy who understands documents the way humans do. Powered by cutting-edge ColPali vision models and Vultr's global infrastructure, Morty sees charts, reads layouts, and finds exactly what you're looking for.
+                Morty is more than the friendly face of Vultr. This Visual Retrieval Buddy understands documents the way humans do. Powered by cutting-edge ColPali vision models and the global Vultr infrastructure, Morty sees charts, reads layouts, and finds exactly what you need.
               </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -179,7 +151,7 @@ export default function AboutPage() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-vultr-navy dark:text-white">Lightning Fast</h3>
-                  <p className="text-body-xs text-vultr-navy/70 dark:text-white/70">Powered by Vultr's global GPU network</p>
+                  <p className="text-body-xs text-vultr-navy/70 dark:text-white/70">Backed by the global Vultr GPU network</p>
                 </div>
               </div>
             </div>
@@ -210,7 +182,6 @@ export default function AboutPage() {
             </motion.div>
           ))}
         </motion.section>
-
         <motion.section
           className="space-y-6"
           initial={{ opacity: 0, y: 18 }}
@@ -220,9 +191,9 @@ export default function AboutPage() {
           <Card className="border border-border/20 bg-white shadow-sm dark:border-white/15 dark:bg-vultr-midnight/60">
             <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div className="space-y-2">
-                <CardTitle className="text-digital-h4 font-semibold text-balance">Morty's Technology Stack</CardTitle>
+                <CardTitle className="text-digital-h4 font-semibold text-balance">Morty Technology Stack</CardTitle>
                 <CardDescription className="max-w-3xl text-body-sm leading-relaxed">
-                  Each service in Morty's arsenal is optimized for fast setup on Vultr infrastructure. Customize how Morty processes your documents without rebuilding the experience.
+                  Every service in the Morty toolkit is optimized for fast setup on Vultr infrastructure. Customize how Morty processes your documents without rebuilding the experience.
                 </CardDescription>
               </div>
               <AppButton asChild variant="outline" size="sm" className="rounded-[var(--radius-button)]">
@@ -252,23 +223,23 @@ export default function AboutPage() {
 
           <Card className="border border-border/20 bg-white shadow-sm dark:border-white/15 dark:bg-vultr-midnight/60">
             <CardHeader>
-              <CardTitle className="text-digital-h5 font-semibold text-balance">Built for Morty's Intelligence</CardTitle>
+              <CardTitle className="text-digital-h5 font-semibold text-balance">Built for Morty Visual Intelligence</CardTitle>
               <CardDescription className="text-body-sm leading-relaxed">
-                Every component works together to power Morty's visual understanding and friendly personality.
+                Every component works together so Morty delivers visual understanding and a friendly personality.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 text-body-sm text-muted-foreground">
               <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-background/70 p-3 dark:border-white/15 dark:bg-vultr-midnight/50 text-body-xs ">
                 <Braces className="size-icon-xs text-primary" />
-                <span>Morty's responses stay consistent through generated TypeScript clients synced with FastAPI routes.</span>
+                <span>Responses from Morty stay consistent through generated TypeScript clients that remain synced with FastAPI routes.</span>
               </div>
               <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-background/70 p-3 dark:border-white/15 dark:bg-vultr-midnight/50 text-body-xs ">
                 <Workflow className="size-icon-xs text-primary" />
-                <span>Shared event bus keeps Morty's upload, search, and chat features perfectly synchronized.</span>
+                <span>The shared event bus keeps Morty upload, search, and chat features perfectly synchronized.</span>
               </div>
               <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-background/70 p-3 dark:border-white/15 dark:bg-vultr-midnight/50 text-body-xs ">
                 <Rocket className="size-icon-xs text-primary" />
-                <span>Docker-first setup mirrors local testing and Vultr production for Morty's deployment.</span>
+                <span>Docker-first setup mirrors local testing and Vultr production for Morty deployment.</span>
               </div>
             </CardContent>
           </Card>
@@ -281,9 +252,9 @@ export default function AboutPage() {
           transition={{ delay: 0.3, duration: 0.35 }}
         >
           <div className="mx-auto max-w-4xl space-y-6 text-center">
-            <h2 className="text-editorial-h3 font-semibold">From PDF to Morty's grounded answer</h2>
+            <h2 className="text-editorial-h3 font-semibold">From PDF to a grounded answer from Morty</h2>
             <p className="text-body-sm text-muted-foreground sm:text-body">
-              Follow Morty's intelligent workflow as he transforms your documents into searchable, visual knowledge that you can chat with naturally.
+              Follow the intelligent workflow Morty uses to transform your documents into searchable, visual knowledge that you can chat with naturally.
             </p>
           </div>
           <ol className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
@@ -311,7 +282,7 @@ export default function AboutPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.35 }}
         >
-          <h2 className="text-editorial-h3 font-semibold">Ready to experience Morty's intelligence?</h2>
+          <h2 className="text-editorial-h3 font-semibold">Ready to experience the intelligence Morty delivers?</h2>
           <p className="mt-3 text-body-sm text-muted-foreground sm:text-body">
             Bring your documents to Morty and watch him work his visual magic. Upload your PDFs, ask him questions, and discover what makes your Visual Retrieval Buddy special. Start building smarter document workflows with Morty today.
           </p>
@@ -334,4 +305,3 @@ export default function AboutPage() {
     </RoutePageShell>
   );
 }
-

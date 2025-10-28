@@ -140,7 +140,7 @@ const directLinks: MenuLink[] = [
     href: "/about",
     description: "Learn about Morty, your Visual Retrieval Buddy, and the technology behind the magic.",
     external: false,
-  }
+  },
 ]
 
 const promoCards: PromoCard[] = [

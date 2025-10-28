@@ -39,7 +39,6 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { InfoTooltip } from "@/components/info-tooltip";
 import { RoutePageShell } from "@/components/route-page-shell";
 import { HeroMetaGroup, HeroMetaPill } from "@/components/hero-meta";
-import { MortyMetaCard } from "@/components/morty-meta-card";
 
 const starterPrompts = [
   {
@@ -460,7 +459,7 @@ export default function ChatPage() {
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [messages.length]);
+  }, [loading, messages.length]);
 
   const recentQuestions = useMemo(
     () =>
@@ -488,47 +487,6 @@ export default function ChatPage() {
     }
   };
 
-  const heroMeta = (
-    <>
-      <MortyMetaCard
-        label="Morty's real-time chat arcade"
-        title="Gamer Morty loves fast back-and-forth conversations while he anchors answers to your documents."
-        bullets={[
-          {
-            icon: Bot,
-            text: "Streams grounded responses and visual citations as Morty reasons.",
-          },
-          {
-            icon: MessageCircle,
-            text: "Keeps multi-turn context so follow-up questions stay natural.",
-          },
-          {
-            icon: Wand2,
-            text: "Switch tool calling on demand when you need deeper dives.",
-          },
-        ]}
-        image={{
-          src: "/vultr/morty/gamer_morty_nobg.png",
-          alt: "Gamer Morty ready for chat",
-          width: 300,
-          height: 300,
-        }}
-      />
-      <HeroMetaGroup>
-        {timeToFirstTokenMs !== null ? (
-          <HeroMetaPill icon={Timer} tone="info">
-            {(timeToFirstTokenMs / 1000).toFixed(2)}s response time
-          </HeroMetaPill>
-        ) : null}
-        {toolCallingEnabled ? (
-          <HeroMetaPill icon={Bot}>
-            Tool calling enabled
-          </HeroMetaPill>
-        ) : null}
-      </HeroMetaGroup>
-    </>
-  );
-
   const handleCitationOpen = (url: string, label?: string | null) => {
     if (!url) {
       return;
@@ -544,7 +502,6 @@ export default function ChatPage() {
         eyebrow="Services"
         title="Chat with Morty, Your Visual Retrieval Buddy"
         description="Have a conversation with Morty about your documents. He understands images, charts, and text to give you grounded, visual answers."
-        meta={heroMeta}
         innerClassName="flex min-h-0 flex-1 flex-col"
         variant="compact"
       >
