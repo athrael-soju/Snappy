@@ -1,4 +1,4 @@
-# Snappy Backend – FastAPI Service ✨
+# Snappy Backend - FastAPI Service
 
 This FastAPI application handles PDF ingestion, page-level retrieval, runtime configuration, and system maintenance for Snappy. Routers live under `backend/api/routers/` (`meta`, `retrieval`, `indexing`, `maintenance`, `config`) and are wired together inside `backend/api/app.py:create_app()`.
 
@@ -10,6 +10,7 @@ This FastAPI application handles PDF ingestion, page-level retrieval, runtime co
 - **Poppler** on your `PATH` (`pdftoppm` is required for PDF rasterisation)
 - **Docker + Docker Compose** (optional, recommended for local services)
 - **`fastembed[postprocess]`** if you plan to enable MUVERA acceleration
+- **NVIDIA GPU + drivers** when running the DeepSeek OCR service locally
 
 ---
 
@@ -30,6 +31,7 @@ cp .env.example .env
 
 Key settings:
 - **ColPali**: `COLPALI_URL`, `COLPALI_API_TIMEOUT`
+- **DeepSeek OCR**: `DEEPSEEK_OCR_URL`, `DEEPSEEK_OCR_TIMEOUT`, toggle + default overrides (`DEEPSEEK_OCR_DEFAULT_*`)
 - **Qdrant**: `QDRANT_EMBEDDED`, `QDRANT_URL`, `QDRANT_COLLECTION_NAME`, quantisation toggles
 - **MinIO**: `MINIO_URL`, `MINIO_PUBLIC_URL`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`
 - **Uploads**: `UPLOAD_ALLOWED_FILE_TYPES` (PDF-only by default), `UPLOAD_MAX_FILE_SIZE_MB`, `UPLOAD_MAX_FILES`, `UPLOAD_CHUNK_SIZE_BYTES`
@@ -38,6 +40,7 @@ Defaults assume local services at:
 - Qdrant → `http://localhost:6333`
 - MinIO → `http://localhost:9000`
 - ColPali → `http://localhost:7000`
+- DeepSeek OCR → `http://localhost:8200`
 
 Check `backend/docs/configuration.md` for the complete reference.
 
@@ -64,9 +67,12 @@ Interactive docs live at http://localhost:8000/docs.
 The root `docker-compose.yml` coordinates `qdrant`, `minio`, `backend`, and `frontend`. Environment values are pre-wired for container-to-container networking:
 
 - `COLPALI_URL=http://host.docker.internal:7000`
+- `DEEPSEEK_OCR_URL=http://deepseek-ocr:8200`
 - `QDRANT_URL=http://qdrant:6333`
 - `MINIO_URL=http://minio:9000`
 - `MINIO_PUBLIC_URL=http://localhost:9000`
+
+Start the optional OCR service with `docker compose --profile ocr up -d --build` when you want DeepSeek available.
 
 Launch everything:
 
@@ -96,6 +102,11 @@ MinIO credentials must be provided; the backend stores page images in object sto
 - `POST /initialize` – Provision collection + bucket (run this once on a new stack)
 - `DELETE /delete` – Tear everything down
 - `POST /clear/qdrant`, `/clear/minio`, `/clear/all` – Data reset helpers
+
+### OCR (DeepSeek)
+- `GET /ocr/health` – Quick health probe for the DeepSeek OCR service
+- `GET /ocr/info` / `GET /ocr/defaults` – Surface model metadata and backend defaults
+- `POST /ocr/infer` – Proxy OCR requests (requires `DEEPSEEK_OCR_ENABLED=True`)
 
 ### Configuration
 - `GET /config/schema`, `GET /config/values` – Inspect current settings

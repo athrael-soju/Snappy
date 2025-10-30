@@ -3,6 +3,8 @@
 This service wraps the ColModernVBert family of ColPali models behind a focused
 FastAPI app. The FastAPI backend calls it whenever it needs to create text or
 image embeddings; you can also run it independently for local experiments.
+For OCR and layout extraction, Snappy talks to a separate DeepSeek OCR service
+documented in `../deepseek-ocr/README.md`.
 
 The service can run on CPU or GPU, exposes lightweight health and metadata
 endpoints, and ships with Docker Compose profiles to make switching between CPU
@@ -109,3 +111,9 @@ the response payload.
   download is the slowest; subsequent rebuilds reuse the weights.
 
 For deeper changes inspect `colpali/app.py` and the Dockerfiles in this folder.
+
+---
+
+## Related Services
+
+- `../deepseek-ocr/README.md` - OCR microservice used when `DEEPSEEK_OCR_ENABLED` is on

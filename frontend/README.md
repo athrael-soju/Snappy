@@ -14,6 +14,7 @@ This Next.js 16 application (with React 19.2) provides upload, search, chat, con
 - **`/configuration`** – Runtime configuration UI with draft detection and granular updates.
 - **`/maintenance`** – Status dashboards plus initialise/delete/reset helpers.
 
+DeepSeek OCR does not have a dedicated page yet; enable it and adjust defaults from the configuration screen once the service is running.
 ---
 
 ## Design Language
@@ -121,6 +122,7 @@ Behaviour:
 - Drafts persist in `localStorage` (`colpali-runtime-config`) so you can compose changes before applying them.
 - Critical settings trigger backend cache invalidation automatically when saved.
 - All updates (including resets) are applied via individual `POST /config/update` calls for safety.
+- DeepSeek OCR toggles (`DEEPSEEK_OCR_*`) appear in the same panel once the feature is enabled on the backend.
 
 For the full backend configuration reference see `../backend/docs/configuration.md`.
 

@@ -84,6 +84,7 @@ flowchart TB
     QDRANT["Qdrant"]
     MINIO["MinIO"]
     COLPALI["ColPali Embedding API"]
+    DEEPSEEK["DeepSeek OCR"]
     OPENAI["OpenAI Responses API"]
   end
 
@@ -92,6 +93,7 @@ flowchart TB
   API --> QDRANT
   API --> MINIO
   API --> COLPALI
+  API --> DEEPSEEK
   CHAT --> API
   CHAT --> OPENAI
   CHAT -- SSE --> USER
@@ -129,7 +131,7 @@ docker compose --profile cpu up -d --build
 docker compose --profile ocr up -d --build
 ```
 
-Only start one profile at a time to avoid port clashes. The first GPU build compiles `flash-attn`; subsequent builds reuse the cached wheel. Enable the DeepSeek OCR feature from the Configuration screen after the OCR container is running.
+Only start one profile at a time to avoid port clashes. The first GPU build compiles `flash-attn`; subsequent builds reuse the cached wheel. Start the OCR profile only when you intend to enable DeepSeek in the configuration UI.
 
 ---
 
@@ -238,6 +240,7 @@ The Next.js 16 frontend with React 19.2 keeps things fast and friendly: real-tim
 ### Backend highlights
 
 - `COLPALI_URL`, `COLPALI_API_TIMEOUT`
+- `DEEPSEEK_OCR_URL`, `DEEPSEEK_OCR_TIMEOUT`, `DEEPSEEK_OCR_ENABLED`, `DEEPSEEK_OCR_DEFAULT_*`
 - `QDRANT_EMBEDDED`, `QDRANT_URL`, `QDRANT_COLLECTION_NAME`, `QDRANT_PREFETCH_LIMIT`, `QDRANT_MEAN_POOLING_ENABLED`, optional quantisation toggles
 - `MINIO_URL`, `MINIO_PUBLIC_URL`, credentials, bucket naming, `IMAGE_FORMAT`, `IMAGE_QUALITY`
 - `MUVERA_ENABLED` and related settings (requires `fastembed[postprocess]` in your environment)
@@ -264,6 +267,7 @@ All schema-backed settings (and defaults) are documented in `backend/docs/config
 | Maintenance  | `GET /status`                            | Collection/bucket statistics |
 |              | `POST /initialize`, `DELETE /delete`     | Provision or tear down collection + bucket |
 |              | `POST /clear/qdrant`, `/clear/minio`, `/clear/all` | Data reset helpers |
+| OCR          | `GET /ocr/health`, `/ocr/info`, `/ocr/defaults`, `POST /ocr/infer` | Proxy DeepSeek OCR service (requires feature toggle) |
 | Configuration| `GET /config/schema`, `/config/values`   | Expose runtime schema and values |
 |              | `POST /config/update`, `/config/reset`   | Runtime configuration management |
 
@@ -274,6 +278,7 @@ Chat streaming lives in `frontend/app/api/chat/route.ts`. The route calls the ba
 ## Troubleshooting
 
 - **ColPali timing out?** Increase `COLPALI_API_TIMEOUT` or run the GPU profile for heavy workloads.
+- **DeepSeek OCR unresponsive?** Confirm the OCR container is running, `DEEPSEEK_OCR_URL` matches its address, and the feature toggle is on in configuration.
 - **Progress bar stuck?** Ensure Poppler is installed and check backend logs for PDF conversion errors.
 - **Missing images?** Verify MinIO credentials/URLs and confirm `next.config.ts` allows the domains you expect.
 - **CORS issues?** Replace wildcard `ALLOWED_ORIGINS` entries with explicit URLs before exposing the API publicly.
@@ -299,6 +304,7 @@ Chat streaming lives in `frontend/app/api/chat/route.ts`. The route calls the ba
 - `backend/README.md` - FastAPI backend guide
 - `frontend/README.md` - Next.js frontend guide
 - `colpali/README.md` - ColPali embedding service guide
+- `deepseek-ocr/README.md` - DeepSeek OCR service guide
 - `backend/docs/configuration.md` - Configuration reference
 - `VERSIONING.md` - Release and version workflow
 
