@@ -67,6 +67,77 @@ class PaddleOCRService:
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
 
+    @staticmethod
+    def _bool_to_payload(value: bool) -> str:
+        return "true" if value else "false"
+
+    def _build_request_options(self) -> Dict[str, str]:
+        """Prepare OCR pipeline tuning parameters from configuration."""
+        payload: Dict[str, str] = {}
+
+        bool_settings = {
+            "use_layout_detection": bool(
+                getattr(config, "PADDLE_OCR_USE_LAYOUT_DETECTION", True)
+            ),
+            "use_doc_orientation_classify": bool(
+                getattr(config, "PADDLE_OCR_USE_DOC_ORIENTATION_CLASSIFY", True)
+            ),
+            "use_doc_unwarping": bool(
+                getattr(config, "PADDLE_OCR_USE_DOC_UNWARPING", False)
+            ),
+            "use_chart_recognition": bool(
+                getattr(config, "PADDLE_OCR_USE_CHART_RECOGNITION", False)
+            ),
+        }
+        for key, value in bool_settings.items():
+            payload[key] = self._bool_to_payload(value)
+
+        float_settings = {
+            "layout_threshold": getattr(config, "PADDLE_OCR_LAYOUT_THRESHOLD", None),
+            "layout_nms": getattr(config, "PADDLE_OCR_LAYOUT_NMS", None),
+            "layout_unclip_ratio": getattr(
+                config, "PADDLE_OCR_LAYOUT_UNCLIP_RATIO", None
+            ),
+        }
+        for key, value in float_settings.items():
+            if value is None:
+                continue
+            try:
+                payload[key] = f"{float(value):.6f}".rstrip("0").rstrip(".")
+            except (TypeError, ValueError):
+                continue
+
+        str_settings = {
+            "layout_merge_bboxes_mode": getattr(
+                config, "PADDLE_OCR_LAYOUT_MERGE_MODE", ""
+            ),
+            "format_block_content": getattr(
+                config, "PADDLE_OCR_FORMAT_BLOCK_CONTENT", ""
+            ),
+        }
+        for key, value in str_settings.items():
+            if not value:
+                continue
+            payload[key] = str(value)
+
+        min_pixels = getattr(config, "PADDLE_OCR_MIN_PIXELS", 0)
+        max_pixels = getattr(config, "PADDLE_OCR_MAX_PIXELS", 0)
+        try:
+            min_pixels = int(min_pixels)
+        except (TypeError, ValueError):
+            min_pixels = 0
+        try:
+            max_pixels = int(max_pixels)
+        except (TypeError, ValueError):
+            max_pixels = 0
+
+        if min_pixels > 0:
+            payload["min_pixels"] = str(min_pixels)
+        if max_pixels > 0:
+            payload["max_pixels"] = str(max_pixels)
+
+        return payload
+
     def _build_url(self, path: str, *, include_prefix: bool = True) -> str:
         base = self.base_url
         if include_prefix and self.api_prefix:
@@ -149,6 +220,7 @@ class PaddleOCRService:
             )
 
         url = self._build_url("ocr/extract-document")
+        form_data = self._build_request_options()
         files = {
             "file": (
                 filename or "document",
@@ -156,7 +228,7 @@ class PaddleOCRService:
                 content_type or "application/octet-stream",
             )
         }
-        response = self._request("POST", url, files=files)
+        response = self._request("POST", url, files=files, data=form_data or None)
         try:
             return response.json()
         except ValueError as exc:

@@ -254,10 +254,17 @@ export default function ConfigurationPage() {
                         if (setting.type === "multiselect") {
                           const optionEntries =
                             setting.options?.map((option) => {
-                              const trimmed = option.trim();
+                              const optionValue =
+                                typeof option === "string" ? option : option.value;
+                              const optionLabel =
+                                typeof option === "string"
+                                  ? option
+                                  : option.label ?? option.value;
+                              const trimmed = optionValue.trim();
                               return {
                                 raw: trimmed,
                                 normalized: trimmed.toLowerCase(),
+                                label: optionLabel,
                               };
                             }) ?? [];
                           const selectedValues = new Set(
@@ -286,7 +293,7 @@ export default function ConfigurationPage() {
 
                           const selectedBadges = optionEntries
                             .filter(({ normalized }) => selectedValues.has(normalized))
-                            .map(({ raw }) => raw.toUpperCase());
+                            .map(({ label }) => label.toUpperCase());
 
                           return (
                             <motion.article
@@ -313,10 +320,10 @@ export default function ConfigurationPage() {
                                         No options configured.
                                       </span>
                                     ) : (
-                                      optionEntries.map(({ raw, normalized }) => {
+                                      optionEntries.map(({ raw, normalized, label }) => {
                                         const optionId = `${setting.key}-${normalized}`;
                                         const isChecked = selectedValues.has(normalized);
-                                        const labelText = raw.toUpperCase();
+                                        const labelText = label.toUpperCase();
                                         return (
                                           <label
                                             key={normalized}
@@ -349,6 +356,14 @@ export default function ConfigurationPage() {
                         }
 
                         if (setting.type === "select" && Array.isArray(setting.options)) {
+                          const optionEntries = (setting.options ?? []).map((option) =>
+                            typeof option === "string"
+                              ? { value: option, label: option }
+                              : {
+                                  value: option.value,
+                                  label: option.label ?? option.value,
+                                }
+                          );
                           return (
                             <motion.article
                               key={setting.key}
@@ -373,9 +388,9 @@ export default function ConfigurationPage() {
                                   disabled={saving}
                                   className="w-auto min-w-[120px] max-w-[200px] rounded-lg border border-border/25 bg-background/75 px-3 py-2.5 text-body-sm text-right outline-none transition-colors focus:border-primary/40 focus:bg-background focus:ring-2 focus:ring-primary/15"
                                 >
-                                  {setting.options.map((option) => (
-                                    <option key={option} value={option}>
-                                      {option}
+                                  {optionEntries.map(({ value, label }) => (
+                                    <option key={value} value={value}>
+                                      {label}
                                     </option>
                                   ))}
                                 </select>

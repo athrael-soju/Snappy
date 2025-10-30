@@ -7,7 +7,7 @@ from pathlib import Path
 
 from config.logging_config import get_logger
 from config.settings import settings
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 from models.api_models import ErrorResponse, OCRElement, OCRResponse
 from services.paddleocr_vl_service import paddleocr_vl_service
 
@@ -28,7 +28,40 @@ router = APIRouter(prefix="/ocr", tags=["OCR"])
     description="Upload an image or PDF file to extract document structure including text, tables, charts, and formulas.",
 )
 async def extract_document(
-    file: UploadFile = File(..., description="Image or PDF file to process")
+    file: UploadFile = File(..., description="Image or PDF file to process"),
+    use_layout_detection: bool | None = Form(
+        None, description="Enable layout detection within PaddleOCR-VL"
+    ),
+    layout_threshold: float | None = Form(
+        None, description="Confidence threshold for layout detection boxes"
+    ),
+    layout_nms: float | None = Form(
+        None, description="Non-maximum suppression IoU threshold for layout detection"
+    ),
+    layout_unclip_ratio: float | None = Form(
+        None, description="Polygon expansion ratio for layout detection"
+    ),
+    layout_merge_bboxes_mode: str | None = Form(
+        None, description="Merge mode for overlapping layout boxes"
+    ),
+    use_doc_orientation_classify: bool | None = Form(
+        None, description="Toggle document orientation classification"
+    ),
+    use_doc_unwarping: bool | None = Form(
+        None, description="Toggle document perspective unwarping"
+    ),
+    use_chart_recognition: bool | None = Form(
+        None, description="Enable chart parsing pipeline"
+    ),
+    format_block_content: str | None = Form(
+        None, description="Preferred block content serialization format"
+    ),
+    min_pixels: int | None = Form(
+        None, description="Minimum scaling target for the shortest image side"
+    ),
+    max_pixels: int | None = Form(
+        None, description="Maximum scaling target for the longest image side"
+    ),
 ) -> OCRResponse:
     """
     Extract document structure and text from uploaded file.
@@ -79,8 +112,23 @@ async def extract_document(
         logger.info(f"Processing file: {file.filename} ({file_size} bytes)")
 
         # Process image
+        options = {
+            "use_layout_detection": use_layout_detection,
+            "layout_threshold": layout_threshold,
+            "layout_nms": layout_nms,
+            "layout_unclip_ratio": layout_unclip_ratio,
+            "layout_merge_bboxes_mode": layout_merge_bboxes_mode,
+            "use_doc_orientation_classify": use_doc_orientation_classify,
+            "use_doc_unwarping": use_doc_unwarping,
+            "use_chart_recognition": use_chart_recognition,
+            "format_block_content": format_block_content,
+            "min_pixels": min_pixels,
+            "max_pixels": max_pixels,
+        }
+        options = {k: v for k, v in options.items() if v is not None}
+
         results = paddleocr_vl_service.process_image_bytes(
-            image_bytes=file_content, filename=file.filename
+            image_bytes=file_content, filename=file.filename, options=options
         )
 
         # Convert results to response model

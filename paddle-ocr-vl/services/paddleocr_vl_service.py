@@ -25,6 +25,22 @@ class PaddleOCRVLService:
     _lock = threading.Lock()
     _pipeline = None
     _initialized = False
+    _PREDICT_KWARGS = {
+        "use_doc_orientation_classify",
+        "use_doc_unwarping",
+        "use_layout_detection",
+        "use_chart_recognition",
+        "layout_threshold",
+        "layout_nms",
+        "layout_unclip_ratio",
+        "layout_merge_bboxes_mode",
+        "format_block_content",
+        "repetition_penalty",
+        "temperature",
+        "top_p",
+        "min_pixels",
+        "max_pixels",
+    }
 
     def __new__(cls):
         """Singleton pattern to ensure only one instance."""
@@ -123,7 +139,9 @@ class PaddleOCRVLService:
                 logger.error(f"Failed to initialize PaddleOCR-VL pipeline: {e}")
                 raise RuntimeError(f"PaddleOCR-VL initialization failed: {e}") from e
 
-    def process_image(self, image_path: str) -> List[Dict[str, Any]]:
+    def process_image(
+        self, image_path: str, options: Optional[Dict[str, Any]] = None
+    ) -> List[Dict[str, Any]]:
         """
         Process an image file and extract document structure.
 
@@ -144,8 +162,14 @@ class PaddleOCRVLService:
             start_time = time.time()
             logger.info(f"Processing image: {image_path}")
 
+            predict_kwargs: Dict[str, Any] = {}
+            if options:
+                for key, value in options.items():
+                    if key in self._PREDICT_KWARGS and value is not None:
+                        predict_kwargs[key] = value
+
             # Run PaddleOCR-VL prediction
-            output = self._pipeline.predict(image_path)
+            output = self._pipeline.predict(image_path, **predict_kwargs)
 
             # Convert results to dict format
             results = []
@@ -170,7 +194,10 @@ class PaddleOCRVLService:
             raise RuntimeError(f"Image processing failed: {e}") from e
 
     def process_image_bytes(
-        self, image_bytes: bytes, filename: str = "image.jpg"
+        self,
+        image_bytes: bytes,
+        filename: str = "image.jpg",
+        options: Optional[Dict[str, Any]] = None,
     ) -> List[Dict[str, Any]]:
         """
         Process image from bytes.
@@ -193,7 +220,7 @@ class PaddleOCRVLService:
 
         try:
             # Process the temporary file
-            results = self.process_image(temp_path)
+            results = self.process_image(temp_path, options=options)
             return results
         finally:
             # Clean up temporary file

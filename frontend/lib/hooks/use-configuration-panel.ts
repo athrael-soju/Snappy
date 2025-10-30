@@ -12,7 +12,13 @@ export interface ConfigSetting {
   key: string;
   label: string;
   type: "text" | "number" | "boolean" | "select" | "password" | "multiselect";
-  options?: string[];
+  options?: Array<
+    | string
+    | {
+        label?: string;
+        value: string;
+      }
+  >;
   default: string;
   description: string;
   help_text?: string;
@@ -21,7 +27,7 @@ export interface ConfigSetting {
   step?: number;
   depends_on?: {
     key: string;
-    value: boolean;
+    value: boolean | string;
   };
   ui_hidden?: boolean;
   ui_disabled?: boolean;
@@ -161,39 +167,64 @@ export function useConfigurationPanel() {
     [values, originalValues]
   );
 
+  const settingMap = useMemo(() => {
+    const map = new Map<string, ConfigSetting>();
+    if (schema) {
+      Object.values(schema).forEach(category => {
+        category.settings.forEach(setting => {
+          map.set(setting.key, setting);
+        });
+      });
+    }
+    return map;
+  }, [schema]);
+
   const handleValueChange = useCallback(
     (key: string, value: string) => {
-      if (schema) {
-        for (const category of Object.values(schema)) {
-          const setting = category.settings.find((item) => item.key === key);
-          if (setting) {
-            if (
-              setting.ui_disabled &&
-              value.toLowerCase() === "true"
-            ) {
-              return;
-            }
-            break;
-          }
+      const targetSetting = settingMap.get(key);
+      if (targetSetting) {
+        if (targetSetting.ui_disabled && value.toLowerCase() === "true") {
+          return;
         }
       }
 
       setValues(prev => ({ ...prev, [key]: value }));
     },
-    [schema]
+    [settingMap]
   );
 
   const isSettingVisible = useCallback(
     (setting: ConfigSetting): boolean => {
-      if (setting.ui_hidden) return false;
-      if (!setting.depends_on) return true;
+      const checkVisibility = (current: ConfigSetting, visited: Set<string>): boolean => {
+        if (current.ui_hidden) {
+          return false;
+        }
 
-      const parentValue = values[setting.depends_on.key] || "";
-      const parentBool = parentValue.toLowerCase() === "true";
+        const dependency = current.depends_on;
+        if (!dependency) {
+          return true;
+        }
 
-      return parentBool === setting.depends_on.value;
+        const parentKey = dependency.key;
+        if (visited.has(parentKey)) {
+          return false;
+        }
+        visited.add(parentKey);
+
+        const parentSetting = settingMap.get(parentKey);
+        if (parentSetting && !checkVisibility(parentSetting, visited)) {
+          return false;
+        }
+
+        const expectedValue = String(dependency.value).toLowerCase();
+        const parentValue = (values[parentKey] ?? "").toLowerCase();
+
+        return parentValue === expectedValue;
+      };
+
+      return checkVisibility(setting, new Set<string>());
     },
-    [values]
+    [settingMap, values]
   );
 
   const saveChanges = useCallback(async () => {
