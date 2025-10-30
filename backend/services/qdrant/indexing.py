@@ -1,15 +1,30 @@
 """Document indexing operations for Qdrant."""
 
+import io
 import logging
+import threading
 import uuid
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from datetime import datetime
 from itertools import islice
-from typing import Callable, Dict, Iterable, Iterator, List, Optional, Tuple
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+)
 
 import config  # Import module for dynamic config access
 from PIL import Image
 from qdrant_client import models
+from services.paddleocr import PaddleOCRServiceError
+
+if TYPE_CHECKING:
+    from services.paddleocr import PaddleOCRService
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +44,7 @@ class DocumentIndexer:
         embedding_processor,
         minio_service=None,
         muvera_post=None,
+        ocr_service: Optional["PaddleOCRService"] = None,
     ):
         """Initialize document indexer."""
         self.service = qdrant_client
@@ -36,6 +52,8 @@ class DocumentIndexer:
         self.embedding_processor = embedding_processor
         self.minio_service = minio_service
         self.muvera_post = muvera_post
+        self.ocr_service = ocr_service
+        self._ocr_lock = threading.Lock() if ocr_service else None
 
     @staticmethod
     def _call_progress(
@@ -131,6 +149,102 @@ class DocumentIndexer:
             )
 
         return image_ids, records
+
+    @staticmethod
+    def _serialize_image_for_ocr(image: Image.Image) -> bytes:
+        """Export a PIL image to PNG bytes for OCR processing."""
+        buffer = io.BytesIO()
+        export_image = image
+        try:
+            if image.mode not in ("RGB", "RGBA"):
+                export_image = image.convert("RGB")
+            export_image.save(buffer, format="PNG")
+            return buffer.getvalue()
+        finally:
+            if export_image is not image:
+                try:
+                    export_image.close()
+                except Exception:
+                    pass
+
+    def _maybe_run_ocr(
+        self,
+        batch_start: int,
+        image_batch: List[Image.Image],
+        meta_batch: List[dict],
+        image_records: List[Dict[str, object]],
+        image_ids: List[str],
+    ) -> None:
+        """Invoke the OCR service for each page when enabled and log the output."""
+        service = self.ocr_service
+        if not service or not getattr(service, "enabled", False):
+            return
+
+        for offset, (image, meta, record, doc_id) in enumerate(
+            zip(image_batch, meta_batch, image_records, image_ids)
+        ):
+            filename = meta.get("filename") or f"document_{doc_id}"
+            filename_str = str(filename)
+            filename_root = (
+                filename_str.rsplit(".", 1)[0] if "." in filename_str else filename_str
+            )
+            page_index = meta.get("pdf_page_index")
+            resolved_page = (
+                page_index if page_index is not None else batch_start + offset + 1
+            )
+            ocr_filename = f"{filename_root}_page_{resolved_page}.png"
+
+            try:
+                image_bytes = self._serialize_image_for_ocr(image)
+            except Exception as exc:
+                logger.warning(
+                    "Skipping OCR for %s (doc_id=%s): failed to serialise image: %s",
+                    filename,
+                    doc_id,
+                    exc,
+                )
+                continue
+
+            try:
+                if self._ocr_lock:
+                    with self._ocr_lock:
+                        response = service.extract_document(
+                            file_bytes=image_bytes,
+                            filename=ocr_filename,
+                            content_type="image/png",
+                        )
+                else:
+                    response = service.extract_document(
+                        file_bytes=image_bytes,
+                        filename=ocr_filename,
+                        content_type="image/png",
+                    )
+            except PaddleOCRServiceError as exc:
+                logger.warning(
+                    "OCR service error for %s (doc_id=%s): %s",
+                    filename,
+                    doc_id,
+                    exc,
+                )
+                continue
+            except Exception as exc:  # pragma: no cover - defensive guard
+                logger.exception(
+                    "Unexpected error while running OCR for %s (doc_id=%s): %s",
+                    filename,
+                    doc_id,
+                    exc,
+                )
+                continue
+
+            image_url = record.get("image_url") if isinstance(record, dict) else None
+            logger.info(
+                "OCR output for %s (doc_id=%s, page=%s, image_url=%s): %s",
+                filename,
+                doc_id,
+                resolved_page,
+                image_url,
+                response,
+            )
 
     def _build_points(
         self,
@@ -275,6 +389,14 @@ class DocumentIndexer:
 
         try:
             image_ids, image_records = self._store_images(batch_start, image_batch)
+
+            self._maybe_run_ocr(
+                batch_start=batch_start,
+                image_batch=image_batch,
+                meta_batch=meta_batch,
+                image_records=image_records,
+                image_ids=image_ids,
+            )
 
             points = self._build_points(
                 batch_start,

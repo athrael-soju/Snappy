@@ -104,10 +104,28 @@ def _get_qdrant_service_cached() -> QdrantService:
             _get_muvera_postprocessor_cached.cache_clear()
             muvera_post = None
 
+    ocr_service = None
+    if getattr(config, "PADDLE_OCR_ENABLED", False):
+        try:
+            candidate = get_paddle_ocr_service()
+        except Exception as exc:  # pragma: no cover - defensive guard
+            logger.warning(
+                "PaddleOCR service unavailable; skipping OCR during indexing: %s",
+                exc,
+            )
+        else:
+            if getattr(candidate, "enabled", False):
+                ocr_service = candidate
+            else:
+                logger.info(
+                    "PaddleOCR integration disabled at runtime; indexing will skip OCR"
+                )
+
     return QdrantService(
         api_client=get_colpali_client(),
         minio_service=minio_service,
         muvera_post=muvera_post,
+        ocr_service=ocr_service,
     )
 
 
