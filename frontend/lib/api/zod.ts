@@ -27,6 +27,65 @@ const Body_index_index_post = z
 const ConfigUpdate = z
   .object({ key: z.string(), value: z.string() })
   .passthrough();
+const OCRDefaults = z
+  .object({
+    mode: z.string(),
+    prompt: z.string(),
+    grounding: z.boolean(),
+    include_caption: z.boolean(),
+    base_size: z.number().int(),
+    image_size: z.number().int(),
+    crop_mode: z.boolean(),
+    test_compress: z.boolean(),
+  })
+  .passthrough();
+const OCRHealth = z
+  .object({
+    enabled: z.boolean(),
+    healthy: z.boolean(),
+    model_loaded: z.union([z.boolean(), z.null()]).optional(),
+    device: z.union([z.string(), z.null()]).optional(),
+  })
+  .passthrough();
+const Body_run_ocr_ocr_infer_post = z
+  .object({
+    image: z.instanceof(File),
+    mode: z.union([z.string(), z.null()]).optional(),
+    prompt: z.union([z.string(), z.null()]).optional(),
+    grounding: z.union([z.boolean(), z.null()]).optional(),
+    include_caption: z.union([z.boolean(), z.null()]).optional(),
+    find_term: z.union([z.string(), z.null()]).optional(),
+    kv_schema: z.union([z.string(), z.null()]).optional(),
+    base_size: z.union([z.number(), z.null()]).optional(),
+    image_size: z.union([z.number(), z.null()]).optional(),
+    crop_mode: z.union([z.boolean(), z.null()]).optional(),
+    test_compress: z.union([z.boolean(), z.null()]).optional(),
+  })
+  .passthrough();
+const OCRBoundingBox = z
+  .object({ label: z.string(), box: z.array(z.number().int()).min(4).max(4) })
+  .passthrough();
+const OCRMetadata = z
+  .object({
+    mode: z.string(),
+    grounding: z.boolean(),
+    base_size: z.number().int(),
+    image_size: z.number().int(),
+    crop_mode: z.boolean(),
+    include_caption: z.boolean(),
+    elapsed_ms: z.union([z.number(), z.null()]).optional(),
+  })
+  .passthrough();
+const OCRResponse = z
+  .object({
+    success: z.boolean().optional().default(true),
+    text: z.string(),
+    raw_text: z.string(),
+    boxes: z.array(OCRBoundingBox),
+    image_dims: z.record(z.union([z.number(), z.null()])),
+    metadata: OCRMetadata,
+  })
+  .passthrough();
 
 export const schemas = {
   k,
@@ -35,6 +94,12 @@ export const schemas = {
   HTTPValidationError,
   Body_index_index_post,
   ConfigUpdate,
+  OCRDefaults,
+  OCRHealth,
+  Body_run_ocr_ocr_infer_post,
+  OCRBoundingBox,
+  OCRMetadata,
+  OCRResponse,
 };
 
 const endpoints = makeApi([
@@ -182,6 +247,52 @@ To persist changes across restarts, update your .env file manually.`,
     description: `Initialize/create collection and bucket based on current configuration.`,
     requestFormat: "json",
     response: z.unknown(),
+  },
+  {
+    method: "get",
+    path: "/ocr/defaults",
+    alias: "get_defaults_ocr_defaults_get",
+    description: `Return the configured default values used when optional OCR fields are omitted.`,
+    requestFormat: "json",
+    response: OCRDefaults,
+  },
+  {
+    method: "get",
+    path: "/ocr/health",
+    alias: "health_ocr_health_get",
+    description: `Surface the health status of the DeepSeek OCR service.`,
+    requestFormat: "json",
+    response: OCRHealth,
+  },
+  {
+    method: "post",
+    path: "/ocr/infer",
+    alias: "run_ocr_ocr_infer_post",
+    description: `Proxy OCR requests to the DeepSeek OCR service with Snappy defaults.`,
+    requestFormat: "form-data",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: Body_run_ocr_ocr_infer_post,
+      },
+    ],
+    response: OCRResponse,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/ocr/info",
+    alias: "info_ocr_info_get",
+    description: `Expose metadata returned by the DeepSeek OCR service.`,
+    requestFormat: "json",
+    response: z.object({}).partial().passthrough(),
   },
   {
     method: "get",

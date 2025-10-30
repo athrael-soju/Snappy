@@ -10,4 +10,3 @@ easydict
 pillow
 safetensors
 torch
-python-decouple>=3.8

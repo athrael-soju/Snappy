@@ -124,9 +124,12 @@ docker compose --profile gpu up -d --build
 
 # CPU profile (no GPU dependencies)
 docker compose --profile cpu up -d --build
+
+# DeepSeek OCR service (requires NVIDIA GPU, start only when OCR is enabled)
+docker compose --profile ocr up -d --build
 ```
 
-Only start one profile at a time to avoid port clashes. The first GPU build compiles `flash-attn`; subsequent builds reuse the cached wheel.
+Only start one profile at a time to avoid port clashes. The first GPU build compiles `flash-attn`; subsequent builds reuse the cached wheel. Enable the DeepSeek OCR feature from the Configuration screen after the OCR container is running.
 
 ---
 
@@ -203,6 +206,7 @@ Update `.env` and `frontend/.env.local` if you need to expose different hostname
 - Page-level vision retrieval powered by ColPali multivector embeddings; no OCR pipeline to maintain.
 - Streaming chat responses from the OpenAI Responses API with inline visual citations so you can see each supporting page.
 - Pipelined indexing with live Server-Sent Events progress updates and optional MUVERA-assisted first-stage search.
+- Optional DeepSeek OCR integration for structured text extraction, grounded boxes, and figure/table parsing when your workflow requires OCR output alongside visual retrieval.
 - Runtime configuration UI backed by a typed schema, with reset and draft flows that make experimentation safe.
 - Docker Compose profiles for ColPali (GPU or CPU) plus an all-in-one stack for local development.
 

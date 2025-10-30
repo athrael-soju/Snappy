@@ -51,6 +51,8 @@ services:
       - MINIO_PUBLIC_URL=http://localhost:9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
+      - DEEPSEEK_OCR_URL=http://deepseek-ocr:8200
+      - DEEPSEEK_OCR_TIMEOUT=180
     volumes:
       - backend_data:/home/user/app/data
     stdin_open: true
@@ -61,6 +63,29 @@ services:
       - minio
     networks:
       - snappy-network
+
+  deepseek-ocr:
+    build:
+      context: ./deepseek-ocr
+      dockerfile: Dockerfile
+    image: deepseek-ocr:latest
+    container_name: deepseek-ocr
+    env_file:
+      - ./deepseek-ocr/.env
+    ports:
+      - "8200:8200"
+    networks:
+      - snappy-network
+    shm_size: "4g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    profiles:
+      - ocr
 
   frontend:
     build:

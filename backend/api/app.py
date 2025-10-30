@@ -1,4 +1,4 @@
-from api.routers import config, indexing, maintenance, meta, retrieval
+from api.routers import config, indexing, maintenance, meta, ocr, retrieval
 from config import ALLOWED_ORIGINS
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,5 +22,6 @@ def create_app() -> FastAPI:
     app.include_router(indexing.router)
     app.include_router(maintenance.router)
     app.include_router(config.router)
+    app.include_router(ocr.router)
 
     return app
