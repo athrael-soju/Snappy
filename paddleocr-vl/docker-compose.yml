@@ -1,0 +1,62 @@
+services:
+  paddleocr-vl:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: paddleocr-vl:latest
+    container_name: paddleocr-vl
+
+    # GPU configuration
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+
+    # Environment variables
+    environment:
+      - APP_NAME=PaddleOCR-VL Service
+      - APP_VERSION=1.0.0
+      - APP_PORT=8100
+      - APP_HOST=0.0.0.0
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+      - LOG_FORMAT=json
+      - USE_GPU=true
+      - DEVICE=gpu
+      - MAX_UPLOAD_SIZE=52428800 # 50MB
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+    # Ports
+    ports:
+      - "8100:8100"
+
+    # Volumes for model caching (optional, improves startup time)
+    volumes:
+      - paddleocr-models:/home/appuser/.paddleocr
+      - /tmp/paddleocr:/tmp/paddleocr
+
+    # Restart policy
+    restart: unless-stopped
+
+    # Health check
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8100/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  paddleocr-models:
+    driver: local

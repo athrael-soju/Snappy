@@ -14,7 +14,7 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 # Copy backend code
 COPY main.py .
 
-EXPOSE 8000
+EXPOSE 8200
 
-# Use uvicorn with reasonable workers for GPU workload
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+# Use main entrypoint so API_HOST/API_PORT envs are respected
+CMD ["python", "main.py"]

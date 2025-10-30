@@ -412,5 +412,5 @@ async def ocr_inference(
 
 if __name__ == "__main__":
     host = env_config("API_HOST", default="0.0.0.0")
-    port = env_config("API_PORT", default=8000, cast=int)
+    port = env_config("API_PORT", default=8200, cast=int)
     uvicorn.run(app, host=host, port=port)
