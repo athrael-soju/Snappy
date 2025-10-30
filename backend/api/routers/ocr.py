@@ -204,7 +204,14 @@ async def ocr_health(client: PaddleOcrService = Depends(get_paddleocr_client)):
     constraints = _format_constraints(client.upload_constraints())
 
     if not client.is_enabled():
-        return OcrDisabledResponse(constraints=constraints)
+        return OcrDisabledResponse(
+            status="disabled",
+            service="PaddleOCR-VL",
+            version="n/a",
+            gpu_enabled=False,
+            pipeline_ready=False,
+            constraints=constraints,
+        )
 
     try:
         data = await run_in_threadpool(client.health)
