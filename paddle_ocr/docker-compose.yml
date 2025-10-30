@@ -1,0 +1,25 @@
+services:
+  paddle_ocr_vl:
+    image: ccr-2vdh3abv-pub.cnc.bj.baidubce.com/paddlepaddle/paddlex-genai-vllm-server
+    ports:
+      - "8118:8118"
+    gpus: all
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    volumes:
+      - paddlex_cache:/root/.cache
+    # shm_size: "2g"         # optional: helpful for some GPU workloads
+    command:
+      - paddlex_genai_server
+      - --model_name
+      - PaddleOCR-VL-0.9B
+      - --backend
+      - vllm
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8118"
+
+volumes:
+  paddlex_cache:
