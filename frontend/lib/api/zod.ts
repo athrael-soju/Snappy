@@ -24,6 +24,36 @@ const HTTPValidationError = z
 const Body_index_index_post = z
   .object({ files: z.array(z.instanceof(File)) })
   .passthrough();
+const OCRHealthResponse = z
+  .object({
+    status: z.string(),
+    service: z.union([z.string(), z.null()]).optional(),
+    version: z.union([z.string(), z.null()]).optional(),
+    gpu_enabled: z.union([z.boolean(), z.null()]).optional(),
+    pipeline_ready: z.union([z.boolean(), z.null()]).optional(),
+    timestamp: z.union([z.string(), z.null()]).optional(),
+  })
+  .passthrough();
+const Body_extract_document_ocr_extract_post = z
+  .object({ file: z.instanceof(File) })
+  .passthrough();
+const OCRElement = z
+  .object({
+    index: z.number().int(),
+    content: z.object({}).partial().passthrough(),
+    metadata: z.object({}).partial().passthrough().optional(),
+  })
+  .passthrough();
+const OCRExtractionResponse = z
+  .object({
+    success: z.boolean(),
+    message: z.union([z.string(), z.null()]).optional(),
+    processing_time: z.union([z.number(), z.null()]).optional(),
+    elements: z.array(OCRElement).optional(),
+    markdown: z.union([z.string(), z.null()]).optional(),
+    timestamp: z.union([z.string(), z.null()]).optional(),
+  })
+  .passthrough();
 const ConfigUpdate = z
   .object({ key: z.string(), value: z.string() })
   .passthrough();
@@ -34,6 +64,10 @@ export const schemas = {
   ValidationError,
   HTTPValidationError,
   Body_index_index_post,
+  OCRHealthResponse,
+  Body_extract_document_ocr_extract_post,
+  OCRElement,
+  OCRExtractionResponse,
   ConfigUpdate,
 };
 
@@ -182,6 +216,72 @@ To persist changes across restarts, update your .env file manually.`,
     description: `Initialize/create collection and bucket based on current configuration.`,
     requestFormat: "json",
     response: z.unknown(),
+  },
+  {
+    method: "post",
+    path: "/ocr/extract",
+    alias: "extract_document_ocr_extract_post",
+    description: `Upload a document and return the structured OCR response.`,
+    requestFormat: "form-data",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: z.object({ file: z.instanceof(File) }).passthrough(),
+      },
+    ],
+    response: z
+      .object({
+        success: z.boolean(),
+        message: z.union([z.string(), z.null()]).optional(),
+        processing_time: z.union([z.number(), z.null()]).optional(),
+        elements: z.array(OCRElement).optional(),
+        markdown: z.union([z.string(), z.null()]).optional(),
+        timestamp: z.union([z.string(), z.null()]).optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 413,
+        description: `File too large`,
+        schema: z.void(),
+      },
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+      {
+        status: 503,
+        description: `Service disabled or unavailable`,
+        schema: z.void(),
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/ocr/health",
+    alias: "health_ocr_health_get",
+    description: `Forward a health probe to the OCR microservice.`,
+    requestFormat: "json",
+    response: z
+      .object({
+        status: z.string(),
+        service: z.union([z.string(), z.null()]).optional(),
+        version: z.union([z.string(), z.null()]).optional(),
+        gpu_enabled: z.union([z.boolean(), z.null()]).optional(),
+        pipeline_ready: z.union([z.boolean(), z.null()]).optional(),
+        timestamp: z.union([z.string(), z.null()]).optional(),
+      })
+      .passthrough(),
+  },
+  {
+    method: "get",
+    path: "/ocr/info",
+    alias: "info_ocr_info_get",
+    description: `Return root metadata from the OCR microservice.`,
+    requestFormat: "json",
+    response: z.object({}).partial().passthrough(),
   },
   {
     method: "get",

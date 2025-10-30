@@ -45,6 +45,8 @@ services:
       - ./.env
     environment:
       - COLPALI_URL=${COLPALI_URL:-http://host.docker.internal:7000}
+      - PADDLE_OCR_ENABLED=${PADDLE_OCR_ENABLED:-true}
+      - PADDLE_OCR_URL=${PADDLE_OCR_URL:-http://paddleocr:8100}
       - QDRANT_EMBEDDED=false
       - QDRANT_URL=http://qdrant:6333
       - MINIO_URL=http://minio:9000
@@ -59,6 +61,7 @@ services:
     depends_on:
       - qdrant
       - minio
+      - paddleocr
     networks:
       - snappy-network
 

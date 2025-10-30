@@ -29,7 +29,7 @@
 [![MinIO](https://img.shields.io/badge/Storage-MinIO-f79533?style=flat-square&logo=minio)](https://min.io/)
 [![Docker](https://img.shields.io/badge/Orchestration-Docker-2496ed?style=flat-square&logo=docker)](https://docs.docker.com/compose/)
 
-Snappy pairs a FastAPI backend, a ColPali embedding service, and a Next.js frontend to deliver vision-first retrieval over PDFs. Each page is rasterized, embedded as multivectors, and stored alongside images so you can search by how documents look rather than only extracted text.
+Snappy pairs a FastAPI backend, dedicated PaddleOCR-VL OCR and ColPali embedding services, and a Next.js frontend to deliver vision-first retrieval over PDFs. Each page is rasterized, embedded as multivectors, and stored alongside images so you can search by how documents look rather than only extracted text or OCR.
 
 **TL;DR**
 
@@ -84,6 +84,7 @@ flowchart TB
     QDRANT["Qdrant"]
     MINIO["MinIO"]
     COLPALI["ColPali Embedding API"]
+    PADDLE["PaddleOCR-VL OCR Service"]
     OPENAI["OpenAI Responses API"]
   end
 
@@ -92,6 +93,7 @@ flowchart TB
   API --> QDRANT
   API --> MINIO
   API --> COLPALI
+  API --> PADDLE
   CHAT --> API
   CHAT --> OPENAI
   CHAT -- SSE --> USER
@@ -234,6 +236,7 @@ The Next.js 16 frontend with React 19.2 keeps things fast and friendly: real-tim
 ### Backend highlights
 
 - `COLPALI_URL`, `COLPALI_API_TIMEOUT`
+- `PADDLE_OCR_ENABLED`, `PADDLE_OCR_URL`, `PADDLE_OCR_TIMEOUT`, `PADDLE_OCR_MAX_FILE_MB`
 - `QDRANT_EMBEDDED`, `QDRANT_URL`, `QDRANT_COLLECTION_NAME`, `QDRANT_PREFETCH_LIMIT`, `QDRANT_MEAN_POOLING_ENABLED`, optional quantisation toggles
 - `MINIO_URL`, `MINIO_PUBLIC_URL`, credentials, bucket naming, `IMAGE_FORMAT`, `IMAGE_QUALITY`
 - `MUVERA_ENABLED` and related settings (requires `fastembed[postprocess]` in your environment)
@@ -257,6 +260,7 @@ All schema-backed settings (and defaults) are documented in `backend/docs/config
 | Indexing     | `POST /index`                            | Background indexing job (multipart PDF upload) |
 |              | `GET /progress/stream/{job_id}`          | Real-time progress (SSE) |
 |              | `POST /index/cancel/{job_id}`            | Cancel an active job |
+| OCR          | `POST /ocr/extract`, `GET /ocr/health`   | PaddleOCR-VL proxy endpoints for document parsing |
 | Maintenance  | `GET /status`                            | Collection/bucket statistics |
 |              | `POST /initialize`, `DELETE /delete`     | Provision or tear down collection + bucket |
 |              | `POST /clear/qdrant`, `/clear/minio`, `/clear/all` | Data reset helpers |

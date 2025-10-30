@@ -366,6 +366,100 @@
         }
       }
     },
+    "/ocr/health": {
+      "get": {
+        "tags": [
+          "ocr"
+        ],
+        "summary": "Check PaddleOCR-VL service health",
+        "description": "Forward a health probe to the OCR microservice.",
+        "operationId": "health_ocr_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OCRHealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ocr/info": {
+      "get": {
+        "tags": [
+          "ocr"
+        ],
+        "summary": "Fetch PaddleOCR-VL service metadata",
+        "description": "Return root metadata from the OCR microservice.",
+        "operationId": "info_ocr_info_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Info Ocr Info Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ocr/extract": {
+      "post": {
+        "tags": [
+          "ocr"
+        ],
+        "summary": "Extract structured OCR data from a document",
+        "description": "Upload a document and return the structured OCR response.",
+        "operationId": "extract_document_ocr_extract_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_extract_document_ocr_extract_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OCRExtractionResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "File too large"
+          },
+          "503": {
+            "description": "Service disabled or unavailable"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/config/schema": {
       "get": {
         "tags": [
@@ -487,6 +581,21 @@
   },
   "components": {
     "schemas": {
+      "Body_extract_document_ocr_extract_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File",
+            "description": "Image or PDF file to process"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_extract_document_ocr_extract_post"
+      },
       "Body_index_index_post": {
         "properties": {
           "files": {
@@ -537,6 +646,166 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "OCRElement": {
+        "properties": {
+          "index": {
+            "type": "integer",
+            "title": "Index"
+          },
+          "content": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Content"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "index",
+          "content"
+        ],
+        "title": "OCRElement"
+      },
+      "OCRExtractionResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "processing_time": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Time"
+          },
+          "elements": {
+            "items": {
+              "$ref": "#/components/schemas/OCRElement"
+            },
+            "type": "array",
+            "title": "Elements"
+          },
+          "markdown": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Markdown"
+          },
+          "timestamp": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timestamp"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "success"
+        ],
+        "title": "OCRExtractionResponse"
+      },
+      "OCRHealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "service": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Service"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          },
+          "gpu_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gpu Enabled"
+          },
+          "pipeline_ready": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pipeline Ready"
+          },
+          "timestamp": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timestamp"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "OCRHealthResponse"
       },
       "SearchItem": {
         "properties": {

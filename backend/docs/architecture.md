@@ -22,6 +22,7 @@ flowchart TB
     QDRANT["Qdrant"]
     MINIO["MinIO"]
     COLPALI["ColPali API"]
+    PADDLE["PaddleOCR-VL API"]
     OPENAI["OpenAI API"]
   end
 
@@ -30,6 +31,7 @@ flowchart TB
   API --> QDRANT
   API --> MINIO
   API --> COLPALI
+  API --> PADDLE
   CHAT --> API
   CHAT --> OPENAI
   CHAT -- SSE Stream --> USER
@@ -39,10 +41,11 @@ flowchart TB
 
 ## Components
 
-- **FastAPI application** (`backend/api/app.py`) wires the routers for health, retrieval, indexing, maintenance, and configuration.
+- **FastAPI application** (`backend/api/app.py`) wires the routers for health, retrieval, indexing, OCR, maintenance, and configuration.
 - **Qdrant service** (`backend/services/qdrant/`) manages vector collections, indexing, search, and optional MUVERA post-processing.
 - **MinIO service** (`backend/services/minio.py`) stores page images with concurrent uploads and retry handling.
 - **ColPali client** (`backend/services/colpali.py`) communicates with the embedding service for both queries and images.
+- **PaddleOCR client** (`backend/services/paddleocr.py`) proxies document parsing requests to the PaddleOCR-VL FastAPI microservice.
 - **Configuration layer** (`backend/config.py`, `backend/config_schema.py`) keeps runtime settings consistent across the API and UI.
 - **Support modules**
   - `backend/api/utils.py` – PDF-to-image conversion

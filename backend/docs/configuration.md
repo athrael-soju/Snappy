@@ -16,6 +16,7 @@ Runtime updates take effect immediately but do not persist across restarts—upd
 - [Core application](#core-application)
 - [Document ingestion](#document-ingestion)
 - [ColPali embedding service](#colpali-embedding-service)
+- [PaddleOCR-VL service](#paddleocr-vl-service)
 - [Qdrant vector database](#qdrant-vector-database)
 - [Object storage (MinIO)](#object-storage-minio)
 - [MUVERA post-processing](#muvera-post-processing)
@@ -80,6 +81,20 @@ Helpers:
 |-----|------|---------|-------------|
 | `COLPALI_URL` | str | `http://localhost:7000` | Endpoint for the ColPali service. |
 | `COLPALI_API_TIMEOUT` | int | `300` | Timeout (seconds) for embedding requests. Increase for large documents, especially on CPU. |
+
+---
+
+## PaddleOCR-VL Service
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `PADDLE_OCR_ENABLED` | bool | `False` | Master switch for the OCR integration. When disabled the backend rejects OCR requests. |
+| `PADDLE_OCR_URL` | str | `http://localhost:8100` | Base URL for the PaddleOCR-VL FastAPI service. |
+| `PADDLE_OCR_API_PREFIX` | str | `/api/v1` | API prefix configured on the OCR service (prepended to `ocr/*` routes). |
+| `PADDLE_OCR_TIMEOUT` | int | `300` | Timeout (seconds) for OCR extraction requests. Increase for larger documents. |
+| `PADDLE_OCR_MAX_FILE_MB` | int | `50` | Maximum file size (MB) accepted by the backend before proxying to the OCR service. |
+
+Keep the maximum size aligned with the underlying PaddleOCR-VL container to avoid inconsistent validation behaviour.
 
 ---
 
