@@ -24,6 +24,56 @@ const HTTPValidationError = z
 const Body_index_index_post = z
   .object({ files: z.array(z.instanceof(File)) })
   .passthrough();
+const Body_extract_document_ocr_extract_post = z
+  .object({ file: z.instanceof(File) })
+  .passthrough();
+const OcrElement = z
+  .object({
+    index: z.number().int(),
+    content: z.object({}).partial().passthrough().optional(),
+    metadata: z.object({}).partial().passthrough().optional(),
+  })
+  .passthrough();
+const OcrExtractionResponse = z
+  .object({
+    success: z.boolean(),
+    message: z.string(),
+    processing_time: z.number(),
+    elements: z.array(OcrElement).optional(),
+    markdown: z.union([z.string(), z.null()]).optional(),
+    timestamp: z.union([z.string(), z.null()]).optional(),
+  })
+  .passthrough();
+const OcrConstraints = z
+  .object({
+    allow_any_extension: z.boolean(),
+    allowed_extensions: z.array(z.string()).optional(),
+    max_file_size_bytes: z.number().int(),
+    max_file_size_mb: z.number(),
+  })
+  .passthrough();
+const OcrHealthResponse = z
+  .object({
+    status: z.string(),
+    service: z.string(),
+    version: z.string(),
+    gpu_enabled: z.boolean(),
+    pipeline_ready: z.boolean(),
+    timestamp: z.union([z.string(), z.null()]).optional(),
+    constraints: OcrConstraints,
+  })
+  .passthrough();
+const OcrDisabledResponse = z
+  .object({
+    status: z.string().optional().default("disabled"),
+    service: z.string().optional().default("PaddleOCR-VL"),
+    version: z.string().optional().default("n/a"),
+    gpu_enabled: z.boolean().optional().default(false),
+    pipeline_ready: z.boolean().optional().default(false),
+    timestamp: z.string().datetime({ offset: true }).optional(),
+    constraints: OcrConstraints,
+  })
+  .passthrough();
 const ConfigUpdate = z
   .object({ key: z.string(), value: z.string() })
   .passthrough();
@@ -34,6 +84,12 @@ export const schemas = {
   ValidationError,
   HTTPValidationError,
   Body_index_index_post,
+  Body_extract_document_ocr_extract_post,
+  OcrElement,
+  OcrExtractionResponse,
+  OcrConstraints,
+  OcrHealthResponse,
+  OcrDisabledResponse,
   ConfigUpdate,
 };
 
@@ -182,6 +238,38 @@ To persist changes across restarts, update your .env file manually.`,
     description: `Initialize/create collection and bucket based on current configuration.`,
     requestFormat: "json",
     response: z.unknown(),
+  },
+  {
+    method: "post",
+    path: "/ocr/extract",
+    alias: "extract_document_ocr_extract_post",
+    description: `Proxy document extraction requests to PaddleOCR-VL.
+
+Validates file size and extension locally before forwarding the upload.`,
+    requestFormat: "form-data",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: z.object({ file: z.instanceof(File) }).passthrough(),
+      },
+    ],
+    response: OcrExtractionResponse,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/ocr/health",
+    alias: "ocr_health_ocr_health_get",
+    description: `Report health information about the PaddleOCR-VL integration.`,
+    requestFormat: "json",
+    response: z.union([OcrHealthResponse, OcrDisabledResponse]),
   },
   {
     method: "get",

@@ -366,6 +366,78 @@
         }
       }
     },
+    "/ocr/extract": {
+      "post": {
+        "tags": [
+          "ocr"
+        ],
+        "summary": "Extract document structure with PaddleOCR-VL",
+        "description": "Proxy document extraction requests to PaddleOCR-VL.\n\nValidates file size and extension locally before forwarding the upload.",
+        "operationId": "extract_document_ocr_extract_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_extract_document_ocr_extract_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OcrExtractionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ocr/health": {
+      "get": {
+        "tags": [
+          "ocr"
+        ],
+        "summary": "Check PaddleOCR-VL health",
+        "description": "Report health information about the PaddleOCR-VL integration.",
+        "operationId": "ocr_health_ocr_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/OcrHealthResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/OcrDisabledResponse"
+                    }
+                  ],
+                  "title": "Response Ocr Health Ocr Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/config/schema": {
       "get": {
         "tags": [
@@ -487,6 +559,21 @@
   },
   "components": {
     "schemas": {
+      "Body_extract_document_ocr_extract_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File",
+            "description": "Image or PDF file to process"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_extract_document_ocr_extract_post"
+      },
       "Body_index_index_post": {
         "properties": {
           "files": {
@@ -537,6 +624,230 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "OcrConstraints": {
+        "properties": {
+          "allow_any_extension": {
+            "type": "boolean",
+            "title": "Allow Any Extension",
+            "description": "Whether every extension is accepted before proxying"
+          },
+          "allowed_extensions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Extensions",
+            "description": "Normalised list of allowed extensions (lowercase, with dot)"
+          },
+          "max_file_size_bytes": {
+            "type": "integer",
+            "title": "Max File Size Bytes",
+            "description": "Maximum upload size enforced before proxying"
+          },
+          "max_file_size_mb": {
+            "type": "number",
+            "title": "Max File Size Mb",
+            "description": "Maximum upload size in MB"
+          }
+        },
+        "type": "object",
+        "required": [
+          "allow_any_extension",
+          "max_file_size_bytes",
+          "max_file_size_mb"
+        ],
+        "title": "OcrConstraints"
+      },
+      "OcrDisabledResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Indicates OCR integration is disabled",
+            "default": "disabled"
+          },
+          "service": {
+            "type": "string",
+            "title": "Service",
+            "description": "Service name",
+            "default": "PaddleOCR-VL"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "Service version when disabled",
+            "default": "n/a"
+          },
+          "gpu_enabled": {
+            "type": "boolean",
+            "title": "Gpu Enabled",
+            "description": "GPU status when integration disabled",
+            "default": false
+          },
+          "pipeline_ready": {
+            "type": "boolean",
+            "title": "Pipeline Ready",
+            "description": "Pipeline status when disabled",
+            "default": false
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp",
+            "description": "Timestamp generated by the backend when disabled"
+          },
+          "constraints": {
+            "$ref": "#/components/schemas/OcrConstraints",
+            "description": "Upload constraints enforced by the backend proxy"
+          }
+        },
+        "type": "object",
+        "required": [
+          "constraints"
+        ],
+        "title": "OcrDisabledResponse"
+      },
+      "OcrElement": {
+        "properties": {
+          "index": {
+            "type": "integer",
+            "title": "Index",
+            "description": "Element index in the document response"
+          },
+          "content": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Content",
+            "description": "Content payload returned by PaddleOCR-VL"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "Metadata (bbox, confidence, type, etc.)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "index"
+        ],
+        "title": "OcrElement"
+      },
+      "OcrExtractionResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "description": "Whether the OCR processing succeeded"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Status message from PaddleOCR-VL"
+          },
+          "processing_time": {
+            "type": "number",
+            "title": "Processing Time",
+            "description": "Processing time in seconds"
+          },
+          "elements": {
+            "items": {
+              "$ref": "#/components/schemas/OcrElement"
+            },
+            "type": "array",
+            "title": "Elements",
+            "description": "Extracted OCR elements"
+          },
+          "markdown": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Markdown",
+            "description": "Markdown representation of the extracted content"
+          },
+          "timestamp": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timestamp",
+            "description": "Timestamp emitted by PaddleOCR-VL"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "processing_time"
+        ],
+        "title": "OcrExtractionResponse"
+      },
+      "OcrHealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Service status reported by PaddleOCR-VL"
+          },
+          "service": {
+            "type": "string",
+            "title": "Service",
+            "description": "Service name"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "Service version"
+          },
+          "gpu_enabled": {
+            "type": "boolean",
+            "title": "Gpu Enabled",
+            "description": "Whether GPU is available to the service"
+          },
+          "pipeline_ready": {
+            "type": "boolean",
+            "title": "Pipeline Ready",
+            "description": "Whether PaddleOCR-VL has initialised its pipeline"
+          },
+          "timestamp": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timestamp",
+            "description": "Timestamp reported by the service"
+          },
+          "constraints": {
+            "$ref": "#/components/schemas/OcrConstraints",
+            "description": "Upload constraints enforced by the backend proxy"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "service",
+          "version",
+          "gpu_enabled",
+          "pipeline_ready",
+          "constraints"
+        ],
+        "title": "OcrHealthResponse"
       },
       "SearchItem": {
         "properties": {

@@ -16,6 +16,7 @@ Runtime updates take effect immediately but do not persist across restarts—upd
 - [Core application](#core-application)
 - [Document ingestion](#document-ingestion)
 - [ColPali embedding service](#colpali-embedding-service)
+- [PaddleOCR-VL service](#paddleocr-vl-service)
 - [Qdrant vector database](#qdrant-vector-database)
 - [Object storage (MinIO)](#object-storage-minio)
 - [MUVERA post-processing](#muvera-post-processing)
@@ -80,6 +81,21 @@ Helpers:
 |-----|------|---------|-------------|
 | `COLPALI_URL` | str | `http://localhost:7000` | Endpoint for the ColPali service. |
 | `COLPALI_API_TIMEOUT` | int | `300` | Timeout (seconds) for embedding requests. Increase for large documents, especially on CPU. |
+
+---
+
+## PaddleOCR-VL Service
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `PADDLE_OCR_VL_ENABLED` | bool | `False` | Enable or disable the OCR integration. When disabled the backend skips health checks and returns `503` for extraction requests. |
+| `PADDLE_OCR_VL_URL` | str | `http://localhost:8100` | Base URL for the standalone PaddleOCR-VL FastAPI service. |
+| `PADDLE_OCR_VL_API_PREFIX` | str | `/api/v1` | Path prefix appended to PaddleOCR-VL API calls (defaults to the reference implementation). |
+| `PADDLE_OCR_VL_API_TIMEOUT` | int | `300` | Timeout (seconds) for OCR extraction and health requests. Raise this value if the service runs on CPU, per the [official environment guidance](https://www.paddleocr.ai/latest/en/version3.x/pipeline_usage/PaddleOCR-VL.html#1-environment-preparation). |
+| `PADDLE_OCR_VL_ALLOWED_EXTENSIONS` | list | `.jpg,.jpeg,.png,.bmp,.tiff,.tif,.pdf` | File extensions accepted by the backend before proxying the upload. |
+| `PADDLE_OCR_VL_MAX_FILE_SIZE_MB` | int | `50` | Maximum file size accepted by the proxy (in MB). Aligns with the default limit recommended for PaddleOCR-VL. |
+
+> Health checks always execute against `PADDLE_OCR_VL_URL/health`, while extraction requests use the API prefix (`/ocr/extract-document` by default).
 
 ---
 
