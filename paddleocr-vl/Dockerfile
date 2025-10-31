@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
     python3-dev \
     build-essential \
+    ccache \
     wget \
     curl \
     ca-certificates \
@@ -66,6 +67,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 # Install runtime dependencies only
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3.10 \
+    ccache \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
