@@ -3,6 +3,7 @@ PaddleOCR-VL service wrapper for document OCR processing.
 """
 
 import json
+import os
 import tempfile
 import threading
 import time
@@ -17,12 +18,12 @@ logger = get_logger(__name__)
 
 class PaddleOCRVLService:
     """
-    Thread-safe wrapper for PaddleOCR-VL pipeline.
-    Implements lazy initialization and manages the OCR pipeline lifecycle.
+    Thread-safe wrapper for the PaddleOCR-VL pipeline.
+    Eagerly initializes the OCR pipeline during service startup.
     """
 
     _instance: Optional["PaddleOCRVLService"] = None
-    _lock = threading.Lock()
+    _lock = threading.RLock()
     _pipeline = None
     _initialized = False
 
@@ -35,67 +36,18 @@ class PaddleOCRVLService:
         return cls._instance
 
     def __init__(self):
-        """Initialize the service (lazy loading)."""
+        """Initialize the service and eagerly load the pipeline."""
         if not self._initialized:
             with self._lock:
                 if not self._initialized:
-                    logger.info(
-                        "PaddleOCRVLService instance created (pipeline will be initialized on first use)"
-                    )
+                    logger.info("PaddleOCRVLService initializing pipeline at startup")
+                    self._initialize_pipeline()
                     self._initialized = True
-
-    def _make_serializable(self, obj: Any) -> Any:
-        """
-        Convert any object to JSON-serializable format.
-        Handles nested structures, filters out methods, and converts complex types.
-
-        Args:
-            obj: Any Python object
-
-        Returns:
-            JSON-serializable version of the object
-        """
-        # Handle None, primitives (str, int, float, bool)
-        if obj is None or isinstance(obj, (str, int, float, bool)):
-            return obj
-
-        # Handle lists
-        if isinstance(obj, (list, tuple)):
-            return [self._make_serializable(item) for item in obj]
-
-        # Handle dicts
-        if isinstance(obj, dict):
-            return {
-                k: self._make_serializable(v) for k, v in obj.items() if not callable(v)
-            }
-
-        # Skip callables (methods, functions)
-        if callable(obj):
-            return None
-
-        # Try to convert to dict if it has __dict__
-        if hasattr(obj, "__dict__"):
-            try:
-                return {
-                    k: self._make_serializable(v)
-                    for k, v in obj.__dict__.items()
-                    if not k.startswith("_") and not callable(v)
-                }
-            except Exception:
-                pass
-
-        # Fall back to string representation for unknown types
-        try:
-            # Test if it's JSON serializable
-            json.dumps(obj)
-            return obj
-        except (TypeError, ValueError):
-            return str(obj)
 
     def _initialize_pipeline(self) -> None:
         """
         Initialize the PaddleOCR-VL pipeline.
-        This is called lazily on first use to avoid loading models during startup.
+        Primarily invoked during startup, but safe to call multiple times.
         """
         if self._pipeline is not None:
             return
@@ -136,7 +88,7 @@ class PaddleOCRVLService:
         Raises:
             RuntimeError: If pipeline initialization or processing fails
         """
-        # Ensure pipeline is initialized
+        # Safety guard in case startup initialization did not complete
         if self._pipeline is None:
             self._initialize_pipeline()
 
@@ -147,20 +99,12 @@ class PaddleOCRVLService:
             # Run PaddleOCR-VL prediction
             output = self._pipeline.predict(image_path)
 
-            # Convert results to dict format
-            results = []
-            for idx, res in enumerate(output):
-                # Extract result data
-                result_data = {
-                    "index": idx,
-                    "content": self._extract_content(res),
-                    "metadata": self._extract_metadata(res),
-                }
-                results.append(result_data)
+            # Convert results using the library-provided serializer
+            results = [self._result_to_dict(res) for res in output]
 
             elapsed = time.time() - start_time
             logger.info(
-                f"Image processed successfully in {elapsed:.2f}s - Found {len(results)} elements"
+                f"Image processed successfully in {elapsed:.2f}s - Found {len(results)} results"
             )
 
             return results
@@ -202,116 +146,61 @@ class PaddleOCRVLService:
             except Exception as e:
                 logger.warning(f"Failed to delete temporary file {temp_path}: {e}")
 
-    def _extract_content(self, result: Any) -> Dict[str, Any]:
+    def _result_to_dict(self, result: Any) -> Dict[str, Any]:
         """
-        Extract content from PaddleOCR-VL result object.
-
-        Args:
-            result: PaddleOCR-VL result object
-
-        Returns:
-            Dictionary containing extracted text and structure
+        Convert a PaddleOCR-VL result object into a JSON-compatible dictionary
+        using the library's native serializer.
         """
-        try:
-            # Convert result to string first (it's a complex object)
-            result_str = str(result)
+        if hasattr(result, "save_to_json") and callable(result.save_to_json):
+            temp_path: Optional[Path] = None
+            try:
+                json_payload = result.save_to_json()
 
-            # Extract parsing_res_list which contains the actual OCR results
-            content = {}
+                # Direct dict/list response
+                if isinstance(json_payload, (dict, list)):
+                    return json_payload  # type: ignore[return-value]
 
-            # Parse the string representation to find content blocks
-            import re
+                # JSON string response
+                if isinstance(json_payload, bytes):
+                    json_payload = json_payload.decode("utf-8")
 
-            # Find all content blocks in the format:
-            # label:\ttype\nbbox:\t[coords]\ncontent:\ttext
-            pattern = r"label:\s*(\w+)\s*\n\s*bbox:\s*\[([^\]]+)\]\s*\n\s*content:\s*(.+?)(?=\n#####|$)"
-            matches = re.findall(pattern, result_str, re.DOTALL)
-
-            if matches:
-                blocks = []
-                for label, bbox_str, text in matches:
-                    # Parse bbox coordinates
+                if isinstance(json_payload, str):
                     try:
-                        bbox = [
-                            float(x.strip().replace("np.float32(", "").replace(")", ""))
-                            for x in bbox_str.split(",")[:4]
-                        ]
-                    except:
-                        bbox = []
+                        return json.loads(json_payload)
+                    except json.JSONDecodeError:
+                        temp_candidate = Path(json_payload)
+                        if temp_candidate.exists():
+                            return json.loads(
+                                temp_candidate.read_text(encoding="utf-8")
+                            )
 
-                    blocks.append(
-                        {"type": label.strip(), "bbox": bbox, "text": text.strip()}
-                    )
-
-                content["blocks"] = blocks
-                # Create a simple text concatenation
-                content["text"] = "\n\n".join(block["text"] for block in blocks)
-
-            # Try to call conversion methods if available
-            if hasattr(result, "to_markdown") and callable(result.to_markdown):
+                # If the method requires a path argument, retry with a temp file
+                fd, temp_name = tempfile.mkstemp(suffix=".json")
+                os.close(fd)
+                temp_path = Path(temp_name)
+                result.save_to_json(str(temp_path))
+                return json.loads(temp_path.read_text(encoding="utf-8"))
+            except TypeError:
+                # Method likely requires an explicit path argument
+                fd, temp_name = tempfile.mkstemp(suffix=".json")
+                os.close(fd)
+                temp_path = Path(temp_name)
                 try:
-                    content["markdown"] = result.to_markdown()
-                except Exception as e:
-                    logger.debug(f"Failed to call to_markdown(): {e}")
+                    result.save_to_json(str(temp_path))
+                    return json.loads(temp_path.read_text(encoding="utf-8"))
+                finally:
+                    if temp_path.exists():
+                        temp_path.unlink(missing_ok=True)
+            except Exception as exc:
+                logger.warning(
+                    "Failed to serialize PaddleOCR-VL result via save_to_json: %s", exc
+                )
+            finally:
+                if temp_path and temp_path.exists():
+                    temp_path.unlink(missing_ok=True)
 
-            # If we got some content, return it
-            if content:
-                return content
-
-            # Fallback: return string representation
-            return {"raw": result_str}
-
-        except Exception as e:
-            logger.warning(f"Failed to extract content: {e}")
-            return {"raw": str(result)}
-
-    def _extract_metadata(self, result: Any) -> Dict[str, Any]:
-        """
-        Extract metadata from PaddleOCR-VL result object.
-
-        Args:
-            result: PaddleOCR-VL result object
-
-        Returns:
-            Dictionary containing metadata
-        """
-        metadata = {}
-
-        # Try to extract common metadata fields
-        for attr in ["bbox", "confidence", "type", "label"]:
-            if hasattr(result, attr):
-                value = getattr(result, attr)
-                # Make value serializable
-                serialized_value = self._make_serializable(value)
-                if serialized_value is not None:
-                    metadata[attr] = serialized_value
-
-        return metadata
-
-    def get_markdown_output(self, results: List[Dict[str, Any]]) -> str:
-        """
-        Convert results to markdown format.
-
-        Args:
-            results: List of OCR results
-
-        Returns:
-            Markdown formatted string
-        """
-        markdown_parts = []
-        markdown_parts.append("# Document OCR Results\n")
-
-        for idx, result in enumerate(results):
-            markdown_parts.append(f"\n## Element {idx + 1}\n")
-
-            content = result.get("content", {})
-            if isinstance(content, dict):
-                for key, value in content.items():
-                    markdown_parts.append(f"**{key}**: {value}\n")
-            else:
-                markdown_parts.append(f"{content}\n")
-
-        return "\n".join(markdown_parts)
+        logger.warning("Falling back to string representation for OCR result")
+        return {"raw": str(result)}
 
     def is_ready(self) -> bool:
         """Check if the pipeline is initialized and ready."""

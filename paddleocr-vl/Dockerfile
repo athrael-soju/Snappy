@@ -1,5 +1,5 @@
 # Multi-stage Dockerfile for PaddleOCR-VL Service
-# Base: CUDA 13.0 base on Ubuntu 22.04
+# Base: CUDA 13.0 runtime on Ubuntu 22.04
 
 # ================================
 # Stage 1: Builder
@@ -34,38 +34,24 @@ RUN ln -sf /usr/bin/python3.10 /usr/bin/python
 # Upgrade pip
 RUN python -m pip install --no-cache-dir --upgrade pip setuptools wheel
 
-# Install PaddlePaddle GPU 3.2.1 before PaddleOCR; copy optional wheels to reuse local cache
-# This avoids repeated 1GB+ downloads from the China CDN when the wheel is provided.
-COPY tmp/ /tmp/build-wheels/
-
-# Install PaddlePaddle with a preference for the local wheel; fall back to remote CDN when absent
-RUN if [ -f /tmp/build-wheels/paddlepaddle_gpu-3.2.1-cp310-cp310-linux_x86_64.whl ]; then \
-    python -m pip install --no-cache-dir /tmp/build-wheels/paddlepaddle_gpu-3.2.1-cp310-cp310-linux_x86_64.whl; \
-    else \
-    python -m pip install --no-cache-dir paddlepaddle-gpu==3.2.1 -i https://www.paddlepaddle.org.cn/packages/stable/cu130/; \
-    fi
+# Install PaddlePaddle GPU 3.2.1 (CUDA 13.0 compatible)
+# CRITICAL: This must be installed BEFORE PaddleOCR
+RUN python -m pip install --no-cache-dir \
+    paddlepaddle-gpu==3.2.1 \
+    -i https://www.paddlepaddle.org.cn/packages/stable/cu130/
 
 # Install PaddleOCR with doc-parser support
 RUN python -m pip install --no-cache-dir "paddleocr[doc-parser]>=3.3.0"
 
-# Install PaddlePaddle-compatible safetensors; prefer local wheel to avoid flaky downloads. Alternatively, could be built from source
+# Install PaddlePaddle-compatible safetensors
 # CRITICAL: Standard safetensors doesn't support PaddlePaddle!
-RUN if [ -f /tmp/build-wheels/safetensors-0.6.2.dev0-cp38-abi3-linux_x86_64.whl ]; then \
-    python -m pip install --no-cache-dir /tmp/build-wheels/safetensors-0.6.2.dev0-cp38-abi3-linux_x86_64.whl --force-reinstall; \
-    else \
-    python -m pip install --no-cache-dir https://paddle-whl.bj.bcebos.com/nightly/cu126/safetensors/safetensors-0.6.2.dev0-cp38-abi3-linux_x86_64.whl --force-reinstall; \
-    fi
+RUN python -m pip install --no-cache-dir \
+    https://paddle-whl.bj.bcebos.com/nightly/cu126/safetensors/safetensors-0.6.2.dev0-cp38-abi3-linux_x86_64.whl \
+    --force-reinstall
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt /tmp/requirements.txt
 RUN python -m pip install --no-cache-dir -r /tmp/requirements.txt
-
-# Clean up builder stage to reduce size of copied artifacts
-# NOTE: Keep setuptools as it's required by PaddleOCR-VL at runtime
-RUN pip uninstall -y pip wheel && \
-    rm -rf /root/.cache /tmp/* && \
-    find /usr/local/lib/python3.10/dist-packages -name "*.pyc" -delete && \
-    find /usr/local/lib/python3.10/dist-packages -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
 
 # ================================
 # Stage 2: Runtime
@@ -124,10 +110,6 @@ RUN mkdir -p /home/appuser/.paddleocr /tmp/paddleocr && \
 # Switch to non-root user
 USER appuser
 
-# NOTE: Model pre-download is skipped because libcuda.so.1 is not available during Docker build.
-# Models will be downloaded automatically on first API request (~20-30 seconds cold start).
-# This is a trade-off: faster Docker builds vs. slower first request.
-
 # Environment variables
 ENV HOME=/home/appuser
 ENV PATH="/home/appuser/.local/bin:${PATH}"
@@ -135,11 +117,11 @@ ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
 
 # Expose port
-EXPOSE 8000
+EXPOSE 8100
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+    CMD curl -f http://localhost:8100/health || exit 1
 
 # Run the application
 CMD ["python", "main.py"]

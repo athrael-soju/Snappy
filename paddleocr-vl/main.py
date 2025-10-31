@@ -29,7 +29,7 @@ async def lifespan(app: FastAPI):
     Startup:
     - Initialize logging
     - Log configuration
-    - PaddleOCR-VL pipeline will be initialized lazily on first request
+    - Ensure PaddleOCR-VL pipeline is ready for requests
 
     Shutdown:
     - Cleanup resources
@@ -43,9 +43,8 @@ async def lifespan(app: FastAPI):
     logger.info(
         f"API Endpoint: http://{settings.app_host}:{settings.app_port}{settings.api_v1_prefix}"
     )
-    logger.info(
-        f"Note: PaddleOCR-VL pipeline will be initialized on first request (lazy loading)"
-    )
+    pipeline_ready = paddleocr_vl_service.is_ready()
+    logger.info(f"PaddleOCR-VL pipeline ready: {pipeline_ready}")
     logger.info("=" * 80)
 
     yield

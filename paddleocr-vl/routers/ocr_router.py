@@ -8,7 +8,7 @@ from pathlib import Path
 from config.logging_config import get_logger
 from config.settings import settings
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
-from models.api_models import ErrorResponse, OCRElement, OCRResponse
+from models.api_models import ErrorResponse, OCRResponse
 from services.paddleocr_vl_service import paddleocr_vl_service
 
 logger = get_logger(__name__)
@@ -40,8 +40,7 @@ async def extract_document(
     - Tables, charts, formulas
 
     Returns:
-    - Structured JSON with all extracted elements
-    - Markdown formatted output
+    - Raw PaddleOCR-VL JSON output
     - Processing metadata
     """
     start_time = time.time()
@@ -78,38 +77,24 @@ async def extract_document(
 
         logger.info(f"Processing file: {file.filename} ({file_size} bytes)")
 
-        # Process image
+        # Process image and return raw PaddleOCR-VL output
         results = paddleocr_vl_service.process_image_bytes(
             image_bytes=file_content, filename=file.filename
         )
-
-        # Convert results to response model
-        elements = [
-            OCRElement(
-                index=result["index"],
-                content=result["content"],
-                metadata=result["metadata"],
-            )
-            for result in results
-        ]
-
-        # Generate markdown output
-        markdown = paddleocr_vl_service.get_markdown_output(results)
 
         processing_time = time.time() - start_time
 
         logger.info(
             f"Document processed successfully - "
-            f"Elements: {len(elements)}, "
+            f"Results: {len(results)}, "
             f"Time: {processing_time:.2f}s"
         )
 
         return OCRResponse(
             success=True,
-            message=f"Document processed successfully. Found {len(elements)} elements.",
+            message=f"Document processed successfully. Found {len(results)} results.",
             processing_time=processing_time,
-            elements=elements,
-            markdown=markdown,
+            results=results,
         )
 
     except HTTPException:

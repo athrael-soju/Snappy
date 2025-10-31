@@ -79,7 +79,7 @@ paddleocr-vl-service/
 │  - NaViT visual encoder (dynamic resolution)   │
 │  - ERNIE-4.5-0.3B language model                │
 │  - Grouped Query Attention (GQA)                │
-│  - Output: Structured elements + metadata       │
+│  - Output: Raw PaddleOCR-VL JSON       │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -96,11 +96,16 @@ paddleocr-vl-service/
 - Model download (~2GB) happens automatically on first use
 
 **3. Temporary File Handling**
-- API receives bytes → write to temp file → process → delete
+- API receives bytes -> write to temp file -> process -> delete
 - PaddleOCR-VL requires file paths, not in-memory bytes
 - Automatic cleanup even on errors
 
-**4. Lifespan Management**
+**4. Raw Result Passthrough** (`services/paddleocr_vl_service.py`, `routers/ocr_router.py`)
+- Uses PaddleOCR-VL's `save_to_json()` to return canonical raw output
+- Removes fragile regex parsing and markdown synthesis
+- Automatically surfaces new upstream fields without code changes
+
+**5. Lifespan Management**
 - FastAPI async context manager for startup/shutdown
 - Logs configuration on startup
 - Graceful cleanup on shutdown
@@ -153,16 +158,28 @@ curl -X POST http://localhost:8000/api/v1/ocr/extract-document \
 ```json
 {
   "success": true,
-  "message": "Document processed successfully. Found 3 elements.",
+  "message": "Document processed successfully. Found 3 results.",
   "processing_time": 5.23,
-  "elements": [
+  "results": [
     {
-      "index": 0,
-      "content": {"text": "...", "type": "text"},
-      "metadata": {"bbox": [x1, y1, x2, y2], "confidence": 0.98}
+      "type": "text",
+      "bbox": [10, 20, 200, 50],
+      "content": "Document heading",
+      "confidence": 0.98
+    },
+    {
+      "type": "table",
+      "bbox": [10, 60, 400, 200],
+      "confidence": 0.92,
+      "structure": {"rows": 5, "columns": 3}
+    },
+    {
+      "type": "image",
+      "bbox": [420, 80, 640, 360],
+      "confidence": 0.87,
+      "description": "Embedded chart"
     }
   ],
-  "markdown": "# Document OCR Results\n...",
   "timestamp": "2025-01-15T10:30:00Z"
 }
 ```
@@ -332,7 +349,7 @@ curl -X POST http://<EC2_PUBLIC_IP>:8000/api/v1/ocr/extract-document \
   -o result.json
 
 # View results
-cat result.json | jq '.elements[] | {index, content}'
+cat result.json | jq '.results[] | {type, confidence}'
 ```
 
 ## Performance Tuning
@@ -705,3 +722,4 @@ curl -s http://localhost:8000/health | jq -r '.status'
 - Docker deployment with docker-compose
 - Health check endpoint
 - JSON and Markdown output formats
+

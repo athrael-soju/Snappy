@@ -3,22 +3,15 @@ API request and response models using Pydantic.
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import List
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class OCRElement(BaseModel):
-    """Represents a single OCR element (text, table, chart, formula, etc.)."""
+    """Flexible container for raw PaddleOCR-VL results."""
 
-    index: int = Field(..., description="Element index in the document")
-    content: Dict[str, Any] = Field(
-        ..., description="Element content (text, structure, etc.)"
-    )
-    metadata: Dict[str, Any] = Field(
-        default_factory=dict,
-        description="Element metadata (bbox, confidence, type, etc.)",
-    )
+    model_config = ConfigDict(extra="allow")
 
 
 class OCRResponse(BaseModel):
@@ -27,10 +20,9 @@ class OCRResponse(BaseModel):
     success: bool = Field(..., description="Whether the OCR processing was successful")
     message: str = Field(..., description="Status message")
     processing_time: float = Field(..., description="Processing time in seconds")
-    elements: List[OCRElement] = Field(
-        default_factory=list, description="Extracted OCR elements"
+    results: List[OCRElement] = Field(
+        default_factory=list, description="Raw PaddleOCR-VL results"
     )
-    markdown: Optional[str] = Field(None, description="Markdown formatted output")
     timestamp: datetime = Field(
         default_factory=datetime.utcnow, description="Response timestamp"
     )
@@ -41,14 +33,20 @@ class OCRResponse(BaseModel):
                 "success": True,
                 "message": "Document processed successfully",
                 "processing_time": 5.23,
-                "elements": [
+                "results": [
                     {
-                        "index": 0,
-                        "content": {"text": "Sample document text", "type": "text"},
-                        "metadata": {"bbox": [10, 20, 100, 50], "confidence": 0.98},
-                    }
+                        "type": "text",
+                        "bbox": [10, 20, 100, 50],
+                        "content": "Sample text",
+                        "confidence": 0.98,
+                    },
+                    {
+                        "type": "table",
+                        "bbox": [120, 80, 300, 200],
+                        "confidence": 0.92,
+                        "structure": {"rows": 3, "cols": 4},
+                    },
                 ],
-                "markdown": "# Document OCR Results\n\n## Element 1\n\n**text**: Sample document text",
                 "timestamp": "2025-01-15T10:30:00Z",
             }
         }
