@@ -552,6 +552,28 @@
         }
       }
     },
+    "/ocr/presets": {
+      "get": {
+        "tags": [
+          "ocr"
+        ],
+        "summary": "Presets",
+        "description": "Expose available profile and task presets from the OCR service.",
+        "operationId": "presets_ocr_presets_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OCRPresets"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/ocr/infer": {
       "post": {
         "tags": [
@@ -633,6 +655,18 @@
             ],
             "title": "Mode",
             "description": "OCR mode (plain_ocr, markdown, tables_csv, etc.)."
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile",
+            "description": "Profile preset controlling default sizing."
           },
           "prompt": {
             "anyOf": [
@@ -741,6 +775,30 @@
             ],
             "title": "Test Compress",
             "description": "Run compression diagnostics without saving artifacts."
+          },
+          "return_markdown": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Return Markdown",
+            "description": "Return markdown-formatted output from the OCR service."
+          },
+          "return_figures": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Return Figures",
+            "description": "Include base64-encoded figure crops extracted by the OCR service."
           }
         },
         "type": "object",
@@ -839,6 +897,25 @@
           "test_compress": {
             "type": "boolean",
             "title": "Test Compress"
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile"
+          },
+          "return_markdown": {
+            "type": "boolean",
+            "title": "Return Markdown"
+          },
+          "return_figures": {
+            "type": "boolean",
+            "title": "Return Figures"
           }
         },
         "type": "object",
@@ -850,9 +927,45 @@
           "base_size",
           "image_size",
           "crop_mode",
-          "test_compress"
+          "test_compress",
+          "profile",
+          "return_markdown",
+          "return_figures"
         ],
         "title": "OCRDefaults"
+      },
+      "OCRFigure": {
+        "properties": {
+          "index": {
+            "type": "integer",
+            "title": "Index"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "box": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "maxItems": 4,
+            "minItems": 4,
+            "title": "Box"
+          },
+          "data_uri": {
+            "type": "string",
+            "title": "Data Uri"
+          }
+        },
+        "type": "object",
+        "required": [
+          "index",
+          "label",
+          "box",
+          "data_uri"
+        ],
+        "title": "OCRFigure"
       },
       "OCRHealth": {
         "properties": {
@@ -937,6 +1050,23 @@
             ],
             "title": "Elapsed Ms",
             "description": "Elapsed time reported by the OCR service in milliseconds."
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile",
+            "description": "Profile preset applied to derive sizing defaults."
+          },
+          "attention": {
+            "type": "string",
+            "title": "Attention",
+            "description": "Attention implementation used by the model."
           }
         },
         "type": "object",
@@ -946,9 +1076,103 @@
           "base_size",
           "image_size",
           "crop_mode",
-          "include_caption"
+          "include_caption",
+          "attention"
         ],
         "title": "OCRMetadata"
+      },
+      "OCRPresets": {
+        "properties": {
+          "profiles": {
+            "items": {
+              "$ref": "#/components/schemas/OCRProfilePreset"
+            },
+            "type": "array",
+            "title": "Profiles"
+          },
+          "tasks": {
+            "items": {
+              "$ref": "#/components/schemas/OCRTaskPreset"
+            },
+            "type": "array",
+            "title": "Tasks"
+          }
+        },
+        "type": "object",
+        "required": [
+          "profiles",
+          "tasks"
+        ],
+        "title": "OCRPresets"
+      },
+      "OCRProfilePreset": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "base_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Size"
+          },
+          "image_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Size"
+          },
+          "crop_mode": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Crop Mode"
+          },
+          "aliases": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Aliases"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label"
+        ],
+        "title": "OCRProfilePreset"
       },
       "OCRResponse": {
         "properties": {
@@ -965,12 +1189,30 @@
             "type": "string",
             "title": "Raw Text"
           },
+          "markdown": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Markdown"
+          },
           "boxes": {
             "items": {
               "$ref": "#/components/schemas/OCRBoundingBox"
             },
             "type": "array",
             "title": "Boxes"
+          },
+          "figures": {
+            "items": {
+              "$ref": "#/components/schemas/OCRFigure"
+            },
+            "type": "array",
+            "title": "Figures"
           },
           "image_dims": {
             "additionalProperties": {
@@ -999,6 +1241,47 @@
           "metadata"
         ],
         "title": "OCRResponse"
+      },
+      "OCRTaskPreset": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "requires_grounding": {
+            "type": "boolean",
+            "title": "Requires Grounding",
+            "default": false
+          },
+          "aliases": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Aliases"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label"
+        ],
+        "title": "OCRTaskPreset"
       },
       "SearchItem": {
         "properties": {

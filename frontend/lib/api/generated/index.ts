@@ -13,9 +13,13 @@ export type { ConfigUpdate } from './models/ConfigUpdate';
 export type { HTTPValidationError } from './models/HTTPValidationError';
 export type { OCRBoundingBox } from './models/OCRBoundingBox';
 export type { OCRDefaults } from './models/OCRDefaults';
+export type { OCRFigure } from './models/OCRFigure';
 export type { OCRHealth } from './models/OCRHealth';
 export type { OCRMetadata } from './models/OCRMetadata';
+export type { OCRPresets } from './models/OCRPresets';
+export type { OCRProfilePreset } from './models/OCRProfilePreset';
 export type { OCRResponse } from './models/OCRResponse';
+export type { OCRTaskPreset } from './models/OCRTaskPreset';
 export type { SearchItem } from './models/SearchItem';
 export type { ValidationError } from './models/ValidationError';
 

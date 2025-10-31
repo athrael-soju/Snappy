@@ -38,6 +38,11 @@ docker compose --profile ocr up -d --build
 
 Then enable the integration from the Configuration UI (`DEEPSEEK_OCR_ENABLED`).
 
+> **FlashAttention:** provide a prebuilt wheel via `--build-arg FLASH_ATTN_WHEEL_URL=...`
+> when building the image, or allow the Dockerfile to attempt a source build. If
+> the package is unavailable the service automatically falls back to eager
+> attention.
+
 ---
 
 ## Running Locally
@@ -73,6 +78,10 @@ Key variables:
 | `BASE_SIZE` | `1024` | Default base resize dimension when callers omit it. |
 | `IMAGE_SIZE` | `640` | Default image size parameter. |
 | `CROP_MODE` | `true` | Default crop mode flag. |
+| `DEFAULT_PROFILE` | `gundam` | Profile preset controlling base/image sizing (`gundam`, `tiny`, `small`, `base`, `large`). |
+| `ENABLE_FLASH_ATTN` | `true` | Attempt to load the model with FlashAttention 2 (falls back automatically when unavailable). |
+| `RETURN_MARKDOWN` | `false` | Include markdown output (with embedded figures) when callers omit the flag. |
+| `RETURN_FIGURES` | `false` | Include base64 figure crops by default (automatically enabled when markdown is requested). |
 | `ALLOWED_ORIGINS` | `*` | Optional CORS override (comma-separated). |
 
 The Snappy backend adds higher-level configuration keys (`DEEPSEEK_OCR_*`) so
@@ -86,12 +95,14 @@ you can control defaults and timeouts from the runtime configuration panel.
 |--------|------|-------------|
 | `GET` | `/` | Service banner and docs pointer. |
 | `GET` | `/health` | Reports whether the model is loaded and on which device. |
-| `GET` | `/info` | Detailed configuration (model name, dtype, default sizes). |
+| `GET` | `/info` | Detailed configuration (model name, dtype, defaults, flash-attn status). |
+| `GET` | `/presets` | Available profile presets and task aliases. |
 | `POST` | `/api/ocr` | OCR inference endpoint used by the backend `/ocr/infer`. |
 
 `POST /api/ocr` accepts `multipart/form-data` with an `image` file and optional
 form fields (`mode`, `prompt`, `grounding`, `include_caption`, `find_term`,
-`schema`, `base_size`, `image_size`, `crop_mode`, `test_compress`). The response
+`schema`, `profile`, `base_size`, `image_size`, `crop_mode`, `test_compress`,
+`return_markdown`, `return_figures`). The response
 includes:
 
 ```json
@@ -99,8 +110,17 @@ includes:
   "success": true,
   "text": "cleaned text or description",
   "raw_text": "raw model output",
+  "markdown": "markdown representation optionally containing figure embeds",
   "boxes": [
     {"label": "Total", "box": [x1, y1, x2, y2]}
+  ],
+  "figures": [
+    {
+      "index": 1,
+      "label": "image",
+      "box": [10, 25, 320, 400],
+      "data_uri": "data:image/png;base64,iVBORw0K..."
+    }
   ],
   "image_dims": {"w": 2480, "h": 3508},
   "metadata": {
@@ -110,7 +130,9 @@ includes:
     "image_size": 640,
     "crop_mode": true,
     "include_caption": false,
-    "elapsed_ms": 431
+    "elapsed_ms": 431,
+    "profile": "gundam",
+    "attention": "flash_attention_2"
   }
 }
 ```
@@ -126,7 +148,7 @@ tags are removed from the display text.
 2. In the backend configuration, set `DEEPSEEK_OCR_URL` if the service is not on
    the default `http://localhost:8200`.
 3. Toggle `DEEPSEEK_OCR_ENABLED` to `True` and adjust defaults (mode, prompt,
-   sizing, caption flag) as necessary.
+   sizing profile, markdown/figure toggles, flash attention) as necessary.
 4. Use the `/ocr/health` or `/ocr/info` endpoints to confirm connectivity before
    wiring OCR steps into your ingestion or chat workflows.
 
@@ -142,6 +164,10 @@ endpoints without embedding service-specific secrets.
   Face credentials (if required) are configured in the environment.
 - **Slow inference** – running on CPU is intended only for validation. Switch to
   a CUDA host or reduce `BASE_SIZE`/`IMAGE_SIZE` via configuration.
+- **FlashAttention missing?** – supply a compatible `flash-attn` wheel via the
+  Docker build argument or install build essentials so the fallback compilation
+  can succeed. The service automatically falls back to eager attention if the
+  kernels are unavailable.
 - **CORS errors** – set `ALLOWED_ORIGINS` to the frontend origin when calling
   the service directly from the browser (the backend proxy already handles
   CORS).

@@ -12,6 +12,10 @@ export type Body_run_ocr_ocr_infer_post = {
      */
     mode?: (string | null);
     /**
+     * Profile preset controlling default sizing.
+     */
+    profile?: (string | null);
+    /**
      * Custom prompt for freeform mode.
      */
     prompt?: (string | null);
@@ -47,5 +51,13 @@ export type Body_run_ocr_ocr_infer_post = {
      * Run compression diagnostics without saving artifacts.
      */
     test_compress?: (boolean | null);
+    /**
+     * Return markdown-formatted output from the OCR service.
+     */
+    return_markdown?: (boolean | null);
+    /**
+     * Include base64-encoded figure crops extracted by the OCR service.
+     */
+    return_figures?: (boolean | null);
 };
 

@@ -53,6 +53,10 @@ services:
       - MINIO_SECRET_KEY=minioadmin
       - DEEPSEEK_OCR_URL=http://deepseek-ocr:8200
       - DEEPSEEK_OCR_TIMEOUT=180
+      - DEEPSEEK_OCR_DEFAULT_PROFILE=gundam
+      - DEEPSEEK_OCR_RETURN_MARKDOWN=false
+      - DEEPSEEK_OCR_RETURN_FIGURES=false
+      - DEEPSEEK_OCR_ENABLE_FLASH_ATTN=true
     volumes:
       - backend_data:/home/user/app/data
     stdin_open: true

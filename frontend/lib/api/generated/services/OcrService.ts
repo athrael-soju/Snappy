@@ -5,6 +5,7 @@
 import type { Body_run_ocr_ocr_infer_post } from '../models/Body_run_ocr_ocr_infer_post';
 import type { OCRDefaults } from '../models/OCRDefaults';
 import type { OCRHealth } from '../models/OCRHealth';
+import type { OCRPresets } from '../models/OCRPresets';
 import type { OCRResponse } from '../models/OCRResponse';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -44,6 +45,18 @@ export class OcrService {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/ocr/info',
+        });
+    }
+    /**
+     * Presets
+     * Expose available profile and task presets from the OCR service.
+     * @returns OCRPresets Successful Response
+     * @throws ApiError
+     */
+    public static presetsOcrPresetsGet(): CancelablePromise<OCRPresets> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/ocr/presets',
         });
     }
     /**

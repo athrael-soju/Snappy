@@ -31,7 +31,7 @@ cp .env.example .env
 
 Key settings:
 - **ColPali**: `COLPALI_URL`, `COLPALI_API_TIMEOUT`
-- **DeepSeek OCR**: `DEEPSEEK_OCR_URL`, `DEEPSEEK_OCR_TIMEOUT`, toggle + default overrides (`DEEPSEEK_OCR_DEFAULT_*`)
+- **DeepSeek OCR**: `DEEPSEEK_OCR_URL`, `DEEPSEEK_OCR_TIMEOUT`, FlashAttention toggle (`DEEPSEEK_OCR_ENABLE_FLASH_ATTN`), profile & payload defaults (`DEEPSEEK_OCR_DEFAULT_*`, `DEEPSEEK_OCR_RETURN_*`)
 - **Qdrant**: `QDRANT_EMBEDDED`, `QDRANT_URL`, `QDRANT_COLLECTION_NAME`, quantisation toggles
 - **MinIO**: `MINIO_URL`, `MINIO_PUBLIC_URL`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`
 - **Uploads**: `UPLOAD_ALLOWED_FILE_TYPES` (PDF-only by default), `UPLOAD_MAX_FILE_SIZE_MB`, `UPLOAD_MAX_FILES`, `UPLOAD_CHUNK_SIZE_BYTES`
@@ -106,7 +106,8 @@ MinIO credentials must be provided; the backend stores page images in object sto
 ### OCR (DeepSeek)
 - `GET /ocr/health` – Quick health probe for the DeepSeek OCR service
 - `GET /ocr/info` / `GET /ocr/defaults` – Surface model metadata and backend defaults
-- `POST /ocr/infer` – Proxy OCR requests (requires `DEEPSEEK_OCR_ENABLED=True`)
+- `GET /ocr/presets` – Expose available profile presets and task aliases
+- `POST /ocr/infer` – Proxy OCR requests (profiles, markdown/figures, flash-attn metadata; requires `DEEPSEEK_OCR_ENABLED=True`)
 
 ### Configuration
 - `GET /config/schema`, `GET /config/values` – Inspect current settings

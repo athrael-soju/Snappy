@@ -157,6 +157,8 @@ export function useConfigurationPanel() {
         values.ENABLE_PIPELINE_INDEXING === "True" ? "Pipeline Indexing" : null,
         values.QDRANT_USE_BINARY === "True" ? "Binary Quantization" : null,
         values.DEEPSEEK_OCR_ENABLED === "True" ? "DeepSeek OCR" : null,
+        values.DEEPSEEK_OCR_RETURN_MARKDOWN === "True" ? "DeepSeek Markdown" : null,
+        values.DEEPSEEK_OCR_ENABLE_FLASH_ATTN === "True" ? "FlashAttention" : null,
       ].filter(Boolean) as string[],
     }),
     [values, originalValues]

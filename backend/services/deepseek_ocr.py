@@ -84,6 +84,15 @@ class DeepSeekOCRService:
         response.raise_for_status()
         return self._parse_json(response)
 
+    def get_presets(self) -> Dict[str, Any]:
+        """Retrieve profile/task presets from the OCR service."""
+        response = self.session.get(
+            self._url("/presets"),
+            timeout=self.timeout,
+        )
+        response.raise_for_status()
+        return self._parse_json(response)
+
     def perform_ocr(
         self,
         *,
@@ -100,6 +109,9 @@ class DeepSeekOCRService:
         image_size: int,
         crop_mode: bool,
         test_compress: bool,
+        profile: Optional[str],
+        return_markdown: bool,
+        return_figures: bool,
     ) -> Dict[str, Any]:
         """Submit an OCR request to the underlying service."""
         guessed_type, _ = mimetypes.guess_type(filename or "")
@@ -119,12 +131,16 @@ class DeepSeekOCRService:
             "image_size": str(image_size),
             "crop_mode": _bool_to_str(crop_mode),
             "test_compress": _bool_to_str(test_compress),
+            "return_markdown": _bool_to_str(return_markdown),
+            "return_figures": _bool_to_str(return_figures),
         }
 
         if find_term:
             data["find_term"] = find_term
         if schema:
             data["schema"] = schema
+        if profile:
+            data["profile"] = profile
 
         try:
             response = self.session.post(

@@ -1,4 +1,5 @@
 import ast
+import base64
 import logging
 import os
 import re
@@ -7,6 +8,7 @@ import tempfile
 import time
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
+from io import BytesIO
 from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 
@@ -16,6 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 from pydantic import BaseModel, Field
 from transformers import AutoModel, AutoTokenizer
+from transformers.utils.import_utils import is_flash_attn_2_available
 
 
 def _configure_logging() -> logging.Logger:
@@ -42,6 +45,173 @@ def _parse_bool(value: str, default: bool = False) -> bool:
     return normalized in {"1", "true", "yes", "on"}
 
 
+MODEL_PROFILES: Dict[str, Dict[str, Any]] = {
+    "gundam": {
+        "label": "Gundam",
+        "description": "1024 base with 640 crops (balanced quality and speed).",
+        "base_size": 1024,
+        "image_size": 640,
+        "crop_mode": True,
+        "aliases": ["gundam"],
+    },
+    "tiny": {
+        "label": "Tiny",
+        "description": "512 × 512 without cropping (fastest).",
+        "base_size": 512,
+        "image_size": 512,
+        "crop_mode": False,
+        "aliases": ["tiny"],
+    },
+    "small": {
+        "label": "Small",
+        "description": "640 × 640 without cropping (quick).",
+        "base_size": 640,
+        "image_size": 640,
+        "crop_mode": False,
+        "aliases": ["small"],
+    },
+    "base": {
+        "label": "Base",
+        "description": "1024 × 1024 without cropping (standard).",
+        "base_size": 1024,
+        "image_size": 1024,
+        "crop_mode": False,
+        "aliases": ["base"],
+    },
+    "large": {
+        "label": "Large",
+        "description": "1280 × 1280 without cropping (highest fidelity).",
+        "base_size": 1280,
+        "image_size": 1280,
+        "crop_mode": False,
+        "aliases": ["large"],
+    },
+}
+
+
+def _build_profile_alias_map() -> Dict[str, str]:
+    alias_map: Dict[str, str] = {}
+    for key, data in MODEL_PROFILES.items():
+        alias_map[key.lower()] = key
+        label = data.get("label")
+        if label:
+            alias_map[label.lower()] = key
+        for alias in data.get("aliases", []):
+            alias_map[alias.lower()] = key
+    return alias_map
+
+
+PROFILE_ALIAS_MAP = _build_profile_alias_map()
+
+
+TASK_PRESETS: Dict[str, Dict[str, Any]] = {
+    "plain_ocr": {
+        "label": "📝 Free OCR",
+        "description": "Transcribe the document without additional formatting.",
+        "requires_grounding": False,
+        "aliases": ["free ocr", "📝 free ocr", "ocr", "plain_text", "plain text"],
+    },
+    "markdown": {
+        "label": "📋 Markdown",
+        "description": "Convert the document into structured Markdown.",
+        "requires_grounding": True,
+        "aliases": ["markdown", "📋 markdown"],
+    },
+    "tables_csv": {
+        "label": "📊 Tables (CSV)",
+        "description": "Extract every table as CSV text.",
+        "requires_grounding": False,
+        "aliases": ["tables_csv", "csv tables"],
+    },
+    "tables_md": {
+        "label": "🧾 Tables (Markdown)",
+        "description": "Extract tables using GitHub-flavoured Markdown.",
+        "requires_grounding": False,
+        "aliases": ["tables_md", "markdown tables"],
+    },
+    "kv_json": {
+        "label": "🔐 Key-Value JSON",
+        "description": "Fill a provided JSON schema with extracted values.",
+        "requires_grounding": False,
+        "aliases": ["kv_json", "kv json", "json"],
+    },
+    "figure_chart": {
+        "label": "📈 Figure Summary",
+        "description": "Extract numeric series and summarise charts.",
+        "requires_grounding": False,
+        "aliases": ["figure_chart", "figure", "chart"],
+    },
+    "find_ref": {
+        "label": "📍 Locate",
+        "description": "Locate specific references in the document.",
+        "requires_grounding": True,
+        "aliases": ["locate", "📍 locate", "find_ref"],
+    },
+    "layout_map": {
+        "label": "🗺️ Layout Map",
+        "description": "Return bounding boxes grouped by block type.",
+        "requires_grounding": True,
+        "aliases": ["layout_map", "layout"],
+    },
+    "pii_redact": {
+        "label": "🔒 PII Redaction",
+        "description": "Detect PII entities and return bounding boxes.",
+        "requires_grounding": True,
+        "aliases": ["pii_redact", "pii"],
+    },
+    "multilingual": {
+        "label": "🌐 Multilingual OCR",
+        "description": "Transcribe text preserving the detected language.",
+        "requires_grounding": False,
+        "aliases": ["multilingual"],
+    },
+    "describe": {
+        "label": "🔍 Describe",
+        "description": "Generate a natural language description of the image.",
+        "requires_grounding": False,
+        "aliases": ["describe", "🔍 describe"],
+    },
+    "freeform": {
+        "label": "✏️ Custom Prompt",
+        "description": "Use a custom instruction (add <|grounding|> to enable boxes).",
+        "requires_grounding": False,
+        "aliases": ["custom", "✏️ custom", "freeform"],
+    },
+}
+
+
+def _build_task_alias_map() -> Dict[str, str]:
+    alias_map: Dict[str, str] = {}
+    for key, data in TASK_PRESETS.items():
+        alias_map[key.lower()] = key
+        label = data.get("label")
+        if label:
+            alias_map[label.lower()] = key
+        for alias in data.get("aliases", []):
+            alias_map[alias.lower()] = key
+    return alias_map
+
+
+TASK_ALIAS_MAP = _build_task_alias_map()
+
+
+def normalize_profile(name: Optional[str]) -> Optional[str]:
+    if not name:
+        return None
+    key = name.strip().lower()
+    return PROFILE_ALIAS_MAP.get(key, None)
+
+
+def normalize_mode(name: Optional[str]) -> Optional[str]:
+    if not name:
+        return None
+    key = name.strip().lower()
+    mapped = TASK_ALIAS_MAP.get(key)
+    if mapped:
+        return mapped
+    return key
+
+
 @dataclass(slots=True)
 class ServiceSettings:
     """Runtime configuration loaded from environment variables."""
@@ -57,10 +227,39 @@ class ServiceSettings:
     allowed_origins: List[str] = field(
         default_factory=lambda: _parse_origins(os.getenv("ALLOWED_ORIGINS", "*"))
     )
+    default_profile: str = os.getenv(
+        "DEEPSEEK_OCR_DEFAULT_PROFILE",
+        os.getenv("DEFAULT_PROFILE", "gundam"),
+    )
+    enable_flash_attn: bool = _parse_bool(
+        os.getenv(
+            "DEEPSEEK_OCR_ENABLE_FLASH_ATTN",
+            os.getenv("ENABLE_FLASH_ATTN", "true"),
+        ),
+        True,
+    )
+    default_return_markdown: bool = _parse_bool(
+        os.getenv(
+            "DEEPSEEK_OCR_RETURN_MARKDOWN",
+            os.getenv("RETURN_MARKDOWN", "false"),
+        ),
+        False,
+    )
+    default_return_figures: bool = _parse_bool(
+        os.getenv(
+            "DEEPSEEK_OCR_RETURN_FIGURES",
+            os.getenv("RETURN_FIGURES", "false"),
+        ),
+        False,
+    )
 
     @property
     def max_upload_bytes(self) -> int:
         return self.max_upload_size_mb * 1024 * 1024
+
+    @property
+    def default_profile_key(self) -> Optional[str]:
+        return normalize_profile(self.default_profile)
 
 
 settings = ServiceSettings()
@@ -93,6 +292,9 @@ class OCRRuntime:
         self.dtype = torch.bfloat16 if self.device != "cpu" else torch.float32
         self._model: Optional[Any] = None
         self._tokenizer: Optional[Any] = None
+        self.flash_available: bool = False
+        self.flash_enabled: bool = False
+        self.attn_implementation: str = "eager"
 
     @property
     def is_ready(self) -> bool:
@@ -110,6 +312,36 @@ class OCRRuntime:
             self.dtype,
         )
 
+        try:
+            flash_available = bool(
+                is_flash_attn_2_available() if self.device == "cuda" else False
+            )
+        except Exception:  # pragma: no cover - defensive guard
+            flash_available = False
+
+        flash_enabled = False
+        attn_impl = "eager"
+
+        if self.settings.enable_flash_attn and self.device != "cuda":
+            logger.warning(
+                "FlashAttention requested but device '%s' does not support it. Falling back to eager attention.",
+                self.device,
+            )
+        elif self.settings.enable_flash_attn and flash_available:
+            attn_impl = "flash_attention_2"
+            flash_enabled = True
+            logger.info("FlashAttention 2 detected; using flash_attention_2 kernels.")
+        elif self.settings.enable_flash_attn and not flash_available:
+            logger.warning(
+                "FlashAttention requested but flash-attn kernels are unavailable. Falling back to eager attention."
+            )
+        elif not self.settings.enable_flash_attn and flash_available:
+            logger.info("FlashAttention 2 is available but disabled via configuration.")
+
+        self.flash_available = flash_available
+        self.flash_enabled = flash_enabled
+        self.attn_implementation = attn_impl
+
         tokenizer = AutoTokenizer.from_pretrained(
             self.settings.model_name,
             trust_remote_code=True,
@@ -120,7 +352,7 @@ class OCRRuntime:
                 self.settings.model_name,
                 trust_remote_code=True,
                 use_safetensors=True,
-                attn_implementation="eager",
+                attn_implementation=attn_impl,
                 torch_dtype=self.dtype,
             )
             .eval()
@@ -352,9 +584,99 @@ def clean_grounding_text(text: str) -> str:
     return cleaned.strip()
 
 
+def generate_figure_crops(
+    image_path: Optional[str], boxes: List[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+    """Generate base64-encoded crops for boxes labelled as images."""
+    if not image_path:
+        return []
+
+    figures: List[Dict[str, Any]] = []
+    try:
+        with Image.open(image_path) as source:
+            for box in boxes:
+                if box["label"].lower() != "image":
+                    continue
+                coords = box["box"]
+                if len(coords) != 4:
+                    continue
+                x1, y1, x2, y2 = coords
+                if x2 <= x1 or y2 <= y1:
+                    continue
+                crop = source.crop((x1, y1, x2, y2))
+                buffer = BytesIO()
+                crop.save(buffer, format="PNG")
+                encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+                figures.append(
+                    {
+                        "index": len(figures) + 1,
+                        "label": box["label"],
+                        "box": coords,
+                        "data_uri": f"data:image/png;base64,{encoded}",
+                    }
+                )
+    except Exception as exc:  # pragma: no cover - defensive guard
+        logger.debug("Failed to generate figure crops: %s", exc)
+    return figures
+
+
+def build_markdown(text: str, figures: List[Dict[str, Any]]) -> str:
+    """Assemble a markdown string with optional figure embeds."""
+    base = text.strip()
+    if not figures:
+        return base
+
+    parts = [base] if base else []
+    for figure in figures:
+        label = figure["label"] or f"Figure {figure['index']}"
+        parts.append(f"![Figure {figure['index']}: {label}]({figure['data_uri']})")
+    return "\n\n".join(parts).strip()
+
+
+def list_profile_presets() -> List[Dict[str, Any]]:
+    """Expose profile presets in a serialisable structure."""
+    payload: List[Dict[str, Any]] = []
+    for key, data in MODEL_PROFILES.items():
+        payload.append(
+            {
+                "key": key,
+                "label": data.get("label", key.title()),
+                "description": data.get("description"),
+                "base_size": data.get("base_size"),
+                "image_size": data.get("image_size"),
+                "crop_mode": data.get("crop_mode"),
+                "aliases": data.get("aliases", []),
+            }
+        )
+    return payload
+
+
+def list_task_presets() -> List[Dict[str, Any]]:
+    """Expose task presets for API consumers."""
+    payload: List[Dict[str, Any]] = []
+    for key, data in TASK_PRESETS.items():
+        payload.append(
+            {
+                "key": key,
+                "label": data.get("label", key),
+                "description": data.get("description"),
+                "requires_grounding": data.get("requires_grounding", False),
+                "aliases": data.get("aliases", []),
+            }
+        )
+    return payload
+
+
 class BoundingBox(BaseModel):
     label: str
     box: List[int] = Field(..., min_items=4, max_items=4)
+
+
+class OCRFigure(BaseModel):
+    index: int = Field(..., ge=1)
+    label: str
+    box: List[int] = Field(..., min_items=4, max_items=4)
+    data_uri: str
 
 
 class OCRMetadata(BaseModel):
@@ -365,13 +687,17 @@ class OCRMetadata(BaseModel):
     crop_mode: bool
     include_caption: bool
     elapsed_ms: int
+    profile: Optional[str] = None
+    attention: str
 
 
 class OCRResult(BaseModel):
     success: bool = True
     text: str
     raw_text: str
+    markdown: Optional[str] = None
     boxes: List[BoundingBox]
+    figures: List[OCRFigure] = Field(default_factory=list)
     image_dims: Dict[str, Optional[int]]
     metadata: OCRMetadata
 
@@ -402,11 +728,34 @@ async def health() -> Dict[str, Any]:
         "status": "ok" if is_ready else "initialising",
         "model_loaded": is_ready,
         "device": runtime.device,
+        "flash_attention": {
+            "requested": settings.enable_flash_attn,
+            "available": bool(
+                getattr(runtime_instance, "flash_available", False)
+                if runtime_instance
+                else False
+            ),
+            "enabled": bool(
+                getattr(runtime_instance, "flash_enabled", False)
+                if runtime_instance
+                else False
+            ),
+            "implementation": (
+                getattr(runtime_instance, "attn_implementation", "eager")
+                if runtime_instance
+                else "eager"
+            ),
+        },
     }
 
 
 @app.get("/info")
 async def info() -> Dict[str, Any]:
+    runtime_instance = getattr(app.state, "runtime", None)
+    profile_key = settings.default_profile_key or (
+        "gundam" if "gundam" in MODEL_PROFILES else None
+    )
+    profile_label = MODEL_PROFILES[profile_key]["label"] if profile_key else None
     return {
         "model_name": settings.model_name,
         "device": runtime.device,
@@ -416,23 +765,78 @@ async def info() -> Dict[str, Any]:
             "base_size": settings.default_base_size,
             "image_size": settings.default_image_size,
             "crop_mode": settings.default_crop_mode,
+            "profile": profile_key,
+            "profile_label": profile_label,
+            "return_markdown": settings.default_return_markdown,
+            "return_figures": settings.default_return_figures,
         },
+        "profiles": list_profile_presets(),
+        "tasks": list_task_presets(),
+        "flash_attention": {
+            "requested": settings.enable_flash_attn,
+            "available": bool(
+                getattr(runtime_instance, "flash_available", False)
+                if runtime_instance
+                else False
+            ),
+            "enabled": bool(
+                getattr(runtime_instance, "flash_enabled", False)
+                if runtime_instance
+                else False
+            ),
+            "implementation": (
+                getattr(runtime_instance, "attn_implementation", "eager")
+                if runtime_instance
+                else "eager"
+            ),
+        },
+    }
+
+
+@app.get("/presets")
+async def presets() -> Dict[str, Any]:
+    """List available profile and task presets."""
+    return {
+        "profiles": list_profile_presets(),
+        "tasks": list_task_presets(),
     }
 
 
 @app.post("/api/ocr", response_model=OCRResult)
 async def ocr_inference(
     image: UploadFile = File(...),
-    mode: str = Form("plain_ocr"),
+    mode: Optional[str] = Form(
+        None,
+        description="OCR mode/task (plain_ocr, markdown, locate, describe, etc.).",
+    ),
+    profile: Optional[str] = Form(
+        None,
+        description="Model profile preset (gundam, tiny, small, base, large).",
+    ),
     prompt: str = Form(""),
-    grounding: bool = Form(False),
+    grounding: Optional[bool] = Form(
+        None, description="Override grounding flag (defaults based on mode)."
+    ),
     include_caption: bool = Form(False),
     find_term: Optional[str] = Form(None),
     schema: Optional[str] = Form(None),
-    base_size: int = Form(settings.default_base_size),
-    image_size: int = Form(settings.default_image_size),
-    crop_mode: bool = Form(settings.default_crop_mode),
+    base_size: Optional[int] = Form(
+        None, description="Override base size (falls back to profile/default)."
+    ),
+    image_size: Optional[int] = Form(
+        None, description="Override image size (falls back to profile/default)."
+    ),
+    crop_mode: Optional[bool] = Form(
+        None, description="Override crop mode (falls back to profile/default)."
+    ),
     test_compress: bool = Form(False),
+    return_markdown: Optional[bool] = Form(
+        None, description="Return markdown output with embedded figures."
+    ),
+    return_figures: Optional[bool] = Form(
+        None,
+        description="Include base64-encoded figure crops in the response.",
+    ),
 ) -> OCRResult:
     runtime_instance = _read_runtime()
 
@@ -448,10 +852,69 @@ async def ocr_inference(
             ),
         )
 
+    requested_mode = mode or "plain_ocr"
+    resolved_mode = normalize_mode(requested_mode) or requested_mode
+    task_meta = TASK_PRESETS.get(resolved_mode, {})
+
+    normalized_profile = normalize_profile(profile) if profile else None
+    if profile and normalized_profile is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown DeepSeek OCR profile preset: '{profile}'",
+        )
+
+    profile_key = (
+        normalized_profile
+        or settings.default_profile_key
+        or ("gundam" if "gundam" in MODEL_PROFILES else None)
+    )
+    profile_config = MODEL_PROFILES.get(profile_key) if profile_key else None
+
+    resolved_base_size = (
+        base_size
+        if base_size is not None
+        else (
+            profile_config["base_size"]
+            if profile_config
+            else settings.default_base_size
+        )
+    )
+    resolved_image_size = (
+        image_size
+        if image_size is not None
+        else (
+            profile_config["image_size"]
+            if profile_config
+            else settings.default_image_size
+        )
+    )
+    resolved_crop_mode = (
+        crop_mode
+        if crop_mode is not None
+        else (
+            profile_config["crop_mode"]
+            if profile_config
+            else settings.default_crop_mode
+        )
+    )
+
+    effective_grounding = (
+        task_meta.get("requires_grounding", False) if grounding is None else grounding
+    )
+
+    include_markdown = (
+        settings.default_return_markdown if return_markdown is None else return_markdown
+    )
+    include_figures = (
+        settings.default_return_figures if return_figures is None else return_figures
+    )
+    if include_markdown:
+        include_figures = True
+
     prompt_text = build_prompt(
-        mode=mode,
+        mode=resolved_mode,
         user_prompt=prompt,
-        grounding=grounding,
+        grounding=effective_grounding,
         find_term=find_term,
         schema=schema,
         include_caption=include_caption,
@@ -475,9 +938,9 @@ async def ocr_inference(
         result = runtime_instance.infer(
             prompt=prompt_text,
             image_path=tmp_img_path,
-            base_size=base_size,
-            image_size=image_size,
-            crop_mode=crop_mode,
+            base_size=resolved_base_size,
+            image_size=resolved_image_size,
+            crop_mode=resolved_crop_mode,
             test_compress=test_compress,
             output_dir=tmp_output_dir,
         )
@@ -515,22 +978,38 @@ async def ocr_inference(
         if not display_text and boxes:
             display_text = ", ".join(box["label"] for box in boxes)
 
+        figures_data: List[Dict[str, Any]] = []
+        if (include_markdown or include_figures) and boxes:
+            figures_data = generate_figure_crops(tmp_img_path, boxes)
+
+        markdown_text = (
+            build_markdown(display_text, figures_data) if include_markdown else None
+        )
+
         elapsed_ms = int((time.perf_counter() - start_time) * 1000)
 
         response = OCRResult(
             text=display_text,
             raw_text=raw_text,
+            markdown=markdown_text,
             boxes=[BoundingBox(**box) for box in boxes],
+            figures=(
+                [OCRFigure(**figure) for figure in figures_data]
+                if include_figures
+                else []
+            ),
             image_dims={"w": orig_width, "h": orig_height},
             metadata=OCRMetadata(
-                mode=mode,
-                grounding=grounding
-                or (mode in {"find_ref", "layout_map", "pii_redact"}),
-                base_size=base_size,
-                image_size=image_size,
-                crop_mode=crop_mode,
+                mode=resolved_mode,
+                grounding=effective_grounding
+                or (resolved_mode in {"find_ref", "layout_map", "pii_redact"}),
+                base_size=resolved_base_size,
+                image_size=resolved_image_size,
+                crop_mode=resolved_crop_mode,
                 include_caption=include_caption,
                 elapsed_ms=elapsed_ms,
+                profile=profile_key,
+                attention=runtime_instance.attn_implementation,
             ),
         )
         return response

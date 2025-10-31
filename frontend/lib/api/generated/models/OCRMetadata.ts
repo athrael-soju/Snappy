@@ -31,5 +31,13 @@ export type OCRMetadata = {
      * Elapsed time reported by the OCR service in milliseconds.
      */
     elapsed_ms?: (number | null);
+    /**
+     * Profile preset applied to derive sizing defaults.
+     */
+    profile?: (string | null);
+    /**
+     * Attention implementation used by the model.
+     */
+    attention: string;
 };
 

@@ -37,6 +37,9 @@ const OCRDefaults = z
     image_size: z.number().int(),
     crop_mode: z.boolean(),
     test_compress: z.boolean(),
+    profile: z.union([z.string(), z.null()]),
+    return_markdown: z.boolean(),
+    return_figures: z.boolean(),
   })
   .passthrough();
 const OCRHealth = z
@@ -47,10 +50,37 @@ const OCRHealth = z
     device: z.union([z.string(), z.null()]).optional(),
   })
   .passthrough();
+const OCRProfilePreset = z
+  .object({
+    key: z.string(),
+    label: z.string(),
+    description: z.union([z.string(), z.null()]).optional(),
+    base_size: z.union([z.number(), z.null()]).optional(),
+    image_size: z.union([z.number(), z.null()]).optional(),
+    crop_mode: z.union([z.boolean(), z.null()]).optional(),
+    aliases: z.array(z.string()).optional(),
+  })
+  .passthrough();
+const OCRTaskPreset = z
+  .object({
+    key: z.string(),
+    label: z.string(),
+    description: z.union([z.string(), z.null()]).optional(),
+    requires_grounding: z.boolean().optional().default(false),
+    aliases: z.array(z.string()).optional(),
+  })
+  .passthrough();
+const OCRPresets = z
+  .object({
+    profiles: z.array(OCRProfilePreset),
+    tasks: z.array(OCRTaskPreset),
+  })
+  .passthrough();
 const Body_run_ocr_ocr_infer_post = z
   .object({
     image: z.instanceof(File),
     mode: z.union([z.string(), z.null()]).optional(),
+    profile: z.union([z.string(), z.null()]).optional(),
     prompt: z.union([z.string(), z.null()]).optional(),
     grounding: z.union([z.boolean(), z.null()]).optional(),
     include_caption: z.union([z.boolean(), z.null()]).optional(),
@@ -60,10 +90,20 @@ const Body_run_ocr_ocr_infer_post = z
     image_size: z.union([z.number(), z.null()]).optional(),
     crop_mode: z.union([z.boolean(), z.null()]).optional(),
     test_compress: z.union([z.boolean(), z.null()]).optional(),
+    return_markdown: z.union([z.boolean(), z.null()]).optional(),
+    return_figures: z.union([z.boolean(), z.null()]).optional(),
   })
   .passthrough();
 const OCRBoundingBox = z
   .object({ label: z.string(), box: z.array(z.number().int()).min(4).max(4) })
+  .passthrough();
+const OCRFigure = z
+  .object({
+    index: z.number().int(),
+    label: z.string(),
+    box: z.array(z.number().int()).min(4).max(4),
+    data_uri: z.string(),
+  })
   .passthrough();
 const OCRMetadata = z
   .object({
@@ -74,6 +114,8 @@ const OCRMetadata = z
     crop_mode: z.boolean(),
     include_caption: z.boolean(),
     elapsed_ms: z.union([z.number(), z.null()]).optional(),
+    profile: z.union([z.string(), z.null()]).optional(),
+    attention: z.string(),
   })
   .passthrough();
 const OCRResponse = z
@@ -81,7 +123,9 @@ const OCRResponse = z
     success: z.boolean().optional().default(true),
     text: z.string(),
     raw_text: z.string(),
+    markdown: z.union([z.string(), z.null()]).optional(),
     boxes: z.array(OCRBoundingBox),
+    figures: z.array(OCRFigure).optional(),
     image_dims: z.record(z.union([z.number(), z.null()])),
     metadata: OCRMetadata,
   })
@@ -96,8 +140,12 @@ export const schemas = {
   ConfigUpdate,
   OCRDefaults,
   OCRHealth,
+  OCRProfilePreset,
+  OCRTaskPreset,
+  OCRPresets,
   Body_run_ocr_ocr_infer_post,
   OCRBoundingBox,
+  OCRFigure,
   OCRMetadata,
   OCRResponse,
 };
@@ -293,6 +341,14 @@ To persist changes across restarts, update your .env file manually.`,
     description: `Expose metadata returned by the DeepSeek OCR service.`,
     requestFormat: "json",
     response: z.object({}).partial().passthrough(),
+  },
+  {
+    method: "get",
+    path: "/ocr/presets",
+    alias: "presets_ocr_presets_get",
+    description: `Expose available profile and task presets from the OCR service.`,
+    requestFormat: "json",
+    response: OCRPresets,
   },
   {
     method: "get",

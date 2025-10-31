@@ -11,5 +11,8 @@ export type OCRDefaults = {
     image_size: number;
     crop_mode: boolean;
     test_compress: boolean;
+    profile: (string | null);
+    return_markdown: boolean;
+    return_figures: boolean;
 };
 

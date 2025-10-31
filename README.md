@@ -208,7 +208,7 @@ Update `.env` and `frontend/.env.local` if you need to expose different hostname
 - Page-level vision retrieval powered by ColPali multivector embeddings; no OCR pipeline to maintain.
 - Streaming chat responses from the OpenAI Responses API with inline visual citations so you can see each supporting page.
 - Pipelined indexing with live Server-Sent Events progress updates and optional MUVERA-assisted first-stage search.
-- Optional DeepSeek OCR integration for structured text extraction, grounded boxes, and figure/table parsing when your workflow requires OCR output alongside visual retrieval.
+- Optional DeepSeek OCR integration with FlashAttention support, profile presets, markdown/figure outputs, and grounded boxes when you need OCR alongside visual retrieval.
 - Runtime configuration UI backed by a typed schema, with reset and draft flows that make experimentation safe.
 - Docker Compose profiles for ColPali (GPU or CPU) plus an all-in-one stack for local development.
 
