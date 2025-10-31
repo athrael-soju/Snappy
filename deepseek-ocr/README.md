@@ -75,8 +75,8 @@ Key variables:
 | `API_HOST` | `0.0.0.0` | Bind address for uvicorn. |
 | `API_PORT` | `8200` | Service port. |
 | `MAX_UPLOAD_SIZE_MB` | `100` | Hard limit for incoming files. |
-| `BASE_SIZE` | `1024` | Default base resize dimension when callers omit it. |
-| `IMAGE_SIZE` | `640` | Default image size parameter. |
+| `BASE_SIZE` | `1024` | Default base resize dimension when callers omit it (minimum `512`). |
+| `IMAGE_SIZE` | `640` | Default image size parameter (minimum `512`). |
 | `CROP_MODE` | `true` | Default crop mode flag. |
 | `DEFAULT_PROFILE` | `gundam` | Profile preset controlling base/image sizing (`gundam`, `tiny`, `small`, `base`, `large`). |
 | `ENABLE_FLASH_ATTN` | `true` | Attempt to load the model with FlashAttention 2 (falls back automatically when unavailable). |
@@ -89,10 +89,23 @@ you can control defaults and timeouts from the runtime configuration panel.
 
 ---
 
+### Preset Profiles
+
+| Key | Base Size | Image Size | Crop Mode |
+|-----|-----------|------------|-----------|
+| Gundam | 1024 | 640 | True |
+| Tiny | 512 | 512 | False |
+| Small | 640 | 640 | False |
+| Base | 1024 | 1024 | False |
+| Large | 1280 | 1280 | False |
+
+Allowed base sizes: 512, 640, 1024, 1280. Allowed image sizes: 512, 640, 1024, 1280.
+
 ## API Surface
 
 | Method | Path | Description |
 |--------|------|-------------|
+
 | `GET` | `/` | Service banner and docs pointer. |
 | `GET` | `/health` | Reports whether the model is loaded and on which device. |
 | `GET` | `/info` | Detailed configuration (model name, dtype, defaults, flash-attn status). |
@@ -140,6 +153,8 @@ includes:
 Bounding boxes are normalised to the original image dimensions and grounding
 tags are removed from the display text.
 
+?? **Sizing requirements:** `base_size` must be greater than or equal to `image_size`. The service enforces minimum values of 512 for `base_size` and 512 for `image_size` to avoid kernel-size runtime errors.
+
 ---
 
 ## Integration with Snappy
@@ -160,18 +175,18 @@ endpoints without embedding service-specific secrets.
 
 ## Troubleshooting
 
-- **Model fails to load** â€“ confirm GPU memory availability and that the Hugging
+- **Model fails to load** – confirm GPU memory availability and that the Hugging
   Face credentials (if required) are configured in the environment.
-- **Slow inference** â€“ running on CPU is intended only for validation. Switch to
+- **Slow inference** – running on CPU is intended only for validation. Switch to
   a CUDA host or reduce `BASE_SIZE`/`IMAGE_SIZE` via configuration.
-- **FlashAttention missing?** â€“ supply a compatible `flash-attn` wheel via the
+- **FlashAttention missing?** – supply a compatible `flash-attn` wheel via the
   Docker build argument or install build essentials so the fallback compilation
   can succeed. The service automatically falls back to eager attention if the
   kernels are unavailable.
-- **CORS errors** â€“ set `ALLOWED_ORIGINS` to the frontend origin when calling
+- **CORS errors** – set `ALLOWED_ORIGINS` to the frontend origin when calling
   the service directly from the browser (the backend proxy already handles
   CORS).
-- **Timeouts** â€“ increase `DEEPSEEK_OCR_TIMEOUT` in the backend configuration or
+- **Timeouts** – increase `DEEPSEEK_OCR_TIMEOUT` in the backend configuration or
   optimise image preprocessing.
 
 Logs include upload size violations, temporary file cleanup, and any exceptions

@@ -79,8 +79,28 @@ const OCRPresets = z
 const Body_run_ocr_ocr_infer_post = z
   .object({
     image: z.instanceof(File),
-    mode: z.union([z.string(), z.null()]).optional(),
-    profile: z.union([z.string(), z.null()]).optional(),
+    mode: z
+      .union([
+        z.enum([
+          "plain_ocr",
+          "markdown",
+          "tables_csv",
+          "tables_md",
+          "kv_json",
+          "figure_chart",
+          "find_ref",
+          "layout_map",
+          "pii_redact",
+          "multilingual",
+          "describe",
+          "freeform",
+        ]),
+        z.null(),
+      ])
+      .optional(),
+    profile: z
+      .union([z.enum(["gundam", "tiny", "small", "base", "large"]), z.null()])
+      .optional(),
     prompt: z.union([z.string(), z.null()]).optional(),
     grounding: z.union([z.boolean(), z.null()]).optional(),
     include_caption: z.union([z.boolean(), z.null()]).optional(),

@@ -647,19 +647,40 @@
           "mode": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "plain_ocr",
+                  "markdown",
+                  "tables_csv",
+                  "tables_md",
+                  "kv_json",
+                  "figure_chart",
+                  "find_ref",
+                  "layout_map",
+                  "pii_redact",
+                  "multilingual",
+                  "describe",
+                  "freeform"
+                ]
               },
               {
                 "type": "null"
               }
             ],
             "title": "Mode",
-            "description": "OCR mode (plain_ocr, markdown, tables_csv, etc.)."
+            "description": "OCR mode / task preset."
           },
           "profile": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "gundam",
+                  "tiny",
+                  "small",
+                  "base",
+                  "large"
+                ]
               },
               {
                 "type": "null"
@@ -731,26 +752,28 @@
           "base_size": {
             "anyOf": [
               {
-                "type": "integer"
+                "type": "integer",
+                "minimum": 512.0
               },
               {
                 "type": "null"
               }
             ],
             "title": "Base Size",
-            "description": "Base resize dimension used by the OCR service."
+            "description": "Base resize dimension passed to the OCR service (allowed values: 512, 640, 1024, 1280)."
           },
           "image_size": {
             "anyOf": [
               {
-                "type": "integer"
+                "type": "integer",
+                "minimum": 512.0
               },
               {
                 "type": "null"
               }
             ],
             "title": "Image Size",
-            "description": "Image input size passed to the OCR service."
+            "description": "Image input size passed to the OCR service (allowed values: 512, 640, 1024, 1280)."
           },
           "crop_mode": {
             "anyOf": [

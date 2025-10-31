@@ -8,13 +8,13 @@ export type Body_run_ocr_ocr_infer_post = {
      */
     image: Blob;
     /**
-     * OCR mode (plain_ocr, markdown, tables_csv, etc.).
+     * OCR mode / task preset.
      */
-    mode?: (string | null);
+    mode?: ('plain_ocr' | 'markdown' | 'tables_csv' | 'tables_md' | 'kv_json' | 'figure_chart' | 'find_ref' | 'layout_map' | 'pii_redact' | 'multilingual' | 'describe' | 'freeform' | null);
     /**
      * Profile preset controlling default sizing.
      */
-    profile?: (string | null);
+    profile?: ('gundam' | 'tiny' | 'small' | 'base' | 'large' | null);
     /**
      * Custom prompt for freeform mode.
      */
@@ -36,11 +36,11 @@ export type Body_run_ocr_ocr_infer_post = {
      */
     kv_schema?: (string | null);
     /**
-     * Base resize dimension used by the OCR service.
+     * Base resize dimension passed to the OCR service (allowed values: 512, 640, 1024, 1280).
      */
     base_size?: (number | null);
     /**
-     * Image input size passed to the OCR service.
+     * Image input size passed to the OCR service (allowed values: 512, 640, 1024, 1280).
      */
     image_size?: (number | null);
     /**

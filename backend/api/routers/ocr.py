@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+import logging
+from typing import Any, Dict, List, Literal, Optional
 
 import config
 from api.dependencies import get_deepseek_client
@@ -9,6 +10,99 @@ from pydantic import BaseModel, Field
 from services.deepseek_ocr import DeepSeekOCRError, DeepSeekOCRService
 
 router = APIRouter(prefix="/ocr", tags=["ocr"])
+logger = logging.getLogger(__name__)
+
+TASK_KEYS = (
+    "plain_ocr",
+    "markdown",
+    "tables_csv",
+    "tables_md",
+    "kv_json",
+    "figure_chart",
+    "find_ref",
+    "layout_map",
+    "pii_redact",
+    "multilingual",
+    "describe",
+    "freeform",
+)
+
+PROFILE_KEYS = ("gundam", "tiny", "small", "base", "large")
+
+TaskName = Literal[*TASK_KEYS]
+ProfileName = Literal[*PROFILE_KEYS]
+
+ALLOWED_BASE_SIZES: tuple[int, ...] = (512, 640, 1024, 1280)
+ALLOWED_IMAGE_SIZES: tuple[int, ...] = (512, 640, 1024, 1280)
+DEFAULT_MODE: TaskName = "plain_ocr"
+DEFAULT_PROFILE: ProfileName = "gundam"
+DEFAULT_BASE_SIZE = 1024
+DEFAULT_IMAGE_SIZE = 640
+DEFAULT_BASE_INDEX = (
+    ALLOWED_BASE_SIZES.index(DEFAULT_BASE_SIZE)
+    if DEFAULT_BASE_SIZE in ALLOWED_BASE_SIZES
+    else 0
+)
+DEFAULT_IMAGE_INDEX = (
+    ALLOWED_IMAGE_SIZES.index(DEFAULT_IMAGE_SIZE)
+    if DEFAULT_IMAGE_SIZE in ALLOWED_IMAGE_SIZES
+    else 0
+)
+MIN_BASE_SIZE = min(ALLOWED_BASE_SIZES)
+MIN_IMAGE_SIZE = min(ALLOWED_IMAGE_SIZES)
+
+
+def _coerce_config_int(value: Any, key: str, minimum: int) -> int:
+    try:
+        numeric = int(value)
+    except (TypeError, ValueError):
+        logger.warning(
+            "Invalid configuration for %s (value=%r). Falling back to %s.",
+            key,
+            value,
+            minimum,
+        )
+        return minimum
+    if numeric < minimum:
+        logger.warning(
+            "%s is below the supported minimum (%s < %s). Using %s instead.",
+            key,
+            numeric,
+            minimum,
+            minimum,
+        )
+        return minimum
+    return numeric
+
+
+def _coerce_config_choice(
+    value: Any, key: str, allowed: tuple[str, ...], default: str
+) -> str:
+    if value in allowed:
+        return str(value)
+    logger.warning(
+        "%s '%s' is invalid. Falling back to '%s'.",
+        key,
+        value,
+        default,
+    )
+    return default
+
+
+def _coerce_config_int_choice(
+    value: Any, key: str, allowed: tuple[int, ...], fallback_index: int = 0
+) -> int:
+    fallback = allowed[fallback_index]
+    numeric = _coerce_config_int(value, key, allowed[0])
+    if numeric not in allowed:
+        logger.warning(
+            "%s must be one of %s. Falling back to %s.",
+            key,
+            ", ".join(str(v) for v in allowed),
+            fallback,
+        )
+        return fallback
+    return numeric
 
 
 class OCRBoundingBox(BaseModel):
@@ -110,16 +204,56 @@ def _ensure_enabled() -> None:
 
 
 def _get_defaults() -> OCRDefaults:
+    default_mode = _coerce_config_choice(
+        getattr(config, "DEEPSEEK_OCR_DEFAULT_MODE", DEFAULT_MODE),
+        "DEEPSEEK_OCR_DEFAULT_MODE",
+        TASK_KEYS,
+        DEFAULT_MODE,
+    )
+
+    default_profile = _coerce_config_choice(
+        getattr(config, "DEEPSEEK_OCR_DEFAULT_PROFILE", DEFAULT_PROFILE),
+        "DEEPSEEK_OCR_DEFAULT_PROFILE",
+        PROFILE_KEYS,
+        DEFAULT_PROFILE,
+    )
+
+    fallback_base = ALLOWED_BASE_SIZES[DEFAULT_BASE_INDEX]
+    base_size = _coerce_config_int_choice(
+        getattr(config, "DEEPSEEK_OCR_DEFAULT_BASE_SIZE", fallback_base),
+        "DEEPSEEK_OCR_DEFAULT_BASE_SIZE",
+        ALLOWED_BASE_SIZES,
+        DEFAULT_BASE_INDEX,
+    )
+    fallback_image = ALLOWED_IMAGE_SIZES[DEFAULT_IMAGE_INDEX]
+    image_size = _coerce_config_int_choice(
+        getattr(config, "DEEPSEEK_OCR_DEFAULT_IMAGE_SIZE", fallback_image),
+        "DEEPSEEK_OCR_DEFAULT_IMAGE_SIZE",
+        ALLOWED_IMAGE_SIZES,
+        DEFAULT_IMAGE_INDEX,
+    )
+    if base_size < image_size:
+        logger.warning(
+            "DEEPSEEK_OCR default base/image sizes are inconsistent (%s < %s). "
+            "Falling back to profile-aligned values %s/%s.",
+            base_size,
+            image_size,
+            fallback_base,
+            fallback_image,
+        )
+        base_size = fallback_base
+        image_size = fallback_image if fallback_image <= base_size else base_size
+
     return OCRDefaults(
-        mode=getattr(config, "DEEPSEEK_OCR_DEFAULT_MODE", "plain_ocr"),
+        mode=default_mode,
         prompt=getattr(config, "DEEPSEEK_OCR_DEFAULT_PROMPT", ""),
         grounding=getattr(config, "DEEPSEEK_OCR_DEFAULT_GROUNDING", False),
         include_caption=getattr(config, "DEEPSEEK_OCR_DEFAULT_INCLUDE_CAPTION", False),
-        base_size=getattr(config, "DEEPSEEK_OCR_DEFAULT_BASE_SIZE", 1024),
-        image_size=getattr(config, "DEEPSEEK_OCR_DEFAULT_IMAGE_SIZE", 1024),
+        base_size=base_size,
+        image_size=image_size,
         crop_mode=getattr(config, "DEEPSEEK_OCR_DEFAULT_CROP_MODE", False),
         test_compress=getattr(config, "DEEPSEEK_OCR_DEFAULT_TEST_COMPRESS", False),
-        profile=getattr(config, "DEEPSEEK_OCR_DEFAULT_PROFILE", None),
+        profile=default_profile,
         return_markdown=getattr(config, "DEEPSEEK_OCR_RETURN_MARKDOWN", False),
         return_figures=getattr(config, "DEEPSEEK_OCR_RETURN_FIGURES", False),
     )
@@ -179,11 +313,15 @@ async def presets(
 @router.post("/infer", response_model=OCRResponse)
 async def run_ocr(
     image: UploadFile = File(..., description="Image to process."),
-    mode: Optional[str] = Form(
-        None, description="OCR mode (plain_ocr, markdown, tables_csv, etc.)."
+    mode: Optional[TaskName] = Form(
+        None,
+        description="OCR mode / task preset.",
+        example=DEFAULT_MODE,
     ),
-    profile: Optional[str] = Form(
-        None, description="Profile preset controlling default sizing."
+    profile: Optional[ProfileName] = Form(
+        None,
+        description="Profile preset controlling default sizing.",
+        example=DEFAULT_PROFILE,
     ),
     prompt: Optional[str] = Form(None, description="Custom prompt for freeform mode."),
     grounding: Optional[bool] = Form(
@@ -199,12 +337,25 @@ async def run_ocr(
         None,
         alias="schema",
         description="JSON schema used by 'kv_json' mode. Provide raw JSON text.",
+        example="",
     ),
     base_size: Optional[int] = Form(
-        None, description="Base resize dimension used by the OCR service."
+        None,
+        ge=MIN_BASE_SIZE,
+        description=(
+            "Base resize dimension passed to the OCR service "
+            f"(allowed values: {', '.join(str(v) for v in ALLOWED_BASE_SIZES)})."
+        ),
+        example=DEFAULT_BASE_SIZE,
     ),
     image_size: Optional[int] = Form(
-        None, description="Image input size passed to the OCR service."
+        None,
+        ge=MIN_IMAGE_SIZE,
+        description=(
+            "Image input size passed to the OCR service "
+            f"(allowed values: {', '.join(str(v) for v in ALLOWED_IMAGE_SIZES)})."
+        ),
+        example=DEFAULT_IMAGE_SIZE,
     ),
     crop_mode: Optional[bool] = Form(
         None, description="Enable crop mode during preprocessing."
@@ -213,11 +364,14 @@ async def run_ocr(
         None, description="Run compression diagnostics without saving artifacts."
     ),
     return_markdown: Optional[bool] = Form(
-        None, description="Return markdown-formatted output from the OCR service."
+        None,
+        description="Return markdown-formatted output from the OCR service.",
+        example=True,
     ),
     return_figures: Optional[bool] = Form(
         None,
         description="Include base64-encoded figure crops extracted by the OCR service.",
+        example=True,
     ),
     service: DeepSeekOCRService = Depends(get_deepseek_client),
 ) -> OCRResponse:

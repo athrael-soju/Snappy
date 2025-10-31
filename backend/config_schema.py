@@ -1,4 +1,4 @@
-﻿"""
+"""
 Configuration schema - Single source of truth for all configuration settings.
 
 This module defines:
@@ -282,8 +282,9 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "default": 1024,
                 "label": "Default Base Size",
                 "ui_type": "number",
-                "min": 256,
+                "min": 512,
                 "max": 2048,
+                "step": 128,
                 "description": "Base resize dimension passed to DeepSeek OCR.",
                 "help_text": "Controls the longest side that the image is resized to before inference. Lower values reduce memory usage while higher values capture more detail.",
                 "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
@@ -294,8 +295,9 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "default": 640,
                 "label": "Default Image Size",
                 "ui_type": "number",
-                "min": 128,
+                "min": 512,
                 "max": 2048,
+                "step": 128,
                 "description": "Target image patch size.",
                 "help_text": "Image size parameter forwarded to the OCR service. Tune alongside base size to balance speed and accuracy.",
                 "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},

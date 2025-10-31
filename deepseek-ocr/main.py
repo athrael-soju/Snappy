@@ -102,6 +102,18 @@ def _build_profile_alias_map() -> Dict[str, str]:
 
 
 PROFILE_ALIAS_MAP = _build_profile_alias_map()
+DEFAULT_PROFILE_KEY = "gundam"
+ALLOWED_BASE_SIZES = tuple(
+    sorted({int(data["base_size"]) for data in MODEL_PROFILES.values()})
+)
+ALLOWED_IMAGE_SIZES = tuple(
+    sorted({int(data["image_size"]) for data in MODEL_PROFILES.values()})
+)
+DEFAULT_BASE_SIZE = int(MODEL_PROFILES[DEFAULT_PROFILE_KEY]["base_size"])
+DEFAULT_IMAGE_SIZE = int(MODEL_PROFILES[DEFAULT_PROFILE_KEY]["image_size"])
+MIN_BASE_SIZE = min(ALLOWED_BASE_SIZES)
+MIN_IMAGE_SIZE = min(ALLOWED_IMAGE_SIZES)
+DEFAULT_MODE = "plain_ocr"
 
 
 TASK_PRESETS: Dict[str, Dict[str, Any]] = {
@@ -209,7 +221,64 @@ def normalize_mode(name: Optional[str]) -> Optional[str]:
     mapped = TASK_ALIAS_MAP.get(key)
     if mapped:
         return mapped
-    return key
+    return None
+
+
+def _sanitize_dimension(
+    name: str,
+    value: Optional[int],
+    fallback: int,
+    allowed: Optional[tuple[int, ...]] = None,
+) -> int:
+    """Validate dimension overrides; coerce placeholders to defaults and reject unsupported values."""
+    allowed_set = set(allowed or ())
+    if allowed_set:
+        if fallback not in allowed_set:
+            logger.warning(
+                "Configured default %s (%s) is not in the allowed set %s. Using %s instead.",
+                name,
+                fallback,
+                sorted(allowed_set),
+                max(allowed_set),
+            )
+            fallback = max(allowed_set)
+    if fallback <= 0:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Configuration error: default {name} must be a positive integer.",
+        )
+    if value is None:
+        return fallback
+    try:
+        numeric = int(value)
+    except (TypeError, ValueError):
+        if isinstance(value, str) and value.strip().lower() in {"", "string"}:
+            logger.debug(
+                "Ignoring placeholder %s override '%s'; using fallback %s.",
+                name,
+                value,
+                fallback,
+            )
+            return fallback
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid {name} override '{value}'. Expected a positive integer.",
+        ) from None
+    if numeric <= 0:
+        logger.debug(
+            "Ignoring non-positive %s override (%s); using fallback %s.",
+            name,
+            numeric,
+            fallback,
+        )
+        return fallback
+    if allowed_set and numeric not in allowed_set:
+        allowed_str = ", ".join(str(v) for v in sorted(allowed_set))
+        raise HTTPException(
+            status_code=400,
+            detail=f"{name} must be one of {{{allowed_str}}} (received {numeric}).",
+        )
+    return numeric
 
 
 @dataclass(slots=True)
@@ -260,6 +329,35 @@ class ServiceSettings:
     @property
     def default_profile_key(self) -> Optional[str]:
         return normalize_profile(self.default_profile)
+
+    def __post_init__(self) -> None:
+        if self.default_base_size < MIN_BASE_SIZE:
+            raise ValueError(
+                f"BASE_SIZE must be at least {MIN_BASE_SIZE} (received {self.default_base_size})."
+            )
+        if self.default_image_size < MIN_IMAGE_SIZE:
+            raise ValueError(
+                f"IMAGE_SIZE must be at least {MIN_IMAGE_SIZE} (received {self.default_image_size})."
+            )
+        if self.default_image_size > self.default_base_size:
+            raise ValueError(
+                "IMAGE_SIZE must not exceed BASE_SIZE "
+                f"(received base_size={self.default_base_size}, image_size={self.default_image_size})."
+            )
+        if self.default_base_size not in ALLOWED_BASE_SIZES:
+            raise ValueError(
+                f"BASE_SIZE must be one of {sorted(ALLOWED_BASE_SIZES)} "
+                f"(received {self.default_base_size})."
+            )
+        if self.default_image_size not in ALLOWED_IMAGE_SIZES:
+            raise ValueError(
+                f"IMAGE_SIZE must be one of {sorted(ALLOWED_IMAGE_SIZES)} "
+                f"(received {self.default_image_size})."
+            )
+        if self.default_profile and self.default_profile_key is None:
+            raise ValueError(
+                f"DEFAULT_PROFILE '{self.default_profile}' is not a recognised DeepSeek OCR profile."
+            )
 
 
 settings = ServiceSettings()
@@ -852,42 +950,86 @@ async def ocr_inference(
             ),
         )
 
-    requested_mode = mode or "plain_ocr"
-    resolved_mode = normalize_mode(requested_mode) or requested_mode
+    requested_mode = mode or DEFAULT_MODE
+    normalized_mode = normalize_mode(requested_mode)
+    if normalized_mode is None:
+        if mode:
+            logger.warning(
+                "Unknown DeepSeek OCR mode '%s'; using default '%s'.",
+                mode,
+                DEFAULT_MODE,
+            )
+        resolved_mode = DEFAULT_MODE
+    else:
+        resolved_mode = normalized_mode
     task_meta = TASK_PRESETS.get(resolved_mode, {})
 
     normalized_profile = normalize_profile(profile) if profile else None
     if profile and normalized_profile is None:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Unknown DeepSeek OCR profile preset: '{profile}'",
+        logger.warning(
+            "Unknown DeepSeek OCR profile preset '%s'; using default profile '%s'.",
+            profile,
+            settings.default_profile_key or DEFAULT_PROFILE_KEY,
         )
+        normalized_profile = settings.default_profile_key or DEFAULT_PROFILE_KEY
 
     profile_key = (
-        normalized_profile
-        or settings.default_profile_key
-        or ("gundam" if "gundam" in MODEL_PROFILES else None)
+        normalized_profile or settings.default_profile_key or DEFAULT_PROFILE_KEY
     )
     profile_config = MODEL_PROFILES.get(profile_key) if profile_key else None
 
-    resolved_base_size = (
-        base_size
-        if base_size is not None
-        else (
-            profile_config["base_size"]
-            if profile_config
-            else settings.default_base_size
-        )
+    default_base = (
+        int(profile_config["base_size"])
+        if profile_config
+        else settings.default_base_size
     )
-    resolved_image_size = (
-        image_size
-        if image_size is not None
-        else (
-            profile_config["image_size"]
-            if profile_config
-            else settings.default_image_size
-        )
+    default_image = (
+        int(profile_config["image_size"])
+        if profile_config
+        else settings.default_image_size
     )
+    if default_image > default_base:
+        adjusted_image = max(
+            (val for val in ALLOWED_IMAGE_SIZES if val <= default_base),
+            default=default_base,
+        )
+        logger.warning(
+            "Default image_size (%s) exceeds base_size (%s); using %s instead.",
+            default_image,
+            default_base,
+            adjusted_image,
+        )
+        default_image = adjusted_image
+    if default_base <= 0 or default_image <= 0:
+        raise HTTPException(
+            status_code=500,
+            detail="DeepSeek OCR profile defaults must be positive integers.",
+        )
+
+    resolved_base_size = _sanitize_dimension(
+        "base_size",
+        base_size,
+        default_base,
+        ALLOWED_BASE_SIZES,
+    )
+    resolved_image_size = _sanitize_dimension(
+        "image_size",
+        image_size,
+        default_image,
+        ALLOWED_IMAGE_SIZES,
+    )
+    if resolved_image_size > resolved_base_size:
+        logger.warning(
+            "Requested image_size (%s) exceeds base_size (%s); reverting to profile defaults %s/%s.",
+            resolved_image_size,
+            resolved_base_size,
+            default_base,
+            default_image,
+        )
+        resolved_base_size = default_base
+        resolved_image_size = (
+            default_image if default_image <= default_base else default_base
+        )
     resolved_crop_mode = (
         crop_mode
         if crop_mode is not None
