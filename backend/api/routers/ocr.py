@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Literal, Optional
+from enum import Enum
+from typing import Any, Dict, List, Optional
 
 import config
 from api.dependencies import get_deepseek_client
@@ -12,30 +13,50 @@ from services.deepseek_ocr import DeepSeekOCRError, DeepSeekOCRService
 router = APIRouter(prefix="/ocr", tags=["ocr"])
 logger = logging.getLogger(__name__)
 
-TASK_KEYS = (
-    "plain_ocr",
-    "markdown",
-    "tables_csv",
-    "tables_md",
-    "kv_json",
-    "figure_chart",
-    "find_ref",
-    "layout_map",
-    "pii_redact",
-    "multilingual",
-    "describe",
-    "freeform",
-)
 
-PROFILE_KEYS = ("gundam", "tiny", "small", "base", "large")
+class TaskName(str, Enum):
+    plain_ocr = "plain_ocr"
+    markdown = "markdown"
+    tables_csv = "tables_csv"
+    tables_md = "tables_md"
+    kv_json = "kv_json"
+    figure_chart = "figure_chart"
+    find_ref = "find_ref"
+    layout_map = "layout_map"
+    pii_redact = "pii_redact"
+    multilingual = "multilingual"
+    describe = "describe"
+    freeform = "freeform"
 
-TaskName = Literal[*TASK_KEYS]
-ProfileName = Literal[*PROFILE_KEYS]
 
-ALLOWED_BASE_SIZES: tuple[int, ...] = (512, 640, 1024, 1280)
-ALLOWED_IMAGE_SIZES: tuple[int, ...] = (512, 640, 1024, 1280)
-DEFAULT_MODE: TaskName = "plain_ocr"
-DEFAULT_PROFILE: ProfileName = "gundam"
+class ProfileName(str, Enum):
+    gundam = "gundam"
+    tiny = "tiny"
+    small = "small"
+    base = "base"
+    large = "large"
+
+
+class BaseSize(int, Enum):
+    size_512 = 512
+    size_640 = 640
+    size_1024 = 1024
+    size_1280 = 1280
+
+
+class ImageSize(int, Enum):
+    size_512 = 512
+    size_640 = 640
+    size_1024 = 1024
+    size_1280 = 1280
+
+
+TASK_KEYS: tuple[str, ...] = tuple(item.value for item in TaskName)
+PROFILE_KEYS: tuple[str, ...] = tuple(item.value for item in ProfileName)
+ALLOWED_BASE_SIZES: tuple[int, ...] = tuple(item.value for item in BaseSize)
+ALLOWED_IMAGE_SIZES: tuple[int, ...] = tuple(item.value for item in ImageSize)
+DEFAULT_MODE = TaskName.plain_ocr.value
+DEFAULT_PROFILE = ProfileName.gundam.value
 DEFAULT_BASE_SIZE = 1024
 DEFAULT_IMAGE_SIZE = 640
 DEFAULT_BASE_INDEX = (
@@ -339,18 +360,16 @@ async def run_ocr(
         description="JSON schema used by 'kv_json' mode. Provide raw JSON text.",
         example="",
     ),
-    base_size: Optional[int] = Form(
+    base_size: Optional[BaseSize] = Form(
         None,
-        ge=MIN_BASE_SIZE,
         description=(
             "Base resize dimension passed to the OCR service "
             f"(allowed values: {', '.join(str(v) for v in ALLOWED_BASE_SIZES)})."
         ),
         example=DEFAULT_BASE_SIZE,
     ),
-    image_size: Optional[int] = Form(
+    image_size: Optional[ImageSize] = Form(
         None,
-        ge=MIN_IMAGE_SIZE,
         description=(
             "Image input size passed to the OCR service "
             f"(allowed values: {', '.join(str(v) for v in ALLOWED_IMAGE_SIZES)})."
@@ -384,12 +403,17 @@ async def run_ocr(
 
     defaults = _get_defaults()
 
+    mode_value = mode.value if isinstance(mode, TaskName) else mode
+    profile_value = profile.value if isinstance(profile, ProfileName) else profile
+    base_size_value = defaults.base_size if base_size is None else int(base_size)
+    image_size_value = defaults.image_size if image_size is None else int(image_size)
+
     try:
         result = service.perform_ocr(
             image_bytes=payload,
             filename=image.filename or "upload.bin",
             content_type=image.content_type,
-            mode=mode or defaults.mode,
+            mode=mode_value or defaults.mode,
             prompt=prompt or defaults.prompt,
             grounding=defaults.grounding if grounding is None else grounding,
             include_caption=(
@@ -397,13 +421,13 @@ async def run_ocr(
             ),
             find_term=find_term,
             schema=kv_schema,
-            base_size=defaults.base_size if base_size is None else base_size,
-            image_size=defaults.image_size if image_size is None else image_size,
+            base_size=base_size_value,
+            image_size=image_size_value,
             crop_mode=defaults.crop_mode if crop_mode is None else crop_mode,
             test_compress=(
                 defaults.test_compress if test_compress is None else test_compress
             ),
-            profile=profile or defaults.profile,
+            profile=profile_value or defaults.profile,
             return_markdown=(
                 defaults.return_markdown if return_markdown is None else return_markdown
             ),
