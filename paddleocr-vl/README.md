@@ -17,7 +17,7 @@ A GPU-accelerated document OCR service built with FastAPI and PaddleOCR-VL. Extr
 
 - Docker with NVIDIA Container Toolkit
 - AWS EC2 g6.xlarge instance (NVIDIA L4 GPU)
-- Ubuntu 22.04 with CUDA 13.0+
+- Ubuntu 22.04 with CUDA 12.4+
 
 ### Deploy with Docker Compose
 
@@ -30,10 +30,10 @@ cd paddleocr-vl-service
 docker-compose up -d
 
 # Check status
-curl http://localhost:8100/health
+curl http://localhost:8000/health
 ```
 
-The service will be available at `http://localhost:8100`
+The service will be available at `http://localhost:8000`
 
 ## API Documentation
 
@@ -42,7 +42,7 @@ The service will be available at `http://localhost:8100`
 Check service status and GPU availability.
 
 ```bash
-curl http://localhost:8100/health
+curl http://localhost:8000/health
 ```
 
 **Response:**
@@ -65,7 +65,7 @@ Upload an image or PDF file to extract document structure.
 
 **Request:**
 ```bash
-curl -X POST http://localhost:8100/api/v1/ocr/extract-document \
+curl -X POST http://localhost:8000/api/v1/ocr/extract-document \
   -F "file=@/path/to/your/document.jpg" \
   -o response.json
 ```
@@ -116,14 +116,14 @@ curl -X POST http://localhost:8100/api/v1/ocr/extract-document \
 
 ```bash
 # Test with sample image
-curl -X POST http://<EC2-PUBLIC-IP>:8100/api/v1/ocr/extract-document \
+curl -X POST http://<EC2-PUBLIC-IP>:8000/api/v1/ocr/extract-document \
   -F "file=@/Users/zhangshengjie/Downloads/scan_samples_en/scan_samples_en_63.jpg" \
   | jq '.elements[] | {index, type: .content.type, text: .content.text}'
 ```
 
 ### Interactive API Documentation
 
-Access Swagger UI at: `http://localhost:8100/api/v1/docs`
+Access Swagger UI at: `http://localhost:8000/api/v1/docs`
 
 ## Architecture
 
@@ -148,7 +148,7 @@ Access Swagger UI at: `http://localhost:8100/api/v1/docs`
 │                                   ▼                │
 │                          ┌──────────────────┐     │
 │                          │   NVIDIA L4 GPU  │     │
-│                          │   (CUDA 13.0)    │     │
+│                          │   (CUDA 12.4)    │     │
 │                          └──────────────────┘     │
 └─────────────────────────────────────────────────────┘
 ```
@@ -165,7 +165,7 @@ Environment variables (see `.env.template`):
 
 ```bash
 # Application
-APP_PORT=8100
+APP_PORT=8000
 DEBUG=false
 
 # GPU Settings
@@ -208,7 +208,7 @@ See [CLAUDE.md](CLAUDE.md) for detailed deployment instructions including:
 
 ```bash
 # Check health status
-curl http://localhost:8100/health
+curl http://localhost:8000/health
 
 # View logs
 docker-compose logs -f paddleocr-vl
@@ -234,7 +234,7 @@ docker exec -it paddleocr-vl-service python -c "from paddleocr import PaddleOCRV
 
 **Solution:** Verify NVIDIA Container Toolkit:
 ```bash
-docker run --rm --gpus all nvidia/cuda:13.0.0-base-ubuntu22.04 nvidia-smi
+docker run --rm --gpus all nvidia/cuda:12.4.0-base-ubuntu22.04 nvidia-smi
 ```
 
 ### Out of Memory Errors

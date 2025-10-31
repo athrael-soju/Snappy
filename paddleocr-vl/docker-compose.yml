@@ -1,10 +1,12 @@
+version: '3.8'
+
 services:
   paddleocr-vl:
     build:
       context: .
       dockerfile: Dockerfile
-    image: paddleocr-vl:latest
-    container_name: paddleocr-vl
+    image: paddleocr-vl-service:latest
+    container_name: paddleocr-vl-service
 
     # GPU configuration
     deploy:
@@ -19,7 +21,7 @@ services:
     environment:
       - APP_NAME=PaddleOCR-VL Service
       - APP_VERSION=1.0.0
-      - APP_PORT=8100
+      - APP_PORT=8000
       - APP_HOST=0.0.0.0
       - DEBUG=false
       - LOG_LEVEL=INFO
@@ -32,11 +34,10 @@ services:
 
     # Ports
     ports:
-      - "8100:8100"
+      - "8000:8000"
 
-    # Volumes for model caching (optional, improves startup time)
+    # Volumes for temporary files
     volumes:
-      - paddleocr-models:/home/appuser/.paddleocr
       - /tmp/paddleocr:/tmp/paddleocr
 
     # Restart policy
@@ -44,7 +45,7 @@ services:
 
     # Health check
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8100/health" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -56,7 +57,3 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-
-volumes:
-  paddleocr-models:
-    driver: local

@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     # Application settings
     app_name: str = "PaddleOCR-VL Service"
     app_version: str = "1.0.0"
-    app_port: int = 8100
+    app_port: int = 8000
     app_host: str = "0.0.0.0"
     debug: bool = False
 
