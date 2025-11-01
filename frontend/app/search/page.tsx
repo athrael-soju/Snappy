@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChangeEvent, FormEvent, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useCallback, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import "@/lib/api/client";
 import Image from "next/image";
@@ -20,8 +20,9 @@ import type { LucideIcon } from "lucide-react";
 import { AppButton } from "@/components/app-button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
 import { RetrievalService } from "@/lib/api/generated";
-import { parseSearchResults } from "@/lib/api/runtime";
+import { parseHeatmapResult, parseSearchResults, type HeatmapResult, type SearchItem } from "@/lib/api/runtime";
 import { useSearchStore } from "@/lib/hooks/use-search-store";
 import { useSystemStatus } from "@/stores/app-store";
 import ImageLightbox from "@/components/lightbox";
@@ -72,6 +73,42 @@ const SEARCH_HELPER_CARDS: SearchHelperCard[] = [
   },
 ];
 
+function heatmapToDataUrl(heatmap: number[][]): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const rows = heatmap.length;
+  const cols = rows > 0 ? heatmap[0].length : 0;
+  if (rows === 0 || cols === 0) {
+    return null;
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = cols;
+  canvas.height = rows;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return null;
+  }
+
+  const imageData = ctx.createImageData(cols, rows);
+  for (let y = 0; y < rows; y += 1) {
+    const row = heatmap[y];
+    for (let x = 0; x < cols; x += 1) {
+      const value = Math.min(1, Math.max(0, row?.[x] ?? 0));
+      const alpha = Math.pow(value, 0.75); // emphasize peaks
+      const index = (y * cols + x) * 4;
+      imageData.data[index] = 255; // Red channel dominant
+      imageData.data[index + 1] = Math.round(64 * (1 - value)); // Fade green with intensity
+      imageData.data[index + 2] = 0; // Minimal blue
+      imageData.data[index + 3] = Math.round(255 * alpha * 0.9); // Overall opacity
+    }
+  }
+  ctx.putImageData(imageData, 0, 0);
+  return canvas.toDataURL("image/png");
+}
+
 export default function SearchPage() {
   const {
     query,
@@ -92,6 +129,19 @@ export default function SearchPage() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string>("");
   const [lightboxAlt, setLightboxAlt] = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<SearchItem | null>(null);
+  const [heatmapEnabled, setHeatmapEnabled] = useState(false);
+  const [heatmapLoading, setHeatmapLoading] = useState(false);
+  const [heatmapError, setHeatmapError] = useState<string | null>(null);
+  const [heatmapData, setHeatmapData] = useState<HeatmapResult | null>(null);
+  const [activeQuery, setActiveQuery] = useState<string>("");
+
+  const heatmapDataUrl = useMemo(() => {
+    if (!heatmapData) {
+      return null;
+    }
+    return heatmapToDataUrl(heatmapData.heatmap);
+  }, [heatmapData]);
 
   const truncatedResults = useMemo(() => results.slice(0, k), [results, k]);
 
@@ -118,6 +168,7 @@ export default function SearchPage() {
       const parsed = parseSearchResults(data);
       setResults(parsed, performance.now() - start);
       setHasSearched(true);
+      setActiveQuery(trimmed);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Search failed";
       setError(message);
@@ -129,14 +180,93 @@ export default function SearchPage() {
   const clearResults = () => {
     reset();
     setError(null);
+    setLightboxOpen(false);
+    setLightboxSrc("");
+    setLightboxAlt(null);
+    setSelectedItem(null);
+    setHeatmapEnabled(false);
+    setHeatmapData(null);
+    setHeatmapError(null);
+    setHeatmapLoading(false);
   };
 
-  const handleImageOpen = (url: string, label?: string) => {
-    if (!url) return;
-    setLightboxSrc(url);
+  const handleImageOpen = (item: SearchItem, label?: string) => {
+    if (!item.image_url) return;
+    setSelectedItem(item);
+    setLightboxSrc(item.image_url);
     setLightboxAlt(label ?? null);
+    setHeatmapEnabled(false);
+    setHeatmapData(null);
+    setHeatmapError(null);
+    setHeatmapLoading(false);
     setLightboxOpen(true);
   };
+
+  const fetchHeatmap = useCallback(
+    async (item: SearchItem) => {
+      const docIdValue = item.payload?.document_id;
+      const documentId =
+        typeof docIdValue === "string" && docIdValue.length > 0 ? docIdValue : null;
+      if (!documentId) {
+        const message = "Heatmap unavailable: missing document identifier.";
+        setHeatmapError(message);
+        throw new Error(message);
+      }
+
+      const queryForHeatmap = activeQuery.trim() || query.trim();
+      if (!queryForHeatmap) {
+        const message = "Heatmap unavailable: run a search query first.";
+        setHeatmapError(message);
+        throw new Error(message);
+      }
+
+      setHeatmapLoading(true);
+      setHeatmapError(null);
+
+      try {
+        const response = await RetrievalService.searchHeatmapSearchDocumentIdHeatmapGet(
+          documentId,
+          queryForHeatmap,
+          "max"
+        );
+        const parsed = parseHeatmapResult(response);
+        setHeatmapData(parsed);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to generate heatmap.";
+        setHeatmapData(null);
+        setHeatmapError(message);
+        throw err;
+      } finally {
+        setHeatmapLoading(false);
+      }
+    },
+    [activeQuery, query]
+  );
+
+  const handleHeatmapToggle = useCallback(
+    (checked: boolean) => {
+      if (!selectedItem) {
+        return;
+      }
+
+      if (!checked) {
+        setHeatmapEnabled(false);
+        return;
+      }
+
+      setHeatmapEnabled(true);
+
+      if (heatmapData || heatmapLoading) {
+        return;
+      }
+
+      fetchHeatmap(selectedItem).catch(() => {
+        setHeatmapEnabled(false);
+      });
+    },
+    [fetchHeatmap, heatmapData, heatmapLoading, selectedItem]
+  );
 
   return (
     <div className="relative flex h-full min-h-full flex-col overflow-hidden">
@@ -449,11 +579,7 @@ export default function SearchPage() {
                               return (
                                 <motion.article
                                   key={`${item.label ?? index}-${index}`}
-                                  onClick={() => {
-                                    if (item.image_url) {
-                                      handleImageOpen(item.image_url, displayTitle);
-                                    }
-                                  }}
+                                  onClick={() => handleImageOpen(item, displayTitle)}
                                   className="group relative flex gap-3 overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 cursor-pointer touch-manipulation"
                                   initial={{ opacity: 0, x: -20 }}
                                   animate={{ opacity: 1, x: 0 }}
@@ -521,9 +647,63 @@ export default function SearchPage() {
           if (!open) {
             setLightboxSrc("");
             setLightboxAlt(null);
+            setSelectedItem(null);
+            setHeatmapEnabled(false);
+            setHeatmapData(null);
+            setHeatmapError(null);
+            setHeatmapLoading(false);
           }
         }}
-      />
+      >
+        {lightboxSrc ? (
+          <div className="relative flex max-h-[93vh] max-w-[95vw] items-center justify-center bg-background">
+            <img
+              src={lightboxSrc}
+              alt={lightboxAlt ?? "Selected page"}
+              className="max-h-[93vh] max-w-[95vw] h-auto w-auto object-contain"
+            />
+            {heatmapEnabled && heatmapDataUrl && !heatmapLoading ? (
+              <img
+                src={heatmapDataUrl}
+                alt="Heatmap overlay"
+                className="pointer-events-none absolute inset-0 h-full w-full object-contain mix-blend-screen opacity-85"
+                style={{ filter: "saturate(180%)" }}
+              />
+            ) : null}
+            {heatmapEnabled && heatmapLoading ? (
+              <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
+                <div className="pointer-events-auto flex items-center gap-2 rounded-lg border border-border/50 bg-background/85 px-4 py-2 text-body-sm font-semibold text-foreground shadow-lg">
+                  <Loader2 className="size-icon-sm animate-spin text-primary" />
+                  <span>Generating heatmap&hellip;</span>
+                </div>
+              </div>
+            ) : null}
+            {heatmapError ? (
+              <div className="pointer-events-none absolute bottom-3 left-1/2 z-20 w-[min(90%,320px)] -translate-x-1/2 rounded-lg border border-destructive/40 bg-background/90 px-3 py-2 text-center text-body-xs font-semibold text-destructive shadow-lg">
+                {heatmapError}
+              </div>
+            ) : null}
+            <div className="pointer-events-none absolute left-0 top-0 z-30 flex w-full items-start justify-between gap-2 p-3">
+              <div className="pointer-events-auto flex items-center gap-2 rounded-lg border border-border/60 bg-background/80 px-3 py-2 shadow-lg">
+                <Switch
+                  id="heatmap-toggle"
+                  aria-label="Toggle heatmap overlay"
+                  checked={heatmapEnabled}
+                  onCheckedChange={handleHeatmapToggle}
+                />
+                <span className="text-body-xs font-semibold text-foreground">
+                  Heatmap overlay
+                </span>
+              </div>
+              {heatmapData ? (
+                <Badge className="pointer-events-auto border border-border/50 bg-background/80 text-body-xs font-semibold uppercase tracking-wide">
+                  Normalized • {heatmapData.aggregate.toUpperCase()}
+                </Badge>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+      </ImageLightbox>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 
@@ -15,3 +15,14 @@ class SearchItem(BaseModel):
     label: Optional[str]
     payload: Dict[str, Any]
     score: Optional[float] = None
+
+
+class HeatmapResult(BaseModel):
+    image_width: int
+    image_height: int
+    grid_rows: int
+    grid_columns: int
+    aggregate: str
+    min_score: float
+    max_score: float
+    heatmap: List[List[float]]

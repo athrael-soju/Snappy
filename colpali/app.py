@@ -1,11 +1,12 @@
 import inspect
+import math
 import os
 from io import BytesIO
 from typing import Any, List, Optional, Tuple, Union, cast
 
 import torch
 from colpali_engine.models import ColModernVBert, ColModernVBertProcessor
-from fastapi import Body, FastAPI, File, HTTPException, UploadFile
+from fastapi import Body, FastAPI, File, Form, HTTPException, UploadFile
 from PIL import Image
 from pydantic import BaseModel
 from transformers.utils.import_utils import is_flash_attn_2_available
@@ -129,6 +130,32 @@ class ImageEmbeddingBatchResponse(BaseModel):
     embeddings: List[ImageEmbeddingItem]
 
 
+class HeatmapResponse(BaseModel):
+    image_width: int
+    image_height: int
+    grid_rows: int
+    grid_columns: int
+    aggregate: str
+    min_score: float
+    max_score: float
+    heatmap: List[List[float]]
+
+
+def _compute_patch_grid(patch_len: int) -> Tuple[int, int]:
+    """Derive a rectangular patch grid given the flattened token count."""
+    if patch_len <= 0:
+        raise ValueError("Patch length must be positive to compute a grid.")
+    root = int(math.isqrt(patch_len))
+    if root * root == patch_len:
+        return root, root
+    # Fall back to finding the closest factor pair (rows, cols).
+    for rows in range(root, 0, -1):
+        if patch_len % rows == 0:
+            return rows, patch_len // rows
+    # As a last resort, treat the sequence as a single row.
+    return 1, patch_len
+
+
 def load_image_from_bytes(image_bytes: bytes) -> Image.Image:
     """Load PIL Image from bytes"""
     return Image.open(BytesIO(image_bytes)).convert("RGB")
@@ -197,6 +224,73 @@ def generate_image_embeddings_with_boundaries(
             )
 
         return batch_items
+
+
+def generate_similarity_heatmap(
+    query: str,
+    image: Image.Image,
+    aggregate: str = "max",
+) -> HeatmapResponse:
+    """Compute a similarity heatmap between a text query and an image."""
+    import torch
+    import torch.nn.functional as F
+
+    aggregate_mode = aggregate.lower() if aggregate else "max"
+    if aggregate_mode not in {"max", "mean", "sum"}:
+        aggregate_mode = "max"
+
+    query_embeddings = generate_query_embeddings([query])
+    if not query_embeddings:
+        raise ValueError("Failed to generate query embeddings.")
+    query_tensor = query_embeddings[0].to(torch.float32)  # [q_tokens, dim]
+
+    items = generate_image_embeddings_with_boundaries([image])
+    if not items:
+        raise ValueError("Failed to generate image embeddings.")
+
+    item = items[0]
+    patch_indices = item.image_patch_indices
+    if not patch_indices:
+        raise ValueError("Image embeddings did not include patch indices.")
+
+    image_tensor = torch.tensor(item.embedding, dtype=torch.float32)  # [seq, dim]
+    patch_tensor = image_tensor[torch.tensor(patch_indices, dtype=torch.long)]
+    patch_len = patch_tensor.shape[0]
+    rows, cols = _compute_patch_grid(patch_len)
+
+    # Normalize embeddings before similarity.
+    query_norm = F.normalize(query_tensor, dim=-1)
+    patch_norm = F.normalize(patch_tensor, dim=-1)
+
+    similarity = torch.matmul(query_norm, patch_norm.T)  # [q_tokens, patch_len]
+
+    if aggregate_mode == "mean":
+        aggregated = similarity.mean(dim=0)
+    elif aggregate_mode == "sum":
+        aggregated = similarity.sum(dim=0)
+    else:
+        aggregated = similarity.max(dim=0).values
+
+    min_score = float(aggregated.min().item())
+    max_score = float(aggregated.max().item())
+    denom = max_score - min_score
+    if denom <= 1e-12:
+        normalized = torch.zeros_like(aggregated)
+    else:
+        normalized = (aggregated - min_score) / denom
+
+    heatmap = normalized.view(rows, cols).tolist()
+
+    return HeatmapResponse(
+        image_width=image.width,
+        image_height=image.height,
+        grid_rows=rows,
+        grid_columns=cols,
+        aggregate=aggregate_mode,
+        min_score=min_score,
+        max_score=max_score,
+        heatmap=heatmap,
+    )
 
 
 # API Endpoints
@@ -375,6 +469,31 @@ async def embed_images(files: List[UploadFile] = File(...)):
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error generating image embeddings: {str(e)}"
+        )
+
+
+@app.post("/heatmap", response_model=HeatmapResponse)
+async def heatmap(
+    query: str = Form(...),
+    image: UploadFile = File(...),
+    aggregate: str = Form("max"),
+):
+    """Generate a normalized similarity heatmap for a query-image pair."""
+    try:
+        if not query:
+            raise HTTPException(status_code=400, detail="Query is required.")
+        image_bytes = await image.read()
+        pil_image = load_image_from_bytes(image_bytes)
+        return generate_similarity_heatmap(
+            query=query, image=pil_image, aggregate=aggregate
+        )
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error generating heatmap: {str(e)}"
         )
 
 

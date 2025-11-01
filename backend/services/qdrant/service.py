@@ -143,3 +143,40 @@ class QdrantService:
         if not self.minio_service:
             raise Exception("MinIO service not available")
         return self.minio_service.get_image(image_url)
+
+    def generate_heatmap(
+        self,
+        query: str,
+        document_id: str,
+        aggregate: str = "max",
+    ) -> dict:
+        """Generate a similarity heatmap for a retrieved document."""
+        if not document_id:
+            raise ValueError("document_id is required to generate a heatmap")
+        if not self.api_client:
+            raise ValueError("ColPali API client is not configured")
+        if not self.minio_service:
+            raise ValueError("MinIO service is not configured")
+
+        points = self.collection_manager.service.retrieve(
+            collection_name=self.collection_manager.collection_name,
+            ids=[document_id],
+            with_payload=True,
+            with_vectors=False,
+        )
+        if not points:
+            raise ValueError(f"Document '{document_id}' was not found in Qdrant")
+
+        payload = points[0].payload or {}
+        image_url = payload.get("image_url")
+        if not image_url:
+            raise ValueError(
+                f"Document '{document_id}' payload is missing an image_url field"
+            )
+
+        image = self.minio_service.get_image(image_url)
+        return self.api_client.generate_heatmap(
+            query=query,
+            image=image,
+            aggregate=aggregate,
+        )

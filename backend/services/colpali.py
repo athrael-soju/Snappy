@@ -212,3 +212,41 @@ class ColPaliService:
             scores.append(max(similarities) if similarities else 0.0)
 
         return np.array(scores)
+
+    def generate_heatmap(
+        self,
+        query: str,
+        image: Image.Image,
+        aggregate: str = "max",
+    ) -> dict:
+        """
+        Request a similarity heatmap for a query-image pair from the ColPali service.
+        """
+        if not query:
+            raise ValueError("Query must be provided for heatmap generation.")
+        if image is None:
+            raise ValueError("Image must be provided for heatmap generation.")
+
+        buf = io.BytesIO()
+        image.save(buf, format="PNG")
+        buf.seek(0)
+
+        files = {
+            "image": ("image.png", buf, "image/png"),
+        }
+        data = {
+            "query": query,
+            "aggregate": aggregate,
+        }
+        try:
+            response = self.session.post(
+                f"{self.base_url}/heatmap",
+                data=data,
+                files=files,
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            self._logger.error(f"Failed to generate heatmap: {e}")
+            raise

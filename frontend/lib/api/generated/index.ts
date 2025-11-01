@@ -9,6 +9,7 @@ export type { OpenAPIConfig } from './core/OpenAPI';
 
 export type { Body_index_index_post } from './models/Body_index_index_post';
 export type { ConfigUpdate } from './models/ConfigUpdate';
+export type { HeatmapResult } from './models/HeatmapResult';
 export type { HTTPValidationError } from './models/HTTPValidationError';
 export type { SearchItem } from './models/SearchItem';
 export type { ValidationError } from './models/ValidationError';

@@ -21,6 +21,18 @@ const HTTPValidationError = z
   .object({ detail: z.array(ValidationError) })
   .partial()
   .passthrough();
+const HeatmapResult = z
+  .object({
+    image_width: z.number().int(),
+    image_height: z.number().int(),
+    grid_rows: z.number().int(),
+    grid_columns: z.number().int(),
+    aggregate: z.string(),
+    min_score: z.number(),
+    max_score: z.number(),
+    heatmap: z.array(z.array(z.number())),
+  })
+  .passthrough();
 const Body_index_index_post = z
   .object({ files: z.array(z.instanceof(File)) })
   .passthrough();
@@ -33,6 +45,7 @@ export const schemas = {
   SearchItem,
   ValidationError,
   HTTPValidationError,
+  HeatmapResult,
   Body_index_index_post,
   ConfigUpdate,
 };
@@ -222,6 +235,37 @@ To persist changes across restarts, update your .env file manually.`,
       },
     ],
     response: z.array(SearchItem),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/search/:document_id/heatmap",
+    alias: "search_heatmap_search__document_id__heatmap_get",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "document_id",
+        type: "Path",
+        schema: z.string(),
+      },
+      {
+        name: "q",
+        type: "Query",
+        schema: z.string(),
+      },
+      {
+        name: "aggregate",
+        type: "Query",
+        schema: z.string().optional().default("max"),
+      },
+    ],
+    response: HeatmapResult,
     errors: [
       {
         status: 422,

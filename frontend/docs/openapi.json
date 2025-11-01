@@ -129,6 +129,71 @@
         }
       }
     },
+    "/search/{document_id}/heatmap": {
+      "get": {
+        "tags": [
+          "retrieval"
+        ],
+        "summary": "Generate a similarity heatmap for a retrieved page",
+        "operationId": "search_heatmap_search__document_id__heatmap_get",
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Document Id"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Original search query",
+              "title": "Q"
+            },
+            "description": "Original search query"
+          },
+          {
+            "name": "aggregate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Aggregation strategy for query-token similarities (max, mean, sum)",
+              "default": "max",
+              "title": "Aggregate"
+            },
+            "description": "Aggregation strategy for query-token similarities (max, mean, sum)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeatmapResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/index": {
       "post": {
         "tags": [
@@ -537,6 +602,60 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "HeatmapResult": {
+        "properties": {
+          "image_width": {
+            "type": "integer",
+            "title": "Image Width"
+          },
+          "image_height": {
+            "type": "integer",
+            "title": "Image Height"
+          },
+          "grid_rows": {
+            "type": "integer",
+            "title": "Grid Rows"
+          },
+          "grid_columns": {
+            "type": "integer",
+            "title": "Grid Columns"
+          },
+          "aggregate": {
+            "type": "string",
+            "title": "Aggregate"
+          },
+          "min_score": {
+            "type": "number",
+            "title": "Min Score"
+          },
+          "max_score": {
+            "type": "number",
+            "title": "Max Score"
+          },
+          "heatmap": {
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Heatmap"
+          }
+        },
+        "type": "object",
+        "required": [
+          "image_width",
+          "image_height",
+          "grid_rows",
+          "grid_columns",
+          "aggregate",
+          "min_score",
+          "max_score",
+          "heatmap"
+        ],
+        "title": "HeatmapResult"
       },
       "SearchItem": {
         "properties": {
