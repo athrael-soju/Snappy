@@ -1,10 +1,27 @@
+# DuckDB UI plus application stack.
+# Enable host networking in Docker Desktop 4.34+ (Settings > Resources > Network) before starting DuckDB.
 services:
+  duckdb:
+    image: duckdb/duckdb:latest
+    container_name: duckdb
+    network_mode: host
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+      - duckdb_data:/duckdb-data
+    stdin_open: true
+    tty: true
+    entrypoint: [ "/duckdb" ]
+    command: [ "-interactive", "-ui", "/duckdb-data/ui.duckdb" ]
+    restart: unless-stopped
+    # Launches DuckDB with the UI extension and serves it on http://localhost:4213/.
+
   qdrant:
     image: qdrant/qdrant:latest
     container_name: qdrant
     ports:
-      - 6333:6333 # HTTP API
-      - 6334:6334 # gRPC API
+      - 6333:6333
+      - 6334:6334
     volumes:
       - qdrant_data:/qdrant/storage
     environment:
@@ -40,7 +57,7 @@ services:
     image: backend:latest
     container_name: backend
     ports:
-      - "8000:8000"
+      - 8000:8000
     env_file:
       - ./.env
     environment:
@@ -69,7 +86,7 @@ services:
     image: frontend:latest
     container_name: frontend
     ports:
-      - "3000:3000"
+      - 3000:3000
     env_file:
       - ./frontend/.env.local
     environment:
@@ -86,6 +103,7 @@ networks:
     driver: bridge
 
 volumes:
+  duckdb_data:
   qdrant_data:
   minio_data:
   backend_data:
