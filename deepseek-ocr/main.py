@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from PIL import Image
 from transformers import AutoModel, AutoTokenizer
+from transformers.utils.import_utils import is_flash_attn_2_available
 
 # -----------------------------
 # Lifespan context for model loading
@@ -36,22 +37,34 @@ async def lifespan(app: FastAPI):
     print(f"🚀 Loading {MODEL_NAME}...")
     torch_dtype = torch.bfloat16
 
+    # Check CUDA availability
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    flash_attn_2_available = is_flash_attn_2_available()
+    print(f"🎮 Using device: {device}")
+    print(f"⚡ Flash Attention 2 available: {flash_attn_2_available}")
+
     tokenizer = AutoTokenizer.from_pretrained(
         MODEL_NAME,
         trust_remote_code=True,
     )
 
-    model = (
-        AutoModel.from_pretrained(
-            MODEL_NAME,
-            trust_remote_code=True,
-            use_safetensors=True,
-            attn_implementation="eager",
-            torch_dtype=torch_dtype,
-        )
-        .eval()
-        .to("cuda")
-    )
+    # Load model directly to GPU if available, avoiding Flash Attention CPU warning
+    model = AutoModel.from_pretrained(
+        MODEL_NAME,
+        trust_remote_code=True,
+        use_safetensors=True,
+        device_map="auto" if device == "cuda" else None,
+        attn_implementation=(
+            "flash_attention_2"
+            if (is_flash_attn_2_available() and device == "cuda")
+            else None
+        ),
+        torch_dtype=torch_dtype,
+    ).eval()
+
+    # Only explicitly move to CUDA if device_map wasn't used
+    if device == "cuda" and not hasattr(model, "hf_device_map"):
+        model = model.to("cuda")
 
     # Pad token setup
     try:
@@ -104,7 +117,7 @@ def build_prompt(
     user_prompt: str,
     grounding: bool,
     find_term: Optional[str],
-    schema: Optional[str],
+    json_schema: Optional[str],
     include_caption: bool,
 ) -> str:
     """Build the prompt based on mode"""
@@ -126,7 +139,7 @@ def build_prompt(
     elif mode == "tables_md":
         instruction = "Extract every table as GitHub-flavored Markdown tables. Output only the tables."
     elif mode == "kv_json":
-        schema_text = schema.strip() if schema else "{}"
+        schema_text = json_schema.strip() if json_schema else "{}"
         instruction = (
             "Extract key fields and return strict JSON only. "
             f"Use this schema (fill the values): {schema_text}"
@@ -276,7 +289,7 @@ async def ocr_inference(
     grounding: bool = Form(False),
     include_caption: bool = Form(False),
     find_term: Optional[str] = Form(None),
-    schema: Optional[str] = Form(None),
+    json_schema: Optional[str] = Form(None),
     base_size: int = Form(1024),
     image_size: int = Form(640),
     crop_mode: bool = Form(True),
@@ -291,7 +304,7 @@ async def ocr_inference(
     - **grounding**: Enable grounding boxes
     - **include_caption**: Add image description
     - **find_term**: Term to find (for find_ref mode)
-    - **schema**: JSON schema (for kv_json mode)
+    - **json_schema**: JSON schema (for kv_json mode)
     - **base_size**: Base processing size
     - **image_size**: Image size parameter
     - **crop_mode**: Enable crop mode
@@ -306,7 +319,7 @@ async def ocr_inference(
         user_prompt=prompt,
         grounding=grounding,
         find_term=find_term,
-        schema=schema,
+        json_schema=json_schema,
         include_caption=include_caption,
     )
 
