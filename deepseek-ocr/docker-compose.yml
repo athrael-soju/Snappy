@@ -1,0 +1,66 @@
+volumes:
+  huggingface_cache: {}
+  deepseek_data: {}
+
+x-deepseek-common: &deepseek-common
+  environment:
+    # API Security
+    - SERVICE_API_KEY=${SERVICE_API_KEY:-dev-key-change-in-production}
+    - REQUIRE_API_KEY=${REQUIRE_API_KEY:-false}
+
+    # HuggingFace Cache
+    - HF_HOME=/home/user/.cache/huggingface
+    - HUGGINGFACE_HUB_CACHE=/home/user/.cache/huggingface
+    - HF_HOME=/home/user/.cache/huggingface
+
+    # DeepSeek Model Configuration
+    - DEEPSEEK_MODEL_REVISION=${DEEPSEEK_MODEL_REVISION:-2c968b433af61a059311cbf8997765023806a24d}
+    - DEEPSEEK_BASE_SIZE=${DEEPSEEK_BASE_SIZE:-1024}
+    - DEEPSEEK_IMAGE_SIZE=${DEEPSEEK_IMAGE_SIZE:-640}
+    - DEEPSEEK_CROP_MODE=${DEEPSEEK_CROP_MODE:-true}
+
+    # Rate Limiting
+    - RATE_LIMIT_REQUESTS=${RATE_LIMIT_REQUESTS:-30}
+    - RATE_LIMIT_WINDOW_SECONDS=${RATE_LIMIT_WINDOW_SECONDS:-60}
+    - MAX_UPLOAD_BYTES=${MAX_UPLOAD_BYTES:-5242880}
+
+    # Public URL
+    - PUBLIC_HOST=${PUBLIC_HOST:-localhost}
+    - PUBLIC_PORT=${PUBLIC_PORT:-7860}
+  volumes:
+    # Mount HuggingFace cache for model persistence
+    - huggingface_cache:/home/user/.cache/huggingface
+    # Mount application data
+    - deepseek_data:/home/user/app/data
+  ports:
+    - "${PUBLIC_PORT:-7860}:7860"
+  stdin_open: true
+  tty: true
+  restart: unless-stopped
+  networks:
+    - snappy-network
+
+services:
+  deepseek-ocr-cpu:
+    <<: *deepseek-common
+    profiles: [ "cpu" ]
+    build:
+      context: .
+      dockerfile: Dockerfile.cpu
+    container_name: deepseek-ocr-cpu
+    environment:
+      - USE_GPU=false
+
+  deepseek-ocr-gpu:
+    <<: *deepseek-common
+    profiles: [ "gpu" ]
+    build:
+      context: .
+      dockerfile: Dockerfile.gpu
+    container_name: deepseek-ocr-gpu
+    environment:
+      - USE_GPU=true
+    gpus: "${DEEPSEEK_GPU_COUNT:-all}"
+networks:
+  snappy-network:
+    external: false

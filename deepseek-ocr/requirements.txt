@@ -1,0 +1,22 @@
+# DeepSeek-OCR Service Requirements
+# Fully integrated DeepSeek-OCR - Old OCR engines completely removed
+
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+pillow>=10.0.0
+numpy>=1.24.0
+
+# DeepSeek-OCR dependencies - PINNED VERSIONS (tested working set)
+# IMPORTANT: Pin to exact versions to avoid LlamaFlashAttention2 import errors
+# Note: torch and torchvision are installed in Dockerfile with proper CUDA support
+# torch==2.7.0+cu128 (installed via Dockerfile)
+# torchvision==0.22.0+cu128 (installed via Dockerfile)
+transformers==4.46.3  # Critical: Must be 4.46.3 (4.47+ removed LlamaFlashAttention2)
+tokenizers==0.20.3  # Exact version from model card
+einops>=0.7.0
+addict>=2.4.0
+easydict>=1.9
+matplotlib>=3.8.0
+tqdm
+# Note: Flash attention required for GPU deployments; pip install uses --no-build-isolation via Dockerfile

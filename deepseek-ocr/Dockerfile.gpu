@@ -1,0 +1,79 @@
+# GPU-enabled Dockerfile for DeepSeek-OCR Service
+# Torch 2.7.0 + Python 3.12 + FlashAttention 2.7.4.post1 (cp312)
+
+FROM python:3.12-slim
+
+# Environment
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    HUGGINGFACE_HUB_CACHE=/home/user/.cache/huggingface \
+    HF_HOME=/home/user/.cache/huggingface \
+    PIP_NO_BUILD_ISOLATION=1
+
+# --- Versions & sources -------------------------------------------------------
+# Official torch 2.7.0 wheels are published for CUDA 12.8 ("cu128").
+ARG TORCH_VERSION="2.7.0"
+ARG TORCHVISION_VERSION="0.22.0"
+ARG TORCH_INDEX_URL="https://download.pytorch.org/whl/cu128"
+ARG TORCH_WHL_URL=""
+
+# FlashAttention wheel built against torch 2.7.0 (cp312)
+ARG FLASH_ATTN_WHEEL_URL="https://github.com/loscrossos/lib_flashattention/releases/download/v2.7.4.post1_crossos00/flash_attn-2.7.4.post1+cu129torch2.7.0-cp312-cp312-linux_x86_64.whl"
+
+# Create user with ID 1000 (required by HuggingFace Spaces)
+RUN useradd -m -u 1000 user
+
+# System deps (git for installing from GitHub, build tools for flash-attn)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    build-essential \
+    cmake \
+    ninja-build \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# Make sure PyTorch can find the toolchain when compiling flash-attn/runtime kernels
+ENV CC=/usr/bin/gcc \
+    CXX=/usr/bin/g++ \
+    TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0"
+
+# Switch to user
+USER user
+
+# Set environment variables for user
+ENV HOME=/home/user \
+    PATH=/home/user/.local/bin:$PATH \
+    HF_HOME=/home/user/.cache/huggingface \
+    HUGGINGFACE_HUB_CACHE=/home/user/.cache/huggingface \
+    HF_HOME=/home/user/.cache/huggingface
+
+# Create cache directory with proper permissions
+RUN mkdir -p /home/user/.cache/huggingface && \
+    chmod 755 /home/user/.cache/huggingface
+
+# Set working directory
+WORKDIR /home/user/app
+
+# Copy requirements
+COPY --chown=user requirements.txt requirements.txt
+
+# Install PyTorch first, then app deps, then FlashAttention
+RUN pip install --no-cache-dir --upgrade pip \
+    && if [ -n "$TORCH_WHL_URL" ]; then \
+    echo "Installing custom torch wheel from \$TORCH_WHL_URL"; \
+    pip install --no-cache-dir "$TORCH_WHL_URL" torchvision=="${TORCHVISION_VERSION}"; \
+    else \
+    echo "Installing official torch==${TORCH_VERSION} (cu128) & torchvision==${TORCHVISION_VERSION}"; \
+    pip install --no-cache-dir torch=="${TORCH_VERSION}" torchvision=="${TORCHVISION_VERSION}" --index-url "${TORCH_INDEX_URL}"; \
+    fi \
+    && pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir "${FLASH_ATTN_WHEEL_URL}"
+
+# Copy application files
+COPY --chown=user . /home/user/app
+
+# Expose port 7860 (required by HuggingFace Spaces)
+EXPOSE 7860
+
+# Run the FastAPI application
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860"]

@@ -208,3 +208,6 @@ __marimo__/
 
 # Qdrant
 qdrant_storage/
+
+# Temporary files
+tmp/

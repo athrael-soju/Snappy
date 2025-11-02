@@ -1,0 +1,54 @@
+# CPU-only Dockerfile for DeepSeek-OCR Service
+
+FROM python:3.10-slim
+
+# Environment
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    HUGGINGFACE_HUB_CACHE=/home/user/.cache/huggingface \
+    HF_HOME=/home/user/.cache/huggingface
+
+# Create user with ID 1000 (required by HuggingFace Spaces)
+RUN useradd -m -u 1000 user
+
+# System dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    git \
+    ninja-build \
+    && rm -rf /var/lib/apt/lists/*
+
+# Switch to user
+USER user
+
+# Set environment variables for user
+ENV HOME=/home/user \
+    PATH=/home/user/.local/bin:$PATH \
+    HF_HOME=/home/user/.cache/huggingface \
+    HUGGINGFACE_HUB_CACHE=/home/user/.cache/huggingface \
+    HF_HOME=/home/user/.cache/huggingface
+
+# Create cache directory with proper permissions
+RUN mkdir -p /home/user/.cache/huggingface && \
+    chmod 755 /home/user/.cache/huggingface
+
+# Set working directory
+WORKDIR /home/user/app
+
+# Copy requirements
+COPY --chown=user requirements.txt requirements.txt
+
+# Install dependencies with CPU-only PyTorch
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+# Copy application files
+COPY --chown=user . /home/user/app
+
+# Expose port 7860 (required by HuggingFace Spaces)
+EXPOSE 7860
+
+# Run the FastAPI application
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860"]
