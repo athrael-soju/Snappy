@@ -96,6 +96,7 @@ def get_minio_service() -> MinioService:
 @lru_cache(maxsize=1)
 def _get_qdrant_service_cached() -> QdrantService:
     minio_service = get_minio_service()
+    deepseek_service = get_deepseek_client()
 
     muvera_post = None
     if config.MUVERA_ENABLED:
@@ -112,6 +113,7 @@ def _get_qdrant_service_cached() -> QdrantService:
         api_client=get_colpali_client(),
         minio_service=minio_service,
         muvera_post=muvera_post,
+        deepseek_service=deepseek_service,
     )
 
 

@@ -63,16 +63,25 @@ class BatchProcessor:
         *,
         skip_progress: bool = False,
     ) -> ProcessedBatch:
+        """
+        Process a batch with unified per-page progress tracking.
+
+        Flow:
+        1. Batch embed all images (efficient)
+        2. For each image: OCR + storage in parallel
+        3. Build Qdrant points with all metadata
+        4. Progress: "Processing X/Total pages"
+        """
         batch_start = batch_idx
         image_batch, meta_batch = _split_image_batch(batch)
         current_batch_size = len(batch)
 
-        if skip_progress:
-            progress.check_cancel(batch_start)
-        else:
+        # Step 1: Batch embedding (keeps efficiency)
+        progress.check_cancel(batch_start)
+        if not skip_progress:
             progress.stage(
                 current=batch_start,
-                stage="embedding",
+                stage="processing",
                 batch_start=batch_start,
                 batch_size=current_batch_size,
                 total=total_images,
@@ -82,23 +91,12 @@ class BatchProcessor:
             self._embed_batch(image_batch)
         )
 
-        if skip_progress:
-            progress.check_cancel(batch_start)
-        else:
-            progress.stage(
-                current=batch_start,
-                stage="storing",
-                batch_start=batch_start,
-                batch_size=current_batch_size,
-                total=total_images,
-            )
-
-        if skip_progress:
-            progress.check_cancel(batch_start)
-
+        # Step 2: Per-page OCR + storage (parallel when possible)
         try:
+            # Storage first (needed for OCR metadata)
             image_ids, image_records = self.image_store.store(batch_start, image_batch)
 
+            # OCR processing with per-page progress updates
             if self.ocr_handler:
                 try:
                     ocr_results = self.ocr_handler.process_batch(
@@ -115,11 +113,15 @@ class BatchProcessor:
                     logger.warning(
                         "DeepSeek OCR batch processing failed: %s", exc, exc_info=True
                     )
-                else:
+                    ocr_results = None
+
+                # Merge OCR results into metadata
+                if ocr_results:
                     for meta, summary in zip(meta_batch, ocr_results):
                         if summary:
                             meta.setdefault("ocr", {}).update(summary)
 
+            # Step 3: Build points with all metadata (embedding + OCR + storage)
             points = self.point_factory.build(
                 batch_start=batch_start,
                 original_batch=original_batch,

@@ -1,9 +1,14 @@
+import io
 import logging
+import tempfile
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+# Import config dynamically to support runtime updates
+import config
 import requests
 from config import DEEPSEEK_OCR_API_TIMEOUT, DEEPSEEK_OCR_ENABLED, DEEPSEEK_OCR_URL
+from PIL import Image
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
@@ -16,6 +21,7 @@ class DeepSeekOCRService:
         base_url: Optional[str] = None,
         timeout: Optional[int] = None,
         enabled: Optional[bool] = None,
+        pool_size: Optional[int] = None,
     ):
         self.enabled = enabled if enabled is not None else bool(DEEPSEEK_OCR_ENABLED)
         default_base = DEEPSEEK_OCR_URL or "http://localhost:8200"
@@ -23,6 +29,11 @@ class DeepSeekOCRService:
         self.timeout = timeout or int(DEEPSEEK_OCR_API_TIMEOUT)
 
         self._logger = logging.getLogger(__name__)
+
+        # Get pool size from config or parameter
+        if pool_size is None:
+            pool_size = getattr(config, "DEEPSEEK_OCR_POOL_SIZE", 20)
+        pool_size = max(5, min(100, int(pool_size or 20)))  # Clamp to valid range
 
         retry = Retry(
             total=3,
@@ -34,7 +45,12 @@ class DeepSeekOCRService:
             allowed_methods={"GET", "POST"},
             raise_on_status=False,
         )
-        adapter = HTTPAdapter(max_retries=retry)
+        # Increase pool size to handle concurrent OCR requests (workers × retries)
+        adapter = HTTPAdapter(
+            max_retries=retry,
+            pool_connections=pool_size,  # Number of connection pools to cache
+            pool_maxsize=pool_size,  # Max connections per pool
+        )
         self.session = requests.Session()
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
@@ -143,3 +159,58 @@ class DeepSeekOCRService:
         )
         response.raise_for_status()
         return response.json()
+
+    # ------------------------------------------------------------------
+    # Convenience helpers
+    # ------------------------------------------------------------------
+    def run_ocr_bytes(
+        self,
+        image_bytes: bytes,
+        *,
+        filename: str = "page.png",
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        """Execute OCR given raw image bytes by spilling to a temporary file."""
+        if not self.enabled:
+            raise RuntimeError("DeepSeek OCR service is disabled by configuration.")
+
+        suffix = Path(filename).suffix or ".png"
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(image_bytes)
+            tmp_path = Path(tmp.name)
+        try:
+            return self.run_ocr(tmp_path, **kwargs)
+        finally:
+            try:
+                tmp_path.unlink()
+            except OSError:
+                pass
+
+    def run_ocr_image(
+        self,
+        image: Image.Image,
+        *,
+        filename: Optional[str] = None,
+        format: str = "PNG",
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        """Execute OCR directly from a PIL image instance."""
+        if not self.enabled:
+            raise RuntimeError("DeepSeek OCR service is disabled by configuration.")
+
+        buffer = io.BytesIO()
+        image.save(buffer, format=format)
+        return self.run_ocr_bytes(
+            buffer.getvalue(),
+            filename=filename or f"page.{format.lower()}",
+            **kwargs,
+        )
+
+    def close(self):
+        """Close the HTTP session and release connections."""
+        if hasattr(self, "session"):
+            self.session.close()
+
+    def __del__(self):
+        """Ensure session is closed on garbage collection."""
+        self.close()

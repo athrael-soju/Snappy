@@ -39,9 +39,14 @@ class OcrResultHandler:
         self._minio = minio_service
         self._prefix = (object_prefix or self.DEFAULT_OBJECT_PREFIX).rstrip("/")
 
-        max_workers = config.get_pipeline_max_concurrency()
-        # Avoid spawning more OCR workers than makes sense for typical deployments.
-        self._max_workers = max(1, min(int(max_workers) or 1, 4))
+        # Get max workers from config
+        max_workers_config = getattr(config, "DEEPSEEK_OCR_MAX_WORKERS", None)
+        if max_workers_config:
+            self._max_workers = max(1, min(16, int(max_workers_config)))
+        else:
+            # Fallback: use pipeline concurrency setting
+            max_workers = config.get_pipeline_max_concurrency()
+            self._max_workers = max(1, min(int(max_workers) or 1, 4))
 
     # ------------------------------------------------------------------
     # Public API
@@ -56,7 +61,7 @@ class OcrResultHandler:
         meta_batch: List[dict],
         image_records: List[Dict[str, object]],
         progress: ProgressNotifier,
-        _skip_progress: bool = False,
+        skip_progress: bool = False,
     ) -> List[Optional[Dict[str, Any]]]:
         """Run OCR over a batch of images and return per-page summaries."""
         if not image_ids:
@@ -98,13 +103,15 @@ class OcrResultHandler:
 
                 results[offset] = result
 
-                progress.stage(
-                    current=min(current_index, total_images),
-                    stage="ocr",
-                    batch_start=current_index - 1,
-                    batch_size=1,
-                    total=total_images,
-                )
+                # Unified progress: "Processing page X/Y" (includes OCR)
+                if not skip_progress:
+                    progress.stage(
+                        current=min(current_index, total_images),
+                        stage="processing",
+                        batch_start=current_index - 1,
+                        batch_size=1,
+                        total=total_images,
+                    )
 
         return results
 
@@ -131,10 +138,28 @@ class OcrResultHandler:
             filename=filename,
         )
 
+        # Validate response format
+        if not isinstance(response, dict):
+            raise ValueError(f"Invalid OCR response type: {type(response)}")
+
+        # Check for error status
+        if not response.get("success"):
+            error = response.get("error", "Unknown error")
+            return {
+                "status": "error",
+                "error": f"OCR processing failed: {error}",
+            }
+
+        # Extract text fields
         text = (response.get("text") or "").strip()
         raw_text = (response.get("raw_text") or text).strip()
         text_segments = self._split_segments(text)
         regions = self._build_regions(doc_id, response.get("boxes") or [])
+
+        # Extract image dimensions from response
+        image_dims = response.get("image_dims") or {}
+        original_width = image_dims.get("w")
+        original_height = image_dims.get("h")
 
         payload = {
             "provider": "deepseek-ocr",
@@ -156,8 +181,8 @@ class OcrResultHandler:
             "text_segments": text_segments,
             "regions": regions,
             "metadata": {
-                "original_width": response.get("original_width"),
-                "original_height": response.get("original_height"),
+                "original_width": original_width,
+                "original_height": original_height,
             },
             "extracted_at": datetime.now(timezone.utc).isoformat(),
         }

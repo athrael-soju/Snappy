@@ -12,6 +12,7 @@ from .search import SearchManager
 
 if TYPE_CHECKING:
     from services.colpali import ColPaliService
+    from services.deepseek import DeepSeekOCRService
     from services.minio import MinioService
 
 logger = logging.getLogger(__name__)
@@ -25,6 +26,7 @@ class QdrantService:
         api_client: Optional["ColPaliService"] = None,
         minio_service: Optional["MinioService"] = None,
         muvera_post: Optional[MuveraPostprocessor] = None,
+        deepseek_service: Optional["DeepSeekOCRService"] = None,
     ):
         """Initialize Qdrant service with all subcomponents.
 
@@ -41,6 +43,7 @@ class QdrantService:
             self.api_client = api_client
             self.minio_service = minio_service
             self.muvera_post = muvera_post
+            self.deepseek_service = deepseek_service
 
             # Initialize subcomponents
             self.collection_manager = CollectionManager(
@@ -58,6 +61,7 @@ class QdrantService:
                 embedding_processor=self.embedding_processor,
                 minio_service=minio_service,
                 muvera_post=muvera_post,
+                deepseek_service=deepseek_service,
             )
 
             self.search_manager = SearchManager(

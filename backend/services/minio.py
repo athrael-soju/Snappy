@@ -260,6 +260,46 @@ class MinioService:
             logger.warning(f"{len(errors)} images failed to upload")
         return successes
 
+    def store_json(
+        self,
+        object_name: str,
+        payload: Dict[str, Any],
+        *,
+        content_type: str = "application/json",
+    ) -> str:
+        """
+        Persist a JSON payload to MinIO and return its public URL.
+
+        Parameters
+        ----------
+        object_name : str
+            Object key within the bucket (for example ``ocr/<doc_id>.json``).
+        payload : Dict[str, Any]
+            JSON-serialisable dictionary to store.
+        content_type : str
+            MIME type for the stored object. Defaults to ``application/json``.
+        """
+        if not object_name or object_name.endswith("/"):
+            raise ValueError("object_name must reference a file, not a prefix.")
+
+        data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        stream = io.BytesIO(data)
+        length = len(data)
+        try:
+            self.service.put_object(
+                bucket_name=self.bucket_name,
+                object_name=object_name,
+                data=stream,
+                length=length,
+                content_type=content_type,
+            )
+        except Exception as exc:  # pragma: no cover - defensive guard
+            raise Exception(
+                f"Failed to store JSON payload at {object_name}: {exc}"
+            ) from exc
+
+        return self._get_image_url(object_name)
+
     def delete_images_batch(self, image_urls: List[str]) -> Dict[str, str]:
         """
         Delete many images using MinIO's streaming batch delete.

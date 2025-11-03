@@ -9,6 +9,50 @@ interface UseUploadSSEOptions {
 
 const PROGRESS_RESET_DELAY_MS = 4000;
 
+function formatProgressDetails(details?: Record<string, unknown>): string | null {
+  if (!details) {
+    return null;
+  }
+
+  const formatEntry = (entry: any, fallbackLabel: string) => {
+    if (!entry || typeof entry !== 'object') {
+      return null;
+    }
+    const label =
+      typeof entry.label === 'string' && entry.label.trim().length > 0
+        ? entry.label
+        : fallbackLabel;
+    const current = Number((entry as any).current ?? 0);
+    const total = Number((entry as any).total ?? 0);
+    if (Number.isFinite(total) && total > 0) {
+      return `${label} ${current}/${total}`;
+    }
+    return `${label} ${current}`;
+  };
+
+  const segments: string[] = [];
+  const indexing = formatEntry(details.indexing, 'Indexing');
+  if (indexing) {
+    segments.push(indexing);
+  }
+  const ocr = formatEntry(details.ocr, 'DeepSeek OCR');
+  if (ocr) {
+    segments.push(ocr);
+  }
+
+  if (segments.length === 0) {
+    for (const [key, value] of Object.entries(details)) {
+      const fallback = key[0].toUpperCase() + key.slice(1);
+      const segment = formatEntry(value as any, fallback);
+      if (segment) {
+        segments.push(segment);
+      }
+    }
+  }
+
+  return segments.length > 0 ? segments.join(' • ') : null;
+}
+
 /**
  * Hook to manage SSE connection for upload progress tracking
  */
@@ -72,9 +116,12 @@ export function useUploadSSE({ uploadState, dispatch }: UseUploadSSEOptions) {
         const pct = Number(data.percent ?? 0);
         lastProgressTimeRef.current = Date.now(); // Update last progress time
         dispatch({ type: 'UPLOAD_SET_PROGRESS', payload: pct });
-        if (data.message) {
-          dispatch({ type: 'UPLOAD_SET_STATUS_TEXT', payload: data.message });
-        }
+        const detailMessage = formatProgressDetails(data.details as Record<string, unknown> | undefined);
+        const statusMessage =
+          typeof data.message === 'string' && data.message.trim().length > 0
+            ? data.message
+            : detailMessage;
+        dispatch({ type: 'UPLOAD_SET_STATUS_TEXT', payload: statusMessage ?? null });
 
         if (data.status === 'completed') {
           closeSSEConnection();
@@ -126,6 +173,11 @@ export function useUploadSSE({ uploadState, dispatch }: UseUploadSSEOptions) {
       } catch (e) {
         console.warn('Failed to parse SSE data:', e);
       }
+    });
+
+    // Handle heartbeat events to prevent stall detection
+    es.addEventListener('heartbeat', () => {
+      lastProgressTimeRef.current = Date.now(); // Update last activity time
     });
 
     es.addEventListener('not_found', () => {
