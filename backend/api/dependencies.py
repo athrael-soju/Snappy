@@ -6,6 +6,7 @@ from typing import Optional
 
 import config
 from services.colpali import ColPaliService
+from services.deepseek import DeepSeekOCRService
 from services.minio import MinioService
 from services.qdrant import MuveraPostprocessor, QdrantService
 
@@ -13,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 qdrant_init_error: Optional[str] = None
 minio_init_error: Optional[str] = None
+deepseek_init_error: Optional[str] = None
 
 
 @lru_cache(maxsize=1)
@@ -33,6 +35,29 @@ class _ColPaliClientProxy:
 
 
 api_client = _ColPaliClientProxy()
+
+
+@lru_cache(maxsize=1)
+def _get_deepseek_client_cached() -> DeepSeekOCRService:
+    return DeepSeekOCRService()
+
+
+def get_deepseek_client() -> Optional[DeepSeekOCRService]:
+    """Return the cached DeepSeek OCR service if enabled."""
+    global deepseek_init_error
+    if not config.DEEPSEEK_OCR_ENABLED:
+        deepseek_init_error = None
+        return None
+
+    try:
+        client = _get_deepseek_client_cached()
+        deepseek_init_error = None
+        return client
+    except Exception as exc:  # pragma: no cover - defensive guard
+        logger.error("Failed to initialize DeepSeek OCR service: %s", exc)
+        deepseek_init_error = str(exc)
+        _get_deepseek_client_cached.cache_clear()
+        return None
 
 
 @lru_cache(maxsize=1)
@@ -106,11 +131,13 @@ def get_qdrant_service() -> Optional[QdrantService]:
 
 def invalidate_services():
     """Invalidate cached services so they are recreated on next access."""
-    global qdrant_init_error, minio_init_error
+    global qdrant_init_error, minio_init_error, deepseek_init_error
     logger.info("Invalidating cached services to apply new configuration")
     qdrant_init_error = None
     minio_init_error = None
+    deepseek_init_error = None
     _get_qdrant_service_cached.cache_clear()
     _get_muvera_postprocessor_cached.cache_clear()
     _get_minio_service_cached.cache_clear()
     _get_colpali_client_cached.cache_clear()
+    _get_deepseek_client_cached.cache_clear()
