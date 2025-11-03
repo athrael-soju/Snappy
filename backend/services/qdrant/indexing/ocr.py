@@ -23,21 +23,16 @@ logger = logging.getLogger(__name__)
 class OcrResultHandler:
     """Runs DeepSeek OCR on indexed pages and persists structured results."""
 
-    DEFAULT_OBJECT_PREFIX = "ocr"
-
     def __init__(
         self,
         ocr_service: "DeepSeekOCRService",
         minio_service: "MinioService",
-        *,
-        object_prefix: str | None = None,
     ):
         if not ocr_service or not ocr_service.is_enabled():
             raise ValueError("DeepSeek OCR service must be enabled to instantiate.")
 
         self._ocr_service = ocr_service
         self._minio = minio_service
-        self._prefix = (object_prefix or self.DEFAULT_OBJECT_PREFIX).rstrip("/")
 
         # Get max workers from config
         max_workers_config = getattr(config, "DEEPSEEK_OCR_MAX_WORKERS", None)
@@ -187,8 +182,22 @@ class OcrResultHandler:
             "extracted_at": datetime.now(timezone.utc).isoformat(),
         }
 
-        object_name = f"{self._prefix}/{doc_id}.json"
-        url = self._minio.store_json(object_name=object_name, payload=payload)
+        # Require hierarchical structure metadata
+        document_id = meta.get("document_id")
+        page_number = meta.get("page_number")
+
+        if document_id is None or page_number is None:
+            raise ValueError(
+                f"Metadata must contain 'document_id' and 'page_number' for OCR storage. Got: {meta}"
+            )
+
+        # Storage structure: {document_id}/{page_number}/ocr/elements.json
+        url = self._minio.store_json(
+            payload=payload,
+            document_id=document_id,
+            page_number=page_number,
+            filename="elements.json",
+        )
 
         preview = self._build_preview(text_segments, text)
         result = {

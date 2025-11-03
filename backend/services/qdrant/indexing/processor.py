@@ -94,7 +94,9 @@ class BatchProcessor:
         # Step 2: Per-page OCR + storage (parallel when possible)
         try:
             # Storage first (needed for OCR metadata)
-            image_ids, image_records = self.image_store.store(batch_start, image_batch)
+            image_ids, image_records = self.image_store.store(
+                batch_start, image_batch, meta_batch
+            )
 
             # OCR processing with per-page progress updates
             if self.ocr_handler:

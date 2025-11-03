@@ -173,6 +173,8 @@ class MinioService:
         self,
         images: Iterable[Image.Image],
         image_ids: Optional[List[str]] = None,
+        document_ids: Optional[List[str]] = None,
+        page_numbers: Optional[List[int]] = None,
         fmt: str = IMAGE_FORMAT,
         max_workers: int = MINIO_WORKERS,
         retries: int = MINIO_RETRIES,
@@ -187,6 +189,10 @@ class MinioService:
         images : Iterable[PIL.Image.Image]
         image_ids : Optional[List[str]]
             Provide IDs to align with images; UUIDs will be created if omitted.
+        document_ids : Optional[List[str]]
+            Document IDs for organizing storage (required for new structure).
+        page_numbers : Optional[List[int]]
+            Page numbers within each document (required for new structure).
         fmt : str
             Output format (PNG/JPEG/WEBP) applied to all images.
         max_workers : int
@@ -210,12 +216,21 @@ class MinioService:
         if len(image_ids) != n:
             raise ValueError("Number of images must match number of image IDs")
 
+        # Require document_ids and page_numbers (no fallback)
+        if document_ids is None or len(document_ids) != n:
+            raise ValueError("document_ids is required and must match number of images")
+        if page_numbers is None or len(page_numbers) != n:
+            raise ValueError("page_numbers is required and must match number of images")
+
         successes: Dict[str, str] = {}
         errors: Dict[str, Exception] = {}
 
         def upload_one(idx: int):
             img = images[idx]
             img_id = image_ids[idx]
+            doc_id = document_ids[idx]
+            page_num = page_numbers[idx]
+
             attempt = 0
             while True:
                 attempt += 1
@@ -223,7 +238,9 @@ class MinioService:
                     buf, size, used_fmt, content_type = self._encode_image_to_bytes(
                         img, fmt=fmt, **save_kwargs
                     )
-                    object_name = f"images/{img_id}.{used_fmt.lower()}"
+                    # Storage structure: {document_id}/{page_num}/page.{ext}
+                    object_name = f"{doc_id}/{page_num}/page.{used_fmt.lower()}"
+
                     self.service.put_object(
                         bucket_name=self.bucket_name,
                         object_name=object_name,
@@ -262,9 +279,11 @@ class MinioService:
 
     def store_json(
         self,
-        object_name: str,
         payload: Dict[str, Any],
         *,
+        document_id: str,
+        page_number: int,
+        filename: str = "data.json",
         content_type: str = "application/json",
     ) -> str:
         """
@@ -272,15 +291,19 @@ class MinioService:
 
         Parameters
         ----------
-        object_name : str
-            Object key within the bucket (for example ``ocr/<doc_id>.json``).
         payload : Dict[str, Any]
             JSON-serialisable dictionary to store.
+        document_id : str
+            Document ID for hierarchical structure (required).
+        page_number : int
+            Page number for hierarchical structure (required).
+        filename : str
+            Filename for the JSON file (default: "data.json").
         content_type : str
             MIME type for the stored object. Defaults to ``application/json``.
         """
-        if not object_name or object_name.endswith("/"):
-            raise ValueError("object_name must reference a file, not a prefix.")
+        # Storage structure: {document_id}/{page_num}/ocr/{filename}
+        final_object_name = f"{document_id}/{page_number}/ocr/{filename}"
 
         data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         stream = io.BytesIO(data)
@@ -288,17 +311,17 @@ class MinioService:
         try:
             self.service.put_object(
                 bucket_name=self.bucket_name,
-                object_name=object_name,
+                object_name=final_object_name,
                 data=stream,
                 length=length,
                 content_type=content_type,
             )
         except Exception as exc:  # pragma: no cover - defensive guard
             raise Exception(
-                f"Failed to store JSON payload at {object_name}: {exc}"
+                f"Failed to store JSON payload at {final_object_name}: {exc}"
             ) from exc
 
-        return self._get_image_url(object_name)
+        return self._get_image_url(final_object_name)
 
     def delete_images_batch(self, image_urls: List[str]) -> Dict[str, str]:
         """
@@ -472,5 +495,10 @@ class MinioService:
         return {"deleted": deleted, "failed": failed}
 
     def clear_images(self) -> dict:
-        """Convenience helper: delete all stored images under 'images/'."""
-        return self.clear_prefix("images/")
+        """Convenience helper: delete all stored content in the bucket.
+
+        Clears the entire bucket (hierarchical document/page structure).
+        """
+        # Clear all content in bucket
+        result = self.clear_prefix("")
+        return result
