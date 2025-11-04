@@ -180,6 +180,7 @@ async function streamModel(params: { input: any[]; instructions: string; withToo
     temperature: TEMPERATURE,
     parallel_tool_calls: false,
     stream: true,
+    reasoning: { effort: "minimal" },
   });
   return stream;
 }
