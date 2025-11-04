@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { documentSearchTool, executeDocumentSearch } from '../functions/document_search';
+import type { SearchItem } from '@/lib/api/generated/models/SearchItem';
 
 // Lazy initialization - only create OpenAI client when needed (at runtime)
 let openaiClient: OpenAI | null = null;
@@ -16,12 +17,6 @@ function getOpenAIClient(): OpenAI {
 // Shared constants
 const MODEL = process.env.OPENAI_MODEL || 'gpt-5-nano';
 const TEMPERATURE = parseFloat(process.env.OPENAI_TEMPERATURE || '1');
-
-type KnowledgeBaseItem = {
-  image_url?: string | null;
-  label?: string | null;
-  score?: number | null;
-};
 
 const systemPrompt = `
 You are a helpful PDF assistant. Use only the provided page images to answer the user's question.
@@ -49,7 +44,7 @@ When the user asks for information from the documents, call the document_search 
 `.trim();
 
 // Helper: build image content array (header + images), converting localhost URLs to data URLs in parallel
-async function buildImageContent(results: KnowledgeBaseItem[], query: string): Promise<any[]> {
+async function buildImageContent(results: SearchItem[], query: string): Promise<any[]> {
   // Build header with labels so model knows what to cite
   const labelsText = (results || [])
     .map((r, i) => `Image ${i + 1}: ${r.label || 'Unknown'}`)
@@ -71,12 +66,7 @@ async function buildImageContent(results: KnowledgeBaseItem[], query: string): P
         imageUrl = imageUrl.replace('localhost', 'minio') || imageUrl.replace('127.0.0.1', 'minio');
       }
       if (isLocal) {
-        // Add timeout to prevent hanging
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout per image
-
-        const imageResponse = await fetch(imageUrl, { signal: controller.signal });
-        clearTimeout(timeoutId);
+        const imageResponse = await fetch(imageUrl);
 
         if (!imageResponse.ok) {
           return null;
@@ -98,6 +88,52 @@ async function buildImageContent(results: KnowledgeBaseItem[], query: string): P
   return [header, ...items.filter(Boolean)];
 }
 
+// Helper: build text content from markdown (when OCR is available)
+async function buildMarkdownContent(results: SearchItem[], query: string): Promise<any[]> {
+  // Build header with labels so model knows what to cite
+  const labelsText = (results || [])
+    .map((r, i) => `Document ${i + 1}: ${r.label || 'Unknown'}`)
+    .join('\n');
+
+  const header = {
+    type: 'input_text',
+    text: `Based on the search results for "${query}", here are the relevant document contents:\n\n${labelsText}\n\nWhen citing these documents, use the EXACT labels provided above.`,
+  } as const;
+
+  const items = await Promise.all((results || []).map(async (result) => {
+    try {
+      const jsonUrl = result.json_url;
+      if (!jsonUrl) {
+        return null;
+      }
+
+      // Fetch the JSON file
+      const jsonResponse = await fetch(jsonUrl);
+
+      if (!jsonResponse.ok) {
+        return null;
+      }
+
+      const jsonData = await jsonResponse.json();
+      const markdown = jsonData.markdown;
+
+      if (!markdown) {
+        return null;
+      }
+
+      return {
+        type: 'input_text',
+        text: `[${result.label || 'Unknown'}]\n${markdown}`,
+      } as const;
+    } catch (error) {
+      console.error('Failed to fetch markdown:', error);
+      return null;
+    }
+  }));
+
+  return [header, ...items.filter(Boolean)];
+}
+
 // Helper: append a user message containing image content
 function appendUserImages(input: any[], imageContent: any[]) {
   input.push({
@@ -106,7 +142,7 @@ function appendUserImages(input: any[], imageContent: any[]) {
   } as any);
 }
 
-function appendCitationReminder(input: any[], results: KnowledgeBaseItem[] | null) {
+function appendCitationReminder(input: any[], results: SearchItem[] | null) {
   if (!results || results.length === 0) {
     return;
   }
@@ -199,15 +235,21 @@ export async function POST(request: NextRequest) {
 
     // 3. Execute function if called
     let streamResponse: any;
-    let kbItems: KnowledgeBaseItem[] | null = null;
+    let kbItems: SearchItem[] | null = null;
     // When tool calling is disabled, always run knowledgebase search
     if (!toolEnabled) {
       const searchResult = await executeDocumentSearch(userMessage, kClamped);
 
       if (searchResult.success && searchResult.results && searchResult.results.length > 0) {
-        // Build image content - this is the bottleneck!
-        const imageContent = await buildImageContent(searchResult.results, userMessage);
-        appendUserImages(input, imageContent);
+        // Check if OCR data is available (json_url exists)
+        const hasOcrData = searchResult.results.some((r: any) => r.json_url);
+
+        // Build content based on whether OCR is available
+        const content = hasOcrData
+          ? await buildMarkdownContent(searchResult.results, userMessage)
+          : await buildImageContent(searchResult.results, userMessage);
+
+        appendUserImages(input, content);
         // capture rich results to emit to client
         kbItems = Array.isArray(searchResult.results) ? searchResult.results : null;
         appendCitationReminder(input, kbItems);
@@ -229,9 +271,15 @@ export async function POST(request: NextRequest) {
 
         // 5. Add retrieved images as visual input for the model to analyze
         if (searchResult.success && searchResult.results && searchResult.results.length > 0) {
-          // Build image content - this is the bottleneck!
-          const imageContent = await buildImageContent(searchResult.results, userMessage);
-          appendUserImages(input, imageContent);
+          // Check if OCR data is available (json_url exists)
+          const hasOcrData = searchResult.results.some((r: any) => r.json_url);
+
+          // Build content based on whether OCR is available
+          const content = hasOcrData
+            ? await buildMarkdownContent(searchResult.results, userMessage)
+            : await buildImageContent(searchResult.results, userMessage);
+
+          appendUserImages(input, content);
           // capture rich results to emit to client
           kbItems = Array.isArray(searchResult.results) ? searchResult.results : null;
           appendCitationReminder(input, kbItems);

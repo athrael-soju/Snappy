@@ -8,6 +8,7 @@ const SearchItem = z
     label: z.union([z.string(), z.null()]),
     payload: z.object({}).partial().passthrough(),
     score: z.union([z.number(), z.null()]).optional(),
+    json_url: z.union([z.string(), z.null()]).optional(),
   })
   .passthrough();
 const ValidationError = z

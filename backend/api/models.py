@@ -15,3 +15,4 @@ class SearchItem(BaseModel):
     label: Optional[str]
     payload: Dict[str, Any]
     score: Optional[float] = None
+    json_url: Optional[str] = None  # OCR JSON URL when available

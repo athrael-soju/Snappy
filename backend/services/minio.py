@@ -166,6 +166,22 @@ class MinioService:
         except Exception as e:
             raise Exception(f"Error retrieving image from {image_url}: {e}") from e
 
+    def get_json(self, json_url: str) -> Dict[str, Any]:
+        """
+        Retrieve a JSON file from MinIO by its public URL and return the parsed data.
+        """
+        try:
+            object_name = self._extract_object_name_from_url(json_url)
+            response = self.service.get_object(self.bucket_name, object_name)
+            try:
+                data = response.read()
+            finally:
+                response.close()
+                response.release_conn()
+            return json.loads(data.decode("utf-8"))
+        except Exception as e:
+            raise Exception(f"Error retrieving JSON from {json_url}: {e}") from e
+
     # -------------------------------------------------------------------
     # Batch Operations
     # -------------------------------------------------------------------

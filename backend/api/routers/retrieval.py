@@ -24,16 +24,27 @@ async def search(
         )
     items = await asyncio.to_thread(svc.search_with_metadata, q, top_k)
     results: List[SearchItem] = []
+
+    # Check if OCR is enabled
+    ocr_enabled = getattr(config, "DEEPSEEK_OCR_ENABLED", False)
+
     for it in items:
         payload = it.get("payload", {})
         label = it["label"]
         image_url = payload.get("image_url")
+        json_url = None
+
+        # If OCR is enabled, include the ocr_url from payload
+        if ocr_enabled:
+            json_url = payload.get("ocr_url")
+
         results.append(
             SearchItem(
                 image_url=image_url,
                 label=label,
                 payload=payload,
                 score=it.get("score"),
+                json_url=json_url,
             )
         )
     return results
