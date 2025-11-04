@@ -207,7 +207,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "description": "Base URL for the DeepSeek OCR microservice.",
                 "help_text": "Endpoint for the OCR service. Defaults to the local Docker compose deployment. Update when the service runs on a different host or port.",
                 "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
-                "hide_in_ui": True,
+                "ui_hidden": True,
             },
             {
                 "key": "DEEPSEEK_OCR_API_TIMEOUT",
@@ -220,6 +220,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "description": "Request timeout for DeepSeek OCR API calls.",
                 "help_text": "Maximum time to wait for OCR responses. Increase for longer documents or CPU-only deployments; decrease for fast GPU hosts to catch misconfigurations quickly. Default 180s (3min) balances speed and reliability.",
                 "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
+                "ui_hidden": True,
             },
             {
                 "key": "DEEPSEEK_OCR_MAX_WORKERS",
@@ -244,6 +245,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "description": "HTTP connection pool size for OCR requests.",
                 "help_text": "Maximum number of HTTP connections to maintain. Should be >= (Max Workers × 3) to handle retries. Increase if you see connection pool warnings in logs.",
                 "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
+                "ui_hidden": True,
             },
         ],
     },

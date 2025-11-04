@@ -30,6 +30,7 @@ cp .env.example .env
 
 Key settings:
 - **ColPali**: `COLPALI_URL`, `COLPALI_API_TIMEOUT`
+- **DeepSeek OCR**: `DEEPSEEK_OCR_ENABLED`, `DEEPSEEK_OCR_URL`, `DEEPSEEK_OCR_MODEL_SIZE`, `DEEPSEEK_OCR_EMBED_IMAGES`
 - **Qdrant**: `QDRANT_EMBEDDED`, `QDRANT_URL`, `QDRANT_COLLECTION_NAME`, quantisation toggles
 - **MinIO**: `MINIO_URL`, `MINIO_PUBLIC_URL`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`
 - **Uploads**: `UPLOAD_ALLOWED_FILE_TYPES` (PDF-only by default), `UPLOAD_MAX_FILE_SIZE_MB`, `UPLOAD_MAX_FILES`, `UPLOAD_CHUNK_SIZE_BYTES`
@@ -38,6 +39,7 @@ Defaults assume local services at:
 - Qdrant → `http://localhost:6333`
 - MinIO → `http://localhost:9000`
 - ColPali → `http://localhost:7000`
+- DeepSeek OCR → `http://localhost:8200` (optional)
 
 Check `backend/docs/configuration.md` for the complete reference.
 
@@ -64,6 +66,7 @@ Interactive docs live at http://localhost:8000/docs.
 The root `docker-compose.yml` coordinates `qdrant`, `minio`, `backend`, and `frontend`. Environment values are pre-wired for container-to-container networking:
 
 - `COLPALI_URL=http://host.docker.internal:7000`
+- `DEEPSEEK_OCR_URL=http://host.docker.internal:8200` (optional)
 - `QDRANT_URL=http://qdrant:6333`
 - `MINIO_URL=http://minio:9000`
 - `MINIO_PUBLIC_URL=http://localhost:9000`
@@ -75,6 +78,9 @@ docker compose up -d --build
 ```
 
 MinIO credentials must be provided; the backend stores page images in object storage and does not fall back to inline storage.
+
+**Optional Services:**
+- **DeepSeek OCR**: Enable advanced text extraction with `DEEPSEEK_OCR_ENABLED=True`. Start the service separately (see `deepseek-ocr/README.md`).
 
 ---
 

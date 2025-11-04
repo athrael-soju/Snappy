@@ -19,10 +19,9 @@ export interface ConfigSetting {
   min?: number;
   max?: number;
   step?: number;
-  depends_on?: {
-    key: string;
-    value: boolean;
-  };
+  depends_on?:
+  | { key: string; value: boolean | string }
+  | Array<{ key: string; value: boolean | string }>;
   ui_hidden?: boolean;
   ui_disabled?: boolean;
 }
@@ -189,15 +188,27 @@ export function useConfigurationPanel() {
       if (setting.ui_hidden) return false;
       if (!setting.depends_on) return true;
 
-      const parentValue = values[setting.depends_on.key] || "";
-      const parentBool = parentValue.toLowerCase() === "true";
+      // Normalize to array for consistent handling
+      const dependencies = Array.isArray(setting.depends_on)
+        ? setting.depends_on
+        : [setting.depends_on];
 
-      return parentBool === setting.depends_on.value;
+      // All dependencies must be satisfied (AND logic)
+      return dependencies.every(dep => {
+        const parentValue = values[dep.key] || "";
+
+        // Handle boolean dependencies
+        if (typeof dep.value === "boolean") {
+          const parentBool = parentValue.toLowerCase() === "true";
+          return parentBool === dep.value;
+        }
+
+        // Handle string dependencies (e.g., mode === "locate")
+        return parentValue === dep.value;
+      });
     },
     [values]
-  );
-
-  const saveChanges = useCallback(async () => {
+  ); const saveChanges = useCallback(async () => {
     setSaving(true);
     setError(null);
 

@@ -84,6 +84,7 @@ flowchart TB
     QDRANT["Qdrant"]
     MINIO["MinIO"]
     COLPALI["ColPali Embedding API"]
+    DEEPSEEK["DeepSeek OCR (Optional)"]
     OPENAI["OpenAI Responses API"]
   end
 
@@ -92,6 +93,7 @@ flowchart TB
   API --> QDRANT
   API --> MINIO
   API --> COLPALI
+  API -.-> DEEPSEEK
   CHAT --> API
   CHAT --> OPENAI
   CHAT -- SSE --> USER
@@ -127,6 +129,17 @@ docker compose --profile cpu up -d --build
 ```
 
 Only start one profile at a time to avoid port clashes. The first GPU build compiles `flash-attn`; subsequent builds reuse the cached wheel.
+
+### 3. (Optional) Start the DeepSeek OCR service
+
+For advanced text extraction with configurable model sizes and modes:
+
+```bash
+cd deepseek-ocr
+docker compose up -d --build
+```
+
+The service runs at http://localhost:8200. Enable it via `DEEPSEEK_OCR_ENABLED=True` in `.env`. See `deepseek-ocr/README.md` for configuration details.
 
 ---
 
@@ -201,6 +214,7 @@ Update `.env` and `frontend/.env.local` if you need to expose different hostname
 ## Highlights
 
 - Page-level vision retrieval powered by ColPali multivector embeddings; no OCR pipeline to maintain.
+- Optional DeepSeek OCR integration for advanced text extraction with configurable model sizes, modes (plain/markdown/grounding/locate), and image embedding.
 - Streaming chat responses from the OpenAI Responses API with inline visual citations so you can see each supporting page.
 - Pipelined indexing with live Server-Sent Events progress updates and optional MUVERA-assisted first-stage search.
 - Runtime configuration UI backed by a typed schema, with reset and draft flows that make experimentation safe.
