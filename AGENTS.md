@@ -225,6 +225,22 @@ External APIs/DBs (Qdrant, MinIO, ColPali)
 - Retry logic with exponential backoff
 - Public URL generation (handles `MINIO_PUBLIC_URL`)
 - Auto-sizing worker pool based on CPU count
+- Filename-based hierarchical storage structure
+
+**Storage Structure:**
+```
+{bucket}/
+└── {filename}/
+    └── {page_number}/
+        ├── page.{ext}      # Page image
+        └── elements.json   # OCR data (if enabled)
+```
+
+**Key Changes (v1.0.0+):**
+- Root folders now use document filenames instead of UUIDs
+- OCR JSON files stored alongside page images (no `ocr/` subfolder)
+- JSON content type includes `charset=utf-8` for browser preview support
+- See `docs/MINIO_FOLDER_STRUCTURE.md` for details
 
 #### ColPali Service (`backend/services/colpali.py`)
 
@@ -236,6 +252,41 @@ External APIs/DBs (Qdrant, MinIO, ColPali)
 **Configuration:**
 - `COLPALI_URL` - Service endpoint
 - `COLPALI_API_TIMEOUT` - Request timeout (default 300s)
+
+#### DeepSeek OCR Service (`backend/services/deepseek.py`)
+
+**Features:**
+- Optional OCR integration for advanced text extraction
+- Multiple processing modes (Gundam, Tiny, Small, Base, Large)
+- Task types: markdown conversion, plain OCR, text location, image description, custom prompts
+- Visual grounding with bounding boxes
+- HTTP connection pooling with retry logic
+
+**Endpoints Used:**
+- `GET /health` - Service health check
+- `POST /api/ocr` - OCR processing with configurable modes and tasks
+- `GET /info` - Model information and available options
+
+**Configuration:**
+- `DEEPSEEK_OCR_ENABLED` - Toggle DeepSeek OCR integration (default: False)
+- `DEEPSEEK_OCR_URL` - Service endpoint (default: http://localhost:8200)
+- `DEEPSEEK_OCR_API_TIMEOUT` - Request timeout in seconds (default: 180)
+- `DEEPSEEK_OCR_MAX_WORKERS` - Concurrent OCR requests per batch (default: 4)
+- `DEEPSEEK_OCR_POOL_SIZE` - HTTP connection pool size (default: 20)
+
+**Processing Modes:**
+- `Gundam`: 1024 base + 640 tiles with cropping (best balance)
+- `Tiny`: 512×512 (fastest)
+- `Small`: 640×640 (quick)
+- `Base`: 1024×1024 (standard)
+- `Large`: 1280×1280 (highest quality)
+
+**Task Types:**
+- `markdown`: Convert documents to structured markdown
+- `plain_ocr`: Simple text extraction
+- `locate`: Find specific text with bounding boxes
+- `describe`: Generate image descriptions
+- `custom`: Use custom prompts for specialized tasks
 
 ---
 
@@ -249,6 +300,7 @@ External APIs/DBs (Qdrant, MinIO, ColPali)
 |-----------|----------|-----------------|-------------|------------------|
 | **Backend** | WSL | `uv` + `venv` | 1. Open WSL terminal<br>2. Navigate to project root<br>3. `cd backend`<br>4. `source .venv/bin/activate` | `uv run uvicorn backend.main:app --reload`<br>`uv pip install -r requirements.txt` |
 | **ColPali Service** | WSL | `uv` + `venv` | 1. Open WSL terminal<br>2. Navigate to project root<br>3. `cd colpali`<br>4. `source .venv/bin/activate` | `uv run uvicorn colpali.app:app --port 8080`<br>`uv pip install -r requirements.txt` |
+| **DeepSeek OCR** | WSL | `pip` | 1. Open WSL terminal<br>2. Navigate to project root<br>3. `cd deepseek-ocr`<br>4. Create/activate venv | `python main.py`<br>`pip install -r requirements.txt` |
 | **Frontend** | bash/PowerShell | `yarn` | 1. Open bash or PowerShell terminal<br>2. Navigate to project root<br>3. `cd frontend` | `yarn install --frozen-lockfile`<br>`yarn dev`<br>`yarn gen:sdk` |
 
 ### Environment Setup
@@ -274,6 +326,23 @@ uv venv
 source .venv/bin/activate
 uv pip install -r requirements.txt
 uv run uvicorn colpali.app:app --host 0.0.0.0 --port 8080
+```
+
+#### DeepSeek OCR (WSL + pip)
+
+```bash
+# In WSL terminal
+cd Snappy/deepseek-ocr
+
+# Create and activate virtual environment
+python -m venv .venv
+source .venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run
+python main.py
 ```
 
 #### Frontend (bash + yarn)
@@ -966,6 +1035,7 @@ git commit -m "feat!: breaking change" # Major bump
 - `backend/README.md` - Backend-specific guide
 - `frontend/README.md` - Frontend-specific guide
 - `colpali/README.md` - ColPali service guide
+- `deepseek-ocr/README.md` - DeepSeek OCR service guide
 - `backend/docs/architecture.md` - System architecture deep dive
 - `backend/docs/configuration.md` - Configuration reference
 - `backend/docs/analysis.md` - Vision vs. text RAG comparison
@@ -1039,5 +1109,5 @@ When in doubt:
 
 ---
 
-**Last Updated:** October 23, 2025  
+**Last Updated:** November 11, 2025  
 **For Questions:** Review documentation, examine existing code patterns, or consult project maintainers

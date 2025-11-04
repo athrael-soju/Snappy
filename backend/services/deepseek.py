@@ -22,6 +22,10 @@ class DeepSeekOCRService:
         timeout: Optional[int] = None,
         enabled: Optional[bool] = None,
         pool_size: Optional[int] = None,
+        default_mode: Optional[str] = None,
+        default_task: Optional[str] = None,
+        include_grounding: Optional[bool] = None,
+        include_images: Optional[bool] = None,
     ):
         self.enabled = enabled if enabled is not None else bool(DEEPSEEK_OCR_ENABLED)
         default_base = DEEPSEEK_OCR_URL or "http://localhost:8200"
@@ -30,10 +34,30 @@ class DeepSeekOCRService:
 
         self._logger = logging.getLogger(__name__)
 
-        # Get pool size from config or parameter
+        # Get configuration values with fallbacks
         if pool_size is None:
             pool_size = getattr(config, "DEEPSEEK_OCR_POOL_SIZE", 20)
         pool_size = max(5, min(100, int(pool_size or 20)))  # Clamp to valid range
+
+        # Default processing options
+        self.default_mode = default_mode or getattr(
+            config, "DEEPSEEK_OCR_MODE", "Gundam"
+        )
+        self.default_task = default_task or getattr(
+            config, "DEEPSEEK_OCR_TASK", "markdown"
+        )
+        self.default_locate_text = getattr(config, "DEEPSEEK_OCR_LOCATE_TEXT", "")
+        self.default_custom_prompt = getattr(config, "DEEPSEEK_OCR_CUSTOM_PROMPT", "")
+        self.default_include_grounding = (
+            include_grounding
+            if include_grounding is not None
+            else getattr(config, "DEEPSEEK_OCR_INCLUDE_GROUNDING", True)
+        )
+        self.default_include_images = (
+            include_images
+            if include_images is not None
+            else getattr(config, "DEEPSEEK_OCR_INCLUDE_IMAGES", True)
+        )
 
         retry = Retry(
             total=3,
@@ -77,18 +101,34 @@ class DeepSeekOCRService:
         self,
         image_path: Path,
         *,
-        mode: str = "plain_ocr",
-        prompt: str = "",
-        grounding: bool = False,
-        include_caption: bool = False,
-        find_term: Optional[str] = None,
-        json_schema: Optional[str] = None,
-        base_size: int = 1024,
-        image_size: int = 640,
-        crop_mode: bool = True,
-        test_compress: bool = False,
+        mode: Optional[str] = None,
+        task: Optional[str] = None,
+        custom_prompt: Optional[str] = None,
+        include_grounding: Optional[bool] = None,
+        include_images: Optional[bool] = None,
     ) -> Dict[str, Any]:
         """Build multipart payload for the /api/ocr endpoint."""
+        # Use instance defaults if not provided
+        mode = mode or self.default_mode
+        task = task or self.default_task
+        include_grounding = (
+            include_grounding
+            if include_grounding is not None
+            else self.default_include_grounding
+        )
+        include_images = (
+            include_images
+            if include_images is not None
+            else self.default_include_images
+        )
+
+        # Auto-populate custom_prompt based on task type if not explicitly provided
+        if custom_prompt is None:
+            if task == "locate" and self.default_locate_text:
+                custom_prompt = self.default_locate_text
+            elif task == "custom" and self.default_custom_prompt:
+                custom_prompt = self.default_custom_prompt
+
         files = {
             "image": (
                 image_path.name,
@@ -98,19 +138,13 @@ class DeepSeekOCRService:
         }
         data = {
             "mode": mode,
-            "prompt": prompt,
-            "grounding": str(grounding).lower(),
-            "include_caption": str(include_caption).lower(),
-            "base_size": str(base_size),
-            "image_size": str(image_size),
-            "crop_mode": str(crop_mode).lower(),
-            "test_compress": str(test_compress).lower(),
+            "task": task,
+            "include_grounding": str(include_grounding).lower(),
+            "include_images": str(include_images).lower(),
         }
 
-        if find_term is not None:
-            data["find_term"] = find_term
-        if json_schema is not None:
-            data["json_schema"] = json_schema
+        if custom_prompt is not None:
+            data["custom_prompt"] = custom_prompt
 
         return {"files": files, "data": data}
 
@@ -118,19 +152,22 @@ class DeepSeekOCRService:
         self,
         image_path: Path,
         *,
-        mode: str = "plain_ocr",
-        prompt: str = "",
-        grounding: bool = False,
-        include_caption: bool = False,
-        find_term: Optional[str] = None,
-        json_schema: Optional[str] = None,
-        base_size: int = 1024,
-        image_size: int = 640,
-        crop_mode: bool = True,
-        test_compress: bool = False,
+        mode: Optional[str] = None,
+        task: Optional[str] = None,
+        custom_prompt: Optional[str] = None,
+        include_grounding: Optional[bool] = None,
+        include_images: Optional[bool] = None,
     ) -> Dict[str, Any]:
         """
         Execute OCR request against the DeepSeek OCR API.
+
+        Args:
+            image_path: Path to image file
+            mode: Processing mode (Gundam, Tiny, Small, Base, Large) - uses default if not specified
+            task: Task type (markdown, plain_ocr, locate, describe, custom) - uses default if not specified
+            custom_prompt: Custom prompt for custom/locate tasks
+            include_grounding: Include bounding box information - uses default if not specified
+            include_images: Extract and embed images - uses default if not specified
 
         Returns the JSON response payload from the OCR microservice.
         """
@@ -140,15 +177,10 @@ class DeepSeekOCRService:
         payload = self._prepare_payload(
             image_path,
             mode=mode,
-            prompt=prompt,
-            grounding=grounding,
-            include_caption=include_caption,
-            find_term=find_term,
-            json_schema=json_schema,
-            base_size=base_size,
-            image_size=image_size,
-            crop_mode=crop_mode,
-            test_compress=test_compress,
+            task=task,
+            custom_prompt=custom_prompt,
+            include_grounding=include_grounding,
+            include_images=include_images,
         )
 
         response = self.session.post(

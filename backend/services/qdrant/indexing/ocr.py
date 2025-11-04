@@ -128,34 +128,32 @@ class OcrResultHandler:
     ) -> Dict[str, Any]:
         """Process one page through DeepSeek OCR and persist the results."""
         filename = meta.get("filename") or f"{doc_id}.png"
+
+        # Call DeepSeek OCR with default settings
         response = self._ocr_service.run_ocr_bytes(
             image_bytes,
             filename=filename,
+            task="markdown",
+            mode="Gundam",
+            include_grounding=True,
+            include_images=False,
         )
 
         # Validate response format
         if not isinstance(response, dict):
             raise ValueError(f"Invalid OCR response type: {type(response)}")
 
-        # Check for error status
-        if not response.get("success"):
-            error = response.get("error", "Unknown error")
-            return {
-                "status": "error",
-                "error": f"OCR processing failed: {error}",
-            }
-
-        # Extract text fields
+        # Extract text fields from new response structure
         text = (response.get("text") or "").strip()
-        raw_text = (response.get("raw_text") or text).strip()
+        markdown = (response.get("markdown") or text).strip()
+        raw_text = (response.get("raw") or text).strip()
         text_segments = self._split_segments(text)
-        regions = self._build_regions(doc_id, response.get("boxes") or [])
 
-        # Extract image dimensions from response
-        image_dims = response.get("image_dims") or {}
-        original_width = image_dims.get("w")
-        original_height = image_dims.get("h")
+        # Convert bounding boxes to regions format
+        bounding_boxes = response.get("bounding_boxes") or []
+        regions = self._build_regions_from_bboxes(doc_id, bounding_boxes)
 
+        # Build payload for storage
         payload = {
             "provider": "deepseek-ocr",
             "version": "1.0",
@@ -172,31 +170,28 @@ class OcrResultHandler:
                 "storage": image_record.get("image_storage"),
             },
             "text": text,
+            "markdown": markdown,
             "raw_text": raw_text,
             "text_segments": text_segments,
             "regions": regions,
-            "metadata": {
-                "original_width": original_width,
-                "original_height": original_height,
-            },
             "extracted_at": datetime.now(timezone.utc).isoformat(),
         }
 
         # Require hierarchical structure metadata
-        document_id = meta.get("document_id")
+        filename = meta.get("filename")
         page_number = meta.get("page_number")
 
-        if document_id is None or page_number is None:
+        if filename is None or page_number is None:
             raise ValueError(
-                f"Metadata must contain 'document_id' and 'page_number' for OCR storage. Got: {meta}"
+                f"Metadata must contain 'filename' and 'page_number' for OCR storage. Got: {meta}"
             )
 
-        # Storage structure: {document_id}/{page_number}/ocr/elements.json
+        # Storage structure: {filename}/{page_number}/elements.json
         url = self._minio.store_json(
             payload=payload,
-            document_id=document_id,
+            filename=filename,
             page_number=page_number,
-            filename="elements.json",
+            json_filename="elements.json",
         )
 
         preview = self._build_preview(text_segments, text)
@@ -218,27 +213,29 @@ class OcrResultHandler:
                 segments.append(cleaned)
         return segments
 
-    def _build_regions(
-        self, doc_id: str, boxes: Sequence[Dict[str, Any]]
+    def _build_regions_from_bboxes(
+        self, doc_id: str, bboxes: Sequence[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
-        """Normalise detection boxes into region descriptors."""
+        """Convert bounding boxes to region descriptors."""
         regions: List[Dict[str, Any]] = []
-        for idx, box in enumerate(boxes or [], start=1):
-            coords = box.get("box") or box.get("bbox")
-            if not isinstance(coords, (list, tuple)) or len(coords) < 4:
-                continue
+        for idx, bbox in enumerate(bboxes or [], start=1):
+            # New format has x1, y1, x2, y2, label
             try:
-                normalized = [int(float(value)) for value in coords[:4]]
+                x1 = int(bbox.get("x1", 0))
+                y1 = int(bbox.get("y1", 0))
+                x2 = int(bbox.get("x2", 0))
+                y2 = int(bbox.get("y2", 0))
+                label = bbox.get("label", "unknown")
+
+                regions.append(
+                    {
+                        "id": f"{doc_id}#region-{idx}",
+                        "label": label,
+                        "bbox": [x1, y1, x2, y2],
+                    }
+                )
             except Exception:  # pragma: no cover - best effort
                 continue
-
-            regions.append(
-                {
-                    "id": f"{doc_id}#region-{idx}",
-                    "label": box.get("label"),
-                    "bbox": normalized,
-                }
-            )
         return regions
 
     def _build_preview(

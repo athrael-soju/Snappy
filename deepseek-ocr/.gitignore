@@ -81,6 +81,3 @@ Thumbs.db
 # EC2 keys
 *.pem
 *.key
-
-# Model files
-models

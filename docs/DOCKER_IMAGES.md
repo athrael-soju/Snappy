@@ -405,5 +405,5 @@ trivy image ghcr.io/athrael-soju/snappy/backend:latest
 
 ---
 
-**Last Updated:** October 23, 2025  
+**Last Updated:** November 4, 2025  
 **Registry:** GitHub Container Registry (GHCR)

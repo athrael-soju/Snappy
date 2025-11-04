@@ -1,3 +1,3 @@
 """Version information for Snappy backend."""
 
-__version__ = "0.1.2"
+__version__ = "0.1.4"

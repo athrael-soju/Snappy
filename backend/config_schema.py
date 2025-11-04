@@ -187,7 +187,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
         "order": 3,
         "icon": "scan-text",
         "name": "DeepSeek OCR",
-        "description": "Optical character recognition service toggles.",
+        "description": "Optical character recognition service for advanced text extraction.",
         "settings": [
             {
                 "key": "DEEPSEEK_OCR_ENABLED",
@@ -246,6 +246,70 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "help_text": "Maximum number of HTTP connections to maintain. Should be >= (Max Workers × 3) to handle retries. Increase if you see connection pool warnings in logs.",
                 "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
                 "ui_hidden": True,
+            },
+            {
+                "key": "DEEPSEEK_OCR_MODE",
+                "type": "str",
+                "default": "Gundam",
+                "label": "Default Processing Mode",
+                "ui_type": "select",
+                "options": ["Gundam", "Tiny", "Small", "Base", "Large"],
+                "description": "Default OCR processing mode for quality/speed tradeoff.",
+                "help_text": "Controls image resolution and processing strategy. Gundam (1024+640 tiles, cropped): best balance. Tiny (512×512): fastest. Small (640×640): quick. Base (1024×1024): standard. Large (1280×1280): highest quality. Larger modes need more GPU memory and time.",
+                "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
+            },
+            {
+                "key": "DEEPSEEK_OCR_TASK",
+                "type": "str",
+                "default": "markdown",
+                "label": "Default Task Type",
+                "ui_type": "select",
+                "options": ["markdown", "plain_ocr", "locate", "describe", "custom"],
+                "description": "Default OCR task type for document processing.",
+                "help_text": "Markdown: structured output with formatting. Plain OCR: raw text extraction. Locate: find specific text with bounding boxes. Describe: generate image descriptions. Custom: use custom prompts. Choose based on your primary use case.",
+                "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
+            },
+            {
+                "key": "DEEPSEEK_OCR_LOCATE_TEXT",
+                "type": "str",
+                "default": "",
+                "label": "Text to Locate",
+                "ui_type": "text",
+                "description": "Specific text to find when using 'locate' task.",
+                "help_text": "Enter the text you want to locate in documents. The OCR service will find and return bounding boxes for all instances of this text. Only used when task type is 'locate'.",
+                "depends_on": {"key": "DEEPSEEK_OCR_TASK", "value": "locate"},
+                "ui_indent_level": 1,
+            },
+            {
+                "key": "DEEPSEEK_OCR_CUSTOM_PROMPT",
+                "type": "str",
+                "default": "",
+                "label": "Custom Prompt",
+                "ui_type": "text",
+                "description": "Custom prompt when using 'custom' task type.",
+                "help_text": "Enter a custom prompt for specialized OCR tasks. Use <|grounding|> tag for spatial information. Example: '<|grounding|>Extract all form fields and their values'. Only used when task type is 'custom'.",
+                "depends_on": {"key": "DEEPSEEK_OCR_TASK", "value": "custom"},
+                "ui_indent_level": 1,
+            },
+            {
+                "key": "DEEPSEEK_OCR_INCLUDE_GROUNDING",
+                "type": "bool",
+                "default": True,
+                "label": "Include Visual Grounding",
+                "ui_type": "boolean",
+                "description": "Include bounding box information in OCR results.",
+                "help_text": "When enabled, OCR results include spatial coordinates for detected text elements. Useful for layout analysis and precise text location. Disable to reduce response size if you only need extracted text.",
+                "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
+            },
+            {
+                "key": "DEEPSEEK_OCR_INCLUDE_IMAGES",
+                "type": "bool",
+                "default": True,
+                "label": "Extract Embedded Images",
+                "ui_type": "boolean",
+                "description": "Extract and embed images from documents.",
+                "help_text": "When enabled, figures and images within documents are extracted and included as base64-encoded data in markdown output. Useful for preserving visual content. Disable to reduce processing time and response size for text-only extraction.",
+                "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
             },
         ],
     },
@@ -633,6 +697,8 @@ def get_api_schema() -> Dict[str, Any]:
                 api_setting["help_text"] = setting["help_text"]
             if "ui_hidden" in setting:
                 api_setting["ui_hidden"] = setting["ui_hidden"]
+            if "ui_indent_level" in setting:
+                api_setting["ui_indent_level"] = setting["ui_indent_level"]
 
             api_schema[cat_key]["settings"].append(api_setting)
 

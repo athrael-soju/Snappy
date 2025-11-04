@@ -248,6 +248,7 @@ The Next.js 16 frontend with React 19.2 keeps things fast and friendly: real-tim
 ### Backend highlights
 
 - `COLPALI_URL`, `COLPALI_API_TIMEOUT`
+- `DEEPSEEK_OCR_ENABLED`, `DEEPSEEK_OCR_URL`, `DEEPSEEK_OCR_API_TIMEOUT`, `DEEPSEEK_OCR_MAX_WORKERS`, `DEEPSEEK_OCR_POOL_SIZE`
 - `QDRANT_EMBEDDED`, `QDRANT_URL`, `QDRANT_COLLECTION_NAME`, `QDRANT_PREFETCH_LIMIT`, `QDRANT_MEAN_POOLING_ENABLED`, optional quantisation toggles
 - `MINIO_URL`, `MINIO_PUBLIC_URL`, credentials, bucket naming, `IMAGE_FORMAT`, `IMAGE_QUALITY`
 - `MUVERA_ENABLED` and related settings (requires `fastembed[postprocess]` in your environment)
@@ -309,6 +310,7 @@ Chat streaming lives in `frontend/app/api/chat/route.ts`. The route calls the ba
 - `backend/README.md` - FastAPI backend guide
 - `frontend/README.md` - Next.js frontend guide
 - `colpali/README.md` - ColPali embedding service guide
+- `deepseek-ocr/README.md` - DeepSeek OCR service guide
 - `backend/docs/configuration.md` - Configuration reference
 - `VERSIONING.md` - Release and version workflow
 
@@ -319,6 +321,7 @@ Chat streaming lives in `frontend/app/api/chat/route.ts`. The route calls the ba
 - `backend/docs/analysis.md` - vision vs. text RAG comparison
 - `backend/docs/architecture.md` - collection, indexing, and search deep dive
 - `colpali/README.md` - details on the standalone embedding service
+- `deepseek-ocr/README.md` - details on the DeepSeek OCR service
 
 ---
 
@@ -335,6 +338,9 @@ Snappy builds on the work of:
 - **ColPali / ColModernVBert** - multimodal models for visual retrieval  
    https://arxiv.org/abs/2407.01449
    https://arxiv.org/abs/2510.01149
+
+- **DeepSeek-OCR** - vision-language model for document understanding  
+   https://huggingface.co/deepseek-ai/DeepSeek-OCR
 
 - **Qdrant** - the vector database powering multivector search  
    https://qdrant.tech/blog/colpali-qdrant-optimization/  

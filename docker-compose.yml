@@ -45,6 +45,8 @@ services:
       - ./.env
     environment:
       - COLPALI_URL=${COLPALI_URL:-http://host.docker.internal:7000}
+      - DEEPSEEK_OCR_ENABLED=${DEEPSEEK_OCR_ENABLED:-true}
+      - DEEPSEEK_OCR_URL=http://deepseek-ocr:8200
       - QDRANT_EMBEDDED=false
       - QDRANT_URL=http://qdrant:6333
       - MINIO_URL=http://minio:9000
@@ -59,6 +61,7 @@ services:
     depends_on:
       - qdrant
       - minio
+      - deepseek-ocr
     networks:
       - snappy-network
 

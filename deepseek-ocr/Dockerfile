@@ -11,7 +11,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# Copy backend code
+# Copy application code
+COPY app/ ./app/
 COPY main.py .
 
 EXPOSE 8200

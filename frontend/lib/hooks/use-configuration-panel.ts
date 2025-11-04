@@ -24,6 +24,7 @@ export interface ConfigSetting {
   | Array<{ key: string; value: boolean | string }>;
   ui_hidden?: boolean;
   ui_disabled?: boolean;
+  ui_indent_level?: number;
 }
 
 export interface ConfigCategory {

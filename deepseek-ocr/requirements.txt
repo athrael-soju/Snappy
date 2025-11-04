@@ -12,3 +12,6 @@ safetensors
 torch
 python-decouple>=3.8
 nvidia-ml-py
+pymupdf
+numpy
+pydantic
