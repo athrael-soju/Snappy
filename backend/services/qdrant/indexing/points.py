@@ -80,16 +80,8 @@ class PointFactory:
 
             ocr_summary = meta.get("ocr") if isinstance(meta, dict) else None
             if isinstance(ocr_summary, dict) and ocr_summary.get("elements_url"):
-                ocr_payload = {
-                    "elements_url": ocr_summary.get("elements_url"),
-                    "text_preview": ocr_summary.get("text_preview"),
-                    "text_segments": ocr_summary.get("text_segments"),
-                    "regions": ocr_summary.get("regions"),
-                    "status": ocr_summary.get("status", "success"),
-                }
-                if "error" in ocr_summary:
-                    ocr_payload["error"] = ocr_summary["error"]
-                payload["ocr"] = ocr_payload
+                # Store only the URL to the OCR JSON file
+                payload["ocr_url"] = ocr_summary.get("elements_url")
 
             vectors = {"original": orig}
             if use_mean_pooling and rows is not None and cols is not None:
