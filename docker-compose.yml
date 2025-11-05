@@ -33,33 +33,6 @@ services:
       - snappy-network
     restart: unless-stopped
 
-  deepseek-ocr:
-    build:
-      context: ./deepseek-ocr
-      dockerfile: Dockerfile
-    container_name: deepseek-ocr
-    environment:
-      - MODEL_NAME=${DEEPSEEK_MODEL_NAME:-deepseek-ai/DeepSeek-OCR}
-      - HF_HOME=/models
-      - API_HOST=0.0.0.0
-      - API_PORT=8200
-      - MAX_UPLOAD_SIZE_MB=${MAX_UPLOAD_SIZE_MB:-100}
-    volumes:
-      - deepseek_models:/models
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [ gpu ]
-    shm_size: "4g"
-    ports:
-      - "8200:8200"
-    networks:
-      - snappy-network
-    restart: unless-stopped
-
   backend:
     build:
       context: ./backend
@@ -88,7 +61,6 @@ services:
     depends_on:
       - qdrant
       - minio
-      - deepseek-ocr
     networks:
       - snappy-network
 
@@ -119,4 +91,3 @@ volumes:
   qdrant_data:
   minio_data:
   backend_data:
-  deepseek_models:
