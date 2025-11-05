@@ -5,7 +5,6 @@ import { appReducer } from './reducers';
 import { initialState } from './types';
 import { loadStateFromStorage, saveStateToStorage } from './utils/storage';
 import { useUploadSSE } from '../lib/hooks/use-upload-sse';
-import { useOcrSSE } from '../lib/hooks/use-ocr-sse';
 import type { AppState, AppAction } from './types';
 
 const SUCCESS_MESSAGE_DISMISS_MS = 4500;
@@ -42,9 +41,6 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   // Use SSE hook for upload progress tracking
   useUploadSSE({ uploadState: state.upload, dispatch });
 
-  // Use SSE hook for OCR progress tracking
-  useOcrSSE({ uploadState: state.upload, dispatch });
-
   // Persist to localStorage when state changes (debounced)
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -77,19 +73,6 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
     return () => clearTimeout(timeoutId);
   }, [state.upload.error, state.upload.uploading, dispatch]);
-
-  // Auto-dismiss OCR error messages
-  useEffect(() => {
-    if (!state.upload.ocrError || state.upload.ocrJobId) {
-      return;
-    }
-
-    const timeoutId = setTimeout(() => {
-      dispatch({ type: 'UPLOAD_SET_OCR_ERROR', payload: null });
-    }, ERROR_MESSAGE_DISMISS_MS);
-
-    return () => clearTimeout(timeoutId);
-  }, [state.upload.ocrError, state.upload.ocrJobId, dispatch]);
 
   return (
     <AppContext.Provider value={{ state, dispatch }}>

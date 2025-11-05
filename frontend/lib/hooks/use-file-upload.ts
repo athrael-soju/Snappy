@@ -118,10 +118,6 @@ export function useFileUpload() {
     error,
     jobId,
     statusText,
-    ocrJobId,
-    ocrProgress,
-    ocrStatusText,
-    ocrError,
     setFiles,
     setUploading,
     setProgress,
@@ -129,8 +125,6 @@ export function useFileUpload() {
     setError,
     setJobId,
     setStatusText,
-    setOcrError,
-    setOcrStatusText,
     cancelUpload,
   } = useUploadStore();
 
@@ -349,10 +343,6 @@ export function useFileUpload() {
       setStatusText(null);
       setJobId(null);
 
-      // Clear any previous OCR errors
-      setOcrError(null);
-      setOcrStatusText(null);
-
       try {
         const formData = new FormData();
         files.forEach((f) => formData.append("files", f));
@@ -410,9 +400,7 @@ export function useFileUpload() {
     setFiles(null);
     setMessage(null);
     setError(null);
-    setOcrError(null);
-    setOcrStatusText(null);
-  }, [setFiles, setMessage, setError, setOcrError, setOcrStatusText]);
+  }, [setFiles, setMessage, setError]);
 
   return {
     files,
@@ -425,12 +413,6 @@ export function useFileUpload() {
     statusText,
     isDragOver,
     isCancelling: isCancellingRef.current,
-
-    // OCR state
-    ocrJobId,
-    ocrProgress,
-    ocrStatusText,
-    ocrError,
 
     fileCount:
       files && files.length > 0
