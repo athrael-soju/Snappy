@@ -16,23 +16,43 @@ flowchart TB
 
   subgraph Backend["FastAPI Backend"]
     API["REST Routers"]
+    PIPELINE["Document Indexer Pipeline"]
+    BATCH["Batch Processor"]
   end
 
   subgraph Services["External Services"]
-    QDRANT["Qdrant"]
-    MINIO["MinIO"]
-    COLPALI["ColPali API"]
+    QDRANT["Qdrant<br/>(Vector DB)"]
+    MINIO["MinIO<br/>(Image Storage)"]
+    COLPALI["ColPali<br/>(Embeddings)"]
+    DEEPSEEK["DeepSeek OCR<br/>(Text Extraction)"]
     OPENAI["OpenAI API"]
   end
 
   USER["Browser"] <--> NEXT
-  NEXT -- Upload/Search Requests --> API
-  API --> QDRANT
-  API --> MINIO
-  API --> COLPALI
-  CHAT --> API
-  CHAT --> OPENAI
-  CHAT -- SSE Stream --> USER
+  NEXT -- "Upload/Search/OCR Requests" --> API
+  
+  %% Indexing flow
+  API -- "Index Documents" --> PIPELINE
+  PIPELINE --> BATCH
+  BATCH -- "Generate Embeddings" --> COLPALI
+  BATCH -- "Store Images" --> MINIO
+  BATCH -- "Optional: Extract Text" --> DEEPSEEK
+  BATCH -- "Store OCR Results" --> MINIO
+  PIPELINE -- "Upsert Vectors" --> QDRANT
+  
+  %% Search flow
+  API -- "Search Query" --> COLPALI
+  API -- "Vector Search" --> QDRANT
+  API -- "Fetch Images" --> MINIO
+  
+  %% OCR flow
+  API -- "OCR Processing" --> DEEPSEEK
+  API -- "Fetch/Store OCR" --> MINIO
+  
+  %% Chat flow
+  CHAT -- "Search Context" --> API
+  CHAT -- "Generate Response" --> OPENAI
+  CHAT -- "SSE Stream" --> USER
 ```
 
 ---
