@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/athrael-soju/Snappy/compare/v0.2.0...v0.2.1) (2025-11-05)
+
+
+### Features
+
+* enhance architecture documentation with DeepSeek OCR integration and update request flows ([70e41f2](https://github.com/athrael-soju/Snappy/commit/70e41f2c404110a9f238ef979bef6a15305e9841))
+
 ## [0.1.3](https://github.com/athrael-soju/Snappy/compare/0.1.2...v0.1.3) (2025-10-23)
 
 
