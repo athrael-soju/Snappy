@@ -1,6 +1,8 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
 import { UploadState, AppAction } from '@/stores/app-store';
+import { OcrService } from '@/lib/api/generated';
+import { loadConfigFromStorage } from '@/lib/config/config-store';
 
 interface UseUploadSSEOptions {
   uploadState: UploadState;
@@ -51,6 +53,65 @@ function formatProgressDetails(details?: Record<string, unknown>): string | null
   }
 
   return segments.length > 0 ? segments.join(' • ') : null;
+}
+
+/**
+ * Check if OCR is enabled in configuration and trigger OCR processing if so
+ */
+async function triggerOcrIfEnabled(
+  filenames: string[] | null,
+  dispatch: React.Dispatch<AppAction>
+): Promise<void> {
+  if (!filenames || filenames.length === 0) {
+    return;
+  }
+
+  try {
+    // Check if OCR is enabled from config
+    const config = loadConfigFromStorage();
+    const ocrEnabled = config?.DEEPSEEK_OCR_ENABLED;
+
+    // Parse boolean from string value
+    const isEnabled =
+      typeof ocrEnabled === 'string' &&
+      ['true', '1', 'yes', 'on'].includes(ocrEnabled.toLowerCase());
+
+    if (!isEnabled) {
+      return; // OCR not enabled, skip
+    }
+
+    // Process each filename with OCR
+    for (const filename of filenames) {
+      try {
+        const response = await OcrService.processDocumentOcrProcessDocumentPost({
+          filename,
+          mode: config?.DEEPSEEK_OCR_MODE || undefined,
+          task: config?.DEEPSEEK_OCR_TASK || undefined,
+        });
+
+        if (response?.job_id) {
+          dispatch({ type: 'UPLOAD_SET_OCR_JOB_ID', payload: response.job_id });
+          dispatch({
+            type: 'UPLOAD_SET_OCR_STATUS_TEXT',
+            payload: `Starting OCR for ${filename}...`,
+          });
+          toast.info('OCR Processing Started', {
+            description: `Processing ${filename} with DeepSeek OCR`,
+          });
+          // Only process one file at a time for now
+          break;
+        }
+      } catch (error) {
+        console.error(`Failed to start OCR for ${filename}:`, error);
+        dispatch({
+          type: 'UPLOAD_SET_OCR_ERROR',
+          payload: `Failed to start OCR for ${filename}`,
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error checking OCR configuration:', error);
+  }
 }
 
 /**
@@ -140,6 +201,9 @@ export function useUploadSSE({ uploadState, dispatch }: UseUploadSSEOptions) {
             window.dispatchEvent(new Event('systemStatusChanged'));
             toast.success('Upload Complete', { description: successMsg });
           }
+
+          // Trigger OCR if enabled
+          triggerOcrIfEnabled(uploadState.uploadedFilenames, dispatch);
         } else if (data.status === 'failed') {
           closeSSEConnection();
           const errMsg = data.error || 'Upload failed';

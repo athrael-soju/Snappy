@@ -5,19 +5,20 @@ import { appReducer } from './reducers';
 import { initialState } from './types';
 import { loadStateFromStorage, saveStateToStorage } from './utils/storage';
 import { useUploadSSE } from '../lib/hooks/use-upload-sse';
+import { useOcrSSE } from '../lib/hooks/use-ocr-sse';
 import type { AppState, AppAction } from './types';
 
 const SUCCESS_MESSAGE_DISMISS_MS = 4500;
 const ERROR_MESSAGE_DISMISS_MS = 6000;
 
 // Re-export types for convenience
-export type { 
-  AppState, 
-  AppAction, 
-  SearchState, 
-  ChatState, 
-  UploadState, 
-  SystemStatus 
+export type {
+  AppState,
+  AppAction,
+  SearchState,
+  ChatState,
+  UploadState,
+  SystemStatus
 } from './types';
 
 // Context
@@ -40,6 +41,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
   // Use SSE hook for upload progress tracking
   useUploadSSE({ uploadState: state.upload, dispatch });
+
+  // Use SSE hook for OCR progress tracking
+  useOcrSSE({ uploadState: state.upload, dispatch });
 
   // Persist to localStorage when state changes (debounced)
   useEffect(() => {

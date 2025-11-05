@@ -79,6 +79,10 @@ export default function UploadPage() {
     error,
     jobId,
     statusText,
+    ocrJobId,
+    ocrProgress,
+    ocrStatusText,
+    ocrError,
     isDragOver,
     fileCount,
     hasFiles,
@@ -130,11 +134,12 @@ export default function UploadPage() {
   }, [uploading, isReady]);
 
   useEffect(() => {
-    const hasStatusCopy = Boolean(statusText || jobId || message || error);
+    const hasStatusCopy = Boolean(statusText || jobId || message || error || ocrJobId || ocrStatusText || ocrError);
     const hasVisibleProgress =
-      uploading && typeof uploadProgress === "number" && uploadProgress > 0;
+      (uploading && typeof uploadProgress === "number" && uploadProgress > 0) ||
+      (ocrJobId && typeof ocrProgress === "number" && ocrProgress > 0);
 
-    if (uploading || hasFiles) {
+    if (uploading || hasFiles || ocrJobId) {
       clearDismissTimer();
       setStatusDismissed(false);
       setShowHelpfulCards(false);
@@ -167,14 +172,18 @@ export default function UploadPage() {
     jobId,
     message,
     error,
+    ocrJobId,
+    ocrProgress,
+    ocrStatusText,
+    ocrError,
     clearDismissTimer,
   ]);
 
   const shouldShowStatusPanel =
     !statusDismissed &&
-    Boolean(uploading || statusText || jobId || message || error);
+    Boolean(uploading || statusText || jobId || message || error || ocrJobId || ocrStatusText || ocrError);
 
-  const shouldShowHelpfulCards = showHelpfulCards && !uploading && !hasFiles;
+  const shouldShowHelpfulCards = showHelpfulCards && !uploading && !hasFiles && !ocrJobId;
 
   return (
     <div className="relative flex h-full min-h-full flex-col overflow-hidden">
@@ -509,6 +518,28 @@ export default function UploadPage() {
                     </div>
                   )}
 
+                  {/* OCR Progress (separate from upload) */}
+                  {ocrJobId && (
+                    <div className="space-y-1.5 border-t border-border/30 pt-2">
+                      <div className="flex items-center justify-between text-body-xs">
+                        <span className="font-medium">OCR Processing</span>
+                        <span className="font-semibold text-chart-3">{Math.round(ocrProgress)}%</span>
+                      </div>
+                      <div className="h-2 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full bg-gradient-to-r from-chart-3 to-chart-4 transition-all duration-300"
+                          style={{ width: `${ocrProgress}%` }}
+                        />
+                      </div>
+                      {ocrStatusText && (
+                        <div className="flex items-center gap-2 text-body-xs text-muted-foreground">
+                          <Loader2 className="size-icon-3xs animate-spin" />
+                          {ocrStatusText}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {jobId && (
                     <div className="rounded-lg bg-muted/50 px-2 py-1.5">
                       <p className="text-body-xs text-muted-foreground">
@@ -545,6 +576,22 @@ export default function UploadPage() {
                       >
                         <AlertCircle className="size-icon-xs" />
                         {error}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <AnimatePresence initial={false} mode="sync">
+                    {ocrError && (
+                      <motion.div
+                        key="ocr-error"
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.25, ease: "easeInOut" }}
+                        className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-body-xs font-medium text-destructive dark:text-destructive"
+                      >
+                        <AlertCircle className="size-icon-xs" />
+                        OCR: {ocrError}
                       </motion.div>
                     )}
                   </AnimatePresence>

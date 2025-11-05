@@ -1,4 +1,4 @@
-"""Progress notification utilities for Qdrant indexing."""
+"""Progress notification utilities for pipeline processing."""
 
 import logging
 from typing import Callable, Optional

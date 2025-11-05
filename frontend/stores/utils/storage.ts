@@ -35,6 +35,11 @@ export function serializeStateForStorage(state: AppState): any {
       error: state.upload.error,
       jobId: state.upload.jobId,
       statusText: state.upload.statusText,
+      uploadedFilenames: state.upload.uploadedFilenames,
+      ocrJobId: state.upload.ocrJobId,
+      ocrProgress: state.upload.ocrProgress,
+      ocrStatusText: state.upload.ocrStatusText,
+      ocrError: state.upload.ocrError,
     },
     systemStatus: state.systemStatus,
   };

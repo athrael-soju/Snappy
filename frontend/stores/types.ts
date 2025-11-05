@@ -38,6 +38,12 @@ export interface UploadState {
   error: string | null;
   jobId: string | null;
   statusText: string | null;
+  // OCR state (separate from indexing)
+  ocrJobId: string | null;
+  ocrProgress: number;
+  ocrStatusText: string | null;
+  ocrError: string | null;
+  uploadedFilenames: string[] | null; // Track filenames for OCR processing
 }
 
 export interface SystemStatus {
@@ -105,6 +111,12 @@ export type AppAction =
   | { type: 'UPLOAD_SET_ERROR'; payload: string | null }
   | { type: 'UPLOAD_SET_JOB_ID'; payload: string | null }
   | { type: 'UPLOAD_SET_STATUS_TEXT'; payload: string | null }
+  | { type: 'UPLOAD_SET_UPLOADED_FILENAMES'; payload: string[] | null }
+  // OCR actions
+  | { type: 'UPLOAD_SET_OCR_JOB_ID'; payload: string | null }
+  | { type: 'UPLOAD_SET_OCR_PROGRESS'; payload: number }
+  | { type: 'UPLOAD_SET_OCR_STATUS_TEXT'; payload: string | null }
+  | { type: 'UPLOAD_SET_OCR_ERROR'; payload: string | null }
   | { type: 'UPLOAD_RESET' }
 
   // System status actions
@@ -144,6 +156,11 @@ export const initialState: AppState = {
     error: null,
     jobId: null,
     statusText: null,
+    ocrJobId: null,
+    ocrProgress: 0,
+    ocrStatusText: null,
+    ocrError: null,
+    uploadedFilenames: null,
   },
   systemStatus: null,
   lastVisited: {

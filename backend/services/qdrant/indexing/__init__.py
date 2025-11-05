@@ -1,5 +1,5 @@
 """Indexing package for Qdrant services."""
 
-from .document_indexer import DocumentIndexer
+from .qdrant_indexer import QdrantDocumentIndexer
 
-__all__ = ["DocumentIndexer"]
+__all__ = ["QdrantDocumentIndexer"]

@@ -2,12 +2,12 @@ import asyncio
 
 from __version__ import __version__
 from api.dependencies import (
-    deepseek_init_error,
     get_colpali_client,
-    get_deepseek_client,
     get_minio_service,
+    get_ocr_service,
     get_qdrant_service,
     minio_init_error,
+    ocr_init_error,
     qdrant_init_error,
 )
 from fastapi import APIRouter
@@ -32,28 +32,28 @@ async def root():
 
 @router.get("/health")
 async def health():
-    colpali_ok, minio_ok, qdrant_ok, deepseek_ok = await asyncio.gather(
+    colpali_ok, minio_ok, qdrant_ok, ocr_ok = await asyncio.gather(
         asyncio.to_thread(_check_colpali),
         asyncio.to_thread(_check_minio),
         asyncio.to_thread(_check_qdrant),
-        asyncio.to_thread(_check_deepseek),
+        asyncio.to_thread(_check_ocr),
     )
 
-    # Core services must be healthy; DeepSeek is optional
+    # Core services must be healthy; OCR is optional
     core_ok = colpali_ok and minio_ok and qdrant_ok
     response: dict[str, object] = {
         "status": "ok" if core_ok else "degraded",
         "colpali": colpali_ok,
         "minio": minio_ok,
         "qdrant": qdrant_ok,
-        "deepseek_ocr": deepseek_ok,
+        "ocr": ocr_ok,
     }
     if qdrant_init_error:
         response["qdrant_init_error"] = qdrant_init_error
     if minio_init_error:
         response["minio_init_error"] = minio_init_error
-    if deepseek_init_error:
-        response["deepseek_init_error"] = deepseek_init_error
+    if ocr_init_error:
+        response["ocr_init_error"] = ocr_init_error
     return response
 
 
@@ -90,12 +90,12 @@ def _check_qdrant() -> bool:
         return False
 
 
-def _check_deepseek() -> bool:
+def _check_ocr() -> bool:
     try:
-        client = get_deepseek_client()
+        service = get_ocr_service()
         # If service is disabled (None), consider it "healthy" (not an error)
-        if client is None:
+        if service is None:
             return True
-        return bool(client.health_check())
+        return bool(service.health_check())
     except Exception:
         return False

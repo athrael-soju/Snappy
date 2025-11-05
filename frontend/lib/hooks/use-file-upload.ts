@@ -118,6 +118,10 @@ export function useFileUpload() {
     error,
     jobId,
     statusText,
+    ocrJobId,
+    ocrProgress,
+    ocrStatusText,
+    ocrError,
     setFiles,
     setUploading,
     setProgress,
@@ -414,12 +418,18 @@ export function useFileUpload() {
     isDragOver,
     isCancelling: isCancellingRef.current,
 
+    // OCR state
+    ocrJobId,
+    ocrProgress,
+    ocrStatusText,
+    ocrError,
+
     fileCount:
       files && files.length > 0
         ? files.length
         : fileMeta && fileMeta.length > 0
-        ? fileMeta.length
-        : 0,
+          ? fileMeta.length
+          : 0,
     hasFiles:
       (files && files.length > 0) ||
       (uploading && fileMeta && fileMeta.length > 0),

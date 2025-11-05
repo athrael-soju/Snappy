@@ -28,6 +28,51 @@ const Body_index_index_post = z
 const ConfigUpdate = z
   .object({ key: z.string(), value: z.string() })
   .passthrough();
+const OcrPageRequest = z
+  .object({
+    filename: z.string(),
+    page_number: z.number().int().gte(0),
+    mode: z.union([z.string(), z.null()]).optional(),
+    task: z.union([z.string(), z.null()]).optional(),
+    custom_prompt: z.union([z.string(), z.null()]).optional(),
+  })
+  .passthrough();
+const OcrResponse = z
+  .object({
+    status: z.string(),
+    filename: z.string(),
+    page_number: z.number().int(),
+    storage_url: z.string(),
+    text_preview: z.string(),
+    regions: z.number().int(),
+    extracted_images: z.number().int(),
+  })
+  .passthrough();
+const OcrBatchRequest = z
+  .object({
+    filename: z.string(),
+    page_numbers: z.array(z.number().int()),
+    mode: z.union([z.string(), z.null()]).optional(),
+    task: z.union([z.string(), z.null()]).optional(),
+    max_workers: z.union([z.number(), z.null()]).optional(),
+  })
+  .passthrough();
+const OcrBatchResponse = z
+  .object({
+    status: z.string(),
+    total_pages: z.number().int(),
+    successful: z.number().int(),
+    failed: z.number().int(),
+    results: z.array(z.object({}).partial().passthrough()),
+  })
+  .passthrough();
+const OcrDocumentRequest = z
+  .object({
+    filename: z.string(),
+    mode: z.union([z.string(), z.null()]).optional(),
+    task: z.union([z.string(), z.null()]).optional(),
+  })
+  .passthrough();
 
 export const schemas = {
   k,
@@ -36,6 +81,11 @@ export const schemas = {
   HTTPValidationError,
   Body_index_index_post,
   ConfigUpdate,
+  OcrPageRequest,
+  OcrResponse,
+  OcrBatchRequest,
+  OcrBatchResponse,
+  OcrDocumentRequest,
 };
 
 const endpoints = makeApi([
@@ -185,6 +235,151 @@ To persist changes across restarts, update your .env file manually.`,
     response: z.unknown(),
   },
   {
+    method: "post",
+    path: "/ocr/cancel/:job_id",
+    alias: "cancel_job_ocr_cancel__job_id__post",
+    description: `Cancel a running OCR job.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "job_id",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
+    response: z.unknown(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/ocr/health",
+    alias: "health_check_ocr_health_get",
+    description: `Check OCR service health.`,
+    requestFormat: "json",
+    response: z.unknown(),
+  },
+  {
+    method: "post",
+    path: "/ocr/process-batch",
+    alias: "process_batch_ocr_process_batch_post",
+    description: `Process multiple pages from the same document in parallel.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: OcrBatchRequest,
+      },
+    ],
+    response: OcrBatchResponse,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/ocr/process-document",
+    alias: "process_document_ocr_process_document_post",
+    description: `Process all pages of an indexed document with OCR.
+
+This is a long-running operation that runs in the background.
+Use the returned job_id to track progress via SSE.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: OcrDocumentRequest,
+      },
+    ],
+    response: z.unknown(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/ocr/process-page",
+    alias: "process_page_ocr_process_page_post",
+    description: `Process a single document page with DeepSeek OCR.
+
+The page must already be indexed and stored in MinIO.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: OcrPageRequest,
+      },
+    ],
+    response: OcrResponse,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/ocr/progress/:job_id",
+    alias: "get_progress_ocr_progress__job_id__get",
+    description: `Get OCR processing progress for a job.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "job_id",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
+    response: z.unknown(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/ocr/progress/stream/:job_id",
+    alias: "stream_progress_ocr_progress_stream__job_id__get",
+    description: `Stream OCR processing progress via Server-Sent Events.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "job_id",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
+    response: z.unknown(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
     method: "get",
     path: "/progress/stream/:job_id",
     alias: "stream_progress_progress_stream__job_id__get",
@@ -220,6 +415,11 @@ To persist changes across restarts, update your .env file manually.`,
         name: "k",
         type: "Query",
         schema: k,
+      },
+      {
+        name: "include_ocr",
+        type: "Query",
+        schema: z.boolean().optional().default(false),
       },
     ],
     response: z.array(SearchItem),
