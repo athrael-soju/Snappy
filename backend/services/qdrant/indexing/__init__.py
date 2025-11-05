@@ -1,5 +1,3 @@
-"""Indexing package for Qdrant services."""
+"""Backward compatibility wrapper for Qdrant indexing helpers."""
 
-from .document_indexer import DocumentIndexer
-
-__all__ = ["DocumentIndexer"]
+from app.integrations.qdrant.indexing import *  # noqa: F401,F403

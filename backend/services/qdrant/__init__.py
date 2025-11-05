@@ -1,10 +1,13 @@
-"""Qdrant client package with separation of concerns."""
+"""Backward compatibility shim for Qdrant integrations."""
 
-from .collection import CollectionManager
-from .embedding import EmbeddingProcessor, MuveraPostprocessor
-from .indexing import DocumentIndexer
-from .search import SearchManager
-from .service import QdrantService
+from app.integrations.qdrant import (  # noqa: F401
+    CollectionManager,
+    DocumentIndexer,
+    EmbeddingProcessor,
+    MuveraPostprocessor,
+    QdrantService,
+    SearchManager,
+)
 
 __all__ = [
     "QdrantService",

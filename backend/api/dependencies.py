@@ -5,10 +5,10 @@ from functools import lru_cache
 from typing import Optional
 
 import config
-from services.colpali import ColPaliService
-from services.deepseek import DeepSeekOCRService
-from services.minio import MinioService
-from services.qdrant import MuveraPostprocessor, QdrantService
+from app.integrations.colpali_client import ColPaliClient
+from app.integrations.deepseek_client import DeepSeekOCRClient
+from app.integrations.minio_client import MinioClient
+from app.integrations.qdrant import MuveraPostprocessor, QdrantService
 
 logger = logging.getLogger(__name__)
 
@@ -18,11 +18,11 @@ deepseek_init_error: Optional[str] = None
 
 
 @lru_cache(maxsize=1)
-def _get_colpali_client_cached() -> ColPaliService:
-    return ColPaliService()
+def _get_colpali_client_cached() -> ColPaliClient:
+    return ColPaliClient()
 
 
-def get_colpali_client() -> ColPaliService:
+def get_colpali_client() -> ColPaliClient:
     """Return the cached ColPali service instance."""
     return _get_colpali_client_cached()
 
@@ -38,11 +38,11 @@ api_client = _ColPaliClientProxy()
 
 
 @lru_cache(maxsize=1)
-def _get_deepseek_client_cached() -> DeepSeekOCRService:
-    return DeepSeekOCRService()
+def _get_deepseek_client_cached() -> DeepSeekOCRClient:
+    return DeepSeekOCRClient()
 
 
-def get_deepseek_client() -> Optional[DeepSeekOCRService]:
+def get_deepseek_client() -> Optional[DeepSeekOCRClient]:
     """Return the cached DeepSeek OCR service if enabled."""
     global deepseek_init_error
     if not config.DEEPSEEK_OCR_ENABLED:
@@ -75,11 +75,11 @@ def _get_muvera_postprocessor_cached() -> Optional[MuveraPostprocessor]:
 
 
 @lru_cache(maxsize=1)
-def _get_minio_service_cached() -> MinioService:
-    return MinioService()
+def _get_minio_service_cached() -> MinioClient:
+    return MinioClient()
 
 
-def get_minio_service() -> MinioService:
+def get_minio_service() -> MinioClient:
     """Return the cached MinIO service, capturing initialization errors."""
     global minio_init_error
     try:

@@ -15,8 +15,8 @@ except ModuleNotFoundError:  # pragma: no cover
     from backend import config as config  # type: ignore
 
 if TYPE_CHECKING:
-    from services.minio import MinioService
-    from services.qdrant import QdrantService
+    from app.integrations.minio_client import MinioClient
+    from app.integrations.qdrant import QdrantService
 
 _get_config = getattr  # alias for static analysis friendliness
 
@@ -154,7 +154,7 @@ def _collect_collection_status(svc: Optional["QdrantService"]) -> dict:
     return status
 
 
-def _collect_bucket_status(msvc: Optional["MinioService"]) -> dict:
+def _collect_bucket_status(msvc: Optional["MinioClient"]) -> dict:
     bucket_name = _bucket_name()
 
     status = {
@@ -183,7 +183,7 @@ def _collect_bucket_status(msvc: Optional["MinioService"]) -> dict:
 
 
 def _clear_all_sync(
-    svc: Optional["QdrantService"], msvc: Optional["MinioService"]
+    svc: Optional["QdrantService"], msvc: Optional["MinioClient"]
 ) -> str:
     _collection_name()
     if svc:
@@ -210,7 +210,7 @@ def _clear_all_sync(
 
 
 def _initialize_sync(
-    svc: Optional["QdrantService"], msvc: Optional["MinioService"]
+    svc: Optional["QdrantService"], msvc: Optional["MinioClient"]
 ) -> dict:
     collection_name = _collection_name()
     bucket_name = _bucket_name()
@@ -262,9 +262,7 @@ def _initialize_sync(
     return {"status": overall_status, "results": results}
 
 
-def _delete_sync(
-    svc: Optional["QdrantService"], msvc: Optional["MinioService"]
-) -> dict:
+def _delete_sync(svc: Optional["QdrantService"], msvc: Optional["MinioClient"]) -> dict:
     collection_name = _collection_name()
     bucket_name = _bucket_name()
 
