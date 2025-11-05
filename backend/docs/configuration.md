@@ -15,7 +15,9 @@ Runtime updates take effect immediately but do not persist across restarts—upd
 - [How configuration is resolved](#how-configuration-is-resolved)
 - [Core application](#core-application)
 - [Document ingestion](#document-ingestion)
+- [Upload controls](#upload-controls)
 - [ColPali embedding service](#colpali-embedding-service)
+- [DeepSeek OCR](#deepseek-ocr)
 - [Qdrant vector database](#qdrant-vector-database)
 - [Object storage (MinIO)](#object-storage-minio)
 - [MUVERA post-processing](#muvera-post-processing)
@@ -80,6 +82,26 @@ Helpers:
 |-----|------|---------|-------------|
 | `COLPALI_URL` | str | `http://localhost:7000` | Endpoint for the ColPali service. |
 | `COLPALI_API_TIMEOUT` | int | `300` | Timeout (seconds) for embedding requests. Increase for large documents, especially on CPU. |
+
+---
+
+## DeepSeek OCR
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `DEEPSEEK_OCR_ENABLED` | bool | `False` | Enable/disable DeepSeek OCR integration for advanced text extraction. |
+| `DEEPSEEK_OCR_URL` | str | `http://localhost:8200` | Base URL for the DeepSeek OCR microservice. |
+| `DEEPSEEK_OCR_API_TIMEOUT` | int | `180` | Request timeout (seconds) for OCR API calls. Increase for longer documents or CPU-only deployments. |
+| `DEEPSEEK_OCR_MAX_WORKERS` | int | `4` | Maximum concurrent OCR requests per batch. Higher values increase throughput but require more GPU memory. |
+| `DEEPSEEK_OCR_POOL_SIZE` | int | `20` | HTTP connection pool size. Should be ≥ (Max Workers × 3) to handle retries. |
+| `DEEPSEEK_OCR_MODE` | str | `Gundam` | Default processing mode: `Gundam` (best balance), `Tiny` (fastest), `Small` (quick), `Base` (standard), `Large` (highest quality). |
+| `DEEPSEEK_OCR_TASK` | str | `markdown` | Default task type: `markdown` (structured output), `plain_ocr` (simple text), `locate` (find text), `describe` (image description), `custom` (custom prompts). |
+| `DEEPSEEK_OCR_LOCATE_TEXT` | str | `` | Specific text to find when using `locate` task. |
+| `DEEPSEEK_OCR_CUSTOM_PROMPT` | str | `` | Custom prompt when using `custom` task type. Use `<\|grounding\|>` tag for spatial information. |
+| `DEEPSEEK_OCR_INCLUDE_GROUNDING` | bool | `True` | Include bounding box information in OCR results for layout analysis. |
+| `DEEPSEEK_OCR_INCLUDE_IMAGES` | bool | `True` | Extract and embed images from documents as base64-encoded data in markdown output. |
+
+The OCR service is optional and runs separately from the main backend. When enabled, it provides advanced text extraction, markdown conversion, visual grounding with bounding boxes, and embedded image extraction. See `deepseek-ocr/README.md` for service setup and `backend/api/routers/ocr.py` for API endpoints.
 
 ---
 

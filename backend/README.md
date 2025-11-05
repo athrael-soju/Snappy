@@ -1,12 +1,12 @@
 # Snappy Backend – FastAPI Service ✨
 
-This FastAPI application handles PDF ingestion, page-level retrieval, runtime configuration, and system maintenance for Snappy. Routers live under `backend/api/routers/` (`meta`, `retrieval`, `indexing`, `maintenance`, `config`) and are wired together inside `backend/api/app.py:create_app()`.
+This FastAPI application handles PDF ingestion, page-level retrieval, runtime configuration, OCR workflows, and system maintenance for Snappy. Routers live under `backend/api/routers/` (`meta`, `retrieval`, `indexing`, `maintenance`, `config`, `ocr`) and are wired together inside `backend/api/app.py:create_app()`.
 
 ---
 
 ## Prerequisites
 
-- **Python 3.10+**
+- **Python 3.11+**
 - **Poppler** on your `PATH` (`pdftoppm` is required for PDF rasterisation)
 - **Docker + Docker Compose** (optional, recommended for local services)
 - **`fastembed[postprocess]`** if you plan to enable MUVERA acceleration
@@ -16,10 +16,11 @@ This FastAPI application handles PDF ingestion, page-level retrieval, runtime co
 ## Local Setup
 
 ```bash
+cd backend
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\Activate.ps1
 pip install -U pip setuptools wheel
-pip install -r backend/requirements.txt
+pip install -r requirements.txt
 ```
 
 Copy the environment template and customise as needed:
@@ -30,7 +31,7 @@ cp .env.example .env
 
 Key settings:
 - **ColPali**: `COLPALI_URL`, `COLPALI_API_TIMEOUT`
-- **DeepSeek OCR**: `DEEPSEEK_OCR_ENABLED`, `DEEPSEEK_OCR_URL`, `DEEPSEEK_OCR_MODEL_SIZE`, `DEEPSEEK_OCR_EMBED_IMAGES`
+- **DeepSeek OCR**: `DEEPSEEK_OCR_ENABLED`, `DEEPSEEK_OCR_URL`, `DEEPSEEK_OCR_API_TIMEOUT`, `DEEPSEEK_OCR_MAX_WORKERS`, `DEEPSEEK_OCR_POOL_SIZE`, `DEEPSEEK_OCR_MODE`, `DEEPSEEK_OCR_TASK`, `DEEPSEEK_OCR_INCLUDE_GROUNDING`, `DEEPSEEK_OCR_INCLUDE_IMAGES`
 - **Qdrant**: `QDRANT_EMBEDDED`, `QDRANT_URL`, `QDRANT_COLLECTION_NAME`, quantisation toggles
 - **MinIO**: `MINIO_URL`, `MINIO_PUBLIC_URL`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`
 - **Uploads**: `UPLOAD_ALLOWED_FILE_TYPES` (PDF-only by default), `UPLOAD_MAX_FILE_SIZE_MB`, `UPLOAD_MAX_FILES`, `UPLOAD_CHUNK_SIZE_BYTES`
@@ -48,7 +49,7 @@ Check `backend/docs/configuration.md` for the complete reference.
 ## Run the API
 
 ```bash
-uvicorn backend:app --host 0.0.0.0 --port 8000 --reload
+uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 or
@@ -96,6 +97,14 @@ MinIO credentials must be provided; the backend stores page images in object sto
 - `POST /index` – Upload PDFs as `files[]`; work runs in the background
 - `GET /progress/stream/{job_id}` – Server-Sent Events progress feed
 - `POST /index/cancel/{job_id}` – Cancel a running job
+
+### OCR
+- `POST /ocr/process-page` - OCR a single indexed page (DeepSeek OCR must be enabled)
+- `POST /ocr/process-batch` - Run OCR across multiple page numbers in parallel
+- `POST /ocr/process-document` - Launch a background OCR job for every page in a document
+- `GET /ocr/progress/{job_id}` / `/ocr/progress/stream/{job_id}` - Poll or stream OCR job status updates
+- `POST /ocr/cancel/{job_id}` - Cancel a running OCR job
+- `GET /ocr/health` - Health check for the OCR client/service
 
 ### Maintenance
 - `GET /status` – Collection and bucket statistics

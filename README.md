@@ -191,23 +191,39 @@ Update `.env` and `frontend/.env.local` if you need to expose different hostname
 1. In `backend/`, install dependencies and launch FastAPI:
 
    ```bash
+   cd backend
    python -m venv .venv
    source .venv/bin/activate  # Windows: .venv\Scripts\Activate.ps1
    pip install -U pip setuptools wheel
-   pip install -r backend/requirements.txt
-   uvicorn backend:app --host 0.0.0.0 --port 8000 --reload
+   pip install -r requirements.txt
+   uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
    ```
 
-2. Start Qdrant and MinIO (via Docker or your preferred deployment).
+2. Start the ColPali embedding service (Docker Compose or locally):
 
-3. In `frontend/`, install and run the Next.js app:
+   ```bash
+   # Docker (preferred)
+   cd ../colpali
+   docker compose --profile cpu up -d --build
+
+   # Or run locally (inside a separate virtualenv)
+   python -m venv .venv
+   source .venv/bin/activate
+   pip install -U pip setuptools wheel
+   pip install -r requirements.txt
+   uvicorn app:app --host 0.0.0.0 --port 7000 --reload
+   ```
+
+3. Start Qdrant and MinIO (via Docker or your preferred deployment).
+
+4. In `frontend/`, install and run the Next.js app:
 
    ```bash
    yarn install --frozen-lockfile
    yarn dev
    ```
 
-4. Keep the ColPali service from step 2 running (Docker or `uvicorn colpali/app.py`).
+Keep the services from steps 2 and 3 running while you develop.
 
 ---
 
@@ -272,6 +288,10 @@ All schema-backed settings (and defaults) are documented in `backend/docs/config
 | Indexing     | `POST /index`                            | Background indexing job (multipart PDF upload) |
 |              | `GET /progress/stream/{job_id}`          | Real-time progress (SSE) |
 |              | `POST /index/cancel/{job_id}`            | Cancel an active job |
+| OCR          | `POST /ocr/process-page`, `/ocr/process-batch` | DeepSeek OCR per-page and batch processing (requires OCR service) |
+|              | `POST /ocr/process-document`             | Background OCR for an entire indexed document |
+|              | `GET /ocr/progress/{job_id}`, `/ocr/progress/stream/{job_id}` | Poll or stream OCR job progress |
+|              | `POST /ocr/cancel/{job_id}`, `GET /ocr/health` | Cancel jobs and check OCR health |
 | Maintenance  | `GET /status`                            | Collection/bucket statistics |
 |              | `POST /initialize`, `DELETE /delete`     | Provision or tear down collection + bucket |
 |              | `POST /clear/qdrant`, `/clear/minio`, `/clear/all` | Data reset helpers |

@@ -6,25 +6,20 @@ This directory contains the refactored application state management system, orga
 
 ```
 stores/
-├── app-store.tsx          # Main store provider and context
-├── types.ts               # Type definitions for state and actions
+├── app-store.tsx          # Main store provider, context, and hook re-exports
+├── types.ts               # State, action, and initial state definitions
 ├── reducers/              # Domain-specific reducers
-│   ├── index.ts           # Main reducer composition
+│   ├── index.ts           # Reducer composition
 │   ├── search-reducer.ts  # Search state logic
 │   ├── chat-reducer.ts    # Chat state logic
 │   ├── upload-reducer.ts  # Upload state logic
 │   ├── system-reducer.ts  # System status logic
 │   └── global-reducer.ts  # Global actions (hydration, page tracking)
-├── hooks/                 # Domain-specific hooks
-│   ├── index.ts           # Hook exports
-│   ├── use-search-store.ts
-│   ├── use-chat-store.ts
-│   ├── use-upload-store.ts
-│   ├── use-system-status.ts
-│   └── use-upload-sse.ts  # SSE connection management for uploads
-└── utils/                 # Utility functions
+└── utils/                 # Utility helpers
     └── storage.ts         # LocalStorage serialization/deserialization
 ```
+
+Domain hooks live under `frontend/lib/hooks` (`use-search-store.ts`, `use-chat-store.ts`, `use-upload-store.ts`, `use-system-status.ts`, `use-upload-sse.ts`) and are re-exported from `app-store.tsx` for convenience.
 
 ## Usage
 
@@ -93,6 +88,6 @@ function Component() {
 
 1. Define types in `types.ts`
 2. Create a new reducer in `reducers/[domain]-reducer.ts`
-3. Add reducer to composition in `reducers/index.ts`
-4. Create a new hook in `hooks/use-[domain]-store.ts`
-5. Export the hook from `app-store.tsx`
+3. Add the reducer to the composition in `reducers/index.ts`
+4. Create a new hook under `frontend/lib/hooks/use-[domain]-store.ts`
+5. Export the hook from `frontend/lib/hooks/index.ts` (if applicable) and re-export it from `app-store.tsx`

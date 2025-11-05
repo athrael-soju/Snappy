@@ -39,10 +39,12 @@ flowchart TB
 
 ## Components
 
-- **FastAPI application** (`backend/api/app.py`) wires the routers for health, retrieval, indexing, maintenance, and configuration.
-- **Qdrant service** (`backend/services/qdrant/`) manages vector collections, indexing, search, and optional MUVERA post-processing.
+- **FastAPI application** (`backend/api/app.py`) wires the routers for health, retrieval, indexing, maintenance, configuration, and OCR endpoints.
+- **Qdrant integration** (`backend/services/qdrant/`) manages vector collections, search, and MUVERA post-processing. The database writer in `indexing/qdrant_indexer.py` builds on the shared pipeline package.
+- **Pipeline package** (`backend/services/pipeline/`) hosts the database-agnostic `DocumentIndexer`, batch processor, progress tracking, and storage helpers used during ingestion.
 - **MinIO service** (`backend/services/minio.py`) stores page images with concurrent uploads and retry handling.
 - **ColPali client** (`backend/services/colpali.py`) communicates with the embedding service for both queries and images.
+- **DeepSeek OCR service** (`backend/services/ocr/`) handles OCR requests, integrates with MinIO, and surfaces batch/background helpers for the OCR router.
 - **Configuration layer** (`backend/config.py`, `backend/config_schema.py`) keeps runtime settings consistent across the API and UI.
 - **Support modules**
   - `backend/api/utils.py` – PDF-to-image conversion
@@ -55,9 +57,10 @@ flowchart TB
 
 1. `POST /index` receives one or more PDFs and starts a background task.
 2. `convert_pdf_paths_to_images` rasterises each page.
-3. `DocumentIndexer` (`services/qdrant/indexing.py`) handles batching, embedding, image uploads, and Qdrant upserts.
-4. When `ENABLE_PIPELINE_INDEXING=True`, dual executors overlap embedding, storage, and upserts based on `get_pipeline_max_concurrency()`.
-5. `/progress/stream/{job_id}` streams progress updates so the UI can reflect status in real time.
+3. `DocumentIndexer` (`services/pipeline/document_indexer.py`) handles batching, embedding, image uploads, optional OCR callbacks, and delegates upserts via `services/qdrant/indexing/qdrant_indexer.py`.
+4. When DeepSeek OCR is enabled the batch processor invokes `services/ocr` helpers in parallel, storing JSON outputs alongside page images in MinIO.
+5. When `ENABLE_PIPELINE_INDEXING=True`, dual executors overlap embedding, storage, OCR, and upserts based on `get_pipeline_max_concurrency()`.
+6. `/progress/stream/{job_id}` streams progress updates so the UI can reflect status in real time.
 
 ---
 
@@ -69,6 +72,14 @@ flowchart TB
    - Prefetch via pooled vectors when mean pooling is enabled.
    - Final rerank on the original multivectors.
 3. Results include metadata and public image URLs; the frontend decides how to display them.
+
+## OCR Flow (Optional)
+
+1. `/ocr/process-page` and `/ocr/process-batch` use `services/ocr` to fetch page images from MinIO and submit them to the DeepSeek OCR microservice.
+2. OCR responses (markdown, text, regions, extracted crops) are persisted in MinIO via `services/ocr/storage.py` so future calls can reuse cached outputs.
+3. `/ocr/process-document` launches a background job that iterates every page discovered via Qdrant metadata and reports progress through `api/progress`.
+4. `/ocr/progress/{job_id}` and `/ocr/progress/stream/{job_id}` expose job status for polling or SSE streaming, mirroring the indexing progress APIs.
+5. `/ocr/cancel/{job_id}` stops long-running jobs, while `/ocr/health` verifies that the OCR client can reach the external service.
 
 ---
 
