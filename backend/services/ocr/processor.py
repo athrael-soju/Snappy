@@ -85,9 +85,19 @@ class OcrProcessor:
         if not isinstance(response, dict):
             raise ValueError(f"Invalid OCR response type: {type(response)}")
 
-        # Extract text fields
-        text = (response.get("text") or "").strip()
-        markdown = (response.get("markdown") or text).strip()
+        # Extract text fields based on task type
+        # For markdown task, prioritize markdown output; for others, use plain text
+        task_type = task or self._ocr_service.default_task
+
+        if task_type == "markdown":
+            # For markdown task, use markdown as primary and text as fallback
+            markdown = (response.get("markdown") or "").strip()
+            text = markdown  # Use markdown content for text field too
+        else:
+            # For other tasks (plain_ocr, locate, describe, custom), use text field
+            text = (response.get("text") or "").strip()
+            markdown = (response.get("markdown") or text).strip()
+
         raw_text = (response.get("raw") or text).strip()
         text_segments = self._split_segments(text)
 

@@ -266,7 +266,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "select",
                 "options": ["markdown", "plain_ocr", "locate", "describe", "custom"],
                 "description": "Default OCR task type for document processing.",
-                "help_text": "Markdown: structured output with formatting. Plain OCR: raw text extraction. Locate: find specific text with bounding boxes. Describe: generate image descriptions. Custom: use custom prompts. Choose based on your primary use case.",
+                "help_text": "Markdown: structured output with formatting (preserves tables, lists, etc.). Plain OCR: simple text extraction without formatting. Locate: find specific text with bounding boxes. Describe: generate image descriptions. Custom: use custom prompts. The task type determines both the prompt sent to the model and which output format is used as the primary result.",
                 "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
             },
             {
