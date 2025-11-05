@@ -25,6 +25,10 @@ export function useChatStore() {
     setLoading: (loading: boolean) => 
       dispatch({ type: 'CHAT_SET_LOADING', payload: loading }),
     setMaxTokens: (maxTokens: number) => dispatch({ type: 'CHAT_SET_MAX_TOKENS', payload: maxTokens }),
+    setReasoningEffort: (effort: 'minimal' | 'low' | 'medium' | 'high') =>
+      dispatch({ type: 'CHAT_SET_REASONING_EFFORT', payload: effort }),
+    setSummaryPreference: (summary: 'auto' | 'concise' | 'detailed' | null) =>
+      dispatch({ type: 'CHAT_SET_SUMMARY_PREFERENCE', payload: summary }),
     removeEmptyAssistantPlaceholder: () => 
       dispatch({ type: 'CHAT_REMOVE_EMPTY_ASSISTANT' }),
     reset: () => dispatch({ type: 'CHAT_RESET' }),

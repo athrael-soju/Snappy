@@ -2,9 +2,9 @@
 import { baseUrl } from '@/lib/api/client'
 import {
   parseKnowledgeBaseItems,
-  parseSearchResults,
-  type SearchItem,
+  parseSearchResults
 } from '@/lib/api/runtime'
+import type { SearchItem } from "@/lib/api/generated/models/SearchItem";
 
 export type ChatMessage = {
   role: 'user' | 'assistant'
@@ -22,13 +22,19 @@ export type ChatRequest = {
   message: string
   k: number
   toolCallingEnabled: boolean
+  reasoning: { effort: 'minimal' | 'low' | 'medium' | 'high' }
+  summary?: 'auto' | 'concise' | 'detailed' | null
 }
 
 export async function chatRequest(req: ChatRequest): Promise<Response> {
+  const payload: Record<string, unknown> = { ...req }
+  if (payload.summary === null || payload.summary === undefined) {
+    delete payload.summary
+  }
   return fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(req),
+    body: JSON.stringify(payload),
   })
 }
 
@@ -41,20 +47,20 @@ export async function streamAssistant(
   if (!res.ok || !res.body) {
     throw new Error(`Failed to stream chat: ${res.status}`)
   }
-  
+
   // Parse Server-Sent Events from the response body
   const reader = res.body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
   let firstEmitted = false
-  
+
   while (true) {
     const { done, value } = await reader.read()
-    
+
     if (done) {
       break
     }
-    
+
     buffer += decoder.decode(value, { stream: true })
 
     // SSE events are separated by a blank line \n\n

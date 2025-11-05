@@ -46,6 +46,12 @@ export function chatReducer(state: AppState, action: AppAction): AppState | null
     case 'CHAT_SET_MAX_TOKENS':
       return { ...state, chat: { ...state.chat, maxTokens: action.payload } };
 
+    case 'CHAT_SET_REASONING_EFFORT':
+      return { ...state, chat: { ...state.chat, reasoningEffort: action.payload } };
+
+    case 'CHAT_SET_SUMMARY_PREFERENCE':
+      return { ...state, chat: { ...state.chat, summaryPreference: action.payload } };
+
     case 'CHAT_REMOVE_EMPTY_ASSISTANT': {
       const messages = state.chat.messages;
       if (messages.length === 0) {
@@ -73,6 +79,8 @@ export function chatReducer(state: AppState, action: AppAction): AppState | null
           k: state.chat.k,
           toolCallingEnabled: state.chat.toolCallingEnabled,
           maxTokens: state.chat.maxTokens,
+          reasoningEffort: state.chat.reasoningEffort,
+          summaryPreference: state.chat.summaryPreference,
         } 
       };
     

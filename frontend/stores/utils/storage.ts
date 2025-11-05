@@ -22,6 +22,8 @@ export function serializeStateForStorage(state: AppState): any {
       toolCallingEnabled: state.chat.toolCallingEnabled,
       loading: false, // Don't persist loading state across sessions
       maxTokens: state.chat.maxTokens,
+      reasoningEffort: state.chat.reasoningEffort,
+      summaryPreference: state.chat.summaryPreference,
     },
     // Persist minimal upload state to track ongoing uploads
     upload: {

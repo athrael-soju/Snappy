@@ -1,4 +1,4 @@
-import type { SearchItem } from "@/lib/api/runtime";
+import type { SearchItem } from "@/lib/api/generated/models/SearchItem";
 import type { ChatMessage } from "@/lib/hooks/use-chat";
 
 // State Types
@@ -18,6 +18,8 @@ export interface ChatState {
   toolCallingEnabled: boolean;
   loading: boolean;
   maxTokens: number;
+  reasoningEffort: 'minimal' | 'low' | 'medium' | 'high';
+  summaryPreference: 'auto' | 'concise' | 'detailed' | null;
 }
 
 export interface UploadFileMeta {
@@ -78,7 +80,7 @@ export type AppAction =
   | { type: 'SEARCH_SET_K'; payload: number }
   | { type: 'SEARCH_SET_TOP_K'; payload: number }
   | { type: 'SEARCH_RESET' }
-  
+
   // Chat actions
   | { type: 'CHAT_SET_MESSAGES'; payload: ChatMessage[] }
   | { type: 'CHAT_ADD_MESSAGE'; payload: ChatMessage }
@@ -89,9 +91,11 @@ export type AppAction =
   | { type: 'CHAT_SET_TOOL_CALLING'; payload: boolean }
   | { type: 'CHAT_SET_LOADING'; payload: boolean }
   | { type: 'CHAT_SET_MAX_TOKENS'; payload: number }
+  | { type: 'CHAT_SET_REASONING_EFFORT'; payload: 'minimal' | 'low' | 'medium' | 'high' }
+  | { type: 'CHAT_SET_SUMMARY_PREFERENCE'; payload: 'auto' | 'concise' | 'detailed' | null }
   | { type: 'CHAT_REMOVE_EMPTY_ASSISTANT' }
   | { type: 'CHAT_RESET' }
-  
+
   // Upload actions
   | { type: 'UPLOAD_SET_FILES'; payload: File[] | null }
   | { type: 'UPLOAD_SET_FILE_META'; payload: UploadFileMeta[] | null }
@@ -102,11 +106,11 @@ export type AppAction =
   | { type: 'UPLOAD_SET_JOB_ID'; payload: string | null }
   | { type: 'UPLOAD_SET_STATUS_TEXT'; payload: string | null }
   | { type: 'UPLOAD_RESET' }
-  
+
   // System status actions
   | { type: 'SYSTEM_SET_STATUS'; payload: SystemStatus }
   | { type: 'SYSTEM_CLEAR_STATUS' }
-  
+
   // Global actions
   | { type: 'HYDRATE_FROM_STORAGE'; payload: Partial<AppState> }
   | { type: 'SET_PAGE_VISITED'; payload: { page: 'search' | 'chat' | 'upload'; timestamp: number } };
@@ -128,6 +132,8 @@ export const initialState: AppState = {
     toolCallingEnabled: true,
     loading: false,
     maxTokens: 500,
+    reasoningEffort: 'minimal',
+    summaryPreference: null,
   },
   upload: {
     files: null,
