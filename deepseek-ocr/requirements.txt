@@ -1,0 +1,17 @@
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+transformers==4.46.3
+tokenizers==0.20.3
+accelerate>=0.34.2
+einops
+addict
+easydict
+pillow
+safetensors
+torch
+python-decouple>=3.8
+nvidia-ml-py
+pymupdf
+numpy
+pydantic

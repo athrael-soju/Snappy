@@ -99,6 +99,18 @@
               ],
               "title": "K"
             }
+          },
+          {
+            "name": "include_ocr",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Include OCR results if available",
+              "default": false,
+              "title": "Include Ocr"
+            },
+            "description": "Include OCR results if available"
           }
         ],
         "responses": {
@@ -483,6 +495,273 @@
           }
         }
       }
+    },
+    "/ocr/process-page": {
+      "post": {
+        "tags": [
+          "ocr"
+        ],
+        "summary": "Process Page",
+        "description": "Process a single document page with DeepSeek OCR.\n\nThe page must already be indexed and stored in MinIO.",
+        "operationId": "process_page_ocr_process_page_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OcrPageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OcrResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ocr/process-batch": {
+      "post": {
+        "tags": [
+          "ocr"
+        ],
+        "summary": "Process Batch",
+        "description": "Process multiple pages from the same document in parallel.",
+        "operationId": "process_batch_ocr_process_batch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OcrBatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OcrBatchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ocr/process-document": {
+      "post": {
+        "tags": [
+          "ocr"
+        ],
+        "summary": "Process Document",
+        "description": "Process all pages of an indexed document with OCR.\n\nThis is a long-running operation that runs in the background.\nUse the returned job_id to track progress via SSE.",
+        "operationId": "process_document_ocr_process_document_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OcrDocumentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ocr/progress/{job_id}": {
+      "get": {
+        "tags": [
+          "ocr"
+        ],
+        "summary": "Get Progress",
+        "description": "Get OCR processing progress for a job.",
+        "operationId": "get_progress_ocr_progress__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ocr/progress/stream/{job_id}": {
+      "get": {
+        "tags": [
+          "ocr"
+        ],
+        "summary": "Stream Progress",
+        "description": "Stream OCR processing progress via Server-Sent Events.",
+        "operationId": "stream_progress_ocr_progress_stream__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ocr/cancel/{job_id}": {
+      "post": {
+        "tags": [
+          "ocr"
+        ],
+        "summary": "Cancel Job",
+        "description": "Cancel a running OCR job.",
+        "operationId": "cancel_job_ocr_cancel__job_id__post",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ocr/health": {
+      "get": {
+        "tags": [
+          "ocr"
+        ],
+        "summary": "Health Check",
+        "description": "Check OCR service health.",
+        "operationId": "health_check_ocr_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -538,6 +817,242 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "OcrBatchRequest": {
+        "properties": {
+          "filename": {
+            "type": "string",
+            "title": "Filename",
+            "description": "Document filename in storage"
+          },
+          "page_numbers": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Page Numbers",
+            "description": "Page numbers to process"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mode"
+          },
+          "task": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task"
+          },
+          "max_workers": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 16.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Workers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "filename",
+          "page_numbers"
+        ],
+        "title": "OcrBatchRequest",
+        "description": "Request to process multiple pages."
+      },
+      "OcrBatchResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "total_pages": {
+            "type": "integer",
+            "title": "Total Pages"
+          },
+          "successful": {
+            "type": "integer",
+            "title": "Successful"
+          },
+          "failed": {
+            "type": "integer",
+            "title": "Failed"
+          },
+          "results": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Results"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "total_pages",
+          "successful",
+          "failed",
+          "results"
+        ],
+        "title": "OcrBatchResponse",
+        "description": "Batch OCR processing result."
+      },
+      "OcrDocumentRequest": {
+        "properties": {
+          "filename": {
+            "type": "string",
+            "title": "Filename",
+            "description": "Document filename"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mode"
+          },
+          "task": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task"
+          }
+        },
+        "type": "object",
+        "required": [
+          "filename"
+        ],
+        "title": "OcrDocumentRequest",
+        "description": "Request to OCR all pages of an indexed document."
+      },
+      "OcrPageRequest": {
+        "properties": {
+          "filename": {
+            "type": "string",
+            "title": "Filename",
+            "description": "Document filename in storage"
+          },
+          "page_number": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Page Number",
+            "description": "Page number to process"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mode",
+            "description": "OCR mode (Gundam, Tiny, etc.)"
+          },
+          "task": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task",
+            "description": "Task type (markdown, plain_ocr, etc.)"
+          },
+          "custom_prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Prompt",
+            "description": "Custom prompt for custom tasks"
+          }
+        },
+        "type": "object",
+        "required": [
+          "filename",
+          "page_number"
+        ],
+        "title": "OcrPageRequest",
+        "description": "Request to process a single page."
+      },
+      "OcrResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "page_number": {
+            "type": "integer",
+            "title": "Page Number"
+          },
+          "storage_url": {
+            "type": "string",
+            "title": "Storage Url"
+          },
+          "text_preview": {
+            "type": "string",
+            "title": "Text Preview"
+          },
+          "regions": {
+            "type": "integer",
+            "title": "Regions"
+          },
+          "extracted_images": {
+            "type": "integer",
+            "title": "Extracted Images"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "filename",
+          "page_number",
+          "storage_url",
+          "text_preview",
+          "regions",
+          "extracted_images"
+        ],
+        "title": "OcrResponse",
+        "description": "OCR processing result."
+      },
       "SearchItem": {
         "properties": {
           "image_url": {
@@ -577,6 +1092,17 @@
               }
             ],
             "title": "Score"
+          },
+          "json_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Json Url"
           }
         },
         "type": "object",

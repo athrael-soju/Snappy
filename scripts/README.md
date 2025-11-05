@@ -108,7 +108,7 @@ git commit -m "fix: resolve bug"
 ## Script Requirements
 
 ### Python Scripts
-- Python 3.10+
+- Python 3.11+
 - Run with `uv` from project root
 - Backend dependencies must be installed
 

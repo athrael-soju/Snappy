@@ -1,5 +1,6 @@
 import logging
 import os
+import uuid
 from typing import Dict, Iterator, List, Tuple
 
 import config  # Import module for dynamic config access
@@ -49,6 +50,7 @@ def convert_pdf_paths_to_images(
                 "filename": filename,
                 "file_size_bytes": size_bytes,
                 "total_pages": pages,
+                "document_id": str(uuid.uuid4()),  # Unique ID for this document
             }
         )
         total_pages += pages
@@ -83,14 +85,17 @@ def convert_pdf_paths_to_images(
                         if hasattr(img, "size")
                         else (None, None)
                     )
+                    page_index = page + offset
                     yield {
                         "image": img,
                         "filename": source["filename"],
                         "file_size_bytes": source["file_size_bytes"],
-                        "pdf_page_index": page + offset,
+                        "pdf_page_index": page_index,
                         "total_pages": total,
                         "page_width_px": width,
                         "page_height_px": height,
+                        "document_id": source["document_id"],  # Pass document ID
+                        "page_number": page_index,  # Page number for storage path
                     }
 
                 page = last_page + 1

@@ -218,9 +218,26 @@ export default function ConfigurationPage() {
                         const disabled = Boolean(setting.ui_disabled);
 
                         const isDependent = !!setting.depends_on;
+                        const indentLevel = setting.ui_indent_level ?? 0;
+
+                        // Base classes for all articles
+                        const baseArticleClass = "group rounded-2xl border border-border/25 bg-background/60 p-4 shadow-sm";
+
+                        // Dependent setting classes with connector line
+                        const dependentClasses = "relative before:absolute before:left-0 before:top-4 before:h-[calc(100%-2rem)] before:w-px before:-translate-x-3 before:rounded-full before:bg-primary/40";
+
+                        // Indent level classes - using safe Tailwind classes
+                        const indentClasses = indentLevel > 0
+                          ? indentLevel === 1
+                            ? "ml-8 sm:ml-12"
+                            : indentLevel === 2
+                              ? "ml-16 sm:ml-20"
+                              : "ml-24 sm:ml-28"
+                          : "ml-4 sm:ml-6";
+
                         const articleClass = isDependent
-                          ? "group relative ml-4 rounded-2xl border border-border/25 bg-background/60 p-4 shadow-sm sm:ml-6 before:absolute before:left-0 before:top-4 before:h-[calc(100%-2rem)] before:w-px before:-translate-x-3 before:rounded-full before:bg-primary/40"
-                          : "group rounded-2xl border border-border/25 bg-background/60 p-4 shadow-sm";
+                          ? `${baseArticleClass} ${dependentClasses} ${indentClasses}`
+                          : baseArticleClass;
 
                         if (setting.type === "boolean") {
                           return (

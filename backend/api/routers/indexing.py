@@ -227,6 +227,8 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
                         qdrant_init_error or "Dependency services are down"
                     )
 
+                job_state = {"current": 0}
+
                 def progress_cb(current: int, info: dict | None = None):
                     if progress_manager.is_cancelled(job_id):
                         raise CancellationError("Job cancelled by user")
@@ -234,13 +236,24 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
                     if info and info.get("stage") == "check_cancel":
                         return
 
-                    message = None
-                    if info and "stage" in info:
-                        total_hint = info.get("total") or total_images
-                        message = f"{info['stage']} {current}/{total_hint or '?'}"
-                    progress_manager.update(job_id, current=current, message=message)
+                    job_state["current"] = max(job_state["current"], int(current))
 
-                progress_manager.update(job_id, current=0, message="indexing")
+                    # Unified progress message: "Processing X/Y pages"
+                    message = f"Processing {job_state['current']}/{total_images} pages"
+
+                    progress_manager.update(
+                        job_id,
+                        current=job_state["current"],
+                        message=message,
+                        details=None,  # Simplified: no separate task details
+                    )
+
+                progress_manager.update(
+                    job_id,
+                    current=0,
+                    message=f"Starting processing of {total_images} pages...",
+                    details=None,
+                )
                 msg = svc.index_documents(
                     image_iterator,
                     total_images=total_images,
@@ -325,6 +338,7 @@ async def stream_progress(job_id: str):
                 "percent": pct,
                 "message": data.get("message"),
                 "error": data.get("error"),
+                "details": data.get("details"),
             }
 
             changed = (

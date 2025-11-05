@@ -24,6 +24,7 @@ class ProgressManager:
                 "started_at": time.time(),
                 "finished_at": None,
                 "error": None,
+                "details": None,
             }
             self._cancel_flags[job_id] = False  # Initialize cancel flag
 
@@ -37,12 +38,20 @@ class ProgressManager:
             if job_id in self._jobs:
                 self._jobs[job_id]["status"] = "running"
 
-    def update(self, job_id: str, current: int, message: Optional[str] = None):
+    def update(
+        self,
+        job_id: str,
+        current: int,
+        message: Optional[str] = None,
+        details: Optional[Dict] = None,
+    ):
         with self._lock:
             if job_id in self._jobs:
                 self._jobs[job_id]["current"] = int(current)
                 if message is not None:
                     self._jobs[job_id]["message"] = message
+                if details is not None:
+                    self._jobs[job_id]["details"] = details
 
     def complete(self, job_id: str, message: Optional[str] = None):
         with self._lock:

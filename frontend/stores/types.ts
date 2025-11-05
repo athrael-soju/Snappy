@@ -1,4 +1,4 @@
-import type { SearchItem } from "@/lib/api/runtime";
+import type { SearchItem } from "@/lib/api/generated/models/SearchItem";
 import type { ChatMessage } from "@/lib/hooks/use-chat";
 
 // State Types
@@ -17,7 +17,8 @@ export interface ChatState {
   k: number;
   toolCallingEnabled: boolean;
   loading: boolean;
-  maxTokens: number;
+  reasoningEffort: 'minimal' | 'low' | 'medium' | 'high';
+  summaryPreference: 'auto' | 'concise' | 'detailed' | null;
 }
 
 export interface UploadFileMeta {
@@ -36,6 +37,12 @@ export interface UploadState {
   error: string | null;
   jobId: string | null;
   statusText: string | null;
+  // OCR state (separate from indexing)
+  ocrJobId: string | null;
+  ocrProgress: number;
+  ocrStatusText: string | null;
+  ocrError: string | null;
+  uploadedFilenames: string[] | null; // Track filenames for OCR processing
 }
 
 export interface SystemStatus {
@@ -78,7 +85,7 @@ export type AppAction =
   | { type: 'SEARCH_SET_K'; payload: number }
   | { type: 'SEARCH_SET_TOP_K'; payload: number }
   | { type: 'SEARCH_RESET' }
-  
+
   // Chat actions
   | { type: 'CHAT_SET_MESSAGES'; payload: ChatMessage[] }
   | { type: 'CHAT_ADD_MESSAGE'; payload: ChatMessage }
@@ -88,10 +95,11 @@ export type AppAction =
   | { type: 'CHAT_SET_K'; payload: number }
   | { type: 'CHAT_SET_TOOL_CALLING'; payload: boolean }
   | { type: 'CHAT_SET_LOADING'; payload: boolean }
-  | { type: 'CHAT_SET_MAX_TOKENS'; payload: number }
+  | { type: 'CHAT_SET_REASONING_EFFORT'; payload: 'minimal' | 'low' | 'medium' | 'high' }
+  | { type: 'CHAT_SET_SUMMARY_PREFERENCE'; payload: 'auto' | 'concise' | 'detailed' | null }
   | { type: 'CHAT_REMOVE_EMPTY_ASSISTANT' }
   | { type: 'CHAT_RESET' }
-  
+
   // Upload actions
   | { type: 'UPLOAD_SET_FILES'; payload: File[] | null }
   | { type: 'UPLOAD_SET_FILE_META'; payload: UploadFileMeta[] | null }
@@ -101,12 +109,18 @@ export type AppAction =
   | { type: 'UPLOAD_SET_ERROR'; payload: string | null }
   | { type: 'UPLOAD_SET_JOB_ID'; payload: string | null }
   | { type: 'UPLOAD_SET_STATUS_TEXT'; payload: string | null }
+  | { type: 'UPLOAD_SET_UPLOADED_FILENAMES'; payload: string[] | null }
+  // OCR actions
+  | { type: 'UPLOAD_SET_OCR_JOB_ID'; payload: string | null }
+  | { type: 'UPLOAD_SET_OCR_PROGRESS'; payload: number }
+  | { type: 'UPLOAD_SET_OCR_STATUS_TEXT'; payload: string | null }
+  | { type: 'UPLOAD_SET_OCR_ERROR'; payload: string | null }
   | { type: 'UPLOAD_RESET' }
-  
+
   // System status actions
   | { type: 'SYSTEM_SET_STATUS'; payload: SystemStatus }
   | { type: 'SYSTEM_CLEAR_STATUS' }
-  
+
   // Global actions
   | { type: 'HYDRATE_FROM_STORAGE'; payload: Partial<AppState> }
   | { type: 'SET_PAGE_VISITED'; payload: { page: 'search' | 'chat' | 'upload'; timestamp: number } };
@@ -127,7 +141,8 @@ export const initialState: AppState = {
     k: 5,
     toolCallingEnabled: true,
     loading: false,
-    maxTokens: 500,
+    reasoningEffort: 'minimal',
+    summaryPreference: null,
   },
   upload: {
     files: null,
@@ -138,6 +153,11 @@ export const initialState: AppState = {
     error: null,
     jobId: null,
     statusText: null,
+    ocrJobId: null,
+    ocrProgress: 0,
+    ocrStatusText: null,
+    ocrError: null,
+    uploadedFilenames: null,
   },
   systemStatus: null,
   lastVisited: {

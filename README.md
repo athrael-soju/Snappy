@@ -84,6 +84,7 @@ flowchart TB
     QDRANT["Qdrant"]
     MINIO["MinIO"]
     COLPALI["ColPali Embedding API"]
+    DEEPSEEK["DeepSeek OCR (Optional)"]
     OPENAI["OpenAI Responses API"]
   end
 
@@ -92,6 +93,7 @@ flowchart TB
   API --> QDRANT
   API --> MINIO
   API --> COLPALI
+  API -.-> DEEPSEEK
   CHAT --> API
   CHAT --> OPENAI
   CHAT -- SSE --> USER
@@ -127,6 +129,17 @@ docker compose --profile cpu up -d --build
 ```
 
 Only start one profile at a time to avoid port clashes. The first GPU build compiles `flash-attn`; subsequent builds reuse the cached wheel.
+
+### 3. (Optional) Start the DeepSeek OCR service
+
+For advanced text extraction with configurable model sizes and modes:
+
+```bash
+cd deepseek-ocr
+docker compose up -d --build
+```
+
+The service runs at http://localhost:8200. Enable it via `DEEPSEEK_OCR_ENABLED=True` in `.env`. See `deepseek-ocr/README.md` for configuration details.
 
 ---
 
@@ -178,29 +191,46 @@ Update `.env` and `frontend/.env.local` if you need to expose different hostname
 1. In `backend/`, install dependencies and launch FastAPI:
 
    ```bash
+   cd backend
    python -m venv .venv
    source .venv/bin/activate  # Windows: .venv\Scripts\Activate.ps1
    pip install -U pip setuptools wheel
-   pip install -r backend/requirements.txt
-   uvicorn backend:app --host 0.0.0.0 --port 8000 --reload
+   pip install -r requirements.txt
+   uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
    ```
 
-2. Start Qdrant and MinIO (via Docker or your preferred deployment).
+2. Start the ColPali embedding service (Docker Compose or locally):
 
-3. In `frontend/`, install and run the Next.js app:
+   ```bash
+   # Docker (preferred)
+   cd ../colpali
+   docker compose --profile cpu up -d --build
+
+   # Or run locally (inside a separate virtualenv)
+   python -m venv .venv
+   source .venv/bin/activate
+   pip install -U pip setuptools wheel
+   pip install -r requirements.txt
+   uvicorn app:app --host 0.0.0.0 --port 7000 --reload
+   ```
+
+3. Start Qdrant and MinIO (via Docker or your preferred deployment).
+
+4. In `frontend/`, install and run the Next.js app:
 
    ```bash
    yarn install --frozen-lockfile
    yarn dev
    ```
 
-4. Keep the ColPali service from step 2 running (Docker or `uvicorn colpali/app.py`).
+Keep the services from steps 2 and 3 running while you develop.
 
 ---
 
 ## Highlights
 
 - Page-level vision retrieval powered by ColPali multivector embeddings; no OCR pipeline to maintain.
+- Optional DeepSeek OCR integration for advanced text extraction with configurable model sizes, modes (plain/markdown/grounding/locate), and image embedding.
 - Streaming chat responses from the OpenAI Responses API with inline visual citations so you can see each supporting page.
 - Pipelined indexing with live Server-Sent Events progress updates and optional MUVERA-assisted first-stage search.
 - Runtime configuration UI backed by a typed schema, with reset and draft flows that make experimentation safe.
@@ -234,6 +264,7 @@ The Next.js 16 frontend with React 19.2 keeps things fast and friendly: real-tim
 ### Backend highlights
 
 - `COLPALI_URL`, `COLPALI_API_TIMEOUT`
+- `DEEPSEEK_OCR_ENABLED`, `DEEPSEEK_OCR_URL`, `DEEPSEEK_OCR_API_TIMEOUT`, `DEEPSEEK_OCR_MAX_WORKERS`, `DEEPSEEK_OCR_POOL_SIZE`
 - `QDRANT_EMBEDDED`, `QDRANT_URL`, `QDRANT_COLLECTION_NAME`, `QDRANT_PREFETCH_LIMIT`, `QDRANT_MEAN_POOLING_ENABLED`, optional quantisation toggles
 - `MINIO_URL`, `MINIO_PUBLIC_URL`, credentials, bucket naming, `IMAGE_FORMAT`, `IMAGE_QUALITY`
 - `MUVERA_ENABLED` and related settings (requires `fastembed[postprocess]` in your environment)
@@ -257,6 +288,10 @@ All schema-backed settings (and defaults) are documented in `backend/docs/config
 | Indexing     | `POST /index`                            | Background indexing job (multipart PDF upload) |
 |              | `GET /progress/stream/{job_id}`          | Real-time progress (SSE) |
 |              | `POST /index/cancel/{job_id}`            | Cancel an active job |
+| OCR          | `POST /ocr/process-page`, `/ocr/process-batch` | DeepSeek OCR per-page and batch processing (requires OCR service) |
+|              | `POST /ocr/process-document`             | Background OCR for an entire indexed document |
+|              | `GET /ocr/progress/{job_id}`, `/ocr/progress/stream/{job_id}` | Poll or stream OCR job progress |
+|              | `POST /ocr/cancel/{job_id}`, `GET /ocr/health` | Cancel jobs and check OCR health |
 | Maintenance  | `GET /status`                            | Collection/bucket statistics |
 |              | `POST /initialize`, `DELETE /delete`     | Provision or tear down collection + bucket |
 |              | `POST /clear/qdrant`, `/clear/minio`, `/clear/all` | Data reset helpers |
@@ -295,6 +330,7 @@ Chat streaming lives in `frontend/app/api/chat/route.ts`. The route calls the ba
 - `backend/README.md` - FastAPI backend guide
 - `frontend/README.md` - Next.js frontend guide
 - `colpali/README.md` - ColPali embedding service guide
+- `deepseek-ocr/README.md` - DeepSeek OCR service guide
 - `backend/docs/configuration.md` - Configuration reference
 - `VERSIONING.md` - Release and version workflow
 
@@ -305,6 +341,7 @@ Chat streaming lives in `frontend/app/api/chat/route.ts`. The route calls the ba
 - `backend/docs/analysis.md` - vision vs. text RAG comparison
 - `backend/docs/architecture.md` - collection, indexing, and search deep dive
 - `colpali/README.md` - details on the standalone embedding service
+- `deepseek-ocr/README.md` - details on the DeepSeek OCR service
 
 ---
 
@@ -321,6 +358,9 @@ Snappy builds on the work of:
 - **ColPali / ColModernVBert** - multimodal models for visual retrieval  
    https://arxiv.org/abs/2407.01449
    https://arxiv.org/abs/2510.01149
+
+- **DeepSeek-OCR** - vision-language model for document understanding  
+   https://huggingface.co/deepseek-ai/DeepSeek-OCR
 
 - **Qdrant** - the vector database powering multivector search  
    https://qdrant.tech/blog/colpali-qdrant-optimization/  

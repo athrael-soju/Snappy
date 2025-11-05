@@ -208,3 +208,4 @@ __marimo__/
 
 # Qdrant
 qdrant_storage/
+deepseek-ocr/models/

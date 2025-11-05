@@ -25,7 +25,8 @@ export function useChat() {
     k,
     toolCallingEnabled,
     loading,
-    maxTokens,
+    reasoningEffort,
+    summaryPreference,
     setMessages,
     addMessage,
     updateLastMessage,
@@ -34,7 +35,8 @@ export function useChat() {
     setK,
     setToolCallingEnabled,
     setLoading,
-    setMaxTokens,
+    setReasoningEffort,
+    setSummaryPreference,
     removeEmptyAssistantPlaceholder,
     reset,
   } = useChatStore();
@@ -74,9 +76,9 @@ export function useChat() {
   const currentAssistantIdRef = useRef<string | null>(null)
 
   const genId = () =>
-    (typeof crypto !== 'undefined' && 'randomUUID' in crypto
-      ? (crypto as any).randomUUID()
-      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`)
+  (typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? (crypto as any).randomUUID()
+    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`)
 
   // Validation schemas are imported from shared module
 
@@ -103,8 +105,12 @@ export function useChat() {
   }, [toolCallingEnabled, persistSetting])
 
   useEffect(() => {
-    persistSetting('maxTokens', String(maxTokens))
-  }, [maxTokens, persistSetting])
+    persistSetting('reasoning-effort', reasoningEffort)
+  }, [reasoningEffort, persistSetting])
+
+  useEffect(() => {
+    persistSetting('summary-preference', summaryPreference ?? '')
+  }, [summaryPreference, persistSetting])
 
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault()
@@ -138,6 +144,8 @@ export function useChat() {
         message: text,
         k: k,
         toolCallingEnabled,
+        reasoning: { effort: reasoningEffort },
+        summary: summaryPreference,
       })
 
       let assistantText = ''
@@ -180,7 +188,7 @@ export function useChat() {
           setImageGroups([deduped])
         }
       })
-      
+
     } catch (err: unknown) {
       let errorMsg = 'Streaming failed'
       if (err instanceof Error) errorMsg = err.message
@@ -206,12 +214,14 @@ export function useChat() {
     toolCallingEnabled,
     imageGroups,
     isSettingsValid,
-    maxTokens,
+    reasoningEffort,
+    summaryPreference,
     // setters
     setInput,
     setK,
     setToolCallingEnabled,
-    setMaxTokens,
+    setReasoningEffort,
+    setSummaryPreference,
     // actions
     sendMessage,
     reset,

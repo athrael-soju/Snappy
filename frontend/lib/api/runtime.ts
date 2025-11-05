@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-import { schemas } from "@/lib/api/zod";
+import { schemas } from "@/lib/api/schemas";
+import type { SearchItem } from "@/lib/api/generated/models/SearchItem";
 
 const searchResultsSchema = schemas.SearchItem.array();
 
@@ -8,13 +9,6 @@ export type SearchPayload = {
   filename?: string;
   pdf_page_index?: number;
   [key: string]: unknown;
-};
-
-export type SearchItem = {
-  image_url: string | null;
-  label: string | null;
-  payload: SearchPayload;
-  score?: number | null;
 };
 
 export function parseSearchResults(data: unknown): SearchItem[] {
@@ -48,6 +42,10 @@ export function parseSearchResults(data: unknown): SearchItem[] {
         score:
           typeof item.score === "number" || item.score === null || typeof item.score === "undefined"
             ? item.score ?? null
+            : null,
+        json_url:
+          typeof item.json_url === "string" || item.json_url === null || typeof item.json_url === "undefined"
+            ? item.json_url ?? null
             : null,
         payload,
       };

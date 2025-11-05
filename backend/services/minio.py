@@ -6,7 +6,7 @@ import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import timedelta
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import urllib3
@@ -27,6 +27,9 @@ from minio import Minio
 from minio.deleteobjects import DeleteObject
 from minio.error import S3Error
 from PIL import Image
+
+if TYPE_CHECKING:
+    from services.image_processor import ProcessedImage
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -166,64 +169,102 @@ class MinioService:
         except Exception as e:
             raise Exception(f"Error retrieving image from {image_url}: {e}") from e
 
+    def get_json(self, json_url: str) -> Dict[str, Any]:
+        """
+        Retrieve a JSON file from MinIO by its public URL and return the parsed data.
+        """
+        try:
+            object_name = self._extract_object_name_from_url(json_url)
+            response = self.service.get_object(self.bucket_name, object_name)
+            try:
+                data = response.read()
+            finally:
+                response.close()
+                response.release_conn()
+            return json.loads(data.decode("utf-8"))
+        except Exception as e:
+            raise Exception(f"Error retrieving JSON from {json_url}: {e}") from e
+
     # -------------------------------------------------------------------
     # Batch Operations
     # -------------------------------------------------------------------
-    def store_images_batch(
+    def store_processed_images_batch(
         self,
-        images: Iterable[Image.Image],
+        processed_images: List["ProcessedImage"],
         image_ids: Optional[List[str]] = None,
-        fmt: str = IMAGE_FORMAT,
+        filenames: Optional[List[str]] = None,
+        page_numbers: Optional[List[int]] = None,
         max_workers: int = MINIO_WORKERS,
         retries: int = MINIO_RETRIES,
         fail_fast: bool = MINIO_FAIL_FAST,
-        **save_kwargs,
     ) -> Dict[str, str]:
         """
-        Upload many images concurrently with retries.
+        Upload many pre-processed images concurrently with retries.
+
+        This method accepts images that have already been processed (format conversion
+        and quality optimization applied), avoiding redundant conversions.
 
         Parameters
         ----------
-        images : Iterable[PIL.Image.Image]
+        processed_images : List[ProcessedImage]
+            Pre-processed images with encoded data
         image_ids : Optional[List[str]]
             Provide IDs to align with images; UUIDs will be created if omitted.
-        fmt : str
-            Output format (PNG/JPEG/WEBP) applied to all images.
+        filenames : Optional[List[str]]
+            Document filenames for organizing storage (required for new structure).
+        page_numbers : Optional[List[int]]
+            Page numbers within each document (required for new structure).
         max_workers : int
             Number of parallel upload threads.
         retries : int
             Retry attempts per object (total attempts = retries + 1).
         fail_fast : bool
             If True, raises at first failure; otherwise returns successes only.
-        save_kwargs : dict
-            Extra PIL save parameters (e.g., quality=90).
 
         Returns
         -------
         Dict[str, str]
             Mapping of image_id -> public URL for successfully uploaded items.
         """
-        images = list(images)
-        n = len(images)
+        n = len(processed_images)
         if image_ids is None:
             image_ids = [str(uuid.uuid4()) for _ in range(n)]
         if len(image_ids) != n:
-            raise ValueError("Number of images must match number of image IDs")
+            raise ValueError(
+                "Number of processed images must match number of image IDs"
+            )
+
+        # Require filenames and page_numbers
+        if filenames is None or len(filenames) != n:
+            raise ValueError("filenames is required and must match number of images")
+        if page_numbers is None or len(page_numbers) != n:
+            raise ValueError("page_numbers is required and must match number of images")
 
         successes: Dict[str, str] = {}
         errors: Dict[str, Exception] = {}
 
         def upload_one(idx: int):
-            img = images[idx]
+            processed = processed_images[idx]
             img_id = image_ids[idx]
+            filename = filenames[idx]
+            page_num = page_numbers[idx]
+
             attempt = 0
             while True:
                 attempt += 1
                 try:
-                    buf, size, used_fmt, content_type = self._encode_image_to_bytes(
-                        img, fmt=fmt, **save_kwargs
-                    )
-                    object_name = f"images/{img_id}.{used_fmt.lower()}"
+                    # Use pre-processed data directly
+                    buf = processed.to_buffer()
+                    size = processed.size
+                    used_fmt = processed.format
+                    content_type = processed.content_type
+
+                    # Storage structure: {filename}/{page_num}/page.{ext}
+                    ext = used_fmt.lower()
+                    if ext == "jpeg":
+                        ext = "jpg"
+                    object_name = f"{filename}/{page_num}/page.{ext}"
+
                     self.service.put_object(
                         bucket_name=self.bucket_name,
                         object_name=object_name,
@@ -259,6 +300,172 @@ class MinioService:
         if errors:
             logger.warning(f"{len(errors)} images failed to upload")
         return successes
+
+    def store_images_batch(
+        self,
+        images: Iterable[Image.Image],
+        image_ids: Optional[List[str]] = None,
+        document_ids: Optional[List[str]] = None,
+        page_numbers: Optional[List[int]] = None,
+        filenames: Optional[List[str]] = None,
+        fmt: str = IMAGE_FORMAT,
+        max_workers: int = MINIO_WORKERS,
+        retries: int = MINIO_RETRIES,
+        fail_fast: bool = MINIO_FAIL_FAST,
+        **save_kwargs,
+    ) -> Dict[str, str]:
+        """
+        Upload many images concurrently with retries.
+
+        Parameters
+        ----------
+        images : Iterable[PIL.Image.Image]
+        image_ids : Optional[List[str]]
+            Provide IDs to align with images; UUIDs will be created if omitted.
+        document_ids : Optional[List[str]]
+            Document IDs for organizing storage (deprecated, use filenames).
+        page_numbers : Optional[List[int]]
+            Page numbers within each document (required for new structure).
+        filenames : Optional[List[str]]
+            Document filenames for organizing storage (required for new structure).
+        fmt : str
+            Output format (PNG/JPEG/WEBP) applied to all images.
+        max_workers : int
+            Number of parallel upload threads.
+        retries : int
+            Retry attempts per object (total attempts = retries + 1).
+        fail_fast : bool
+            If True, raises at first failure; otherwise returns successes only.
+        save_kwargs : dict
+            Extra PIL save parameters (e.g., quality=90).
+
+        Returns
+        -------
+        Dict[str, str]
+            Mapping of image_id -> public URL for successfully uploaded items.
+        """
+        images = list(images)
+        n = len(images)
+        if image_ids is None:
+            image_ids = [str(uuid.uuid4()) for _ in range(n)]
+        if len(image_ids) != n:
+            raise ValueError("Number of images must match number of image IDs")
+
+        # Require filenames and page_numbers (no fallback)
+        if filenames is None or len(filenames) != n:
+            raise ValueError("filenames is required and must match number of images")
+        if page_numbers is None or len(page_numbers) != n:
+            raise ValueError("page_numbers is required and must match number of images")
+
+        successes: Dict[str, str] = {}
+        errors: Dict[str, Exception] = {}
+
+        def upload_one(idx: int):
+            img = images[idx]
+            img_id = image_ids[idx]
+            filename = filenames[idx]
+            page_num = page_numbers[idx]
+
+            attempt = 0
+            while True:
+                attempt += 1
+                try:
+                    buf, size, used_fmt, content_type = self._encode_image_to_bytes(
+                        img, fmt=fmt, **save_kwargs
+                    )
+                    # Storage structure: {filename}/{page_num}/page.{ext}
+                    object_name = f"{filename}/{page_num}/page.{used_fmt.lower()}"
+
+                    self.service.put_object(
+                        bucket_name=self.bucket_name,
+                        object_name=object_name,
+                        data=buf,
+                        length=size,
+                        content_type=content_type,
+                    )
+                    return img_id, self._get_image_url(object_name)
+                except Exception as e:
+                    if attempt > retries + 1:
+                        raise
+                    # Exponential backoff with jitter
+                    sleep_s = (0.25 * (2 ** (attempt - 1))) + random.random() * 0.1
+                    time.sleep(sleep_s)
+
+        max_workers_eff = max(1, min(max_workers, n))
+        with ThreadPoolExecutor(max_workers=max_workers_eff) as ex:
+            future_to_idx = {ex.submit(upload_one, i): i for i in range(n)}
+            for fut in as_completed(future_to_idx):
+                i = future_to_idx[fut]
+                img_id = image_ids[i]
+                try:
+                    _id, url = fut.result()
+                    successes[_id] = url
+                except Exception as e:
+                    errors[img_id] = e
+                    logger.exception(f"Failed to store image {img_id}: {e}")
+                    if fail_fast:
+                        for f in future_to_idx:
+                            f.cancel()
+                        raise Exception(f"Batch failed on {img_id}: {e}") from e
+
+        if errors:
+            logger.warning(f"{len(errors)} images failed to upload")
+        return successes
+
+    def store_json(
+        self,
+        payload: Dict[str, Any],
+        *,
+        document_id: Optional[str] = None,
+        page_number: Optional[int] = None,
+        filename: Optional[str] = None,
+        json_filename: str = "data.json",
+        content_type: str = "application/json; charset=utf-8",
+    ) -> str:
+        """
+        Persist a JSON payload to MinIO and return its public URL.
+
+        Parameters
+        ----------
+        payload : Dict[str, Any]
+            JSON-serialisable dictionary to store.
+        document_id : str
+            Document ID for hierarchical structure (deprecated, use filename).
+        page_number : int
+            Page number for hierarchical structure (required).
+        filename : str
+            Document filename for organizing storage (required).
+        json_filename : str
+            Filename for the JSON file (default: "data.json").
+        content_type : str
+            MIME type for the stored object. Defaults to ``application/json; charset=utf-8``.
+        """
+        # Require filename and page_number
+        if filename is None:
+            raise ValueError("filename is required for storing JSON")
+        if page_number is None:
+            raise ValueError("page_number is required for storing JSON")
+
+        # Storage structure: {filename}/{page_num}/{json_filename}
+        final_object_name = f"{filename}/{page_number}/{json_filename}"
+
+        data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        stream = io.BytesIO(data)
+        length = len(data)
+        try:
+            self.service.put_object(
+                bucket_name=self.bucket_name,
+                object_name=final_object_name,
+                data=stream,
+                length=length,
+                content_type=content_type,
+            )
+        except Exception as exc:  # pragma: no cover - defensive guard
+            raise Exception(
+                f"Failed to store JSON payload at {final_object_name}: {exc}"
+            ) from exc
+
+        return self._get_image_url(final_object_name)
 
     def delete_images_batch(self, image_urls: List[str]) -> Dict[str, str]:
         """
@@ -432,5 +639,10 @@ class MinioService:
         return {"deleted": deleted, "failed": failed}
 
     def clear_images(self) -> dict:
-        """Convenience helper: delete all stored images under 'images/'."""
-        return self.clear_prefix("images/")
+        """Convenience helper: delete all stored content in the bucket.
+
+        Clears the entire bucket (hierarchical document/page structure).
+        """
+        # Clear all content in bucket
+        result = self.clear_prefix("")
+        return result
