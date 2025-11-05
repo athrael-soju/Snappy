@@ -72,6 +72,14 @@ class OcrProcessor:
         Returns:
             Structured OCR result with text, regions, and extracted images
         """
+        # Determine effective mode and task
+        effective_mode = mode or self._ocr_service.default_mode
+        effective_task = task or self._ocr_service.default_task
+
+        logger.debug(
+            f"Processing OCR for {filename} with mode={effective_mode}, task={effective_task}"
+        )
+
         # Call DeepSeek OCR
         response = self._ocr_service.run_ocr_bytes(
             image_bytes,
@@ -101,9 +109,9 @@ class OcrProcessor:
         raw_text = (response.get("raw") or text).strip()
         text_segments = self._split_segments(text)
 
-        # Convert bounding boxes to regions
+        # Convert bounding boxes to regions with content
         bounding_boxes = response.get("bounding_boxes") or []
-        regions = self._build_regions_from_bboxes(filename, bounding_boxes)
+        regions = self._build_regions_from_bboxes(filename, bounding_boxes, raw_text)
 
         # Extract base64-encoded images if present
         crops = response.get("crops") or []
@@ -254,10 +262,24 @@ class OcrProcessor:
         return segments
 
     def _build_regions_from_bboxes(
-        self, doc_id: str, bboxes: Sequence[Dict[str, Any]]
+        self, doc_id: str, bboxes: Sequence[Dict[str, Any]], raw_text: str = ""
     ) -> List[Dict[str, Any]]:
-        """Convert bounding boxes to region descriptors."""
+        """
+        Convert bounding boxes to region descriptors with content extraction.
+
+        Args:
+            doc_id: Document identifier for region IDs
+            bboxes: List of bounding box dictionaries with label and coordinates
+            raw_text: Raw OCR output with grounding references for content extraction
+
+        Returns:
+            List of region dictionaries with id, label, bbox, and content
+        """
         regions: List[Dict[str, Any]] = []
+
+        # Extract content mapping from raw text if available
+        content_map = self._extract_region_content(raw_text) if raw_text else {}
+
         for idx, bbox in enumerate(bboxes or [], start=1):
             try:
                 x1 = int(bbox.get("x1", 0))
@@ -266,16 +288,66 @@ class OcrProcessor:
                 y2 = int(bbox.get("y2", 0))
                 label = bbox.get("label", "unknown")
 
-                regions.append(
-                    {
-                        "id": f"{doc_id}#region-{idx}",
-                        "label": label,
-                        "bbox": [x1, y1, x2, y2],
-                    }
-                )
+                region = {
+                    "id": f"{doc_id}#region-{idx}",
+                    "label": label,
+                    "bbox": [x1, y1, x2, y2],
+                }
+
+                # Add content if available
+                if label in content_map and content_map[label]:
+                    # For multiple instances of the same label, use them in order
+                    content_list = content_map[label]
+                    if content_list:
+                        region["content"] = content_list.pop(0)
+
+                regions.append(region)
             except Exception:  # pragma: no cover - best effort
                 continue
         return regions
+
+    def _extract_region_content(self, raw_text: str) -> Dict[str, List[str]]:
+        """
+        Extract content for each labeled region from raw OCR output.
+
+        The raw text contains patterns like:
+        <|ref|>label<|/ref|><|det|>[[coords]]<|/det|>
+        Content here
+
+        Args:
+            raw_text: Raw OCR output with grounding references
+
+        Returns:
+            Dictionary mapping labels to lists of their content
+        """
+        import re
+
+        content_map: Dict[str, List[str]] = {}
+
+        if not raw_text:
+            return content_map
+
+        # Pattern to match: <|ref|>label<|/ref|><|det|>coords<|/det|>\nContent
+        # This captures the label and the content following it
+        pattern = r"<\|ref\|>([^<]+)<\/\|ref\|><\|det\|>.*?<\/\|det\|>\s*\n(.*?)(?=<\|ref\|>|$)"
+
+        matches = re.findall(pattern, raw_text, re.DOTALL)
+
+        for label, content in matches:
+            label = label.strip()
+            content = content.strip()
+
+            if label not in content_map:
+                content_map[label] = []
+
+            # Clean the content - remove any remaining grounding markers
+            content = re.sub(r"<\|[^|]+\|>", "", content)
+            content = content.strip()
+
+            if content:
+                content_map[label].append(content)
+
+        return content_map
 
     def process_extracted_images(
         self,

@@ -1,5 +1,97 @@
 import type { SearchItem } from "@/lib/api/generated/models/SearchItem";
 
+type DataUrl = { mime: string; base64: string };
+
+async function fetchImageAsDataUrl(url: string): Promise<DataUrl> {
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.status}`);
+    }
+
+    const buffer = await response.arrayBuffer();
+    const mime = response.headers.get("content-type") || "image/png";
+    return { mime, base64: Buffer.from(buffer).toString("base64") };
+}
+
+async function inlineLocalImages(markdown: string): Promise<string> {
+    if (!markdown || !markdown.includes("![")) {
+        return markdown;
+    }
+
+    const imageRegex = /!\[(?<alt>[^\]]*)\]\((?<url>[^)]+)\)/g;
+    const matches = Array.from(markdown.matchAll(imageRegex));
+    if (matches.length === 0) {
+        return markdown;
+    }
+
+    type Replacement = { start: number; end: number; value: string };
+    const replacements: Replacement[] = [];
+    const cache = new Map<string, string>();
+
+    for (const match of matches) {
+        const url = match.groups?.url?.trim();
+        if (!url) {
+            continue;
+        }
+
+        const isLocal = url.includes("localhost") || url.includes("127.0.0.1");
+        if (!isLocal) {
+            continue;
+        }
+
+        const alt = match.groups?.alt ?? "";
+        const cacheKey = `${alt}::${url}`;
+        if (!cache.has(cacheKey)) {
+            let resolvedUrl = url;
+            if (process.env.PUBLIC_MINIO_URL_SET === "true") {
+                resolvedUrl = resolvedUrl
+                    .replace("localhost", "minio")
+                    .replace("127.0.0.1", "minio");
+            }
+
+            const createMarkdownImage = (data: DataUrl) =>
+                `![${alt}](data:${data.mime};base64,${data.base64})`;
+
+            try {
+                const dataUrl = await fetchImageAsDataUrl(resolvedUrl);
+                cache.set(cacheKey, createMarkdownImage(dataUrl));
+            } catch (error) {
+                if (resolvedUrl !== url) {
+                    try {
+                        const dataUrl = await fetchImageAsDataUrl(url);
+                        cache.set(cacheKey, createMarkdownImage(dataUrl));
+                    } catch {
+                        continue;
+                    }
+                } else {
+                    continue;
+                }
+            }
+        }
+
+        const replacement = cache.get(cacheKey);
+        if (!replacement) {
+            continue;
+        }
+
+        const start = match.index ?? 0;
+        const end = start + match[0].length;
+        replacements.push({ start, end, value: replacement });
+    }
+
+    if (replacements.length === 0) {
+        return markdown;
+    }
+
+    replacements.sort((a, b) => b.start - a.start);
+    let updated = markdown;
+    for (const { start, end, value } of replacements) {
+        updated = `${updated.slice(0, start)}${value}${updated.slice(end)}`;
+    }
+
+    return updated;
+}
+
 export async function buildImageContent(results: SearchItem[], query: string): Promise<any[]> {
     const labelsText = (results || [])
         .map((result, index) => `Image ${index + 1}: ${result.label || "Unknown"}`)
@@ -71,10 +163,12 @@ export async function buildMarkdownContent(results: SearchItem[], query: string)
                 }
 
                 const jsonData = await jsonResponse.json();
-                const markdown = jsonData.markdown;
+                let markdown = jsonData.markdown;
                 if (!markdown) {
                     return null;
                 }
+
+                markdown = await inlineLocalImages(markdown);
 
                 return {
                     type: "input_text",

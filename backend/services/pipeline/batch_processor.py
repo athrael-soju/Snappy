@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, Tuple
 
 import config
 from PIL import Image
+from services.image_processor import ProcessedImage
 
 from .progress import ProgressNotifier
 from .storage import ImageStorageHandler
@@ -139,7 +140,9 @@ class BatchProcessor:
                     logger.info(
                         f"Starting parallel OCR processing for batch {batch_start}"
                     )
-                    raw_ocr_results = self._process_ocr_batch(image_batch, meta_batch)
+                    raw_ocr_results = self._process_ocr_batch(
+                        processed_images, meta_batch
+                    )
                     if raw_ocr_results:
                         # Filter out None values for type safety
                         ocr_results = [r for r in raw_ocr_results if r is not None]
@@ -180,7 +183,7 @@ class BatchProcessor:
             raise Exception(f"Error during embed: {exc}") from exc
 
     def _process_ocr_batch(
-        self, image_batch: List[Image.Image], meta_batch: List[dict]
+        self, processed_images: List[ProcessedImage], meta_batch: List[dict]
     ) -> Optional[List[Optional[dict]]]:
         """
         Process OCR for a batch of images in parallel (non-blocking).
@@ -191,18 +194,34 @@ class BatchProcessor:
         if not self.ocr_service or not self.ocr_service.is_enabled():
             return None
 
-        ocr_results: List[Optional[dict]] = [None] * len(image_batch)
+        if not processed_images:
+            return None
+
+        if len(processed_images) != len(meta_batch):
+            logger.warning(
+                "Processed images and metadata length mismatch: %s vs %s",
+                len(processed_images),
+                len(meta_batch),
+            )
+
+        effective_length = min(len(processed_images), len(meta_batch))
+        ocr_results: List[Optional[dict]] = [None] * effective_length
 
         try:
             import config
 
             max_workers = getattr(config, "DEEPSEEK_OCR_MAX_WORKERS", 4)
-            max_workers = max(1, min(max_workers, len(image_batch)))
+            max_workers = max(1, min(max_workers, effective_length))
 
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
                 futures = {
                     executor.submit(self._process_single_ocr, img, meta): idx
-                    for idx, (img, meta) in enumerate(zip(image_batch, meta_batch))
+                    for idx, (img, meta) in enumerate(
+                        zip(
+                            processed_images[:effective_length],
+                            meta_batch[:effective_length],
+                        )
+                    )
                 }
 
                 for future in as_completed(futures):
@@ -220,27 +239,25 @@ class BatchProcessor:
 
         return ocr_results
 
-    def _process_single_ocr(self, image: Image.Image, meta: dict) -> Optional[dict]:
+    def _process_single_ocr(
+        self, processed_image: ProcessedImage, meta: dict
+    ) -> Optional[dict]:
         """Process a single image with OCR."""
         if self.ocr_service is None:
             return None
 
         try:
-            import io
-
-            # Convert PIL Image to bytes
-            buffer = io.BytesIO()
-            image.save(buffer, format="PNG")
-            image_bytes = buffer.getvalue()
-
             # Get filename and page for naming
             filename = meta.get("filename", "unknown")
             page_num = meta.get("page_number", 0)
+            extension = self.ocr_service.image_processor.get_extension(
+                processed_image.format
+            )
 
             # Run OCR
             ocr_result = self.ocr_service.processor.process_single(
-                image_bytes=image_bytes,
-                filename=f"{filename}/page_{page_num}.png",
+                image_bytes=processed_image.data,
+                filename=f"{filename}/page_{page_num}.{extension}",
             )
 
             # Store OCR results

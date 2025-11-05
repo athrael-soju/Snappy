@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
@@ -63,6 +64,7 @@ class OcrStorageHandler:
         # Process extracted images if processor is available
         extracted_images_urls: List[str] = []
         crops = ocr_result.get("crops", [])
+        regions = ocr_result.get("regions", [])
 
         if crops and self._processor:
             try:
@@ -73,16 +75,38 @@ class OcrStorageHandler:
                     minio_service=self._minio,
                 )
 
-                # Replace base64 in markdown with MinIO URLs
+                # Replace base64 image data with MinIO URLs in markdown/text
                 if extracted_images_urls:
-                    markdown = ocr_result.get("markdown", "")
-                    ocr_result["markdown"] = self._processor.replace_base64_with_urls(
-                        markdown, extracted_images_urls
-                    )
+                    for field in ("markdown", "text"):
+                        content = ocr_result.get(field, "")
+                        if content:
+                            ocr_result[field] = (
+                                self._processor.replace_base64_with_urls(
+                                    content, extracted_images_urls
+                                )
+                            )
             except Exception as exc:
                 logger.warning(
                     f"Failed to process extracted images for {filename} page {page_number}: {exc}",
                     exc_info=True,
+                )
+
+        # Attach extracted image metadata to regions when available
+        if regions:
+            for region in regions:
+                image_idx = region.pop("image_index", None)
+                if isinstance(image_idx, int) and 0 <= image_idx < len(
+                    extracted_images_urls
+                ):
+                    region["image_url"] = extracted_images_urls[image_idx]
+                    region["image_storage"] = "minio"
+                    region["image_inline"] = False
+
+        figure_url_map = {idx + 1: url for idx, url in enumerate(extracted_images_urls)}
+        if figure_url_map:
+            for field in ("markdown", "text"):
+                ocr_result[field] = self._ensure_figure_links(
+                    ocr_result.get(field, ""), figure_url_map
                 )
 
         # Build storage payload
@@ -94,8 +118,7 @@ class OcrStorageHandler:
             "text": ocr_result.get("text", ""),
             "markdown": ocr_result.get("markdown", ""),
             "raw_text": ocr_result.get("raw_text", ""),
-            "text_segments": ocr_result.get("text_segments", []),
-            "regions": ocr_result.get("regions", []),
+            "regions": regions,
             "extracted_at": datetime.now(timezone.utc).isoformat(),
         }
 
@@ -163,3 +186,48 @@ class OcrStorageHandler:
                 f"OCR result not available for {filename} page {page_number}: {exc}"
             )
             return None
+
+    @staticmethod
+    def _ensure_figure_links(content: str, figure_map: Dict[int, str]) -> str:
+        """Ensure figure references point to hosted URLs and append any missing links."""
+        if not figure_map:
+            return content or ""
+
+        content = content or ""
+
+        def replace_markdown(match: re.Match[str]) -> str:
+            figure_num = int(match.group(1))
+            url = figure_map.get(figure_num)
+            if not url:
+                return match.group(0)
+            return f"![Figure {figure_num}]({url})"
+
+        updated = re.sub(r"!\[Figure (\d+)\]\(([^)]*)\)", replace_markdown, content)
+
+        def replace_bare(match: re.Match[str]) -> str:
+            figure_num = int(match.group(1))
+            url = figure_map.get(figure_num)
+            if not url:
+                return match.group(0)
+            return f"![Figure {figure_num}]({url})"
+
+        updated = re.sub(r"!\[Figure (\d+)\](?!\()", replace_bare, updated)
+
+        referenced = {
+            int(m.group(1))
+            for m in re.finditer(r"!\[Figure (\d+)\]", updated)
+            if m.group(1).isdigit()
+        }
+
+        missing = [num for num in figure_map if num not in referenced]
+        if missing:
+            additions = "\n".join(
+                f"![Figure {num}]({figure_map[num]})" for num in missing
+            )
+            base = updated.strip()
+            if base:
+                updated = f"{base}\n\n{additions}"
+            else:
+                updated = additions
+
+        return updated.strip()
