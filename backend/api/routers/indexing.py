@@ -227,9 +227,6 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
                         qdrant_init_error or "Dependency services are down"
                     )
 
-                has_ocr = bool(
-                    getattr(getattr(svc, "indexer", None), "ocr_handler", None)
-                )
                 job_state = {"current": 0}
 
                 def progress_cb(current: int, info: dict | None = None):
@@ -239,12 +236,10 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
                     if info and info.get("stage") == "check_cancel":
                         return
 
-                    (info or {}).get("stage")
                     job_state["current"] = max(job_state["current"], int(current))
 
                     # Unified progress message: "Processing X/Y pages"
-                    ocr_suffix = " (with OCR)" if has_ocr else ""
-                    message = f"Processing {job_state['current']}/{total_images} pages{ocr_suffix}"
+                    message = f"Processing {job_state['current']}/{total_images} pages"
 
                     progress_manager.update(
                         job_id,

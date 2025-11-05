@@ -31,4 +31,4 @@ COPY --chown=1000 . ${HOME}/app
 ENV PYTHONPATH=${HOME}/app \
     PYTHONUNBUFFERED=1 \
     SYSTEM=spaces
-CMD ["uvicorn", "backend:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -1,4 +1,4 @@
-"""Image storage helpers for Qdrant indexing."""
+"""Image storage helpers for pipeline processing."""
 
 import logging
 import uuid

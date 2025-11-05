@@ -26,6 +26,7 @@ class PointFactory:
         image_ids: List[str],
         image_records: List[Dict[str, object]],
         meta_batch: List[dict],
+        ocr_results: List[Dict] | None = None,
     ) -> List[models.PointStruct]:
         points: List[models.PointStruct] = []
         use_mean_pooling = bool(config.QDRANT_MEAN_POOLING_ENABLED)
@@ -78,10 +79,18 @@ class PointFactory:
             if image_quality is not None:
                 payload["image_quality"] = image_quality
 
-            ocr_summary = meta.get("ocr") if isinstance(meta, dict) else None
-            if isinstance(ocr_summary, dict) and ocr_summary.get("elements_url"):
-                # Store only the URL to the OCR JSON file
-                payload["ocr_url"] = ocr_summary.get("elements_url")
+            # Add OCR metadata if available (from parallel OCR processing)
+            if ocr_results and offset < len(ocr_results):
+                ocr_result = ocr_results[offset]
+                if ocr_result and isinstance(ocr_result, dict):
+                    ocr_url = ocr_result.get("ocr_url")
+                    if ocr_url:
+                        payload["ocr_url"] = ocr_url
+            else:
+                # Fallback to meta-based OCR (for backwards compatibility)
+                ocr_summary = meta.get("ocr") if isinstance(meta, dict) else None
+                if isinstance(ocr_summary, dict) and ocr_summary.get("elements_url"):
+                    payload["ocr_url"] = ocr_summary.get("elements_url")
 
             vectors = {"original": orig}
             if use_mean_pooling and rows is not None and cols is not None:

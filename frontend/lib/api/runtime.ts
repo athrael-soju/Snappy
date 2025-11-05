@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { schemas } from "@/lib/api/zod";
+import { schemas } from "@/lib/api/schemas";
 import type { SearchItem } from "@/lib/api/generated/models/SearchItem";
 
 const searchResultsSchema = schemas.SearchItem.array();

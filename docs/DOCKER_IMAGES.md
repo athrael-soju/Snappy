@@ -15,6 +15,16 @@ All images are available at `ghcr.io/athrael-soju/snappy/`:
 | `colpali-cpu` | ColPali embedding service (CPU) | `latest`, `v*.*.*`, `main` | `linux/amd64`, `linux/arm64` |
 | `colpali-gpu` | ColPali embedding service (GPU) | `latest`, `v*.*.*`, `main` | `linux/amd64` |
 
+### Optional Services (Build Locally)
+
+The following services are available but not pre-built in the registry. Build them locally from the repository:
+
+| Service | Location | Description | Build Command |
+|---------|----------|-------------|---------------|
+| `deepseek-ocr` | `deepseek-ocr/` | DeepSeek OCR service for advanced text extraction | `cd deepseek-ocr && docker compose up --build -d` |
+
+See `deepseek-ocr/README.md` for configuration and usage details.
+
 ---
 
 ## 🚀 Quick Start with Pre-built Images
@@ -46,7 +56,7 @@ services:
     environment:
       - QDRANT_URL=http://qdrant:6333
       - MINIO_URL=minio:9000
-      - COLPALI_URL=http://colpali:8080
+      - COLPALI_URL=http://colpali:7000
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       - qdrant
@@ -68,7 +78,7 @@ services:
   colpali:
     image: ghcr.io/athrael-soju/snappy/colpali-cpu:latest
     ports:
-      - "8080:8080"
+      - "7000:7000"
     restart: unless-stopped
 
   qdrant:
@@ -97,7 +107,50 @@ volumes:
   minio_data:
 ```
 
-### 3. Start Services
+### Optional: Adding DeepSeek OCR Service
+
+To include the DeepSeek OCR service for advanced text extraction, add this to your `docker-compose.yml`:
+
+```yaml
+services:
+  # ... existing services (backend, frontend, colpali, qdrant, minio) ...
+
+  deepseek-ocr:
+    build: ./deepseek-ocr  # Build locally (not in GHCR)
+    container_name: deepseek-ocr
+    ports:
+      - "8200:8200"
+    environment:
+      - MODEL_NAME=deepseek-ai/DeepSeek-OCR
+      - API_HOST=0.0.0.0
+      - API_PORT=8200
+    volumes:
+      - deepseek_models:/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    shm_size: "4g"
+    restart: unless-stopped
+
+volumes:
+  qdrant_data:
+  minio_data:
+  deepseek_models:
+```
+
+Enable OCR in the backend by adding to your `.env`:
+```bash
+DEEPSEEK_OCR_ENABLED=True
+DEEPSEEK_OCR_URL=http://deepseek-ocr:8200
+```
+
+See `deepseek-ocr/README.md` for detailed configuration options.
+
+---
 
 ```bash
 # Create .env file with your secrets
@@ -172,7 +225,7 @@ MINIO_ROOT_USER=minioadmin
 MINIO_ROOT_PASSWORD=minioadmin
 
 # ColPali (Optional - defaults shown)
-COLPALI_URL=http://colpali:8080
+COLPALI_URL=http://colpali:7000
 COLPALI_API_TIMEOUT=300
 
 # Backend (Optional)

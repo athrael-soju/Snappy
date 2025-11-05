@@ -11,13 +11,13 @@ const SUCCESS_MESSAGE_DISMISS_MS = 4500;
 const ERROR_MESSAGE_DISMISS_MS = 6000;
 
 // Re-export types for convenience
-export type { 
-  AppState, 
-  AppAction, 
-  SearchState, 
-  ChatState, 
-  UploadState, 
-  SystemStatus 
+export type {
+  AppState,
+  AppAction,
+  SearchState,
+  ChatState,
+  UploadState,
+  SystemStatus
 } from './types';
 
 // Context

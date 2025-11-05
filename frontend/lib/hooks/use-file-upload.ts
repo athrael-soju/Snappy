@@ -418,8 +418,8 @@ export function useFileUpload() {
       files && files.length > 0
         ? files.length
         : fileMeta && fileMeta.length > 0
-        ? fileMeta.length
-        : 0,
+          ? fileMeta.length
+          : 0,
     hasFiles:
       (files && files.length > 0) ||
       (uploading && fileMeta && fileMeta.length > 0),

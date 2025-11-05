@@ -16,15 +16,17 @@ This note explains how Snappy approaches document retrieval and how it compares 
 
 ## Backend Architecture
 
-- **API server** – `backend/main.py` boots `api.app.create_app()` with routers for `meta`, `retrieval`, `indexing`, `maintenance`, and `config`.
+- **API server** – `backend/main.py` boots `api.app.create_app()` with routers for `meta`, `retrieval`, `indexing`, `maintenance`, `config`, and `ocr`.
 - **Vector storage** (`services/qdrant/`)
   - `service.py` – orchestrates collection lifecycle and search
   - `collection.py` – manages multivector schemas (`original`, `mean_pooling_rows`, `mean_pooling_columns`, optional `muvera_fde`)
   - `search.py` – two-stage search (prefetch + rerank)
   - `embedding.py` – handles ColPali calls, pooling, and MUVERA
-  - `indexing.py` – pipelined document indexing with concurrent batches
+  - `indexing/qdrant_indexer.py` – Qdrant-specific storage built on the shared ingestion pipeline
+  - `services/pipeline/` – reusable `DocumentIndexer`, batch processor, storage, and progress helpers (used by Qdrant integration)
 - **ColPali client** (`services/colpali.py`) – talks to the embedding service for images, patches, and queries.
 - **MinIO service** (`services/minio.py`) – uploads images with auto-sized worker pools and retries.
+- **DeepSeek OCR service** (`services/ocr/`) – optional OCR client with storage helpers for batch and background processing.
 - **Chat interface** (`frontend/app/api/chat/route.ts`) – streams OpenAI responses with page citations.
 
 ---
@@ -33,12 +35,13 @@ This note explains how Snappy approaches document retrieval and how it compares 
 
 1. **Upload** – `POST /index` schedules a background job.
 2. **PDF → images** – `api/utils.py::convert_pdf_paths_to_images` rasterises each page via `pdf2image`.
-3. **Batch processing** – `DocumentIndexer` in `services/qdrant/indexing.py`
+3. **Batch processing** – `DocumentIndexer` in `services/pipeline/document_indexer.py`
    - Splits pages into batches (`BATCH_SIZE`)
    - Embeds via `ColPaliService` (original + pooled vectors)
    - Stores images in MinIO
-   - Upserts vectors into Qdrant
-4. **Pipeline mode** – When `ENABLE_PIPELINE_INDEXING=True`, embedding, storage, and upserts overlap using dual thread pools sized from `config.get_pipeline_max_concurrency()`.
+   - Upserts vectors into Qdrant via `services/qdrant/indexing/qdrant_indexer.py`
+   - Runs optional OCR callbacks when a `services/ocr` instance is supplied
+4. **Pipeline mode** – When `ENABLE_PIPELINE_INDEXING=True`, embedding, storage, OCR, and upserts overlap using dual thread pools sized from `config.get_pipeline_max_concurrency()`.
 5. **Progress** – `/progress/stream/{job_id}` streams status updates over SSE.
 
 Collection schemas come from the model dimension reported by `/info`. Images live under `images/<uuid>.<ext>` with public URLs unless configured otherwise. Disabling pipeline mode processes one batch at a time for easier debugging.
@@ -93,7 +96,7 @@ Collection schemas come from the model dimension reported by `/info`. Images liv
 
 ## Implementation Pointers
 
-- Indexing paths: `api/utils.py::convert_pdf_paths_to_images`, `DocumentIndexer.index_documents` in `services/qdrant/indexing.py`.
+- Indexing paths: `api/utils.py::convert_pdf_paths_to_images`, `DocumentIndexer.index_documents` in `services/pipeline/document_indexer.py`.
 - Collection schema management: `CollectionManager.create_collection_if_not_exists` in `services/qdrant/collection.py`.
 - Pooling logic: `EmbeddingProcessor._pool_image_tokens` in `services/qdrant/embedding.py`.
 - Two-stage query: `SearchManager._reranking_search_batch` in `services/qdrant/search.py`.

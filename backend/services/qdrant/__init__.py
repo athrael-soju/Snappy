@@ -2,7 +2,7 @@
 
 from .collection import CollectionManager
 from .embedding import EmbeddingProcessor, MuveraPostprocessor
-from .indexing import DocumentIndexer
+from .indexing import QdrantDocumentIndexer
 from .search import SearchManager
 from .service import QdrantService
 
@@ -11,6 +11,6 @@ __all__ = [
     "CollectionManager",
     "EmbeddingProcessor",
     "MuveraPostprocessor",
-    "DocumentIndexer",
+    "QdrantDocumentIndexer",
     "SearchManager",
 ]

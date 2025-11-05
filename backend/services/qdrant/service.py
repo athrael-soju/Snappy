@@ -7,12 +7,11 @@ from PIL import Image
 
 from .collection import CollectionManager
 from .embedding import EmbeddingProcessor, MuveraPostprocessor
-from .indexing import DocumentIndexer
+from .indexing import QdrantDocumentIndexer
 from .search import SearchManager
 
 if TYPE_CHECKING:
     from services.colpali import ColPaliService
-    from services.deepseek import DeepSeekOCRService
     from services.minio import MinioService
 
 logger = logging.getLogger(__name__)
@@ -26,7 +25,7 @@ class QdrantService:
         api_client: Optional["ColPaliService"] = None,
         minio_service: Optional["MinioService"] = None,
         muvera_post: Optional[MuveraPostprocessor] = None,
-        deepseek_service: Optional["DeepSeekOCRService"] = None,
+        ocr_service=None,
     ):
         """Initialize Qdrant service with all subcomponents.
 
@@ -34,6 +33,7 @@ class QdrantService:
             api_client: ColPali client for embeddings
             minio_service: MinIO service for image storage
             muvera_post: Optional MUVERA postprocessor
+            ocr_service: Optional OCR service for parallel processing
         """
         try:
             if minio_service is None:
@@ -43,7 +43,7 @@ class QdrantService:
             self.api_client = api_client
             self.minio_service = minio_service
             self.muvera_post = muvera_post
-            self.deepseek_service = deepseek_service
+            self.ocr_service = ocr_service
 
             # Initialize subcomponents
             self.collection_manager = CollectionManager(
@@ -55,13 +55,13 @@ class QdrantService:
                 api_client=api_client,
             )
 
-            self.indexer = DocumentIndexer(
+            self.indexer = QdrantDocumentIndexer(
                 qdrant_client=self.collection_manager.service,
                 collection_name=self.collection_manager.collection_name,
                 embedding_processor=self.embedding_processor,
                 minio_service=minio_service,
                 muvera_post=muvera_post,
-                deepseek_service=deepseek_service,
+                ocr_service=ocr_service,
             )
 
             self.search_manager = SearchManager(

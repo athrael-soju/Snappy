@@ -1,4 +1,4 @@
-"""Document indexing operations for Qdrant."""
+"""Document indexing pipeline orchestration."""
 
 import logging
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
@@ -7,9 +7,7 @@ from typing import Callable, Iterable, Iterator, Optional
 import config  # Import module for dynamic config access
 from services.image_processor import ImageProcessor
 
-from .ocr import OcrResultHandler
-from .points import PointFactory
-from .processor import BatchProcessor, ProcessedBatch
+from .batch_processor import BatchProcessor, ProcessedBatch
 from .progress import ProgressNotifier
 from .storage import ImageStorageHandler
 from .utils import iter_image_batches
@@ -23,24 +21,37 @@ def _estimate_pipeline_workers() -> int:
 
 
 class DocumentIndexer:
-    """Handles document indexing operations."""
+    """Generic document indexing pipeline.
+
+    This class orchestrates the document indexing pipeline in a way that's
+    independent of any specific vector database. It handles:
+    - Sequential vs pipelined processing
+    - Batch processing coordination
+    - Progress tracking
+    - Error handling
+
+    The actual storage of processed batches is delegated via callback.
+    """
 
     def __init__(
         self,
-        qdrant_client,
-        collection_name: str,
         embedding_processor,
         minio_service=None,
         muvera_post=None,
-        deepseek_service=None,
+        ocr_service=None,
     ):
-        """Initialize document indexer."""
-        self.service = qdrant_client
-        self.collection_name = collection_name
+        """Initialize document indexer.
+
+        Args:
+            embedding_processor: Service that generates embeddings
+            minio_service: MinIO service for image storage
+            muvera_post: Optional MUVERA postprocessor
+            ocr_service: Optional OCR service
+        """
         self.embedding_processor = embedding_processor
         self.minio_service = minio_service
         self.muvera_post = muvera_post
-        self.ocr_handler = None
+        self.ocr_service = ocr_service
 
         # Create centralized image processor with config defaults
         image_processor = ImageProcessor(
@@ -48,24 +59,11 @@ class DocumentIndexer:
             default_quality=config.IMAGE_QUALITY,
         )
 
-        if deepseek_service and minio_service:
-            try:
-                if deepseek_service.is_enabled():
-                    self.ocr_handler = OcrResultHandler(
-                        ocr_service=deepseek_service,
-                        minio_service=minio_service,
-                        image_processor=image_processor,  # Share the same processor
-                    )
-            except Exception as exc:  # pragma: no cover - defensive guard
-                logger.warning("DeepSeek OCR handler disabled: %s", exc)
-
         image_store = ImageStorageHandler(minio_service, image_processor)
-        point_factory = PointFactory(muvera_post)
         self._batch_processor = BatchProcessor(
             embedding_processor=embedding_processor,
             image_store=image_store,
-            point_factory=point_factory,
-            ocr_handler=self.ocr_handler,
+            ocr_service=ocr_service,
         )
 
     def process_single_batch(
@@ -77,6 +75,10 @@ class DocumentIndexer:
         *,
         skip_progress: bool = False,
     ) -> ProcessedBatch:
+        """Process a single batch of images.
+
+        Returns ProcessedBatch with all data needed for storage.
+        """
         return self._batch_processor.process(
             batch_idx=batch_idx,
             batch=batch,
@@ -90,7 +92,22 @@ class DocumentIndexer:
         images: Iterable,
         total_images: Optional[int] = None,
         progress_cb: Optional[Callable[[int, dict | None], None]] = None,
+        store_batch_cb: Optional[Callable[[ProcessedBatch], None]] = None,
     ) -> str:
+        """Index documents through the pipeline.
+
+        Args:
+            images: Iterable of images or dicts with 'image' key
+            total_images: Total count (required for iterators)
+            progress_cb: Optional progress callback
+            store_batch_cb: Callback to store each processed batch
+
+        Returns:
+            Completion message
+        """
+        if store_batch_cb is None:
+            raise ValueError("store_batch_cb is required for index_documents")
+
         batch_size = int(config.BATCH_SIZE)
         progress = ProgressNotifier(progress_cb)
 
@@ -105,10 +122,12 @@ class DocumentIndexer:
 
         if config.ENABLE_PIPELINE_INDEXING and total > batch_size:
             return self._index_documents_pipelined(
-                image_iter, batch_size, total, progress
+                image_iter, batch_size, total, progress, store_batch_cb
             )
 
-        return self._index_documents_sequential(image_iter, batch_size, total, progress)
+        return self._index_documents_sequential(
+            image_iter, batch_size, total, progress, store_batch_cb
+        )
 
     def _index_documents_sequential(
         self,
@@ -116,7 +135,9 @@ class DocumentIndexer:
         batch_size: int,
         total_images: int,
         progress: ProgressNotifier,
+        store_batch_cb: Callable[[ProcessedBatch], None],
     ) -> str:
+        """Process batches sequentially."""
         completed = 0
         for batch_start, batch in iter_image_batches(images_iter, batch_size):
             processed_batch = self.process_single_batch(
@@ -127,13 +148,10 @@ class DocumentIndexer:
             )
 
             try:
-                self.service.upsert(
-                    collection_name=self.collection_name,
-                    points=processed_batch.points,
-                )
+                store_batch_cb(processed_batch)
             except Exception as exc:
                 raise Exception(
-                    f"Error during upsert for batch starting at {batch_start}: {exc}"
+                    f"Error storing batch starting at {batch_start}: {exc}"
                 ) from exc
 
             completed += processed_batch.batch_size
@@ -157,7 +175,9 @@ class DocumentIndexer:
         batch_size: int,
         total_images: int,
         progress: ProgressNotifier,
+        store_batch_cb: Callable[[ProcessedBatch], None],
     ) -> str:
+        """Process batches in parallel pipeline."""
         max_workers = _estimate_pipeline_workers()
         completed_count = 0
         upsert_futures = []
@@ -198,9 +218,8 @@ class DocumentIndexer:
                         processed_batch = future.result()
 
                         upsert_future = upsert_executor.submit(
-                            self.service.upsert,
-                            collection_name=self.collection_name,
-                            points=processed_batch.points,
+                            store_batch_cb,
+                            processed_batch,
                         )
                         upsert_futures.append((upsert_future, processed_batch))
 
@@ -225,7 +244,7 @@ class DocumentIndexer:
                         upsert_future.result()
                     except Exception as exc:  # pragma: no cover - defensive guard
                         raise Exception(
-                            f"Upsert failed for batch starting at {processed_batch.batch_start}: {exc}"
+                            f"Storage failed for batch starting at {processed_batch.batch_start}: {exc}"
                         ) from exc
 
             except Exception as exc:
@@ -246,9 +265,8 @@ class DocumentIndexer:
         return self._format_completion_message(processed, pipelined=True)
 
     def _format_completion_message(self, processed: int, pipelined: bool) -> str:
+        """Format completion message."""
         base = f"Uploaded and processed {processed} pages"
-        if self.ocr_handler:
-            base += " with DeepSeek OCR"
         if pipelined:
             base += " (pipelined mode)"
         return base

@@ -65,6 +65,7 @@ export function InfoTooltip({
     (
       <button
         type="button"
+        tabIndex={-1}
         aria-label={
           triggerAriaLabel ??
           (typeof title === "string"
@@ -94,7 +95,7 @@ export function InfoTooltip({
   )
 
   return (
-    <Tooltip>
+    <Tooltip delayDuration={300}>
       <TooltipTrigger asChild>{resolvedTrigger}</TooltipTrigger>
       <TooltipContent
         sideOffset={sideOffset ?? 8}

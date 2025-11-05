@@ -161,7 +161,7 @@ export default function UploadPage() {
     return clearDismissTimer;
   }, [
     uploading,
-    hasFiles,
+    uploading,
     uploadProgress,
     statusText,
     jobId,
