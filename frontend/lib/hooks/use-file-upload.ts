@@ -129,6 +129,8 @@ export function useFileUpload() {
     setError,
     setJobId,
     setStatusText,
+    setOcrError,
+    setOcrStatusText,
     cancelUpload,
   } = useUploadStore();
 
@@ -347,6 +349,10 @@ export function useFileUpload() {
       setStatusText(null);
       setJobId(null);
 
+      // Clear any previous OCR errors
+      setOcrError(null);
+      setOcrStatusText(null);
+
       try {
         const formData = new FormData();
         files.forEach((f) => formData.append("files", f));
@@ -404,7 +410,9 @@ export function useFileUpload() {
     setFiles(null);
     setMessage(null);
     setError(null);
-  }, [setFiles, setMessage, setError]);
+    setOcrError(null);
+    setOcrStatusText(null);
+  }, [setFiles, setMessage, setError, setOcrError, setOcrStatusText]);
 
   return {
     files,

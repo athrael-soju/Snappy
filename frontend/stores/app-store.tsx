@@ -78,6 +78,19 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(timeoutId);
   }, [state.upload.error, state.upload.uploading, dispatch]);
 
+  // Auto-dismiss OCR error messages
+  useEffect(() => {
+    if (!state.upload.ocrError || state.upload.ocrJobId) {
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      dispatch({ type: 'UPLOAD_SET_OCR_ERROR', payload: null });
+    }, ERROR_MESSAGE_DISMISS_MS);
+
+    return () => clearTimeout(timeoutId);
+  }, [state.upload.ocrError, state.upload.ocrJobId, dispatch]);
+
   return (
     <AppContext.Provider value={{ state, dispatch }}>
       {children}

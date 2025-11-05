@@ -83,6 +83,10 @@ export function useUploadStore() {
       dispatch({ type: 'UPLOAD_SET_STATUS_TEXT', payload: statusText }),
     setFileMeta: (meta: UploadFileMeta[] | null) =>
       dispatch({ type: 'UPLOAD_SET_FILE_META', payload: meta }),
+    setOcrError: (error: string | null) =>
+      dispatch({ type: 'UPLOAD_SET_OCR_ERROR', payload: error }),
+    setOcrStatusText: (statusText: string | null) =>
+      dispatch({ type: 'UPLOAD_SET_OCR_STATUS_TEXT', payload: statusText }),
     reset: () => dispatch({ type: 'UPLOAD_RESET' }),
     cancelUpload,
   };
