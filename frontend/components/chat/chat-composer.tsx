@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { InfoTooltip } from "@/components/info-tooltip";
 
 export type ChatComposerProps = {
     input: string;
@@ -20,9 +21,7 @@ export type ChatComposerProps = {
     toolCallingEnabled: boolean;
     onToolToggle: (checked: boolean) => void;
     k: number;
-    maxTokens: number;
     onKChange: (value: number) => void;
-    onMaxTokensChange: (value: number) => void;
     reasoningEffort: "minimal" | "low" | "medium" | "high";
     onReasoningChange: (value: "minimal" | "low" | "medium" | "high") => void;
     summaryPreference: "auto" | "concise" | "detailed" | null;
@@ -43,9 +42,7 @@ export function ChatComposer({
     toolCallingEnabled,
     onToolToggle,
     k,
-    maxTokens,
     onKChange,
-    onMaxTokensChange,
     reasoningEffort,
     onReasoningChange,
     summaryPreference,
@@ -119,12 +116,19 @@ export function ChatComposer({
                                         <div>
                                             <h4 className="text-body-sm font-semibold text-foreground">Retrieval settings</h4>
                                             <p className="mt-1 text-body-xs text-muted-foreground">
-                                                Tune how many neighbors to fetch and how long responses can be.
+                                                Tune how many neighbors to fetch and model behavior.
                                             </p>
                                         </div>
                                         <div className="space-y-4 text-body-sm">
                                             <div className="space-y-2">
-                                                <Label htmlFor="chat-k">Top K</Label>
+                                                <div className="flex items-center gap-1.5">
+                                                    <Label htmlFor="chat-k">Top K</Label>
+                                                    <InfoTooltip
+                                                        description="Controls how many nearest neighbors the assistant retrieves. Higher values surface more context but may introduce noise."
+                                                        iconClassName="size-3.5"
+                                                        triggerClassName="size-4"
+                                                    />
+                                                </div>
                                                 <Input
                                                     id="chat-k"
                                                     type="number"
@@ -132,26 +136,16 @@ export function ChatComposer({
                                                     value={k}
                                                     onChange={(event) => handleNumberChange(event, onKChange)}
                                                 />
-                                                <p className="text-body-xs text-muted-foreground">
-                                                    Controls how many nearest neighbors the assistant retrieves. Higher values surface more
-                                                    context but may introduce noise.
-                                                </p>
                                             </div>
                                             <div className="space-y-2">
-                                                <Label htmlFor="chat-max-tokens">Max tokens</Label>
-                                                <Input
-                                                    id="chat-max-tokens"
-                                                    type="number"
-                                                    min={64}
-                                                    value={maxTokens}
-                                                    onChange={(event) => handleNumberChange(event, onMaxTokensChange)}
-                                                />
-                                                <p className="text-body-xs text-muted-foreground">
-                                                    Control response length to balance speed with detail.
-                                                </p>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label htmlFor="chat-reasoning">Reasoning effort</Label>
+                                                <div className="flex items-center gap-1.5">
+                                                    <Label htmlFor="chat-reasoning">Reasoning effort</Label>
+                                                    <InfoTooltip
+                                                        description="Increase effort to give the model more reasoning compute before answering."
+                                                        iconClassName="size-3.5"
+                                                        triggerClassName="size-4"
+                                                    />
+                                                </div>
                                                 <Select
                                                     value={reasoningEffort}
                                                     onValueChange={(value) =>
@@ -168,12 +162,16 @@ export function ChatComposer({
                                                         <SelectItem value="high">High</SelectItem>
                                                     </SelectContent>
                                                 </Select>
-                                                <p className="text-body-xs text-muted-foreground">
-                                                    Increase effort to give the model more reasoning compute before answering.
-                                                </p>
                                             </div>
                                             <div className="space-y-2">
-                                                <Label htmlFor="chat-summary">Response summary</Label>
+                                                <div className="flex items-center gap-1.5">
+                                                    <Label htmlFor="chat-summary">Response summary</Label>
+                                                    <InfoTooltip
+                                                        description="Request an additional summary alongside the full answer when supported."
+                                                        iconClassName="size-3.5"
+                                                        triggerClassName="size-4"
+                                                    />
+                                                </div>
                                                 <Select
                                                     value={summaryPreference ?? "none"}
                                                     onValueChange={(value) =>
@@ -190,16 +188,15 @@ export function ChatComposer({
                                                         <SelectItem value="detailed">Detailed</SelectItem>
                                                     </SelectContent>
                                                 </Select>
-                                                <p className="text-body-xs text-muted-foreground">
-                                                    Request an additional summary alongside the full answer when supported.
-                                                </p>
                                             </div>
                                             <div className="flex items-center justify-between gap-3 rounded-xl border border-border/30 bg-card/40 px-3 py-2">
-                                                <div>
+                                                <div className="flex items-center gap-1.5">
                                                     <p className="text-body-sm font-medium text-foreground">Allow tool calling</p>
-                                                    <p className="text-body-xs text-muted-foreground">
-                                                        Let the assistant call retrieval tools when needed.
-                                                    </p>
+                                                    <InfoTooltip
+                                                        description="Let the assistant call retrieval tools when needed."
+                                                        iconClassName="size-3.5"
+                                                        triggerClassName="size-4"
+                                                    />
                                                 </div>
                                                 <Switch
                                                     id="chat-tool-calling"

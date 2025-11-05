@@ -21,7 +21,6 @@ export function serializeStateForStorage(state: AppState): any {
       k: state.chat.k,
       toolCallingEnabled: state.chat.toolCallingEnabled,
       loading: false, // Don't persist loading state across sessions
-      maxTokens: state.chat.maxTokens,
       reasoningEffort: state.chat.reasoningEffort,
       summaryPreference: state.chat.summaryPreference,
     },

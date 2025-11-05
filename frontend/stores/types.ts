@@ -17,7 +17,6 @@ export interface ChatState {
   k: number;
   toolCallingEnabled: boolean;
   loading: boolean;
-  maxTokens: number;
   reasoningEffort: 'minimal' | 'low' | 'medium' | 'high';
   summaryPreference: 'auto' | 'concise' | 'detailed' | null;
 }
@@ -96,7 +95,6 @@ export type AppAction =
   | { type: 'CHAT_SET_K'; payload: number }
   | { type: 'CHAT_SET_TOOL_CALLING'; payload: boolean }
   | { type: 'CHAT_SET_LOADING'; payload: boolean }
-  | { type: 'CHAT_SET_MAX_TOKENS'; payload: number }
   | { type: 'CHAT_SET_REASONING_EFFORT'; payload: 'minimal' | 'low' | 'medium' | 'high' }
   | { type: 'CHAT_SET_SUMMARY_PREFERENCE'; payload: 'auto' | 'concise' | 'detailed' | null }
   | { type: 'CHAT_REMOVE_EMPTY_ASSISTANT' }
@@ -143,7 +141,6 @@ export const initialState: AppState = {
     k: 5,
     toolCallingEnabled: true,
     loading: false,
-    maxTokens: 500,
     reasoningEffort: 'minimal',
     summaryPreference: null,
   },

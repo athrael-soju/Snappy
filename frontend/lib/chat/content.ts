@@ -18,7 +18,7 @@ async function inlineLocalImages(markdown: string): Promise<string> {
         return markdown;
     }
 
-    const imageRegex = /!\[(?<alt>[^\]]*)\]\((?<url>[^)]+)\)/g;
+    const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
     const matches = Array.from(markdown.matchAll(imageRegex));
     if (matches.length === 0) {
         return markdown;
@@ -29,7 +29,8 @@ async function inlineLocalImages(markdown: string): Promise<string> {
     const cache = new Map<string, string>();
 
     for (const match of matches) {
-        const url = match.groups?.url?.trim();
+        const alt = match[1] ?? "";
+        const url = match[2]?.trim();
         if (!url) {
             continue;
         }
@@ -39,7 +40,6 @@ async function inlineLocalImages(markdown: string): Promise<string> {
             continue;
         }
 
-        const alt = match.groups?.alt ?? "";
         const cacheKey = `${alt}::${url}`;
         if (!cache.has(cacheKey)) {
             let resolvedUrl = url;

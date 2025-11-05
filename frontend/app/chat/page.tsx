@@ -26,8 +26,6 @@ export default function ChatPage() {
     setK,
     toolCallingEnabled,
     setToolCallingEnabled,
-    maxTokens,
-    setMaxTokens,
     reasoningEffort,
     setReasoningEffort,
     summaryPreference,
@@ -194,9 +192,7 @@ export default function ChatPage() {
             toolCallingEnabled={toolCallingEnabled}
             onToolToggle={setToolCallingEnabled}
             k={k}
-            maxTokens={maxTokens}
             onKChange={setK}
-            onMaxTokensChange={setMaxTokens}
             reasoningEffort={reasoningEffort}
             onReasoningChange={setReasoningEffort}
             summaryPreference={summaryPreference}
