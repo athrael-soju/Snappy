@@ -6,7 +6,7 @@ import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import timedelta
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import urllib3
@@ -27,6 +27,9 @@ from minio import Minio
 from minio.deleteobjects import DeleteObject
 from minio.error import S3Error
 from PIL import Image
+
+if TYPE_CHECKING:
+    from services.image_processor import ProcessedImage
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -185,6 +188,119 @@ class MinioService:
     # -------------------------------------------------------------------
     # Batch Operations
     # -------------------------------------------------------------------
+    def store_processed_images_batch(
+        self,
+        processed_images: List["ProcessedImage"],
+        image_ids: Optional[List[str]] = None,
+        filenames: Optional[List[str]] = None,
+        page_numbers: Optional[List[int]] = None,
+        max_workers: int = MINIO_WORKERS,
+        retries: int = MINIO_RETRIES,
+        fail_fast: bool = MINIO_FAIL_FAST,
+    ) -> Dict[str, str]:
+        """
+        Upload many pre-processed images concurrently with retries.
+
+        This method accepts images that have already been processed (format conversion
+        and quality optimization applied), avoiding redundant conversions.
+
+        Parameters
+        ----------
+        processed_images : List[ProcessedImage]
+            Pre-processed images with encoded data
+        image_ids : Optional[List[str]]
+            Provide IDs to align with images; UUIDs will be created if omitted.
+        filenames : Optional[List[str]]
+            Document filenames for organizing storage (required for new structure).
+        page_numbers : Optional[List[int]]
+            Page numbers within each document (required for new structure).
+        max_workers : int
+            Number of parallel upload threads.
+        retries : int
+            Retry attempts per object (total attempts = retries + 1).
+        fail_fast : bool
+            If True, raises at first failure; otherwise returns successes only.
+
+        Returns
+        -------
+        Dict[str, str]
+            Mapping of image_id -> public URL for successfully uploaded items.
+        """
+        n = len(processed_images)
+        if image_ids is None:
+            image_ids = [str(uuid.uuid4()) for _ in range(n)]
+        if len(image_ids) != n:
+            raise ValueError(
+                "Number of processed images must match number of image IDs"
+            )
+
+        # Require filenames and page_numbers
+        if filenames is None or len(filenames) != n:
+            raise ValueError("filenames is required and must match number of images")
+        if page_numbers is None or len(page_numbers) != n:
+            raise ValueError("page_numbers is required and must match number of images")
+
+        successes: Dict[str, str] = {}
+        errors: Dict[str, Exception] = {}
+
+        def upload_one(idx: int):
+            processed = processed_images[idx]
+            img_id = image_ids[idx]
+            filename = filenames[idx]
+            page_num = page_numbers[idx]
+
+            attempt = 0
+            while True:
+                attempt += 1
+                try:
+                    # Use pre-processed data directly
+                    buf = processed.to_buffer()
+                    size = processed.size
+                    used_fmt = processed.format
+                    content_type = processed.content_type
+
+                    # Storage structure: {filename}/{page_num}/page.{ext}
+                    ext = used_fmt.lower()
+                    if ext == "jpeg":
+                        ext = "jpg"
+                    object_name = f"{filename}/{page_num}/page.{ext}"
+
+                    self.service.put_object(
+                        bucket_name=self.bucket_name,
+                        object_name=object_name,
+                        data=buf,
+                        length=size,
+                        content_type=content_type,
+                    )
+                    return img_id, self._get_image_url(object_name)
+                except Exception as e:
+                    if attempt > retries + 1:
+                        raise
+                    # Exponential backoff with jitter
+                    sleep_s = (0.25 * (2 ** (attempt - 1))) + random.random() * 0.1
+                    time.sleep(sleep_s)
+
+        max_workers_eff = max(1, min(max_workers, n))
+        with ThreadPoolExecutor(max_workers=max_workers_eff) as ex:
+            future_to_idx = {ex.submit(upload_one, i): i for i in range(n)}
+            for fut in as_completed(future_to_idx):
+                i = future_to_idx[fut]
+                img_id = image_ids[i]
+                try:
+                    _id, url = fut.result()
+                    successes[_id] = url
+                except Exception as e:
+                    errors[img_id] = e
+                    logger.exception(f"Failed to store image {img_id}: {e}")
+                    if fail_fast:
+                        for f in future_to_idx:
+                            f.cancel()
+                        raise Exception(f"Batch failed on {img_id}: {e}") from e
+
+        if errors:
+            logger.warning(f"{len(errors)} images failed to upload")
+        return successes
+
     def store_images_batch(
         self,
         images: Iterable[Image.Image],

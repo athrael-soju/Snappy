@@ -2,17 +2,20 @@
 
 from __future__ import annotations
 
+import base64
 import io
 import logging
+import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Sequence
 
 import config
+from PIL import Image
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
-    from PIL import Image
     from services.deepseek import DeepSeekOCRService
+    from services.image_processor import ProcessedImage
     from services.minio import MinioService
 
 from .progress import ProgressNotifier
@@ -27,12 +30,23 @@ class OcrResultHandler:
         self,
         ocr_service: "DeepSeekOCRService",
         minio_service: "MinioService",
+        image_processor=None,
     ):
         if not ocr_service or not ocr_service.is_enabled():
             raise ValueError("DeepSeek OCR service must be enabled to instantiate.")
 
         self._ocr_service = ocr_service
         self._minio = minio_service
+
+        # Import here to avoid circular dependency
+        if image_processor is None:
+            from services.image_processor import ImageProcessor
+
+            image_processor = ImageProcessor(
+                default_format=config.IMAGE_FORMAT,
+                default_quality=config.IMAGE_QUALITY,
+            )
+        self._image_processor = image_processor
 
         # Get max workers from config
         max_workers_config = getattr(config, "DEEPSEEK_OCR_MAX_WORKERS", None)
@@ -52,28 +66,54 @@ class OcrResultHandler:
         batch_start: int,
         total_images: int,
         image_ids: List[str],
-        image_batch: List["Image.Image"],
+        processed_images: List["ProcessedImage"],
         meta_batch: List[dict],
         image_records: List[Dict[str, object]],
         progress: ProgressNotifier,
         skip_progress: bool = False,
     ) -> List[Optional[Dict[str, Any]]]:
-        """Run OCR over a batch of images and return per-page summaries."""
+        """
+        Run OCR over a batch of pre-processed images and return per-page summaries.
+
+        Parameters
+        ----------
+        batch_start : int
+            Starting index of this batch
+        total_images : int
+            Total number of images in the entire indexing job
+        image_ids : List[str]
+            IDs for each image in the batch
+        processed_images : List[ProcessedImage]
+            Pre-processed images with encoded data (no redundant conversion needed)
+        meta_batch : List[dict]
+            Metadata for each image
+        image_records : List[Dict[str, object]]
+            Image storage records (URLs, etc.)
+        progress : ProgressNotifier
+            Progress tracking callback
+        skip_progress : bool
+            Whether to skip progress updates
+
+        Returns
+        -------
+        List[Optional[Dict[str, Any]]]
+            OCR results for each image
+        """
         if not image_ids:
             return []
 
         progress.check_cancel(batch_start)
 
-        encoded_images = [self._encode_image(image) for image in image_batch]
+        # Use pre-processed image bytes directly (no conversion needed!)
         results: List[Optional[Dict[str, Any]]] = [None] * len(image_ids)
 
-        max_workers = max(1, min(self._max_workers, len(encoded_images)))
+        max_workers = max(1, min(self._max_workers, len(processed_images)))
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = {
                 executor.submit(
                     self._process_single,
                     image_ids[idx],
-                    encoded_images[idx],
+                    processed_images[idx].data,  # Use pre-processed bytes
                     meta_batch[idx] if idx < len(meta_batch) else {},
                     image_records[idx] if idx < len(image_records) else {},
                 ): idx
@@ -113,11 +153,6 @@ class OcrResultHandler:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
-    def _encode_image(self, image: "Image.Image") -> bytes:
-        """Serialize a PIL image into PNG bytes."""
-        buffer = io.BytesIO()
-        image.save(buffer, format="PNG")
-        return buffer.getvalue()
 
     def _process_single(
         self,
@@ -129,14 +164,13 @@ class OcrResultHandler:
         """Process one page through DeepSeek OCR and persist the results."""
         filename = meta.get("filename") or f"{doc_id}.png"
 
-        # Call DeepSeek OCR with default settings
+        # Call DeepSeek OCR with service's default settings
+        # (uses DEEPSEEK_OCR_TASK, DEEPSEEK_OCR_MODE, DEEPSEEK_OCR_INCLUDE_GROUNDING,
+        #  DEEPSEEK_OCR_INCLUDE_IMAGES from config)
         response = self._ocr_service.run_ocr_bytes(
             image_bytes,
             filename=filename,
-            task="markdown",
-            mode="Gundam",
-            include_grounding=True,
-            include_images=False,
+            # Don't override defaults - use config values
         )
 
         # Validate response format
@@ -152,6 +186,29 @@ class OcrResultHandler:
         # Convert bounding boxes to regions format
         bounding_boxes = response.get("bounding_boxes") or []
         regions = self._build_regions_from_bboxes(doc_id, bounding_boxes)
+
+        # Process extracted images (if any) and upload to MinIO
+        extracted_images_urls = []
+        crops = response.get("crops") or []
+        doc_filename = meta.get("filename")
+        page_number = meta.get("page_number")
+
+        if crops and doc_filename and page_number is not None:
+            try:
+                extracted_images_urls = self._process_extracted_images(
+                    crops=crops,
+                    filename=doc_filename,
+                    page_number=page_number,
+                )
+                # Replace base64 image URLs in markdown with MinIO URLs
+                markdown = self._replace_base64_with_urls(
+                    markdown, extracted_images_urls
+                )
+            except Exception as exc:
+                logger.warning(
+                    f"Failed to process extracted images for {doc_id}: {exc}",
+                    exc_info=True,
+                )
 
         # Build payload for storage
         payload = {
@@ -177,11 +234,14 @@ class OcrResultHandler:
             "extracted_at": datetime.now(timezone.utc).isoformat(),
         }
 
-        # Require hierarchical structure metadata
-        filename = meta.get("filename")
-        page_number = meta.get("page_number")
+        # Add extracted images metadata if any
+        if extracted_images_urls:
+            payload["extracted_images"] = [
+                {"url": url, "storage": "minio"} for url in extracted_images_urls
+            ]
 
-        if filename is None or page_number is None:
+        # Validate hierarchical structure metadata (already extracted above)
+        if doc_filename is None or page_number is None:
             raise ValueError(
                 f"Metadata must contain 'filename' and 'page_number' for OCR storage. Got: {meta}"
             )
@@ -189,7 +249,7 @@ class OcrResultHandler:
         # Storage structure: {filename}/{page_number}/elements.json
         url = self._minio.store_json(
             payload=payload,
-            filename=filename,
+            filename=doc_filename,
             page_number=page_number,
             json_filename="elements.json",
         )
@@ -201,6 +261,7 @@ class OcrResultHandler:
             "text_preview": preview,
             "text_segments": len(text_segments),
             "regions": len(regions),
+            "extracted_images": len(extracted_images_urls),
         }
         return result
 
@@ -250,3 +311,94 @@ class OcrResultHandler:
         if not preview:
             return None
         return preview[:limit]
+
+    def _process_extracted_images(
+        self,
+        crops: List[str],
+        filename: str,
+        page_number: int,
+    ) -> List[str]:
+        """
+        Process base64-encoded extracted images and upload to MinIO.
+
+        Args:
+            crops: List of base64-encoded image strings from DeepSeek OCR
+            filename: Document filename for storage hierarchy
+            page_number: Page number for storage hierarchy
+
+        Returns:
+            List of MinIO URLs for uploaded images
+        """
+        if not crops:
+            return []
+
+        image_urls = []
+
+        for idx, crop_b64 in enumerate(crops, start=1):
+            try:
+                # Decode base64 to PIL Image
+                image_data = base64.b64decode(crop_b64)
+                pil_image = Image.open(io.BytesIO(image_data))
+
+                # Process image using centralized processor (respects IMAGE_FORMAT/IMAGE_QUALITY)
+                processed = self._image_processor.process(pil_image)
+
+                # Storage structure: {filename}/{page_number}/figure_{idx}.{ext}
+                ext = self._image_processor.get_extension()
+                object_name = f"{filename}/{page_number}/figure_{idx}.{ext}"
+
+                # Upload to MinIO
+                buf = processed.to_buffer()
+                self._minio.service.put_object(
+                    bucket_name=self._minio.bucket_name,
+                    object_name=object_name,
+                    data=buf,
+                    length=processed.size,
+                    content_type=processed.content_type,
+                )
+
+                # Generate public URL
+                url = self._minio._get_image_url(object_name)
+                image_urls.append(url)
+
+                logger.debug(
+                    f"Uploaded extracted image {idx} to {object_name} "
+                    f"(format={processed.format}, size={processed.size} bytes)"
+                )
+
+            except Exception as exc:
+                logger.warning(
+                    f"Failed to process extracted image {idx}: {exc}",
+                    exc_info=True,
+                )
+                continue
+
+        return image_urls
+
+    def _replace_base64_with_urls(self, markdown: str, image_urls: List[str]) -> str:
+        """
+        Replace base64-encoded image data URLs in markdown with MinIO URLs.
+
+        Args:
+            markdown: Markdown text with base64 image data URLs
+            image_urls: List of MinIO URLs to replace with
+
+        Returns:
+            Updated markdown with MinIO URLs
+        """
+        if not image_urls:
+            return markdown
+
+        # Pattern to match base64 image data URLs in markdown
+        # Format: ![Figure N](data:image/png;base64,...)
+        pattern = r"!\[Figure (\d+)\]\(data:image/[^;]+;base64,[^)]+\)"
+
+        def replacer(match):
+            figure_num = int(match.group(1))
+            # Figure numbers are 1-indexed
+            if 1 <= figure_num <= len(image_urls):
+                url = image_urls[figure_num - 1]
+                return f"![Figure {figure_num}]({url})"
+            return match.group(0)  # Keep original if no URL available
+
+        return re.sub(pattern, replacer, markdown)

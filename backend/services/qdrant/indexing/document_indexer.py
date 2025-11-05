@@ -5,6 +5,7 @@ from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from typing import Callable, Iterable, Iterator, Optional
 
 import config  # Import module for dynamic config access
+from services.image_processor import ImageProcessor
 
 from .ocr import OcrResultHandler
 from .points import PointFactory
@@ -41,17 +42,24 @@ class DocumentIndexer:
         self.muvera_post = muvera_post
         self.ocr_handler = None
 
+        # Create centralized image processor with config defaults
+        image_processor = ImageProcessor(
+            default_format=config.IMAGE_FORMAT,
+            default_quality=config.IMAGE_QUALITY,
+        )
+
         if deepseek_service and minio_service:
             try:
                 if deepseek_service.is_enabled():
                     self.ocr_handler = OcrResultHandler(
                         ocr_service=deepseek_service,
                         minio_service=minio_service,
+                        image_processor=image_processor,  # Share the same processor
                     )
             except Exception as exc:  # pragma: no cover - defensive guard
                 logger.warning("DeepSeek OCR handler disabled: %s", exc)
 
-        image_store = ImageStorageHandler(minio_service)
+        image_store = ImageStorageHandler(minio_service, image_processor)
         point_factory = PointFactory(muvera_post)
         self._batch_processor = BatchProcessor(
             embedding_processor=embedding_processor,

@@ -68,9 +68,10 @@ class BatchProcessor:
 
         Flow:
         1. Batch embed all images (efficient)
-        2. For each image: OCR + storage in parallel
-        3. Build Qdrant points with all metadata
-        4. Progress: "Processing X/Total pages"
+        2. Process images once (format/quality conversion)
+        3. For each image: storage + OCR in parallel using pre-processed bytes
+        4. Build Qdrant points with all metadata
+        5. Progress: "Processing X/Total pages"
         """
         batch_start = batch_idx
         image_batch, meta_batch = _split_image_batch(batch)
@@ -91,21 +92,21 @@ class BatchProcessor:
             self._embed_batch(image_batch)
         )
 
-        # Step 2: Per-page OCR + storage (parallel when possible)
+        # Step 2: Storage with pre-processed images (also returns processed images for reuse)
         try:
-            # Storage first (needed for OCR metadata)
-            image_ids, image_records = self.image_store.store(
+            # Storage returns processed images for OCR to reuse
+            image_ids, image_records, processed_images = self.image_store.store(
                 batch_start, image_batch, meta_batch
             )
 
-            # OCR processing with per-page progress updates
+            # Step 3: OCR processing using pre-processed images (no redundant conversion!)
             if self.ocr_handler:
                 try:
                     ocr_results = self.ocr_handler.process_batch(
                         batch_start=batch_start,
                         total_images=total_images,
                         image_ids=image_ids,
-                        image_batch=image_batch,
+                        processed_images=processed_images,  # Reuse processed images!
                         meta_batch=meta_batch,
                         image_records=image_records,
                         progress=progress,
@@ -123,7 +124,7 @@ class BatchProcessor:
                         if summary:
                             meta.setdefault("ocr", {}).update(summary)
 
-            # Step 3: Build points with all metadata (embedding + OCR + storage)
+            # Step 4: Build points with all metadata (embedding + OCR + storage)
             points = self.point_factory.build(
                 batch_start=batch_start,
                 original_batch=original_batch,

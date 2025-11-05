@@ -6,6 +6,7 @@ from typing import Dict, List, Tuple
 
 import config
 from PIL import Image
+from services.image_processor import ImageProcessor, ProcessedImage
 
 logger = logging.getLogger(__name__)
 
@@ -13,15 +14,22 @@ logger = logging.getLogger(__name__)
 class ImageStorageHandler:
     """Handles persistence of image batches in MinIO."""
 
-    def __init__(self, minio_service):
+    def __init__(self, minio_service, image_processor: ImageProcessor | None = None):
         self._minio_service = minio_service
+        # Create processor with config defaults if not provided
+        if image_processor is None:
+            image_processor = ImageProcessor(
+                default_format=config.IMAGE_FORMAT,
+                default_quality=config.IMAGE_QUALITY,
+            )
+        self._image_processor = image_processor
 
     def store(
         self,
         batch_start: int,
         image_batch: List[Image.Image],
         meta_batch: List[dict],
-    ) -> Tuple[List[str], List[Dict[str, object]]]:
+    ) -> Tuple[List[str], List[Dict[str, object]], List[ProcessedImage]]:
         """
         Store images in MinIO using hierarchical structure.
 
@@ -36,8 +44,8 @@ class ImageStorageHandler:
 
         Returns
         -------
-        Tuple[List[str], List[Dict[str, object]]]
-            image_ids and image_records
+        Tuple[List[str], List[Dict[str, object]], List[ProcessedImage]]
+            image_ids, image_records, and processed_images for reuse
         """
         image_ids = [str(uuid.uuid4()) for _ in image_batch]
 
@@ -59,13 +67,16 @@ class ImageStorageHandler:
             filenames.append(filename)
             page_numbers.append(page_num)
 
+        # Process images once using centralized processor
+        processed_images = self._image_processor.process_batch(image_batch)
+
         try:
-            image_url_map = self._minio_service.store_images_batch(
-                image_batch,
+            # Store pre-processed images in MinIO
+            image_url_map = self._minio_service.store_processed_images_batch(
+                processed_images,
                 image_ids=image_ids,
                 filenames=filenames,
                 page_numbers=page_numbers,
-                quality=config.IMAGE_QUALITY,
             )
         except Exception as exc:
             raise Exception(
@@ -87,4 +98,4 @@ class ImageStorageHandler:
                 }
             )
 
-        return image_ids, records
+        return image_ids, records, processed_images
