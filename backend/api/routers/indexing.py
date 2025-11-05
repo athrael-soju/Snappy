@@ -236,7 +236,6 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
                     if info and info.get("stage") == "check_cancel":
                         return
 
-                    (info or {}).get("stage")
                     job_state["current"] = max(job_state["current"], int(current))
 
                     # Unified progress message: "Processing X/Y pages"

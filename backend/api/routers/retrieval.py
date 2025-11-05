@@ -35,7 +35,7 @@ async def search(
         payload = it.get("payload", {})
         label = it["label"]
         image_url = payload.get("image_url")
-        json_url = None
+        json_url = payload.get("ocr_url") or payload.get("storage_url")
 
         # If OCR is requested and available, fetch OCR result from storage
         if include_ocr and ocr_service:
@@ -55,7 +55,7 @@ async def search(
                         "extracted_images": ocr_data.get("extracted_images", []),
                     }
                     # Set json_url if available in OCR data
-                    json_url = ocr_data.get("storage_url")
+                    json_url = ocr_data.get("storage_url") or json_url
 
         results.append(
             SearchItem(

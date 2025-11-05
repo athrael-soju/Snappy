@@ -109,6 +109,10 @@ class OcrStorageHandler:
                     ocr_result.get(field, ""), figure_url_map
                 )
 
+        json_filename = "elements.json"
+        object_name = f"{filename}/{page_number}/{json_filename}"
+        storage_url = self._minio._get_image_url(object_name)
+
         # Build storage payload
         payload = {
             "provider": "deepseek-ocr",
@@ -120,6 +124,7 @@ class OcrStorageHandler:
             "raw_text": ocr_result.get("raw_text", ""),
             "regions": regions,
             "extracted_at": datetime.now(timezone.utc).isoformat(),
+            "storage_url": storage_url,
         }
 
         # Add metadata if provided
@@ -151,7 +156,7 @@ class OcrStorageHandler:
             payload=payload,
             filename=filename,
             page_number=page_number,
-            json_filename="elements.json",
+            json_filename=json_filename,
         )
 
         return url
