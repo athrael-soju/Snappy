@@ -1,4 +1,5 @@
 import { parseSearchResults } from "@/lib/api/runtime";
+import { logger } from '@/lib/utils/logger';
 
 export const documentSearchTool = {
     type: "function" as const,
@@ -45,7 +46,7 @@ export async function executeDocumentSearch(query: string, k: number) {
             count: imageUrls.length
         };
     } catch (error) {
-        console.error('Document search error:', error);
+        logger.error('Document search error', { error, query, k });
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Unknown error occurred',

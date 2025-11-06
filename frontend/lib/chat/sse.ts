@@ -1,4 +1,5 @@
 import type { SearchItem } from "@/lib/api/generated/models/SearchItem";
+import { logger } from "@/lib/utils/logger";
 
 type CreateSSEStreamParams = {
     stream: AsyncIterable<any>;
@@ -27,6 +28,7 @@ export function createSSEStream({ stream, kbItems, onError }: CreateSSEStreamPar
 
             await writer.close();
         } catch (error) {
+            logger.error('SSE stream error', { error });
             onError?.(error);
             await writer.abort(error);
         }

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { MaintenanceService, ApiError } from "@/lib/api/generated";
 import { toast } from "sonner";
+import { logger } from "@/lib/utils/logger";
 
 interface UseSystemManagementOptions {
   onSuccess?: () => void;
@@ -52,8 +53,10 @@ export function useSystemManagement({ onSuccess }: UseSystemManagementOptions = 
       let errorMsg = "Initialization failed";
       if (err instanceof ApiError) {
         errorMsg = `${err.status}: ${err.message}`;
+        logger.error('System initialization failed', { error: err, status: err.status });
       } else if (err instanceof Error) {
         errorMsg = err.message;
+        logger.error('System initialization failed', { error: err });
       }
       toast.error("Initialization Failed", { description: errorMsg });
     } finally {
@@ -92,8 +95,10 @@ export function useSystemManagement({ onSuccess }: UseSystemManagementOptions = 
       let errorMsg = "Deletion failed";
       if (err instanceof ApiError) {
         errorMsg = `${err.status}: ${err.message}`;
+        logger.error('System deletion failed', { error: err, status: err.status });
       } else if (err instanceof Error) {
         errorMsg = err.message;
+        logger.error('System deletion failed', { error: err });
       }
       toast.error("Deletion Failed", { description: errorMsg });
     } finally {

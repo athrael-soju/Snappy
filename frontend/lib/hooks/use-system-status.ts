@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { MaintenanceService, ApiError } from "@/lib/api/generated";
 import { toast } from "sonner";
+import { logger } from "@/lib/utils/logger";
 import type { SystemStatus } from "@/stores/types";
 import { useAppStore } from "@/stores/app-store";
 
@@ -42,8 +43,10 @@ export function useSystemStatus() {
       let errorMsg = "Failed to fetch status";
       if (err instanceof ApiError) {
         errorMsg = `${err.status}: ${err.message}`;
+        logger.error('System status fetch failed', { error: err, status: err.status });
       } else if (err instanceof Error) {
         errorMsg = err.message;
+        logger.error('System status fetch failed', { error: err });
       }
       toast.error("Status Check Failed", { description: errorMsg });
     } finally {

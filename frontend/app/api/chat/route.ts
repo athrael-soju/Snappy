@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSSEStream } from "@/lib/chat/sse";
 import { runChatService } from "@/lib/chat/service";
 import { normalizeChatRequest } from "@/lib/chat/types";
+import { logger } from "@/lib/utils/logger";
+
+const chatLogger = logger.child({ module: 'chat-api' });
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,8 +12,13 @@ export async function POST(request: NextRequest) {
     const normalized = normalizeChatRequest(payload);
 
     if (!normalized.ok) {
+      chatLogger.warn('Invalid chat request', { error: normalized.error });
       return NextResponse.json({ error: normalized.error }, { status: 400 });
     }
+
+    chatLogger.info('Chat request started', {
+      messageCount: normalized.value.message.length
+    });
 
     const { stream, kbItems } = await runChatService(normalized.value);
 
@@ -18,11 +26,11 @@ export async function POST(request: NextRequest) {
       stream,
       kbItems,
       onError: (error) => {
-        console.error("Stream error:", error);
+        chatLogger.error('Stream error', { error });
       },
     });
   } catch (error) {
-    console.error("Chat API error:", error);
+    chatLogger.error('Chat API error', { error });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

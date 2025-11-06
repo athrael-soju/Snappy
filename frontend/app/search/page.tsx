@@ -5,6 +5,7 @@ import { ChangeEvent, FormEvent, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import "@/lib/api/client";
 import Image from "next/image";
+import { logger } from "@/lib/utils/logger";
 import {
   Search,
   Loader2,
@@ -120,6 +121,7 @@ export default function SearchPage() {
       setHasSearched(true);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Search failed";
+      logger.error('Search request failed', { error: err, query: trimmed, k });
       setError(message);
     } finally {
       setLoading(false);

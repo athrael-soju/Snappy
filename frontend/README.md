@@ -23,6 +23,23 @@ This Next.js 16 application (with React 19.2) provides upload, search, chat, con
 
 ---
 
+## Logging
+
+The frontend uses a centralized logging system for better debugging and production monitoring:
+
+- **Logger utility**: `lib/utils/logger.ts` provides structured, environment-aware logging
+- **Usage**: Import `logger` from `@/lib/utils/logger` instead of using `console.*`
+- **Features**:
+  - Environment-aware (DEBUG/INFO in dev, WARN/ERROR in production)
+  - Structured metadata for better debugging
+  - Type-safe with full TypeScript support
+  - Easy integration with monitoring services (Sentry, LogRocket, etc.)
+  - Performance timing utilities
+
+See `lib/utils/LOGGING_GUIDE.md` for detailed usage patterns and best practices.
+
+---
+
 ## Requirements
 
 - **Node.js 22** (matches the Docker image)

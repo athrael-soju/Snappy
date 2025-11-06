@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { ConfigurationService, ApiError } from "@/lib/api/generated";
 import "@/lib/api/client";
 import { saveConfigToStorage, clearConfigFromStorage, loadConfigFromStorage, loadStoredConfigMeta } from "@/lib/config/config-store";
+import { logger } from "@/lib/utils/logger";
 
 const RUNTIME_CONFIG_EVENT = "runtimeConfigUpdated";
 
@@ -132,6 +133,7 @@ export function useConfigurationPanel() {
     } catch (err) {
       const errorMsg = err instanceof ApiError ? err.message : "Failed to load configuration";
       setError(errorMsg);
+      logger.error('Configuration load failed', { error: err });
       toast.error("Configuration Error", { description: errorMsg });
     } finally {
       setLoading(false);
@@ -237,11 +239,11 @@ export function useConfigurationPanel() {
     } catch (err) {
       const errorMsg = err instanceof ApiError ? err.message : "Failed to save configuration";
       setError(errorMsg);
+      logger.error('Configuration save failed', { error: err });
       toast.error("Save failed", { description: errorMsg });
-    } finally {
       setSaving(false);
     }
-  }, [values, originalValues, notifyRuntimeConfigUpdated]);
+  }, [schema, values, originalValues, notifyRuntimeConfigUpdated]);
 
   const resetChanges = useCallback(() => {
     setValues({ ...originalValues });
@@ -303,6 +305,7 @@ export function useConfigurationPanel() {
     } catch (err) {
       const errorMsg = err instanceof ApiError ? err.message : "Failed to reset configuration";
       setError(errorMsg);
+      logger.error('Configuration reset failed', { error: err });
       toast.error("Reset failed", { description: errorMsg });
     }
   }, [schema]);
