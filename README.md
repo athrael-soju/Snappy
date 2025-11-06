@@ -44,7 +44,7 @@
 **TL;DR** 🚀
 
 - 👁️ Vision-focused retrieval and chat with ColPali multivector embeddings, MinIO image storage, and Qdrant search.
-- 🔍 Optional DeepSeek OCR integration for advanced text extraction with configurable models and visual grounding.
+- 🔍 DeepSeek OCR integration for advanced text extraction with configurable models and visual grounding.
 - ⚡ Streaming responses, live indexing progress, and a schema-driven configuration UI to keep changes safe.
 - 🐳 One Docker Compose stack or individual services for local development and production-style deployments.
 
@@ -151,7 +151,7 @@ Head to `backend/docs/architecture.md` and `backend/docs/analysis.md` for a deep
 
    Only start one profile at a time to avoid port clashes. The first GPU build compiles `flash-attn`; subsequent builds reuse the cached wheel. ⚠️
 
-3. **(Optional) Start the DeepSeek OCR service** 🔍
+3. **Start the DeepSeek OCR service (if needed)** 🔍
 
    For advanced text extraction with configurable model sizes and modes:
 
@@ -173,6 +173,8 @@ Use the pre-built images from GitHub Container Registry for instant deployment: 
 docker pull ghcr.io/athrael-soju/Snappy/backend:latest
 docker pull ghcr.io/athrael-soju/Snappy/frontend:latest
 docker pull ghcr.io/athrael-soju/Snappy/colpali-cpu:latest
+# DeepSeek OCR for advanced text extraction
+docker pull ghcr.io/athrael-soju/Snappy/deepseek-ocr:latest
 
 # Start services using your existing docker-compose.yml
 # Make sure to configure it to use these images
@@ -184,6 +186,7 @@ docker compose up -d
 - `frontend:latest` - Next.js frontend (amd64/arm64)
 - `colpali-cpu:latest` - CPU embedding service (amd64/arm64)
 - `colpali-gpu:latest` - GPU embedding service (amd64 only)
+- `deepseek-ocr:latest` - DeepSeek OCR service (amd64 only, requires GPU)
 
 **Note:** 📌 For complete pre-built image documentation including docker-compose.yml examples, version tags, and production deployment guides, see the [Docker Registry Guide](.github/DOCKER_REGISTRY.md).
 
@@ -202,6 +205,8 @@ Services will come online at: 🌐
 - Frontend: http://localhost:3000
 - Qdrant: http://localhost:6333
 - MinIO: http://localhost:9000 (console at :9001)
+- DeepSeek OCR: http://localhost:8200 (if enabled)
+
 
 Update `.env` and `frontend/.env.local` if you need to expose different hostnames or ports. ⚙️
 
@@ -251,7 +256,7 @@ Keep the services from steps 2 and 3 running while you develop.
 ## Highlights ✨
 
 - 🎯 **Page-level vision retrieval** powered by ColPali multivector embeddings; no OCR pipeline to maintain.
-- 🔍 **Optional DeepSeek OCR integration** for advanced text extraction with:
+- 🔍 **DeepSeek OCR integration** for advanced text extraction with:
   - Configurable model sizes (Tiny, Small, Base, Large, Gundam)
   - Multiple processing modes (plain OCR, markdown conversion, text location, image description, custom prompts)
   - Visual grounding with bounding boxes
@@ -277,7 +282,7 @@ Snappy excels at retrieval scenarios where visual layout, formatting, and appear
 - 📰 **Media and Publishing** - Search newspaper archives, magazine layouts, and published materials by visual design, page composition, and formatting.
 - 🎓 **Educational Content** - Organize and retrieve textbooks, lecture notes, and educational materials by visual structure, highlighting, and annotations.
 
-**💡 When to use DeepSeek OCR:** Enable the optional DeepSeek OCR service when you need structured text extraction, markdown conversion, or precise text location with bounding boxes alongside visual retrieval. Perfect for hybrid workflows that combine vision-based search with traditional text processing.
+**💡 When to use DeepSeek OCR:** Enable DeepSeek OCR when you need structured text extraction, markdown conversion, or precise text location with bounding boxes alongside visual retrieval. Perfect for hybrid workflows that combine vision-based search with traditional text processing.
 
 ---
 
@@ -293,7 +298,7 @@ The Next.js 16 frontend with React 19.2 keeps things fast and friendly: real-tim
 
 - 🧠 `COLPALI_URL`, `COLPALI_API_TIMEOUT`
 - 🔍 **DeepSeek OCR**: `DEEPSEEK_OCR_ENABLED`, `DEEPSEEK_OCR_URL`, `DEEPSEEK_OCR_API_TIMEOUT`, `DEEPSEEK_OCR_MAX_WORKERS`, `DEEPSEEK_OCR_POOL_SIZE`, `DEEPSEEK_OCR_MODE`, `DEEPSEEK_OCR_TASK`, `DEEPSEEK_OCR_INCLUDE_GROUNDING`, `DEEPSEEK_OCR_INCLUDE_IMAGES`
-- 📊 `QDRANT_EMBEDDED`, `QDRANT_URL`, `QDRANT_COLLECTION_NAME`, `QDRANT_PREFETCH_LIMIT`, `QDRANT_MEAN_POOLING_ENABLED`, optional quantisation toggles
+- 📊 `QDRANT_EMBEDDED`, `QDRANT_URL`, `QDRANT_COLLECTION_NAME`, `QDRANT_PREFETCH_LIMIT`, `QDRANT_MEAN_POOLING_ENABLED`, quantisation toggles
 - 🗄️ `MINIO_URL`, `MINIO_PUBLIC_URL`, credentials, bucket naming, `IMAGE_FORMAT`, `IMAGE_QUALITY`
 - 📝 `LOG_LEVEL`, `ALLOWED_ORIGINS`, `UVICORN_RELOAD`
 
@@ -302,7 +307,7 @@ All schema-backed settings (and defaults) are documented in `backend/docs/config
 ### Frontend highlights (`frontend/.env.local`) 🎨
 
 - 🌐 `NEXT_PUBLIC_API_BASE_URL` (defaults to `http://localhost:8000`)
-- 🤖 `OPENAI_API_KEY`, `OPENAI_MODEL`, optional `OPENAI_TEMPERATURE`, `OPENAI_MAX_TOKENS`
+- 🤖 `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_TEMPERATURE`, `OPENAI_MAX_TOKENS`
 
 ---
 
