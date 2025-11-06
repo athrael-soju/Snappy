@@ -37,20 +37,24 @@ Snappy pairs a FastAPI backend, a ColPali embedding service, and a Next.js front
 - Streaming responses, live indexing progress, and a schema-driven configuration UI to keep changes safe.
 - One Docker Compose stack or individual services for local development and production-style deployments.
 
-**Table of Contents**
+---
 
+## Table of Contents
+
+- [Showcase](#showcase)
+- [Architecture](#architecture)
 - [Quick Start](#quick-start)
+  - [Option A - Pre-built Docker Images](#option-a---run-with-pre-built-docker-images)
+  - [Option B - Full Stack (Build from Source)](#option-b---run-the-full-stack-with-docker-compose-build-from-source)
+  - [Option C - Local Development](#option-c---run-services-locally)
 - [Highlights](#highlights)
 - [Use Cases](#use-cases)
-- [Architecture](#architecture)
 - [Frontend Experience](#frontend-experience)
-- [Demo](#demo)
 - [Environment Variables](#environment-variables)
 - [API Overview](#api-overview)
 - [Troubleshooting](#troubleshooting)
 - [Developer Notes](#developer-notes)
 - [Documentation](#documentation)
-- [Further Reading](#further-reading)
 - [License](#license)
 - [Acknowledgements](#acknowledgements)
 
@@ -105,41 +109,47 @@ Head to `backend/docs/architecture.md` and `backend/docs/analysis.md` for a deep
 
 ## Quick Start
 
-> **Using pre-built images?** Skip to [Option A](#option-a--run-with-pre-built-docker-images) for the fastest deployment using the pre-built containers from GitHub Container Registry.
+**Choose your deployment method:**
 
-### 1. Prepare environment files
+- **[Option A](#option-a---run-with-pre-built-docker-images)** - Fastest: Use pre-built images from GitHub Container Registry
+- **[Option B](#option-b---run-the-full-stack-with-docker-compose-build-from-source)** - Build from source: Full Docker Compose stack
+- **[Option C](#option-c---run-services-locally)** - Local development: Run services individually
 
-```bash
-cp .env.example .env
-cp frontend/.env.example frontend/.env.local
-```
+### Prerequisites for all options
 
-Add your OpenAI API key to `frontend/.env.local` and review the backend defaults in `.env`.
+1. **Prepare environment files**
 
-### 2. Start the ColPali embedding service
+   ```bash
+   cp .env.example .env
+   cp frontend/.env.example frontend/.env.local
+   ```
 
-From `colpali/` pick one profile:
+   Add your OpenAI API key to `frontend/.env.local` and review the backend defaults in `.env`.
 
-```bash
-# GPU profile (CUDA + flash-attn tooling)
-docker compose --profile gpu up -d --build
+2. **Choose and start the ColPali embedding service**
 
-# CPU profile (no GPU dependencies)
-docker compose --profile cpu up -d --build
-```
+   From `colpali/` pick one profile:
 
-Only start one profile at a time to avoid port clashes. The first GPU build compiles `flash-attn`; subsequent builds reuse the cached wheel.
+   ```bash
+   # GPU profile (CUDA + flash-attn tooling)
+   docker compose --profile gpu up -d --build
 
-### 3. (Optional) Start the DeepSeek OCR service
+   # CPU profile (no GPU dependencies)
+   docker compose --profile cpu up -d --build
+   ```
 
-For advanced text extraction with configurable model sizes and modes:
+   Only start one profile at a time to avoid port clashes. The first GPU build compiles `flash-attn`; subsequent builds reuse the cached wheel.
 
-```bash
-cd deepseek-ocr
-docker compose up -d --build
-```
+3. **(Optional) Start the DeepSeek OCR service**
 
-The service runs at http://localhost:8200. Enable it via `DEEPSEEK_OCR_ENABLED=True` in `.env`. See `deepseek-ocr/README.md` for configuration details.
+   For advanced text extraction with configurable model sizes and modes:
+
+   ```bash
+   cd deepseek-ocr
+   docker compose up -d --build
+   ```
+
+   The service runs at http://localhost:8200. Enable it via `DEEPSEEK_OCR_ENABLED=True` in `.env`. See `deepseek-ocr/README.md` for configuration details.
 
 ---
 
@@ -153,8 +163,8 @@ docker pull ghcr.io/athrael-soju/Snappy/backend:latest
 docker pull ghcr.io/athrael-soju/Snappy/frontend:latest
 docker pull ghcr.io/athrael-soju/Snappy/colpali-cpu:latest
 
-# Create minimal docker-compose.yml (see docs/DOCKER_IMAGES.md)
-# Then start services
+# Start services using your existing docker-compose.yml
+# Make sure to configure it to use these images
 docker compose up -d
 ```
 
@@ -164,11 +174,11 @@ docker compose up -d
 - `colpali-cpu:latest` - CPU embedding service (amd64/arm64)
 - `colpali-gpu:latest` - GPU embedding service (amd64 only)
 
-**Full guide**: See [`docs/DOCKER_IMAGES.md`](docs/DOCKER_IMAGES.md) for complete documentation on using pre-built images, version tags, configuration, and production deployment examples.
+**Note:** For complete pre-built image documentation including docker-compose.yml examples, version tags, and production deployment guides, see the [Docker Registry Guide](.github/DOCKER_REGISTRY.md).
 
 ---
 
-### Option B - Run the full stack with Docker Compose (Build from Source)
+### Option B - Run the Full Stack with Docker Compose (Build from Source)
 
 At the project root:
 
@@ -186,7 +196,7 @@ Update `.env` and `frontend/.env.local` if you need to expose different hostname
 
 ---
 
-### Option C - Run services locally
+### Option C - Run Services Locally
 
 1. In `backend/`, install dependencies and launch FastAPI:
 
@@ -318,7 +328,7 @@ Chat streaming lives in `frontend/app/api/chat/route.ts`. The route calls the ba
 ## Developer Notes
 
 - Background indexing uses FastAPI `BackgroundTasks`. For larger deployments consider a dedicated task queue.
-- MinIO worker pools auto-size based on hardware. Override only when you have specific throughput limits.
+- **MinIO worker pools auto-size based on hardware. Override only when you have specific throughput limits.
 - TypeScript types and Zod schemas regenerate from the OpenAPI spec (`yarn gen:sdk`, `yarn gen:zod`) to keep the frontend in sync.
 - Pre-commit hooks (autoflake, isort, black, pyright) keep the codebase tidy-run them before contributing.
 - **Version management:** Uses Release Please + Conventional Commits for automated releases. See `VERSIONING.md` for details.
@@ -327,21 +337,25 @@ Chat streaming lives in `frontend/app/api/chat/route.ts`. The route calls the ba
 
 ## Documentation
 
-- `backend/README.md` - FastAPI backend guide
-- `frontend/README.md` - Next.js frontend guide
+**Core Documentation:**
+- `README.md` - This file: project overview and quick start
+- `VERSIONING.md` - Version management and release workflow
+- `AGENTS.md` - Comprehensive guide for AI agents and developers
+
+**Component Guides:**
+- `backend/README.md` - FastAPI backend setup and API reference
+- `frontend/README.md` - Next.js frontend development guide
 - `colpali/README.md` - ColPali embedding service guide
 - `deepseek-ocr/README.md` - DeepSeek OCR service guide
-- `backend/docs/configuration.md` - Configuration reference
-- `VERSIONING.md` - Release and version workflow
 
----
+**Technical Deep Dives:**
+- `backend/docs/architecture.md` - System architecture and data flows
+- `backend/docs/configuration.md` - Complete configuration reference
+- `backend/docs/analysis.md` - Vision vs. text RAG comparison
+- `backend/docs/pipeline.md` - Pipeline processing architecture
 
-## Further Reading
-
-- `backend/docs/analysis.md` - vision vs. text RAG comparison
-- `backend/docs/architecture.md` - collection, indexing, and search deep dive
-- `colpali/README.md` - details on the standalone embedding service
-- `deepseek-ocr/README.md` - details on the DeepSeek OCR service
+**Deployment:**
+- `.github/DOCKER_REGISTRY.md` - Docker image registry and pre-built images guide
 
 ---
 
