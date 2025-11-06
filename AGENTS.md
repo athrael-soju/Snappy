@@ -31,7 +31,7 @@ A vision-first document retrieval system that uses ColPali embeddings to search 
 **Tech Stack:**
 - **Backend:** FastAPI (Python 3.11+) with async/await patterns
 - **Frontend:** Next.js 16 (App Router, Server Components, TypeScript) with React 19.2
-- **Vector DB:** Qdrant (multivector search with optional MUVERA)
+- **Vector DB:** Qdrant (multivector search)
 - **Storage:** MinIO (S3-compatible object storage)
 - **Embeddings:** ColPali service (standalone FastAPI app)
 - **Orchestration:** Docker Compose (GPU/CPU profiles)
@@ -205,7 +205,6 @@ External APIs/DBs (Qdrant, MinIO, ColPali)
 
 **Search Flow:**
 1. Query embedding via ColPali
-2. Optional MUVERA first-stage (if enabled)
 3. Prefetch with pooled vectors (if mean pooling enabled)
 4. Final rerank with full multivectors
 5. Score normalization and result formatting

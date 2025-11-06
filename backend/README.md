@@ -145,3 +145,13 @@ The `/configuration` frontend page consumes the `/config/*` APIs to provide:
 
 For implementation details, see `backend/CONFIGURATION_GUIDE.md`.
 
+---
+
+## Additional Documentation
+
+- **`docs/architecture.md`** - System architecture and data flows
+- **`docs/configuration.md`** - Complete configuration reference
+- **`docs/analysis.md`** - Vision vs. text RAG comparison
+- **`docs/pipeline.md`** - Pipeline processing architecture (vector DB agnostic)
+- **`CONFIGURATION_GUIDE.md`** - Configuration implementation details
+

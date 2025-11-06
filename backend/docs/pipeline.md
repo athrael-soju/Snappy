@@ -2,6 +2,8 @@
 
 This package provides **vector-database-agnostic** pipeline components for document indexing.
 
+---
+
 ## Overview
 
 The pipeline package handles the core processing flow for document indexing:
@@ -10,6 +12,8 @@ The pipeline package handles the core processing flow for document indexing:
 - Embedding generation coordination
 - OCR processing (optional)
 - Progress tracking and cancellation
+
+---
 
 ## Architecture
 
@@ -68,6 +72,8 @@ Data class containing all processed batch data:
 - Storage URLs
 - OCR results
 
+---
+
 ## Usage with Vector Databases
 
 ### Qdrant Example
@@ -124,12 +130,16 @@ indexer.index_documents(
 )
 ```
 
+---
+
 ## Benefits
 
 1. **Reduced Coupling**: Vector DB changes don't affect core pipeline logic
 2. **Testability**: Pipeline components can be tested independently
 3. **Flexibility**: Easy to add new vector databases
 4. **Maintainability**: Clear separation between generic and DB-specific code
+
+---
 
 ## Migration Notes
 

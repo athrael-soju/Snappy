@@ -62,7 +62,7 @@ const stack = [
   {
     title: "Qdrant vector store",
     description:
-      "Multivector collections power hybrid search, optional binary quantisation, and MUVERA first-stage retrieval.",
+      "Multivector collections power hybrid search with configurable optimisations for recall, latency, and cost.",
     icon: Database,
   },
   {
@@ -87,7 +87,7 @@ const lifecycle = [
   {
     label: "Retrieve",
     detail:
-      "Search requests fan out to Qdrant with configurable top-K, filters, and optional MUVERA recall boost.",
+      "Search requests fan out to Qdrant with configurable top-K and filters for precise retrieval.",
   },
   {
     label: "Respond",
@@ -293,7 +293,7 @@ export default function AboutPage() {
             <h2 className="text-2xl font-semibold sm:text-3xl">Ready to tailor it to your domain?</h2>
             <p className="mt-3 text-body-sm text-muted-foreground sm:text-body">
               Bring your PDFs, plug in your ColPali deployment, and start experimenting. The template includes
-              feature flags for MUVERA recall boosts, binary quantisation, and runtime configuration so you can
+              runtime configuration, binary quantisation, and flexible deployment options so you can
               harden as you grow.
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
