@@ -5,6 +5,7 @@ import React, { useMemo, useState } from 'react';
 import { AppButton } from '@/components/app-button';
 import { Copy, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import CitationHoverCard from './CitationHoverCard';
 
 type ImageData = {
@@ -29,8 +30,11 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
       await navigator.clipboard.writeText(code);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {
+    } catch (error) {
       setCopied(false);
+      toast.error('Failed to copy code', {
+        description: 'Please check clipboard permissions'
+      });
     }
   };
 

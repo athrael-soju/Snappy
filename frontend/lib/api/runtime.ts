@@ -1,5 +1,5 @@
 import { z } from "zod";
-
+import { logger } from '@/lib/utils/logger';
 import { schemas } from "@/lib/api/schemas";
 import type { SearchItem } from "@/lib/api/generated/models/SearchItem";
 

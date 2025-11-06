@@ -1,5 +1,6 @@
 import { useAppStore } from '@/stores/app-store';
 import { toast } from 'sonner';
+import { logger } from '@/lib/utils/logger';
 import type { UploadFileMeta } from '@/stores/types';
 
 const toFileMeta = (files: File[] | null): UploadFileMeta[] | null => {
@@ -37,7 +38,10 @@ export function useUploadStore() {
       if (response.ok) {
         dispatch({ type: 'UPLOAD_SET_ERROR', payload: null });
       } else {
-        console.warn(`Backend cancel failed: ${response.statusText}`);
+        logger.warn('Backend cancel failed', {
+          statusText: response.statusText,
+          jobId
+        });
         dispatch({ type: 'UPLOAD_SET_ERROR', payload: 'Cancellation may not have completed on server' });
         dispatch({ type: 'UPLOAD_SET_MESSAGE', payload: null });
 
@@ -48,7 +52,7 @@ export function useUploadStore() {
         }
       }
     } catch (error) {
-      console.error('Failed to cancel upload on backend:', error);
+      logger.error('Failed to cancel upload on backend', { error, jobId });
       dispatch({ type: 'UPLOAD_SET_ERROR', payload: 'Connection error during cancellation' });
       dispatch({ type: 'UPLOAD_SET_MESSAGE', payload: null });
 

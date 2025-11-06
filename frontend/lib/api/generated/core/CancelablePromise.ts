@@ -1,6 +1,9 @@
 /* generated using openapi-typescript-codegen -- do not edit */
 /* istanbul ignore file */
 /* tslint:disable */
+
+import { logger } from "@/lib/utils/logger";
+
 /* eslint-disable */
 export class CancelError extends Error {
 
@@ -117,8 +120,7 @@ export class CancelablePromise<T> implements Promise<T> {
                     cancelHandler();
                 }
             } catch (error) {
-                console.warn('Cancellation threw an error', error);
-                return;
+                logger.error('Error occurred while executing cancel handlers', { error });
             }
         }
         this.#cancelHandlers.length = 0;

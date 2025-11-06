@@ -2,6 +2,8 @@
  * Configuration storage utility for persisting runtime config in localStorage
  */
 
+import { logger } from '@/lib/utils/logger';
+
 const CONFIG_STORAGE_KEY = "colpali-runtime-config";
 const CONFIG_STORAGE_VERSION = 2;
 
@@ -80,7 +82,7 @@ export function saveConfigToStorage(config: ConfigValues, updatedAt?: Date): boo
     localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(payload));
     return true;
   } catch (error) {
-    console.error("Failed to save config to localStorage:", error);
+    logger.error('Failed to save config to localStorage', { error });
     return false;
   }
 }
@@ -110,7 +112,7 @@ export function clearConfigFromStorage(): boolean {
     localStorage.removeItem(CONFIG_STORAGE_KEY);
     return true;
   } catch (error) {
-    console.error("Failed to clear config from localStorage:", error);
+    logger.error('Failed to clear config from localStorage', { error });
     return false;
   }
 }

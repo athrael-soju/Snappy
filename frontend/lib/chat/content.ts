@@ -1,4 +1,5 @@
 import type { SearchItem } from "@/lib/api/generated/models/SearchItem";
+import { logger } from '@/lib/utils/logger';
 
 type DataUrl = { mime: string; base64: string };
 
@@ -175,7 +176,7 @@ export async function buildMarkdownContent(results: SearchItem[], query: string)
                     text: `[${result.label || "Unknown"}]\n${markdown}`,
                 } as const;
             } catch (error) {
-                console.error("Failed to fetch markdown:", error);
+                logger.error('Failed to fetch markdown', { error, label: result.label });
                 return null;
             }
         }),

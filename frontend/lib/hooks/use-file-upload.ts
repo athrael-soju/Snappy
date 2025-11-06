@@ -3,6 +3,7 @@ import { useUploadStore } from "@/stores/app-store";
 import { ApiError, ConfigurationService } from "@/lib/api/generated";
 import { toast } from "sonner";
 import { loadConfigFromStorage } from "@/lib/config/config-store";
+import { logger } from "@/lib/utils/logger";
 
 const MB_IN_BYTES = 1024 * 1024;
 const RUNTIME_CONFIG_EVENT = "runtimeConfigUpdated";
@@ -155,7 +156,7 @@ export function useFileUpload() {
         if (!active) return;
         applyConstraints(remoteValues as Record<string, string>);
       } catch (err) {
-        console.warn("Failed to fetch runtime configuration values", err);
+        logger.warn('Failed to fetch runtime configuration values', { error: err });
       }
     })();
 
@@ -319,7 +320,10 @@ export function useFileUpload() {
   const handleUpload = useCallback(
     async (isReady: boolean) => {
       if (uploading || isCancellingRef.current) {
-        console.warn("Upload already in progress or cancelling, ignoring submission");
+        logger.warn("Upload already in progress or cancelling, ignoring submission", {
+          uploading,
+          isCancelling: isCancellingRef.current
+        });
         return;
       }
 
@@ -368,8 +372,10 @@ export function useFileUpload() {
         let errorMsg = "Upload failed";
         if (err instanceof ApiError) {
           errorMsg = `${err.status}: ${err.message}`;
+          logger.error('Upload start failed', { error: err, status: err.status, fileCount: files.length });
         } else if (err instanceof Error) {
           errorMsg = err.message;
+          logger.error('Upload start failed', { error: err, fileCount: files.length });
         }
         setError(errorMsg);
         toast.error("Upload Failed", {

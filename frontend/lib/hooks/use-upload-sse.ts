@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
+import { logger } from '@/lib/utils/logger';
 import { UploadState, AppAction } from '@/stores/app-store';
 
 interface UseUploadSSEOptions {
@@ -172,7 +173,7 @@ export function useUploadSSE({ uploadState, dispatch }: UseUploadSSEOptions) {
           }
         }
       } catch (e) {
-        console.warn('Failed to parse SSE data:', e);
+        logger.warn('Failed to parse SSE data', { error: e });
       }
     });
 
@@ -193,10 +194,10 @@ export function useUploadSSE({ uploadState, dispatch }: UseUploadSSEOptions) {
     });
 
     es.addEventListener('error', (e) => {
-      console.warn('Global SSE connection error:', e);
+      logger.warn('Global SSE connection error', { error: e, jobId: uploadState.jobId });
       // Check if connection is permanently failed (readyState === 2 means CLOSED)
       if (es.readyState === 2) {
-        console.error('SSE connection permanently closed');
+        logger.error('SSE connection permanently closed', { readyState: es.readyState });
         setTimeout(() => {
           // Check if still uploading after a brief delay
           if (uploadState.uploading && uploadState.jobId) {
@@ -222,7 +223,10 @@ export function useUploadSSE({ uploadState, dispatch }: UseUploadSSEOptions) {
     stallCheckIntervalRef.current = setInterval(() => {
       const timeSinceLastProgress = Date.now() - lastProgressTimeRef.current;
       if (timeSinceLastProgress > 45000) { // 45 seconds without progress
-        console.error('Upload stalled - no progress for 45 seconds');
+        logger.error('Upload stalled - no progress for 45 seconds', {
+          timeSinceLastProgress,
+          jobId: uploadState.jobId
+        });
         closeSSEConnection();
         dispatch({ type: 'UPLOAD_SET_ERROR', payload: 'Upload stalled. The collection may have been deleted or the service is unavailable.' });
         dispatch({ type: 'UPLOAD_SET_STATUS_TEXT', payload: null });

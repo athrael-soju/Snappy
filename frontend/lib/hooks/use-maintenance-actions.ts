@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MaintenanceService, ApiError } from "@/lib/api/generated";
 import { toast } from "sonner";
+import { logger } from "@/lib/utils/logger";
 
 export type ActionType = "q" | "m" | "all";
 
@@ -63,8 +64,10 @@ export function useMaintenanceActions({ onSuccess }: UseMaintenanceActionsOption
       let message = "Maintenance action failed";
       if (err instanceof ApiError) {
         message = `${err.status}: ${err.message}`;
+        logger.error('Maintenance action failed', { error: err, action, status: err.status });
       } else if (err instanceof Error) {
         message = err.message;
+        logger.error('Maintenance action failed', { error: err, action });
       }
       toast.error("Action failed", { description: message });
     } finally {

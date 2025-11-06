@@ -1,4 +1,5 @@
 import type { AppState } from '../types';
+import { logger } from '@/lib/utils/logger';
 
 const STORAGE_KEY = 'colpali-app-state';
 
@@ -54,7 +55,7 @@ export function loadStateFromStorage(): Partial<AppState> | null {
       return JSON.parse(stored);
     }
   } catch (error) {
-    console.warn('Failed to load app state from localStorage:', error);
+    logger.warn('Failed to load app state from localStorage', { error });
   }
   return null;
 }
@@ -67,6 +68,6 @@ export function saveStateToStorage(state: AppState): void {
     const serialized = serializeStateForStorage(state);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(serialized));
   } catch (error) {
-    console.warn('Failed to save app state to localStorage:', error);
+    logger.warn('Failed to save app state to localStorage', { error });
   }
 }
