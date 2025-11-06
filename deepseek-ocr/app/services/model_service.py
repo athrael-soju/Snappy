@@ -30,8 +30,25 @@ class ModelService:
             logger.info("Model already loaded")
             return
 
-        logger.info(f"Loading DeepSeek OCR model: {settings.MODEL_NAME}")
-        logger.info(f"Device: {settings.DEVICE}, Dtype: {settings.TORCH_DTYPE}")
+        logger.info("=" * 60)
+        logger.info("DeepSeek OCR Model Loading")
+        logger.info("=" * 60)
+        logger.info(f"Model: {settings.MODEL_NAME}")
+        logger.info(f"Device: {settings.DEVICE.upper()}")
+        logger.info(f"Dtype: {settings.TORCH_DTYPE}")
+
+        # Check CUDA availability
+        import torch
+
+        if torch.cuda.is_available():
+            logger.info(f"CUDA Device: {torch.cuda.get_device_name(0)}")
+            logger.info(f"CUDA Version: {torch.version.cuda}")
+
+        using_flash_attn = settings.DEVICE == "cuda"
+        logger.info(
+            f"Flash Attention 2: {'ENABLED' if using_flash_attn else 'DISABLED (CPU mode)'}"
+        )
+        logger.info("=" * 60)
 
         try:
             self.tokenizer = AutoTokenizer.from_pretrained(
@@ -55,10 +72,11 @@ class ModelService:
                 self.model = self.model.cuda()
 
             self._initialized = True
-            logger.info("Model loaded successfully")
+            logger.info("✓ Model loaded successfully")
+            logger.info("=" * 60)
 
         except Exception as e:
-            logger.error(f"Failed to load model: {e}")
+            logger.error(f"✗ Failed to load model: {e}")
             raise
 
     def is_loaded(self) -> bool:

@@ -15,19 +15,36 @@ from fastapi.middleware.cors import CORSMiddleware
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Load model on startup, cleanup on shutdown."""
-    logger.info("Starting DeepSeek OCR service")
+    logger.info("")
+    logger.info("╔" + "═" * 58 + "╗")
+    logger.info("║" + " " * 12 + "DeepSeek OCR Service Starting" + " " * 16 + "║")
+    logger.info("╚" + "═" * 58 + "╝")
+    logger.info("")
 
     # Load model on startup
     try:
         model_service.load_model()
+
+        # Display service info after successful load
+        logger.info("")
+        logger.info("Service Ready!")
+        logger.info(f"→ API endpoint: http://{settings.API_HOST}:{settings.API_PORT}")
+        logger.info(
+            f"→ Health check: http://{settings.API_HOST}:{settings.API_PORT}/health"
+        )
+        logger.info(f"→ Docs: http://{settings.API_HOST}:{settings.API_PORT}/docs")
+        logger.info("")
+
     except Exception as e:
-        logger.error(f"Failed to load model during startup: {e}")
+        logger.error(f"✗ Failed to load model during startup: {e}")
         raise
 
     yield
 
     # Cleanup on shutdown
+    logger.info("")
     logger.info("Shutting down DeepSeek OCR service")
+    logger.info("")
 
 
 def create_app() -> FastAPI:
