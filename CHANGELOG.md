@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.2.1](https://github.com/athrael-soju/Snappy/compare/v0.2.0...v0.2.1) (2025-11-06)
+
+
+### Features
+
+* enhance architecture documentation with DeepSeek OCR integration and update request flows ([70e41f2](https://github.com/athrael-soju/Snappy/commit/70e41f2c404110a9f238ef979bef6a15305e9841))
+* implement centralized logging system across the frontend ([5cf641b](https://github.com/athrael-soju/Snappy/commit/5cf641b146cf8360c8d8fc8b20cbadb97cadadbd))
+* implement centralized logging system across the frontend ([95d5974](https://github.com/athrael-soju/Snappy/commit/95d5974c62ba31c4e60d6c1c91c6f21e7a79546d))
+* refine descriptions in documentation for clarity and precision ([91a94d2](https://github.com/athrael-soju/Snappy/commit/91a94d2bf666d55a0ec93b1a33bd59f338ecb8e6))
+* update Dockerfile and application logging for DeepSeek OCR serv… ([de88a95](https://github.com/athrael-soju/Snappy/commit/de88a95e74cd5b16493a1526f456053d91d402bd))
+* update Dockerfile and application logging for DeepSeek OCR service startup ([b905693](https://github.com/athrael-soju/Snappy/commit/b905693407d3b5362ae05a1dd36cda47c849b802))
+* update documentation and restructure state management architect… ([d27019a](https://github.com/athrael-soju/Snappy/commit/d27019af67fa7d83fb3f887cfcf0b757e758d4f6))
+* update documentation and restructure state management architecture in frontend ([5f90fdd](https://github.com/athrael-soju/Snappy/commit/5f90fdd00aceaf97e78d2517729de6b874007523))
+
+
+### Bug Fixes
+
+* clarify DeepSeek OCR integration details in README ([afc8796](https://github.com/athrael-soju/Snappy/commit/afc879646c1906beeae088967c8b68ea70175e4a))
+
 ## [0.1.3](https://github.com/athrael-soju/Snappy/compare/0.1.2...v0.1.3) (2025-10-23)
 
 
