@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
+    from services.duckdb_service import DuckDBService
     from services.minio import MinioService
 
     from .processor import OcrProcessor
@@ -30,6 +31,7 @@ class OcrStorageHandler:
         self,
         minio_service: "MinioService",
         processor: Optional["OcrProcessor"] = None,
+        duckdb_service: Optional["DuckDBService"] = None,
     ):
         """
         Initialize storage handler.
@@ -37,9 +39,11 @@ class OcrStorageHandler:
         Args:
             minio_service: MinIO service for uploads
             processor: OCR processor (optional, for image extraction)
+            duckdb_service: DuckDB service for structured storage (optional)
         """
         self._minio = minio_service
         self._processor = processor
+        self._duckdb = duckdb_service
 
     def store_ocr_result(
         self,
@@ -158,6 +162,18 @@ class OcrStorageHandler:
             page_number=page_number,
             json_filename=json_filename,
         )
+
+        # Also store to DuckDB for quantitative searching
+        if self._duckdb and self._duckdb.enabled:
+            try:
+                self._duckdb.store_ocr_result(payload)
+                logger.debug(
+                    f"Stored OCR result to DuckDB: {filename} page {page_number}"
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Failed to store OCR result to DuckDB: {e}", exc_info=True
+                )
 
         return url
 

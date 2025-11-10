@@ -508,6 +508,34 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
             },
         ],
     },
+    "duckdb": {
+        "order": 4.5,
+        "icon": "database",
+        "name": "DuckDB Analytics",
+        "description": "DuckDB service for structured OCR data and quantitative searching.",
+        "settings": [
+            {
+                "key": "DUCKDB_ENABLED",
+                "type": "bool",
+                "default": True,
+                "label": "Enable DuckDB Storage",
+                "ui_type": "boolean",
+                "description": "Enable DuckDB for structured OCR data storage and quantitative analysis.",
+                "help_text": "When enabled, OCR results are stored in DuckDB alongside MinIO for structured querying, analytics, and quantitative text searching. Disable if you don't need analytics features or want to reduce resource usage.",
+            },
+            {
+                "key": "DUCKDB_URL",
+                "type": "str",
+                "default": "http://localhost:8300",
+                "label": "DuckDB Service URL",
+                "ui_type": "text",
+                "description": "URL of the DuckDB HTTP API service.",
+                "help_text": "Endpoint for the DuckDB service API. Default points to the Docker compose deployment. Update when the service runs on a different host or port. Format: http://hostname:port",
+                "depends_on": {"key": "DUCKDB_ENABLED", "value": True},
+                "ui_hidden": True,
+            },
+        ],
+    },
     "storage": {
         "order": 5,
         "icon": "hard-drive",
@@ -732,4 +760,6 @@ def get_critical_keys() -> set:
         "DEEPSEEK_OCR_API_TIMEOUT",
         "DEEPSEEK_OCR_MAX_WORKERS",
         "DEEPSEEK_OCR_POOL_SIZE",
+        "DUCKDB_ENABLED",
+        "DUCKDB_URL",
     }

@@ -33,6 +33,22 @@ services:
       - snappy-network
     restart: unless-stopped
 
+  duckdb:
+    build:
+      context: ./duckdb-service
+      dockerfile: Dockerfile
+    image: duckdb-service:latest
+    container_name: duckdb
+    ports:
+      - "8300:8300" # DuckDB API
+    volumes:
+      - duckdb_data:/var/lib/duckdb
+    environment:
+      - DB_PATH=/var/lib/duckdb/snappy.db
+    networks:
+      - snappy-network
+    restart: unless-stopped
+
   backend:
     build:
       context: ./backend
@@ -53,6 +69,8 @@ services:
       - MINIO_PUBLIC_URL=http://localhost:9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
+      - DUCKDB_ENABLED=${DUCKDB_ENABLED:-true}
+      - DUCKDB_URL=http://duckdb:8300
     volumes:
       - backend_data:/home/user/app/data
     stdin_open: true
@@ -61,6 +79,7 @@ services:
     depends_on:
       - qdrant
       - minio
+      - duckdb
     networks:
       - snappy-network
 
@@ -91,3 +110,4 @@ volumes:
   qdrant_data:
   minio_data:
   backend_data:
+  duckdb_data:

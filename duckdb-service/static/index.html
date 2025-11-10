@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DuckDB Explorer - Snappy OCR</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .status.healthy {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h2 {
+            color: #667eea;
+            font-size: 18px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .query-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .query-input {
+            width: 100%;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .query-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .quick-queries {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .quick-btn {
+            padding: 8px 15px;
+            background: #f0f0f0;
+            color: #333;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .quick-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .results-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-top: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 500;
+            position: sticky;
+            top: 0;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .truncate {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🦆 DuckDB Explorer</h1>
+            <span class="status" id="status">Checking...</span>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2>📊 Database Statistics</h2>
+                <div class="stat-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalPages">-</div>
+                        <div class="stat-label">Total Pages</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalDocs">-</div>
+                        <div class="stat-label">Documents</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalChars">-</div>
+                        <div class="stat-label">Total Characters</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📋 Tables</h2>
+                <div id="tablesList">Loading...</div>
+            </div>
+        </div>
+
+        <div class="query-section">
+            <h2 style="color: #667eea; margin-bottom: 15px;">🔍 SQL Query</h2>
+            <div class="quick-queries">
+                <button class="quick-btn" onclick="setQuery('SELECT * FROM ocr_results LIMIT 10')">View OCR
+                    Results</button>
+                <button class="quick-btn" onclick="setQuery('SELECT * FROM ocr_regions LIMIT 10')">View Regions</button>
+                <button class="quick-btn"
+                    onclick="setQuery('SELECT filename, COUNT(*) as pages FROM ocr_results GROUP BY filename')">Pages
+                    per Document</button>
+                <button class="quick-btn"
+                    onclick="setQuery('SELECT * FROM ocr_results WHERE text LIKE \'%search%\'')">Search Text</button>
+                <button class="quick-btn" onclick="setQuery('SELECT COUNT(*) as total FROM ocr_results')">Count
+                    All</button>
+            </div>
+            <textarea class="query-input" id="queryInput"
+                placeholder="Enter your SQL query here...">SELECT * FROM ocr_results LIMIT 10</textarea>
+            <button class="btn" onclick="executeQuery()">Execute Query</button>
+        </div>
+
+        <div class="results-section">
+            <h2 style="color: #667eea; margin-bottom: 15px;">📈 Query Results</h2>
+            <div id="resultsContainer">
+                <div class="loading">Enter a query and click "Execute Query" to see results</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        async function checkHealth() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                const statusEl = document.getElementById('status');
+
+                if (data.status === 'healthy') {
+                    statusEl.textContent = '✓ Connected';
+                    statusEl.className = 'status healthy';
+                } else {
+                    statusEl.textContent = '✗ Unhealthy';
+                    statusEl.className = 'status error';
+                }
+            } catch (error) {
+                const statusEl = document.getElementById('status');
+                statusEl.textContent = '✗ Connection Error';
+                statusEl.className = 'status error';
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_BASE}/ocr/stats`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const data = await response.json();
+
+                document.getElementById('totalPages').textContent = data.page_count || 0;
+                document.getElementById('totalDocs').textContent = data.document_count || 0;
+                document.getElementById('totalChars').textContent = (data.total_chars || 0).toLocaleString();
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        async function loadTables() {
+            try {
+                const response = await fetch(`${API_BASE}/query/execute`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query: "SELECT name FROM sqlite_master WHERE type='table'"
+                    })
+                });
+                const data = await response.json();
+
+                const tablesEl = document.getElementById('tablesList');
+                if (data.rows && data.rows.length > 0) {
+                    tablesEl.innerHTML = '<ul style="list-style: none; padding: 10px;">' +
+                        data.rows.map(row => `<li style="padding: 5px; background: #f8f9fa; margin: 5px 0; border-radius: 3px;">📄 ${row[0]}</li>`).join('') +
+                        '</ul>';
+                } else {
+                    tablesEl.innerHTML = '<p style="color: #666;">No tables found</p>';
+                }
+            } catch (error) {
+                document.getElementById('tablesList').innerHTML = '<p style="color: #999;">Could not load tables</p>';
+            }
+        }
+
+        function setQuery(query) {
+            document.getElementById('queryInput').value = query;
+        }
+
+        async function executeQuery() {
+            const query = document.getElementById('queryInput').value.trim();
+            const resultsContainer = document.getElementById('resultsContainer');
+
+            if (!query) {
+                resultsContainer.innerHTML = '<div class="error-message">Please enter a query</div>';
+                return;
+            }
+
+            resultsContainer.innerHTML = '<div class="loading">Executing query...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/query/execute`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Query failed');
+                }
+
+                if (data.rows && data.rows.length > 0) {
+                    renderTable(data.columns, data.rows);
+                } else {
+                    resultsContainer.innerHTML = '<div class="success-message">Query executed successfully. No rows returned.</div>';
+                }
+
+                // Refresh stats after query
+                loadStats();
+            } catch (error) {
+                resultsContainer.innerHTML = `<div class="error-message">Error: ${error.message}</div>`;
+            }
+        }
+
+        function renderTable(columns, rows) {
+            const resultsContainer = document.getElementById('resultsContainer');
+
+            let html = `
+                <div style="margin-bottom: 10px; color: #666;">
+                    Returned ${rows.length} row${rows.length !== 1 ? 's' : ''}
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>${columns.map(col => `<th>${col}</th>`).join('')}</tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            rows.forEach(row => {
+                html += '<tr>';
+                row.forEach(cell => {
+                    const value = cell === null ? '<i style="color: #999;">NULL</i>' : String(cell);
+                    const displayValue = value.length > 100 ? value.substring(0, 100) + '...' : value;
+                    html += `<td class="truncate" title="${value.replace(/"/g, '&quot;')}">${displayValue}</td>`;
+                });
+                html += '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+            resultsContainer.innerHTML = html;
+        }
+
+        // Initialize on load
+        checkHealth();
+        loadStats();
+        loadTables();
+
+        // Refresh every 30 seconds
+        setInterval(() => {
+            checkHealth();
+            loadStats();
+        }, 30000);
+
+        // Allow Enter key with Ctrl/Cmd to execute
+        document.getElementById('queryInput').addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                executeQuery();
+            }
+        });
+    </script>
+</body>
+
+</html>
