@@ -94,19 +94,6 @@ Stores every grounded region extracted from OCR output.
 - `idx_regions_page_id`
 - `idx_regions_label`
 
-### `ocr_extracted_images` Table
-
-Stores image crops extracted by the OCR provider.
-
-| Column     | Type      | Description                          |
-|------------|-----------|--------------------------------------|
-| id         | INTEGER   | Primary key                          |
-| page_id    | INTEGER   | Foreign key to `ocr_pages.id`        |
-| image_index| INTEGER   | Position/index within OCR payload    |
-| url        | VARCHAR   | Public URL in MinIO                  |
-| storage    | VARCHAR   | Storage provider (usually `minio`)   |
-| created_at | TIMESTAMP | Record creation time                 |
-
 **Indexes:**
 - `idx_images_page_id`
 

@@ -63,8 +63,6 @@ class StatsResponse(BaseModel):
     total_documents: int
     total_pages: int
     total_regions: int
-    total_extracted_images: int
-    providers: Dict[str, int]
     storage_size_mb: float
     schema_active: bool
 

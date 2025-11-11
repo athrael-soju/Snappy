@@ -1161,10 +1161,6 @@
           "total_regions": {
             "type": "integer",
             "title": "Total Regions"
-          },
-          "total_extracted_images": {
-            "type": "integer",
-            "title": "Total Extracted Images"
           }
         },
         "type": "object",
@@ -1173,8 +1169,7 @@
           "page_count",
           "first_indexed",
           "last_indexed",
-          "total_regions",
-          "total_extracted_images"
+          "total_regions"
         ],
         "title": "DocumentInfo",
         "description": "Document information."
@@ -1567,17 +1562,6 @@
             "type": "integer",
             "title": "Total Regions"
           },
-          "total_extracted_images": {
-            "type": "integer",
-            "title": "Total Extracted Images"
-          },
-          "providers": {
-            "additionalProperties": {
-              "type": "integer"
-            },
-            "type": "object",
-            "title": "Providers"
-          },
           "storage_size_mb": {
             "type": "number",
             "title": "Storage Size Mb"
@@ -1588,8 +1572,6 @@
           "total_documents",
           "total_pages",
           "total_regions",
-          "total_extracted_images",
-          "providers",
           "storage_size_mb"
         ],
         "title": "StatsResponse",

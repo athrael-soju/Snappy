@@ -11,6 +11,5 @@ export type DocumentInfo = {
     first_indexed: string;
     last_indexed: string;
     total_regions: number;
-    total_extracted_images: number;
 };
 

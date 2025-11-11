@@ -183,7 +183,6 @@ class DuckDBAnalyticsService:
         conn.execute("DROP SEQUENCE IF EXISTS ocr_regions_id_seq")
         conn.execute("DROP SEQUENCE IF EXISTS ocr_pages_id_seq")
         conn.execute("CHECKPOINT")
-        conn.execute("PRAGMA wal_checkpoint;")
 
         return {
             "status": "success",
@@ -380,22 +379,6 @@ class DuckDBAnalyticsService:
             )
         return regions
 
-    def _fetch_images(self, page_id: int) -> List[Dict[str, Any]]:
-        rows = self.conn.execute(
-            """
-            SELECT url, storage
-            FROM ocr_extracted_images
-            WHERE page_id = ?
-            ORDER BY image_index
-            """,
-            [page_id],
-        ).fetchall()
-
-        images: List[Dict[str, Any]] = []
-        for row in rows:
-            images.append({"url": row[0], "storage": row[1]})
-        return images
-
     def delete_document(self, filename: str) -> Dict[str, Any]:
         count_row = self.conn.execute(
             "SELECT COUNT(*) FROM ocr_pages WHERE filename = ?", [filename]
@@ -408,15 +391,6 @@ class DuckDBAnalyticsService:
         self.conn.execute(
             """
             DELETE FROM ocr_regions
-            WHERE page_id IN (
-                SELECT id FROM ocr_pages WHERE filename = ?
-            )
-            """,
-            [filename],
-        )
-        self.conn.execute(
-            """
-            DELETE FROM ocr_extracted_images
             WHERE page_id IN (
                 SELECT id FROM ocr_pages WHERE filename = ?
             )
@@ -464,7 +438,6 @@ class DuckDBAnalyticsService:
     def stats(self) -> StatsResponse:
         schema_active = self._schema_exists()
         total_docs = total_pages = total_regions = total_images = 0
-        providers: Dict[str, int] = {}
 
         if schema_active:
             total_docs_row = self.conn.execute(
@@ -482,16 +455,6 @@ class DuckDBAnalyticsService:
             ).fetchone()
             total_regions = total_regions_row[0] if total_regions_row else 0
 
-            total_images_row = self.conn.execute(
-                "SELECT COUNT(*) FROM ocr_extracted_images"
-            ).fetchone()
-            total_images = total_images_row[0] if total_images_row else 0
-
-            providers_result = self.conn.execute(
-                "SELECT provider, COUNT(*) FROM ocr_pages GROUP BY provider"
-            ).fetchall()
-            providers = {row[0]: row[1] for row in providers_result}
-
         db_path = Path(settings.DUCKDB_DATABASE_PATH)
         size_mb = db_path.stat().st_size / (1024 * 1024) if db_path.exists() else 0.0
 
@@ -499,8 +462,6 @@ class DuckDBAnalyticsService:
             total_documents=total_docs,
             total_pages=total_pages,
             total_regions=total_regions,
-            total_extracted_images=total_images,
-            providers=providers,
             storage_size_mb=round(size_mb, 2),
             schema_active=schema_active,
         )

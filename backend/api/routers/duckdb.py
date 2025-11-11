@@ -1,7 +1,7 @@
 """DuckDB analytics endpoints."""
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 
 from api.dependencies import get_duckdb_service
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -38,8 +38,6 @@ class StatsResponse(BaseModel):
     total_documents: int
     total_pages: int
     total_regions: int
-    total_extracted_images: int
-    providers: Dict[str, int]
     storage_size_mb: float
 
 
@@ -51,7 +49,6 @@ class DocumentInfo(BaseModel):
     first_indexed: str
     last_indexed: str
     total_regions: int
-    total_extracted_images: int
 
 
 # Endpoints
