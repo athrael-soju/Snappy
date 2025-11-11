@@ -38,46 +38,102 @@ x-deepseek-base: &deepseek-base
         - deepseek-ocr
   restart: unless-stopped
 
+x-qdrant-base: &qdrant-base
+  container_name: qdrant
+  image: qdrant/qdrant:latest
+  ports:
+    - 6333:6333 # HTTP API
+    - 6334:6334 # gRPC API
+  volumes:
+    - qdrant_data:/qdrant/storage
+  environment:
+    - QDRANT__STORAGE__PATH=/qdrant/storage
+    - QDRANT__SERVICE__GRPC_PORT=6334
+    - QDRANT__SERVICE__HTTP_PORT=6333
+  depends_on:
+    - minio
+  networks:
+    - snappy-network
+  restart: unless-stopped
+
+x-minio-base: &minio-base
+  container_name: minio
+  image: minio/minio:latest
+  ports:
+    - 9000:9000
+    - 9001:9001
+  volumes:
+    - minio_data:/data
+  environment:
+    - MINIO_ROOT_USER=minioadmin
+    - MINIO_ROOT_PASSWORD=minioadmin
+  command: server /data --console-address ":9001"
+  networks:
+    - snappy-network
+  restart: unless-stopped
+
+x-backend-base: &backend-base
+  container_name: backend
+  build:
+    context: ./backend
+    dockerfile: Dockerfile
+  image: backend:latest
+  ports:
+    - "8000:8000"
+  env_file:
+    - ./.env
+  environment:
+    - COLPALI_URL=${COLPALI_URL:-http://colpali:7000}
+    - DEEPSEEK_OCR_ENABLED=${DEEPSEEK_OCR_ENABLED:-true}
+    - DEEPSEEK_OCR_URL=http://deepseek-ocr:8200
+    - QDRANT_EMBEDDED=false
+    - QDRANT_URL=http://qdrant:6333
+    - MINIO_URL=http://minio:9000
+    - MINIO_PUBLIC_URL=http://localhost:9000
+    - MINIO_ACCESS_KEY=minioadmin
+    - MINIO_SECRET_KEY=minioadmin
+  volumes:
+    - backend_data:/home/user/app/data
+  stdin_open: true
+  tty: true
+  restart: unless-stopped
+  depends_on:
+    - qdrant
+    - minio
+  networks:
+    - snappy-network
+
+x-frontend-base: &frontend-base
+  container_name: frontend
+  build:
+    context: ./frontend
+    dockerfile: Dockerfile
+  image: frontend:latest
+  ports:
+    - "3000:3000"
+  env_file:
+    - ./frontend/.env.local
+  environment:
+    - NEXT_PUBLIC_API_BASE_URL=http://backend:8000
+    - PUBLIC_MINIO_URL_SET=true
+  networks:
+    - snappy-network
+  restart: unless-stopped
+  depends_on:
+    - backend
+
 services:
   qdrant:
     profiles:
       - cpu
       - gpu
-    image: qdrant/qdrant:latest
-    container_name: qdrant
-    ports:
-      - 6333:6333 # HTTP API
-      - 6334:6334 # gRPC API
-    volumes:
-      - qdrant_data:/qdrant/storage
-    environment:
-      - QDRANT__STORAGE__PATH=/qdrant/storage
-      - QDRANT__SERVICE__GRPC_PORT=6334
-      - QDRANT__SERVICE__HTTP_PORT=6333
-    depends_on:
-      - minio
-    networks:
-      - snappy-network
-    restart: unless-stopped
+    <<: *qdrant-base
 
   minio:
     profiles:
       - cpu
       - gpu
-    image: minio/minio:latest
-    container_name: minio
-    ports:
-      - 9000:9000
-      - 9001:9001
-    volumes:
-      - minio_data:/data
-    environment:
-      - MINIO_ROOT_USER=minioadmin
-      - MINIO_ROOT_PASSWORD=minioadmin
-    command: server /data --console-address ":9001"
-    networks:
-      - snappy-network
-    restart: unless-stopped
+    <<: *minio-base
 
   colpali-cpu:
     <<: *colpali-base
@@ -126,57 +182,13 @@ services:
     profiles:
       - cpu
       - gpu
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    image: backend:latest
-    container_name: backend
-    ports:
-      - "8000:8000"
-    env_file:
-      - ./.env
-    environment:
-      - COLPALI_URL=${COLPALI_URL:-http://colpali:7000}
-      - DEEPSEEK_OCR_ENABLED=${DEEPSEEK_OCR_ENABLED:-true}
-      - DEEPSEEK_OCR_URL=http://deepseek-ocr:8200
-      - QDRANT_EMBEDDED=false
-      - QDRANT_URL=http://qdrant:6333
-      - MINIO_URL=http://minio:9000
-      - MINIO_PUBLIC_URL=http://localhost:9000
-      - MINIO_ACCESS_KEY=minioadmin
-      - MINIO_SECRET_KEY=minioadmin
-    volumes:
-      - backend_data:/home/user/app/data
-    stdin_open: true
-    tty: true
-    restart: unless-stopped
-    depends_on:
-      - qdrant
-      - minio
-    networks:
-      - snappy-network
+    <<: *backend-base
 
   frontend:
     profiles:
       - cpu
       - gpu
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    image: frontend:latest
-    container_name: frontend
-    ports:
-      - "3000:3000"
-    env_file:
-      - ./frontend/.env.local
-    environment:
-      - NEXT_PUBLIC_API_BASE_URL=http://backend:8000
-      - PUBLIC_MINIO_URL_SET=true
-    networks:
-      - snappy-network
-    restart: unless-stopped
-    depends_on:
-      - backend
+    <<: *frontend-base
 
 networks:
   snappy-network:
