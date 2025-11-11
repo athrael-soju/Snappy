@@ -29,6 +29,7 @@ class DuckDBManager:
             )
 
         db_path = Path(settings.DUCKDB_DATABASE_PATH)
+        self._cleanup_wal(db_path)
         db_path.parent.mkdir(parents=True, exist_ok=True)
 
         logger.info("Initializing DuckDB database at %s", db_path)
@@ -158,6 +159,22 @@ class DuckDBManager:
         """Mark DuckDB as deleted until explicitly initialized."""
         self._allow_connections = False
         self._connection = None
+
+    def ensure_schema(self) -> None:
+        """Recreate schema even if already connected."""
+        if not self._connection:
+            self.connect(force=True)
+        self._create_schema()
+
+    @staticmethod
+    def _cleanup_wal(db_path: Path) -> None:
+        wal_path = db_path.with_suffix(db_path.suffix + ".wal")
+        if wal_path.exists():
+            try:
+                wal_path.unlink()
+                logger.info("Removed stale DuckDB WAL file at %s", wal_path)
+            except OSError as exc:  # pragma: no cover - best effort
+                logger.warning("Failed to remove WAL file %s: %s", wal_path, exc)
 
 
 db_manager = DuckDBManager()

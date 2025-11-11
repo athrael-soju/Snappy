@@ -66,6 +66,7 @@ class StatsResponse(BaseModel):
     total_extracted_images: int
     providers: Dict[str, int]
     storage_size_mb: float
+    schema_active: bool
 
 
 class DocumentInfo(BaseModel):

@@ -34,7 +34,7 @@ def _bucket_name() -> str:
 
 router = APIRouter(prefix="", tags=["maintenance"])
 
-INACTIVE_MESSAGE = "Storage inactive. Run Initialize to recreate it."
+INACTIVE_MESSAGE = ""
 
 
 @router.post("/clear/qdrant")
@@ -233,8 +233,8 @@ def _collect_duckdb_status(dsvc: Optional["DuckDBService"]) -> dict:
         return status
 
     try:
-        stats = dsvc.get_stats()
-        if not stats:
+        stats = dsvc.get_stats() or {}
+        if not stats or not stats.get("schema_active", True):
             status["error"] = INACTIVE_MESSAGE
             return status
 
