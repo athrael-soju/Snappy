@@ -72,8 +72,8 @@ async def clear_all():
         svc = get_qdrant_service()
         msvc = get_minio_service()
         dsvc = get_duckdb_service()
-        message = await asyncio.to_thread(_clear_all_sync, svc, msvc, dsvc)
-        return {"status": "ok", "message": message}
+        results = await asyncio.to_thread(_clear_all_sync, svc, msvc, dsvc)
+        return {"status": _summarize_status(results), "results": results}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -284,53 +284,67 @@ def _clear_all_sync(
     svc: Optional["QdrantService"],
     msvc: Optional["MinioService"],
     dsvc: Optional["DuckDBService"],
-) -> str:
-    _collection_name()
+) -> dict:
+    results = {
+        "collection": {"status": "pending", "message": ""},
+        "bucket": {"status": "pending", "message": ""},
+        "duckdb": {"status": "pending", "message": ""},
+    }
+
     if svc:
         if _collection_exists(svc):
             try:
-                q_msg = svc.clear_collection()
+                svc.clear_collection()
+                results["collection"]["status"] = "success"
+                results["collection"]["message"] = "Cleared Qdrant collection"
             except Exception as exc:
-                q_msg = f"Qdrant clear failed: {exc}"
+                results["collection"]["status"] = "error"
+                results["collection"]["message"] = str(exc)
         else:
-            q_msg = "Qdrant collection missing; initialize first"
+            results["collection"]["status"] = "skipped"
+            results["collection"]["message"] = "Collection missing; initialize first"
     else:
-        q_msg = (
-            f"Qdrant unavailable: {qdrant_init_error or 'Dependency service is down'}"
+        results["collection"]["status"] = "error"
+        results["collection"]["message"] = (
+            qdrant_init_error or "Qdrant service unavailable"
         )
+
     if msvc:
         if _bucket_exists(msvc):
             try:
-                res = msvc.clear_images()
-                m_msg = (
-                    f"Cleared MinIO images: deleted={res.get('deleted')}, "
-                    f"failed={res.get('failed')}"
-                )
+                msvc.clear_images()
+                results["bucket"]["status"] = "success"
+                results["bucket"]["message"] = "Cleared MinIO objects"
             except Exception as exc:
-                m_msg = f"MinIO clear failed: {exc}"
+                results["bucket"]["status"] = "error"
+                results["bucket"]["message"] = str(exc)
         else:
-            m_msg = "MinIO bucket missing; initialize first"
+            results["bucket"]["status"] = "skipped"
+            results["bucket"]["message"] = "Bucket missing; initialize first"
     else:
-        m_msg = f"MinIO unavailable: {minio_init_error or 'Dependency service is down'}"
-    if dsvc and dsvc.is_enabled():
+        results["bucket"]["status"] = "error"
+        results["bucket"]["message"] = minio_init_error or "MinIO service unavailable"
+
+    if not getattr(config, "DUCKDB_ENABLED", False):
+        results["duckdb"]["status"] = "skipped"
+        results["duckdb"]["message"] = "DuckDB disabled via configuration"
+    elif not dsvc:
+        results["duckdb"]["status"] = "error"
+        results["duckdb"]["message"] = duckdb_init_error or "DuckDB unavailable"
+    else:
         if _duckdb_available(dsvc):
             try:
-                res = dsvc.clear_storage()
-                duck_msg = (
-                    res.get("message", "Cleared DuckDB") if res else "Cleared DuckDB"
-                )
+                dsvc.clear_storage()
+                results["duckdb"]["status"] = "success"
+                results["duckdb"]["message"] = "Cleared DuckDB tables"
             except Exception as exc:
-                duck_msg = f"DuckDB clear failed: {exc}"
+                results["duckdb"]["status"] = "error"
+                results["duckdb"]["message"] = str(exc)
         else:
-            duck_msg = "DuckDB missing; initialize first"
-    else:
-        duck_msg = (
-            "DuckDB disabled"
-            if not getattr(config, "DUCKDB_ENABLED", False)
-            else f"DuckDB unavailable: {duckdb_init_error or 'Service down'}"
-        )
+            results["duckdb"]["status"] = "skipped"
+            results["duckdb"]["message"] = "DuckDB missing; initialize first"
 
-    return " ".join(filter(None, [q_msg, m_msg, duck_msg])).strip()
+    return results
 
 
 def _initialize_sync(

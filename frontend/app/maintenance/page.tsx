@@ -389,12 +389,12 @@ export default function MaintenancePage() {
 
                         <div className="grid grid-cols-3 gap-2 text-body-xs">
                           <div className="rounded-lg bg-muted/50 px-2 py-1.5">
-                            <p className="text-muted-foreground">Regions</p>
-                            <p className="font-semibold">{systemStatus.duckdb.region_count?.toLocaleString() ?? 0}</p>
-                          </div>
-                          <div className="rounded-lg bg-muted/50 px-2 py-1.5">
                             <p className="text-muted-foreground">Pages</p>
                             <p className="font-semibold">{systemStatus.duckdb.page_count?.toLocaleString() ?? 0}</p>
+                          </div>
+                          <div className="rounded-lg bg-muted/50 px-2 py-1.5">
+                            <p className="text-muted-foreground">Regions</p>
+                            <p className="font-semibold">{systemStatus.duckdb.region_count?.toLocaleString() ?? 0}</p>
                           </div>
                           <div className="rounded-lg bg-muted/50 px-2 py-1.5">
                             <p className="text-muted-foreground">Size (MB)</p>

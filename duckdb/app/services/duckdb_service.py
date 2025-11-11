@@ -187,20 +187,21 @@ class DuckDBAnalyticsService:
         }
 
     def delete_storage(self) -> Dict[str, Any]:
-        """Delete the DuckDB database file and require reinitialization."""
-        db_manager.close()
-        db_path = Path(settings.DUCKDB_DATABASE_PATH)
-        removed = False
-        if db_path.exists():
-            db_path.unlink()
-            removed = True
+        """Drop DuckDB OCR tables without removing the database file."""
+        conn = db_manager.connect(force=True)
+        conn.execute("DROP TABLE IF EXISTS ocr_regions")
+        conn.execute("DROP TABLE IF EXISTS ocr_extracted_images")
+        conn.execute("DROP TABLE IF EXISTS ocr_pages")
+        conn.execute("DROP SEQUENCE IF EXISTS ocr_regions_id_seq")
+        conn.execute("DROP SEQUENCE IF EXISTS ocr_pages_id_seq")
+        conn.execute("DROP SEQUENCE IF EXISTS ocr_images_id_seq")
 
-        db_manager.mark_deleted()
+        # Recreate schema so the service stays usable
+        db_manager._create_schema()  # type: ignore[attr-defined]
 
         return {
             "status": "success",
-            "message": "DuckDB database file removed; run initialize to recreate it",
-            "file_removed": removed,
+            "message": "Dropped DuckDB OCR tables",
         }
 
     def _insert_regions(self, page_id: int, regions: Sequence[Dict[str, Any]]) -> None:

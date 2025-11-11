@@ -14,9 +14,50 @@ interface UseMaintenanceActionsOptions {
 }
 
 const SUCCESS_MESSAGES: Record<ActionType, string> = {
-  q: "Cleared Qdrant collection",
-  m: "Cleared MinIO bucket",
-  all: "Cleared Qdrant, MinIO, and DuckDB data",
+  q: "Qdrant collection reset",
+  m: "MinIO bucket reset",
+  all: "Reset All Data",
+};
+
+const SERVICE_LABELS: Record<string, string> = {
+  collection: "Qdrant",
+  bucket: "MinIO",
+  duckdb: "DuckDB",
+};
+
+const summarizeResults = (result: any) => {
+  const entries = result?.results;
+  if (!entries || typeof entries !== "object") {
+    return undefined;
+  }
+
+  const completed: string[] = [];
+  const skipped: string[] = [];
+  const failed: string[] = [];
+
+  for (const [key, value] of Object.entries(entries)) {
+    const label = SERVICE_LABELS[key] ?? key;
+    switch (value?.status) {
+      case "success":
+        completed.push(label);
+        break;
+      case "skipped":
+        skipped.push(label);
+        break;
+      case "error":
+        failed.push(label);
+        break;
+      default:
+        break;
+    }
+  }
+
+  const parts: string[] = [];
+  if (completed.length) parts.push(`Completed: ${completed.join(", ")}`);
+  if (skipped.length) parts.push(`Skipped: ${skipped.join(", ")}`);
+  if (failed.length) parts.push(`Failed: ${failed.join(", ")}`);
+
+  return parts.length ? parts.join(" • ") : undefined;
 };
 
 /**
@@ -42,11 +83,21 @@ export function useMaintenanceActions({ onSuccess }: UseMaintenanceActionsOption
     try {
       const response = await handler();
 
-      const description = typeof response === "object" && response !== null
-        ? ("message" in response && typeof response.message === "string" ? response.message : JSON.stringify(response))
-        : String(response ?? "Operation completed successfully");
+      if (action === "all" && typeof response === "object" && response !== null) {
+        const status: string | undefined =
+          typeof response.status === "string" ? response.status : undefined;
+        const description = summarizeResults(response);
 
-      toast.success(SUCCESS_MESSAGES[action], { description });
+        if (status === "success") {
+          toast.success(SUCCESS_MESSAGES[action], description ? { description } : undefined);
+        } else if (status === "partial") {
+          toast.warning("Partial Reset", description ? { description } : undefined);
+        } else {
+          toast.error("Reset Failed", description ? { description } : undefined);
+        }
+      } else {
+        toast.success(SUCCESS_MESSAGES[action]);
+      }
 
       try {
         if (typeof localStorage !== "undefined") {
