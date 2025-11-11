@@ -273,6 +273,8 @@ External APIs/DBs (Qdrant, MinIO, ColPali)
 - `DEEPSEEK_OCR_MAX_WORKERS` - Concurrent OCR requests per batch (default: 4)
 - `DEEPSEEK_OCR_POOL_SIZE` - HTTP connection pool size (default: 20)
 
+> **GPU requirement:** Run the GPU Docker Compose profile (or a CUDA-capable environment) whenever DeepSeek OCR is enabled. Disable `DEEPSEEK_OCR_ENABLED` when running the CPU profile.
+
 **Processing Modes:**
 - `Gundam`: 1024 base + 640 tiles with cropping (best balance)
 - `Tiny`: 512×512 (fastest)

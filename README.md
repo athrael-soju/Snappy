@@ -160,7 +160,7 @@ Head to `backend/docs/architecture.md` and `backend/docs/analysis.md` for a deep
    docker compose up -d --build
    ```
 
-   The service runs at http://localhost:8200. Enable it via `DEEPSEEK_OCR_ENABLED=True` in `.env`. See `deepseek-ocr/README.md` for configuration details.
+   The service runs at http://localhost:8200 and requires a GPU. Enable it via `DEEPSEEK_OCR_ENABLED=True` in `.env` only when you plan to run the GPU profile. See `deepseek-ocr/README.md` for setup details.
 
 ---
 
@@ -194,11 +194,17 @@ docker compose up -d
 
 ### Option B - Run the Full Stack with Docker Compose (Build from Source) 🔨
 
-At the project root:
+At the project root pick a compute profile so the right ColPali and DeepSeek builds come online:
 
 ```bash
-docker compose up -d --build
+# CPU-only stack
+docker compose --profile cpu up -d --build
+
+# GPU-accelerated stack
+docker compose --profile gpu up -d --build
 ```
+
+> Note: Profiles are mutually exclusive—run one profile at a time so only the matching ColPali/DeepSeek containers bind their ports.
 
 Services will come online at: 🌐
 - Backend: http://localhost:8000
@@ -206,6 +212,9 @@ Services will come online at: 🌐
 - Qdrant: http://localhost:6333
 - MinIO: http://localhost:9000 (console at :9001)
 - DeepSeek OCR: http://localhost:8200 (if enabled)
+
+Inside Docker, containers reach each other via service names, so keep `COLPALI_URL=http://colpali:7000` and `DEEPSEEK_OCR_URL=http://deepseek-ocr:8200` in `.env`. Switch to `http://localhost:*` only when the backend runs directly on your host OS. DeepSeek OCR currently ships only with the GPU profile—when running the CPU stack, set `DEEPSEEK_OCR_ENABLED=false`.
+
 
 
 Update `.env` and `frontend/.env.local` if you need to expose different hostnames or ports. ⚙️
@@ -342,7 +351,7 @@ Chat streaming lives in `frontend/app/api/chat/route.ts`. The route calls the ba
 - 🚫 **CORS issues?** Replace wildcard `ALLOWED_ORIGINS` entries with explicit URLs before exposing the API publicly.
 - 💨 **Config changes vanish?** `/config/update` modifies runtime state only-update `.env` for anything you need to keep after a restart.
 - 📤 **Upload rejected?** The uploader currently accepts PDFs only. Adjust max size, chunk size, or file count limits in the "Uploads" section of the configuration UI.
-- 🔍 **OCR not working?** Ensure `DEEPSEEK_OCR_ENABLED=True` in `.env` and the DeepSeek OCR service is running at the configured URL (default: http://localhost:8200). Check service health with `GET /ocr/health`.
+- 🔍 **OCR not working?** Ensure `DEEPSEEK_OCR_ENABLED=True` in `.env`, the GPU profile is running (DeepSeek OCR is GPU-only), and the service is reachable at `http://deepseek-ocr:8200`. Check service health with `GET /ocr/health`.
 
 `backend/docs/configuration.md` and `backend/CONFIGURATION_GUIDE.md` cover advanced troubleshooting and implementation details.
 
@@ -406,4 +415,5 @@ Snappy builds on the work of: 🌟
 
 - 🔥 **PyTorch** - core deep learning framework  
    https://pytorch.org/  
+
 

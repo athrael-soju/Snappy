@@ -190,7 +190,7 @@ API_PORT=8200
 # Model Configuration
 MODEL_NAME=deepseek-ai/DeepSeek-OCR
 HF_HOME=/models
-DEVICE=cuda  # or 'cpu' for CPU-only mode
+DEVICE=cuda  # GPU mode only
 
 # CORS Settings
 ALLOWED_ORIGINS=*  # Comma-separated list or '*' for all
@@ -207,14 +207,7 @@ The default `docker-compose.yml` includes GPU support. Ensure you have:
 
 ### CPU Mode
 
-To run in CPU mode (slower, but no GPU required):
-
-```yaml
-# docker-compose.yml
-environment:
-  - DEVICE=cpu
-# Remove the deploy section
-```
+CPU execution is temporarily unsupported—run the GPU profile (`docker compose --profile gpu ...`) to use DeepSeek OCR.
 
 ## Integration with Snappy
 
@@ -245,7 +238,7 @@ services:
 
 ## Performance Considerations
 
-- **GPU vs CPU**: GPU is 10-50x faster than CPU mode
+- **GPU vs CPU**: DeepSeek OCR currently runs on GPU only; CPU fallback is unavailable
 - **Batch Processing**: PDFs are processed page-by-page sequentially
 - **Memory**: Large mode requires ~8GB GPU memory
 - **Disk**: Model weights are ~3GB, cached in `HF_HOME`
@@ -270,7 +263,7 @@ python -c "import torch; print(torch.cuda.is_available())"
 ### Out of Memory
 - Use smaller processing mode (Tiny or Small)
 - Reduce image resolution before upload
-- Enable CPU mode if GPU memory is insufficient
+*** Remove this bullet entirely ***
 
 ### Font Errors (Bounding Boxes)
 ```bash
