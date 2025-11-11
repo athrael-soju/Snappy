@@ -387,7 +387,7 @@ export default function MaintenancePage() {
                           </Badge>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-2 text-body-xs">
+                        <div className="grid grid-cols-2 gap-2 text-body-xs sm:grid-cols-3 lg:grid-cols-3">
                           <div className="rounded-lg bg-muted/50 px-2 py-1.5">
                             <p className="text-muted-foreground">Pages</p>
                             <p className="font-semibold">{systemStatus.duckdb.page_count?.toLocaleString() ?? 0}</p>

@@ -75,4 +75,3 @@ class DocumentInfo(BaseModel):
     first_indexed: str
     last_indexed: str
     total_regions: int
-    total_extracted_images: int

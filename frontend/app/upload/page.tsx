@@ -272,6 +272,26 @@ export default function UploadPage() {
               )}
             </Badge>
 
+            <Badge variant="outline" className="gap-1.5 px-3 py-1">
+              <FileText className="size-icon-3xs" />
+              <span className="font-semibold">DuckDB Docs</span>
+              {systemStatus?.duckdb?.available ? (
+                <CheckCircle2 className="size-icon-3xs text-chart-2" />
+              ) : (
+                <AlertCircle className="size-icon-3xs text-destructive" />
+              )}
+              {typeof systemStatus?.duckdb?.document_count === "number" && (
+                <span className="ml-1 font-semibold">
+                  {systemStatus.duckdb.document_count.toLocaleString()}
+                </span>
+              )}
+              {systemStatus?.duckdb?.name && (
+                <span className="ml-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                  {systemStatus.duckdb.name}
+                </span>
+              )}
+            </Badge>
+
             <AppButton
               onClick={fetchStatus}
               disabled={statusLoading}

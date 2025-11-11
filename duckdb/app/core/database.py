@@ -55,7 +55,14 @@ class DuckDBManager:
             logger.warning("DuckDB UI extension unavailable: %s", exc)
 
     def _create_schema(self) -> None:
-        """Create the analytics schema with columnar tables."""
+        """Create the analytics schema with columnar tables.
+
+        Schema design principles:
+        - ocr_pages: Core page metadata with MinIO references
+        - ocr_regions: Structured text regions with bounding boxes
+        - Minimal duplication: Full data lives in MinIO, DB has queryable metadata
+        - Retrieval: Query by (filename, page_number) matching Qdrant payload
+        """
         if not self._connection:
             return
 
@@ -63,26 +70,18 @@ class DuckDBManager:
             """
             CREATE SEQUENCE IF NOT EXISTS ocr_pages_id_seq START 1;
             CREATE SEQUENCE IF NOT EXISTS ocr_regions_id_seq START 1;
-            CREATE SEQUENCE IF NOT EXISTS ocr_images_id_seq START 1;
 
             CREATE TABLE IF NOT EXISTS ocr_pages (
                 id INTEGER PRIMARY KEY DEFAULT nextval('ocr_pages_id_seq'),
-                provider VARCHAR,
-                version VARCHAR,
                 filename VARCHAR NOT NULL,
                 page_number INTEGER NOT NULL,
-                text TEXT,
-                markdown TEXT,
-                raw_text TEXT,
-                extracted_at TIMESTAMP,
-                storage_url VARCHAR,
-                document_id VARCHAR,
-                pdf_page_index INTEGER,
-                total_pages INTEGER,
                 page_width_px INTEGER,
                 page_height_px INTEGER,
                 image_url VARCHAR,
-                image_storage VARCHAR,
+                text TEXT,
+                markdown TEXT,
+                storage_url VARCHAR NOT NULL,
+                extracted_at TIMESTAMP,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(filename, page_number)
             );
@@ -97,19 +96,6 @@ class DuckDBManager:
                 bbox_x2 INTEGER,
                 bbox_y2 INTEGER,
                 content TEXT,
-                image_url VARCHAR,
-                image_storage VARCHAR,
-                image_inline BOOLEAN,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY(page_id) REFERENCES ocr_pages(id)
-            );
-
-            CREATE TABLE IF NOT EXISTS ocr_extracted_images (
-                id INTEGER PRIMARY KEY DEFAULT nextval('ocr_images_id_seq'),
-                page_id INTEGER NOT NULL,
-                image_index INTEGER,
-                url VARCHAR,
-                storage VARCHAR,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(page_id) REFERENCES ocr_pages(id)
             );
@@ -120,14 +106,13 @@ class DuckDBManager:
             """
             CREATE INDEX IF NOT EXISTS idx_pages_filename ON ocr_pages(filename);
             CREATE INDEX IF NOT EXISTS idx_pages_page_number ON ocr_pages(page_number);
-            CREATE INDEX IF NOT EXISTS idx_pages_provider ON ocr_pages(provider);
+            CREATE INDEX IF NOT EXISTS idx_pages_filename_page ON ocr_pages(filename, page_number);
             CREATE INDEX IF NOT EXISTS idx_pages_extracted_at ON ocr_pages(extracted_at);
             CREATE INDEX IF NOT EXISTS idx_pages_text_fts ON ocr_pages(text);
 
             CREATE INDEX IF NOT EXISTS idx_regions_page_id ON ocr_regions(page_id);
             CREATE INDEX IF NOT EXISTS idx_regions_label ON ocr_regions(label);
-
-            CREATE INDEX IF NOT EXISTS idx_images_page_id ON ocr_extracted_images(page_id);
+            CREATE INDEX IF NOT EXISTS idx_regions_content_fts ON ocr_regions(content);
             """
         )
 

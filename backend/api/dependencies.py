@@ -13,6 +13,7 @@ from services.qdrant import MuveraPostprocessor, QdrantService
 
 logger = logging.getLogger(__name__)
 
+colpali_init_error: Optional[str] = None
 qdrant_init_error: Optional[str] = None
 minio_init_error: Optional[str] = None
 ocr_init_error: Optional[str] = None
@@ -25,8 +26,17 @@ def _get_colpali_client_cached() -> ColPaliService:
 
 
 def get_colpali_client() -> ColPaliService:
-    """Return the cached ColPali service instance."""
-    return _get_colpali_client_cached()
+    """Return the cached ColPali service instance, capturing initialization errors."""
+    global colpali_init_error
+    try:
+        service = _get_colpali_client_cached()
+        colpali_init_error = None
+        return service
+    except Exception as exc:
+        logger.error("Failed to initialize ColPali service: %s", exc)
+        colpali_init_error = str(exc)
+        _get_colpali_client_cached.cache_clear()
+        raise
 
 
 class _ColPaliClientProxy:
@@ -179,8 +189,9 @@ def get_qdrant_service() -> Optional[QdrantService]:
 
 def invalidate_services():
     """Invalidate cached services so they are recreated on next access."""
-    global qdrant_init_error, minio_init_error, ocr_init_error, duckdb_init_error
+    global colpali_init_error, qdrant_init_error, minio_init_error, ocr_init_error, duckdb_init_error
     logger.info("Invalidating cached services to apply new configuration")
+    colpali_init_error = None
     qdrant_init_error = None
     minio_init_error = None
     ocr_init_error = None

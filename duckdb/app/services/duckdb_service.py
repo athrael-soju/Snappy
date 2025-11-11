@@ -43,7 +43,6 @@ class DuckDBAnalyticsService:
         tables = {
             "ocr_pages": self._count_table("ocr_pages"),
             "ocr_regions": self._count_table("ocr_regions"),
-            "ocr_extracted_images": self._count_table("ocr_extracted_images"),
         }
 
         return InfoResponse(
@@ -63,10 +62,10 @@ class DuckDBAnalyticsService:
                 """
                 SELECT COUNT(*)
                 FROM information_schema.tables
-                WHERE lower(table_name) IN ('ocr_pages', 'ocr_regions', 'ocr_extracted_images')
+                WHERE lower(table_name) IN ('ocr_pages', 'ocr_regions')
                 """
             ).fetchone()
-            return bool(result and result[0] == 3)
+            return bool(result and result[0] == 2)
         except Exception:
             return False
 
@@ -74,7 +73,15 @@ class DuckDBAnalyticsService:
     # Storage
     # ------------------------------------------------------------------
     def store_page(self, payload: OcrPageData) -> Dict[str, Any]:
-        """Store a single OCR page and its columnar data."""
+        """Store a single OCR page and its columnar data.
+
+        Stores:
+        - Core page metadata (filename, page_number, dimensions, MinIO URLs)
+        - Full text and markdown (for search/retrieval)
+        - Structured regions with bounding boxes
+
+        Note: Full JSON payload already exists in MinIO at storage_url
+        """
         conn = self.conn
 
         self._delete_page_rows(payload.filename, payload.page_number)
@@ -82,29 +89,21 @@ class DuckDBAnalyticsService:
         row = conn.execute(
             """
             INSERT INTO ocr_pages (
-                provider, version, filename, page_number, text, markdown, raw_text,
-                extracted_at, storage_url, document_id, pdf_page_index, total_pages,
-                page_width_px, page_height_px, image_url, image_storage
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                filename, page_number, page_width_px, page_height_px,
+                image_url, text, markdown, storage_url, extracted_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             RETURNING id
             """,
             [
-                payload.provider,
-                payload.version,
                 payload.filename,
                 payload.page_number,
-                payload.text,
-                payload.markdown,
-                payload.raw_text,
-                payload.extracted_at,
-                payload.storage_url,
-                payload.document_id,
-                payload.pdf_page_index,
-                payload.total_pages,
                 payload.page_width_px,
                 payload.page_height_px,
                 payload.image_url,
-                payload.image_storage,
+                payload.text,
+                payload.markdown,
+                payload.storage_url,
+                payload.extracted_at,
             ],
         ).fetchone()
 
@@ -113,7 +112,6 @@ class DuckDBAnalyticsService:
 
         page_id = int(row[0])
         self._insert_regions(page_id, payload.regions)
-        self._insert_images(page_id, payload.extracted_images)
 
         logger.info(
             "Stored OCR data: %s page %s", payload.filename, payload.page_number
@@ -127,24 +125,6 @@ class DuckDBAnalyticsService:
     def _delete_page_rows(self, filename: str, page_number: int) -> None:
         """Remove an existing page and its related rows."""
         params = [filename, page_number]
-        self.conn.execute(
-            """
-            DELETE FROM ocr_regions
-            WHERE page_id IN (
-                SELECT id FROM ocr_pages WHERE filename = ? AND page_number = ?
-            )
-            """,
-            params,
-        )
-        self.conn.execute(
-            """
-            DELETE FROM ocr_extracted_images
-            WHERE page_id IN (
-                SELECT id FROM ocr_pages WHERE filename = ? AND page_number = ?
-            )
-            """,
-            params,
-        )
         self.conn.execute(
             "DELETE FROM ocr_pages WHERE filename = ? AND page_number = ?",
             params,
@@ -179,36 +159,29 @@ class DuckDBAnalyticsService:
             """
             SELECT
                 (SELECT COUNT(*) FROM ocr_pages) AS pages,
-                (SELECT COUNT(*) FROM ocr_regions) AS regions,
-                (SELECT COUNT(*) FROM ocr_extracted_images) AS images
+                (SELECT COUNT(*) FROM ocr_regions) AS regions
             """
         ).fetchone()
 
-        self.conn.execute("DELETE FROM ocr_regions")
-        self.conn.execute("DELETE FROM ocr_extracted_images")
         self.conn.execute("DELETE FROM ocr_pages")
 
         cleared_pages = counts[0] if counts else 0
         cleared_regions = counts[1] if counts else 0
-        cleared_images = counts[2] if counts else 0
 
         return {
             "status": "success",
             "message": "Cleared DuckDB tables",
             "cleared_pages": cleared_pages,
             "cleared_regions": cleared_regions,
-            "cleared_images": cleared_images,
         }
 
     def delete_storage(self) -> Dict[str, Any]:
         """Drop DuckDB OCR tables without removing the database file."""
         conn = db_manager.connect(force=True)
         conn.execute("DROP TABLE IF EXISTS ocr_regions")
-        conn.execute("DROP TABLE IF EXISTS ocr_extracted_images")
         conn.execute("DROP TABLE IF EXISTS ocr_pages")
         conn.execute("DROP SEQUENCE IF EXISTS ocr_regions_id_seq")
         conn.execute("DROP SEQUENCE IF EXISTS ocr_pages_id_seq")
-        conn.execute("DROP SEQUENCE IF EXISTS ocr_images_id_seq")
         conn.execute("CHECKPOINT")
         conn.execute("PRAGMA wal_checkpoint;")
 
@@ -218,6 +191,14 @@ class DuckDBAnalyticsService:
         }
 
     def _insert_regions(self, page_id: int, regions: Sequence[Dict[str, Any]]) -> None:
+        """Insert OCR regions for a page.
+
+        Stores:
+        - region_id: Optional identifier from OCR provider
+        - label: Region type (e.g., 'text', 'table', 'figure')
+        - bbox: Bounding box coordinates (x1, y1, x2, y2)
+        - content: Extracted text/data for this region
+        """
         if not regions:
             return
 
@@ -235,34 +216,14 @@ class DuckDBAnalyticsService:
                     x2,
                     y2,
                     region.get("content"),
-                    region.get("image_url"),
-                    region.get("image_storage"),
-                    self._to_bool(region.get("image_inline")),
                 )
             )
 
         self.conn.executemany(
             """
             INSERT INTO ocr_regions (
-                page_id, region_id, label, bbox_x1, bbox_y1, bbox_x2, bbox_y2,
-                content, image_url, image_storage, image_inline
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            rows,
-        )
-
-    def _insert_images(self, page_id: int, images: Sequence[Dict[str, Any]]) -> None:
-        if not images:
-            return
-
-        rows = []
-        for idx, image in enumerate(images):
-            rows.append((page_id, idx, image.get("url"), image.get("storage")))
-
-        self.conn.executemany(
-            """
-            INSERT INTO ocr_extracted_images (page_id, image_index, url, storage)
-            VALUES (?, ?, ?, ?)
+                page_id, region_id, label, bbox_x1, bbox_y1, bbox_x2, bbox_y2, content
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             rows,
         )
@@ -295,19 +256,13 @@ class DuckDBAnalyticsService:
                 COUNT(*) AS page_count,
                 MIN(p.extracted_at) AS first_indexed,
                 MAX(p.extracted_at) AS last_indexed,
-                COALESCE(SUM(r.region_count), 0) AS total_regions,
-                COALESCE(SUM(i.image_count), 0) AS total_extracted_images
+                COALESCE(SUM(r.region_count), 0) AS total_regions
             FROM ocr_pages p
             LEFT JOIN (
                 SELECT page_id, COUNT(*) AS region_count
                 FROM ocr_regions
                 GROUP BY page_id
             ) r ON p.id = r.page_id
-            LEFT JOIN (
-                SELECT page_id, COUNT(*) AS image_count
-                FROM ocr_extracted_images
-                GROUP BY page_id
-            ) i ON p.id = i.page_id
             GROUP BY p.filename
             ORDER BY last_indexed DESC
             LIMIT ? OFFSET ?
@@ -322,7 +277,6 @@ class DuckDBAnalyticsService:
                 first_indexed=str(row[2]),
                 last_indexed=str(row[3]),
                 total_regions=row[4],
-                total_extracted_images=row[5],
             )
             for row in result
         ]
@@ -335,19 +289,13 @@ class DuckDBAnalyticsService:
                 COUNT(*) AS page_count,
                 MIN(p.extracted_at) AS first_indexed,
                 MAX(p.extracted_at) AS last_indexed,
-                COALESCE(SUM(r.region_count), 0) AS total_regions,
-                COALESCE(SUM(i.image_count), 0) AS total_extracted_images
+                COALESCE(SUM(r.region_count), 0) AS total_regions
             FROM ocr_pages p
             LEFT JOIN (
                 SELECT page_id, COUNT(*) AS region_count
                 FROM ocr_regions
                 GROUP BY page_id
             ) r ON p.id = r.page_id
-            LEFT JOIN (
-                SELECT page_id, COUNT(*) AS image_count
-                FROM ocr_extracted_images
-                GROUP BY page_id
-            ) i ON p.id = i.page_id
             WHERE p.filename = ?
             GROUP BY p.filename
             """,
@@ -363,16 +311,23 @@ class DuckDBAnalyticsService:
             first_indexed=str(row[2]),
             last_indexed=str(row[3]),
             total_regions=row[4],
-            total_extracted_images=row[5],
         )
 
     def get_page(self, filename: str, page_number: int) -> Dict[str, Any]:
+        """Retrieve page data by filename and page_number.
+
+        This matches Qdrant's payload structure:
+        - filename: Document filename
+        - page_number: Same as pdf_page_index in Qdrant
+
+        Returns:
+            Dict with page metadata, text, markdown, regions, and MinIO URLs
+        """
         row = self.conn.execute(
             """
             SELECT
-                id, provider, version, filename, page_number, text, markdown, raw_text,
-                extracted_at, storage_url, document_id, pdf_page_index, total_pages,
-                page_width_px, page_height_px, image_url, image_storage, created_at
+                id, filename, page_number, page_width_px, page_height_px,
+                image_url, text, markdown, storage_url, extracted_at, created_at
             FROM ocr_pages
             WHERE filename = ? AND page_number = ?
             """,
@@ -384,36 +339,27 @@ class DuckDBAnalyticsService:
 
         page_id = row[0]
         regions = self._fetch_regions(page_id)
-        images = self._fetch_images(page_id)
 
         return {
-            "provider": row[1],
-            "version": row[2],
-            "filename": row[3],
-            "page_number": row[4],
-            "text": row[5],
-            "markdown": row[6],
-            "raw_text": row[7],
+            "filename": row[1],
+            "page_number": row[2],
+            "page_width_px": row[3],
+            "page_height_px": row[4],
+            "image_url": row[5],
+            "text": row[6],
+            "markdown": row[7],
+            "storage_url": row[8],
             "regions": regions,
-            "extracted_at": str(row[8]),
-            "storage_url": row[9],
-            "document_id": row[10],
-            "pdf_page_index": row[11],
-            "total_pages": row[12],
-            "page_width_px": row[13],
-            "page_height_px": row[14],
-            "image_url": row[15],
-            "image_storage": row[16],
-            "extracted_images": images,
-            "created_at": str(row[17]),
+            "extracted_at": str(row[9]),
+            "created_at": str(row[10]),
         }
 
     def _fetch_regions(self, page_id: int) -> List[Dict[str, Any]]:
+        """Fetch OCR regions for a page."""
         rows = self.conn.execute(
             """
             SELECT
-                region_id, label, bbox_x1, bbox_y1, bbox_x2, bbox_y2,
-                content, image_url, image_storage, image_inline
+                region_id, label, bbox_x1, bbox_y1, bbox_x2, bbox_y2, content
             FROM ocr_regions
             WHERE page_id = ?
             ORDER BY id
@@ -430,9 +376,6 @@ class DuckDBAnalyticsService:
                     "label": row[1],
                     "bbox": bbox,
                     "content": row[6],
-                    "image_url": row[7],
-                    "image_storage": row[8],
-                    "image_inline": row[9],
                 }
             )
         return regions

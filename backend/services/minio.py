@@ -99,10 +99,9 @@ class MinioService:
             )
 
             self.bucket_name = MINIO_BUCKET_NAME
-            self._create_bucket_if_not_exists()
             logger.info(
-                f"MinIO service initialized with bucket: {self.bucket_name}, "
-                f"connection pool size: {max_pool_connections}"
+                f"MinIO service initialized for bucket '{self.bucket_name}' "
+                f"(creation deferred to maintenance). Connection pool size: {max_pool_connections}"
             )
 
         except Exception as e:
@@ -124,6 +123,14 @@ class MinioService:
                 )
         except S3Error as e:
             raise Exception(f"Error creating bucket {self.bucket_name}: {e}") from e
+
+    def _require_bucket(self) -> None:
+        """Ensure the configured bucket exists before performing writes."""
+        if not self.service.bucket_exists(self.bucket_name):
+            raise RuntimeError(
+                f"MinIO bucket '{self.bucket_name}' does not exist. "
+                "Use the Maintenance → Initialize action to create it."
+            )
 
     # -------------------------------------------------------------------
     # Encoding Helpers
@@ -226,6 +233,7 @@ class MinioService:
         Dict[str, str]
             Mapping of image_id -> public URL for successfully uploaded items.
         """
+        self._require_bucket()
         n = len(processed_images)
         if image_ids is None:
             image_ids = [str(uuid.uuid4()) for _ in range(n)]
@@ -344,6 +352,7 @@ class MinioService:
         Dict[str, str]
             Mapping of image_id -> public URL for successfully uploaded items.
         """
+        self._require_bucket()
         images = list(images)
         n = len(images)
         if image_ids is None:
@@ -440,6 +449,7 @@ class MinioService:
         content_type : str
             MIME type for the stored object. Defaults to ``application/json; charset=utf-8``.
         """
+        self._require_bucket()
         # Require filename and page_number
         if filename is None:
             raise ValueError("filename is required for storing JSON")
@@ -601,6 +611,8 @@ class MinioService:
     # -------------------------------------------------------------------
     def list_object_names(self, prefix: str = "", recursive: bool = True) -> List[str]:
         """List object names in the bucket under an optional prefix."""
+        if not self.service.bucket_exists(self.bucket_name):
+            return []
         try:
             objs = self.service.list_objects(
                 self.bucket_name, prefix=prefix or None, recursive=recursive

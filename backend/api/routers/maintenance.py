@@ -234,13 +234,14 @@ def _collect_duckdb_status(dsvc: Optional["DuckDBService"]) -> dict:
 
     try:
         stats = dsvc.get_stats() or {}
-        if not stats or not stats.get("schema_active", True):
+        if not stats.get("schema_active", True):
             status["error"] = INACTIVE_MESSAGE
             return status
 
         status["available"] = True
         status["page_count"] = int(stats.get("total_pages", 0) or 0)
         status["region_count"] = int(stats.get("total_regions", 0) or 0)
+        status["document_count"] = int(stats.get("total_documents", 0) or 0)
         status["database_size_mb"] = float(stats.get("storage_size_mb", 0) or 0)
     except Exception as exc:
         status["error"] = str(exc)

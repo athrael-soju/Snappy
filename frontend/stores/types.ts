@@ -72,6 +72,7 @@ export interface SystemStatus {
     page_count: number;
     region_count: number;
     database_size_mb: number;
+    document_count?: number;
     schema_active?: boolean;
     error: string | null;
   };
