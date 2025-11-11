@@ -15,6 +15,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
+    from services.duckdb import DuckDBService
     from services.minio import MinioService
 
 from .processor import OcrProcessor
@@ -29,6 +30,7 @@ class OcrService:
     def __init__(
         self,
         minio_service: Optional["MinioService"] = None,
+        duckdb_service: Optional["DuckDBService"] = None,
         base_url: Optional[str] = None,
         timeout: Optional[int] = None,
         enabled: Optional[bool] = None,
@@ -42,6 +44,7 @@ class OcrService:
 
         Args:
             minio_service: MinIO service for image storage
+            duckdb_service: DuckDB service for analytics storage
             base_url: DeepSeek OCR service URL
             timeout: Request timeout in seconds
             enabled: Enable/disable OCR service
@@ -129,6 +132,7 @@ class OcrService:
             self.storage = OcrStorageHandler(
                 minio_service=minio_service,
                 processor=self.processor,
+                duckdb_service=duckdb_service,
             )
 
         except Exception as e:

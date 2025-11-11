@@ -92,6 +92,8 @@ x-backend-base: &backend-base
     - MINIO_PUBLIC_URL=http://localhost:9000
     - MINIO_ACCESS_KEY=minioadmin
     - MINIO_SECRET_KEY=minioadmin
+    - DUCKDB_ENABLED=${DUCKDB_ENABLED:-false}
+    - DUCKDB_URL=http://duckdb:8300
   volumes:
     - backend_data:/home/user/app/data
   stdin_open: true
@@ -121,6 +123,28 @@ x-frontend-base: &frontend-base
   restart: unless-stopped
   depends_on:
     - backend
+
+x-duckdb-base: &duckdb-base
+  container_name: duckdb
+  build:
+    context: ./duckdb
+    dockerfile: Dockerfile
+  image: duckdb:latest
+  ports:
+    - "${DUCKDB_API_PORT:-8300}:8300"
+    - "${DUCKDB_UI_PORT:-4213}:4213"
+  volumes:
+    - duckdb_data:/app/data
+  environment:
+    - DUCKDB_DATABASE_PATH=/app/data/ocr_data.duckdb
+    - DUCKDB_API_HOST=0.0.0.0
+    - DUCKDB_API_PORT=8300
+    - LOG_LEVEL=${LOG_LEVEL:-INFO}
+  networks:
+    snappy-network:
+      aliases:
+        - duckdb
+  restart: unless-stopped
 
 services:
   qdrant:
@@ -178,6 +202,12 @@ services:
               capabilities:
                 - gpu
 
+  duckdb:
+    profiles:
+      - cpu
+      - gpu
+    <<: *duckdb-base
+
   backend:
     profiles:
       - cpu
@@ -200,3 +230,4 @@ volumes:
   backend_data:
   colpali_hf_cache:
   deepseek_hf_cache:
+  duckdb_data:

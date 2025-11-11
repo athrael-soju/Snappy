@@ -100,6 +100,7 @@ flowchart TB
     MINIO["MinIO"]
     COLPALI["ColPali Embedding API"]
     DEEPSEEK["DeepSeek OCR (Optional)"]
+    DUCKDB["DuckDB Analytics (Optional)"]
     OPENAI["OpenAI Responses API"]
   end
 
@@ -109,6 +110,8 @@ flowchart TB
   API --> MINIO
   API --> COLPALI
   API -.-> DEEPSEEK
+  API -.-> DUCKDB
+  DEEPSEEK -.-> DUCKDB
   CHAT --> API
   CHAT --> OPENAI
   CHAT -- SSE --> USER
@@ -212,8 +215,9 @@ Services will come online at: 🌐
 - Qdrant: http://localhost:6333
 - MinIO: http://localhost:9000 (console at :9001)
 - DeepSeek OCR: http://localhost:8200 (if enabled)
+- DuckDB Analytics: http://localhost:8300 (if enabled)
 
-Inside Docker, containers reach each other via service names, so keep `COLPALI_URL=http://colpali:7000` and `DEEPSEEK_OCR_URL=http://deepseek-ocr:8200` in `.env`. Switch to `http://localhost:*` only when the backend runs directly on your host OS. DeepSeek OCR currently ships only with the GPU profile—when running the CPU stack, set `DEEPSEEK_OCR_ENABLED=false`.
+Inside Docker, containers reach each other via service names, so keep `COLPALI_URL=http://colpali:7000`, `DEEPSEEK_OCR_URL=http://deepseek-ocr:8200`, and `DUCKDB_URL=http://duckdb:8300` in `.env`. Switch to `http://localhost:*` only when the backend runs directly on your host OS. DeepSeek OCR currently ships only with the GPU profile—when running the CPU stack, set `DEEPSEEK_OCR_ENABLED=false`. DuckDB analytics is optional and requires DeepSeek OCR to be enabled.
 
 
 
@@ -271,6 +275,12 @@ Keep the services from steps 2 and 3 running while you develop.
   - Visual grounding with bounding boxes
   - Parallel batch processing
   - Image embedding support
+- 🦆 **DuckDB Analytics** for OCR data storage and SQL-based analytics with:
+  - Automatic storage of OCR results alongside MinIO
+  - SQL query interface for custom analytics
+  - Full-text search across all OCR data
+  - DuckDB-Wasm UI for interactive exploration
+  - Document and page-level statistics
 - 💬 **Streaming chat responses** from the OpenAI Responses API with inline visual citations so you can see each supporting page.
 - ⚡ **Pipelined indexing** with live Server-Sent Events progress updates.
 - ⚙️ **Runtime configuration UI** backed by a typed schema, with reset and draft flows that make experimentation safe.

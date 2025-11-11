@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DuckDB Analytics - UI Placeholder</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .info-box {
+            background: #f0f7ff;
+            border-left: 4px solid #0066cc;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .links {
+            margin-top: 30px;
+        }
+
+        .link {
+            display: inline-block;
+            margin: 5px 10px 5px 0;
+            padding: 10px 20px;
+            background: #0066cc;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .link:hover {
+            background: #0052a3;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        pre {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🦆 DuckDB Analytics Service</h1>
+        <p class="subtitle">OCR Data Storage & Analytics</p>
+
+        <div class="info-box">
+            <strong>Note:</strong> The DuckDB-Wasm UI is not yet installed.
+            This is a placeholder page.
+        </div>
+
+        <h2>Available Endpoints</h2>
+        <ul>
+            <li><strong>Health Check:</strong> <code>GET /health</code></li>
+            <li><strong>Service Info:</strong> <code>GET /info</code></li>
+            <li><strong>Statistics:</strong> <code>GET /stats</code></li>
+            <li><strong>List Documents:</strong> <code>GET /ocr/documents</code></li>
+            <li><strong>Execute Query:</strong> <code>POST /query</code></li>
+            <li><strong>Search Text:</strong> <code>POST /search/text</code></li>
+        </ul>
+
+        <h2>Quick Example</h2>
+        <p>Execute a SQL query:</p>
+        <pre>
+POST /query
+Content-Type: application/json
+
+{
+  "query": "SELECT filename, COUNT(*) as pages FROM ocr_pages GROUP BY filename",
+  "limit": 100
+}
+        </pre>
+
+        <div class="links">
+            <a href="/health" class="link">Health Check</a>
+            <a href="/info" class="link">Service Info</a>
+            <a href="/stats" class="link">Statistics</a>
+            <a href="/ocr/documents" class="link">Documents</a>
+        </div>
+
+        <h2>Installing DuckDB-Wasm UI</h2>
+        <p>To enable the interactive DuckDB UI:</p>
+        <ol>
+            <li>Download the latest DuckDB-Wasm bundle from <a href="https://github.com/duckdb/duckdb-wasm"
+                    target="_blank">github.com/duckdb/duckdb-wasm</a></li>
+            <li>Extract the files to the <code>ui/</code> directory</li>
+            <li>Restart the service</li>
+        </ol>
+    </div>
+</body>
+
+</html>
