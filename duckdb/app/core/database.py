@@ -16,17 +16,24 @@ class DuckDBManager:
 
     def __init__(self) -> None:
         self._connection: Optional[duckdb.DuckDBPyConnection] = None
+        self._allow_connections = True
 
-    def connect(self) -> duckdb.DuckDBPyConnection:
+    def connect(self, *, force: bool = False) -> duckdb.DuckDBPyConnection:
         """Connect to DuckDB and ensure schema exists."""
         if self._connection:
             return self._connection
+
+        if not self._allow_connections and not force:
+            raise RuntimeError(
+                "DuckDB storage is unavailable. Run the maintenance initialize action to recreate it."
+            )
 
         db_path = Path(settings.DUCKDB_DATABASE_PATH)
         db_path.parent.mkdir(parents=True, exist_ok=True)
 
         logger.info("Initializing DuckDB database at %s", db_path)
         self._connection = duckdb.connect(str(db_path))
+        self._allow_connections = True
 
         self._start_ui_extension()
         self._create_schema()
@@ -142,10 +149,15 @@ class DuckDBManager:
 
     @property
     def connection(self) -> duckdb.DuckDBPyConnection:
-        """Return the active DuckDB connection."""
+        """Return the active DuckDB connection, reconnecting if needed."""
         if not self._connection:
-            raise RuntimeError("DuckDB connection not initialized")
+            return self.connect()
         return self._connection
+
+    def mark_deleted(self) -> None:
+        """Mark DuckDB as deleted until explicitly initialized."""
+        self._allow_connections = False
+        self._connection = None
 
 
 db_manager = DuckDBManager()

@@ -1,5 +1,5 @@
 import asyncio
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from api.dependencies import (
     duckdb_init_error,
@@ -33,6 +33,8 @@ def _bucket_name() -> str:
 
 
 router = APIRouter(prefix="", tags=["maintenance"])
+
+INACTIVE_MESSAGE = "Storage inactive. Run Initialize to recreate it."
 
 
 @router.post("/clear/qdrant")
@@ -132,6 +134,7 @@ def _collect_collection_status(svc: Optional["QdrantService"]) -> dict:
         "error": None,
         "embedded": embedded,
         "image_store_mode": "minio",
+        "size_mb": 0.0,
     }
     if not svc:
         status["error"] = qdrant_init_error or "Service unavailable"
@@ -157,8 +160,11 @@ def _collect_collection_status(svc: Optional["QdrantService"]) -> dict:
         except Exception:
             # Best-effort; leave unique_files at default if scroll fails
             pass
+        status["size_mb"] = _estimate_qdrant_size_mb(collection_info)
     except Exception as exc:
-        if "not found" not in str(exc).lower():
+        if "not found" in str(exc).lower():
+            status["error"] = INACTIVE_MESSAGE
+        else:
             status["error"] = str(exc)
     return status
 
@@ -170,6 +176,9 @@ def _collect_bucket_status(msvc: Optional["MinioService"]) -> dict:
         "name": bucket_name,
         "exists": False,
         "object_count": 0,
+        "page_count": 0,
+        "element_count": 0,
+        "size_mb": 0.0,
         "error": None,
     }
     if not msvc:
@@ -179,13 +188,25 @@ def _collect_bucket_status(msvc: Optional["MinioService"]) -> dict:
         bucket_exists = msvc.service.bucket_exists(bucket_name)
         status["exists"] = bucket_exists
         if bucket_exists:
-            objects = list(
-                msvc.service.list_objects(
-                    bucket_name,
-                    recursive=True,
-                )
+            total_bytes = 0
+            for obj in msvc.service.list_objects(
+                bucket_name,
+                recursive=True,
+            ):
+                status["object_count"] += 1
+                size = getattr(obj, "size", 0) or 0
+                total_bytes += size
+                object_name = getattr(obj, "object_name", "") or ""
+                filename = object_name.rsplit("/", 1)[-1]
+                if filename.startswith("page."):
+                    status["page_count"] += 1
+                elif filename == "elements.json":
+                    status["element_count"] += 1
+            status["size_mb"] = (
+                round(total_bytes / (1024 * 1024), 2) if total_bytes else 0.0
             )
-            status["object_count"] = len(objects)
+        else:
+            status["error"] = INACTIVE_MESSAGE
     except Exception as exc:
         status["error"] = str(exc)
     return status
@@ -194,6 +215,7 @@ def _collect_bucket_status(msvc: Optional["MinioService"]) -> dict:
 def _collect_duckdb_status(dsvc: Optional["DuckDBService"]) -> dict:
     enabled = bool(getattr(config, "DUCKDB_ENABLED", False))
     status = {
+        "name": getattr(config, "DUCKDB_DATABASE_NAME", "documents"),
         "enabled": enabled,
         "available": False,
         "page_count": 0,
@@ -211,7 +233,11 @@ def _collect_duckdb_status(dsvc: Optional["DuckDBService"]) -> dict:
         return status
 
     try:
-        stats = dsvc.get_stats() or {}
+        stats = dsvc.get_stats()
+        if not stats:
+            status["error"] = INACTIVE_MESSAGE
+            return status
+
         status["available"] = True
         status["page_count"] = int(stats.get("total_pages", 0) or 0)
         status["region_count"] = int(stats.get("total_regions", 0) or 0)
@@ -222,6 +248,38 @@ def _collect_duckdb_status(dsvc: Optional["DuckDBService"]) -> dict:
     return status
 
 
+def _estimate_qdrant_size_mb(collection_info: Any) -> float:
+    try:
+        point_count = int(collection_info.points_count or 0)
+        total_dim = _get_vector_total_dim(collection_info)
+        if point_count <= 0 or total_dim <= 0:
+            return 0.0
+        approximate_bytes = point_count * total_dim * 4  # float32
+        return round(approximate_bytes / (1024 * 1024), 2)
+    except Exception:
+        return 0.0
+
+
+def _get_vector_total_dim(collection_info: Any) -> int:
+    try:
+        params = collection_info.config.params
+        vectors = getattr(params, "vectors", None)
+    except AttributeError:
+        return 0
+
+    total = 0
+    if isinstance(vectors, dict):
+        for vec in vectors.values():
+            size = getattr(vec, "size", None)
+            if size:
+                total += int(size)
+    else:
+        size = getattr(vectors, "size", None)
+        if size:
+            total += int(size)
+    return total
+
+
 def _clear_all_sync(
     svc: Optional["QdrantService"],
     msvc: Optional["MinioService"],
@@ -229,31 +287,42 @@ def _clear_all_sync(
 ) -> str:
     _collection_name()
     if svc:
-        try:
-            q_msg = svc.clear_collection()
-        except Exception as exc:
-            q_msg = f"Qdrant clear failed: {exc}"
+        if _collection_exists(svc):
+            try:
+                q_msg = svc.clear_collection()
+            except Exception as exc:
+                q_msg = f"Qdrant clear failed: {exc}"
+        else:
+            q_msg = "Qdrant collection missing; initialize first"
     else:
         q_msg = (
             f"Qdrant unavailable: {qdrant_init_error or 'Dependency service is down'}"
         )
     if msvc:
-        try:
-            res = msvc.clear_images()
-            m_msg = (
-                f"Cleared MinIO images: deleted={res.get('deleted')}, "
-                f"failed={res.get('failed')}"
-            )
-        except Exception as exc:
-            m_msg = f"MinIO clear failed: {exc}"
+        if _bucket_exists(msvc):
+            try:
+                res = msvc.clear_images()
+                m_msg = (
+                    f"Cleared MinIO images: deleted={res.get('deleted')}, "
+                    f"failed={res.get('failed')}"
+                )
+            except Exception as exc:
+                m_msg = f"MinIO clear failed: {exc}"
+        else:
+            m_msg = "MinIO bucket missing; initialize first"
     else:
         m_msg = f"MinIO unavailable: {minio_init_error or 'Dependency service is down'}"
     if dsvc and dsvc.is_enabled():
-        try:
-            res = dsvc.clear_storage()
-            duck_msg = res.get("message", "Cleared DuckDB") if res else "Cleared DuckDB"
-        except Exception as exc:
-            duck_msg = f"DuckDB clear failed: {exc}"
+        if _duckdb_available(dsvc):
+            try:
+                res = dsvc.clear_storage()
+                duck_msg = (
+                    res.get("message", "Cleared DuckDB") if res else "Cleared DuckDB"
+                )
+            except Exception as exc:
+                duck_msg = f"DuckDB clear failed: {exc}"
+        else:
+            duck_msg = "DuckDB missing; initialize first"
     else:
         duck_msg = (
             "DuckDB disabled"
@@ -418,3 +487,27 @@ def _summarize_status(results: dict) -> str:
     if any(status == "success" for status in statuses):
         return "partial"
     return "error"
+
+
+def _collection_exists(svc: "QdrantService") -> bool:
+    collection_name = _collection_name()
+    try:
+        svc.service.get_collection(collection_name)
+        return True
+    except Exception as exc:
+        return "not found" not in str(exc).lower()
+
+
+def _bucket_exists(msvc: "MinioService") -> bool:
+    try:
+        return bool(msvc.service.bucket_exists(_bucket_name()))
+    except Exception:
+        return False
+
+
+def _duckdb_available(dsvc: "DuckDBService") -> bool:
+    try:
+        stats = dsvc.get_stats()
+        return bool(stats)
+    except Exception:
+        return False

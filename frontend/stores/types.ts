@@ -54,14 +54,19 @@ export interface SystemStatus {
     error: string | null;
     embedded?: boolean;
     image_store_mode?: "inline" | "minio" | string;
+    size_mb?: number;
   };
   bucket: {
     name: string;
     exists: boolean;
     object_count: number;
+    page_count?: number;
+    element_count?: number;
+    size_mb?: number;
     error: string | null;
   };
   duckdb?: {
+    name: string;
     enabled: boolean;
     available: boolean;
     page_count: number;

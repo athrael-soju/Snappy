@@ -556,9 +556,8 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
             },
             {
                 "key": "MINIO_BUCKET_NAME",
-                "ui_hidden": True,
                 "type": "str",
-                "default": "",
+                "default": "documents",
                 "label": "Bucket Name",
                 "ui_type": "text",
                 "description": "Name of the storage bucket (auto-derived when empty)",
@@ -658,6 +657,16 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "help_text": "HTTP endpoint for the DuckDB analytics microservice. The backend sends OCR data to this service for storage. Default port is 8300. Format: http://hostname:port. Must be accessible from the backend application.",
                 "critical": True,
                 "depends_on": {"key": "DUCKDB_ENABLED", "value": True},
+            },
+            {
+                "key": "DUCKDB_DATABASE_NAME",
+                "type": "str",
+                "default": "documents",
+                "label": "DuckDB Database Name",
+                "ui_type": "text",
+                "description": "Logical name for the DuckDB database",
+                "help_text": "Used to label and organize OCR analytics data within DuckDB. Keep this in sync with your Qdrant collection/minio bucket naming for clarity. Changing this value typically requires reinitialising DuckDB storage.",
+                "critical": True,
             },
             {
                 "key": "DUCKDB_API_TIMEOUT",
@@ -800,5 +809,6 @@ def get_critical_keys() -> set:
         "DEEPSEEK_OCR_POOL_SIZE",
         "DUCKDB_ENABLED",
         "DUCKDB_URL",
+        "DUCKDB_DATABASE_NAME",
         "DUCKDB_API_TIMEOUT",
     }

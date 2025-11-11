@@ -60,7 +60,7 @@ const CORE_OPERATIONS = [
 ];
 
 export default function MaintenancePage() {
-  const { systemStatus, statusLoading, fetchStatus, isSystemReady } = useSystemStatus();
+  const { systemStatus, statusLoading, fetchStatus, isSystemReady, canReset } = useSystemStatus();
   const { loading, runAction } = useMaintenanceActions({ onSuccess: fetchStatus });
   const { initLoading, deleteLoading, handleInitialize, handleDelete } = useSystemManagement({ onSuccess: fetchStatus });
 
@@ -75,6 +75,10 @@ export default function MaintenancePage() {
   };
 
   const handleResetAll = () => {
+    if (!canReset) {
+      setResetDialogOpen(false);
+      return;
+    }
     void runAction("all");
     setResetDialogOpen(false);
   };
@@ -198,7 +202,7 @@ export default function MaintenancePage() {
                             {systemStatus.collection.exists ? (
                               <><CheckCircle2 className="size-icon-3xs" /> Active</>
                             ) : (
-                              <><AlertCircle className="size-icon-3xs" /> Not Found</>
+                              <><AlertCircle className="size-icon-3xs" /> Inactive</>
                             )}
                           </Badge>
                           {typeof systemStatus.collection.embedded === "boolean" && (
@@ -223,7 +227,7 @@ export default function MaintenancePage() {
                             </Badge>
                           )}
                         </div>
-                        <div className="grid grid-cols-2 gap-2 text-body-xs">
+                        <div className="grid grid-cols-2 gap-2 text-body-xs sm:grid-cols-3">
                           <div className="rounded-lg bg-muted/50 px-2 py-1.5">
                             <p className="text-muted-foreground">Vectors</p>
                             <p className="font-semibold">{systemStatus.collection.vector_count?.toLocaleString() ?? 0}</p>
@@ -231,6 +235,12 @@ export default function MaintenancePage() {
                           <div className="rounded-lg bg-muted/50 px-2 py-1.5">
                             <p className="text-muted-foreground">Files</p>
                             <p className="font-semibold">{systemStatus.collection.unique_files?.toLocaleString() ?? 0}</p>
+                          </div>
+                          <div className="rounded-lg bg-muted/50 px-2 py-1.5">
+                            <p className="text-muted-foreground">Size (MB)</p>
+                            <p className="font-semibold">
+                              {systemStatus.collection.size_mb?.toLocaleString(undefined, { maximumFractionDigits: 2 }) ?? 0}
+                            </p>
                           </div>
                         </div>
                         {systemStatus.collection.error && (
@@ -285,18 +295,24 @@ export default function MaintenancePage() {
                             {systemStatus.bucket.exists ? (
                               <><CheckCircle2 className="size-icon-3xs" /> Active</>
                             ) : (
-                              <><AlertCircle className="size-icon-3xs" /> Not Found</>
+                              <><AlertCircle className="size-icon-3xs" /> Inactive</>
                             )}
                           </Badge>
                         </div>
-                        <div className="grid grid-cols-2 gap-2 text-body-xs">
+                        <div className="grid grid-cols-2 gap-2 text-body-xs sm:grid-cols-3">
                           <div className="rounded-lg bg-muted/50 px-2 py-1.5">
-                            <p className="text-muted-foreground">Objects</p>
-                            <p className="font-semibold">{systemStatus.bucket.object_count?.toLocaleString() ?? 0}</p>
+                            <p className="text-muted-foreground">Pages</p>
+                            <p className="font-semibold">{systemStatus.bucket.page_count?.toLocaleString() ?? 0}</p>
                           </div>
                           <div className="rounded-lg bg-muted/50 px-2 py-1.5">
-                            <p className="text-muted-foreground">Status</p>
-                            <p className="font-semibold">{systemStatus.bucket.exists ? "Available" : "Unavailable"}</p>
+                            <p className="text-muted-foreground">Elements</p>
+                            <p className="font-semibold">{systemStatus.bucket.element_count?.toLocaleString() ?? 0}</p>
+                          </div>
+                          <div className="rounded-lg bg-muted/50 px-2 py-1.5">
+                            <p className="text-muted-foreground">Size (MB)</p>
+                            <p className="font-semibold">
+                              {systemStatus.bucket.size_mb?.toLocaleString(undefined, { maximumFractionDigits: 2 }) ?? 0}
+                            </p>
                           </div>
                         </div>
                         {systemStatus.bucket.error && (
@@ -339,7 +355,7 @@ export default function MaintenancePage() {
                       <div className="space-y-2">
                         <div className="flex flex-wrap gap-2">
                           <Badge variant="outline" className={badgeClasses.neutral}>
-                            {systemStatus.duckdb.enabled ? "Enabled" : "Disabled"}
+                            {systemStatus.duckdb.name || "DuckDB"}
                           </Badge>
                           <Badge
                             variant="outline"
@@ -354,12 +370,12 @@ export default function MaintenancePage() {
                               systemStatus.duckdb.available ? (
                                 <>
                                   <CheckCircle2 className="size-icon-3xs" />
-                                  Available
+                                  Active
                                 </>
                               ) : (
                                 <>
                                   <AlertCircle className="size-icon-3xs" />
-                                  Unavailable
+                                  Inactive
                                 </>
                               )
                             ) : (
@@ -425,7 +441,9 @@ export default function MaintenancePage() {
                     (operation.id === "initialize" && initLoading) ||
                     (operation.id === "delete" && deleteLoading) ||
                     (operation.id === "reset" && loading["all"]);
-                  const isDisabled = initLoading || deleteLoading || loading["all"];
+                  const baseDisabled = initLoading || deleteLoading || loading["all"];
+                  const resetDisabled = operation.id === "reset" && (!canReset || baseDisabled);
+                  const isDisabled = operation.id === "reset" ? resetDisabled : baseDisabled;
                   const buttonVariant =
                     operation.id === "reset"
                       ? "destructive"
@@ -434,6 +452,7 @@ export default function MaintenancePage() {
                         : "hero";
 
                   const handleClick = () => {
+                    if (isDisabled) return;
                     if (operation.id === "initialize") {
                       void handleInitialize();
                     } else if (operation.id === "delete") {
@@ -471,6 +490,7 @@ export default function MaintenancePage() {
                           size="md"
                           fullWidth
                           elevated
+                          title={operation.id === "reset" && !canReset ? "Reset requires all storage to exist" : undefined}
                         >
                           {isLoading ? (
                             <>

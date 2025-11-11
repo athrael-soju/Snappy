@@ -150,7 +150,7 @@ class DuckDBAnalyticsService:
 
     def initialize_storage(self) -> Dict[str, Any]:
         """Ensure DuckDB is ready and report current counts."""
-        db_manager.connect()
+        db_manager.connect(force=True)
         stats = self.stats()
         return {
             "status": "success",
@@ -187,7 +187,7 @@ class DuckDBAnalyticsService:
         }
 
     def delete_storage(self) -> Dict[str, Any]:
-        """Delete the DuckDB database file and recreate a clean schema."""
+        """Delete the DuckDB database file and require reinitialization."""
         db_manager.close()
         db_path = Path(settings.DUCKDB_DATABASE_PATH)
         removed = False
@@ -195,10 +195,11 @@ class DuckDBAnalyticsService:
             db_path.unlink()
             removed = True
 
-        db_manager.connect()
+        db_manager.mark_deleted()
+
         return {
             "status": "success",
-            "message": "DuckDB database file reset",
+            "message": "DuckDB database file removed; run initialize to recreate it",
             "file_removed": removed,
         }
 
@@ -504,18 +505,23 @@ class DuckDBAnalyticsService:
         )
 
     def stats(self) -> StatsResponse:
-        total_docs = self.conn.execute(
+        total_docs_row = self.conn.execute(
             "SELECT COUNT(DISTINCT filename) FROM ocr_pages"
-        ).fetchone()[0]
+        ).fetchone()
+        total_docs = total_docs_row[0] if total_docs_row else 0
 
-        total_pages = self.conn.execute("SELECT COUNT(*) FROM ocr_pages").fetchone()[0]
-        total_regions = self.conn.execute(
+        total_pages_row = self.conn.execute("SELECT COUNT(*) FROM ocr_pages").fetchone()
+        total_pages = total_pages_row[0] if total_pages_row else 0
+
+        total_regions_row = self.conn.execute(
             "SELECT COUNT(*) FROM ocr_regions"
-        ).fetchone()[0]
+        ).fetchone()
+        total_regions = total_regions_row[0] if total_regions_row else 0
 
-        total_images = self.conn.execute(
+        total_images_row = self.conn.execute(
             "SELECT COUNT(*) FROM ocr_extracted_images"
-        ).fetchone()[0]
+        ).fetchone()
+        total_images = total_images_row[0] if total_images_row else 0
 
         providers_result = self.conn.execute(
             "SELECT provider, COUNT(*) FROM ocr_pages GROUP BY provider"

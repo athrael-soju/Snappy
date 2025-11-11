@@ -22,16 +22,21 @@ export function useSystemStatus() {
 
   const systemStatus = state.systemStatus;
 
+  const collectionReady = !!systemStatus?.collection.exists;
+  const bucketReady = !!systemStatus?.bucket.exists;
+  const duckdbReady = (() => {
+    if (!systemStatus?.duckdb) return true;
+    if (!systemStatus.duckdb.enabled) return true;
+    return !!systemStatus.duckdb.available;
+  })();
+
   const isReady = useMemo(() => {
-    const collectionReady = !!systemStatus?.collection.exists;
-    const bucketReady = !!systemStatus?.bucket.exists;
-    const duckdbReady = (() => {
-      if (!systemStatus?.duckdb) return true;
-      if (!systemStatus.duckdb.enabled) return true;
-      return !!systemStatus.duckdb.available;
-    })();
     return collectionReady && bucketReady && duckdbReady;
-  }, [systemStatus]);
+  }, [collectionReady, bucketReady, duckdbReady]);
+
+  const canReset = useMemo(() => {
+    return collectionReady && bucketReady && duckdbReady;
+  }, [collectionReady, bucketReady, duckdbReady]);
 
   const needsRefresh = useMemo(() => {
     if (!systemStatus?.lastChecked) return true;
@@ -78,5 +83,6 @@ export function useSystemStatus() {
     isReady,
     needsRefresh,
     isSystemReady: isReady,
+    canReset,
   };
 }
