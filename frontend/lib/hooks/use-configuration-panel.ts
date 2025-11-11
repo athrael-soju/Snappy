@@ -241,6 +241,7 @@ export function useConfigurationPanel() {
       setError(errorMsg);
       logger.error('Configuration save failed', { error: err });
       toast.error("Save failed", { description: errorMsg });
+    } finally {
       setSaving(false);
     }
   }, [schema, values, originalValues, notifyRuntimeConfigUpdated]);

@@ -84,12 +84,16 @@ class ImageStorageHandler:
             ) from exc
 
         records: List[Dict[str, object]] = []
-        for image_id in image_ids:
+        for idx, image_id in enumerate(image_ids):
             image_url = image_url_map.get(image_id)
             if image_url is None:
                 raise Exception(
                     f"Image upload failed for batch starting at {batch_start}: missing URL for {image_id}"
                 )
+            # Attach URL to processed image for downstream use (e.g., OCR storage)
+            if idx < len(processed_images):
+                processed_images[idx].url = image_url
+
             records.append(
                 {
                     "image_url": image_url,

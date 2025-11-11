@@ -22,6 +22,8 @@ class ProcessedImage:
         format: str,
         content_type: str,
         size: int,
+        width: int | None = None,
+        height: int | None = None,
     ):
         """
         Initialize processed image container.
@@ -36,11 +38,18 @@ class ProcessedImage:
             MIME content type
         size : int
             Size in bytes
+        width : int | None
+            Image width in pixels
+        height : int | None
+            Image height in pixels
         """
         self.data = data
         self.format = format
         self.content_type = content_type
         self.size = size
+        self.width = width
+        self.height = height
+        self.url: str | None = None  # Set by storage handler
 
     def to_buffer(self) -> io.BytesIO:
         """Create a BytesIO buffer from the processed data."""
@@ -172,8 +181,12 @@ class ImageProcessor:
 
         content_type = self.CONTENT_TYPES.get(output_format, "application/octet-stream")
 
+        # Capture image dimensions
+        width, height = image.size
+
         logger.debug(
             f"Processed image: format={output_format}, size={size} bytes, "
+            f"dimensions={width}x{height}, "
             f"quality={output_quality if output_format in ('JPEG', 'WEBP') else 'N/A'}"
         )
 
@@ -182,6 +195,8 @@ class ImageProcessor:
             format=output_format,
             content_type=content_type,
             size=size,
+            width=width,
+            height=height,
         )
 
     def process_batch(

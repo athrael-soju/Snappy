@@ -25,11 +25,11 @@ _get_config = getattr  # alias for static analysis friendliness
 
 
 def _collection_name() -> str:
-    return str(getattr(config, "QDRANT_COLLECTION_NAME", ""))
+    return str(getattr(config, "QDRANT_COLLECTION_NAME", "documents"))
 
 
 def _bucket_name() -> str:
-    return str(getattr(config, "MINIO_BUCKET_NAME", ""))
+    return str(getattr(config, "MINIO_BUCKET_NAME", "documents"))
 
 
 router = APIRouter(prefix="", tags=["maintenance"])
@@ -397,7 +397,7 @@ def _initialize_sync(
             res = dsvc.initialize_storage()
             results["duckdb"]["status"] = "success" if res else "error"
             results["duckdb"]["message"] = (
-                res.get("message") if isinstance(res, dict) else ""
+                str(res.get("message") or "") if isinstance(res, dict) else ""
             )
         except Exception as exc:
             results["duckdb"]["status"] = "error"

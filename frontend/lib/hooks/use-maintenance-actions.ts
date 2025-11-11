@@ -25,6 +25,11 @@ const SERVICE_LABELS: Record<string, string> = {
   duckdb: "DuckDB",
 };
 
+interface ServiceResult {
+  status: "success" | "skipped" | "error" | "pending";
+  message: string;
+}
+
 const summarizeResults = (result: any) => {
   const entries = result?.results;
   if (!entries || typeof entries !== "object") {
@@ -35,7 +40,7 @@ const summarizeResults = (result: any) => {
   const skipped: string[] = [];
   const failed: string[] = [];
 
-  for (const [key, value] of Object.entries(entries)) {
+  for (const [key, value] of Object.entries(entries) as [string, ServiceResult][]) {
     const label = SERVICE_LABELS[key] ?? key;
     switch (value?.status) {
       case "success":
