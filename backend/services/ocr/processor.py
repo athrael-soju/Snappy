@@ -327,9 +327,11 @@ class OcrProcessor:
         if not raw_text:
             return content_map
 
-        # Pattern to match: <|ref|>label<|/ref|><|det|>coords<|/det|>\nContent
+        # Pattern to match: <|ref|>label<|/ref|><|det|>coords<|/det|>Content
         # This captures the label and the content following it
-        pattern = r"<\|ref\|>([^<]+)<\/\|ref\|><\|det\|>.*?<\/\|det\|>\s*\n(.*?)(?=<\|ref\|>|$)"
+        pattern = (
+            r"<\|ref\|>([^<]+)<\|/ref\|><\|det\|>.*?<\|/det\|>\s*(.*?)(?=<\|ref\|>|$)"
+        )
 
         matches = re.findall(pattern, raw_text, re.DOTALL)
 
