@@ -67,6 +67,12 @@ async def ocr_endpoint(
     - **include_images**: Extract and embed images from document
     """
     # Validate file type
+    if not image.filename:
+        raise HTTPException(
+            status_code=400,
+            detail="No filename provided.",
+        )
+
     filename = image.filename.lower()
     is_pdf = filename.endswith(".pdf")
     is_image = any(filename.endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".webp"])
@@ -89,7 +95,7 @@ async def ocr_endpoint(
                 tmp_path,
                 mode.value,
                 task.value,
-                custom_prompt,
+                custom_prompt or "",
                 include_grounding,
                 include_images,
             )
@@ -99,7 +105,7 @@ async def ocr_endpoint(
                 img,
                 mode.value,
                 task.value,
-                custom_prompt,
+                custom_prompt or "",
                 include_grounding,
                 include_images,
             )

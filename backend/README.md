@@ -42,6 +42,10 @@ Defaults assume local services at:
 - ColPali → `http://localhost:7000`
 - DeepSeek OCR → `http://localhost:8200` (optional)
 
+When the backend runs inside Docker Compose, keep `COLPALI_URL=http://colpali:7000` and `DEEPSEEK_OCR_URL=http://deepseek-ocr:8200` so the containers communicate via the Compose network.
+
+
+- `COLPALI_URL=http://colpali:7000`
 Check `backend/docs/configuration.md` for the complete reference.
 
 ---
@@ -66,8 +70,8 @@ Interactive docs live at http://localhost:8000/docs.
 
 The root `docker-compose.yml` coordinates `qdrant`, `minio`, `backend`, and `frontend`. Environment values are pre-wired for container-to-container networking:
 
-- `COLPALI_URL=http://host.docker.internal:7000`
-- `DEEPSEEK_OCR_URL=http://host.docker.internal:8200` (optional)
+- `COLPALI_URL=http://colpali:7000`
+- `DEEPSEEK_OCR_URL=http://deepseek-ocr:8200` (optional)
 - `QDRANT_URL=http://qdrant:6333`
 - `MINIO_URL=http://minio:9000`
 - `MINIO_PUBLIC_URL=http://localhost:9000`
@@ -81,7 +85,7 @@ docker compose up -d --build
 MinIO credentials must be provided; the backend stores page images in object storage and does not fall back to inline storage.
 
 **Optional Services:**
-- **DeepSeek OCR**: Enable advanced text extraction with `DEEPSEEK_OCR_ENABLED=True`. Start the service separately (see `deepseek-ocr/README.md`).
+- **DeepSeek OCR**: Enable advanced text extraction with `DEEPSEEK_OCR_ENABLED=True`. Start the service separately (see `deepseek-ocr/README.md`). This container runs only in the GPU compose profile; disable OCR when running the CPU stack.
 
 ---
 
