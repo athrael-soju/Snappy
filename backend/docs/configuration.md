@@ -101,6 +101,8 @@ Helpers:
 | `DEEPSEEK_OCR_INCLUDE_GROUNDING` | bool | `True` | Include bounding box information in OCR results for layout analysis. |
 | `DEEPSEEK_OCR_INCLUDE_IMAGES` | bool | `True` | Extract and embed images from documents as base64-encoded data in markdown output. |
 
+> **GPU requirement:** The DeepSeek OCR container only runs when the GPU Docker Compose profile is active. Disable `DEEPSEEK_OCR_ENABLED` (or point to another OCR service) when running the CPU stack.
+
 The OCR service is optional and runs separately from the main backend. When enabled, it provides advanced text extraction, markdown conversion, visual grounding with bounding boxes, and embedded image extraction. See `deepseek-ocr/README.md` for service setup and `backend/api/routers/ocr.py` for API endpoints.
 
 ---

@@ -160,7 +160,7 @@ Head to `backend/docs/architecture.md` and `backend/docs/analysis.md` for a deep
    docker compose up -d --build
    ```
 
-   The service runs at http://localhost:8200. Enable it via `DEEPSEEK_OCR_ENABLED=True` in `.env`. See `deepseek-ocr/README.md` for configuration details.
+   The service runs at http://localhost:8200 and requires a GPU. Enable it via `DEEPSEEK_OCR_ENABLED=True` in `.env` only when you plan to run the GPU profile. See `deepseek-ocr/README.md` for setup details.
 
 ---
 
@@ -415,4 +415,5 @@ Snappy builds on the work of: 🌟
 
 - 🔥 **PyTorch** - core deep learning framework  
    https://pytorch.org/  
+
 
