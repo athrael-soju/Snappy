@@ -16,7 +16,7 @@ interface UseMaintenanceActionsOptions {
 const SUCCESS_MESSAGES: Record<ActionType, string> = {
   q: "Cleared Qdrant collection",
   m: "Cleared MinIO bucket",
-  all: "Cleared all stored data",
+  all: "Cleared Qdrant, MinIO, and DuckDB data",
 };
 
 /**

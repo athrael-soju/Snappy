@@ -16,10 +16,22 @@ export function useSystemManagement({ onSuccess }: UseSystemManagementOptions = 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const buildSuccessDescription = (result: any, fallback: string) => {
-    const message = result?.results?.bucket?.message;
-    if (typeof message === "string" && message.length > 0) {
-      return message;
+    const descriptions: string[] = [];
+
+    const bucketMessage = result?.results?.bucket?.message;
+    if (typeof bucketMessage === "string" && bucketMessage.length > 0) {
+      descriptions.push(bucketMessage);
     }
+
+    const duckdbMessage = result?.results?.duckdb?.message;
+    if (typeof duckdbMessage === "string" && duckdbMessage.length > 0) {
+      descriptions.push(duckdbMessage);
+    }
+
+    if (descriptions.length > 0) {
+      return descriptions.join(" • ");
+    }
+
     return fallback;
   };
 

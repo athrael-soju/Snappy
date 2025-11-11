@@ -43,37 +43,72 @@ A FastAPI-based service that stores and analyzes OCR data using DuckDB.
 
 ### `ocr_pages` Table
 
-Stores OCR results for each page:
+Stores top-level OCR metadata per page. Region and image details now live in dedicated columnar tables.
 
-| Column              | Type      | Description                        |
-|---------------------|-----------|-------------------------------------|
-| id                  | INTEGER   | Primary key                        |
-| provider            | VARCHAR   | OCR provider (e.g., deepseek-ocr)  |
-| version             | VARCHAR   | Provider version                   |
-| filename            | VARCHAR   | Document filename                  |
-| page_number         | INTEGER   | Page number                        |
-| text                | TEXT      | Extracted plain text               |
-| markdown            | TEXT      | Markdown-formatted text            |
-| raw_text            | TEXT      | Raw OCR text                       |
-| regions             | JSON      | Text regions with bounding boxes   |
-| extracted_at        | TIMESTAMP | Extraction timestamp               |
-| storage_url         | VARCHAR   | MinIO storage URL                  |
-| document_id         | VARCHAR   | Document identifier                |
-| pdf_page_index      | INTEGER   | PDF page index                     |
-| total_pages         | INTEGER   | Total pages in document            |
-| page_width_px       | INTEGER   | Page width in pixels               |
-| page_height_px      | INTEGER   | Page height in pixels              |
-| image_url           | VARCHAR   | Page image URL                     |
-| image_storage       | VARCHAR   | Image storage location             |
-| extracted_images    | JSON      | Extracted images metadata          |
-| created_at          | TIMESTAMP | Record creation time               |
+| Column         | Type      | Description                       |
+|----------------|-----------|------------------------------------|
+| id             | INTEGER   | Primary key                       |
+| provider       | VARCHAR   | OCR provider (e.g., deepseek-ocr) |
+| version        | VARCHAR   | Provider version                  |
+| filename       | VARCHAR   | Document filename                 |
+| page_number    | INTEGER   | Page number                       |
+| text           | TEXT      | Extracted plain text              |
+| markdown       | TEXT      | Markdown-formatted text           |
+| raw_text       | TEXT      | Raw OCR text                      |
+| extracted_at   | TIMESTAMP | Extraction timestamp              |
+| storage_url    | VARCHAR   | MinIO `elements.json` URL         |
+| document_id    | VARCHAR   | Document identifier               |
+| pdf_page_index | INTEGER   | PDF page index                    |
+| total_pages    | INTEGER   | Total pages in document           |
+| page_width_px  | INTEGER   | Page width in pixels              |
+| page_height_px | INTEGER   | Page height in pixels             |
+| image_url      | VARCHAR   | Page image URL                    |
+| image_storage  | VARCHAR   | Image storage provider            |
+| created_at     | TIMESTAMP | Record creation time              |
 
 **Indexes:**
-- `idx_filename` - For document lookups
-- `idx_page_number` - For page queries
-- `idx_provider` - For provider filtering
-- `idx_extracted_at` - For temporal queries
-- `idx_text_fts` - For full-text search
+- `idx_pages_filename` - For document lookups
+- `idx_pages_provider` - For provider filtering
+- `idx_pages_extracted_at` - For temporal queries
+- `idx_pages_text_fts` - Full-text search on `text`
+
+### `ocr_regions` Table
+
+Stores every grounded region extracted from OCR output.
+
+| Column        | Type      | Description                               |
+|---------------|-----------|-------------------------------------------|
+| id            | INTEGER   | Primary key                               |
+| page_id       | INTEGER   | Foreign key to `ocr_pages.id`             |
+| region_id     | VARCHAR   | Region identifier (e.g., `doc#region-1`)  |
+| label         | VARCHAR   | Region label from OCR output              |
+| bbox_x1..x2   | INTEGER   | Bounding box coordinates                  |
+| bbox_y1..y2   | INTEGER   | Bounding box coordinates                  |
+| content       | TEXT      | Extracted text content (if any)           |
+| image_url     | VARCHAR   | Linked image URL (if OCR extracted one)   |
+| image_storage | VARCHAR   | Storage provider for `image_url`          |
+| image_inline  | BOOLEAN   | Indicates if the image was inline/base64  |
+| created_at    | TIMESTAMP | Record creation time                      |
+
+**Indexes:**
+- `idx_regions_page_id`
+- `idx_regions_label`
+
+### `ocr_extracted_images` Table
+
+Stores image crops extracted by the OCR provider.
+
+| Column     | Type      | Description                          |
+|------------|-----------|--------------------------------------|
+| id         | INTEGER   | Primary key                          |
+| page_id    | INTEGER   | Foreign key to `ocr_pages.id`        |
+| image_index| INTEGER   | Position/index within OCR payload    |
+| url        | VARCHAR   | Public URL in MinIO                  |
+| storage    | VARCHAR   | Storage provider (usually `minio`)   |
+| created_at | TIMESTAMP | Record creation time                 |
+
+**Indexes:**
+- `idx_images_page_id`
 
 ## API Endpoints
 
@@ -100,6 +135,12 @@ Stores OCR results for each page:
 - `POST /query` - Execute SQL query
 - `GET /stats` - Aggregate statistics
 - `POST /search/text` - Full-text search
+
+### Maintenance
+
+- `POST /maintenance/initialize` - Verify/create the DuckDB schema
+- `POST /maintenance/clear` - Remove all OCR pages/regions/images while keeping the schema
+- `POST /maintenance/delete` - Delete the DuckDB database file and recreate an empty store
 
 ### UI
 
@@ -226,6 +267,8 @@ The DuckDB service is integrated with the backend OCR pipeline:
 3. **Simultaneously**, OCR data is sent to DuckDB for analytics
 4. DuckDB storage failures don't block the indexing pipeline
 
+The backend maintenance endpoints (`/status`, `/initialize`, `/delete`, `/clear/all`) call DuckDB's maintenance API so the web UI can report availability, region counts, and reset the DuckDB store alongside Qdrant and MinIO.
+
 Configuration in `backend/config_schema.py`:
 
 ```python
@@ -344,7 +387,7 @@ ls -la ui/
 
 DuckDB uses efficient columnar storage:
 - Text data is compressed
-- JSON fields are optimized
+- Region and image tables stay columnar (no large JSON blobs)
 - Typical compression ratio: 5-10x
 
 ### Query Performance

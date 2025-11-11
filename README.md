@@ -277,6 +277,7 @@ Keep the services from steps 2 and 3 running while you develop.
   - Image embedding support
 - 🦆 **DuckDB Analytics** for OCR data storage and SQL-based analytics with:
   - Automatic storage of OCR results alongside MinIO
+  - Columnar tables for regions/images instead of JSON blobs
   - SQL query interface for custom analytics
   - Full-text search across all OCR data
   - DuckDB-Wasm UI for interactive exploration
@@ -343,9 +344,9 @@ All schema-backed settings (and defaults) are documented in `backend/docs/config
 |              | `POST /ocr/process-document`             | Background OCR for an entire indexed document |
 |              | `GET /ocr/progress/{job_id}`, `/ocr/progress/stream/{job_id}` | Poll or stream OCR job progress |
 |              | `POST /ocr/cancel/{job_id}`, `GET /ocr/health` | Cancel jobs and check OCR health |
-| Maintenance  | `GET /status`                            | Collection/bucket statistics |
-|              | `POST /initialize`, `DELETE /delete`     | Provision or tear down collection + bucket |
-|              | `POST /clear/qdrant`, `/clear/minio`, `/clear/all` | Data reset helpers |
+| Maintenance  | `GET /status`                            | Collection, bucket, and DuckDB statistics |
+|              | `POST /initialize`, `DELETE /delete`     | Provision or tear down collection, bucket, and DuckDB storage |
+|              | `POST /clear/qdrant`, `/clear/minio`, `/clear/all` | Data reset helpers (DuckDB participates in reset/all) |
 | Configuration| `GET /config/schema`, `/config/values`   | Expose runtime schema and values |
 |              | `POST /config/update`, `/config/reset`   | Runtime configuration management |
 

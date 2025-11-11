@@ -366,6 +366,36 @@ class DuckDBService:
             logger.warning(f"Failed to search text in DuckDB: {exc}")
             return None
 
+    # ------------------------------------------------------------------
+    # Maintenance helpers
+    # ------------------------------------------------------------------
+
+    def initialize_storage(self) -> Optional[Dict[str, Any]]:
+        """Ensure DuckDB storage is initialized."""
+        return self._post_maintenance("initialize")
+
+    def clear_storage(self) -> Optional[Dict[str, Any]]:
+        """Clear all OCR data from DuckDB."""
+        return self._post_maintenance("clear")
+
+    def delete_storage(self) -> Optional[Dict[str, Any]]:
+        """Delete/reset the DuckDB database file."""
+        return self._post_maintenance("delete")
+
+    def _post_maintenance(self, action: str) -> Optional[Dict[str, Any]]:
+        if not self.enabled:
+            return None
+        try:
+            response = self.session.post(
+                f"{self.base_url}/maintenance/{action}",
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as exc:
+            logger.warning(f"DuckDB {action} maintenance failed: {exc}")
+            return None
+
     def close(self):
         """Close the HTTP session."""
         if hasattr(self, "session"):

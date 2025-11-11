@@ -2,6 +2,8 @@ import asyncio
 from typing import TYPE_CHECKING, Optional
 
 from api.dependencies import (
+    duckdb_init_error,
+    get_duckdb_service,
     get_minio_service,
     get_qdrant_service,
     minio_init_error,
@@ -15,6 +17,7 @@ except ModuleNotFoundError:  # pragma: no cover
     from backend import config as config  # type: ignore
 
 if TYPE_CHECKING:
+    from services.duckdb import DuckDBService
     from services.minio import MinioService
     from services.qdrant import QdrantService
 
@@ -66,7 +69,8 @@ async def clear_all():
     try:
         svc = get_qdrant_service()
         msvc = get_minio_service()
-        message = await asyncio.to_thread(_clear_all_sync, svc, msvc)
+        dsvc = get_duckdb_service()
+        message = await asyncio.to_thread(_clear_all_sync, svc, msvc, dsvc)
         return {"status": "ok", "message": message}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -78,13 +82,16 @@ async def get_status():
     try:
         svc = get_qdrant_service()
         msvc = get_minio_service()
+        dsvc = get_duckdb_service()
         collection_status, bucket_status = await asyncio.gather(
             asyncio.to_thread(_collect_collection_status, svc),
             asyncio.to_thread(_collect_bucket_status, msvc),
         )
+        duckdb_status = await asyncio.to_thread(_collect_duckdb_status, dsvc)
         return {
             "collection": collection_status,
             "bucket": bucket_status,
+            "duckdb": duckdb_status,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -96,7 +103,8 @@ async def initialize():
     try:
         svc = get_qdrant_service()
         msvc = get_minio_service()
-        return await asyncio.to_thread(_initialize_sync, svc, msvc)
+        dsvc = get_duckdb_service()
+        return await asyncio.to_thread(_initialize_sync, svc, msvc, dsvc)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -107,7 +115,8 @@ async def delete_collection_and_bucket():
     try:
         svc = get_qdrant_service()
         msvc = get_minio_service()
-        return await asyncio.to_thread(_delete_sync, svc, msvc)
+        dsvc = get_duckdb_service()
+        return await asyncio.to_thread(_delete_sync, svc, msvc, dsvc)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -182,8 +191,41 @@ def _collect_bucket_status(msvc: Optional["MinioService"]) -> dict:
     return status
 
 
+def _collect_duckdb_status(dsvc: Optional["DuckDBService"]) -> dict:
+    enabled = bool(getattr(config, "DUCKDB_ENABLED", False))
+    status = {
+        "enabled": enabled,
+        "available": False,
+        "page_count": 0,
+        "region_count": 0,
+        "database_size_mb": 0.0,
+        "error": None,
+    }
+
+    if not enabled:
+        status["error"] = "Disabled via configuration"
+        return status
+
+    if not dsvc:
+        status["error"] = duckdb_init_error or "Service unavailable"
+        return status
+
+    try:
+        stats = dsvc.get_stats() or {}
+        status["available"] = True
+        status["page_count"] = int(stats.get("total_pages", 0) or 0)
+        status["region_count"] = int(stats.get("total_regions", 0) or 0)
+        status["database_size_mb"] = float(stats.get("storage_size_mb", 0) or 0)
+    except Exception as exc:
+        status["error"] = str(exc)
+
+    return status
+
+
 def _clear_all_sync(
-    svc: Optional["QdrantService"], msvc: Optional["MinioService"]
+    svc: Optional["QdrantService"],
+    msvc: Optional["MinioService"],
+    dsvc: Optional["DuckDBService"],
 ) -> str:
     _collection_name()
     if svc:
@@ -206,17 +248,33 @@ def _clear_all_sync(
             m_msg = f"MinIO clear failed: {exc}"
     else:
         m_msg = f"MinIO unavailable: {minio_init_error or 'Dependency service is down'}"
-    return f"{q_msg} {m_msg}".strip()
+    if dsvc and dsvc.is_enabled():
+        try:
+            res = dsvc.clear_storage()
+            duck_msg = res.get("message", "Cleared DuckDB") if res else "Cleared DuckDB"
+        except Exception as exc:
+            duck_msg = f"DuckDB clear failed: {exc}"
+    else:
+        duck_msg = (
+            "DuckDB disabled"
+            if not getattr(config, "DUCKDB_ENABLED", False)
+            else f"DuckDB unavailable: {duckdb_init_error or 'Service down'}"
+        )
+
+    return " ".join(filter(None, [q_msg, m_msg, duck_msg])).strip()
 
 
 def _initialize_sync(
-    svc: Optional["QdrantService"], msvc: Optional["MinioService"]
+    svc: Optional["QdrantService"],
+    msvc: Optional["MinioService"],
+    dsvc: Optional["DuckDBService"],
 ) -> dict:
     collection_name = _collection_name()
     bucket_name = _bucket_name()
     results = {
         "collection": {"status": "pending", "message": ""},
         "bucket": {"status": "pending", "message": ""},
+        "duckdb": {"status": "pending", "message": ""},
     }
     if svc:
         try:
@@ -244,26 +302,31 @@ def _initialize_sync(
     else:
         results["bucket"]["status"] = "error"
         results["bucket"]["message"] = minio_init_error or "Service unavailable"
-    overall_status = (
-        "success"
-        if (
-            results["collection"]["status"] == "success"
-            and results["bucket"]["status"] == "success"
-        )
-        else (
-            "partial"
-            if (
-                results["collection"]["status"] == "success"
-                or results["bucket"]["status"] == "success"
+    if not getattr(config, "DUCKDB_ENABLED", False):
+        results["duckdb"]["status"] = "skipped"
+        results["duckdb"]["message"] = "DuckDB disabled via configuration"
+    elif not dsvc:
+        results["duckdb"]["status"] = "error"
+        results["duckdb"]["message"] = duckdb_init_error or "Service unavailable"
+    else:
+        try:
+            res = dsvc.initialize_storage()
+            results["duckdb"]["status"] = "success" if res else "error"
+            results["duckdb"]["message"] = (
+                res.get("message") if isinstance(res, dict) else ""
             )
-            else "error"
-        )
-    )
+        except Exception as exc:
+            results["duckdb"]["status"] = "error"
+            results["duckdb"]["message"] = str(exc)
+
+    overall_status = _summarize_status(results)
     return {"status": overall_status, "results": results}
 
 
 def _delete_sync(
-    svc: Optional["QdrantService"], msvc: Optional["MinioService"]
+    svc: Optional["QdrantService"],
+    msvc: Optional["MinioService"],
+    dsvc: Optional["DuckDBService"],
 ) -> dict:
     collection_name = _collection_name()
     bucket_name = _bucket_name()
@@ -271,6 +334,7 @@ def _delete_sync(
     results = {
         "collection": {"status": "pending", "message": ""},
         "bucket": {"status": "pending", "message": ""},
+        "duckdb": {"status": "pending", "message": ""},
     }
     if svc:
         try:
@@ -324,19 +388,33 @@ def _delete_sync(
     else:
         results["bucket"]["status"] = "error"
         results["bucket"]["message"] = minio_init_error or "Service unavailable"
-    overall_status = (
-        "success"
-        if (
-            results["collection"]["status"] == "success"
-            and results["bucket"]["status"] == "success"
-        )
-        else (
-            "partial"
-            if (
-                results["collection"]["status"] == "success"
-                or results["bucket"]["status"] == "success"
+    if not getattr(config, "DUCKDB_ENABLED", False):
+        results["duckdb"]["status"] = "skipped"
+        results["duckdb"]["message"] = "DuckDB disabled via configuration"
+    elif not dsvc:
+        results["duckdb"]["status"] = "error"
+        results["duckdb"]["message"] = duckdb_init_error or "Service unavailable"
+    else:
+        try:
+            res = dsvc.delete_storage()
+            results["duckdb"]["status"] = "success" if res else "error"
+            results["duckdb"]["message"] = (
+                res.get("message") if isinstance(res, dict) else ""
             )
-            else "error"
-        )
-    )
+        except Exception as exc:
+            results["duckdb"]["status"] = "error"
+            results["duckdb"]["message"] = str(exc)
+
+    overall_status = _summarize_status(results)
     return {"status": overall_status, "results": results}
+
+
+def _summarize_status(results: dict) -> str:
+    statuses = [entry.get("status") for entry in results.values()]
+    success_like = {"success", "skipped"}
+
+    if all(status in success_like for status in statuses):
+        return "success"
+    if any(status == "success" for status in statuses):
+        return "partial"
+    return "error"

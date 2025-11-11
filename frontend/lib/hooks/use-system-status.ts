@@ -25,7 +25,12 @@ export function useSystemStatus() {
   const isReady = useMemo(() => {
     const collectionReady = !!systemStatus?.collection.exists;
     const bucketReady = !!systemStatus?.bucket.exists;
-    return collectionReady && bucketReady;
+    const duckdbReady = (() => {
+      if (!systemStatus?.duckdb) return true;
+      if (!systemStatus.duckdb.enabled) return true;
+      return !!systemStatus.duckdb.available;
+    })();
+    return collectionReady && bucketReady && duckdbReady;
   }, [systemStatus]);
 
   const needsRefresh = useMemo(() => {

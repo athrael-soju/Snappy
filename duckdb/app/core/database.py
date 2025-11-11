@@ -1,0 +1,151 @@
+"""Database initialization and lifecycle helpers."""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Optional
+
+from app.core.config import settings
+from app.core.logging import logger
+
+import duckdb
+
+
+class DuckDBManager:
+    """Manage the DuckDB connection and schema."""
+
+    def __init__(self) -> None:
+        self._connection: Optional[duckdb.DuckDBPyConnection] = None
+
+    def connect(self) -> duckdb.DuckDBPyConnection:
+        """Connect to DuckDB and ensure schema exists."""
+        if self._connection:
+            return self._connection
+
+        db_path = Path(settings.DUCKDB_DATABASE_PATH)
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+
+        logger.info("Initializing DuckDB database at %s", db_path)
+        self._connection = duckdb.connect(str(db_path))
+
+        self._start_ui_extension()
+        self._create_schema()
+
+        return self._connection
+
+    def _start_ui_extension(self) -> None:
+        """Install and start the DuckDB UI extension if available."""
+        if not self._connection:
+            return
+
+        try:
+            self._connection.execute("INSTALL ui;")
+            self._connection.execute("LOAD ui;")
+            self._connection.execute("CALL start_ui_server();")
+            logger.info("DuckDB UI server started on http://0.0.0.0:4213")
+        except Exception as exc:  # pragma: no cover - best effort logging
+            logger.warning("DuckDB UI extension unavailable: %s", exc)
+
+    def _create_schema(self) -> None:
+        """Create the analytics schema with columnar tables."""
+        if not self._connection:
+            return
+
+        self._connection.execute(
+            """
+            CREATE SEQUENCE IF NOT EXISTS ocr_pages_id_seq START 1;
+            CREATE SEQUENCE IF NOT EXISTS ocr_regions_id_seq START 1;
+            CREATE SEQUENCE IF NOT EXISTS ocr_images_id_seq START 1;
+
+            CREATE TABLE IF NOT EXISTS ocr_pages (
+                id INTEGER PRIMARY KEY DEFAULT nextval('ocr_pages_id_seq'),
+                provider VARCHAR,
+                version VARCHAR,
+                filename VARCHAR NOT NULL,
+                page_number INTEGER NOT NULL,
+                text TEXT,
+                markdown TEXT,
+                raw_text TEXT,
+                extracted_at TIMESTAMP,
+                storage_url VARCHAR,
+                document_id VARCHAR,
+                pdf_page_index INTEGER,
+                total_pages INTEGER,
+                page_width_px INTEGER,
+                page_height_px INTEGER,
+                image_url VARCHAR,
+                image_storage VARCHAR,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(filename, page_number)
+            );
+
+            CREATE TABLE IF NOT EXISTS ocr_regions (
+                id INTEGER PRIMARY KEY DEFAULT nextval('ocr_regions_id_seq'),
+                page_id INTEGER NOT NULL,
+                region_id VARCHAR,
+                label VARCHAR,
+                bbox_x1 INTEGER,
+                bbox_y1 INTEGER,
+                bbox_x2 INTEGER,
+                bbox_y2 INTEGER,
+                content TEXT,
+                image_url VARCHAR,
+                image_storage VARCHAR,
+                image_inline BOOLEAN,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(page_id) REFERENCES ocr_pages(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS ocr_extracted_images (
+                id INTEGER PRIMARY KEY DEFAULT nextval('ocr_images_id_seq'),
+                page_id INTEGER NOT NULL,
+                image_index INTEGER,
+                url VARCHAR,
+                storage VARCHAR,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(page_id) REFERENCES ocr_pages(id)
+            );
+            """
+        )
+
+        self._connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_pages_filename ON ocr_pages(filename);
+            CREATE INDEX IF NOT EXISTS idx_pages_page_number ON ocr_pages(page_number);
+            CREATE INDEX IF NOT EXISTS idx_pages_provider ON ocr_pages(provider);
+            CREATE INDEX IF NOT EXISTS idx_pages_extracted_at ON ocr_pages(extracted_at);
+            CREATE INDEX IF NOT EXISTS idx_pages_text_fts ON ocr_pages(text);
+
+            CREATE INDEX IF NOT EXISTS idx_regions_page_id ON ocr_regions(page_id);
+            CREATE INDEX IF NOT EXISTS idx_regions_label ON ocr_regions(label);
+
+            CREATE INDEX IF NOT EXISTS idx_images_page_id ON ocr_extracted_images(page_id);
+            """
+        )
+
+        logger.info("DuckDB schema ready")
+
+    def close(self) -> None:
+        """Close the DuckDB connection and stop the UI server."""
+        if not self._connection:
+            return
+
+        try:
+            self._connection.execute("CALL stop_ui_server();")
+            logger.info("DuckDB UI server stopped")
+        except Exception as exc:  # pragma: no cover - best effort logging
+            logger.debug("UI server stop warning: %s", exc)
+
+        self._connection.close()
+        self._connection = None
+        logger.info("DuckDB connection closed")
+
+    @property
+    def connection(self) -> duckdb.DuckDBPyConnection:
+        """Return the active DuckDB connection."""
+        if not self._connection:
+            raise RuntimeError("DuckDB connection not initialized")
+        return self._connection
+
+
+db_manager = DuckDBManager()

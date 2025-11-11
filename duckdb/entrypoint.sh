@@ -3,7 +3,7 @@ set -e
 
 # Start the FastAPI application in the background
 echo "Starting DuckDB Analytics Service..."
-python app.py &
+python main.py &
 APP_PID=$!
 
 # Wait a bit for the DuckDB UI server to initialize
