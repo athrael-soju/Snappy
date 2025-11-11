@@ -132,7 +132,7 @@ x-duckdb-base: &duckdb-base
   image: duckdb:latest
   ports:
     - "${DUCKDB_API_PORT:-8300}:8300"
-    - "${DUCKDB_UI_PORT:-4213}:4213"
+    - "${DUCKDB_UI_PORT:-4213}:42130"
   volumes:
     - duckdb_data:/app/data
   environment:

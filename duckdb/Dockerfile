@@ -10,6 +10,7 @@ WORKDIR /app
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     build-essential \
+    socat \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
@@ -34,12 +35,17 @@ ENV DUCKDB_API_HOST=0.0.0.0
 ENV DUCKDB_API_PORT=8300
 ENV LOG_LEVEL=INFO
 
-# Expose port
+# Expose ports
 EXPOSE 8300
+EXPOSE 4213
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import requests; requests.get('http://localhost:8300/health').raise_for_status()" || exit 1
 
-# Run the application
-CMD ["python", "app.py"]
+# Copy entrypoint script
+COPY entrypoint.sh /app/
+RUN chmod +x /app/entrypoint.sh
+
+# Run the application with entrypoint
+CMD ["/app/entrypoint.sh"]
