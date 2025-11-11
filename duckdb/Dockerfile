@@ -25,10 +25,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY app.py .
 
 # Create data directory
-RUN mkdir -p /app/data /app/ui
-
-# Copy UI files (will be empty initially)
-COPY ui /app/ui
+RUN mkdir -p /app/data
 
 # Set environment variables
 ENV DUCKDB_DATABASE_PATH=/app/data/ocr_data.duckdb

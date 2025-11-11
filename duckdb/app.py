@@ -14,7 +14,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 import duckdb
@@ -654,17 +653,8 @@ async def search_text(
             query=f"Search: {q}",
         )
     except Exception as e:
-        logger.error(f"Search failed: {e}")
+        logger.warning(f"Failed to search text in DuckDB: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-
-# Mount UI directory for serving DuckDB-Wasm UI
-ui_path = Path(__file__).parent / "ui"
-if ui_path.exists() and any(ui_path.iterdir()):
-    app.mount("/ui", StaticFiles(directory=str(ui_path), html=True), name="ui")
-    logger.info("DuckDB UI mounted at /ui")
-else:
-    logger.warning("UI directory not found or empty. DuckDB UI will not be available.")
 
 
 if __name__ == "__main__":
