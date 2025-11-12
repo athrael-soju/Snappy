@@ -191,6 +191,9 @@ x-frontend-base: &frontend-base
   ports:
     - "3000:3000"
   environment:
+    # Server-side API URL (uses Docker service name for internal calls)
+    - API_BASE_URL_INTERNAL=http://backend:8000
+    # Client-side API URL (uses localhost for browser requests)
     - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
     - NEXT_PUBLIC_MINIO_BASE_URL=${NEXT_PUBLIC_MINIO_BASE_URL:-http://localhost:9000}
     - PUBLIC_MINIO_URL_SET=true
