@@ -1,5 +1,6 @@
 import type { SearchItem } from "@/lib/api/generated/models/SearchItem";
 import type { Stream } from "openai/streaming";
+import "@/lib/api/client"; // Initialize OpenAPI base URL
 import { RetrievalService } from "@/lib/api/generated";
 import { appendCitationReminder, appendUserImages, buildImageContent, buildMarkdownContent } from "@/lib/chat/content";
 import { createInitialToolResponse, createStreamingResponse } from "@/lib/chat/openai";

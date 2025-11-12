@@ -280,9 +280,9 @@ export default function UploadPage() {
               ) : (
                 <AlertCircle className="size-icon-3xs text-destructive" />
               )}
-              {typeof systemStatus?.duckdb?.document_count === "number" && (
+              {typeof systemStatus?.duckdb?.region_count === "number" && (
                 <span className="ml-1 font-semibold">
-                  {systemStatus.duckdb.document_count.toLocaleString()}
+                  {systemStatus.duckdb.region_count.toLocaleString()}
                 </span>
               )}
               {systemStatus?.duckdb?.name && (

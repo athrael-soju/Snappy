@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import "@/lib/api/client"; // Initialize OpenAPI base URL
 import { createSSEStream } from "@/lib/chat/sse";
 import { runChatService } from "@/lib/chat/service";
 import { normalizeChatRequest } from "@/lib/chat/types";
