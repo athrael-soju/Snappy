@@ -9,7 +9,7 @@ from services.colpali import ColPaliService
 from services.duckdb import DuckDBService
 from services.minio import MinioService
 from services.ocr import OcrService
-from services.qdrant import MuveraPostprocessor, QdrantService
+from services.qdrant import QdrantService
 
 logger = logging.getLogger(__name__)
 
@@ -112,20 +112,6 @@ def get_duckdb_service() -> Optional[DuckDBService]:
 
 
 @lru_cache(maxsize=1)
-def _get_muvera_postprocessor_cached() -> Optional[MuveraPostprocessor]:
-    if not config.MUVERA_ENABLED:
-        return None
-
-    info = get_colpali_client().get_info() or {}
-    dim = int(info.get("dim", 0) or 0)
-    if dim <= 0:
-        raise RuntimeError("ColPali /info did not provide a valid 'dim' for MUVERA")
-
-    logger.info("Initializing MUVERA postprocessor with input_dim=%s", dim)
-    return MuveraPostprocessor(input_dim=dim)
-
-
-@lru_cache(maxsize=1)
 def _get_minio_service_cached() -> MinioService:
     return MinioService()
 
@@ -148,17 +134,6 @@ def get_minio_service() -> MinioService:
 def _get_qdrant_service_cached() -> QdrantService:
     minio_service = get_minio_service()
 
-    muvera_post = None
-    if config.MUVERA_ENABLED:
-        try:
-            muvera_post = _get_muvera_postprocessor_cached()
-        except Exception as exc:  # pragma: no cover - defensive guard
-            logger.exception(
-                "Failed to initialize MUVERA; continuing without it: %s", exc
-            )
-            _get_muvera_postprocessor_cached.cache_clear()
-            muvera_post = None
-
     ocr_service = None
     if config.DEEPSEEK_OCR_ENABLED:
         ocr_service = get_ocr_service()
@@ -168,7 +143,6 @@ def _get_qdrant_service_cached() -> QdrantService:
     return QdrantService(
         api_client=get_colpali_client(),
         minio_service=minio_service,
-        muvera_post=muvera_post,
         ocr_service=ocr_service,
     )
 
@@ -197,7 +171,6 @@ def invalidate_services():
     ocr_init_error = None
     duckdb_init_error = None
     _get_qdrant_service_cached.cache_clear()
-    _get_muvera_postprocessor_cached.cache_clear()
     _get_minio_service_cached.cache_clear()
     _get_colpali_client_cached.cache_clear()
     _get_ocr_service_cached.cache_clear()

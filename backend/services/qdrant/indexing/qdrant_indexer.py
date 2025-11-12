@@ -24,7 +24,6 @@ class QdrantDocumentIndexer:
         collection_name: str,
         embedding_processor,
         minio_service=None,
-        muvera_post=None,
         ocr_service=None,
     ):
         """Initialize Qdrant document indexer."""
@@ -35,12 +34,11 @@ class QdrantDocumentIndexer:
         self._pipeline = GenericDocumentIndexer(
             embedding_processor=embedding_processor,
             minio_service=minio_service,
-            muvera_post=muvera_post,
             ocr_service=ocr_service,
         )
 
         # Create Qdrant-specific point factory
-        self._point_factory = PointFactory(muvera_post)
+        self._point_factory = PointFactory()
 
     def index_documents(
         self,

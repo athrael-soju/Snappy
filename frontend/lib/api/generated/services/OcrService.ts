@@ -14,8 +14,6 @@ export class OcrService {
     /**
      * Process Page
      * Process a single document page with DeepSeek OCR.
-     *
-     * The page must already be indexed and stored in MinIO.
      * @param requestBody
      * @returns OcrResponse Successful Response
      * @throws ApiError
@@ -56,9 +54,6 @@ export class OcrService {
     /**
      * Process Document
      * Process all pages of an indexed document with OCR.
-     *
-     * This is a long-running operation that runs in the background.
-     * Use the returned job_id to track progress via SSE.
      * @param requestBody
      * @returns any Successful Response
      * @throws ApiError
@@ -74,6 +69,18 @@ export class OcrService {
             errors: {
                 422: `Validation Error`,
             },
+        });
+    }
+    /**
+     * Health Check
+     * Check OCR service health.
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static healthCheckOcrHealthGet(): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/ocr/health',
         });
     }
     /**
@@ -137,18 +144,6 @@ export class OcrService {
             errors: {
                 422: `Validation Error`,
             },
-        });
-    }
-    /**
-     * Health Check
-     * Check OCR service health.
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static healthCheckOcrHealthGet(): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/ocr/health',
         });
     }
 }

@@ -1,17 +1,14 @@
 """Collection management for Qdrant vector database."""
 
 import logging
-from typing import TYPE_CHECKING, Optional, cast
+from typing import TYPE_CHECKING, Optional
 
 from qdrant_client import QdrantClient, models
-from qdrant_client.conversions import common_types as qtypes
 
 if TYPE_CHECKING:
     from services.colpali import ColPaliService
 
     from backend import config as config  # type: ignore
-
-    from .embedding import MuveraPostprocessor
 else:  # pragma: no cover - runtime import for application execution
     import config  # type: ignore
 
@@ -24,18 +21,15 @@ class CollectionManager:
     def __init__(
         self,
         api_client: Optional["ColPaliService"] = None,
-        muvera_post: Optional["MuveraPostprocessor"] = None,
     ):
         """Initialize collection manager.
 
         Args:
             api_client: ColPali client for getting model dimensions
-            muvera_post: Optional MUVERA postprocessor for FDE embeddings
         """
         try:
-            # Store API client and MUVERA (these don't change)
+            # Store API client (doesn't change)
             self.api_client = api_client
-            self.muvera_post = muvera_post
             self._service: Optional[QdrantClient] = None
             # Don't cache config values - read them dynamically via properties
             self._service: Optional[QdrantClient] = None
@@ -83,40 +77,6 @@ class CollectionManager:
         try:
             self.service.get_collection(self.collection_name)
             logger.info("Using existing Qdrant collection '%s'", self.collection_name)
-            # If MUVERA is enabled, ensure vector exists and has correct size
-            if self.muvera_post and self.muvera_post.embedding_size:
-                try:
-                    # Try to fetch current vector config
-                    coll_info = self.service.get_collection(self.collection_name)
-                    # If 'muvera_fde' is missing, add it via update
-                    if not getattr(coll_info.config.params, "vectors", None) or (
-                        isinstance(coll_info.config.params.vectors, dict)
-                        and "muvera_fde" not in coll_info.config.params.vectors
-                    ):
-                        logger.info(
-                            "Adding MUVERA vector 'muvera_fde' (dim=%s) to existing collection",
-                            int(self.muvera_post.embedding_size),
-                        )
-                        muvera_dim = int(self.muvera_post.embedding_size)
-                        update_config = cast(
-                            qtypes.VectorsConfigDiff,
-                            {
-                                "muvera_fde": models.VectorParams(
-                                    size=muvera_dim,
-                                    distance=models.Distance.COSINE,
-                                    on_disk=config.QDRANT_ON_DISK,
-                                )
-                            },
-                        )
-                        self.service.update_collection(
-                            collection_name=self.collection_name,
-                            vectors_config=update_config,
-                        )
-                except Exception:
-                    # Best-effort; if we can't introspect, proceed
-                    logger.warning(
-                        "Could not verify or add MUVERA vector space; proceeding without update"
-                    )
             return
         except Exception:
             pass
@@ -152,24 +112,6 @@ class CollectionManager:
             if self.enable_mean_pooling:
                 vector_config["mean_pooling_columns"] = _vp()
                 vector_config["mean_pooling_rows"] = _vp()
-
-            # Add MUVERA single-vector space if enabled
-            if self.muvera_post and self.muvera_post.embedding_size:
-                muvera_dim = int(self.muvera_post.embedding_size)
-                logger.info(
-                    "Adding MUVERA vector space 'muvera_fde' with dim=%s", muvera_dim
-                )
-                vector_config["muvera_fde"] = models.VectorParams(
-                    size=muvera_dim,
-                    distance=models.Distance.COSINE,
-                    on_disk=config.QDRANT_ON_DISK,
-                )
-            else:
-                logger.info(
-                    "MUVERA not added: muvera_post=%s, has_embedding_size=%s",
-                    self.muvera_post is not None,
-                    self.muvera_post.embedding_size if self.muvera_post else None,
-                )
 
             self.service.create_collection(
                 collection_name=self.collection_name,

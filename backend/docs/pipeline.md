@@ -89,7 +89,7 @@ indexer = DocumentIndexer(
 )
 
 # Create Qdrant-specific point factory
-point_factory = PointFactory(muvera_post=muvera)
+point_factory = PointFactory()
 
 def store_in_qdrant(batch: ProcessedBatch):
     """Qdrant-specific storage logic."""

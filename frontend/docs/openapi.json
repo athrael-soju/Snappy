@@ -318,33 +318,12 @@
         }
       }
     },
-    "/status": {
-      "get": {
-        "tags": [
-          "maintenance"
-        ],
-        "summary": "Get Status",
-        "description": "Get the status of collection and bucket including statistics.",
-        "operationId": "get_status_status_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
     "/initialize": {
       "post": {
         "tags": [
           "maintenance"
         ],
         "summary": "Initialize",
-        "description": "Initialize/create collection and bucket based on current configuration.",
         "operationId": "initialize_initialize_post",
         "responses": {
           "200": {
@@ -364,8 +343,27 @@
           "maintenance"
         ],
         "summary": "Delete Collection And Bucket",
-        "description": "Delete collection and bucket completely.",
         "operationId": "delete_collection_and_bucket_delete_delete",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/status": {
+      "get": {
+        "tags": [
+          "maintenance"
+        ],
+        "summary": "Get Status",
+        "description": "Get the status of collection and bucket including statistics.",
+        "operationId": "get_status_status_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -499,10 +497,11 @@
     "/ocr/process-page": {
       "post": {
         "tags": [
+          "ocr",
           "ocr"
         ],
         "summary": "Process Page",
-        "description": "Process a single document page with DeepSeek OCR.\n\nThe page must already be indexed and stored in MinIO.",
+        "description": "Process a single document page with DeepSeek OCR.",
         "operationId": "process_page_ocr_process_page_post",
         "requestBody": {
           "content": {
@@ -541,6 +540,7 @@
     "/ocr/process-batch": {
       "post": {
         "tags": [
+          "ocr",
           "ocr"
         ],
         "summary": "Process Batch",
@@ -583,10 +583,11 @@
     "/ocr/process-document": {
       "post": {
         "tags": [
+          "ocr",
           "ocr"
         ],
         "summary": "Process Document",
-        "description": "Process all pages of an indexed document with OCR.\n\nThis is a long-running operation that runs in the background.\nUse the returned job_id to track progress via SSE.",
+        "description": "Process all pages of an indexed document with OCR.",
         "operationId": "process_document_ocr_process_document_post",
         "requestBody": {
           "content": {
@@ -620,9 +621,31 @@
         }
       }
     },
+    "/ocr/health": {
+      "get": {
+        "tags": [
+          "ocr",
+          "ocr"
+        ],
+        "summary": "Health Check",
+        "description": "Check OCR service health.",
+        "operationId": "health_check_ocr_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/ocr/progress/{job_id}": {
       "get": {
         "tags": [
+          "ocr",
           "ocr"
         ],
         "summary": "Get Progress",
@@ -664,6 +687,7 @@
     "/ocr/progress/stream/{job_id}": {
       "get": {
         "tags": [
+          "ocr",
           "ocr"
         ],
         "summary": "Stream Progress",
@@ -705,6 +729,7 @@
     "/ocr/cancel/{job_id}": {
       "post": {
         "tags": [
+          "ocr",
           "ocr"
         ],
         "summary": "Cancel Job",
@@ -737,26 +762,6 @@
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/ocr/health": {
-      "get": {
-        "tags": [
-          "ocr"
-        ],
-        "summary": "Health Check",
-        "description": "Check OCR service health.",
-        "operationId": "health_check_ocr_health_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
               }
             }
           }

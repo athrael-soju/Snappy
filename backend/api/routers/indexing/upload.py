@@ -13,7 +13,7 @@ from utils.timing import PerformanceTimer
 
 from .file_constraints import (
     UploadConstraints,
-    get_upload_chunk_size_bytes,
+    get_upload_chunk_size_mbytes,
     is_allowed_file,
     resolve_upload_constraints,
 )
@@ -59,7 +59,7 @@ async def _validate_and_persist_uploads(
     files: List[UploadFile],
     constraints: UploadConstraints,
 ) -> tuple[list[str], dict[str, str]]:
-    chunk_size = get_upload_chunk_size_bytes()
+    chunk_size = get_upload_chunk_size_mbytes()
     temp_paths: list[str] = []
     original_filenames: dict[str, str] = {}
 

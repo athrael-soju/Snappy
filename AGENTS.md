@@ -200,7 +200,7 @@ External APIs/DBs (Qdrant, MinIO, ColPali)
 - `service.py` - Main client wrapper, collection management
 - `collection.py` - Collection creation, schema definition
 - `indexing.py` - Document indexing with pipeline parallelization
-- `search.py` - Multi-stage retrieval (MUVERA + prefetch + rerank)
+- `search.py` - Multi-stage retrieval (prefetch + rerank)
 - `embedding.py` - Embedding utilities and pooling
 
 **Search Flow:**
@@ -1046,7 +1046,6 @@ git commit -m "feat!: breaking change" # Major bump
 
 - **ColPali:** https://arxiv.org/abs/2407.01449
 - **Qdrant multivector:** https://qdrant.tech/blog/colpali-qdrant-optimization/
-- **MUVERA:** https://qdrant.tech/articles/muvera-embeddings/
 - **FastAPI:** https://fastapi.tiangolo.com/
 - **Next.js:** https://nextjs.org/docs
 - **Zustand:** https://github.com/pmndrs/zustand
@@ -1072,7 +1071,7 @@ Use [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```bash
 # Feature (minor version bump)
-git commit -m "feat: add MUVERA support"
+git commit -m "feat: add advanced search filters"
 
 # Bug fix (patch version bump)
 git commit -m "fix: resolve search timeout issue"

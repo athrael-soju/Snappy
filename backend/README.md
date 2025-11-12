@@ -9,7 +9,6 @@ This FastAPI application handles PDF ingestion, page-level retrieval, runtime co
 - **Python 3.11+**
 - **Poppler** on your `PATH` (`pdftoppm` is required for PDF rasterisation)
 - **Docker + Docker Compose** (optional, recommended for local services)
-- **`fastembed[postprocess]`** if you plan to enable MUVERA acceleration
 
 ---
 
@@ -34,7 +33,7 @@ Key settings:
 - **DeepSeek OCR**: `DEEPSEEK_OCR_ENABLED`, `DEEPSEEK_OCR_URL`, `DEEPSEEK_OCR_API_TIMEOUT`, `DEEPSEEK_OCR_MAX_WORKERS`, `DEEPSEEK_OCR_POOL_SIZE`, `DEEPSEEK_OCR_MODE`, `DEEPSEEK_OCR_TASK`, `DEEPSEEK_OCR_INCLUDE_GROUNDING`, `DEEPSEEK_OCR_INCLUDE_IMAGES`
 - **Qdrant**: `QDRANT_EMBEDDED`, `QDRANT_URL`, `QDRANT_COLLECTION_NAME`, quantisation toggles
 - **MinIO**: `MINIO_URL`, `MINIO_PUBLIC_URL`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`
-- **Uploads**: `UPLOAD_ALLOWED_FILE_TYPES` (PDF-only by default), `UPLOAD_MAX_FILE_SIZE_MB`, `UPLOAD_MAX_FILES`, `UPLOAD_CHUNK_SIZE_BYTES`
+- **Uploads**: `UPLOAD_ALLOWED_FILE_TYPES` (PDF-only by default), `UPLOAD_MAX_FILE_SIZE_MB`, `UPLOAD_MAX_FILES`, `UPLOAD_CHUNK_SIZE_MBYTES`
 
 Defaults assume local services at:
 - Qdrant → `http://localhost:6333`

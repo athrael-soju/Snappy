@@ -151,7 +151,7 @@ duckdb/                # Standalone analytics service
 
 **Indexing:** PDF upload → Backend rasterizes → BatchProcessor (embeds via ColPali, stores images in MinIO, optional OCR via DeepSeek) → QdrantIndexer upserts vectors → SSE progress updates
 
-**Search:** User query → Backend embeds via ColPali → SearchManager (two-stage: optional MUVERA prefetch + multivector rerank) → Results with MinIO image URLs
+**Search:** User query → Backend embeds via ColPali → SearchManager (two-stage: pooled vectors prefetch + multivector rerank) → Results with MinIO image URLs
 
 **Chat:** User message → Next.js chat API route → Backend search → OpenAI Responses API → SSE stream to browser (text-delta + kb.images events)
 
@@ -551,7 +551,7 @@ Uses **Release Please** with **Conventional Commits**:
 
 ```bash
 # Feature (minor version bump)
-git commit -m "feat: add MUVERA support"
+git commit -m "feat: add advanced search filters"
 
 # Bug fix (patch version bump)
 git commit -m "fix: resolve timeout issue"

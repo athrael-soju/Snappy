@@ -9,7 +9,7 @@ This note explains how Snappy approaches document retrieval and how it compares 
 **What sets Snappy apart**
 - 👁️ Vision-first: works with page images instead of extracted text.
 - 🧱 Multivector embeddings: stores patch-level tokens plus pooled variants for each page.
-- 🎯 Two-stage retrieval: pooled vectors prefetch, original vectors rerank; optional MUVERA can accelerate the first stage.
+- 🎯 Two-stage retrieval: pooled vectors prefetch, original vectors rerank.
 - ⚖️ Trade-offs: excels on scans, forms, charts, and layout-heavy docs; pure text corpora are usually better served by classic RAG.
 
 ---
@@ -19,9 +19,9 @@ This note explains how Snappy approaches document retrieval and how it compares 
 - **API server** – `backend/main.py` boots `api.app.create_app()` with routers for `meta`, `retrieval`, `indexing`, `maintenance`, `config`, and `ocr`.
 - **Vector storage** (`services/qdrant/`)
   - `service.py` – orchestrates collection lifecycle and search
-  - `collection.py` – manages multivector schemas (`original`, `mean_pooling_rows`, `mean_pooling_columns`, optional `muvera_fde`)
+  - `collection.py` – manages multivector schemas (`original`, `mean_pooling_rows`, `mean_pooling_columns`)
   - `search.py` – two-stage search (prefetch + rerank)
-  - `embedding.py` – handles ColPali calls, pooling, and MUVERA
+  - `embedding.py` – handles ColPali calls and pooling
   - `indexing/qdrant_indexer.py` – Qdrant-specific storage built on the shared ingestion pipeline
   - `services/pipeline/` – reusable `DocumentIndexer`, batch processor, storage, and progress helpers (used by Qdrant integration)
 - **ColPali client** (`services/colpali.py`) – talks to the embedding service for images, patches, and queries.
@@ -52,7 +52,6 @@ Collection schemas come from the model dimension reported by `/info`. Images liv
 
 1. **Query embedding** – `EmbeddingProcessor.batch_embed_query` calls `/embed/queries`.
 2. **Two-stage search** – `SearchManager._reranking_search_batch`
-   - Optional MUVERA first-stage when enabled
    - Prefetch against pooled vectors when `QDRANT_MEAN_POOLING_ENABLED=True`
    - Final rerank with original vectors (`with_payload=True`)
 3. **Response assembly** – `SearchManager.search_with_metadata` returns metadata and image URLs; `/search` formats the API response.
@@ -64,7 +63,6 @@ Collection schemas come from the model dimension reported by `/info`. Images liv
 
 - Patch-aware scoring uses `MAX_SIM` across tokens to mirror ColPali search behaviour.
 - Row/column pooling preserves coarse layout information and often improves recall on complex pages.
-- MUVERA (when enabled) adds a single-vector projection to accelerate the first selection stage before reranking with multivectors.
 
 ---
 
@@ -73,7 +71,7 @@ Collection schemas come from the model dimension reported by `/info`. Images liv
 | Aspect | Snappy (Vision) | Traditional Text RAG |
 |--------|-----------------|----------------------|
 | **Modality** | Works on page images; no OCR required. Handles scans, handwriting, diagrams. | Requires text extraction; struggles on low-quality scans or heavy layout. |
-| **Representation** | Multivectors per page (patch tokens + pooled variants + optional MUVERA FDE). | Single vector per text chunk, often with overlapping windows. |
+| **Representation** | Multivectors per page (patch tokens + pooled variants). | Single vector per text chunk, often with overlapping windows. |
 | **Indexing cost** | Higher: rasterisation, image embeddings, object storage. | Lower: text extraction and embeddings only. |
 | **Retrieval quality** | Strong on layout awareness and visual context. | Strong on semantic text understanding when OCR is clean. |
 | **Latency** | Multivector search + multimodal prompts cost more. | Typically faster lookups and lighter prompts. |

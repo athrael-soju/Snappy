@@ -415,9 +415,9 @@ BREAKING CHANGE: /search endpoint now requires 'collection' parameter"
 git commit -m "docs: update configuration guide"
 
 # Multiple changes
-git commit -m "feat: add MUVERA support
+git commit -m "feat: add advanced search filtering
 
-- Implement first-stage retrieval
+- Implement metadata filtering
 - Add configuration options
 - Update search flow"
 ```

@@ -40,20 +40,7 @@ export class MaintenanceService {
         });
     }
     /**
-     * Get Status
-     * Get the status of collection and bucket including statistics.
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static getStatusStatusGet(): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/status',
-        });
-    }
-    /**
      * Initialize
-     * Initialize/create collection and bucket based on current configuration.
      * @returns any Successful Response
      * @throws ApiError
      */
@@ -65,7 +52,6 @@ export class MaintenanceService {
     }
     /**
      * Delete Collection And Bucket
-     * Delete collection and bucket completely.
      * @returns any Successful Response
      * @throws ApiError
      */
@@ -73,6 +59,18 @@ export class MaintenanceService {
         return __request(OpenAPI, {
             method: 'DELETE',
             url: '/delete',
+        });
+    }
+    /**
+     * Get Status
+     * Get the status of collection and bucket including statistics.
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static getStatusStatusGet(): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/status',
         });
     }
 }

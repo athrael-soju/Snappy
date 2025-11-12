@@ -54,7 +54,7 @@ All commits must follow the [Conventional Commits](https://www.conventionalcommi
 **Examples:**
 ```bash
 # Minor version bump (0.1.0 → 0.2.0)
-git commit -m "feat: add MUVERA support for faster retrieval"
+git commit -m "feat: add advanced search filters for better retrieval"
 
 # Patch version bump (0.1.0 → 0.1.1)
 git commit -m "fix: resolve MinIO connection timeout issue"
@@ -265,9 +265,9 @@ git commit -m "bug fix"
 
 ```bash
 # Make multiple commits for a feature
-git commit -m "feat: add MUVERA first-stage retrieval"
-git commit -m "docs: document MUVERA configuration"
-git commit -m "test: add MUVERA integration tests"
+git commit -m "feat: add advanced filtering for search"
+git commit -m "docs: document new filtering options"
+git commit -m "test: add filtering integration tests"
 ```
 
 ### 3. Review Release PRs Carefully
