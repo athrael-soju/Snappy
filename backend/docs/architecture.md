@@ -79,7 +79,7 @@ flowchart TB
 2. `convert_pdf_paths_to_images` rasterises each page.
 3. `DocumentIndexer` (`services/pipeline/document_indexer.py`) handles batching, embedding, image uploads, optional OCR callbacks, and delegates upserts via `services/qdrant/indexing/qdrant_indexer.py`.
 4. When DeepSeek OCR is enabled the batch processor invokes `services/ocr` helpers in parallel, storing JSON outputs alongside page images in MinIO.
-5. When `ENABLE_PIPELINE_INDEXING=True`, dual executors overlap embedding, storage, OCR, and upserts based on `get_pipeline_max_concurrency()`.
+5. When `ENABLE_AUTO_CONFIG_MODE=True`, dual executors overlap embedding, storage, OCR, and upserts based on `get_pipeline_max_concurrency()`.
 6. `/progress/stream/{job_id}` streams progress updates so the UI can reflect status in real time.
 
 ---

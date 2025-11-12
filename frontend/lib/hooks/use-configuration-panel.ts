@@ -155,7 +155,7 @@ export function useConfigurationPanel() {
       modifiedSettings: Object.keys(values).filter(key => values[key] !== originalValues[key]).length,
       enabledFeatures: [
         values.QDRANT_MEAN_POOLING_ENABLED === "True" ? "Mean Pooling" : null,
-        values.ENABLE_PIPELINE_INDEXING === "True" ? "Pipeline Indexing" : null,
+        values.ENABLE_AUTO_CONFIG_MODE === "True" ? "Pipeline Indexing" : null,
         values.QDRANT_USE_BINARY === "True" ? "Binary Quantization" : null,
         values.DEEPSEEK_OCR_ENABLED === "True" ? "DeepSeek OCR" : null,
       ].filter(Boolean) as string[],
