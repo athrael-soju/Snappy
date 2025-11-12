@@ -60,7 +60,7 @@ flowchart TB
 ## Components
 
 - **FastAPI application** (`backend/api/app.py`) wires the routers for health, retrieval, indexing, maintenance, configuration, and OCR endpoints.
-- **Qdrant integration** (`backend/services/qdrant/`) manages vector collections, search, and MUVERA post-processing. The database writer in `indexing/qdrant_indexer.py` builds on the shared pipeline package.
+- **Qdrant integration** (`backend/services/qdrant/`) manages vector collections and search. The database writer in `indexing/qdrant_indexer.py` builds on the shared pipeline package.
 - **Pipeline package** (`backend/services/pipeline/`) hosts the database-agnostic `DocumentIndexer`, batch processor, progress tracking, and storage helpers used during ingestion.
 - **MinIO service** (`backend/services/minio.py`) stores page images with concurrent uploads and retry handling.
 - **ColPali client** (`backend/services/colpali.py`) communicates with the embedding service for both queries and images.
@@ -88,7 +88,6 @@ flowchart TB
 
 1. `GET /search` embeds the incoming query via ColPali.
 2. `SearchManager` (`services/qdrant/search.py`) performs two-stage retrieval:
-   - Optional MUVERA first-stage vector for quick prefiltering.
    - Prefetch via pooled vectors when mean pooling is enabled.
    - Final rerank on the original multivectors.
 3. Results include metadata and public image URLs; the frontend decides how to display them.

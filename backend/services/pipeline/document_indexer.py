@@ -37,7 +37,6 @@ class DocumentIndexer:
         self,
         embedding_processor,
         minio_service=None,
-        muvera_post=None,
         ocr_service=None,
     ):
         """Initialize document indexer.
@@ -45,12 +44,10 @@ class DocumentIndexer:
         Args:
             embedding_processor: Service that generates embeddings
             minio_service: MinIO service for image storage
-            muvera_post: Optional MUVERA postprocessor
             ocr_service: Optional OCR service
         """
         self.embedding_processor = embedding_processor
         self.minio_service = minio_service
-        self.muvera_post = muvera_post
         self.ocr_service = ocr_service
 
         # Create centralized image processor with config defaults

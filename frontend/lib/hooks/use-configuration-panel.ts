@@ -154,7 +154,6 @@ export function useConfigurationPanel() {
       totalSettings: Object.keys(values).length,
       modifiedSettings: Object.keys(values).filter(key => values[key] !== originalValues[key]).length,
       enabledFeatures: [
-        values.MUVERA_ENABLED === "True" ? "MUVERA" : null,
         values.QDRANT_MEAN_POOLING_ENABLED === "True" ? "Mean Pooling" : null,
         values.ENABLE_PIPELINE_INDEXING === "True" ? "Pipeline Indexing" : null,
         values.QDRANT_USE_BINARY === "True" ? "Binary Quantization" : null,

@@ -19,7 +19,6 @@ class SearchManager:
         qdrant_client,
         collection_name: str,
         embedding_processor,
-        muvera_post=None,
     ):
         """Initialize search manager.
 
@@ -27,12 +26,10 @@ class SearchManager:
             qdrant_client: Qdrant client instance
             collection_name: Name of the collection
             embedding_processor: EmbeddingProcessor instance
-            muvera_post: Optional MUVERA postprocessor
         """
         self.service = qdrant_client
         self.collection_name = collection_name
         self.embedding_processor = embedding_processor
-        self.muvera_post = muvera_post
 
     def reranking_search_batch(
         self,
@@ -41,7 +38,7 @@ class SearchManager:
         prefetch_limit: Optional[int] = None,
         qdrant_filter: Optional[models.Filter] = None,
     ):
-        """Perform two-stage retrieval with MUVERA-first (if enabled) and multivector rerank.
+        """Perform two-stage retrieval with prefetch and multivector rerank.
 
         If QDRANT_MEAN_POOLING_ENABLED is False, performs simple single-vector search.
         """
@@ -63,74 +60,22 @@ class SearchManager:
             )
         search_queries = []
         for query_embedding in query_embeddings_batch:
-            # If MUVERA available, compute query FDE
-            muvera_query = None
-            if self.muvera_post and self.muvera_post.enabled:
-                try:
-                    muvera_query = self.muvera_post.process_query(
-                        query_embedding.tolist()
-                    )
-                    logger.debug(
-                        "MUVERA query FDE generated: len=%s",
-                        len(muvera_query) if muvera_query else None,
-                    )
-                except Exception as e:
-                    logger.warning("MUVERA query FDE failed, falling back: %s", e)
-                    muvera_query = None
-
             if not config.QDRANT_MEAN_POOLING_ENABLED:
                 # Simple single-vector search without reranking
                 logger.info("Search using simple single-vector (mean pooling disabled)")
-                if muvera_query is not None:
-                    # Use MUVERA if available
-                    req = models.QueryRequest(
-                        query=muvera_query,
-                        limit=search_limit,
-                        with_payload=True,
-                        with_vector=False,
-                        using="muvera_fde",
-                        filter=qdrant_filter,
-                        params=params,
-                    )
-                else:
-                    # Use original embeddings
-                    req = models.QueryRequest(
-                        query=query_embedding.tolist(),
-                        limit=search_limit,
-                        with_payload=True,
-                        with_vector=False,
-                        using="original",
-                        filter=qdrant_filter,
-                        params=params,
-                    )
-            elif muvera_query is not None:
-                # First-stage using MUVERA single-vector, prefetch multivectors for rerank
-                logger.info("Search using MUVERA first-stage with prefetch for rerank")
                 req = models.QueryRequest(
-                    query=muvera_query,
-                    prefetch=[
-                        models.Prefetch(
-                            query=query_embedding.tolist(),
-                            limit=prefetch_limit,
-                            using="mean_pooling_columns",
-                        ),
-                        models.Prefetch(
-                            query=query_embedding.tolist(),
-                            limit=prefetch_limit,
-                            using="mean_pooling_rows",
-                        ),
-                    ],
+                    query=query_embedding.tolist(),
                     limit=search_limit,
                     with_payload=True,
                     with_vector=False,
-                    using="muvera_fde",
+                    using="original",
                     filter=qdrant_filter,
                     params=params,
                 )
             else:
-                # Fallback: original multivector pipeline
+                # Two-stage search with prefetch and rerank
                 logger.info(
-                    "Search using multivector-only pipeline (MUVERA unavailable)"
+                    "Search using multivector pipeline with prefetch and rerank"
                 )
                 req = models.QueryRequest(
                     query=query_embedding.tolist(),

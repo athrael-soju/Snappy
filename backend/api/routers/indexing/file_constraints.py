@@ -10,7 +10,7 @@ import config
 logger = logging.getLogger(__name__)
 
 # Default upload chunk size in MB
-DEFAULT_UPLOAD_CHUNK_SIZE_MB = 4.0
+DEFAULT_UPLOAD_CHUNK_SIZE_MB = 2.0
 MIN_UPLOAD_CHUNK_SIZE_MB = 0.5
 MAX_UPLOAD_CHUNK_SIZE_MB = 16.0
 
@@ -112,27 +112,29 @@ def is_allowed_file(
     return False
 
 
-def get_upload_chunk_size_bytes() -> int:
-    """Get upload chunk size in bytes, reading value in MB from config."""
-    raw_value = getattr(config, "UPLOAD_CHUNK_SIZE_BYTES", DEFAULT_UPLOAD_CHUNK_SIZE_MB)
+def get_upload_chunk_size_mbytes() -> int:
+    """Get upload chunk size in mbytes."""
+    raw_value = getattr(
+        config, "UPLOAD_CHUNK_SIZE_MBYTES", DEFAULT_UPLOAD_CHUNK_SIZE_MB
+    )
     try:
         chunk_size_mb = float(raw_value)
     except (TypeError, ValueError):
         logger.warning(
-            "Invalid UPLOAD_CHUNK_SIZE_BYTES value '%s'; using default", raw_value
+            "Invalid UPLOAD_CHUNK_SIZE_MBYTES value '%s'; using default", raw_value
         )
         chunk_size_mb = DEFAULT_UPLOAD_CHUNK_SIZE_MB
 
     if chunk_size_mb < MIN_UPLOAD_CHUNK_SIZE_MB:
         logger.warning(
-            "UPLOAD_CHUNK_SIZE_BYTES %.1f MB below minimum; clamping to %.1f MB",
+            "UPLOAD_CHUNK_SIZE_MBYTES %.1f MB below minimum; clamping to %.1f MB",
             chunk_size_mb,
             MIN_UPLOAD_CHUNK_SIZE_MB,
         )
         chunk_size_mb = MIN_UPLOAD_CHUNK_SIZE_MB
     if chunk_size_mb > MAX_UPLOAD_CHUNK_SIZE_MB:
         logger.warning(
-            "UPLOAD_CHUNK_SIZE_BYTES %.1f MB above maximum; clamping to %.1f MB",
+            "UPLOAD_CHUNK_SIZE_MBYTES %.1f MB above maximum; clamping to %.1f MB",
             chunk_size_mb,
             MAX_UPLOAD_CHUNK_SIZE_MB,
         )
@@ -148,7 +150,7 @@ __all__ = [
     "MIN_UPLOAD_CHUNK_SIZE_MB",
     "SUPPORTED_FILE_TYPES",
     "UploadConstraints",
-    "get_upload_chunk_size_bytes",
+    "get_upload_chunk_size_mbytes",
     "is_allowed_file",
     "resolve_upload_constraints",
 ]

@@ -416,10 +416,9 @@ Snappy builds on the work of: 🌟
 - 🔍 **DeepSeek-OCR** - vision-language model for document understanding  
    https://huggingface.co/deepseek-ai/DeepSeek-OCR
 
-- 🗄️ **Qdrant** - the vector database powering multivector search  
-   https://qdrant.tech/blog/colpali-qdrant-optimization/  
-   https://qdrant.tech/articles/binary-quantization/  
-   https://qdrant.tech/articles/muvera-embeddings/
+- 🗄️ **Qdrant** - the vector database powering multivector search
+   https://qdrant.tech/blog/colpali-qdrant-optimization/
+   https://qdrant.tech/articles/binary-quantization/
 
 - 🔥 **PyTorch** - core deep learning framework  
    https://pytorch.org/  

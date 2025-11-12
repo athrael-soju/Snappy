@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 class PointFactory:
     """Builds Qdrant point payloads and vector data."""
 
-    def __init__(self, muvera_post=None):
-        self._muvera_post = muvera_post
+    def __init__(self):
+        pass
 
     def build(
         self,
@@ -96,18 +96,6 @@ class PointFactory:
             if use_mean_pooling and rows is not None and cols is not None:
                 vectors["mean_pooling_columns"] = cols
                 vectors["mean_pooling_rows"] = rows
-
-            if self._muvera_post and self._muvera_post.enabled:
-                try:
-                    fde = self._muvera_post.process_document(orig)
-                    if fde is not None:
-                        vectors["muvera_fde"] = fde
-                    else:
-                        logger.debug("No MUVERA FDE produced for doc_id=%s", doc_id)
-                except Exception as exc:
-                    logger.warning(
-                        "Failed to compute MUVERA FDE for doc %s: %s", doc_id, exc
-                    )
 
             points.append(
                 models.PointStruct(

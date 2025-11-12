@@ -20,7 +20,6 @@ Runtime updates take effect immediately but do not persist across restarts—upd
 - [DeepSeek OCR](#deepseek-ocr)
 - [Qdrant vector database](#qdrant-vector-database)
 - [Object storage (MinIO)](#object-storage-minio)
-- [MUVERA post-processing](#muvera-post-processing)
 - [DuckDB analytics](#duckdb-analytics)
 - [Operational environment variables](#operational-environment-variables)
 - [Runtime updates via API](#runtime-updates-via-api)
@@ -71,7 +70,7 @@ Helpers:
 | `UPLOAD_ALLOWED_FILE_TYPES` | list | `pdf` | Comma-separated extensions accepted during upload. Snappy currently ships with PDF support only; the configuration UI prevents deselecting the last remaining type. |
 | `UPLOAD_MAX_FILE_SIZE_MB` | int | `10` | Maximum size (MB) for a single file. Values are clamped between 1 and 200 MB. |
 | `UPLOAD_MAX_FILES` | int | `5` | Maximum number of files per upload request. Clamped between 1 and 20. |
-| `UPLOAD_CHUNK_SIZE_BYTES` | int | `4194304` | Chunk size used when streaming uploads to disk. Values outside 64 KB to 16 MB are clamped automatically. |
+| `UPLOAD_CHUNK_SIZE_MBYTES` | int | `2` | Chunk size used when streaming uploads to disk. Values outside 64 KB to 16 MB are clamped automatically. |
 
 > The upload endpoint validates all limits server-side. Adjusting these values affects both the backend acceptance criteria and the frontend hints.
 
@@ -147,20 +146,6 @@ Changing collection names, URLs, or quantisation settings triggers client invali
 | `IMAGE_QUALITY` | int | `75` | JPEG/WEBP quality (ignored for PNG). |
 
 Snappy requires object storage; inline image storage is not supported.
-
----
-
-## MUVERA Post-Processing
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `MUVERA_ENABLED` | bool | `False` | Enable MUVERA Fixed Dimensional Encoding for faster first-stage search. |
-| `MUVERA_K_SIM` | int | `6` | Similar tokens sampled during MUVERA search. |
-| `MUVERA_DIM_PROJ` | int | `32` | Projection dimension. |
-| `MUVERA_R_REPS` | int | `20` | Random projection repetitions. |
-| `MUVERA_RANDOM_SEED` | int | `42` | Seed for reproducible projections. |
-
-Requires `fastembed[postprocess]` in the environment.
 
 ---
 
