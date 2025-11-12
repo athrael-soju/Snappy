@@ -106,7 +106,7 @@ def get_ingestion_worker_threads() -> int:
 
 def get_pipeline_max_concurrency() -> int:
     """Estimate concurrent pipeline batches based on hardware and batch size."""
-    if not __getattr__("ENABLE_PIPELINE_INDEXING"):
+    if not __getattr__("ENABLE_AUTO_CONFIG_MODE"):
         return 1
     batch_size = max(1, __getattr__("BATCH_SIZE"))
     cpu = os.cpu_count() or 4

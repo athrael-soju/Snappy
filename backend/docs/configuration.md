@@ -55,7 +55,7 @@ Only keys defined in the schema can be updated at runtime.
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `BATCH_SIZE` | int | `4` | Pages processed per batch. Higher values increase throughput but need more memory. |
-| `ENABLE_PIPELINE_INDEXING` | bool | `True` | Overlaps embedding, storage, and upserts. Disable for debugging or very small machines. |
+| `ENABLE_AUTO_CONFIG_MODE` | bool | `True` | Overlaps embedding, storage, and upserts. Disable for debugging or very small machines. |
 
 Helpers:
 - `config.get_ingestion_worker_threads()` estimates PDF conversion threads from CPU count.

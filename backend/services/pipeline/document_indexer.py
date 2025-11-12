@@ -117,7 +117,7 @@ class DocumentIndexer:
             total = total_images
             image_iter = iter(images)
 
-        if config.ENABLE_PIPELINE_INDEXING and total > batch_size:
+        if config.ENABLE_AUTO_CONFIG_MODE and total > batch_size:
             return self._index_documents_pipelined(
                 image_iter, batch_size, total, progress, store_batch_cb
             )

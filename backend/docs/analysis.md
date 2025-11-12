@@ -41,7 +41,7 @@ This note explains how Snappy approaches document retrieval and how it compares 
    - Stores images in MinIO
    - Upserts vectors into Qdrant via `services/qdrant/indexing/qdrant_indexer.py`
    - Runs optional OCR callbacks when a `services/ocr` instance is supplied
-4. **Pipeline mode** – When `ENABLE_PIPELINE_INDEXING=True`, embedding, storage, OCR, and upserts overlap using dual thread pools sized from `config.get_pipeline_max_concurrency()`.
+4. **Pipeline mode** – When `ENABLE_AUTO_CONFIG_MODE=True`, embedding, storage, OCR, and upserts overlap using dual thread pools sized from `config.get_pipeline_max_concurrency()`.
 5. **Progress** – `/progress/stream/{job_id}` streams status updates over SSE.
 
 Collection schemas come from the model dimension reported by `/info`. Images live under `images/<uuid>.<ext>` with public URLs unless configured otherwise. Disabling pipeline mode processes one batch at a time for easier debugging.

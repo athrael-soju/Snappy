@@ -90,12 +90,12 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "help_text": "Higher values boost throughput but require more memory. Lower values provide steadier progress feedback and are safer on small machines.",
             },
             {
-                "key": "ENABLE_PIPELINE_INDEXING",
+                "key": "ENABLE_AUTO_CONFIG_MODE",
                 "type": "bool",
                 "default": True,
-                "label": "Enable Pipeline Indexing",
+                "label": "Enable Auto-Configuration",
                 "ui_type": "boolean",
-                "description": "Overlap embedding, storage, and upserts",
+                "description": "Automatically optimize settings based on hardware",
                 "help_text": "When enabled the system automatically chooses a safe level of concurrency based on your hardware and batch size. Disable only for debugging or very resource-constrained hosts.",
             },
         ],
@@ -151,6 +151,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "step": 0.5,
                 "description": "Chunk size in MB for streaming uploads to disk.",
                 "help_text": "Controls how uploaded files are split into chunks while streaming to disk. Larger values reduce overhead but increase peak memory usage. Accepts values between 0.5 MB and 16 MB. Default 4 MB balances throughput and resource usage.",
+                "ui_hidden": True,
             },
         ],
     },
@@ -197,6 +198,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "boolean",
                 "description": "Toggle DeepSeek OCR integration for downstream workflows.",
                 "help_text": "When enabled the backend initializes the DeepSeek OCR HTTP client so future features can submit page images for transcription. Disable if you do not run the DeepSeek OCR microservice.",
+                "critical": True,
             },
             {
                 "key": "DEEPSEEK_OCR_URL",
@@ -208,6 +210,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "help_text": "Endpoint for the OCR service. Defaults to the local Docker compose deployment. Update when the service runs on a different host or port.",
                 "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
                 "ui_hidden": True,
+                "critical": True,
             },
             {
                 "key": "DEEPSEEK_OCR_API_TIMEOUT",
@@ -221,6 +224,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "help_text": "Maximum time to wait for OCR responses. Increase for longer documents or CPU-only deployments; decrease for fast GPU hosts to catch misconfigurations quickly. Default 180s (3min) balances speed and reliability.",
                 "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
                 "ui_hidden": True,
+                "critical": True,
             },
             {
                 "key": "DEEPSEEK_OCR_MAX_WORKERS",
@@ -233,6 +237,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "description": "Maximum concurrent OCR requests per batch.",
                 "help_text": "Number of parallel OCR processing threads. Higher values increase throughput but require more memory and GPU resources. Recommended: 4 for single GPU, 8-16 for multi-GPU.",
                 "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
+                "critical": True,
             },
             {
                 "key": "DEEPSEEK_OCR_POOL_SIZE",
@@ -246,6 +251,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "help_text": "Maximum number of HTTP connections to maintain. Should be >= (Max Workers × 3) to handle retries. Increase if you see connection pool warnings in logs.",
                 "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
                 "ui_hidden": True,
+                "critical": True,
             },
             {
                 "key": "DEEPSEEK_OCR_MODE",
@@ -257,6 +263,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "description": "Default OCR processing mode for quality/speed tradeoff.",
                 "help_text": "Controls image resolution and processing strategy. Gundam (1024+640 tiles, cropped): best balance. Tiny (512×512): fastest. Small (640×640): quick. Base (1024×1024): standard. Large (1280×1280): highest quality. Larger modes need more GPU memory and time.",
                 "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
+                "critical": True,
             },
             {
                 "key": "DEEPSEEK_OCR_TASK",
@@ -268,6 +275,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "description": "Default OCR task type for document processing.",
                 "help_text": "Markdown: structured output with formatting (preserves tables, lists, etc.). Plain OCR: simple text extraction without formatting. Locate: find specific text with bounding boxes. Describe: generate image descriptions. Custom: use custom prompts. The task type determines both the prompt sent to the model and which output format is used as the primary result.",
                 "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
+                "critical": True,
             },
             {
                 "key": "DEEPSEEK_OCR_LOCATE_TEXT",
@@ -299,7 +307,9 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "boolean",
                 "description": "Include bounding box information in OCR results.",
                 "help_text": "When enabled, OCR results include spatial coordinates for detected text elements. Useful for layout analysis and precise text location. Disable to reduce response size if you only need extracted text.",
+                "ui_hidden": True,
                 "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
+                "critical": True,
             },
             {
                 "key": "DEEPSEEK_OCR_INCLUDE_IMAGES",
@@ -309,14 +319,16 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "boolean",
                 "description": "Extract and embed images from documents.",
                 "help_text": "When enabled, figures and images within documents are extracted and included as base64-encoded data in markdown output. Useful for preserving visual content. Disable to reduce processing time and response size for text-only extraction.",
+                "ui_hidden": True,
                 "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
+                "critical": True,
             },
         ],
     },
     "qdrant": {
         "order": 4,
         "icon": "database",
-        "name": "Vector Database",
+        "name": "Qdrant",
         "description": "Qdrant vector store and retrieval settings",
         "settings": [
             {
@@ -328,6 +340,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "text",
                 "description": "URL for Qdrant vector database",
                 "help_text": "Connection endpoint for the Qdrant vector database service. Default port is 6333. Change if Qdrant runs on a different host or port. Format: http://hostname:port. Ensure the backend can reach this URL and that Qdrant is running.",
+                "critical": True,
             },
             {
                 "key": "QDRANT_HTTP_TIMEOUT",
@@ -339,24 +352,28 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "max": 600,
                 "description": "Timeout for REST requests to Qdrant",
                 "help_text": "Maximum time in seconds to wait when sending data to Qdrant over HTTP. Larger multi-vector batches may need higher values to avoid write timeouts. Increase if you see 'WriteTimeout' errors during indexing.",
+                "ui_hidden": True,
             },
             {
                 "key": "QDRANT_EMBEDDED",
                 "type": "bool",
                 "default": False,
-                "label": "Run Embedded Qdrant",
+                "label": "Run Embedded",
                 "ui_type": "boolean",
                 "description": "Use an embedded (in-memory) Qdrant instance",
                 "help_text": "When enabled the backend starts an in-memory Qdrant instance (no external service required). Disable to connect to an external Qdrant deployment via QDRANT_URL.",
+                "critical": True,
             },
             {
                 "key": "QDRANT_COLLECTION_NAME",
+                "ui_hidden": True,
                 "type": "str",
                 "default": "documents",
                 "label": "Collection Name",
                 "ui_type": "text",
                 "description": "Name of the Qdrant collection (Also used for MinIO bucket)",
                 "help_text": "Name of the Qdrant collection storing your document embeddings. Think of it as a database table. Changing this creates/uses a different collection. Useful for testing or separating data by environment (dev/staging/prod). Requires restart to take effect.",
+                "critical": True,
             },
             {
                 "key": "QDRANT_PREFETCH_LIMIT",
@@ -369,6 +386,8 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "description": "Number of candidates to prefetch",
                 "help_text": "When mean pooling reranking is enabled, this many multivector candidates are prefetched before final ranking. Should be higher than SEARCH_LIMIT to ensure good recall. Higher values (200-1000) improve accuracy but slow queries. Has no effect when mean pooling is disabled.",
                 "depends_on": {"key": "QDRANT_MEAN_POOLING_ENABLED", "value": True},
+                "ui_hidden": True,
+                "critical": True,
             },
             {
                 "key": "QDRANT_ON_DISK",
@@ -378,6 +397,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "boolean",
                 "description": "Store vectors on disk instead of RAM",
                 "help_text": "Stores vector embeddings on disk rather than keeping them all in RAM. Enable (True) to save memory and support larger datasets. Disable (False) for maximum search speed with sufficient RAM. Disk storage uses memory-mapped files, offering good performance with lower memory usage. Recommended for most deployments.",
+                "critical": True,
             },
             {
                 "key": "QDRANT_ON_DISK_PAYLOAD",
@@ -396,6 +416,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "boolean",
                 "description": "Enable binary quantization for vectors",
                 "help_text": "Compresses vector embeddings to binary format (1-bit per dimension) reducing memory usage by 32x. Speeds up search while maintaining good accuracy. Enable for large datasets. Disable for maximum accuracy. When enabled, full-precision vectors are kept for rescoring. Recommended for production.",
+                "critical": True,
             },
             {
                 "key": "QDRANT_BINARY_ALWAYS_RAM",
@@ -406,6 +427,8 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "description": "Always keep binary vectors in RAM",
                 "depends_on": {"key": "QDRANT_USE_BINARY", "value": True},
                 "help_text": "When binary quantization is enabled, keeps the compressed vectors in RAM for fastest search. Binary vectors are small (~32x smaller), so RAM usage is minimal. Disable only on extremely memory-constrained systems. Only applies when USE_BINARY is enabled.",
+                "ui_hidden": True,
+                "critical": True,
             },
             {
                 "key": "QDRANT_SEARCH_IGNORE_QUANT",
@@ -416,6 +439,8 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "description": "Disable quantization during search",
                 "depends_on": {"key": "QDRANT_USE_BINARY", "value": True},
                 "help_text": "Forces search to use full-precision vectors even when quantization is enabled. Slower but more accurate initial search. Only useful for debugging quantization issues. Keep disabled (False) for normal operation. When False, quantized vectors are used for fast initial search followed by rescoring.",
+                "ui_hidden": True,
+                "critical": True,
             },
             {
                 "key": "QDRANT_SEARCH_RESCORE",
@@ -426,6 +451,8 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "description": "Rescore results with full precision",
                 "depends_on": {"key": "QDRANT_USE_BINARY", "value": True},
                 "help_text": "After initial search with quantized vectors, recalculates scores using full-precision vectors for better accuracy. Recommended to keep enabled (True). Slight performance cost but significantly improves result quality. Only relevant when using quantization.",
+                "ui_hidden": True,
+                "critical": True,
             },
             {
                 "key": "QDRANT_SEARCH_OVERSAMPLING",
@@ -439,6 +466,8 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "description": "Oversampling factor for search",
                 "depends_on": {"key": "QDRANT_USE_BINARY", "value": True},
                 "help_text": "Multiplier for initial search candidates when using quantization. Factor of 2.0 means searching 2x more candidates before rescoring. Higher values (3-5) improve recall but slower. Lower values (1-2) are faster. Balance between accuracy and speed. Only applies with quantization + rescoring enabled.",
+                "ui_hidden": True,
+                "critical": True,
             },
             {
                 "key": "QDRANT_MEAN_POOLING_ENABLED",
@@ -448,6 +477,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "ui_type": "boolean",
                 "description": "Use mean pooling for embeddings",
                 "help_text": "Aggregates multi-vector document embeddings into single vectors using mean pooling. Reduces storage and speeds up search but loses fine-grained information. Enable for memory-constrained systems or very large datasets. Disable (recommended) to preserve full multi-vector representation quality. Requires service restart.",
+                "critical": True,
             },
         ],
     },
@@ -456,6 +486,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
         "icon": "hard-drive",
         "name": "Object Storage",
         "description": "Configure how extracted page images are stored.",
+        "ui_hidden": True,
         "settings": [
             {
                 "key": "MINIO_URL",
@@ -499,6 +530,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
             },
             {
                 "key": "MINIO_BUCKET_NAME",
+                "ui_hidden": True,
                 "type": "str",
                 "default": "documents",
                 "label": "Bucket Name",
@@ -508,7 +540,6 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
             },
             {
                 "key": "MINIO_WORKERS",
-                "ui_hidden": False,
                 "type": "int",
                 "default": 6,
                 "label": "Worker Threads",
@@ -559,6 +590,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "options": ["JPEG", "PNG", "WEBP"],
                 "description": "Image format for stored files",
                 "help_text": "Format for storing processed document images in MinIO. JPEG offers best compression with small quality loss (recommended). PNG is lossless but larger files. WEBP provides better compression than JPEG but may have compatibility issues with older systems. Choose based on storage space vs quality needs.",
+                "ui_hidden": True,
             },
             {
                 "key": "IMAGE_QUALITY",
@@ -570,6 +602,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "max": 100,
                 "description": "Image compression quality (1-100)",
                 "help_text": "Compression quality for JPEG/WEBP images (1-100). Higher values (85-95) preserve more detail but larger files. Lower values (50-75) save storage but may reduce visual quality. Default 75 balances quality and file size well. Applied to MinIO uploads. PNG ignores this setting as it's lossless.",
+                "ui_hidden": True,
             },
         ],
     },
@@ -589,9 +622,11 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "help_text": "When enabled, OCR results are stored in DuckDB database alongside MinIO storage. This enables SQL queries, full-text search, and analytics on OCR data. Dependent on DeepSeek OCR being enabled. DuckDB storage failures won't block the indexing pipeline.",
                 "critical": True,
                 "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
+                "critical": True,
             },
             {
                 "key": "DUCKDB_URL",
+                "ui_hidden": True,
                 "type": "str",
                 "default": "http://localhost:8300",
                 "label": "DuckDB Service URL",
@@ -603,6 +638,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
             },
             {
                 "key": "DUCKDB_DATABASE_NAME",
+                "ui_hidden": True,
                 "type": "str",
                 "default": "documents",
                 "label": "DuckDB Database Name",
@@ -610,6 +646,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "description": "Logical name for the DuckDB database",
                 "help_text": "Used to label and organize OCR analytics data within DuckDB. Keep this in sync with your Qdrant collection/minio bucket naming for clarity. Changing this value typically requires reinitialising DuckDB storage.",
                 "critical": True,
+                "depends_on": {"key": "DUCKDB_ENABLED", "value": True},
             },
             {
                 "key": "DUCKDB_API_TIMEOUT",
@@ -621,12 +658,14 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "max": 300,
                 "description": "Timeout for DuckDB API requests",
                 "help_text": "Maximum time to wait for DuckDB API responses in seconds. Higher values (60-120) for large batches or slow networks. Lower values (10-30) for faster failure detection. Default 30 seconds is suitable for most cases.",
+                "ui_hidden": True,
+                "critical": True,
                 "depends_on": {"key": "DUCKDB_ENABLED", "value": True},
             },
             {
                 "key": "DUCKDB_BATCH_SIZE",
                 "type": "int",
-                "default": 10,
+                "default": 5,
                 "label": "Batch Size",
                 "ui_type": "number",
                 "min": 1,
@@ -645,6 +684,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
                 "max": 10,
                 "description": "Number of retry attempts on failure",
                 "help_text": "Number of times to retry failed DuckDB storage operations. Higher values (5-10) improve resilience but may delay error reporting. Lower values (1-3) fail faster. Zero disables retries. Default 3 provides good balance.",
+                "ui_hidden": True,
                 "depends_on": {"key": "DUCKDB_ENABLED", "value": True},
             },
         ],
@@ -735,22 +775,13 @@ def get_all_config_keys() -> List[str]:
 def get_critical_keys() -> set:
     """
     Get set of config keys that require service invalidation on change.
-    These are settings that affect service initialization.
+    These are settings marked with "critical": True in the schema.
+
+    Dynamic extraction ensures consistency between schema and runtime behavior.
     """
-    return {
-        "QDRANT_EMBEDDED",
-        "QDRANT_COLLECTION_NAME",
-        "QDRANT_MEAN_POOLING_ENABLED",
-        "QDRANT_URL",
-        "QDRANT_USE_BINARY",
-        "QDRANT_ON_DISK",
-        "DEEPSEEK_OCR_ENABLED",
-        "DEEPSEEK_OCR_URL",
-        "DEEPSEEK_OCR_API_TIMEOUT",
-        "DEEPSEEK_OCR_MAX_WORKERS",
-        "DEEPSEEK_OCR_POOL_SIZE",
-        "DUCKDB_ENABLED",
-        "DUCKDB_URL",
-        "DUCKDB_DATABASE_NAME",
-        "DUCKDB_API_TIMEOUT",
-    }
+    critical = set()
+    for category in CONFIG_SCHEMA.values():
+        for setting in category["settings"]:
+            if setting.get("critical", False):
+                critical.add(setting["key"])
+    return critical
