@@ -314,6 +314,6 @@ volumes:
   qdrant_data:
   minio_data:
   backend_data:
+  duckdb_data:
   colpali_hf_cache:
   deepseek_hf_cache:
-  duckdb_data:
