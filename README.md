@@ -82,39 +82,36 @@ https://github.com/user-attachments/assets/99438b0d-c62e-4e47-bdc8-623ee1d2236c
 ```mermaid
 ---
 config:
-  theme: neutral
-  layout: elk
+  look: classic
+  theme: default
 ---
 flowchart TB
-  subgraph Frontend["Next.js Frontend"]
-    UI["Pages (/upload, /search, /chat, /configuration, /maintenance)"]
-    CHAT["Chat API Route"]
-  end
-
-  subgraph Backend["FastAPI Backend"]
-    API["REST Routers"]
-  end
-
-  subgraph Services["Supporting Services"]
-    QDRANT["Qdrant"]
-    MINIO["MinIO"]
-    COLPALI["ColPali Embedding API"]
-    DEEPSEEK["DeepSeek OCR (Optional)"]
-    DUCKDB["DuckDB Analytics (Optional)"]
-    OPENAI["OpenAI Responses API"]
-  end
-
-  USER["Browser"] <--> UI
-  UI --> API
-  API --> QDRANT
-  API --> MINIO
-  API --> COLPALI
-  API -.-> DEEPSEEK
-  API -.-> DUCKDB
-  DEEPSEEK -.-> DUCKDB
-  CHAT --> API
-  CHAT --> OPENAI
-  CHAT -- SSE --> USER
+    Start(["User Question"]) --> A{"DEEPSEEK_OCR_ENABLED"}
+    A -- False --> B1["Image-based RAG Path"]
+    A -- True --> B2["Text-based RAG Path"]
+    B1 --> D1["Vector Search in Qdrant"]
+    B2 --> D2["Vector Search in Qdrant"]
+    D1 --> F1["Qdrant Results"]
+    D2 --> F2["Qdrant Results"]
+    F1 --> G1["Fetch Images from MinIO<br>Convert to base64<br>Attach to OpenAI as images"]
+    F2 --> H{"DUCKDB_ENABLED"}
+    H -- True --> I1["OCR data inline in response<br>1 HTTP request"]
+    H -- False --> I2["OCR data via json_url<br>2 HTTP requests"]
+    I1 --> J["Format OCR text<br>Attach to OpenAI as text"]
+    I2 --> J
+    G1 --> K["OpenAI Streaming Response"]
+    J --> K
+    K --> End(["User sees answer"])
+    style Start fill:#e1f5ff
+    style A fill:#fff4e6
+    style B1 fill:#ffebee
+    style B2 fill:#e8f5e9
+    style D1 fill:#e3f2fd
+    style D2 fill:#e3f2fd
+    style G1 fill:#ffebee
+    style H fill:#fff4e6
+    style J fill:#e8f5e9
+    style End fill:#e1f5ff
 ```
 
 Head to `backend/docs/architecture.md` and `backend/docs/analysis.md` for a deeper walkthrough of the indexing and retrieval flows. 📖
