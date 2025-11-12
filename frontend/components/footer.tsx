@@ -8,11 +8,11 @@ import { InfoTooltip } from "@/components/info-tooltip";
 
 const techStack = [
   {
-    name: "FastAPI",
-    href: "https://fastapi.tiangolo.com",
-    lightSrc: "/logos/FastAPI.svg",
-    darkSrc: "/logos/FastAPI.svg",
-    description: "Lightning-fast Python backend for the API layer.",
+    name: "Qdrant",
+    href: "https://qdrant.tech",
+    lightSrc: "/logos/Qdrant.svg",
+    darkSrc: "/logos/Qdrant.svg",
+    description: "Vector database keeping visual embeddings searchable.",
   },
   {
     name: "Next.js",
@@ -22,11 +22,25 @@ const techStack = [
     description: "React framework powering the dynamic frontend.",
   },
   {
-    name: "Qdrant",
-    href: "https://qdrant.tech",
-    lightSrc: "/logos/Qdrant.svg",
-    darkSrc: "/logos/Qdrant.svg",
-    description: "Vector database keeping visual embeddings searchable.",
+    name: "FastAPI",
+    href: "https://fastapi.tiangolo.com",
+    lightSrc: "/logos/FastAPI.svg",
+    darkSrc: "/logos/FastAPI.svg",
+    description: "Lightning-fast Python backend for the API layer.",
+  },
+  {
+    name: "DuckDB",
+    href: "https://duckdb.org",
+    lightSrc: "/logos/DuckDB.svg",
+    darkSrc: "/logos/DuckDB.svg",
+    description: "In-process SQL OLAP database management system.",
+  },
+  {
+    name: "MinIO",
+    href: "https://min.io",
+    lightSrc: "/logos/MinIO.svg",
+    darkSrc: "/logos/MinIO.svg",
+    description: "High-performance object storage for document files.",
   },
   {
     name: "Illuin Tech - ColPali",

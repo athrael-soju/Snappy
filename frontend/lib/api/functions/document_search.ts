@@ -1,3 +1,4 @@
+import { RetrievalService } from "@/lib/api/generated/services/RetrievalService";
 import { parseSearchResults } from "@/lib/api/runtime";
 import { logger } from '@/lib/utils/logger';
 
@@ -18,21 +19,11 @@ export const documentSearchTool = {
     }
 };
 
-export async function executeDocumentSearch(query: string, k: number) {
+export async function executeDocumentSearch(query: string, k: number, includeOcr: boolean = false) {
     try {
-        // Call your backend /search API - GET request with query parameters
+        // Use the generated RetrievalService from OpenAPI spec
+        const data = await RetrievalService.searchSearchGet(query, k, includeOcr);
 
-        const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-        const searchParams = new URLSearchParams({
-            q: query,
-            k: k.toString()
-        });
-        const response = await fetch(`${backendUrl}/search?${searchParams}`);
-        if (!response.ok) {
-            throw new Error(`Search API error: ${response.status}`);
-        }
-
-        const data = await response.json();
         const results = parseSearchResults(data);
         const imageUrls = results
             .map((result) => result.image_url)

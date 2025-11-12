@@ -234,7 +234,7 @@ export default function UploadPage() {
 
             <Badge variant="outline" className="gap-1.5 px-3 py-1">
               <Database className="size-icon-3xs" />
-              <span className="font-semibold">Vectors</span>
+              <span className="font-semibold">Qdrant</span>
               {systemStatus?.collection?.exists ? (
                 <CheckCircle2 className="size-icon-3xs text-chart-2" />
               ) : (
@@ -254,7 +254,7 @@ export default function UploadPage() {
 
             <Badge variant="outline" className="gap-1.5 px-3 py-1">
               <HardDrive className="size-icon-3xs" />
-              <span className="font-semibold">Images</span>
+              <span className="font-semibold">MinIO</span>
               {systemStatus?.bucket?.exists ? (
                 <CheckCircle2 className="size-icon-3xs text-chart-2" />
               ) : (
@@ -268,6 +268,26 @@ export default function UploadPage() {
               {systemStatus?.bucket?.name && (
                 <span className="ml-1 text-[10px] uppercase tracking-wide text-muted-foreground">
                   {systemStatus.bucket.name}
+                </span>
+              )}
+            </Badge>
+
+            <Badge variant="outline" className="gap-1.5 px-3 py-1">
+              <FileText className="size-icon-3xs" />
+              <span className="font-semibold">DuckDB</span>
+              {systemStatus?.duckdb?.available ? (
+                <CheckCircle2 className="size-icon-3xs text-chart-2" />
+              ) : (
+                <AlertCircle className="size-icon-3xs text-destructive" />
+              )}
+              {typeof systemStatus?.duckdb?.region_count === "number" && (
+                <span className="ml-1 font-semibold">
+                  {systemStatus.duckdb.region_count.toLocaleString()}
+                </span>
+              )}
+              {systemStatus?.duckdb?.name && (
+                <span className="ml-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                  {systemStatus.duckdb.name}
                 </span>
               )}
             </Badge>

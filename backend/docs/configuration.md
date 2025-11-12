@@ -21,6 +21,7 @@ Runtime updates take effect immediately but do not persist across restarts—upd
 - [Qdrant vector database](#qdrant-vector-database)
 - [Object storage (MinIO)](#object-storage-minio)
 - [MUVERA post-processing](#muvera-post-processing)
+- [DuckDB analytics](#duckdb-analytics)
 - [Operational environment variables](#operational-environment-variables)
 - [Runtime updates via API](#runtime-updates-via-api)
 - [Troubleshooting](#troubleshooting)
@@ -160,6 +161,23 @@ Snappy requires object storage; inline image storage is not supported.
 | `MUVERA_RANDOM_SEED` | int | `42` | Seed for reproducible projections. |
 
 Requires `fastembed[postprocess]` in the environment.
+
+---
+
+## DuckDB Analytics
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `DUCKDB_ENABLED` | bool | `False` | Enable DuckDB columnar storage for OCR analytics. |
+| `DUCKDB_URL` | str | `http://localhost:8300` | DuckDB service endpoint. |
+| `DUCKDB_DATABASE_NAME` | str | `documents` | Database name for OCR data storage. |
+| `DUCKDB_API_TIMEOUT` | int | `30` | HTTP timeout for DuckDB API calls (seconds). |
+| `DUCKDB_BATCH_SIZE` | int | `10` | Number of pages to batch for bulk inserts. |
+| `DUCKDB_RETRY_ATTEMPTS` | int | `3` | Retry attempts for failed HTTP requests. |
+
+DuckDB is an optional analytics service that stores OCR results in columnar format for SQL-based analysis. When enabled alongside DeepSeek OCR, extracted text, regions, and metadata are automatically stored in DuckDB for complex queries and reporting. See `duckdb/README.md` for service setup and schema details.
+
+> **Note:** DuckDB integration is non-blocking. If the service is unavailable, OCR processing continues normally with a warning logged.
 
 ---
 

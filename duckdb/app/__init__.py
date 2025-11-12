@@ -1,0 +1,1 @@
+'"""DuckDB analytics service package."""'

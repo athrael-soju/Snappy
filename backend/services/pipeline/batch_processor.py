@@ -260,11 +260,20 @@ class BatchProcessor:
                 filename=f"{filename}/page_{page_num}.{extension}",
             )
 
-            # Store OCR results
+            # Build metadata for storage
+            ocr_metadata = {
+                "page_width_px": processed_image.width,
+                "page_height_px": processed_image.height,
+                "image_url": processed_image.url,
+                "image_storage": "minio",
+            }
+
+            # Store OCR results with metadata
             storage_url = self.ocr_service.storage.store_ocr_result(
                 ocr_result=ocr_result,
                 filename=filename,
                 page_number=page_num,
+                metadata=ocr_metadata,
             )
 
             return {

@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
+    from services.duckdb import DuckDBService
     from services.minio import MinioService
 
     from .processor import OcrProcessor
@@ -30,6 +31,7 @@ class OcrStorageHandler:
         self,
         minio_service: "MinioService",
         processor: Optional["OcrProcessor"] = None,
+        duckdb_service: Optional["DuckDBService"] = None,
     ):
         """
         Initialize storage handler.
@@ -37,9 +39,11 @@ class OcrStorageHandler:
         Args:
             minio_service: MinIO service for uploads
             processor: OCR processor (optional, for image extraction)
+            duckdb_service: DuckDB service (optional, for analytics storage)
         """
         self._minio = minio_service
         self._processor = processor
+        self._duckdb = duckdb_service
 
     def store_ocr_result(
         self,
@@ -158,6 +162,46 @@ class OcrStorageHandler:
             page_number=page_number,
             json_filename=json_filename,
         )
+
+        # Store to DuckDB if enabled (non-blocking)
+        if self._duckdb and self._duckdb.is_enabled():
+            try:
+                self._duckdb.store_ocr_page(
+                    provider=payload.get("provider", "deepseek-ocr"),
+                    version=payload.get("version", "1.0"),
+                    filename=filename,
+                    page_number=page_number,
+                    text=payload.get("text", ""),
+                    markdown=payload.get("markdown", ""),
+                    raw_text=payload.get("raw_text"),
+                    regions=payload.get("regions", []),
+                    extracted_at=payload.get("extracted_at", ""),
+                    storage_url=url,
+                    document_id=payload.get("document_id"),
+                    pdf_page_index=payload.get("pdf_page_index"),
+                    total_pages=payload.get("total_pages"),
+                    page_width_px=(
+                        payload.get("page_dimensions", {}).get("width_px")
+                        if metadata
+                        else None
+                    ),
+                    page_height_px=(
+                        payload.get("page_dimensions", {}).get("height_px")
+                        if metadata
+                        else None
+                    ),
+                    image_url=(
+                        payload.get("image", {}).get("url") if metadata else None
+                    ),
+                    image_storage=(
+                        payload.get("image", {}).get("storage") if metadata else None
+                    ),
+                    extracted_images=payload.get("extracted_images", []),
+                )
+            except Exception as exc:
+                logger.warning(
+                    f"Failed to store OCR result in DuckDB (non-blocking): {exc}"
+                )
 
         return url
 

@@ -6,15 +6,18 @@ from typing import Optional
 
 import config
 from services.colpali import ColPaliService
+from services.duckdb import DuckDBService
 from services.minio import MinioService
 from services.ocr import OcrService
 from services.qdrant import MuveraPostprocessor, QdrantService
 
 logger = logging.getLogger(__name__)
 
+colpali_init_error: Optional[str] = None
 qdrant_init_error: Optional[str] = None
 minio_init_error: Optional[str] = None
 ocr_init_error: Optional[str] = None
+duckdb_init_error: Optional[str] = None
 
 
 @lru_cache(maxsize=1)
@@ -23,8 +26,17 @@ def _get_colpali_client_cached() -> ColPaliService:
 
 
 def get_colpali_client() -> ColPaliService:
-    """Return the cached ColPali service instance."""
-    return _get_colpali_client_cached()
+    """Return the cached ColPali service instance, capturing initialization errors."""
+    global colpali_init_error
+    try:
+        service = _get_colpali_client_cached()
+        colpali_init_error = None
+        return service
+    except Exception as exc:
+        logger.error("Failed to initialize ColPali service: %s", exc)
+        colpali_init_error = str(exc)
+        _get_colpali_client_cached.cache_clear()
+        raise
 
 
 class _ColPaliClientProxy:
@@ -44,9 +56,11 @@ def _get_ocr_service_cached() -> OcrService:
         raise RuntimeError("DeepSeek OCR service is disabled in configuration")
 
     minio_service = get_minio_service()
+    duckdb_service = get_duckdb_service() if config.DUCKDB_ENABLED else None
 
     return OcrService(
         minio_service=minio_service,
+        duckdb_service=duckdb_service,
     )
 
 
@@ -66,6 +80,34 @@ def get_ocr_service() -> Optional[OcrService]:
         logger.error("Failed to initialize OCR service: %s", exc)
         ocr_init_error = str(exc)
         _get_ocr_service_cached.cache_clear()
+        return None
+
+
+@lru_cache(maxsize=1)
+def _get_duckdb_service_cached() -> DuckDBService:
+    """Create and cache DuckDBService instance."""
+    if not config.DUCKDB_ENABLED:
+        raise RuntimeError("DuckDB service is disabled in configuration")
+
+    return DuckDBService()
+
+
+def get_duckdb_service() -> Optional[DuckDBService]:
+    """Return the cached DuckDB service if enabled."""
+    global duckdb_init_error
+
+    if not config.DUCKDB_ENABLED:
+        duckdb_init_error = "DuckDB service disabled in configuration"
+        return None
+
+    try:
+        service = _get_duckdb_service_cached()
+        duckdb_init_error = None
+        return service
+    except Exception as exc:
+        logger.error("Failed to initialize DuckDB service: %s", exc)
+        duckdb_init_error = str(exc)
+        _get_duckdb_service_cached.cache_clear()
         return None
 
 
@@ -147,13 +189,16 @@ def get_qdrant_service() -> Optional[QdrantService]:
 
 def invalidate_services():
     """Invalidate cached services so they are recreated on next access."""
-    global qdrant_init_error, minio_init_error, ocr_init_error
+    global colpali_init_error, qdrant_init_error, minio_init_error, ocr_init_error, duckdb_init_error
     logger.info("Invalidating cached services to apply new configuration")
+    colpali_init_error = None
     qdrant_init_error = None
     minio_init_error = None
     ocr_init_error = None
+    duckdb_init_error = None
     _get_qdrant_service_cached.cache_clear()
     _get_muvera_postprocessor_cached.cache_clear()
     _get_minio_service_cached.cache_clear()
     _get_colpali_client_cached.cache_clear()
     _get_ocr_service_cached.cache_clear()
+    _get_duckdb_service_cached.cache_clear()

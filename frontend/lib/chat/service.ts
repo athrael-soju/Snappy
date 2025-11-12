@@ -1,18 +1,30 @@
 import type { SearchItem } from "@/lib/api/generated/models/SearchItem";
 import type { Stream } from "openai/streaming";
-import { executeDocumentSearch } from "@/lib/api/functions/document_search";
+import "@/lib/api/client"; // Initialize OpenAPI base URL
+import { RetrievalService } from "@/lib/api/generated";
 import { appendCitationReminder, appendUserImages, buildImageContent, buildMarkdownContent } from "@/lib/chat/content";
 import { createInitialToolResponse, createStreamingResponse } from "@/lib/chat/openai";
 import { buildSystemInstructions } from "@/lib/chat/prompt";
 import type { NormalizedChatRequest } from "@/lib/chat/types";
+import { loadConfigFromStorage } from "@/lib/config/config-store";
+import { logger } from "@/lib/utils/logger";
 
 export type ChatServiceResult = {
     stream: Stream<any>;
     kbItems: SearchItem[] | null;
 };
 
+/**
+ * Check if OCR is enabled in the current configuration
+ */
+function isOcrEnabled(): boolean {
+    const config = loadConfigFromStorage();
+    return config?.DEEPSEEK_OCR_ENABLED === "True";
+}
+
 export async function runChatService(options: NormalizedChatRequest): Promise<ChatServiceResult> {
-    const instructions = buildSystemInstructions(options.summaryPreference);
+    const ocrEnabled = isOcrEnabled();
+    const instructions = buildSystemInstructions(options.summaryPreference, ocrEnabled);
 
     let input: any[] = [
         { role: "system", content: [{ type: "input_text", text: instructions }] },
@@ -26,20 +38,34 @@ export async function runChatService(options: NormalizedChatRequest): Promise<Ch
             return;
         }
 
-        const hasOcrData = results.some((result: any) => result?.json_url);
-        const content = hasOcrData
+        // Use OCR-based (markdown) content if OCR is enabled AND OCR data exists
+        // Check both inline payload and json_url for backward compatibility
+        const hasOcrData = results.some((result: any) =>
+            result?.payload?.ocr?.markdown || result?.json_url
+        );
+        const useOcrContent = ocrEnabled && hasOcrData;
+
+        const content = useOcrContent
             ? await buildMarkdownContent(results, options.message)
             : await buildImageContent(results, options.message);
 
         appendUserImages(input, content);
-        appendCitationReminder(input, results);
+        appendCitationReminder(input, results, useOcrContent);
         kbItems = results;
     };
 
     if (!options.toolCallingEnabled) {
-        const searchResult = await executeDocumentSearch(options.message, options.k);
-        if (searchResult.success && Array.isArray(searchResult.results) && searchResult.results.length > 0) {
-            await attachSearchResults(searchResult.results as SearchItem[]);
+        try {
+            const results = await RetrievalService.searchSearchGet(
+                options.message,
+                options.k,
+                ocrEnabled
+            );
+            if (results && results.length > 0) {
+                await attachSearchResults(results);
+            }
+        } catch (error) {
+            logger.error('Search failed', { error, query: options.message });
         }
 
         const stream = await createStreamingResponse({
@@ -68,17 +94,43 @@ export async function runChatService(options: NormalizedChatRequest): Promise<Ch
 
     if (functionCall && functionCall.name === "document_search") {
         toolUsed = true;
-        const searchResult = await executeDocumentSearch(options.message, options.k);
+        let searchResult: any;
+
+        try {
+            const results = await RetrievalService.searchSearchGet(
+                options.message,
+                options.k,
+                ocrEnabled
+            );
+            const imageUrls = results
+                .map((result) => result.image_url)
+                .filter((url): url is string => typeof url === "string" && url.length > 0);
+
+            searchResult = {
+                success: true,
+                query: options.message,
+                images: imageUrls,
+                results: results,
+                count: imageUrls.length
+            };
+
+            if (results && results.length > 0) {
+                await attachSearchResults(results);
+            }
+        } catch (error) {
+            console.error('Search failed:', error);
+            searchResult = {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error occurred',
+                query: options.message
+            };
+        }
 
         input.push({
             type: "function_call_output",
             call_id: functionCall.call_id,
             output: JSON.stringify(searchResult),
         } as any);
-
-        if (searchResult.success && Array.isArray(searchResult.results) && searchResult.results.length > 0) {
-            await attachSearchResults(searchResult.results as SearchItem[]);
-        }
     }
 
     const stream = await createStreamingResponse({

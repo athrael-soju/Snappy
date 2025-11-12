@@ -7,6 +7,47 @@ interface UseSystemManagementOptions {
   onSuccess?: () => void;
 }
 
+const SERVICE_LABELS: Record<string, string> = {
+  collection: "Qdrant",
+  bucket: "MinIO",
+  duckdb: "DuckDB",
+};
+
+const summarizeResults = (result: any): string | undefined => {
+  const entries = result?.results;
+  if (!entries || typeof entries !== "object") {
+    return undefined;
+  }
+
+  const completed: string[] = [];
+  const skipped: string[] = [];
+  const failed: string[] = [];
+
+  for (const [key, value] of Object.entries(entries) as [string, Record<string, unknown>][]) {
+    const label = SERVICE_LABELS[key] ?? key;
+    switch (value?.status) {
+      case "success":
+        completed.push(label);
+        break;
+      case "skipped":
+        skipped.push(label);
+        break;
+      case "error":
+        failed.push(label);
+        break;
+      default:
+        break;
+    }
+  }
+
+  const parts: string[] = [];
+  if (completed.length) parts.push(`Completed: ${completed.join(", ")}`);
+  if (skipped.length) parts.push(`Skipped: ${skipped.join(", ")}`);
+  if (failed.length) parts.push(`Failed: ${failed.join(", ")}`);
+
+  return parts.length ? parts.join(" • ") : undefined;
+};
+
 /**
  * Hook to manage system initialization and deletion
  */
@@ -15,14 +56,6 @@ export function useSystemManagement({ onSuccess }: UseSystemManagementOptions = 
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  const buildSuccessDescription = (result: any, fallback: string) => {
-    const message = result?.results?.bucket?.message;
-    if (typeof message === "string" && message.length > 0) {
-      return message;
-    }
-    return fallback;
-  };
-
   const handleInitialize = async () => {
     setInitLoading(true);
     try {
@@ -30,17 +63,19 @@ export function useSystemManagement({ onSuccess }: UseSystemManagementOptions = 
 
       const status: string | undefined = typeof result?.status === "string" ? result.status : undefined;
 
+      const summary = summarizeResults(result);
+
       if (status === "success") {
         toast.success("Initialization Complete", {
-          description: buildSuccessDescription(result, "Qdrant collection and MinIO bucket are ready"),
+          description: summary ?? "Qdrant collection, MinIO bucket and DuckDB Database are ready",
         });
       } else if (status === "partial") {
         toast.warning("Partial Initialization", {
-          description: "Some components failed to initialize. Check details.",
+          description: summary ?? "Some components failed to initialize.",
         });
       } else {
         toast.error("Initialization Failed", {
-          description: "Failed to initialize required storage components",
+          description: summary ?? "Failed to initialize required storage components",
         });
       }
 
@@ -72,17 +107,19 @@ export function useSystemManagement({ onSuccess }: UseSystemManagementOptions = 
 
       const status: string | undefined = typeof result?.status === "string" ? result.status : undefined;
 
+      const summary = summarizeResults(result);
+
       if (status === "success") {
         toast.success("Deletion Complete", {
-          description: buildSuccessDescription(result, "Qdrant collection and MinIO bucket removed"),
+          description: summary ?? "Qdrant collection and MinIO bucket removed",
         });
       } else if (status === "partial") {
         toast.warning("Partial Deletion", {
-          description: "Some components failed to delete. Check details.",
+          description: summary ?? "Some components failed to delete.",
         });
       } else {
         toast.error("Deletion Failed", {
-          description: "Failed to delete required storage components",
+          description: summary ?? "Failed to delete required storage components",
         });
       }
 

@@ -86,12 +86,59 @@ yarn start
 
 ## Type-Safe API Access
 
-- The SDK (`lib/api/generated`) and Zod schemas (`lib/api/zod.ts`) are generated from `docs/openapi.json`.
-- Codegen runs automatically on `predev` and `prebuild`. Regenerate manually with:
+### Generated SDK
+
+The API client (`lib/api/generated`) is auto-generated from the backend OpenAPI schema and provides:
+
+- **Type-safe service classes** - One per backend router (e.g., `RetrievalService`, `ConfigurationService`)
+- **TypeScript types** - Auto-generated models matching backend Pydantic schemas
+- **Error handling** - Built-in `ApiError` with status codes and details
+- **Request cancellation** - All methods return `CancelablePromise`
+
+**Important:** Always use the generated SDK instead of manual `fetch()` calls. This ensures:
+- ✅ Type safety - Compile-time checking of requests/responses
+- ✅ Consistency - Single source of truth for API contracts
+- ✅ Maintainability - API changes only require regenerating types
+- ✅ Error handling - Standardized error patterns across the app
+
+### Usage
+
+```typescript
+// ✅ CORRECT - Use generated service
+import { RetrievalService } from "@/lib/api/generated";
+
+const results = await RetrievalService.searchSearchGet(query, k, includeOcr);
+
+// ❌ INCORRECT - Don't use manual fetch
+const response = await fetch(`${baseUrl}/search?q=${query}`);
+```
+
+### Available Services
+
+- `RetrievalService` - Document search endpoints
+- `ConfigurationService` - Runtime configuration management
+- `MaintenanceService` - System status, initialize, clear, delete operations
+- `IndexingService` - Document upload and indexing
+- `OcrService` - OCR processing for documents/pages
+- `DuckdbService` - DuckDB analytics queries and operations
+- `MetaService` - Health checks and version info
+
+### Regenerating the SDK
+
+Codegen runs automatically on `predev` and `prebuild`. To regenerate manually:
 
 ```bash
-yarn gen:sdk && yarn gen:zod
+# From project root - regenerate backend OpenAPI schema
+cd backend
+uv run python ../scripts/generate_openapi.py
+
+# From frontend - regenerate TypeScript SDK
+cd ../frontend
+yarn gen:sdk
+yarn gen:zod  # Optional: Zod schemas for runtime validation
 ```
+
+**Note:** The Zod schemas (`lib/api/zod.ts`) are generated separately and used for runtime validation in specific cases like SSE event parsing. For most API calls, the generated TypeScript types are sufficient.
 
 ---
 
