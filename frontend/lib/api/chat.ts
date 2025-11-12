@@ -1,21 +1,12 @@
 // frontend/lib/api/chat.ts
-import { baseUrl } from '@/lib/api/client'
 import {
-  parseKnowledgeBaseItems,
-  parseSearchResults
+  parseKnowledgeBaseItems
 } from '@/lib/api/runtime'
 import type { SearchItem } from "@/lib/api/generated/models/SearchItem";
 
 export type ChatMessage = {
   role: 'user' | 'assistant'
   content: string
-}
-
-export async function searchDocuments(query: string, k: number): Promise<SearchItem[]> {
-  const res = await fetch(`${baseUrl}/search?q=${encodeURIComponent(query)}&k=${k}`)
-  if (!res.ok) return []
-  const data = await res.json()
-  return parseSearchResults(data)
 }
 
 export type ChatRequest = {

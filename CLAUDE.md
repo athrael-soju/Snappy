@@ -300,18 +300,49 @@ def get_my_service() -> MyService:
 
 ### Type-Safe API Calls
 
+**IMPORTANT:** Always use the generated SDK from `lib/api/generated` instead of manual `fetch()` calls.
+
 ```typescript
-import { apiClient } from '@/lib/api/client';
-import { MyRequestSchema } from '@/lib/validation/schemas';
+// ✅ CORRECT - Use generated service
+import { RetrievalService, ConfigurationService } from '@/lib/api/generated';
 
-async function callApi(data: unknown) {
-  // Runtime validation
-  const validated = MyRequestSchema.parse(data);
+// Search documents
+const results = await RetrievalService.searchSearchGet(query, k, includeOcr);
 
-  // Type-safe API call
-  const response = await apiClient.post('/my-feature/action', validated);
-  return response.data;
-}
+// Update configuration
+await ConfigurationService.updateConfigConfigUpdatePost({
+  key: 'MY_SETTING',
+  value: 'new_value'
+});
+
+// ❌ INCORRECT - Don't use manual fetch
+const response = await fetch(`${baseUrl}/search?q=${query}`);
+```
+
+**Why use generated SDK:**
+- ✅ Type safety - Compile-time checking of requests/responses
+- ✅ Consistency - Single source of truth for API contracts
+- ✅ Maintainability - API changes only require regenerating types
+- ✅ Error handling - Built-in `ApiError` with status codes
+
+**Available Services:**
+- `RetrievalService` - Document search
+- `ConfigurationService` - Runtime config management
+- `MaintenanceService` - System status and operations
+- `IndexingService` - Document upload/indexing
+- `OcrService` - OCR processing
+- `DuckdbService` - Analytics queries
+- `MetaService` - Health checks
+
+**Regenerating after backend changes:**
+```bash
+# Backend: Generate OpenAPI schema
+cd backend
+uv run python ../scripts/generate_openapi.py
+
+# Frontend: Generate TypeScript SDK
+cd ../frontend
+yarn gen:sdk
 ```
 
 ### Server-Sent Events (SSE)

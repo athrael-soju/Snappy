@@ -1,6 +1,6 @@
 import type { SearchItem } from "@/lib/api/generated/models/SearchItem";
 import type { Stream } from "openai/streaming";
-import { executeDocumentSearch } from "@/lib/api/functions/document_search";
+import { RetrievalService } from "@/lib/api/generated";
 import { appendCitationReminder, appendUserImages, buildImageContent, buildMarkdownContent } from "@/lib/chat/content";
 import { createInitialToolResponse, createStreamingResponse } from "@/lib/chat/openai";
 import { buildSystemInstructions } from "@/lib/chat/prompt";
@@ -53,9 +53,17 @@ export async function runChatService(options: NormalizedChatRequest): Promise<Ch
     };
 
     if (!options.toolCallingEnabled) {
-        const searchResult = await executeDocumentSearch(options.message, options.k, ocrEnabled);
-        if (searchResult.success && Array.isArray(searchResult.results) && searchResult.results.length > 0) {
-            await attachSearchResults(searchResult.results as SearchItem[]);
+        try {
+            const results = await RetrievalService.searchSearchGet(
+                options.message,
+                options.k,
+                ocrEnabled
+            );
+            if (results && results.length > 0) {
+                await attachSearchResults(results);
+            }
+        } catch (error) {
+            console.error('Search failed:', error);
         }
 
         const stream = await createStreamingResponse({
@@ -84,17 +92,43 @@ export async function runChatService(options: NormalizedChatRequest): Promise<Ch
 
     if (functionCall && functionCall.name === "document_search") {
         toolUsed = true;
-        const searchResult = await executeDocumentSearch(options.message, options.k, ocrEnabled);
+        let searchResult: any;
+
+        try {
+            const results = await RetrievalService.searchSearchGet(
+                options.message,
+                options.k,
+                ocrEnabled
+            );
+            const imageUrls = results
+                .map((result) => result.image_url)
+                .filter((url): url is string => typeof url === "string" && url.length > 0);
+
+            searchResult = {
+                success: true,
+                query: options.message,
+                images: imageUrls,
+                results: results,
+                count: imageUrls.length
+            };
+
+            if (results && results.length > 0) {
+                await attachSearchResults(results);
+            }
+        } catch (error) {
+            console.error('Search failed:', error);
+            searchResult = {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error occurred',
+                query: options.message
+            };
+        }
 
         input.push({
             type: "function_call_output",
             call_id: functionCall.call_id,
             output: JSON.stringify(searchResult),
         } as any);
-
-        if (searchResult.success && Array.isArray(searchResult.results) && searchResult.results.length > 0) {
-            await attachSearchResults(searchResult.results as SearchItem[]);
-        }
     }
 
     const stream = await createStreamingResponse({
