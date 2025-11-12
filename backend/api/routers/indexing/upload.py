@@ -9,6 +9,7 @@ from typing import Dict, List
 from api.dependencies import get_qdrant_service, qdrant_init_error
 from api.progress import progress_manager
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
+from utils.timing import PerformanceTimer
 
 from .file_constraints import (
     UploadConstraints,
@@ -92,10 +93,31 @@ async def _validate_and_persist_uploads(
 @router.post("/index")
 async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = File(...)):
     if not files:
+        logger.warning("Upload attempt with no files", extra={"operation": "index"})
         raise HTTPException(status_code=400, detail="No files uploaded")
+
+    # Get file info for logging
+    filenames = [f.filename or "unnamed" for f in files]
+
+    logger.info(
+        "Document upload started",
+        extra={
+            "operation": "index",
+            "file_count": len(files),
+            "filenames": filenames,
+        },
+    )
 
     constraints = resolve_upload_constraints()
     if len(files) > constraints.max_files:
+        logger.warning(
+            "Upload rejected: too many files",
+            extra={
+                "operation": "index",
+                "file_count": len(files),
+                "max_allowed": constraints.max_files,
+            },
+        )
         raise HTTPException(
             status_code=400,
             detail=f"Too many files. Maximum allowed per upload is {constraints.max_files}.",
@@ -105,12 +127,31 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
     original_filenames: Dict[str, str] = {}
 
     try:
-        temp_paths, original_filenames = await _validate_and_persist_uploads(
-            files, constraints
+        with PerformanceTimer(
+            "validate and persist uploads", log_on_exit=False
+        ) as timer:
+            temp_paths, original_filenames = await _validate_and_persist_uploads(
+                files, constraints
+            )
+
+        logger.info(
+            "Files validated and persisted",
+            extra={
+                "operation": "index",
+                "file_count": len(temp_paths),
+                "duration_ms": timer.duration_ms,
+            },
         )
 
         # Fail fast if dependencies are unavailable
         if not get_qdrant_service():
+            logger.error(
+                "Qdrant service unavailable",
+                extra={
+                    "operation": "index",
+                    "error": qdrant_init_error or "Dependency services are down",
+                },
+            )
             raise HTTPException(
                 status_code=503,
                 detail=f"Service unavailable: {qdrant_init_error or 'Dependency services are down'}",
@@ -124,7 +165,30 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
             run_indexing_job, job_id, list(temp_paths), dict(original_filenames)
         )
 
+        logger.info(
+            "Indexing job queued",
+            extra={
+                "operation": "index",
+                "job_id": job_id,
+                "file_count": len(temp_paths),
+                "filenames": list(original_filenames.values()),
+            },
+        )
+
         return {"status": "started", "job_id": job_id, "total": 0}
-    except Exception:
+
+    except HTTPException:
+        cleanup_temp_files(temp_paths)
+        raise
+    except Exception as exc:
+        logger.error(
+            "Document upload failed",
+            exc_info=exc,
+            extra={
+                "operation": "index",
+                "file_count": len(files),
+                "filenames": filenames,
+            },
+        )
         cleanup_temp_files(temp_paths)
         raise

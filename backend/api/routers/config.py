@@ -1,5 +1,6 @@
 """Configuration management API endpoints."""
 
+import logging
 from copy import deepcopy
 from typing import Any, Dict, List, Tuple
 
@@ -8,6 +9,9 @@ from config_schema import get_all_config_keys, get_api_schema, get_critical_keys
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from runtime_config import get_runtime_config
+from utils.timing import PerformanceTimer
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/config", tags=["configuration"])
 
@@ -90,8 +94,22 @@ def _ensure_mean_pooling_supported() -> None:
 @router.get("/schema")
 async def get_config_schema() -> Dict[str, Any]:
     """Get the configuration schema with categories and settings."""
-    schema = deepcopy(CONFIG_SCHEMA)
-    supported, reason = _check_mean_pooling_support()
+    logger.debug("Retrieving configuration schema")
+
+    with PerformanceTimer("get config schema", log_on_exit=False) as timer:
+        schema = deepcopy(CONFIG_SCHEMA)
+        supported, reason = _check_mean_pooling_support()
+
+    logger.info(
+        "Configuration schema retrieved",
+        extra={
+            "operation": "get_schema",
+            "category_count": len(schema),
+            "mean_pooling_supported": supported,
+            "duration_ms": timer.duration_ms,
+        },
+    )
+
     if not supported:
         explanation = (
             "Mean pooling requires patch metadata from the embedding model. "
@@ -118,14 +136,26 @@ async def get_config_schema() -> Dict[str, Any]:
 @router.get("/values")
 async def get_config_values() -> Dict[str, str]:
     """Get current values for all configuration variables."""
-    runtime_cfg = get_runtime_config()
-    values = {}
+    logger.debug("Retrieving configuration values")
 
-    for category in CONFIG_SCHEMA.values():
-        for setting in category["settings"]:
-            key = setting["key"]
-            default = setting.get("default", "")
-            values[key] = runtime_cfg.get(key, default)
+    with PerformanceTimer("get config values", log_on_exit=False) as timer:
+        runtime_cfg = get_runtime_config()
+        values = {}
+
+        for category in CONFIG_SCHEMA.values():
+            for setting in category["settings"]:
+                key = setting["key"]
+                default = setting.get("default", "")
+                values[key] = runtime_cfg.get(key, default)
+
+    logger.info(
+        "Configuration values retrieved",
+        extra={
+            "operation": "get_values",
+            "key_count": len(values),
+            "duration_ms": timer.duration_ms,
+        },
+    )
 
     return values
 
@@ -142,29 +172,82 @@ async def update_config(update: ConfigUpdate) -> Dict[str, Any]:
 
     # Validate that the key exists in schema
     if update.key not in _ALL_KEYS:
+        logger.warning(
+            "Attempt to update invalid configuration key",
+            extra={
+                "operation": "update_config",
+                "key": update.key,
+                "error": "invalid_key",
+            },
+        )
         raise HTTPException(
             status_code=400, detail=f"Invalid configuration key: {update.key}"
         )
 
-    if update.key == "QDRANT_MEAN_POOLING_ENABLED" and _is_truthy(update.value):
-        _ensure_mean_pooling_supported()
+    # Capture old value for audit trail
+    old_value = runtime_cfg.get(update.key, "")
+    is_critical = update.key in _CRITICAL_KEYS
 
-    # Update the runtime configuration
-    runtime_cfg.set(update.key, update.value)
+    logger.warning(
+        "Configuration update requested",
+        extra={
+            "operation": "update_config",
+            "key": update.key,
+            "old_value": old_value,
+            "new_value": update.value,
+            "is_critical": is_critical,
+        },
+    )
 
-    # Invalidate service singletons if critical config changed
-    # This forces services to re-initialize with new config on next use
-    if update.key in _CRITICAL_KEYS:
-        invalidate_services()
+    try:
+        with PerformanceTimer("update config", log_on_exit=False) as timer:
+            if update.key == "QDRANT_MEAN_POOLING_ENABLED" and _is_truthy(update.value):
+                _ensure_mean_pooling_supported()
 
-    return {
-        "status": "ok",
-        "message": f"Configuration updated: {update.key}",
-        "key": update.key,
-        "value": update.value,
-        "services_invalidated": update.key in _CRITICAL_KEYS,
-        "warning": "This change is runtime-only and will not persist after restart. Update your .env file to make it permanent.",
-    }
+            # Update the runtime configuration
+            runtime_cfg.set(update.key, update.value)
+
+            # Invalidate service singletons if critical config changed
+            # This forces services to re-initialize with new config on next use
+            if is_critical:
+                invalidate_services()
+
+        logger.warning(
+            "Configuration updated successfully",
+            extra={
+                "operation": "update_config",
+                "key": update.key,
+                "old_value": old_value,
+                "new_value": update.value,
+                "is_critical": is_critical,
+                "services_invalidated": is_critical,
+                "duration_ms": timer.duration_ms,
+            },
+        )
+
+        return {
+            "status": "ok",
+            "message": f"Configuration updated: {update.key}",
+            "key": update.key,
+            "value": update.value,
+            "services_invalidated": is_critical,
+            "warning": "This change is runtime-only and will not persist after restart. Update your .env file to make it permanent.",
+        }
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error(
+            "Failed to update configuration",
+            exc_info=exc,
+            extra={
+                "operation": "update_config",
+                "key": update.key,
+                "old_value": old_value,
+                "new_value": update.value,
+            },
+        )
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @router.post("/reset")
@@ -174,21 +257,47 @@ async def reset_config() -> Dict[str, Any]:
 
     Note: This only affects runtime values. Your .env file remains unchanged.
     """
-    runtime_cfg = get_runtime_config()
-    reset_count = 0
+    logger.warning(
+        "Configuration reset to defaults requested", extra={"operation": "reset_config"}
+    )
 
-    for category in CONFIG_SCHEMA.values():
-        for setting in category["settings"]:
-            key = setting["key"]
-            default = setting.get("default", "")
-            runtime_cfg.set(key, default)
-            reset_count += 1
+    try:
+        with PerformanceTimer("reset config", log_on_exit=False) as timer:
+            runtime_cfg = get_runtime_config()
+            reset_count = 0
+            reset_keys = []
 
-    # Invalidate services to apply default config
-    invalidate_services()
+            for category in CONFIG_SCHEMA.values():
+                for setting in category["settings"]:
+                    key = setting["key"]
+                    default = setting.get("default", "")
+                    runtime_cfg.set(key, default)
+                    reset_keys.append(key)
+                    reset_count += 1
 
-    return {
-        "status": "ok",
-        "message": f"Reset {reset_count} configuration values to defaults",
-        "services_invalidated": True,
-    }
+            # Invalidate services to apply default config
+            invalidate_services()
+
+        logger.warning(
+            "Configuration reset to defaults completed",
+            extra={
+                "operation": "reset_config",
+                "reset_count": reset_count,
+                "services_invalidated": True,
+                "duration_ms": timer.duration_ms,
+            },
+        )
+
+        return {
+            "status": "ok",
+            "message": f"Reset {reset_count} configuration values to defaults",
+            "services_invalidated": True,
+        }
+
+    except Exception as exc:
+        logger.error(
+            "Failed to reset configuration",
+            exc_info=exc,
+            extra={"operation": "reset_config"},
+        )
+        raise HTTPException(status_code=500, detail=str(exc))

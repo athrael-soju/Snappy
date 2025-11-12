@@ -59,7 +59,7 @@ def log_execution_time(
                             "operation": op_name,
                             "duration_ms": round(duration_ms, 2),
                             "function": func.__name__,
-                            "module": func.__module__,
+                            "func_module": func.__module__,
                         },
                     )
 
@@ -75,7 +75,7 @@ def log_execution_time(
                             "operation": op_name,
                             "duration_ms": round(duration_ms, 2),
                             "function": func.__name__,
-                            "module": func.__module__,
+                            "func_module": func.__module__,
                             "error": str(e),
                         },
                         exc_info=True,
@@ -109,7 +109,7 @@ def log_execution_time(
                             "operation": op_name,
                             "duration_ms": round(duration_ms, 2),
                             "function": func.__name__,
-                            "module": func.__module__,
+                            "func_module": func.__module__,
                         },
                     )
 
@@ -125,7 +125,7 @@ def log_execution_time(
                             "operation": op_name,
                             "duration_ms": round(duration_ms, 2),
                             "function": func.__name__,
-                            "module": func.__module__,
+                            "func_module": func.__module__,
                             "error": str(e),
                         },
                         exc_info=True,
