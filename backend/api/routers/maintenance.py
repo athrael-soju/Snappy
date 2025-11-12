@@ -21,8 +21,6 @@ if TYPE_CHECKING:
     from services.minio import MinioService
     from services.qdrant import QdrantService
 
-_get_config = getattr  # alias for static analysis friendliness
-
 
 def _collection_name() -> str:
     return str(getattr(config, "QDRANT_COLLECTION_NAME", "documents"))
@@ -483,7 +481,7 @@ def _delete_sync(
             res = dsvc.delete_storage()
             results["duckdb"]["status"] = "success" if res else "error"
             results["duckdb"]["message"] = (
-                res.get("message") if isinstance(res, dict) else ""
+                str(res.get("message") or "") if isinstance(res, dict) else ""
             )
         except Exception as exc:
             results["duckdb"]["status"] = "error"

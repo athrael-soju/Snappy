@@ -40,10 +40,8 @@ class DuckDBService:
         default_base = config.DUCKDB_URL or "http://localhost:8300"
         self.base_url = (base_url or default_base).rstrip("/")
         self.timeout = timeout or int(config.DUCKDB_API_TIMEOUT)
-        self.batch_size = batch_size or getattr(config, "DUCKDB_BATCH_SIZE", 10)
-        self.retry_attempts = retry_attempts or getattr(
-            config, "DUCKDB_RETRY_ATTEMPTS", 3
-        )
+        self.batch_size = batch_size or config.DUCKDB_BATCH_SIZE
+        self.retry_attempts = retry_attempts or config.DUCKDB_RETRY_ATTEMPTS
 
         # Setup HTTP session with retry logic
         retry = Retry(
@@ -303,7 +301,7 @@ class DuckDBService:
             return None
 
         try:
-            payload = {"query": query}
+            payload: Dict[str, Any] = {"query": query}
             if limit is not None:
                 payload["limit"] = limit
 
