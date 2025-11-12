@@ -280,6 +280,9 @@ class OcrProcessor:
         # Extract content mapping from raw text if available
         content_map = self._extract_region_content(raw_text) if raw_text else {}
 
+        # Track image index for mapping crops to regions
+        image_idx = 0
+
         for idx, bbox in enumerate(bboxes or [], start=1):
             try:
                 x1 = int(bbox.get("x1", 0))
@@ -300,6 +303,12 @@ class OcrProcessor:
                     content_list = content_map[label]
                     if content_list:
                         region["content"] = content_list.pop(0)
+
+                # Track image index for mapping to extracted crops
+                # Crops are extracted in order of image labels, so we need to map them
+                if label.lower() in ("image", "figure"):
+                    region["image_index"] = image_idx
+                    image_idx += 1
 
                 regions.append(region)
             except Exception:  # pragma: no cover - best effort

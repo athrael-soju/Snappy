@@ -140,6 +140,27 @@ export async function buildImageContent(results: SearchItem[], query: string): P
     return [header, ...items.filter(Boolean)];
 }
 
+/**
+ * Format regions data into readable text content
+ */
+function formatRegionsToText(regions: any[]): string {
+    if (!regions || regions.length === 0) {
+        return "";
+    }
+
+    // Group regions by label/type if available
+    const regionTexts: string[] = [];
+
+    for (const region of regions) {
+        const content = region.content || "";
+        if (content.trim()) {
+            regionTexts.push(content.trim());
+        }
+    }
+
+    return regionTexts.join("\n\n");
+}
+
 export async function buildMarkdownContent(results: SearchItem[], query: string): Promise<any[]> {
     const labelsText = (results || [])
         .map((result, index) => `Document ${index + 1}: ${result.label || "Unknown"}`)
@@ -153,30 +174,41 @@ export async function buildMarkdownContent(results: SearchItem[], query: string)
     const items = await Promise.all(
         (results || []).map(async (result) => {
             try {
-                const jsonUrl = result.json_url;
-                if (!jsonUrl) {
-                    return null;
+                let content: string | null = null;
+
+                // Check if OCR data is inline in payload (DuckDB mode)
+                const ocrData = result.payload?.ocr;
+                if (ocrData?.regions) {
+                    // DuckDB mode: format regions into text
+                    content = formatRegionsToText(ocrData.regions);
+                } else if (result.json_url) {
+                    // MinIO mode: fetch from json_url (when DuckDB disabled)
+                    const jsonResponse = await fetch(result.json_url);
+                    if (!jsonResponse.ok) {
+                        return null;
+                    }
+                    const jsonData = await jsonResponse.json();
+                    // Use markdown if available, otherwise format regions
+                    if (jsonData.markdown) {
+                        content = jsonData.markdown;
+                        if (typeof content === "string") {
+                            content = await inlineLocalImages(content);
+                        }
+                    } else if (jsonData.regions) {
+                        content = formatRegionsToText(jsonData.regions);
+                    }
                 }
 
-                const jsonResponse = await fetch(jsonUrl);
-                if (!jsonResponse.ok) {
+                if (!content || !content.trim()) {
                     return null;
                 }
-
-                const jsonData = await jsonResponse.json();
-                let markdown = jsonData.markdown;
-                if (!markdown) {
-                    return null;
-                }
-
-                markdown = await inlineLocalImages(markdown);
 
                 return {
                     type: "input_text",
-                    text: `[${result.label || "Unknown"}]\n${markdown}`,
+                    text: `[${result.label || "Unknown"}]\n${content}`,
                 } as const;
             } catch (error) {
-                logger.error('Failed to fetch markdown', { error, label: result.label });
+                logger.error('Failed to process OCR content', { error, label: result.label });
                 return null;
             }
         }),
@@ -192,7 +224,7 @@ export function appendUserImages(input: any[], imageContent: any[]) {
     } as any);
 }
 
-export function appendCitationReminder(input: any[], results: SearchItem[] | null) {
+export function appendCitationReminder(input: any[], results: SearchItem[] | null, useOcrContent: boolean = false) {
     if (!results || results.length === 0) {
         return;
     }
@@ -202,8 +234,9 @@ export function appendCitationReminder(input: any[], results: SearchItem[] | nul
         .filter(Boolean)
         .join("\n");
 
+    const contentType = useOcrContent ? "OCR-extracted text content" : "document images";
     const reminderSections = [
-        "Use only the retrieved document images to answer.",
+        `Use only the retrieved ${contentType} to answer.`,
         "Every factual statement must include an inline citation using one of the exact labels provided.",
         "If a statement cannot be supported by these labels, omit it or explain that no supporting evidence was found.",
     ];

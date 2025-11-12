@@ -196,9 +196,9 @@ class DuckDBAnalyticsService:
 
         Stores:
         - region_id: Optional identifier from OCR provider
-        - label: Region type (e.g., 'text', 'table', 'figure')
+        - label: Region type (e.g., 'text', 'table', 'figure', 'image')
         - bbox: Bounding box coordinates (x1, y1, x2, y2)
-        - content: Extracted text/data for this region
+        - content: Extracted text/data for this region, or image URL for image regions
         """
         if not regions:
             return
@@ -207,6 +207,13 @@ class DuckDBAnalyticsService:
         for region in regions:
             bbox = region.get("bbox") or [None, None, None, None]
             x1, y1, x2, y2 = self._parse_bbox(bbox)
+
+            # For image/figure regions, use image_url as content if content is empty
+            content = region.get("content")
+            label = region.get("label", "").lower()
+            if not content and label in ("image", "figure") and "image_url" in region:
+                content = region.get("image_url")
+
             rows.append(
                 (
                     page_id,
@@ -216,7 +223,7 @@ class DuckDBAnalyticsService:
                     y1,
                     x2,
                     y2,
-                    region.get("content"),
+                    content,
                 )
             )
 

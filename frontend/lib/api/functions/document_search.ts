@@ -18,14 +18,15 @@ export const documentSearchTool = {
     }
 };
 
-export async function executeDocumentSearch(query: string, k: number) {
+export async function executeDocumentSearch(query: string, k: number, includeOcr: boolean = false) {
     try {
         // Call your backend /search API - GET request with query parameters
 
         const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
         const searchParams = new URLSearchParams({
             q: query,
-            k: k.toString()
+            k: k.toString(),
+            include_ocr: includeOcr.toString()
         });
         const response = await fetch(`${backendUrl}/search?${searchParams}`);
         if (!response.ok) {

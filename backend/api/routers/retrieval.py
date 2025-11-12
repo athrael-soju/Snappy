@@ -2,7 +2,7 @@ import asyncio
 from typing import List, Optional
 
 import config  # Import module for dynamic config access
-from api.dependencies import get_ocr_service, get_qdrant_service, qdrant_init_error
+from api.dependencies import get_duckdb_service, get_qdrant_service, qdrant_init_error
 from api.models import SearchItem
 from fastapi import APIRouter, HTTPException, Query
 
@@ -26,36 +26,39 @@ async def search(
     items = await asyncio.to_thread(svc.search_with_metadata, q, top_k)
     results: List[SearchItem] = []
 
-    # Get OCR service if user requested OCR data
-    ocr_service = None
-    if include_ocr:
-        ocr_service = get_ocr_service()
+    # Determine OCR data source based on DuckDB availability
+    use_duckdb = include_ocr and getattr(config, "DUCKDB_ENABLED", False)
+    duckdb_service = get_duckdb_service() if use_duckdb else None
 
     for it in items:
         payload = it.get("payload", {})
         label = it["label"]
         image_url = payload.get("image_url")
-        json_url = payload.get("ocr_url") or payload.get("storage_url")
+        json_url = None
 
-        # If OCR is requested and available, fetch OCR result from storage
-        if include_ocr and ocr_service:
+        if include_ocr:
             filename = payload.get("filename")
-            page_number = payload.get("page_number")
+            # Use pdf_page_index from Qdrant payload (matches page_number in DuckDB)
+            page_number = payload.get("pdf_page_index")
 
             if filename and page_number is not None:
-                ocr_data = await asyncio.to_thread(
-                    ocr_service.fetch_ocr_result, filename, page_number
-                )
-                if ocr_data:
-                    # Add OCR data to payload
-                    payload["ocr"] = {
-                        "text": ocr_data.get("text", ""),
-                        "markdown": ocr_data.get("markdown", ""),
-                        "regions": ocr_data.get("regions", []),
-                        "extracted_images": ocr_data.get("extracted_images", []),
-                    }
-                    # Set json_url if available in OCR data
-                    json_url = ocr_data.get("storage_url") or json_url
+                if use_duckdb and duckdb_service:
+                    # DuckDB enabled: fetch only regions from DuckDB
+                    try:
+                        page_data = await asyncio.to_thread(
+                            duckdb_service.get_page, filename, page_number
+                        )
+                        if page_data and page_data.get("regions"):
+                            # Only include regions data (image URLs are in content field)
+                            payload["ocr"] = {
+                                "regions": page_data.get("regions", []),
+                            }
+                    except Exception:
+                        # If DuckDB fetch fails, continue without OCR data
+                        pass
+                else:
+                    # DuckDB disabled: use MinIO json_url
+                    json_url = payload.get("ocr_url") or payload.get("storage_url")
 
         results.append(
             SearchItem(
