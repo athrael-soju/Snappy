@@ -170,6 +170,41 @@ class Logger {
     }
 
     /**
+     * Serialize error objects for JSON output
+     */
+    private serializeError(error: unknown): any {
+        if (error instanceof Error) {
+            return {
+                ...error, // Include any custom properties first
+                name: error.name,
+                message: error.message,
+                stack: this.config.includeStackTraces ? error.stack : undefined,
+            };
+        }
+        return error;
+    }
+
+    /**
+     * Serialize metadata for JSON output, handling Error objects
+     */
+    private serializeMetadata(metadata?: LogMetadata): any {
+        if (!metadata) return undefined;
+
+        const serialized: any = {};
+        for (const [key, value] of Object.entries(metadata)) {
+            if (value instanceof Error) {
+                serialized[key] = this.serializeError(value);
+            } else if (typeof value === 'object' && value !== null && 'error' in value) {
+                // Handle nested error objects (e.g., ApiError with nested errors)
+                serialized[key] = { ...value, error: this.serializeError((value as any).error) };
+            } else {
+                serialized[key] = value;
+            }
+        }
+        return serialized;
+    }
+
+    /**
      * Output log entry to console with appropriate formatting
      */
     private outputToConsole(entry: LogEntry): void {
@@ -177,7 +212,11 @@ class Logger {
 
         if (this.config.enableStructured) {
             // Structured JSON output for production/log aggregation
-            console.log(JSON.stringify(entry));
+            const serializedEntry = {
+                ...entry,
+                metadata: this.serializeMetadata(metadata),
+            };
+            console.log(JSON.stringify(serializedEntry));
             return;
         }
 

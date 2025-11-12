@@ -8,7 +8,10 @@ from app.api.routes import router
 from app.core.config import settings
 from app.core.database import db_manager
 from app.core.logging import logger
-from fastapi import FastAPI
+from app.middleware.request_id import RequestIDMiddleware
+from app.middleware.timing import TimingMiddleware
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse
 
 
 @asynccontextmanager
@@ -34,6 +37,29 @@ def create_app() -> FastAPI:
         version=settings.API_VERSION,
         lifespan=lifespan,
     )
+
+    # Global exception handler for structured error logging
+    @app.exception_handler(Exception)
+    async def global_exception_handler(request: Request, exc: Exception):
+        """Log unhandled exceptions with structured context."""
+        logger.error(
+            "Unhandled exception occurred",
+            exc_info=exc,
+            extra={
+                "method": request.method,
+                "path": str(request.url.path),
+                "query_params": dict(request.query_params),
+                "client_host": request.client.host if request.client else None,
+            },
+        )
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"detail": "Internal server error"},
+        )
+
+    # Add middleware (order matters - first added = outermost layer)
+    app.add_middleware(RequestIDMiddleware)
+    app.add_middleware(TimingMiddleware)
 
     app.include_router(router)
     return app

@@ -10,7 +10,11 @@ let openaiClient: OpenAI | null = null;
 
 export function getOpenAIClient(): OpenAI {
     if (!openaiClient) {
-        openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+        const apiKey = process.env.OPENAI_API_KEY;
+        if (!apiKey) {
+            throw new Error("OPENAI_API_KEY environment variable is not set. Please check your .env.local file.");
+        }
+        openaiClient = new OpenAI({ apiKey });
     }
     return openaiClient;
 }

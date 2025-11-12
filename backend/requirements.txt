@@ -11,6 +11,7 @@ uvicorn[standard]
 python-multipart
 fastembed
 psutil
+python-json-logger
 
 autoflake
 black

@@ -1,14 +1,42 @@
 import inspect
+import logging
 import os
 from io import BytesIO
 from typing import Any, List, Optional, Tuple, Union, cast
 
 import torch
 from colpali_engine.models import ColModernVBert, ColModernVBertProcessor
-from fastapi import Body, FastAPI, File, HTTPException, UploadFile
+from fastapi import Body, FastAPI, File, HTTPException, Request, UploadFile, status
+from fastapi.responses import JSONResponse
+from middleware.request_id import RequestIDMiddleware
+from middleware.timing import TimingMiddleware
 from PIL import Image
 from pydantic import BaseModel
 from transformers.utils.import_utils import is_flash_attn_2_available
+
+
+# Setup logging with request ID support
+class RequestContextFilter(logging.Filter):
+    """Add request context to log records."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        """Add request_id to record if not present."""
+        if not hasattr(record, "request_id"):
+            record.request_id = "-"
+        return True
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(request_id)s | %(levelname)-8s | %(name)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+# Add request context filter to root logger
+for handler in logging.root.handlers:
+    handler.addFilter(RequestContextFilter())
+
+logger = logging.getLogger(__name__)
 
 # Configuration for CPU parallelism
 CPU_THREADS = int(
@@ -28,6 +56,31 @@ app = FastAPI(
     description="API for generating embeddings from images and queries",
 )
 
+
+# Global exception handler for structured error logging
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Log unhandled exceptions with structured context."""
+    logger.error(
+        "Unhandled exception occurred",
+        exc_info=exc,
+        extra={
+            "method": request.method,
+            "path": str(request.url.path),
+            "query_params": dict(request.query_params),
+            "client_host": request.client.host if request.client else None,
+        },
+    )
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": "Internal server error"},
+    )
+
+
+# Add middleware (order matters - first added = outermost layer)
+app.add_middleware(RequestIDMiddleware)
+app.add_middleware(TimingMiddleware)
+
 # Determine device
 device = (
     "cuda:0"
@@ -39,7 +92,7 @@ device = (
 if device == "cpu":
     torch.set_num_threads(CPU_THREADS)
     torch.set_num_interop_threads(CPU_THREADS)
-    print(f"CPU mode: Set torch threads to {CPU_THREADS}")
+    logger.info(f"CPU mode: Set torch threads to {CPU_THREADS}")
 
 TORCH_DTYPE = torch.bfloat16 if device != "cpu" else torch.float32
 
@@ -65,10 +118,12 @@ if isinstance(_processor_loaded, tuple):
 else:
     processor = cast(Any, _processor_loaded)
 
-print(f"ColModernVBert model loaded on device: {device}")
-print(f"Model id: {MODEL_ID}")
-print(f"Model dtype: {model.dtype}")
-print(f"Flash Attention 2: {'enabled' if is_flash_attn_2_available() else 'disabled'}")
+logger.info(f"ColModernVBert model loaded on device: {device}")
+logger.info(f"Model id: {MODEL_ID}")
+logger.info(f"Model dtype: {model.dtype}")
+logger.info(
+    f"Flash Attention 2: {'enabled' if is_flash_attn_2_available() else 'disabled'}"
+)
 
 
 def _resolve_image_token_id() -> int:

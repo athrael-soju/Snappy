@@ -1,11 +1,13 @@
 import type { SearchItem } from "@/lib/api/generated/models/SearchItem";
 import type { Stream } from "openai/streaming";
+import "@/lib/api/client"; // Initialize OpenAPI base URL
 import { RetrievalService } from "@/lib/api/generated";
 import { appendCitationReminder, appendUserImages, buildImageContent, buildMarkdownContent } from "@/lib/chat/content";
 import { createInitialToolResponse, createStreamingResponse } from "@/lib/chat/openai";
 import { buildSystemInstructions } from "@/lib/chat/prompt";
 import type { NormalizedChatRequest } from "@/lib/chat/types";
 import { loadConfigFromStorage } from "@/lib/config/config-store";
+import { logger } from "@/lib/utils/logger";
 
 export type ChatServiceResult = {
     stream: Stream<any>;
@@ -63,7 +65,7 @@ export async function runChatService(options: NormalizedChatRequest): Promise<Ch
                 await attachSearchResults(results);
             }
         } catch (error) {
-            console.error('Search failed:', error);
+            logger.error('Search failed', { error, query: options.message });
         }
 
         const stream = await createStreamingResponse({

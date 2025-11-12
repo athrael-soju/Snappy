@@ -46,7 +46,7 @@ function parseStoredPayload(raw: string | null): StoredConfigPayload | null {
       };
     }
   } catch (error) {
-    console.error("Failed to parse config from localStorage:", error);
+    logger.error("Failed to parse config from localStorage", { error });
   }
 
   return null;
