@@ -163,6 +163,8 @@ class DuckDBAnalyticsService:
             """
         ).fetchone()
 
+        # Delete child table first (respects foreign key constraint)
+        self.conn.execute("DELETE FROM ocr_regions")
         self.conn.execute("DELETE FROM ocr_pages")
 
         cleared_pages = counts[0] if counts else 0
