@@ -8,7 +8,7 @@ This guide explains how Docker images are automatically built and published to G
 
 The `.github/workflows/docker-publish.yml` workflow automatically:
 
-1. **Builds Docker images** for all components (backend, frontend, colpali-cpu, colpali-gpu)
+1. **Builds Docker images** for all components (backend, frontend, colpali-cpu, colpali-gpu, deepseek-ocr, duckdb)
 2. **Publishes to GHCR** at `ghcr.io/athrael-soju/snappy/`
 3. **Tags images** with multiple tags for flexibility
 4. **Supports multi-platform** builds (amd64 and arm64 where applicable)
@@ -95,6 +95,8 @@ You should see:
 - `frontend`
 - `colpali-cpu`
 - `colpali-gpu`
+- `deepseek-ocr`
+- `duckdb`
 
 ### Pull and Test Locally
 
@@ -257,4 +259,4 @@ After first successful build:
 
 ---
 
-**Last Updated:** November 4, 2025
+**Last Updated:** January 12, 2025

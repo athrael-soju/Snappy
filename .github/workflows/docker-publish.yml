@@ -16,6 +16,7 @@ env:
   IMAGE_NAME_COLPALI_CPU: ${{ github.repository }}/colpali-cpu
   IMAGE_NAME_COLPALI_GPU: ${{ github.repository }}/colpali-gpu
   IMAGE_NAME_DEEPSEEK_OCR: ${{ github.repository }}/deepseek-ocr
+  IMAGE_NAME_DUCKDB: ${{ github.repository }}/duckdb
 
 jobs:
   build-and-push-backend:
@@ -251,6 +252,54 @@ jobs:
         with:
           context: ./deepseek-ocr
           file: ./deepseek-ocr/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+  build-and-push-duckdb:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log into registry ${{ env.REGISTRY }}
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_DUCKDB }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push DuckDB Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./duckdb
+          file: ./duckdb/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
