@@ -1,5 +1,5 @@
 fastapi
 uvicorn[standard]
-duckdb
+duckdb==1.4.1
 pydantic
 python-multipart
