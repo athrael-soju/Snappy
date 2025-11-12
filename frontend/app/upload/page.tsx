@@ -234,7 +234,7 @@ export default function UploadPage() {
 
             <Badge variant="outline" className="gap-1.5 px-3 py-1">
               <Database className="size-icon-3xs" />
-              <span className="font-semibold">Vectors</span>
+              <span className="font-semibold">Qdrant</span>
               {systemStatus?.collection?.exists ? (
                 <CheckCircle2 className="size-icon-3xs text-chart-2" />
               ) : (
@@ -254,7 +254,7 @@ export default function UploadPage() {
 
             <Badge variant="outline" className="gap-1.5 px-3 py-1">
               <HardDrive className="size-icon-3xs" />
-              <span className="font-semibold">Images</span>
+              <span className="font-semibold">MinIO</span>
               {systemStatus?.bucket?.exists ? (
                 <CheckCircle2 className="size-icon-3xs text-chart-2" />
               ) : (
@@ -274,7 +274,7 @@ export default function UploadPage() {
 
             <Badge variant="outline" className="gap-1.5 px-3 py-1">
               <FileText className="size-icon-3xs" />
-              <span className="font-semibold">DuckDB Docs</span>
+              <span className="font-semibold">DuckDB</span>
               {systemStatus?.duckdb?.available ? (
                 <CheckCircle2 className="size-icon-3xs text-chart-2" />
               ) : (
