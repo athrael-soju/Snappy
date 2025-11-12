@@ -23,7 +23,7 @@ const summarizeResults = (result: any): string | undefined => {
   const skipped: string[] = [];
   const failed: string[] = [];
 
-  for (const [key, value] of Object.entries(entries)) {
+  for (const [key, value] of Object.entries(entries) as [string, Record<string, unknown>][]) {
     const label = SERVICE_LABELS[key] ?? key;
     switch (value?.status) {
       case "success":

@@ -89,9 +89,10 @@ export function useMaintenanceActions({ onSuccess }: UseMaintenanceActionsOption
       const response = await handler();
 
       if (action === "all" && typeof response === "object" && response !== null) {
+        const responseObj = response as Record<string, unknown>;
         const status: string | undefined =
-          typeof response.status === "string" ? response.status : undefined;
-        const description = summarizeResults(response);
+          typeof responseObj.status === "string" ? responseObj.status : undefined;
+        const description = summarizeResults(responseObj);
 
         if (status === "success") {
           toast.success(SUCCESS_MESSAGES[action], description ? { description } : undefined);
