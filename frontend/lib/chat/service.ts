@@ -6,6 +6,7 @@ import { createInitialToolResponse, createStreamingResponse } from "@/lib/chat/o
 import { buildSystemInstructions } from "@/lib/chat/prompt";
 import type { NormalizedChatRequest } from "@/lib/chat/types";
 import { loadConfigFromStorage } from "@/lib/config/config-store";
+import { logger } from "@/lib/utils/logger";
 
 export type ChatServiceResult = {
     stream: Stream<any>;
@@ -63,7 +64,7 @@ export async function runChatService(options: NormalizedChatRequest): Promise<Ch
                 await attachSearchResults(results);
             }
         } catch (error) {
-            console.error('Search failed:', error);
+            logger.error('Search failed', { error, query: options.message });
         }
 
         const stream = await createStreamingResponse({

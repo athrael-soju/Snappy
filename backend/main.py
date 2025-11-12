@@ -1,8 +1,9 @@
-import logging
 import os
+from pathlib import Path
 
 import uvicorn
 from api.app import create_app
+from logging_config import setup_logging
 
 try:  # pragma: no cover - tooling support
     from config import LOG_LEVEL, UVICORN_RELOAD  # type: ignore
@@ -12,10 +13,15 @@ except ModuleNotFoundError:  # pragma: no cover
 
 def _configure_logging() -> None:
     """Configure root logging once based on configured log level."""
-    level = getattr(logging, str(LOG_LEVEL).upper(), logging.INFO)
-    logging.basicConfig(level=level)
-    logging.getLogger("uvicorn").setLevel(level)
-    logging.getLogger("uvicorn.access").setLevel(level)
+    log_level = str(LOG_LEVEL).upper()
+    enable_json = os.getenv("LOG_JSON", "false").lower() == "true"
+    log_file_path = os.getenv("LOG_FILE")
+
+    setup_logging(
+        log_level=log_level,
+        enable_json=enable_json,
+        log_file=Path(log_file_path) if log_file_path else None,
+    )
 
 
 _configure_logging()

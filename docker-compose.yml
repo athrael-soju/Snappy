@@ -14,6 +14,12 @@ x-colpali-base: &colpali-base
       aliases:
         - colpali
   restart: unless-stopped
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "3"
+      labels: "service=colpali"
 
 x-deepseek-base: &deepseek-base
   container_name: deepseek-ocr
@@ -37,6 +43,12 @@ x-deepseek-base: &deepseek-base
       aliases:
         - deepseek-ocr
   restart: unless-stopped
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "3"
+      labels: "service=deepseek-ocr"
 
 x-qdrant-base: &qdrant-base
   container_name: qdrant
@@ -104,6 +116,12 @@ x-backend-base: &backend-base
     - minio
   networks:
     - snappy-network
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "3"
+      labels: "service=backend"
 
 x-frontend-base: &frontend-base
   container_name: frontend
@@ -123,6 +141,12 @@ x-frontend-base: &frontend-base
   restart: unless-stopped
   depends_on:
     - backend
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "3"
+      labels: "service=frontend"
 
 x-duckdb-base: &duckdb-base
   container_name: duckdb
@@ -145,6 +169,12 @@ x-duckdb-base: &duckdb-base
       aliases:
         - duckdb
   restart: unless-stopped
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "3"
+      labels: "service=duckdb"
 
 services:
   qdrant:

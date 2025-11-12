@@ -27,6 +27,7 @@ from minio import Minio
 from minio.deleteobjects import DeleteObject
 from minio.error import S3Error
 from PIL import Image
+from utils.timing import log_execution_time
 
 if TYPE_CHECKING:
     from services.image_processor import ProcessedImage
@@ -195,6 +196,9 @@ class MinioService:
     # -------------------------------------------------------------------
     # Batch Operations
     # -------------------------------------------------------------------
+    @log_execution_time(
+        "upload images to MinIO", log_level=logging.INFO, warn_threshold_ms=3000
+    )
     def store_processed_images_batch(
         self,
         processed_images: List["ProcessedImage"],

@@ -8,6 +8,7 @@ from config import COLPALI_API_TIMEOUT, COLPALI_URL
 from PIL import Image
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from utils.timing import log_execution_time
 
 
 class ColPaliService:
@@ -83,6 +84,7 @@ class ColPaliService:
         except Exception as e:
             raise Exception(f"Failed to get patches: {e}")
 
+    @log_execution_time("embed queries", log_level=logging.INFO, warn_threshold_ms=1000)
     def embed_queries(self, queries: Union[str, List[str]]) -> List[List[List[float]]]:
         """
         Generate embeddings for text queries
@@ -94,6 +96,9 @@ class ColPaliService:
             List of embeddings (each embedding is a list of vectors)
         """
         try:
+            query_count = 1 if isinstance(queries, str) else len(queries)
+            self._logger.debug(f"Embedding {query_count} queries via ColPali API")
+
             payload = {"queries": queries}
             response = self.session.post(
                 f"{self.base_url}/embed/queries", json=payload, timeout=self.timeout
@@ -116,6 +121,7 @@ class ColPaliService:
         img_byte_arr.seek(0)
         return ("files", (f"image_{idx}.png", img_byte_arr, "image/png"))
 
+    @log_execution_time("embed images", log_level=logging.INFO, warn_threshold_ms=5000)
     def embed_images(self, images: List[Image.Image]) -> List[List[List[float]]]:
         """
         Generate embeddings for images
@@ -127,6 +133,8 @@ class ColPaliService:
             List of embeddings (each embedding is a list of vectors)
         """
         try:
+            self._logger.debug(f"Embedding {len(images)} images via ColPali API")
+
             # Parallelize image encoding to maximize CPU utilization
             from concurrent.futures import ThreadPoolExecutor
 
