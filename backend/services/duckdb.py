@@ -434,6 +434,46 @@ class DuckDBService:
             logger.warning(f"Failed to store document in DuckDB: {exc}")
             return False
 
+    def store_documents_batch(self, documents: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Store multiple document metadata records in a batch.
+
+        Args:
+            documents: List of document metadata dictionaries with keys:
+                - document_id: UUID for the document
+                - filename: Document filename
+                - file_size_bytes: File size in bytes
+                - total_pages: Total number of pages
+
+        Returns:
+            Dict with 'success_count' and 'failed_count' keys
+        """
+        if not self.enabled or not documents:
+            return {"success_count": 0, "failed_count": len(documents) if documents else 0}
+
+        try:
+            payload = {"documents": documents}
+
+            response = self.session.post(
+                f"{self.base_url}/documents/store/batch",
+                json=payload,
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+            result = response.json()
+
+            success_count = result.get("success_count", len(documents))
+            failed_count = result.get("failed_count", 0)
+
+            logger.info(
+                f"Stored {success_count} document metadata records in DuckDB batch "
+                f"({failed_count} failures)"
+            )
+            return {"success_count": success_count, "failed_count": failed_count}
+
+        except Exception as exc:
+            logger.warning(f"Failed to store document batch in DuckDB: {exc}")
+            return {"success_count": 0, "failed_count": len(documents)}
+
     def search_text(self, query: str, limit: int = 50) -> Optional[Dict[str, Any]]:
         """Search for text across all OCR data.
 

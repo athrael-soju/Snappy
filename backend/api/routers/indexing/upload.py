@@ -4,8 +4,10 @@ import logging
 import os
 import tempfile
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List
 
+import config
 from api.dependencies import get_duckdb_service, get_qdrant_service, qdrant_init_error
 from api.progress import progress_manager
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
@@ -23,6 +25,59 @@ from .jobs import cleanup_temp_files, run_indexing_job
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="", tags=["indexing"])
+
+
+def _check_file_duplicate(
+    tmp_path: str, filename: str, duckdb_svc
+) -> tuple[str, str, bool, dict | None]:
+    """Check if a file is a duplicate.
+
+    Args:
+        tmp_path: Temporary file path
+        filename: Original filename
+        duckdb_svc: DuckDB service instance
+
+    Returns:
+        Tuple of (tmp_path, filename, is_duplicate, existing_doc)
+    """
+    try:
+        # Get PDF metadata
+        info = pdfinfo_from_path(tmp_path)
+        pages = int(info.get("Pages", 0))
+        size_bytes = os.path.getsize(tmp_path)
+
+        # Check for duplicates
+        existing_doc = duckdb_svc.check_document_exists(
+            filename=filename,
+            file_size_bytes=size_bytes,
+            total_pages=pages,
+        )
+
+        if existing_doc:
+            logger.info(
+                f"Skipping already indexed document: {filename} "
+                f"(first indexed: {existing_doc.get('first_indexed')})",
+                extra={"operation": "index"},
+            )
+            # Clean up temp file for duplicate
+            try:
+                os.unlink(tmp_path)
+            except Exception as cleanup_exc:
+                logger.warning(
+                    f"Failed to clean up duplicate temp file {tmp_path}: {cleanup_exc}",
+                    extra={"operation": "index"},
+                )
+            return (tmp_path, filename, True, existing_doc)
+
+        return (tmp_path, filename, False, None)
+
+    except Exception as exc:
+        logger.warning(
+            f"Failed to check duplicate for {filename}: {exc}",
+            extra={"operation": "index", "error_type": type(exc).__name__},
+        )
+        # If we can't get metadata, include the file anyway (fail-safe behavior)
+        return (tmp_path, filename, False, None)
 
 
 async def _persist_upload_to_disk(
@@ -186,79 +241,83 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
             extra={
                 "operation": "index",
                 "file_count": len(temp_paths),
-                "duration_ms": timer.duration_ms,
+                "duration_s": round(timer.duration_s, 3),
             },
         )
 
-        # Check for duplicates before starting background job
+        # Check for duplicates before starting background job (parallelized)
         duckdb_svc = get_duckdb_service()
         if duckdb_svc and duckdb_svc.is_enabled():
-            filtered_paths: List[str] = []
-            filtered_filenames: Dict[str, str] = {}
-            skipped_files: List[str] = []
+            with PerformanceTimer(
+                "deduplication check", log_on_exit=False
+            ) as dup_timer:
+                filtered_paths: List[str] = []
+                filtered_filenames: Dict[str, str] = {}
+                skipped_files: List[str] = []
 
-            for tmp_path in temp_paths:
-                filename = original_filenames[tmp_path]
-
-                try:
-                    # Get PDF metadata
-                    info = pdfinfo_from_path(tmp_path)
-                    pages = int(info.get("Pages", 0))
-                    size_bytes = os.path.getsize(tmp_path)
-                except Exception as exc:
-                    logger.warning(
-                        f"Failed to extract metadata for {filename}: {exc}",
-                        extra={"operation": "index"},
-                    )
-                    # If we can't get metadata, include the file anyway
-                    filtered_paths.append(tmp_path)
-                    filtered_filenames[tmp_path] = filename
-                    continue
-
-                # Check for duplicates
-                existing_doc = duckdb_svc.check_document_exists(
-                    filename=filename,
-                    file_size_bytes=size_bytes,
-                    total_pages=pages,
+                # Parallelize duplicate checking for better performance
+                max_workers = min(
+                    len(temp_paths),
+                    max(1, getattr(config, "UPLOAD_MAX_WORKERS", 4)),
                 )
+                with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                    # Submit all duplicate checks in parallel
+                    future_to_path = {
+                        executor.submit(
+                            _check_file_duplicate,
+                            tmp_path,
+                            original_filenames[tmp_path],
+                            duckdb_svc,
+                        ): tmp_path
+                        for tmp_path in temp_paths
+                    }
 
-                if existing_doc:
+                    # Collect results as they complete
+                    for future in as_completed(future_to_path):
+                        try:
+                            tmp_path, filename, is_duplicate, existing_doc = (
+                                future.result()
+                            )
+
+                            if is_duplicate:
+                                skipped_files.append(filename)
+                            else:
+                                filtered_paths.append(tmp_path)
+                                filtered_filenames[tmp_path] = filename
+                        except Exception as exc:
+                            # If duplicate check fails, include the file (fail-safe)
+                            tmp_path = future_to_path[future]
+                            filename = original_filenames[tmp_path]
+                            logger.error(
+                                f"Duplicate check failed for {filename}: {exc}",
+                                exc_info=True,
+                                extra={"operation": "index"},
+                            )
+                            filtered_paths.append(tmp_path)
+                            filtered_filenames[tmp_path] = filename
+
+                # Update lists to only include non-duplicates
+                temp_paths = filtered_paths
+                original_filenames = filtered_filenames
+
+                if skipped_files:
                     logger.info(
-                        f"Skipping already indexed document: {filename} "
-                        f"(first indexed: {existing_doc.get('first_indexed')})",
-                        extra={"operation": "index"},
+                        f"Skipped {len(skipped_files)} already indexed documents (deduplication took {dup_timer.duration_s:.2f}s)",
+                        extra={
+                            "operation": "index",
+                            "skipped_files": skipped_files,
+                            "duration_s": round(dup_timer.duration_s, 3),
+                        },
                     )
-                    skipped_files.append(filename)
-                    # Clean up temp file for duplicate
-                    try:
-                        os.unlink(tmp_path)
-                    except Exception:
-                        pass
-                else:
-                    filtered_paths.append(tmp_path)
-                    filtered_filenames[tmp_path] = filename
 
-            # Update lists to only include non-duplicates
-            temp_paths = filtered_paths
-            original_filenames = filtered_filenames
-
-            if skipped_files:
-                logger.info(
-                    f"Skipped {len(skipped_files)} already indexed documents",
-                    extra={
-                        "operation": "index",
+                # If all files were duplicates, return early
+                if not temp_paths:
+                    return {
+                        "status": "completed",
+                        "message": "All documents already indexed (skipped)",
+                        "skipped_count": len(skipped_files),
                         "skipped_files": skipped_files,
-                    },
-                )
-
-            # If all files were duplicates, return early
-            if not temp_paths:
-                return {
-                    "status": "completed",
-                    "message": "All documents already indexed (skipped)",
-                    "skipped_count": len(skipped_files),
-                    "skipped_files": skipped_files,
-                }
+                    }
 
         # Fail fast if dependencies are unavailable
         if not get_qdrant_service():

@@ -15,7 +15,7 @@ class TimingMiddleware(BaseHTTPMiddleware):
     Logs the following for each request:
     - HTTP method and path
     - Status code
-    - Duration in milliseconds
+    - Duration in seconds
     - Client IP address
 
     This helps identify slow endpoints and performance bottlenecks.
@@ -32,7 +32,7 @@ class TimingMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
 
         # Calculate duration
-        duration_ms = (time.perf_counter() - start_time) * 1000
+        duration_s = time.perf_counter() - start_time
 
         # Skip logging for excluded paths to reduce noise
         if request.url.path not in self.EXCLUDE_PATHS:
@@ -44,21 +44,21 @@ class TimingMiddleware(BaseHTTPMiddleware):
             # Log with structured data
             log_level = logging.INFO
             # Warn on slow requests (>1 second)
-            if duration_ms > 1000:
+            if duration_s > 1.0:
                 log_level = logging.WARNING
 
             logger.log(
                 log_level,
-                "%s %s - %d (%.2fms)",
+                "%s %s - %d (%.2fs)",
                 request.method,
                 request.url.path,
                 response.status_code,
-                duration_ms,
+                duration_s,
                 extra={
                     "method": request.method,
                     "path": request.url.path,
                     "status_code": response.status_code,
-                    "duration_ms": round(duration_ms, 2),
+                    "duration_s": round(duration_s, 3),
                     "client_ip": client_ip,
                 },
             )

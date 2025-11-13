@@ -45,7 +45,8 @@ def log_execution_time(
                 start_time = time.perf_counter()
 
                 result = await func(*args, **kwargs)
-                duration_ms = (time.perf_counter() - start_time) * 1000
+                duration_s = time.perf_counter() - start_time
+                duration_ms = duration_s * 1000
 
                 # Determine log level
                 level = log_level
@@ -54,12 +55,12 @@ def log_execution_time(
 
                 logger.log(
                     level,
-                    "%s completed in %.2fms",
+                    "%s completed in %.2fs",
                     op_name,
-                    duration_ms,
+                    duration_s,
                     extra={
                         "operation": op_name,
-                        "duration_ms": round(duration_ms, 2),
+                        "duration_s": round(duration_s, 3),
                         "function": func.__name__,
                         "func_module": func.__module__,
                     },
@@ -77,7 +78,8 @@ def log_execution_time(
                 start_time = time.perf_counter()
 
                 result = func(*args, **kwargs)
-                duration_ms = (time.perf_counter() - start_time) * 1000
+                duration_s = time.perf_counter() - start_time
+                duration_ms = duration_s * 1000
 
                 # Determine log level
                 level = log_level
@@ -86,12 +88,12 @@ def log_execution_time(
 
                 logger.log(
                     level,
-                    "%s completed in %.2fms",
+                    "%s completed in %.2fs",
                     op_name,
-                    duration_ms,
+                    duration_s,
                     extra={
                         "operation": op_name,
-                        "duration_ms": round(duration_ms, 2),
+                        "duration_s": round(duration_s, 3),
                         "function": func.__name__,
                         "func_module": func.__module__,
                     },
@@ -117,7 +119,7 @@ class PerformanceTimer:
         with PerformanceTimer("process batch") as timer:
             process_images(batch)
 
-        logger.info(f"Took {timer.duration_ms}ms")
+        logger.info(f"Took {timer.duration_s:.2f}s")
     """
 
     def __init__(self, operation: str, log_on_exit: bool = True):
@@ -131,7 +133,8 @@ class PerformanceTimer:
         self.log_on_exit = log_on_exit
         self.start_time: float = 0
         self.end_time: float = 0
-        self.duration_ms: float = 0
+        self.duration_s: float = 0
+        self.duration_ms: float = 0  # Keep for backward compatibility
 
     def __enter__(self) -> "PerformanceTimer":
         """Start timing."""
@@ -141,16 +144,17 @@ class PerformanceTimer:
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Stop timing and optionally log."""
         self.end_time = time.perf_counter()
-        self.duration_ms = (self.end_time - self.start_time) * 1000
+        self.duration_s = self.end_time - self.start_time
+        self.duration_ms = self.duration_s * 1000  # Keep for backward compatibility
 
         # Only log on successful completion
         if self.log_on_exit and exc_type is None:
             logger.debug(
-                "%s completed in %.2fms",
+                "%s completed in %.2fs",
                 self.operation,
-                self.duration_ms,
+                self.duration_s,
                 extra={
                     "operation": self.operation,
-                    "duration_ms": round(self.duration_ms, 2),
+                    "duration_s": round(self.duration_s, 3),
                 },
             )

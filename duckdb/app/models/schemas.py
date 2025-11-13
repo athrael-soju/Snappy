@@ -90,3 +90,9 @@ class DocumentStoreRequest(BaseModel):
     filename: str
     file_size_bytes: Optional[int]
     total_pages: int
+
+
+class DocumentStoreBatchRequest(BaseModel):
+    """Request to store multiple document metadata records."""
+
+    documents: List[DocumentStoreRequest]
