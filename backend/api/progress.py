@@ -12,6 +12,7 @@ class ProgressManager:
         self._lock = threading.Lock()
         self._jobs: Dict[str, Dict] = {}
         self._cancel_flags: Dict[str, bool] = {}  # Track cancellation requests
+        self._timers: Dict[str, threading.Timer] = {}  # Track cleanup timers
 
     def create(self, job_id: str, total: int = 0):
         with self._lock:
@@ -98,15 +99,30 @@ class ProgressManager:
             return self._cancel_flags.get(job_id, False)
 
     def cleanup(self, job_id: str):
-        """Remove job data (call after job completion/cancellation)."""
+        """Remove job data and cancel any pending cleanup timer."""
         with self._lock:
             self._jobs.pop(job_id, None)
             self._cancel_flags.pop(job_id, None)
+            # Cancel and remove timer if it exists
+            timer = self._timers.pop(job_id, None)
+            if timer is not None:
+                timer.cancel()
 
     def _schedule_cleanup(self, job_id: str, delay: float = 300.0):
         """Schedule cleanup after a delay to allow clients to read final status."""
+        # Create timer first (but don't start it yet)
         timer = threading.Timer(delay, self.cleanup, args=(job_id,))
         timer.daemon = True
+
+        # Cancel any existing timer and store new timer atomically
+        with self._lock:
+            existing_timer = self._timers.get(job_id)
+            if existing_timer is not None:
+                existing_timer.cancel()
+            # Store timer before starting to avoid race condition
+            self._timers[job_id] = timer
+
+        # Start timer after it's been stored
         timer.start()
 
 

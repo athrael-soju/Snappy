@@ -39,7 +39,7 @@ def collect_collection_status(svc: Optional["QdrantService"]) -> dict:
         "size_mb": 0.0,
     }
     if not svc:
-        status["error"] = qdrant_init_error or "Service unavailable"
+        status["error"] = qdrant_init_error.get() or "Service unavailable"
         return status
     try:
         collection_info = svc.service.get_collection(collection_name())
@@ -81,7 +81,7 @@ def collect_bucket_status(msvc: Optional["MinioService"]) -> dict:
         "error": None,
     }
     if not msvc:
-        status["error"] = minio_init_error or "Service unavailable"
+        status["error"] = minio_init_error.get() or "Service unavailable"
         return status
     try:
         bucket_exists = msvc.service.bucket_exists(bucket_name())
@@ -93,11 +93,15 @@ def collect_bucket_status(msvc: Optional["MinioService"]) -> dict:
                 size = getattr(obj, "size", 0) or 0
                 total_bytes += size
                 object_name = getattr(obj, "object_name", "") or ""
-                filename = object_name.rsplit("/", 1)[-1]
-                if filename.startswith("page."):
+
+                # Count only new subfolder structure
+                if "/image/" in object_name:
+                    # {filename}/{page}/image/{uuid}.{ext}
                     status["page_count"] += 1
-                elif filename == "elements.json":
+                elif "/ocr/" in object_name and object_name.endswith(".json"):
+                    # {filename}/{page}/ocr/{uuid}.json
                     status["element_count"] += 1
+                # Note: /ocr_regions/ files (region JSONs and figures) are not counted separately
             status["size_mb"] = (
                 round(total_bytes / (1024 * 1024), 2) if total_bytes else 0.0
             )
@@ -125,7 +129,7 @@ def collect_duckdb_status(dsvc: Optional["DuckDBService"]) -> dict:
         return status
 
     if not dsvc:
-        status["error"] = duckdb_init_error or "Service unavailable"
+        status["error"] = duckdb_init_error.get() or "Service unavailable"
         return status
 
     try:
@@ -203,7 +207,7 @@ def clear_all_sync(
     else:
         results["collection"]["status"] = "error"
         results["collection"]["message"] = (
-            qdrant_init_error or "Qdrant service unavailable"
+            qdrant_init_error.get() or "Qdrant service unavailable"
         )
 
     if msvc:
@@ -220,14 +224,16 @@ def clear_all_sync(
             results["bucket"]["message"] = "Bucket missing; initialize first"
     else:
         results["bucket"]["status"] = "error"
-        results["bucket"]["message"] = minio_init_error or "MinIO service unavailable"
+        results["bucket"]["message"] = (
+            minio_init_error.get() or "MinIO service unavailable"
+        )
 
     if not getattr(config, "DUCKDB_ENABLED", False):
         results["duckdb"]["status"] = "skipped"
         results["duckdb"]["message"] = "DuckDB disabled via configuration"
     elif not dsvc:
         results["duckdb"]["status"] = "error"
-        results["duckdb"]["message"] = duckdb_init_error or "DuckDB unavailable"
+        results["duckdb"]["message"] = duckdb_init_error.get() or "DuckDB unavailable"
     else:
         if duckdb_available(dsvc):
             try:
@@ -266,7 +272,9 @@ def initialize_sync(
             results["collection"]["message"] = str(exc)
     else:
         results["collection"]["status"] = "error"
-        results["collection"]["message"] = qdrant_init_error or "Service unavailable"
+        results["collection"]["message"] = (
+            qdrant_init_error.get() or "Service unavailable"
+        )
     if msvc:
         try:
             msvc._create_bucket_if_not_exists()
@@ -279,13 +287,13 @@ def initialize_sync(
             results["bucket"]["message"] = str(exc)
     else:
         results["bucket"]["status"] = "error"
-        results["bucket"]["message"] = minio_init_error or "Service unavailable"
+        results["bucket"]["message"] = minio_init_error.get() or "Service unavailable"
     if not getattr(config, "DUCKDB_ENABLED", False):
         results["duckdb"]["status"] = "skipped"
         results["duckdb"]["message"] = "DuckDB disabled via configuration"
     elif not dsvc:
         results["duckdb"]["status"] = "error"
-        results["duckdb"]["message"] = duckdb_init_error or "Service unavailable"
+        results["duckdb"]["message"] = duckdb_init_error.get() or "Service unavailable"
     else:
         try:
             res = dsvc.initialize_storage()
@@ -327,7 +335,9 @@ def delete_sync(
                 results["collection"]["message"] = str(exc)
     else:
         results["collection"]["status"] = "error"
-        results["collection"]["message"] = qdrant_init_error or "Service unavailable"
+        results["collection"]["message"] = (
+            qdrant_init_error.get() or "Service unavailable"
+        )
     if msvc:
         try:
             bucket_exists = msvc.service.bucket_exists(bucket_name())
@@ -362,13 +372,13 @@ def delete_sync(
             results["bucket"]["message"] = str(exc)
     else:
         results["bucket"]["status"] = "error"
-        results["bucket"]["message"] = minio_init_error or "Service unavailable"
+        results["bucket"]["message"] = minio_init_error.get() or "Service unavailable"
     if not getattr(config, "DUCKDB_ENABLED", False):
         results["duckdb"]["status"] = "skipped"
         results["duckdb"]["message"] = "DuckDB disabled via configuration"
     elif not dsvc:
         results["duckdb"]["status"] = "error"
-        results["duckdb"]["message"] = duckdb_init_error or "Service unavailable"
+        results["duckdb"]["message"] = duckdb_init_error.get() or "Service unavailable"
     else:
         try:
             res = dsvc.delete_storage()

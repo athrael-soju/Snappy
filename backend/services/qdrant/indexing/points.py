@@ -48,6 +48,7 @@ class PointFactory:
             image_format = None
             image_size_bytes = None
             image_quality = None
+            page_id = None
 
             if isinstance(image_info, dict):
                 image_url = image_info.get("image_url")
@@ -57,9 +58,11 @@ class PointFactory:
                 image_format = image_info.get("image_format")
                 image_size_bytes = image_info.get("image_size_bytes")
                 image_quality = image_info.get("image_quality")
+                page_id = image_info.get("page_id")
 
             payload = {
                 "index": batch_start + offset,
+                "page_id": page_id,
                 "image_url": image_url,
                 "image_inline": image_inline,
                 "image_storage": image_storage,
@@ -84,8 +87,11 @@ class PointFactory:
                 ocr_result = ocr_results[offset]
                 if ocr_result and isinstance(ocr_result, dict):
                     ocr_url = ocr_result.get("ocr_url")
+                    ocr_regions = ocr_result.get("ocr_regions", [])
                     if ocr_url:
                         payload["ocr_url"] = ocr_url
+                    if ocr_regions:
+                        payload["ocr_regions"] = ocr_regions
             else:
                 # Fallback to meta-based OCR (for backwards compatibility)
                 ocr_summary = meta.get("ocr") if isinstance(meta, dict) else None

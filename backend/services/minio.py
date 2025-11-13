@@ -271,11 +271,11 @@ class MinioService:
                     used_fmt = processed.format
                     content_type = processed.content_type
 
-                    # Storage structure: {filename}/{page_num}/page.{ext}
+                    # Storage structure: {filename}/{page_num}/image/{uuid}.{ext}
                     ext = used_fmt.lower()
                     if ext == "jpeg":
                         ext = "jpg"
-                    object_name = f"{filename}/{page_num}/page.{ext}"
+                    object_name = f"{filename}/{page_num}/image/{img_id}.{ext}"
 
                     self.service.put_object(
                         bucket_name=self.bucket_name,
@@ -285,7 +285,7 @@ class MinioService:
                         content_type=content_type,
                     )
                     return img_id, self._get_image_url(object_name)
-                except Exception as e:
+                except Exception:
                     if attempt > retries + 1:
                         raise
                     # Exponential backoff with jitter
@@ -397,7 +397,7 @@ class MinioService:
                         content_type=content_type,
                     )
                     return img_id, self._get_image_url(object_name)
-                except Exception as e:
+                except Exception:
                     if attempt > retries + 1:
                         raise
                     # Exponential backoff with jitter

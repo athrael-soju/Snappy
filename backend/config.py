@@ -6,8 +6,10 @@ Values can be updated at runtime via the configuration API.
 Defaults and types are defined in config_schema.py (single source of truth).
 """
 
+import logging
 import os
 import re
+import threading
 from typing import Any
 
 from config_schema import get_config_defaults
@@ -22,6 +24,13 @@ _runtime = get_runtime_config()
 # Get configuration defaults from schema (single source of truth)
 _CONFIG_DEFAULTS = get_config_defaults()
 
+# Thread-safe recursion detection for __getattr__
+_thread_local = threading.local()
+_MAX_LOOKUP_DEPTH = 10
+
+# Logger for config errors
+logger = logging.getLogger(__name__)
+
 
 def _slugify_bucket_name(name: str) -> str:
     sanitized = re.sub(r"[^a-z0-9-]+", "-", name.lower())
@@ -35,18 +44,32 @@ def _get_auto_bucket_name() -> str:
 
 
 def _get_auto_minio_workers() -> int:
-    cpu = os.cpu_count() or 4
-    if cpu <= 4:
-        base = 4
-    elif cpu <= 8:
-        base = 6
-    elif cpu <= 16:
-        base = 10
-    else:
-        base = 14
-    concurrency = get_pipeline_max_concurrency()
-    workers = base + max(0, concurrency - 1) * 2
-    return max(4, min(32, workers))
+    """Auto-calculate MinIO workers with safety checks."""
+    try:
+        cpu = os.cpu_count() or 4
+        if cpu <= 4:
+            base = 4
+        elif cpu <= 8:
+            base = 6
+        elif cpu <= 16:
+            base = 10
+        else:
+            base = 14
+
+        # Safely get concurrency without circular calls
+        try:
+            concurrency = get_pipeline_max_concurrency()
+        except (AttributeError, RecursionError) as e:
+            logger.warning(
+                f"Could not determine pipeline concurrency: {e}, using default"
+            )
+            concurrency = 1
+
+        workers = base + max(0, concurrency - 1) * 2
+        return max(4, min(32, workers))
+    except Exception as e:
+        logger.error(f"Error calculating MINIO_WORKERS: {e}, using default")
+        return 4
 
 
 def _get_auto_minio_retries(workers: int) -> int:
@@ -61,9 +84,28 @@ def _get_auto_minio_retries(workers: int) -> int:
 
 def __getattr__(name: str) -> Any:
     """
-    Dynamically retrieve configuration values.
+    Dynamically retrieve configuration values with thread-safe recursion detection.
     This allows config values to be accessed like module constants but read from runtime config.
     """
+    # Initialize thread-local depth if not present
+    if not hasattr(_thread_local, "depth"):
+        _thread_local.depth = 0
+
+    # Detect excessive recursion (per-thread)
+    if _thread_local.depth > _MAX_LOOKUP_DEPTH:
+        raise RecursionError(
+            f"Config lookup recursion detected for '{name}' (depth > {_MAX_LOOKUP_DEPTH})"
+        )
+
+    _thread_local.depth += 1
+    try:
+        return _getattr_impl(name)
+    finally:
+        _thread_local.depth -= 1
+
+
+def _getattr_impl(name: str) -> Any:
+    """Implementation of dynamic attribute lookup."""
     if name in _CONFIG_DEFAULTS:
         type_str, default = _CONFIG_DEFAULTS[name]
 
@@ -106,11 +148,17 @@ def get_ingestion_worker_threads() -> int:
 
 def get_pipeline_max_concurrency() -> int:
     """Estimate concurrent pipeline batches based on hardware and batch size."""
-    if not __getattr__("ENABLE_AUTO_CONFIG_MODE"):
+    try:
+        if not __getattr__("ENABLE_AUTO_CONFIG_MODE"):
+            return 1
+        batch_size = max(1, __getattr__("BATCH_SIZE"))
+        cpu = os.cpu_count() or 4
+        # Aim for at least 2 workers when batches are large enough and hardware permits
+        base = 1 if batch_size < 4 else 2
+        workers = max(base, min(4, cpu // 2))
+        return max(1, workers)
+    except (AttributeError, RecursionError) as e:
+        logger.warning(
+            f"Error determining pipeline max concurrency: {e}, using default"
+        )
         return 1
-    batch_size = max(1, __getattr__("BATCH_SIZE"))
-    cpu = os.cpu_count() or 4
-    # Aim for at least 2 workers when batches are large enough and hardware permits
-    base = 1 if batch_size < 4 else 2
-    workers = max(base, min(4, cpu // 2))
-    return max(1, workers)

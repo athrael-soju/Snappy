@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import type { Stream } from "openai/streaming";
 import { documentSearchTool } from "@/lib/api/functions/document_search";
 import type { ReasoningEffort } from "@/lib/chat/types";
+import type { Message, StreamEvent } from "@/lib/chat/openai-types";
 
 export const MODEL = process.env.OPENAI_MODEL || "gpt-5-nano";
 export const TEMPERATURE = parseFloat(process.env.OPENAI_TEMPERATURE || "1");
@@ -20,7 +21,7 @@ export function getOpenAIClient(): OpenAI {
 }
 
 type CreateResponseBaseParams = {
-    input: any[];
+    input: Message[];
     instructions: string;
     reasoningEffort: ReasoningEffort;
 };
@@ -31,7 +32,8 @@ export async function createInitialToolResponse(params: CreateResponseBaseParams
     return client.responses.create({
         model: MODEL,
         tools: [documentSearchTool],
-        input: input as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        input: input as any, // OpenAI SDK accepts complex message format
         instructions,
         temperature: TEMPERATURE,
         parallel_tool_calls: false,
@@ -39,12 +41,13 @@ export async function createInitialToolResponse(params: CreateResponseBaseParams
     });
 }
 
-export async function createStreamingResponse(params: CreateResponseBaseParams & { withTools: boolean }): Promise<Stream<any>> {
+export async function createStreamingResponse(params: CreateResponseBaseParams & { withTools: boolean }): Promise<Stream<StreamEvent>> {
     const { input, instructions, reasoningEffort, withTools } = params;
     const client = getOpenAIClient();
     const payload: Record<string, unknown> = {
         model: MODEL,
-        input: input as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        input: input as any, // OpenAI SDK accepts complex message format
         instructions,
         temperature: TEMPERATURE,
         parallel_tool_calls: false,
@@ -56,5 +59,5 @@ export async function createStreamingResponse(params: CreateResponseBaseParams &
         payload.tools = [documentSearchTool];
     }
 
-    return client.responses.create(payload) as unknown as Promise<Stream<any>>;
+    return client.responses.create(payload) as unknown as Promise<Stream<StreamEvent>>;
 }

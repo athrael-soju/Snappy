@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
+import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
@@ -52,9 +53,9 @@ class OcrStorageHandler:
         page_number: int,
         *,
         metadata: Optional[Dict[str, Any]] = None,
-    ) -> str:
+    ) -> Dict[str, Any]:
         """
-        Store OCR result to MinIO.
+        Store OCR result to MinIO with UUID-based naming.
 
         Args:
             ocr_result: Processed OCR result from OcrProcessor
@@ -63,7 +64,11 @@ class OcrStorageHandler:
             metadata: Optional additional metadata
 
         Returns:
-            Public URL of stored JSON
+            Dictionary with ocr_url and ocr_regions array:
+            {
+                "ocr_url": "URL to full OCR JSON",
+                "ocr_regions": [{"label": "text", "url": "...", "id": "..."}, ...]
+            }
         """
         # Process extracted images if processor is available
         extracted_images_urls: List[str] = []
@@ -95,9 +100,15 @@ class OcrStorageHandler:
                     exc_info=True,
                 )
 
-        # Attach extracted image metadata to regions when available
+        # Generate UUIDs for regions and store individual region JSON files
+        ocr_regions_metadata: List[Dict[str, str]] = []
         if regions:
-            for region in regions:
+            for idx, region in enumerate(regions):
+                # Generate unique ID for this region
+                region_id = str(uuid.uuid4())
+                region["id"] = region_id
+
+                # Attach extracted image metadata if available
                 image_idx = region.pop("image_index", None)
                 if isinstance(image_idx, int) and 0 <= image_idx < len(
                     extracted_images_urls
@@ -106,6 +117,38 @@ class OcrStorageHandler:
                     region["image_storage"] = "minio"
                     region["image_inline"] = False
 
+                # Store individual region JSON file in ocr_regions/ subfolder
+                region_json_filename = f"ocr_regions/region_{region_id}.json"
+
+                region_payload = {
+                    "id": region_id,
+                    "label": region.get("label", "unknown"),
+                    "bbox": region.get("bbox", []),
+                    "content": region.get("content", ""),
+                    "image_url": region.get("image_url"),
+                    "image_storage": region.get("image_storage"),
+                    "image_inline": region.get("image_inline", False),
+                }
+
+                try:
+                    region_url = self._minio.store_json(
+                        payload=region_payload,
+                        filename=filename,
+                        page_number=page_number,
+                        json_filename=region_json_filename,
+                    )
+
+                    # Build metadata for Qdrant payload
+                    ocr_regions_metadata.append(
+                        {
+                            "label": region.get("label", "unknown"),
+                            "url": region_url,
+                            "id": region_id,
+                        }
+                    )
+                except Exception as exc:
+                    logger.warning(f"Failed to store region {region_id} JSON: {exc}")
+
         figure_url_map = {idx + 1: url for idx, url in enumerate(extracted_images_urls)}
         if figure_url_map:
             for field in ("markdown", "text"):
@@ -113,12 +156,15 @@ class OcrStorageHandler:
                     ocr_result.get(field, ""), figure_url_map
                 )
 
-        json_filename = "elements.json"
+        # Generate UUID for full OCR JSON file in ocr/ subfolder
+        ocr_uuid = str(uuid.uuid4())
+        json_filename = f"ocr/{ocr_uuid}.json"
         object_name = f"{filename}/{page_number}/{json_filename}"
         storage_url = self._minio._get_image_url(object_name)
 
         # Build storage payload
         payload = {
+            "id": ocr_uuid,
             "provider": "deepseek-ocr",
             "version": "1.0",
             "filename": filename,
@@ -155,7 +201,7 @@ class OcrStorageHandler:
                 {"url": url, "storage": "minio"} for url in extracted_images_urls
             ]
 
-        # Store to MinIO: {filename}/{page_number}/elements.json
+        # Store full OCR JSON to MinIO with UUID name
         url = self._minio.store_json(
             payload=payload,
             filename=filename,
@@ -203,7 +249,10 @@ class OcrStorageHandler:
                     f"Failed to store OCR result in DuckDB (non-blocking): {exc}"
                 )
 
-        return url
+        return {
+            "ocr_url": url,
+            "ocr_regions": ocr_regions_metadata,
+        }
 
     def fetch_ocr_result(
         self, filename: str, page_number: int
@@ -217,22 +266,40 @@ class OcrStorageHandler:
 
         Returns:
             OCR result dictionary or None if not found
+
+        Note:
+            This method is deprecated with UUID-based storage. Use the ocr_url
+            from Qdrant payload instead of constructing the path.
         """
         try:
             import json
 
-            # MinIO structure: {filename}/{page_number}/elements.json
-            object_name = f"{filename}/{page_number}/elements.json"
+            # List files in ocr/ subfolder
+            prefix = f"{filename}/{page_number}/ocr/"
 
-            response = self._minio.service.get_object(
+            for obj in self._minio.service.list_objects(
                 bucket_name=self._minio.bucket_name,
-                object_name=object_name,
-            )
+                prefix=prefix,
+            ):
+                obj_name = getattr(obj, "object_name", "")
+                if obj_name and obj_name.endswith(".json"):
+                    # Found OCR JSON
+                    response = self._minio.service.get_object(
+                        bucket_name=self._minio.bucket_name,
+                        object_name=obj_name,
+                    )
+                    return json.loads(response.read())
 
-            return json.loads(response.read())
+            # No OCR result found
+            logger.warning(
+                f"OCR result not found for {filename} page {page_number} in ocr/ subfolder"
+            )
+            return None
+
         except Exception as exc:
-            logger.debug(
-                f"OCR result not available for {filename} page {page_number}: {exc}"
+            logger.error(
+                f"Failed to fetch OCR result for {filename} page {page_number}: {exc}",
+                exc_info=True,
             )
             return None
 

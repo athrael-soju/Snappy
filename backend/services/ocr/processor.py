@@ -241,16 +241,31 @@ class OcrProcessor:
     def _fetch_page_image(
         self, minio_service: "MinioService", filename: str, page_number: int
     ) -> bytes:
-        """Fetch page image bytes from MinIO."""
-        ext = self._image_processor.get_extension()
-        object_name = f"{filename}/{page_number}/page.{ext}"
+        """Fetch page image bytes from MinIO.
 
-        response = minio_service.service.get_object(
+        Note: With UUID-based naming, we need to list objects in the image/ subfolder
+        to find the page image since we don't have the UUID readily available.
+        """
+        # List objects in the image/ subfolder for this page
+        prefix = f"{filename}/{page_number}/image/"
+
+        for obj in minio_service.service.list_objects(
             bucket_name=minio_service.bucket_name,
-            object_name=object_name,
-        )
+            prefix=prefix,
+        ):
+            object_name = getattr(obj, "object_name", "")
+            if object_name:
+                # Found the page image, fetch it
+                response = minio_service.service.get_object(
+                    bucket_name=minio_service.bucket_name,
+                    object_name=object_name,
+                )
+                return response.read()
 
-        return response.read()
+        # No image found
+        raise FileNotFoundError(
+            f"Page image not found for {filename} page {page_number} in image/ subfolder"
+        )
 
     def _split_segments(self, text: str) -> List[str]:
         """Split OCR text into distinct segments."""
@@ -393,9 +408,9 @@ class OcrProcessor:
                 # Process image
                 processed = self._image_processor.process(pil_image)
 
-                # Storage structure: {filename}/{page_number}/figure_{idx}.{ext}
+                # Storage structure: {filename}/{page_number}/ocr_regions/figure_{idx}.{ext}
                 ext = self._image_processor.get_extension()
-                object_name = f"{filename}/{page_number}/figure_{idx}.{ext}"
+                object_name = f"{filename}/{page_number}/ocr_regions/figure_{idx}.{ext}"
 
                 # Upload to MinIO
                 buf = processed.to_buffer()

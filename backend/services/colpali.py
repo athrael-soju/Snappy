@@ -1,6 +1,6 @@
 import io
 import logging
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Union
 
 import numpy as np
 import requests
@@ -60,6 +60,91 @@ class ColPaliService:
             self._logger.error(f"Failed to get API info: {e}")
             return {}
 
+    def _validate_patch_results(
+        self, results: list, expected_count: int
+    ) -> List[dict[str, Union[int, str]]]:
+        """Validate patch results from ColPali API.
+
+        Args:
+            results: Raw results from API
+            expected_count: Expected number of results
+
+        Returns:
+            Validated results
+
+        Raises:
+            ValueError: If results are malformed
+        """
+        if not isinstance(results, list):
+            raise ValueError(f"Expected list, got {type(results)}")
+
+        if len(results) != expected_count:
+            raise ValueError(f"Expected {expected_count} results, got {len(results)}")
+
+        for i, result in enumerate(results):
+            if not isinstance(result, dict):
+                raise ValueError(f"Result {i} is not a dict: {type(result)}")
+
+            if "error" in result:
+                raise ValueError(f"Result {i} contains error: {result['error']}")
+
+            for key in ["n_patches_x", "n_patches_y"]:
+                if key not in result:
+                    raise ValueError(f"Result {i} missing required key: {key}")
+                if not isinstance(result[key], int):
+                    raise ValueError(
+                        f"Result {i} key {key} is not int: {type(result[key])}"
+                    )
+
+        return results
+
+    def _validate_embeddings(
+        self, embeddings: list, expected_count: int, context: str = "embeddings"
+    ) -> List[List[List[float]]]:
+        """Validate embeddings from ColPali API.
+
+        Args:
+            embeddings: Raw embeddings from API
+            expected_count: Expected number of embeddings
+            context: Context for error messages
+
+        Returns:
+            Validated embeddings
+
+        Raises:
+            ValueError: If embeddings are malformed
+        """
+        if not isinstance(embeddings, list):
+            raise ValueError(f"{context}: Expected list, got {type(embeddings)}")
+
+        if len(embeddings) != expected_count:
+            raise ValueError(
+                f"{context}: Expected {expected_count} embeddings, got {len(embeddings)}"
+            )
+
+        for i, embedding in enumerate(embeddings):
+            if not isinstance(embedding, list):
+                raise ValueError(
+                    f"{context}: Embedding {i} is not a list: {type(embedding)}"
+                )
+
+            if not embedding:
+                raise ValueError(f"{context}: Embedding {i} is empty")
+
+            # Validate each vector in the embedding
+            for j, vector in enumerate(embedding):
+                if not isinstance(vector, list):
+                    raise ValueError(
+                        f"{context}: Embedding {i} vector {j} is not a list"
+                    )
+                # Validate each element is numeric
+                if not all(isinstance(v, (int, float)) for v in vector):
+                    raise ValueError(
+                        f"{context}: Embedding {i} vector {j} contains non-numeric values"
+                    )
+
+        return embeddings
+
     def get_patches(
         self, dimensions: List[dict[str, int]]
     ) -> List[dict[str, Union[int, str]]]:
@@ -80,7 +165,9 @@ class ColPaliService:
             result = response.json()
             if "results" not in result:
                 raise KeyError("Missing 'results' in ColPali /patches response")
-            return result["results"]
+
+            # Validate response structure
+            return self._validate_patch_results(result["results"], len(dimensions))
         except Exception as e:
             raise Exception(f"Failed to get patches: {e}")
 
@@ -109,29 +196,47 @@ class ColPaliService:
                 raise KeyError(
                     "Missing 'embeddings' in ColPali /embed/queries response"
                 )
-            return result["embeddings"]
+
+            # Validate embeddings structure
+            return self._validate_embeddings(
+                result["embeddings"], query_count, "query embeddings"
+            )
         except Exception as e:
             self._logger.error(f"Failed to embed queries: {e}")
             raise
 
     def _encode_image_to_bytes(self, image: Image.Image, idx: int) -> tuple:
-        """Encode a single image to bytes (for parallel execution)"""
+        """Encode a single image to bytes (for parallel execution)
+
+        Returns a tuple with bytes data instead of open buffer to prevent resource leaks.
+        """
         img_byte_arr = io.BytesIO()
-        image.save(img_byte_arr, format="PNG")
-        img_byte_arr.seek(0)
-        return ("files", (f"image_{idx}.png", img_byte_arr, "image/png"))
+        try:
+            image.save(img_byte_arr, format="PNG")
+            img_byte_arr.seek(0)
+            # Read into bytes to avoid passing open buffer
+            data = img_byte_arr.getvalue()
+            return ("files", (f"image_{idx}.png", io.BytesIO(data), "image/png"))
+        finally:
+            img_byte_arr.close()
 
     @log_execution_time("embed images", log_level=logging.INFO, warn_threshold_ms=5000)
-    def embed_images(self, images: List[Image.Image]) -> List[List[List[float]]]:
+    def embed_images(self, images: List[Image.Image]) -> List[dict[str, Any]]:
         """
-        Generate embeddings for images
+        Generate embeddings for images with proper resource cleanup
 
         Args:
             images: List of PIL Image objects
 
         Returns:
-            List of embeddings (each embedding is a list of vectors)
+            List of ImageEmbeddingItem dicts containing:
+            - embedding: List[List[float]] - The actual embedding vectors
+            - image_patch_start: int - Index where image tokens begin
+            - image_patch_len: int - Number of image tokens
+            - image_patch_indices: List[int] - Explicit positions of image tokens
         """
+        files = []
+        buffers = []  # Track all BytesIO objects for cleanup
         try:
             self._logger.debug(f"Embedding {len(images)} images via ColPali API")
 
@@ -146,17 +251,49 @@ class ColPaliService:
                     )
                 )
 
+            # Extract all BytesIO buffers for explicit tracking
+            buffers = [buf for _, (_, buf, _) in files]
+
             response = self.session.post(
                 f"{self.base_url}/embed/images", files=files, timeout=self.timeout
             )
             response.raise_for_status()
             result = response.json()
+
+            # Log response structure for debugging
             if "embeddings" not in result:
+                self._logger.error(
+                    f"ColPali API response missing 'embeddings' key. Response keys: {list(result.keys())}"
+                )
                 raise KeyError("Missing 'embeddings' in ColPali /embed/images response")
-            return result["embeddings"]
+
+            embeddings = result["embeddings"]
+
+            # Check if embeddings is a list
+            if not isinstance(embeddings, list):
+                self._logger.error(
+                    f"ColPali API returned unexpected type: {type(embeddings)}. Expected list, got: {result}"
+                )
+                if isinstance(embeddings, dict) and "error" in embeddings:
+                    raise ValueError(f"ColPali API error: {embeddings['error']}")
+                raise ValueError(
+                    f"ColPali API returned unexpected type for embeddings: {type(embeddings)}"
+                )
+
+            # Return embeddings as-is (new format: [{"embedding": [[...]], "image_patch_start": 0, ...}])
+            # The embedding processor will handle extraction
+            return embeddings
         except Exception as e:
             self._logger.error(f"Failed to embed images: {e}")
             raise
+        finally:
+            # Explicitly close all file buffers to prevent resource leaks
+            for buf in buffers:
+                try:
+                    buf.close()
+                except Exception:
+                    # Silently ignore errors during cleanup
+                    pass
 
     def embed_images_batch(
         self, images: List[Image.Image], batch_size: int = 4

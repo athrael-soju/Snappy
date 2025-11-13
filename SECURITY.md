@@ -35,8 +35,8 @@ We provide security updates for the following versions:
 
 If you discover a security vulnerability, please **do not** open a public GitHub issue. Instead:
 
-1. **Email us directly** at: `security@yourdomain.com` (or create a private security advisory on GitHub)
-2. **Use GitHub Security Advisories**: Navigate to the [Security tab](https://github.com/athrael-soju/Snappy/security/advisories) and click "Report a vulnerability"
+1. **Use GitHub Security Advisories**: Navigate to the [Security tab](https://github.com/athrael-soju/Snappy/security/advisories) and click "Report a vulnerability"
+2. **Contact the maintainers** directly via GitHub or create a private security advisory
 
 ### What to Include
 
@@ -461,7 +461,7 @@ Once a fix is released:
 
 For security-related inquiries:
 
-- **Security Reports**: Use GitHub Security Advisories or email security@yourdomain.com
+- **Security Reports**: Use GitHub Security Advisories, or email athrael.soju@gmail.com
 - **General Questions**: Open a GitHub Discussion
 - **Non-Security Issues**: Create a GitHub Issue
 
@@ -473,6 +473,6 @@ We thank the security researchers and community members who help keep Snappy sec
 
 ---
 
-**Last Updated:** October 23, 2025  
-**Next Review:** January 23, 2026  
+**Last Updated:** November 13, 2025
+**Next Review:** TBA
 **License:** [MIT](LICENSE)

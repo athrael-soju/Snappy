@@ -1,6 +1,7 @@
 "use client";
 
-import type { ChangeEvent, FormEvent } from "react";
+import type { ChangeEvent, FormEvent, Ref } from "react";
+import { forwardRef } from "react";
 import { motion } from "framer-motion";
 import { Loader2, Send, Settings, Trash2, AlertCircle } from "lucide-react";
 import { AppButton } from "@/components/app-button";
@@ -33,7 +34,7 @@ export type ChatComposerProps = {
     hasMessages: boolean;
 };
 
-export function ChatComposer({
+export const ChatComposer = forwardRef<HTMLTextAreaElement, ChatComposerProps>(function ChatComposer({
     input,
     onInputChange,
     isReady,
@@ -52,7 +53,7 @@ export function ChatComposer({
     error,
     onReset,
     hasMessages,
-}: ChatComposerProps) {
+}: ChatComposerProps, ref: Ref<HTMLTextAreaElement>) {
     const handleNumberChange = (
         event: ChangeEvent<HTMLInputElement>,
         setter: (value: number) => void,
@@ -78,6 +79,7 @@ export function ChatComposer({
                         <div className="flex-1">
                             <div className="rounded-3xl border border-border/30 bg-input/10 transition focus-within:border-primary/40 focus-within:shadow-lg focus-within:shadow-primary/10">
                                 <Textarea
+                                    ref={ref}
                                     id="chat-input-area"
                                     value={input}
                                     onChange={(event) => onInputChange(event.target.value)}
@@ -237,4 +239,4 @@ export function ChatComposer({
             </div>
         </motion.form>
     );
-}
+});

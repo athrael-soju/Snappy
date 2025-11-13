@@ -32,7 +32,7 @@ async def clear_qdrant():
         if not svc:
             raise HTTPException(
                 status_code=503,
-                detail=f"Service unavailable: {qdrant_init_error or 'Dependency services are down'}",
+                detail=f"Service unavailable: {qdrant_init_error.get() or 'Dependency services are down'}",
             )
 
         with PerformanceTimer("clear Qdrant collection", log_on_exit=False) as timer:
@@ -71,7 +71,7 @@ async def clear_minio():
         if not msvc:
             raise HTTPException(
                 status_code=503,
-                detail=f"Service unavailable: {minio_init_error or 'Dependency services are down'}",
+                detail=f"Service unavailable: {minio_init_error.get() or 'Dependency services are down'}",
             )
 
         with PerformanceTimer("clear MinIO storage", log_on_exit=False) as timer:

@@ -99,6 +99,7 @@ class ImageStorageHandler:
                     "image_url": image_url,
                     "image_inline": False,
                     "image_storage": "minio",
+                    "page_id": image_id,
                 }
             )
 

@@ -1,8 +1,9 @@
 import type { SearchItem } from "@/lib/api/generated/models/SearchItem";
+import type { StreamEvent } from "./openai-types";
 import { logger } from "@/lib/utils/logger";
 
 type CreateSSEStreamParams = {
-    stream: AsyncIterable<any>;
+    stream: AsyncIterable<StreamEvent>;
     kbItems: SearchItem[] | null;
     onError?: (error: unknown) => void;
 };
@@ -21,7 +22,7 @@ export function createSSEStream({ stream, kbItems, onError }: CreateSSEStreamPar
                 await writer.write(encoder.encode(`data: ${kbPayload}\n\n`));
             }
 
-            for await (const event of stream as any) {
+            for await (const event of stream) {
                 const payload = JSON.stringify({ event: event.type, data: event });
                 await writer.write(encoder.encode(`data: ${payload}\n\n`));
             }

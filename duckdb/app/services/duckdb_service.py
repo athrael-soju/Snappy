@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
@@ -53,8 +54,32 @@ class DuckDBAnalyticsService:
         )
 
     def _count_table(self, table: str) -> int:
-        result = self.conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
+        """Count rows in a table with SQL injection protection."""
+        # Whitelist of allowed table names
+        allowed_tables = {"ocr_pages", "ocr_regions"}
+        if table not in allowed_tables:
+            raise ValueError(f"Invalid table name: {table}")
+
+        # Use identifier quoting for additional safety
+        result = self.conn.execute(f'SELECT COUNT(*) FROM "{table}"').fetchone()
         return int(result[0]) if result else 0
+
+    def _strip_block_comments(self, sql: str) -> str:
+        """Remove /* */ comments with a linear scan to avoid regex backtracking."""
+        cleaned: List[str] = []
+        i = 0
+        length = len(sql)
+        while i < length:
+            if sql[i : i + 2] == "/*":
+                end = sql.find("*/", i + 2)
+                if end == -1:
+                    cleaned.append(sql[i:])
+                    break
+                i = end + 2
+                continue
+            cleaned.append(sql[i])
+            i += 1
+        return "".join(cleaned)
 
     def _schema_exists(self) -> bool:
         try:
@@ -416,10 +441,36 @@ class DuckDBAnalyticsService:
         if not query:
             raise ValueError("Query is required")
 
-        query_upper = query.upper()
+        # Limit input length to prevent resource exhaustion
+        MAX_QUERY_LENGTH = 100_000
+        if len(query) > MAX_QUERY_LENGTH:
+            raise ValueError(f"Query exceeds maximum length of {MAX_QUERY_LENGTH} characters")
+
+        # Remove SQL comments to prevent bypasses
+        # Remove single-line comments (--)
+        query_no_comments = "\n".join(line.split("--")[0] for line in query.split("\n"))
+        # Remove multi-line comments (/* */) without regex backtracking
+        query_no_comments = self._strip_block_comments(query_no_comments)
+        query_no_comments = query_no_comments.strip()
+
+        if not query_no_comments:
+            raise ValueError("Query is empty after removing comments")
+
+        # Check for multiple statements (prevents injection via semicolons)
+        if query_no_comments.count(";") > 1 or (
+            ";" in query_no_comments and not query_no_comments.rstrip().endswith(";")
+        ):
+            raise ValueError("Multiple SQL statements are not allowed")
+
+        # Normalize whitespace for validation
+        query_normalized = " ".join(query_no_comments.split())
+        query_upper = query_normalized.upper()
+
+        # Verify it starts with SELECT
         if not query_upper.startswith("SELECT"):
             raise ValueError("Only SELECT queries are allowed")
 
+        # Check for dangerous keywords (after comment removal)
         dangerous_keywords = [
             "DROP",
             "DELETE",
@@ -428,11 +479,17 @@ class DuckDBAnalyticsService:
             "CREATE",
             "INSERT",
             "UPDATE",
+            "EXEC",
+            "EXECUTE",
+            "PRAGMA",
         ]
         for keyword in dangerous_keywords:
-            if keyword in query_upper:
+            # Use word boundaries to avoid false positives
+            pattern = r"\b" + keyword + r"\b"
+            if re.search(pattern, query_upper):
                 raise ValueError(f"Query contains forbidden keyword: {keyword}")
 
+        # Add LIMIT if not present
         if "LIMIT" not in query_upper:
             query = f"{query.rstrip(';')} LIMIT {request.limit}"
 

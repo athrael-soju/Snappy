@@ -6,7 +6,6 @@ import config  # Import module for dynamic config access
 from api.dependencies import get_duckdb_service, get_qdrant_service, qdrant_init_error
 from api.models import SearchItem
 from fastapi import APIRouter, HTTPException, Query
-from utils.timing import PerformanceTimer
 
 logger = logging.getLogger(__name__)
 
@@ -34,30 +33,33 @@ async def search(
 
     svc = get_qdrant_service()
     if not svc:
+        error_msg = qdrant_init_error.get() or "Dependency services are down"
         logger.error(
             "Qdrant service unavailable",
             extra={
                 "operation": "search",
-                "error": qdrant_init_error or "Dependency services are down",
+                "error": error_msg,
             },
         )
         raise HTTPException(
             status_code=503,
-            detail=f"Service unavailable: {qdrant_init_error or 'Dependency services are down'}",
+            detail=f"Service unavailable: {error_msg}",
         )
 
     try:
-        with PerformanceTimer(
-            "search with metadata", log_on_exit=False
-        ) as search_timer:
-            items = await asyncio.to_thread(svc.search_with_metadata, q, top_k)
+        # Use simple timing to avoid blocking event loop with PerformanceTimer
+        import time
+
+        start_time = time.perf_counter()
+        items = await asyncio.to_thread(svc.search_with_metadata, q, top_k)
+        duration_ms = (time.perf_counter() - start_time) * 1000
 
         logger.info(
             "Qdrant search completed",
             extra={
                 "operation": "search",
                 "result_count": len(items),
-                "duration_ms": search_timer.duration_ms,
+                "duration_ms": duration_ms,
             },
         )
 

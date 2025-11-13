@@ -269,7 +269,8 @@ class BatchProcessor:
             }
 
             # Store OCR results with metadata
-            storage_url = self.ocr_service.storage.store_ocr_result(
+            # Returns: {"ocr_url": "...", "ocr_regions": [{"label": "...", "url": "...", "id": "..."}]}
+            storage_result = self.ocr_service.storage.store_ocr_result(
                 ocr_result=ocr_result,
                 filename=filename,
                 page_number=page_num,
@@ -277,9 +278,10 @@ class BatchProcessor:
             )
 
             return {
-                "ocr_url": storage_url,
+                "ocr_url": storage_result.get("ocr_url"),
+                "ocr_regions": storage_result.get("ocr_regions", []),
                 "text_preview": ocr_result.get("text", "")[:200],
-                "regions": len(ocr_result.get("regions", [])),
+                "region_count": len(ocr_result.get("regions", [])),
             }
 
         except Exception as exc:

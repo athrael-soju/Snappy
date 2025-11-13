@@ -2,6 +2,7 @@
 Image processing utilities for bounding boxes and annotations.
 """
 
+import ast
 import base64
 import re
 from io import BytesIO
@@ -73,7 +74,12 @@ def draw_bounding_boxes(
             )
 
         color = color_map[label]
-        coords = eval(ref[2])  # Parse coordinate string
+        # Use ast.literal_eval() for safe parsing (prevents code injection)
+        try:
+            coords = ast.literal_eval(ref[2])
+        except (ValueError, SyntaxError) as e:
+            logger.error(f"Failed to parse coordinates '{ref[2]}': {e}")
+            continue  # Skip this reference if coordinates are malformed
         color_a = color + (60,)  # Semi-transparent version
 
         for box in coords:

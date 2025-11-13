@@ -40,6 +40,7 @@ export default function ChatPage() {
   const [lightboxSrc, setLightboxSrc] = useState<string>("");
   const [lightboxAlt, setLightboxAlt] = useState<string | null>(null);
 
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -60,10 +61,7 @@ export default function ChatPage() {
 
   const handleSuggestionClick = (prompt: string) => {
     setInput(prompt);
-    const area = document.getElementById("chat-input-area");
-    if (area instanceof HTMLTextAreaElement) {
-      area.focus();
-    }
+    textareaRef.current?.focus();
   };
 
   const handleCitationOpen = (url: string, label?: string | null) => {
@@ -184,6 +182,7 @@ export default function ChatPage() {
           </section>
 
           <ChatComposer
+            ref={textareaRef}
             input={input}
             onInputChange={setInput}
             isReady={isReady}
