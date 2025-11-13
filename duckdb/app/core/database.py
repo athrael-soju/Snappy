@@ -29,7 +29,6 @@ class DuckDBManager:
             )
 
         db_path = Path(settings.DUCKDB_DATABASE_PATH)
-        self._cleanup_wal(db_path)
         db_path.parent.mkdir(parents=True, exist_ok=True)
 
         logger.info("Initializing DuckDB database at %s", db_path)
@@ -119,9 +118,21 @@ class DuckDBManager:
         logger.info("DuckDB schema ready")
 
     def close(self) -> None:
-        """Close the DuckDB connection and stop the UI server."""
+        """Close the DuckDB connection and stop the UI server.
+
+        This method ensures all uncommitted transactions are flushed to disk
+        by executing CHECKPOINT before closing the connection.
+        """
         if not self._connection:
             return
+
+        try:
+            # Force a checkpoint to flush WAL to the main database file
+            # This prevents data loss if the WAL is removed before replay
+            self._connection.execute("CHECKPOINT;")
+            logger.info("DuckDB checkpoint completed")
+        except Exception as exc:  # pragma: no cover - best effort logging
+            logger.warning("DuckDB checkpoint warning: %s", exc)
 
         try:
             self._connection.execute("CALL stop_ui_server();")
@@ -150,16 +161,6 @@ class DuckDBManager:
         if not self._connection:
             self.connect(force=True)
         self._create_schema()
-
-    @staticmethod
-    def _cleanup_wal(db_path: Path) -> None:
-        wal_path = db_path.with_suffix(db_path.suffix + ".wal")
-        if wal_path.exists():
-            try:
-                wal_path.unlink()
-                logger.info("Removed stale DuckDB WAL file at %s", wal_path)
-            except OSError as exc:  # pragma: no cover - best effort
-                logger.warning("Failed to remove WAL file %s: %s", wal_path, exc)
 
 
 db_manager = DuckDBManager()
