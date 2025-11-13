@@ -361,8 +361,41 @@ export function useFileUpload() {
           throw new Error(`Failed to start indexing: ${startRes.status} ${t}`);
         }
 
-        const startData = await startRes.json();
-        const startedJobId: string = startData.job_id;
+        const startData = (await startRes.json()) as {
+          status?: string;
+          message?: string;
+          job_id?: string;
+          total?: number;
+          skipped_count?: number;
+          skipped_files?: string[];
+        };
+
+        // Handle case where all documents were already indexed (duplicates)
+        if (startData.status === "completed" && !startData.job_id) {
+          const skippedCount = startData.skipped_count || 0;
+          const skippedFiles = startData.skipped_files || [];
+          const message = startData.message || "All documents already indexed";
+
+          setMessage(message);
+          setStatusText(null);
+          setProgress(100);
+          setUploading(false);
+          setFiles(null);
+
+          toast.info("Documents Already Indexed", {
+            description: skippedCount > 0
+              ? `${skippedCount} file${skippedCount === 1 ? "" : "s"} already in the system: ${skippedFiles.join(", ")}`
+              : message,
+          });
+
+          logger.info('Upload skipped: all documents already indexed', {
+            skippedCount,
+            skippedFiles
+          });
+          return;
+        }
+
+        const startedJobId: string = startData.job_id || "";
         const total: number = Number(startData.total ?? 0);
         setJobId(startedJobId);
         setStatusText(total > 0 ? `Queued ${total} pages` : "Preparing documents...");
