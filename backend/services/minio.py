@@ -285,7 +285,7 @@ class MinioService:
                         content_type=content_type,
                     )
                     return img_id, self._get_image_url(object_name)
-                except Exception as e:
+                except Exception:
                     if attempt > retries + 1:
                         raise
                     # Exponential backoff with jitter
@@ -397,7 +397,7 @@ class MinioService:
                         content_type=content_type,
                     )
                     return img_id, self._get_image_url(object_name)
-                except Exception as e:
+                except Exception:
                     if attempt > retries + 1:
                         raise
                     # Exponential backoff with jitter

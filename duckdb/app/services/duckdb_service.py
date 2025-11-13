@@ -53,7 +53,14 @@ class DuckDBAnalyticsService:
         )
 
     def _count_table(self, table: str) -> int:
-        result = self.conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
+        """Count rows in a table with SQL injection protection."""
+        # Whitelist of allowed table names
+        allowed_tables = {"ocr_pages", "ocr_regions"}
+        if table not in allowed_tables:
+            raise ValueError(f"Invalid table name: {table}")
+
+        # Use identifier quoting for additional safety
+        result = self.conn.execute(f'SELECT COUNT(*) FROM "{table}"').fetchone()
         return int(result[0]) if result else 0
 
     def _schema_exists(self) -> bool:
@@ -416,10 +423,33 @@ class DuckDBAnalyticsService:
         if not query:
             raise ValueError("Query is required")
 
-        query_upper = query.upper()
+        # Remove SQL comments to prevent bypasses
+        # Remove single-line comments (--)
+        query_no_comments = "\n".join(line.split("--")[0] for line in query.split("\n"))
+        # Remove multi-line comments (/* */)
+        import re
+
+        query_no_comments = re.sub(r"/\*.*?\*/", "", query_no_comments, flags=re.DOTALL)
+        query_no_comments = query_no_comments.strip()
+
+        if not query_no_comments:
+            raise ValueError("Query is empty after removing comments")
+
+        # Check for multiple statements (prevents injection via semicolons)
+        if query_no_comments.count(";") > 1 or (
+            ";" in query_no_comments and not query_no_comments.rstrip().endswith(";")
+        ):
+            raise ValueError("Multiple SQL statements are not allowed")
+
+        # Normalize whitespace for validation
+        query_normalized = " ".join(query_no_comments.split())
+        query_upper = query_normalized.upper()
+
+        # Verify it starts with SELECT
         if not query_upper.startswith("SELECT"):
             raise ValueError("Only SELECT queries are allowed")
 
+        # Check for dangerous keywords (after comment removal)
         dangerous_keywords = [
             "DROP",
             "DELETE",
@@ -428,11 +458,17 @@ class DuckDBAnalyticsService:
             "CREATE",
             "INSERT",
             "UPDATE",
+            "EXEC",
+            "EXECUTE",
+            "PRAGMA",
         ]
         for keyword in dangerous_keywords:
-            if keyword in query_upper:
+            # Use word boundaries to avoid false positives
+            pattern = r"\b" + keyword + r"\b"
+            if re.search(pattern, query_upper):
                 raise ValueError(f"Query contains forbidden keyword: {keyword}")
 
+        # Add LIMIT if not present
         if "LIMIT" not in query_upper:
             query = f"{query.rstrip(';')} LIMIT {request.limit}"
 

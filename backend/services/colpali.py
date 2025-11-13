@@ -236,6 +236,7 @@ class ColPaliService:
             - image_patch_indices: List[int] - Explicit positions of image tokens
         """
         files = []
+        buffers = []  # Track all BytesIO objects for cleanup
         try:
             self._logger.debug(f"Embedding {len(images)} images via ColPali API")
 
@@ -249,6 +250,9 @@ class ColPaliService:
                         enumerate(images),
                     )
                 )
+
+            # Extract all BytesIO buffers for explicit tracking
+            buffers = [buf for _, (_, buf, _) in files]
 
             response = self.session.post(
                 f"{self.base_url}/embed/images", files=files, timeout=self.timeout
@@ -284,13 +288,12 @@ class ColPaliService:
             raise
         finally:
             # Explicitly close all file buffers to prevent resource leaks
-            for _, (_, buf, _) in files:
-                if hasattr(buf, "close"):
-                    try:
-                        buf.close()
-                    except Exception:
-                        # Silently ignore errors during cleanup
-                        pass
+            for buf in buffers:
+                try:
+                    buf.close()
+                except Exception:
+                    # Silently ignore errors during cleanup
+                    pass
 
     def embed_images_batch(
         self, images: List[Image.Image], batch_size: int = 4

@@ -9,6 +9,7 @@ Defaults and types are defined in config_schema.py (single source of truth).
 import logging
 import os
 import re
+import threading
 from typing import Any
 
 from config_schema import get_config_defaults
@@ -23,8 +24,8 @@ _runtime = get_runtime_config()
 # Get configuration defaults from schema (single source of truth)
 _CONFIG_DEFAULTS = get_config_defaults()
 
-# Recursion detection for __getattr__
-_config_lookup_depth = 0
+# Thread-safe recursion detection for __getattr__
+_thread_local = threading.local()
 _MAX_LOOKUP_DEPTH = 10
 
 # Logger for config errors
@@ -83,22 +84,24 @@ def _get_auto_minio_retries(workers: int) -> int:
 
 def __getattr__(name: str) -> Any:
     """
-    Dynamically retrieve configuration values with recursion detection.
+    Dynamically retrieve configuration values with thread-safe recursion detection.
     This allows config values to be accessed like module constants but read from runtime config.
     """
-    global _config_lookup_depth
+    # Initialize thread-local depth if not present
+    if not hasattr(_thread_local, "depth"):
+        _thread_local.depth = 0
 
-    # Detect excessive recursion
-    if _config_lookup_depth > _MAX_LOOKUP_DEPTH:
+    # Detect excessive recursion (per-thread)
+    if _thread_local.depth > _MAX_LOOKUP_DEPTH:
         raise RecursionError(
             f"Config lookup recursion detected for '{name}' (depth > {_MAX_LOOKUP_DEPTH})"
         )
 
-    _config_lookup_depth += 1
+    _thread_local.depth += 1
     try:
         return _getattr_impl(name)
     finally:
-        _config_lookup_depth -= 1
+        _thread_local.depth -= 1
 
 
 def _getattr_impl(name: str) -> Any:

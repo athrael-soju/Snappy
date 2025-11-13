@@ -77,8 +77,8 @@ x-minio-base: &minio-base
   volumes:
     - minio_data:/data
   environment:
-    - MINIO_ROOT_USER=minioadmin
-    - MINIO_ROOT_PASSWORD=minioadmin
+    - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
+    - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
   command: server /data --console-address ":9001"
   networks:
     - snappy-network
@@ -99,7 +99,7 @@ x-backend-base: &backend-base
     - LOG_FILE=
     - HOST=0.0.0.0
     - PORT=8000
-    - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
+    - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8000}
     # ColPali
     - COLPALI_URL=http://colpali:7000
     - COLPALI_API_TIMEOUT=${COLPALI_API_TIMEOUT:-300}

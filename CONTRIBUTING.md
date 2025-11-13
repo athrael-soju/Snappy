@@ -65,7 +65,7 @@ Before contributing, ensure you have:
 1. **Fork the repository** on GitHub
 2. **Clone your fork** locally:
    ```bash
-   git clone https://github.com/athrael.soju/Snappy.git
+   git clone https://github.com/YOUR_USERNAME/Snappy.git
    cd Snappy
    ```
 
@@ -735,5 +735,5 @@ Happy coding! 🚀
 
 ---
 
-**Last Updated:** October 23, 2025  
+**Last Updated:** November 13, 2025
 **License:** [MIT](LICENSE)

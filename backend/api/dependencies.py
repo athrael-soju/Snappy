@@ -183,11 +183,28 @@ def get_qdrant_service() -> Optional[QdrantService]:
 def invalidate_services():
     """Invalidate cached services so they are recreated on next access."""
     logger.info("Invalidating cached services to apply new configuration")
+
+    # Close existing service instances before clearing caches to prevent resource leaks
+    try:
+        # Close DuckDB service session
+        if _get_duckdb_service_cached.cache_info().currsize > 0:
+            try:
+                service = _get_duckdb_service_cached()
+                if hasattr(service, "close"):
+                    service.close()
+            except Exception as e:
+                logger.warning(f"Error closing DuckDB service during invalidation: {e}")
+    except Exception as e:
+        logger.warning(f"Error accessing cached services for cleanup: {e}")
+
+    # Clear error states
     colpali_init_error.clear()
     qdrant_init_error.clear()
     minio_init_error.clear()
     ocr_init_error.clear()
     duckdb_init_error.clear()
+
+    # Clear caches
     _get_qdrant_service_cached.cache_clear()
     _get_minio_service_cached.cache_clear()
     _get_colpali_client_cached.cache_clear()

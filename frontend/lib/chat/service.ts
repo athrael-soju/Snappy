@@ -6,11 +6,12 @@ import { appendCitationReminder, appendUserImages, buildImageContent, buildMarkd
 import { createInitialToolResponse, createStreamingResponse } from "@/lib/chat/openai";
 import { buildSystemInstructions } from "@/lib/chat/prompt";
 import type { NormalizedChatRequest } from "@/lib/chat/types";
+import type { Message, StreamEvent, FunctionCallOutput, SearchToolResult } from "@/lib/chat/openai-types";
 import { loadConfigFromStorage } from "@/lib/config/config-store";
 import { logger } from "@/lib/utils/logger";
 
 export type ChatServiceResult = {
-    stream: Stream<any>;
+    stream: Stream<StreamEvent>;
     kbItems: SearchItem[] | null;
 };
 
@@ -26,7 +27,7 @@ export async function runChatService(options: NormalizedChatRequest): Promise<Ch
     const ocrEnabled = isOcrEnabled();
     const instructions = buildSystemInstructions(options.summaryPreference, ocrEnabled);
 
-    let input: any[] = [
+    let input: Message[] = [
         { role: "system", content: [{ type: "input_text", text: instructions }] },
         { role: "user", content: [{ type: "input_text", text: options.message }] },
     ];
@@ -40,7 +41,7 @@ export async function runChatService(options: NormalizedChatRequest): Promise<Ch
 
         // Use OCR-based (markdown) content if OCR is enabled AND OCR data exists
         // Check both inline payload and json_url for backward compatibility
-        const hasOcrData = results.some((result: any) =>
+        const hasOcrData = results.some((result) =>
             result?.payload?.ocr?.markdown || result?.json_url
         );
         const useOcrContent = ocrEnabled && hasOcrData;
@@ -86,15 +87,15 @@ export async function runChatService(options: NormalizedChatRequest): Promise<Ch
 
     const initialOutputs = Array.isArray(initialResponse?.output) ? initialResponse.output : [];
     if (initialOutputs.length > 0) {
-        input = input.concat(initialOutputs as any[]);
+        input = input.concat(initialOutputs as unknown as Message[]);
     }
 
     let toolUsed = false;
-    const functionCall = initialOutputs.find((item: any) => item?.type === "function_call") as any;
+    const functionCall = initialOutputs.find((item): item is FunctionCallOutput => item?.type === "function_call") as FunctionCallOutput | undefined;
 
     if (functionCall && functionCall.name === "document_search") {
         toolUsed = true;
-        let searchResult: any;
+        let searchResult: SearchToolResult;
 
         try {
             const results = await RetrievalService.searchSearchGet(
@@ -127,10 +128,13 @@ export async function runChatService(options: NormalizedChatRequest): Promise<Ch
         }
 
         input.push({
-            type: "function_call_output",
-            call_id: functionCall.call_id,
-            output: JSON.stringify(searchResult),
-        } as any);
+            role: "user",
+            content: [{
+                type: "function_call_output",
+                call_id: functionCall.call_id,
+                output: JSON.stringify(searchResult),
+            }],
+        });
     }
 
     const stream = await createStreamingResponse({

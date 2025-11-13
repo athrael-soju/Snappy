@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { MaintenanceService, ApiError } from "@/lib/api/generated";
 import { toast } from "sonner";
 import { logger } from "@/lib/utils/logger";
@@ -64,15 +64,26 @@ export function useSystemStatus() {
     }
   }, [setStatus]);
 
+  // Store fetchStatus in a ref to prevent event listener from re-registering
+  const fetchStatusRef = useRef(fetchStatus);
   useEffect(() => {
-    fetchStatus();
+    fetchStatusRef.current = fetchStatus;
   }, [fetchStatus]);
 
+  // Fetch status on mount
   useEffect(() => {
-    const handler = () => fetchStatus();
+    fetchStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
+
+  // Listen for system status change events (one-time registration)
+  useEffect(() => {
+    const handler = () => {
+      fetchStatusRef.current();
+    };
     window.addEventListener('systemStatusChanged', handler);
     return () => window.removeEventListener('systemStatusChanged', handler);
-  }, [fetchStatus]);
+  }, []); // Empty deps - register once, use ref for latest function
 
   return {
     systemStatus,

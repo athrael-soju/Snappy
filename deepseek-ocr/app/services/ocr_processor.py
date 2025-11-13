@@ -2,11 +2,13 @@
 OCR processing service for handling OCR requests.
 """
 
+import ast
 from io import BytesIO
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import fitz  # PyMuPDF
 from app.core.config import settings
+from app.core.logging import logger
 from app.services.model_service import model_service
 from app.utils.image_processing import (
     clean_output,
@@ -25,7 +27,9 @@ class OCRProcessor:
         """Initialize OCR processor."""
         self.model_service = model_service
 
-    def _build_prompt(self, task: str, custom_prompt: str = None) -> tuple[str, bool]:
+    def _build_prompt(
+        self, task: str, custom_prompt: Optional[str] = None
+    ) -> tuple[str, bool]:
         """
         Build prompt for the given task.
 
@@ -82,7 +86,12 @@ class OCRProcessor:
                 img_w, img_h = image.size
                 for ref in refs:
                     label = ref[1]
-                    coords = eval(ref[2])
+                    # Use ast.literal_eval() for safe parsing (prevents code injection)
+                    try:
+                        coords = ast.literal_eval(ref[2])
+                    except (ValueError, SyntaxError) as e:
+                        logger.error(f"Failed to parse coordinates '{ref[2]}': {e}")
+                        continue  # Skip this reference if coordinates are malformed
                     for box in coords:
                         bboxes.append(
                             {
@@ -101,7 +110,7 @@ class OCRProcessor:
         image: Image.Image,
         mode: str,
         task: str,
-        custom_prompt: str = None,
+        custom_prompt: Optional[str] = None,
         include_grounding: bool = True,
         include_images: bool = True,
     ) -> Dict[str, Any]:
@@ -167,7 +176,7 @@ class OCRProcessor:
         pdf_path: str,
         mode: str,
         task: str,
-        custom_prompt: str = None,
+        custom_prompt: Optional[str] = None,
         include_grounding: bool = True,
         include_images: bool = True,
     ) -> Dict[str, Any]:
