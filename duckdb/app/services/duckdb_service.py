@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
@@ -62,6 +63,23 @@ class DuckDBAnalyticsService:
         # Use identifier quoting for additional safety
         result = self.conn.execute(f'SELECT COUNT(*) FROM "{table}"').fetchone()
         return int(result[0]) if result else 0
+
+    def _strip_block_comments(self, sql: str) -> str:
+        """Remove /* */ comments with a linear scan to avoid regex backtracking."""
+        cleaned: List[str] = []
+        i = 0
+        length = len(sql)
+        while i < length:
+            if sql[i : i + 2] == "/*":
+                end = sql.find("*/", i + 2)
+                if end == -1:
+                    cleaned.append(sql[i:])
+                    break
+                i = end + 2
+                continue
+            cleaned.append(sql[i])
+            i += 1
+        return "".join(cleaned)
 
     def _schema_exists(self) -> bool:
         try:
@@ -423,13 +441,16 @@ class DuckDBAnalyticsService:
         if not query:
             raise ValueError("Query is required")
 
+        # Limit input length to prevent resource exhaustion
+        MAX_QUERY_LENGTH = 100_000
+        if len(query) > MAX_QUERY_LENGTH:
+            raise ValueError(f"Query exceeds maximum length of {MAX_QUERY_LENGTH} characters")
+
         # Remove SQL comments to prevent bypasses
         # Remove single-line comments (--)
         query_no_comments = "\n".join(line.split("--")[0] for line in query.split("\n"))
-        # Remove multi-line comments (/* */)
-        import re
-
-        query_no_comments = re.sub(r"/\*.*?\*/", "", query_no_comments, flags=re.DOTALL)
+        # Remove multi-line comments (/* */) without regex backtracking
+        query_no_comments = self._strip_block_comments(query_no_comments)
         query_no_comments = query_no_comments.strip()
 
         if not query_no_comments:
