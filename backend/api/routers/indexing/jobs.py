@@ -37,7 +37,8 @@ def run_indexing_job(job_id: str, paths: List[str], filenames: Dict[str, str]) -
 
         svc = get_qdrant_service()
         if not svc:
-            raise RuntimeError(qdrant_init_error or "Dependency services are down")
+            error_msg = qdrant_init_error.get() or "Dependency services are down"
+            raise RuntimeError(error_msg)
 
         job_state = {"current": 0}
 

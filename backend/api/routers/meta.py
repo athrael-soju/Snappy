@@ -53,16 +53,24 @@ async def health():
         "duckdb": duckdb_ok,
         "ocr": ocr_ok,
     }
-    if colpali_init_error:
-        response["colpali_init_error"] = colpali_init_error
-    if qdrant_init_error:
-        response["qdrant_init_error"] = qdrant_init_error
-    if minio_init_error:
-        response["minio_init_error"] = minio_init_error
-    if duckdb_init_error:
-        response["duckdb_init_error"] = duckdb_init_error
-    if ocr_init_error:
-        response["ocr_init_error"] = ocr_init_error
+
+    # Add error messages if present
+    colpali_err = colpali_init_error.get()
+    if colpali_err:
+        response["colpali_init_error"] = colpali_err
+    qdrant_err = qdrant_init_error.get()
+    if qdrant_err:
+        response["qdrant_init_error"] = qdrant_err
+    minio_err = minio_init_error.get()
+    if minio_err:
+        response["minio_init_error"] = minio_err
+    duckdb_err = duckdb_init_error.get()
+    if duckdb_err:
+        response["duckdb_init_error"] = duckdb_err
+    ocr_err = ocr_init_error.get()
+    if ocr_err:
+        response["ocr_init_error"] = ocr_err
+
     return response
 
 

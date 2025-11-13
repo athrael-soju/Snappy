@@ -62,6 +62,7 @@ class DuckDBService:
         self.session = requests.Session()
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
+        self._closed = False
 
         logger.info(
             f"DuckDB service initialized (enabled={self.enabled}, url={self.base_url})"
@@ -286,13 +287,14 @@ class DuckDBService:
             return False
 
     def execute_query(
-        self, query: str, limit: Optional[int] = None
+        self, query: str, limit: Optional[int] = None, timeout: Optional[int] = None
     ) -> Optional[Dict[str, Any]]:
-        """Execute a SQL query.
+        """Execute a SQL query with safety limits.
 
         Args:
             query: SQL query string
-            limit: Maximum number of rows to return
+            limit: Maximum number of rows to return (default: 1000, max: 10000)
+            timeout: Query timeout in seconds (overrides service default)
 
         Returns:
             Query result dictionary or None on error
@@ -300,15 +302,25 @@ class DuckDBService:
         if not self.enabled:
             return None
 
+        # Apply default limit to prevent OOM
+        if limit is None:
+            limit = 1000  # Default limit
+        elif limit > 10000:
+            logger.warning(
+                f"Query limit {limit} exceeds recommended maximum 10000, capping"
+            )
+            limit = 10000
+
         try:
-            payload: Dict[str, Any] = {"query": query}
-            if limit is not None:
-                payload["limit"] = limit
+            payload: Dict[str, Any] = {"query": query, "limit": limit}
+
+            # Use custom timeout if provided
+            request_timeout = timeout if timeout is not None else self.timeout
 
             response = self.session.post(
                 f"{self.base_url}/query",
                 json=payload,
-                timeout=self.timeout,
+                timeout=request_timeout,
             )
             response.raise_for_status()
             return response.json()
@@ -395,10 +407,31 @@ class DuckDBService:
             return None
 
     def close(self):
-        """Close the HTTP session."""
-        if hasattr(self, "session"):
+        """Close the HTTP session safely."""
+        if self._closed or not hasattr(self, "session"):
+            return
+
+        try:
             self.session.close()
+            self._closed = True
+            logger.debug("DuckDB HTTP session closed")
+        except Exception as e:
+            logger.warning(f"Error closing DuckDB session: {e}")
 
     def __del__(self):
-        """Ensure session is closed on garbage collection."""
+        """Attempt cleanup on garbage collection."""
+        try:
+            self.close()
+        except Exception:
+            # Silently fail - resources will be cleaned up by OS
+            # Don't log here as logging may not be available during shutdown
+            pass
+
+    def __enter__(self):
+        """Context manager support."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Ensure cleanup with context manager."""
         self.close()
+        return False

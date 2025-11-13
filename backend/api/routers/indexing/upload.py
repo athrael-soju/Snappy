@@ -29,20 +29,47 @@ async def _persist_upload_to_disk(
     chunk_size: int,
     max_file_size_bytes: int,
     max_file_size_mb: int,
+    timeout_seconds: int = 300,
 ) -> str:
-    """Persist upload chunks to a temporary file and return the path."""
-    suffix = os.path.splitext(upload.filename or "")[1] or ".pdf"
+    """Persist upload chunks to a temporary file with proper cleanup and timeout.
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+    Args:
+        upload: File upload to persist
+        chunk_size: Size of chunks to read
+        max_file_size_bytes: Maximum file size in bytes
+        max_file_size_mb: Maximum file size in MB (for error message)
+        timeout_seconds: Upload timeout in seconds (default: 5 minutes)
+
+    Returns:
+        Path to temporary file
+
+    Raises:
+        HTTPException: On timeout, file size exceeded, or upload failure
+    """
+    import asyncio
+    import time
+
+    suffix = os.path.splitext(upload.filename or "")[1] or ".pdf"
+    tmp_file = None
+
+    try:
+        tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
         written_bytes = 0
+        start_time = time.time()
+
         while True:
-            chunk = await upload.read(chunk_size)
+            # Check timeout
+            if time.time() - start_time > timeout_seconds:
+                raise HTTPException(status_code=408, detail="Upload timeout exceeded")
+
+            chunk = await asyncio.wait_for(
+                upload.read(chunk_size), timeout=timeout_seconds
+            )
             if not chunk:
                 break
+
             written_bytes += len(chunk)
             if written_bytes > max_file_size_bytes:
-                await upload.close()
-                tmp.close()
                 raise HTTPException(
                     status_code=413,
                     detail=(
@@ -50,9 +77,28 @@ async def _persist_upload_to_disk(
                         f"allowed size of {max_file_size_mb} MB."
                     ),
                 )
-            tmp.write(chunk)
 
-        return tmp.name
+            tmp_file.write(chunk)
+
+        tmp_file.close()
+        return tmp_file.name
+
+    except HTTPException:
+        if tmp_file:
+            tmp_file.close()
+            try:
+                os.unlink(tmp_file.name)
+            except Exception as e:
+                logger.warning(f"Failed to clean up temp file: {e}")
+        raise
+    except Exception as e:
+        if tmp_file:
+            tmp_file.close()
+            try:
+                os.unlink(tmp_file.name)
+            except Exception:
+                pass
+        raise HTTPException(status_code=400, detail=f"Upload failed: {str(e)}")
 
 
 async def _validate_and_persist_uploads(
@@ -145,16 +191,17 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
 
         # Fail fast if dependencies are unavailable
         if not get_qdrant_service():
+            error_msg = qdrant_init_error.get() or "Dependency services are down"
             logger.error(
                 "Qdrant service unavailable",
                 extra={
                     "operation": "index",
-                    "error": qdrant_init_error or "Dependency services are down",
+                    "error": error_msg,
                 },
             )
             raise HTTPException(
                 status_code=503,
-                detail=f"Service unavailable: {qdrant_init_error or 'Dependency services are down'}",
+                detail=f"Service unavailable: {error_msg}",
             )
 
         job_id = str(uuid.uuid4())
