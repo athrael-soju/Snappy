@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Tuple
 import config
 from PIL import Image
 from services.image_processor import ProcessedImage
+from utils.timing import log_execution_time
 
 from .progress import ProgressNotifier
 from .storage import ImageStorageHandler
@@ -137,7 +138,7 @@ class BatchProcessor:
             ocr_results: Optional[List[Dict]] = None
             if self.ocr_service is not None and config.DEEPSEEK_OCR_ENABLED:
                 try:
-                    logger.info(
+                    logger.debug(
                         f"Starting parallel OCR processing for batch {batch_start}"
                     )
                     raw_ocr_results = self._process_ocr_batch(
@@ -151,7 +152,7 @@ class BatchProcessor:
                                 f"OCR had {len(raw_ocr_results) - len(ocr_results)} failures"
                             )
                 except Exception as exc:
-                    logger.exception(f"OCR batch processing failed: {exc}")
+                    logger.exception(f"ocr processing failed: {exc}")
                     # Continue without OCR results
 
         finally:
@@ -182,6 +183,9 @@ class BatchProcessor:
         except Exception as exc:
             raise Exception(f"Error during embed: {exc}") from exc
 
+    @log_execution_time(
+        "ocr processing", log_level=logging.INFO, warn_threshold_ms=10000
+    )
     def _process_ocr_batch(
         self, processed_images: List[ProcessedImage], meta_batch: List[dict]
     ) -> Optional[List[Optional[dict]]]:
@@ -234,7 +238,7 @@ class BatchProcessor:
                         ocr_results[idx] = None
 
         except Exception as exc:
-            logger.warning(f"OCR batch processing error: {exc}")
+            logger.warning(f"ocr processing error: {exc}")
             return None
 
         return ocr_results

@@ -56,62 +56,126 @@ def process_document_background(
     mode: Optional[str],
     task: Optional[str],
 ) -> None:
-    """Background task for processing entire document."""
+    """Background task for processing entire document with parallel batch processing."""
     try:
         total = len(page_numbers)
         logger.info("Starting OCR job %s for %s: %s pages", job_id, filename, total)
 
-        for idx, page_num in enumerate(page_numbers, 1):
+        # Get max workers from config
+        import config
+
+        max_workers = getattr(config, "DEEPSEEK_OCR_MAX_WORKERS", 4)
+        max_workers = max(1, int(max_workers))
+
+        # Process pages in batches for better progress tracking and cancellation support
+        # Batch size = max_workers to optimize parallel processing
+        batch_size = max_workers
+        processed_count = 0
+        failed_pages = []
+
+        for batch_start in range(0, total, batch_size):
             if progress_manager.is_cancelled(job_id):
                 logger.info("OCR job %s cancelled by user", job_id)
                 break
 
+            batch_end = min(batch_start + batch_size, total)
+            batch_pages = page_numbers[batch_start:batch_end]
+            batch_num = (batch_start // batch_size) + 1
+            total_batches = (total + batch_size - 1) // batch_size
+
+            logger.info(
+                "OCR job %s: Processing batch %s/%s (%s pages in parallel)",
+                job_id,
+                batch_num,
+                total_batches,
+                len(batch_pages),
+            )
+
+            # Update progress before batch starts
+            progress_manager.update(
+                job_id,
+                current=processed_count,
+                message=f"Processing batch {batch_num}/{total_batches} ({processed_count}/{total} pages completed)",
+            )
+
             try:
-                logger.info(
-                    "OCR job %s: Processing page %s (%s/%s)",
-                    job_id,
-                    page_num,
-                    idx,
-                    total,
-                )
-                result = ocr_service.process_document_page(
+                # Process batch in parallel
+                results = ocr_service.process_document_batch(
                     filename=filename,
-                    page_number=page_num,
+                    page_numbers=batch_pages,
                     mode=mode,
                     task=task,
+                    max_workers=max_workers,
                 )
 
+                # Log results for each page in batch
+                for idx, (page_num, result) in enumerate(zip(batch_pages, results)):
+                    if result and result.get("status") == "success":
+                        logger.info(
+                            "OCR processed page %s for %s: %s",
+                            page_num,
+                            filename,
+                            result.get("storage_url"),
+                        )
+                    elif result and result.get("status") == "error":
+                        failed_pages.append(page_num)
+                        logger.warning(
+                            "Failed to process page %s for %s: %s",
+                            page_num,
+                            filename,
+                            result.get("error", "Unknown error"),
+                        )
+                    else:
+                        failed_pages.append(page_num)
+                        logger.warning(
+                            "Failed to process page %s for %s: No result returned",
+                            page_num,
+                            filename,
+                        )
+
+                processed_count += len(batch_pages)
+
+                # Update progress after batch completes
+                success_count = processed_count - len(failed_pages)
                 progress_manager.update(
                     job_id,
-                    current=idx,
-                    message=f"Processing page {page_num} ({idx}/{total})",
+                    current=processed_count,
+                    message=f"Batch {batch_num}/{total_batches} complete ({success_count}/{processed_count} successful)",
                 )
 
-                logger.info(
-                    "OCR processed page %s/%s for %s: %s",
-                    page_num,
-                    total,
-                    filename,
-                    result.get("storage_url"),
-                )
-            except Exception as page_error:  # noqa: BLE001 - continue job
+            except Exception as batch_error:  # noqa: BLE001 - continue job
                 logger.exception(
-                    "Failed to process page %s for %s: %s",
-                    page_num,
+                    "Failed to process batch %s for %s: %s",
+                    batch_num,
                     filename,
-                    page_error,
+                    batch_error,
                 )
+                # Mark all pages in failed batch as failed
+                failed_pages.extend(batch_pages)
+                processed_count += len(batch_pages)
                 progress_manager.update(
                     job_id,
-                    current=idx,
-                    message=f"Failed page {page_num}, continuing ({idx}/{total})",
+                    current=processed_count,
+                    message=f"Batch {batch_num} failed, continuing ({processed_count}/{total})",
                 )
 
         if not progress_manager.is_cancelled(job_id):
-            progress_manager.complete(
-                job_id, message=f"Completed OCR processing for {filename}"
+            if failed_pages:
+                message = (
+                    f"Completed OCR processing for {filename} "
+                    f"({total - len(failed_pages)}/{total} pages successful, "
+                    f"{len(failed_pages)} failed)"
+                )
+            else:
+                message = f"Completed OCR processing for {filename} ({total}/{total} pages successful)"
+
+            progress_manager.complete(job_id, message=message)
+            logger.info(
+                "OCR job %s completed: %s/%s pages successful",
+                job_id,
+                total - len(failed_pages),
+                total,
             )
-            logger.info("OCR job %s completed successfully", job_id)
 
     except Exception as exc:  # noqa: BLE001 - ensure failure recorded
         logger.exception("OCR background processing failed: %s", exc)

@@ -103,7 +103,7 @@ async def process_batch(
         )
 
     logger.info(
-        "OCR batch processing started",
+        "ocr processing started",
         extra={
             "operation": "process_batch",
             "filename": request.filename,
@@ -127,7 +127,7 @@ async def process_batch(
         successful = sum(1 for r in results if r and r.get("status") == "success")
 
         logger.info(
-            "OCR batch processing completed",
+            "ocr processing completed",
             extra={
                 "operation": "process_batch",
                 "filename": request.filename,
@@ -147,7 +147,7 @@ async def process_batch(
         }
     except Exception as exc:
         logger.error(
-            "OCR batch processing failed",
+            "ocr processing failed",
             exc_info=exc,
             extra={
                 "operation": "process_batch",

@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Sequence
 
 from PIL import Image
+from utils.timing import log_execution_time
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
     from services.image_processor import ImageProcessor
@@ -125,6 +126,7 @@ class OcrProcessor:
             "crops": crops,  # Pass through for storage handler to process
         }
 
+    @log_execution_time("OCR batch", log_level=logging.INFO, warn_threshold_ms=15000)
     def process_batch(
         self,
         filename: str,

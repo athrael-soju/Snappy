@@ -15,7 +15,10 @@ def log_execution_time(
     log_level: int = logging.DEBUG,
     warn_threshold_ms: float | None = None,
 ) -> Callable[[F], F]:
-    """Decorator to log function execution time.
+    """Decorator to log function execution time on successful completion.
+
+    Only logs when the function completes successfully. Exceptions are propagated
+    without logging, allowing normal error handling to manage failures.
 
     Args:
         operation: Custom operation name (defaults to function name)
@@ -41,46 +44,28 @@ def log_execution_time(
                 op_name = operation or func.__name__
                 start_time = time.perf_counter()
 
-                try:
-                    result = await func(*args, **kwargs)
-                    duration_ms = (time.perf_counter() - start_time) * 1000
+                result = await func(*args, **kwargs)
+                duration_ms = (time.perf_counter() - start_time) * 1000
 
-                    # Determine log level
-                    level = log_level
-                    if warn_threshold_ms and duration_ms > warn_threshold_ms:
-                        level = logging.WARNING
+                # Determine log level
+                level = log_level
+                if warn_threshold_ms and duration_ms > warn_threshold_ms:
+                    level = logging.WARNING
 
-                    logger.log(
-                        level,
-                        "%s completed in %.2fms",
-                        op_name,
-                        duration_ms,
-                        extra={
-                            "operation": op_name,
-                            "duration_ms": round(duration_ms, 2),
-                            "function": func.__name__,
-                            "func_module": func.__module__,
-                        },
-                    )
+                logger.log(
+                    level,
+                    "%s completed in %.2fms",
+                    op_name,
+                    duration_ms,
+                    extra={
+                        "operation": op_name,
+                        "duration_ms": round(duration_ms, 2),
+                        "function": func.__name__,
+                        "func_module": func.__module__,
+                    },
+                )
 
-                    return result
-                except Exception as e:
-                    duration_ms = (time.perf_counter() - start_time) * 1000
-                    logger.error(
-                        "%s failed after %.2fms: %s",
-                        op_name,
-                        duration_ms,
-                        str(e),
-                        extra={
-                            "operation": op_name,
-                            "duration_ms": round(duration_ms, 2),
-                            "function": func.__name__,
-                            "func_module": func.__module__,
-                            "error": str(e),
-                        },
-                        exc_info=True,
-                    )
-                    raise
+                return result
 
             return async_wrapper  # type: ignore[return-value]
 
@@ -91,46 +76,28 @@ def log_execution_time(
                 op_name = operation or func.__name__
                 start_time = time.perf_counter()
 
-                try:
-                    result = func(*args, **kwargs)
-                    duration_ms = (time.perf_counter() - start_time) * 1000
+                result = func(*args, **kwargs)
+                duration_ms = (time.perf_counter() - start_time) * 1000
 
-                    # Determine log level
-                    level = log_level
-                    if warn_threshold_ms and duration_ms > warn_threshold_ms:
-                        level = logging.WARNING
+                # Determine log level
+                level = log_level
+                if warn_threshold_ms and duration_ms > warn_threshold_ms:
+                    level = logging.WARNING
 
-                    logger.log(
-                        level,
-                        "%s completed in %.2fms",
-                        op_name,
-                        duration_ms,
-                        extra={
-                            "operation": op_name,
-                            "duration_ms": round(duration_ms, 2),
-                            "function": func.__name__,
-                            "func_module": func.__module__,
-                        },
-                    )
+                logger.log(
+                    level,
+                    "%s completed in %.2fms",
+                    op_name,
+                    duration_ms,
+                    extra={
+                        "operation": op_name,
+                        "duration_ms": round(duration_ms, 2),
+                        "function": func.__name__,
+                        "func_module": func.__module__,
+                    },
+                )
 
-                    return result
-                except Exception as e:
-                    duration_ms = (time.perf_counter() - start_time) * 1000
-                    logger.error(
-                        "%s failed after %.2fms: %s",
-                        op_name,
-                        duration_ms,
-                        str(e),
-                        extra={
-                            "operation": op_name,
-                            "duration_ms": round(duration_ms, 2),
-                            "function": func.__name__,
-                            "func_module": func.__module__,
-                            "error": str(e),
-                        },
-                        exc_info=True,
-                    )
-                    raise
+                return result
 
             return sync_wrapper  # type: ignore[return-value]
 
@@ -144,6 +111,8 @@ import asyncio
 class PerformanceTimer:
     """Context manager for timing code blocks.
 
+    Only logs on successful completion. Exceptions are propagated without logging.
+
     Example:
         with PerformanceTimer("process batch") as timer:
             process_images(batch)
@@ -156,7 +125,7 @@ class PerformanceTimer:
 
         Args:
             operation: Name of the operation being timed
-            log_on_exit: If True, automatically log duration on exit
+            log_on_exit: If True, automatically log duration on successful exit
         """
         self.operation = operation
         self.log_on_exit = log_on_exit
@@ -174,27 +143,14 @@ class PerformanceTimer:
         self.end_time = time.perf_counter()
         self.duration_ms = (self.end_time - self.start_time) * 1000
 
-        if self.log_on_exit:
-            if exc_type is None:
-                logger.debug(
-                    "%s completed in %.2fms",
-                    self.operation,
-                    self.duration_ms,
-                    extra={
-                        "operation": self.operation,
-                        "duration_ms": round(self.duration_ms, 2),
-                    },
-                )
-            else:
-                logger.error(
-                    "%s failed after %.2fms: %s",
-                    self.operation,
-                    self.duration_ms,
-                    str(exc_val),
-                    extra={
-                        "operation": self.operation,
-                        "duration_ms": round(self.duration_ms, 2),
-                        "error": str(exc_val),
-                    },
-                    exc_info=True,
-                )
+        # Only log on successful completion
+        if self.log_on_exit and exc_type is None:
+            logger.debug(
+                "%s completed in %.2fms",
+                self.operation,
+                self.duration_ms,
+                extra={
+                    "operation": self.operation,
+                    "duration_ms": round(self.duration_ms, 2),
+                },
+            )
