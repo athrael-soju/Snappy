@@ -334,6 +334,19 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
                 detail=f"Service unavailable: {error_msg}",
             )
 
+        # Check for active jobs and warn about potential resource contention
+        active_jobs = progress_manager.get_active_jobs()
+        if active_jobs:
+            logger.warning(
+                f"Starting new upload while {len(active_jobs)} job(s) still running. "
+                f"Services may still be processing previous batches.",
+                extra={
+                    "operation": "index",
+                    "active_jobs": active_jobs,
+                    "new_file_count": len(temp_paths),
+                },
+            )
+
         job_id = str(uuid.uuid4())
         progress_manager.create(job_id, total=0)
         progress_manager.start(job_id)

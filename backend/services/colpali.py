@@ -60,6 +60,39 @@ class ColPaliService:
             self._logger.error(f"Failed to get API info: {e}")
             return {}
 
+    def cancel_job(self, job_id: str) -> bool:
+        """Request cancellation of a job.
+
+        Sends a cancellation request to the ColPali service for the given job_id.
+        This is a best-effort operation - the service may or may not support it.
+
+        Args:
+            job_id: The job ID to cancel
+
+        Returns:
+            True if cancellation request was accepted, False otherwise
+        """
+        try:
+            response = self.session.post(
+                f"{self.base_url}/cancel",
+                json={"job_id": job_id},
+                timeout=5,  # Short timeout for cancellation
+            )
+            if response.status_code == 200:
+                self._logger.info(f"ColPali job {job_id} cancellation requested")
+                return True
+            elif response.status_code == 404:
+                self._logger.debug(f"ColPali service does not support cancellation API")
+                return False
+            else:
+                self._logger.warning(
+                    f"ColPali cancellation request failed: {response.status_code}"
+                )
+                return False
+        except Exception as e:
+            self._logger.debug(f"ColPali cancellation request failed: {e}")
+            return False
+
     def _validate_patch_results(
         self, results: list, expected_count: int
     ) -> List[dict[str, Union[int, str]]]:

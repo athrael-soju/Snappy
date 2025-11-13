@@ -38,6 +38,7 @@ class DocumentIndexer:
         embedding_processor,
         minio_service=None,
         ocr_service=None,
+        job_id: str | None = None,
     ):
         """Initialize document indexer.
 
@@ -45,10 +46,12 @@ class DocumentIndexer:
             embedding_processor: Service that generates embeddings
             minio_service: MinIO service for image storage
             ocr_service: Optional OCR service
+            job_id: Optional job ID for tracking and cancellation
         """
         self.embedding_processor = embedding_processor
         self.minio_service = minio_service
         self.ocr_service = ocr_service
+        self.job_id = job_id
 
         # Create centralized image processor with config defaults
         image_processor = ImageProcessor(
@@ -61,6 +64,7 @@ class DocumentIndexer:
             embedding_processor=embedding_processor,
             image_store=image_store,
             ocr_service=ocr_service,
+            job_id=job_id,
         )
 
     def process_single_batch(
@@ -144,6 +148,9 @@ class DocumentIndexer:
                 progress=progress,
             )
 
+            # Check for cancellation before expensive storage operation
+            progress.check_cancel(processed_batch.batch_start)
+
             try:
                 store_batch_cb(processed_batch)
             except Exception as exc:
@@ -212,7 +219,14 @@ class DocumentIndexer:
                     done, _ = wait(process_futures.keys(), return_when=FIRST_COMPLETED)
                     for future in done:
                         process_futures.pop(future)
+
+                        # Check cancellation before processing result
+                        progress.check_cancel(0)
+
                         processed_batch = future.result()
+
+                        # Check cancellation before submitting upsert
+                        progress.check_cancel(processed_batch.batch_start)
 
                         upsert_future = upsert_executor.submit(
                             store_batch_cb,
@@ -236,7 +250,11 @@ class DocumentIndexer:
 
                         submit_next_batch()
 
+                # Wait for upserts with cancellation checks
                 for upsert_future, processed_batch in upsert_futures:
+                    # Check for cancellation before waiting for each upsert
+                    progress.check_cancel(processed_batch.batch_start)
+
                     try:
                         upsert_future.result()
                     except Exception as exc:  # pragma: no cover - defensive guard

@@ -46,8 +46,13 @@ def run_indexing_job(job_id: str, paths: List[str], filenames: Dict[str, str]) -
         # Get DuckDB service for deduplication check
         duckdb_svc = get_duckdb_service()
 
+        # Create cancellation check function
+        def check_cancellation():
+            if progress_manager.is_cancelled(job_id):
+                raise CancellationError("Job cancelled during PDF conversion")
+
         total_images, image_iterator, document_metadata = convert_pdf_paths_to_images(
-            paths, filenames, duckdb_service=duckdb_svc
+            paths, filenames, duckdb_service=duckdb_svc, cancellation_check=check_cancellation
         )
 
         # Store document metadata in DuckDB BEFORE indexing starts
