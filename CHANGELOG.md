@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.1](https://github.com/athrael-soju/Snappy/compare/v0.3.0...v0.3.1) (2025-11-13)
+
+
+### Features
+
+* add method to strip block comments from SQL queries and enforce query length limit ([320a08c](https://github.com/athrael-soju/Snappy/commit/320a08ca956e909dd3aec3a9cf907d7dc6b5579e))
+* enhance DuckDBManager close method with checkpointing and improve entrypoint script for graceful shutdown ([d9280dc](https://github.com/athrael-soju/Snappy/commit/d9280dc93beacd58624151f6867cd33ecd25b1d9))
+* enhance OCR processing with batch handling and adjustable worker settings ([dbe4fa6](https://github.com/athrael-soju/Snappy/commit/dbe4fa6e6becfcea469bc8bd8709ca630bbad8eb))
+* handle duplicate document uploads and provide user feedback ([0ad663e](https://github.com/athrael-soju/Snappy/commit/0ad663e57b768b128031a968b9c9fefba4401af8))
+* implement document deduplication and metadata storage in DuckDB ([6cf66a8](https://github.com/athrael-soju/Snappy/commit/6cf66a8e9ce6c8796f6f3c0b68e96426898fc07b))
+* implement thread-safe error tracking for service initialization and enhance error handling in various services ([5562949](https://github.com/athrael-soju/Snappy/commit/5562949e00d56735b5c4d300b5c91fed1845df1d))
+* implement UUID-based naming for OCR results and enhance storage structure ([8de816e](https://github.com/athrael-soju/Snappy/commit/8de816e95bd1b2f70cf896d83bc5278857908609))
+* update environment variables and improve security measures ([e4b8cd7](https://github.com/athrael-soju/Snappy/commit/e4b8cd7ae0a758bac36cbb417ce4581283b18970))
+
 ## [0.2.1](https://github.com/athrael-soju/Snappy/compare/v0.2.0...v0.2.1) (2025-11-06)
 
 
