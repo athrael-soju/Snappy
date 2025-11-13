@@ -14,10 +14,21 @@ def convert_pdf_paths_to_images(
     paths: List[str],
     original_filenames: Dict[str, str] | None = None,
     batch_size: int | None = None,
-) -> Tuple[int, Iterator[dict]]:
-    """Stream PDF pages as image dictionaries instead of materialising them all at once."""
+    duckdb_service=None,
+) -> Tuple[int, Iterator[dict], List[dict]]:
+    """Stream PDF pages as image dictionaries instead of materialising them all at once.
+
+    Args:
+        paths: List of PDF file paths
+        original_filenames: Dict mapping paths to original filenames
+        batch_size: Number of pages to convert at once
+        duckdb_service: Optional DuckDB service (unused, kept for compatibility)
+
+    Returns:
+        Tuple of (total_pages, image_iterator, document_metadata_list)
+    """
     if not paths:
-        return 0, iter(())
+        return 0, iter(()), []
 
     conversion_batch_size = batch_size or max(1, int(config.BATCH_SIZE))
     sources: List[dict] = []
@@ -54,6 +65,17 @@ def convert_pdf_paths_to_images(
             }
         )
         total_pages += pages
+
+    # Extract document metadata for DuckDB storage
+    document_metadata = [
+        {
+            "document_id": src["document_id"],
+            "filename": src["filename"],
+            "file_size_bytes": src["file_size_bytes"],
+            "total_pages": src["total_pages"],
+        }
+        for src in sources
+    ]
 
     def _image_iterator() -> Iterator[dict]:
         for source in sources:
@@ -100,7 +122,7 @@ def convert_pdf_paths_to_images(
 
                 page = last_page + 1
 
-    return total_pages, _image_iterator()
+    return total_pages, _image_iterator(), document_metadata
 
 
 def compute_page_label(payload: Dict) -> str:

@@ -42,8 +42,9 @@ class DuckDBAnalyticsService:
         size_mb = db_path.stat().st_size / (1024 * 1024) if db_path.exists() else 0.0
 
         tables = {
-            "ocr_pages": self._count_table("ocr_pages"),
-            "ocr_regions": self._count_table("ocr_regions"),
+            "documents": self._count_table("documents"),
+            "pages": self._count_table("pages"),
+            "regions": self._count_table("regions"),
         }
 
         return InfoResponse(
@@ -56,7 +57,7 @@ class DuckDBAnalyticsService:
     def _count_table(self, table: str) -> int:
         """Count rows in a table with SQL injection protection."""
         # Whitelist of allowed table names
-        allowed_tables = {"ocr_pages", "ocr_regions"}
+        allowed_tables = {"documents", "pages", "regions"}
         if table not in allowed_tables:
             raise ValueError(f"Invalid table name: {table}")
 
@@ -87,10 +88,10 @@ class DuckDBAnalyticsService:
                 """
                 SELECT COUNT(*)
                 FROM information_schema.tables
-                WHERE lower(table_name) IN ('ocr_pages', 'ocr_regions')
+                WHERE lower(table_name) IN ('documents', 'pages', 'regions')
                 """
             ).fetchone()
-            return bool(result and result[0] == 2)
+            return bool(result and result[0] == 3)
         except Exception:
             return False
 
@@ -111,15 +112,23 @@ class DuckDBAnalyticsService:
 
         self._delete_page_rows(payload.filename, payload.page_number)
 
+        # Get or create document_id from documents table
+        document_id = self._get_or_create_document_id(
+            filename=payload.filename,
+            file_size_bytes=None,  # Not available in OcrPageData
+            total_pages=None,  # Not available in OcrPageData
+        )
+
         row = conn.execute(
             """
-            INSERT INTO ocr_pages (
-                filename, page_number, page_width_px, page_height_px,
+            INSERT INTO pages (
+                document_id, filename, page_number, page_width_px, page_height_px,
                 image_url, text, markdown, storage_url, extracted_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             RETURNING id
             """,
             [
+                document_id,
                 payload.filename,
                 payload.page_number,
                 payload.page_width_px,
@@ -151,7 +160,7 @@ class DuckDBAnalyticsService:
         """Remove an existing page and its related rows."""
         params = [filename, page_number]
         self.conn.execute(
-            "DELETE FROM ocr_pages WHERE filename = ? AND page_number = ?",
+            "DELETE FROM pages WHERE filename = ? AND page_number = ?",
             params,
         )
 
@@ -183,21 +192,25 @@ class DuckDBAnalyticsService:
         counts = self.conn.execute(
             """
             SELECT
-                (SELECT COUNT(*) FROM ocr_pages) AS pages,
-                (SELECT COUNT(*) FROM ocr_regions) AS regions
+                (SELECT COUNT(*) FROM documents) AS documents,
+                (SELECT COUNT(*) FROM pages) AS pages,
+                (SELECT COUNT(*) FROM regions) AS regions
             """
         ).fetchone()
 
-        # Delete child table first (respects foreign key constraint)
-        self.conn.execute("DELETE FROM ocr_regions")
-        self.conn.execute("DELETE FROM ocr_pages")
+        # Delete child tables first (respects foreign key constraints)
+        self.conn.execute("DELETE FROM regions")
+        self.conn.execute("DELETE FROM pages")
+        self.conn.execute("DELETE FROM documents")
 
-        cleared_pages = counts[0] if counts else 0
-        cleared_regions = counts[1] if counts else 0
+        cleared_documents = counts[0] if counts else 0
+        cleared_pages = counts[1] if counts else 0
+        cleared_regions = counts[2] if counts else 0
 
         return {
             "status": "success",
             "message": "Cleared DuckDB tables",
+            "cleared_documents": cleared_documents,
             "cleared_pages": cleared_pages,
             "cleared_regions": cleared_regions,
         }
@@ -205,10 +218,12 @@ class DuckDBAnalyticsService:
     def delete_storage(self) -> Dict[str, Any]:
         """Drop DuckDB OCR tables without removing the database file."""
         conn = db_manager.connect(force=True)
-        conn.execute("DROP TABLE IF EXISTS ocr_regions")
-        conn.execute("DROP TABLE IF EXISTS ocr_pages")
-        conn.execute("DROP SEQUENCE IF EXISTS ocr_regions_id_seq")
-        conn.execute("DROP SEQUENCE IF EXISTS ocr_pages_id_seq")
+        conn.execute("DROP TABLE IF EXISTS regions")
+        conn.execute("DROP TABLE IF EXISTS pages")
+        conn.execute("DROP TABLE IF EXISTS documents")
+        conn.execute("DROP SEQUENCE IF EXISTS regions_id_seq")
+        conn.execute("DROP SEQUENCE IF EXISTS pages_id_seq")
+        conn.execute("DROP SEQUENCE IF EXISTS documents_id_seq")
         conn.execute("CHECKPOINT")
 
         return {
@@ -254,7 +269,7 @@ class DuckDBAnalyticsService:
 
         self.conn.executemany(
             """
-            INSERT INTO ocr_regions (
+            INSERT INTO regions (
                 page_id, region_id, label, bbox_x1, bbox_y1, bbox_x2, bbox_y2, content
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
@@ -290,10 +305,10 @@ class DuckDBAnalyticsService:
                 MIN(p.extracted_at) AS first_indexed,
                 MAX(p.extracted_at) AS last_indexed,
                 COALESCE(SUM(r.region_count), 0) AS total_regions
-            FROM ocr_pages p
+            FROM pages p
             LEFT JOIN (
                 SELECT page_id, COUNT(*) AS region_count
-                FROM ocr_regions
+                FROM regions
                 GROUP BY page_id
             ) r ON p.id = r.page_id
             GROUP BY p.filename
@@ -323,10 +338,10 @@ class DuckDBAnalyticsService:
                 MIN(p.extracted_at) AS first_indexed,
                 MAX(p.extracted_at) AS last_indexed,
                 COALESCE(SUM(r.region_count), 0) AS total_regions
-            FROM ocr_pages p
+            FROM pages p
             LEFT JOIN (
                 SELECT page_id, COUNT(*) AS region_count
-                FROM ocr_regions
+                FROM regions
                 GROUP BY page_id
             ) r ON p.id = r.page_id
             WHERE p.filename = ?
@@ -361,7 +376,7 @@ class DuckDBAnalyticsService:
             SELECT
                 id, filename, page_number, page_width_px, page_height_px,
                 image_url, text, markdown, storage_url, extracted_at, created_at
-            FROM ocr_pages
+            FROM pages
             WHERE filename = ? AND page_number = ?
             """,
             [filename, page_number],
@@ -393,7 +408,7 @@ class DuckDBAnalyticsService:
             """
             SELECT
                 region_id, label, bbox_x1, bbox_y1, bbox_x2, bbox_y2, content
-            FROM ocr_regions
+            FROM regions
             WHERE page_id = ?
             ORDER BY id
             """,
@@ -415,23 +430,25 @@ class DuckDBAnalyticsService:
 
     def delete_document(self, filename: str) -> Dict[str, Any]:
         count_row = self.conn.execute(
-            "SELECT COUNT(*) FROM ocr_pages WHERE filename = ?", [filename]
+            "SELECT COUNT(*) FROM pages WHERE filename = ?", [filename]
         ).fetchone()
         deleted_pages = int(count_row[0]) if count_row else 0
 
         if deleted_pages == 0:
             raise ValueError("Document not found")
 
+        # Delete in order: regions -> pages -> documents (respects FK constraints)
         self.conn.execute(
             """
-            DELETE FROM ocr_regions
+            DELETE FROM regions
             WHERE page_id IN (
-                SELECT id FROM ocr_pages WHERE filename = ?
+                SELECT id FROM pages WHERE filename = ?
             )
             """,
             [filename],
         )
-        self.conn.execute("DELETE FROM ocr_pages WHERE filename = ?", [filename])
+        self.conn.execute("DELETE FROM pages WHERE filename = ?", [filename])
+        self.conn.execute("DELETE FROM documents WHERE filename = ?", [filename])
 
         logger.info("Deleted %s pages for document %s", deleted_pages, filename)
         return {"status": "success", "deleted_pages": deleted_pages}
@@ -507,17 +524,17 @@ class DuckDBAnalyticsService:
 
         if schema_active:
             total_docs_row = self.conn.execute(
-                "SELECT COUNT(DISTINCT filename) FROM ocr_pages"
+                "SELECT COUNT(*) FROM documents"
             ).fetchone()
             total_docs = total_docs_row[0] if total_docs_row else 0
 
             total_pages_row = self.conn.execute(
-                "SELECT COUNT(*) FROM ocr_pages"
+                "SELECT COUNT(*) FROM pages"
             ).fetchone()
             total_pages = total_pages_row[0] if total_pages_row else 0
 
             total_regions_row = self.conn.execute(
-                "SELECT COUNT(*) FROM ocr_regions"
+                "SELECT COUNT(*) FROM regions"
             ).fetchone()
             total_regions = total_regions_row[0] if total_regions_row else 0
 
@@ -536,7 +553,7 @@ class DuckDBAnalyticsService:
         result = self.conn.execute(
             """
             SELECT filename, page_number, text, markdown, extracted_at
-            FROM ocr_pages
+            FROM pages
             WHERE text LIKE ?
             ORDER BY extracted_at DESC
             LIMIT ?
@@ -556,6 +573,225 @@ class DuckDBAnalyticsService:
     @staticmethod
     def _format_rows(rows: Sequence[Tuple[Any, ...]]) -> List[List[Any]]:
         return [list(row) for row in rows]
+
+    # ------------------------------------------------------------------
+    # Document management helpers
+    # ------------------------------------------------------------------
+    def check_document_exists(
+        self, filename: str, file_size_bytes: Optional[int], total_pages: int
+    ) -> Optional[Dict[str, Any]]:
+        """Check if a document already exists in the database.
+
+        Args:
+            filename: Document filename
+            file_size_bytes: File size in bytes (None if unavailable)
+            total_pages: Total number of pages
+
+        Returns:
+            Document info dict if exists, None otherwise
+
+        Note:
+            Only returns documents with valid metadata (not placeholders with -1 values)
+        """
+        try:
+            row = self.conn.execute(
+                """
+                SELECT id, document_id, filename, file_size_bytes, total_pages,
+                       first_indexed, last_indexed
+                FROM documents
+                WHERE filename = ?
+                  AND file_size_bytes = ?
+                  AND total_pages = ?
+                  AND file_size_bytes >= 0
+                  AND total_pages > 0
+                """,
+                [filename, file_size_bytes, total_pages],
+            ).fetchone()
+
+            if row:
+                return {
+                    "id": row[0],
+                    "document_id": row[1],
+                    "filename": row[2],
+                    "file_size_bytes": row[3],
+                    "total_pages": row[4],
+                    "first_indexed": str(row[5]),
+                    "last_indexed": str(row[6]),
+                }
+            return None
+        except Exception as exc:
+            logger.warning(f"Error checking document existence: {exc}")
+            return None
+
+    def store_document(
+        self,
+        document_id: str,
+        filename: str,
+        file_size_bytes: Optional[int],
+        total_pages: int,
+    ) -> int:
+        """Store or update document metadata.
+
+        Args:
+            document_id: UUID for this document
+            filename: Document filename
+            file_size_bytes: File size in bytes
+            total_pages: Total number of pages
+
+        Returns:
+            Database ID of the document
+        """
+        # Try to get existing document with same metadata
+        row = self.conn.execute(
+            """
+            SELECT id FROM documents
+            WHERE filename = ? AND file_size_bytes = ? AND total_pages = ?
+            """,
+            [filename, file_size_bytes, total_pages],
+        ).fetchone()
+
+        if row:
+            # Update last_indexed timestamp
+            doc_id = int(row[0])
+            self.conn.execute(
+                """
+                UPDATE documents
+                SET last_indexed = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                [doc_id],
+            )
+            return doc_id
+
+        # Check if there's a placeholder document to update
+        placeholder_row = self.conn.execute(
+            """
+            SELECT id FROM documents
+            WHERE filename = ?
+              AND (file_size_bytes = -1 OR total_pages = -1)
+            LIMIT 1
+            """,
+            [filename],
+        ).fetchone()
+
+        if placeholder_row:
+            # Update placeholder with real metadata
+            doc_id = int(placeholder_row[0])
+            self.conn.execute(
+                """
+                UPDATE documents
+                SET document_id = ?,
+                    file_size_bytes = ?,
+                    total_pages = ?,
+                    last_indexed = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                [document_id, file_size_bytes, total_pages, doc_id],
+            )
+            logger.info(
+                f"Updated placeholder document entry for {filename} with complete metadata"
+            )
+            return doc_id
+
+        # Insert new document
+        row = self.conn.execute(
+            """
+            INSERT INTO documents (document_id, filename, file_size_bytes, total_pages)
+            VALUES (?, ?, ?, ?)
+            RETURNING id
+            """,
+            [document_id, filename, file_size_bytes, total_pages],
+        ).fetchone()
+
+        if not row:
+            raise RuntimeError("Failed to insert document")
+
+        return int(row[0])
+
+    def _get_or_create_document_id(
+        self,
+        filename: str,
+        file_size_bytes: Optional[int],
+        total_pages: Optional[int],
+    ) -> int:
+        """Get existing document ID by filename, or create a placeholder.
+
+        This is a helper for backward compatibility when storing OCR pages
+        without explicit document metadata.
+
+        Args:
+            filename: Document filename
+            file_size_bytes: File size in bytes (None if unavailable)
+            total_pages: Total number of pages (None if unavailable)
+
+        Returns:
+            Database ID of the document
+        """
+        import uuid
+
+        # Try to find existing document by filename
+        # If we have complete metadata, use it for exact lookup
+        if file_size_bytes is not None and total_pages is not None and total_pages > 0:
+            row = self.conn.execute(
+                """
+                SELECT id FROM documents
+                WHERE filename = ? AND file_size_bytes = ? AND total_pages = ?
+                LIMIT 1
+                """,
+                [filename, file_size_bytes, total_pages],
+            ).fetchone()
+
+            if row:
+                return int(row[0])
+
+            # Create document with complete metadata
+            doc_id = str(uuid.uuid4())
+            row = self.conn.execute(
+                """
+                INSERT INTO documents (document_id, filename, file_size_bytes, total_pages)
+                VALUES (?, ?, ?, ?)
+                RETURNING id
+                """,
+                [doc_id, filename, file_size_bytes, total_pages],
+            ).fetchone()
+
+            if not row:
+                raise RuntimeError(f"Failed to create document entry for {filename}")
+
+            logger.info(f"Created document entry for {filename} with {total_pages} pages")
+            return int(row[0])
+
+        # Otherwise, find any document with matching filename
+        row = self.conn.execute(
+            """
+            SELECT id FROM documents WHERE filename = ? LIMIT 1
+            """,
+            [filename],
+        ).fetchone()
+
+        if row:
+            return int(row[0])
+
+        # Last resort: create a minimal document entry
+        # This will be updated with correct metadata during full indexing
+        doc_id = str(uuid.uuid4())
+        row = self.conn.execute(
+            """
+            INSERT INTO documents (document_id, filename, file_size_bytes, total_pages)
+            VALUES (?, ?, ?, ?)
+            RETURNING id
+            """,
+            [doc_id, filename, file_size_bytes or -1, total_pages or -1],
+        ).fetchone()
+
+        if not row:
+            raise RuntimeError(f"Failed to create document entry for {filename}")
+
+        logger.warning(
+            f"Created placeholder document entry for {filename} with incomplete metadata. "
+            f"This will be updated during full document indexing."
+        )
+        return int(row[0])
 
 
 duckdb_service = DuckDBAnalyticsService()

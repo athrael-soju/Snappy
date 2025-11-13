@@ -57,21 +57,37 @@ class DuckDBManager:
         """Create the analytics schema with columnar tables.
 
         Schema design principles:
-        - ocr_pages: Core page metadata with MinIO references
-        - ocr_regions: Structured text regions with bounding boxes
+        - documents: Core document metadata for deduplication
+        - pages: Page metadata with MinIO references (formerly ocr_pages)
+        - regions: Structured text regions with bounding boxes (formerly ocr_regions)
         - Minimal duplication: Full data lives in MinIO, DB has queryable metadata
         - Retrieval: Query by (filename, page_number) matching Qdrant payload
+        - Deduplication: Check documents table before indexing
         """
         if not self._connection:
             return
 
         self._connection.execute(
             """
-            CREATE SEQUENCE IF NOT EXISTS ocr_pages_id_seq START 1;
-            CREATE SEQUENCE IF NOT EXISTS ocr_regions_id_seq START 1;
+            CREATE SEQUENCE IF NOT EXISTS documents_id_seq START 1;
+            CREATE SEQUENCE IF NOT EXISTS pages_id_seq START 1;
+            CREATE SEQUENCE IF NOT EXISTS regions_id_seq START 1;
 
-            CREATE TABLE IF NOT EXISTS ocr_pages (
-                id INTEGER PRIMARY KEY DEFAULT nextval('ocr_pages_id_seq'),
+            CREATE TABLE IF NOT EXISTS documents (
+                id INTEGER PRIMARY KEY DEFAULT nextval('documents_id_seq'),
+                document_id VARCHAR NOT NULL,
+                filename VARCHAR NOT NULL,
+                file_size_bytes BIGINT,
+                total_pages INTEGER NOT NULL,
+                first_indexed TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_indexed TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(filename, file_size_bytes, total_pages)
+            );
+
+            CREATE TABLE IF NOT EXISTS pages (
+                id INTEGER PRIMARY KEY DEFAULT nextval('pages_id_seq'),
+                document_id INTEGER NOT NULL,
                 filename VARCHAR NOT NULL,
                 page_number INTEGER NOT NULL,
                 page_width_px INTEGER,
@@ -82,11 +98,12 @@ class DuckDBManager:
                 storage_url VARCHAR NOT NULL,
                 extracted_at TIMESTAMP,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(filename, page_number)
+                UNIQUE(filename, page_number),
+                FOREIGN KEY(document_id) REFERENCES documents(id)
             );
 
-            CREATE TABLE IF NOT EXISTS ocr_regions (
-                id INTEGER PRIMARY KEY DEFAULT nextval('ocr_regions_id_seq'),
+            CREATE TABLE IF NOT EXISTS regions (
+                id INTEGER PRIMARY KEY DEFAULT nextval('regions_id_seq'),
                 page_id INTEGER NOT NULL,
                 region_id VARCHAR,
                 label VARCHAR,
@@ -96,22 +113,27 @@ class DuckDBManager:
                 bbox_y2 INTEGER,
                 content TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY(page_id) REFERENCES ocr_pages(id)
+                FOREIGN KEY(page_id) REFERENCES pages(id)
             );
             """
         )
 
         self._connection.execute(
             """
-            CREATE INDEX IF NOT EXISTS idx_pages_filename ON ocr_pages(filename);
-            CREATE INDEX IF NOT EXISTS idx_pages_page_number ON ocr_pages(page_number);
-            CREATE INDEX IF NOT EXISTS idx_pages_filename_page ON ocr_pages(filename, page_number);
-            CREATE INDEX IF NOT EXISTS idx_pages_extracted_at ON ocr_pages(extracted_at);
-            CREATE INDEX IF NOT EXISTS idx_pages_text_fts ON ocr_pages(text);
+            CREATE INDEX IF NOT EXISTS idx_documents_filename ON documents(filename);
+            CREATE INDEX IF NOT EXISTS idx_documents_document_id ON documents(document_id);
+            CREATE INDEX IF NOT EXISTS idx_documents_lookup ON documents(filename, file_size_bytes, total_pages);
 
-            CREATE INDEX IF NOT EXISTS idx_regions_page_id ON ocr_regions(page_id);
-            CREATE INDEX IF NOT EXISTS idx_regions_label ON ocr_regions(label);
-            CREATE INDEX IF NOT EXISTS idx_regions_content_fts ON ocr_regions(content);
+            CREATE INDEX IF NOT EXISTS idx_pages_document_id ON pages(document_id);
+            CREATE INDEX IF NOT EXISTS idx_pages_filename ON pages(filename);
+            CREATE INDEX IF NOT EXISTS idx_pages_page_number ON pages(page_number);
+            CREATE INDEX IF NOT EXISTS idx_pages_filename_page ON pages(filename, page_number);
+            CREATE INDEX IF NOT EXISTS idx_pages_extracted_at ON pages(extracted_at);
+            CREATE INDEX IF NOT EXISTS idx_pages_text_fts ON pages(text);
+
+            CREATE INDEX IF NOT EXISTS idx_regions_page_id ON regions(page_id);
+            CREATE INDEX IF NOT EXISTS idx_regions_label ON regions(label);
+            CREATE INDEX IF NOT EXISTS idx_regions_content_fts ON regions(content);
             """
         )
 

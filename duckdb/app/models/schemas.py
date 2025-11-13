@@ -73,3 +73,20 @@ class DocumentInfo(BaseModel):
     first_indexed: str
     last_indexed: str
     total_regions: int
+
+
+class DocumentCheckRequest(BaseModel):
+    """Request to check if a document exists."""
+
+    filename: str
+    file_size_bytes: Optional[int]
+    total_pages: int
+
+
+class DocumentStoreRequest(BaseModel):
+    """Request to store document metadata."""
+
+    document_id: str
+    filename: str
+    file_size_bytes: Optional[int]
+    total_pages: int
