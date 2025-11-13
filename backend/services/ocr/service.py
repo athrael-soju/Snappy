@@ -333,16 +333,31 @@ class OcrService:
         return self.storage.fetch_ocr_result(filename, page_number)
 
     def _fetch_page_image(self, filename: str, page_number: int) -> bytes:
-        """Fetch page image bytes from MinIO."""
-        ext = self.image_processor.get_extension()
-        object_name = f"{filename}/{page_number}/page.{ext}"
+        """Fetch page image bytes from MinIO.
 
-        response = self.minio_service.service.get_object(
+        Note: With UUID-based naming, we need to list objects in the image/ subfolder
+        to find the page image since we don't have the UUID readily available.
+        """
+        # List objects in the image/ subfolder for this page
+        prefix = f"{filename}/{page_number}/image/"
+
+        for obj in self.minio_service.service.list_objects(
             bucket_name=self.minio_service.bucket_name,
-            object_name=object_name,
-        )
+            prefix=prefix,
+        ):
+            object_name = getattr(obj, "object_name", "")
+            if object_name:
+                # Found the page image, fetch it
+                response = self.minio_service.service.get_object(
+                    bucket_name=self.minio_service.bucket_name,
+                    object_name=object_name,
+                )
+                return response.read()
 
-        return response.read()
+        # No image found
+        raise FileNotFoundError(
+            f"Page image not found for {filename} page {page_number} in image/ subfolder"
+        )
 
     def health_check(self) -> bool:
         """Check if OCR service is healthy and accessible."""

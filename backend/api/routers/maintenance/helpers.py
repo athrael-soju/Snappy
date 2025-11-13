@@ -93,11 +93,15 @@ def collect_bucket_status(msvc: Optional["MinioService"]) -> dict:
                 size = getattr(obj, "size", 0) or 0
                 total_bytes += size
                 object_name = getattr(obj, "object_name", "") or ""
-                filename = object_name.rsplit("/", 1)[-1]
-                if filename.startswith("page."):
+
+                # Count only new subfolder structure
+                if "/image/" in object_name:
+                    # {filename}/{page}/image/{uuid}.{ext}
                     status["page_count"] += 1
-                elif filename == "elements.json":
+                elif "/ocr/" in object_name and object_name.endswith(".json"):
+                    # {filename}/{page}/ocr/{uuid}.json
                     status["element_count"] += 1
+                # Note: /ocr_regions/ files (region JSONs and figures) are not counted separately
             status["size_mb"] = (
                 round(total_bytes / (1024 * 1024), 2) if total_bytes else 0.0
             )

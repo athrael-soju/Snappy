@@ -40,9 +40,11 @@ export async function runChatService(options: NormalizedChatRequest): Promise<Ch
         }
 
         // Use OCR-based (markdown) content if OCR is enabled AND OCR data exists
-        // Check both inline payload and json_url for backward compatibility
+        // Check inline payload (markdown or regions) and json_url for backward compatibility
         const hasOcrData = results.some((result) =>
-            result?.payload?.ocr?.markdown || result?.json_url
+            result?.payload?.ocr?.markdown ||
+            result?.payload?.ocr?.regions?.length > 0 ||
+            result?.json_url
         );
         const useOcrContent = ocrEnabled && hasOcrData;
 
