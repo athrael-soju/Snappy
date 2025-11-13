@@ -4,7 +4,7 @@ import logging
 import os
 from typing import Dict, Iterable, List
 
-from api.dependencies import get_qdrant_service, qdrant_init_error
+from api.dependencies import get_duckdb_service, get_qdrant_service, qdrant_init_error
 from api.progress import progress_manager
 from api.utils import convert_pdf_paths_to_images
 
@@ -32,7 +32,33 @@ def run_indexing_job(job_id: str, paths: List[str], filenames: Dict[str, str]) -
 
         progress_manager.update(job_id, current=0, message="converting documents")
 
-        total_images, image_iterator = convert_pdf_paths_to_images(paths, filenames)
+        # Get DuckDB service for deduplication check
+        duckdb_svc = get_duckdb_service()
+
+        total_images, image_iterator, document_metadata = convert_pdf_paths_to_images(
+            paths, filenames, duckdb_service=duckdb_svc
+        )
+
+        # Store document metadata in DuckDB BEFORE indexing starts
+        # This ensures documents exist before OCR pages are stored
+        if duckdb_svc and duckdb_svc.is_enabled():
+            for doc_meta in document_metadata:
+                try:
+                    duckdb_svc.store_document(
+                        document_id=doc_meta["document_id"],
+                        filename=doc_meta["filename"],
+                        file_size_bytes=doc_meta.get("file_size_bytes"),
+                        total_pages=doc_meta["total_pages"],
+                    )
+                    logger.info(
+                        f"Pre-stored document metadata for {doc_meta['filename']} "
+                        f"({doc_meta['total_pages']} pages)"
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to pre-store document metadata in DuckDB: {e}"
+                    )
+
         progress_manager.set_total(job_id, total_images)
 
         svc = get_qdrant_service()

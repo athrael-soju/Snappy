@@ -6,9 +6,10 @@ import tempfile
 import uuid
 from typing import Dict, List
 
-from api.dependencies import get_qdrant_service, qdrant_init_error
+from api.dependencies import get_duckdb_service, get_qdrant_service, qdrant_init_error
 from api.progress import progress_manager
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
+from pdf2image import pdfinfo_from_path
 from utils.timing import PerformanceTimer
 
 from .file_constraints import (
@@ -188,6 +189,76 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
                 "duration_ms": timer.duration_ms,
             },
         )
+
+        # Check for duplicates before starting background job
+        duckdb_svc = get_duckdb_service()
+        if duckdb_svc and duckdb_svc.is_enabled():
+            filtered_paths: List[str] = []
+            filtered_filenames: Dict[str, str] = {}
+            skipped_files: List[str] = []
+
+            for tmp_path in temp_paths:
+                filename = original_filenames[tmp_path]
+
+                try:
+                    # Get PDF metadata
+                    info = pdfinfo_from_path(tmp_path)
+                    pages = int(info.get("Pages", 0))
+                    size_bytes = os.path.getsize(tmp_path)
+                except Exception as exc:
+                    logger.warning(
+                        f"Failed to extract metadata for {filename}: {exc}",
+                        extra={"operation": "index"},
+                    )
+                    # If we can't get metadata, include the file anyway
+                    filtered_paths.append(tmp_path)
+                    filtered_filenames[tmp_path] = filename
+                    continue
+
+                # Check for duplicates
+                existing_doc = duckdb_svc.check_document_exists(
+                    filename=filename,
+                    file_size_bytes=size_bytes,
+                    total_pages=pages,
+                )
+
+                if existing_doc:
+                    logger.info(
+                        f"Skipping already indexed document: {filename} "
+                        f"(first indexed: {existing_doc.get('first_indexed')})",
+                        extra={"operation": "index"},
+                    )
+                    skipped_files.append(filename)
+                    # Clean up temp file for duplicate
+                    try:
+                        os.unlink(tmp_path)
+                    except Exception:
+                        pass
+                else:
+                    filtered_paths.append(tmp_path)
+                    filtered_filenames[tmp_path] = filename
+
+            # Update lists to only include non-duplicates
+            temp_paths = filtered_paths
+            original_filenames = filtered_filenames
+
+            if skipped_files:
+                logger.info(
+                    f"Skipped {len(skipped_files)} already indexed documents",
+                    extra={
+                        "operation": "index",
+                        "skipped_files": skipped_files,
+                    },
+                )
+
+            # If all files were duplicates, return early
+            if not temp_paths:
+                return {
+                    "status": "completed",
+                    "message": "All documents already indexed (skipped)",
+                    "skipped_count": len(skipped_files),
+                    "skipped_files": skipped_files,
+                }
 
         # Fail fast if dependencies are unavailable
         if not get_qdrant_service():

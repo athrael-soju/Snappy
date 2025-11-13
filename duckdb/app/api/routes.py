@@ -7,7 +7,9 @@ from typing import Any, Dict, List
 from app.core.config import settings
 from app.core.logging import logger
 from app.models.schemas import (
+    DocumentCheckRequest,
     DocumentInfo,
+    DocumentStoreRequest,
     HealthResponse,
     InfoResponse,
     OcrBatchData,
@@ -119,6 +121,41 @@ async def delete_document(filename: str) -> Dict[str, Any]:
         raise HTTPException(status_code=404, detail=str(exc))
     except Exception as exc:
         logger.error("Failed to delete document: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.post("/documents/check", response_model=Dict[str, Any])
+async def check_document_exists(request: DocumentCheckRequest) -> Dict[str, Any]:
+    """Check if a document already exists in the database."""
+    try:
+        doc = duckdb_service.check_document_exists(
+            request.filename, request.file_size_bytes, request.total_pages
+        )
+        if doc:
+            return {"exists": True, "document": doc}
+        return {"exists": False, "document": None}
+    except Exception as exc:
+        logger.error("Failed to check document existence: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.post("/documents/store", response_model=Dict[str, Any])
+async def store_document(request: DocumentStoreRequest) -> Dict[str, Any]:
+    """Store or update document metadata."""
+    try:
+        db_id = duckdb_service.store_document(
+            document_id=request.document_id,
+            filename=request.filename,
+            file_size_bytes=request.file_size_bytes,
+            total_pages=request.total_pages,
+        )
+        return {
+            "status": "success",
+            "message": "Document metadata stored",
+            "document_db_id": db_id,
+        }
+    except Exception as exc:
+        logger.error("Failed to store document: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
 
 

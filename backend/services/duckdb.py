@@ -350,6 +350,90 @@ class DuckDBService:
             logger.warning(f"Failed to get stats from DuckDB: {exc}")
             return None
 
+    def check_document_exists(
+        self, filename: str, file_size_bytes: Optional[int], total_pages: int
+    ) -> Optional[Dict[str, Any]]:
+        """Check if a document already exists in DuckDB.
+
+        Args:
+            filename: Document filename
+            file_size_bytes: File size in bytes
+            total_pages: Total number of pages
+
+        Returns:
+            Document info dictionary if exists, None otherwise
+        """
+        if not self.enabled:
+            return None
+
+        try:
+            payload = {
+                "filename": filename,
+                "file_size_bytes": file_size_bytes,
+                "total_pages": total_pages,
+            }
+
+            response = self.session.post(
+                f"{self.base_url}/documents/check",
+                json=payload,
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+            result = response.json()
+
+            # Return None if document doesn't exist
+            if not result or not result.get("exists"):
+                return None
+
+            return result.get("document")
+
+        except Exception as exc:
+            logger.warning(f"Failed to check document existence in DuckDB: {exc}")
+            return None
+
+    def store_document(
+        self,
+        document_id: str,
+        filename: str,
+        file_size_bytes: Optional[int],
+        total_pages: int,
+    ) -> bool:
+        """Store document metadata in DuckDB.
+
+        Args:
+            document_id: UUID for this document
+            filename: Document filename
+            file_size_bytes: File size in bytes
+            total_pages: Total number of pages
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.enabled:
+            return False
+
+        try:
+            payload = {
+                "document_id": document_id,
+                "filename": filename,
+                "file_size_bytes": file_size_bytes,
+                "total_pages": total_pages,
+            }
+
+            response = self.session.post(
+                f"{self.base_url}/documents/store",
+                json=payload,
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+
+            logger.info(f"Stored document metadata in DuckDB: {filename}")
+            return True
+
+        except Exception as exc:
+            logger.warning(f"Failed to store document in DuckDB: {exc}")
+            return False
+
     def search_text(self, query: str, limit: int = 50) -> Optional[Dict[str, Any]]:
         """Search for text across all OCR data.
 

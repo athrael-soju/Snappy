@@ -125,9 +125,6 @@ class OcrStorageHandler:
                     "label": region.get("label", "unknown"),
                     "bbox": region.get("bbox", []),
                     "content": region.get("content", ""),
-                    "image_url": region.get("image_url"),
-                    "image_storage": region.get("image_storage"),
-                    "image_inline": region.get("image_inline", False),
                 }
 
                 try:
