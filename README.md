@@ -270,15 +270,17 @@ Keep the services from steps 2 and 3 running while you develop.
   - Configurable model sizes (Tiny, Small, Base, Large, Gundam)
   - Multiple processing modes (plain OCR, markdown conversion, text location, image description, custom prompts)
   - Visual grounding with bounding boxes
-  - Parallel batch processing
+  - Parallel batch processing with adjustable worker settings
+  - UUID-based result naming for reliable storage and retrieval
   - Image embedding support
 - 🦆 **DuckDB Analytics** for OCR data storage and SQL-based analytics with:
+  - **Document deduplication** - Automatically detects and prevents duplicate uploads using content-based fingerprinting (filename, size, page count)
   - Automatic storage of OCR results alongside MinIO
-  - Columnar tables for regions/images instead of JSON blobs
-  - SQL query interface for custom analytics
+  - Columnar tables (documents/pages/regions) for structured analytics instead of JSON blobs
+  - SQL query interface for custom analytics with query sanitization
   - Full-text search across all OCR data
   - DuckDB-Wasm UI for interactive exploration
-  - Document and page-level statistics
+  - Document and page-level statistics with metadata tracking
 - 💬 **Streaming chat responses** from the OpenAI Responses API with inline visual citations so you can see each supporting page.
 - ⚡ **Pipelined indexing** with live Server-Sent Events progress updates.
 - ⚙️ **Runtime configuration UI** backed by a typed schema, with reset and draft flows that make experimentation safe.
