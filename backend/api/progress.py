@@ -1,6 +1,9 @@
+import logging
 import threading
 import time
 from typing import Dict, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class ProgressManager:
@@ -89,14 +92,40 @@ class ProgressManager:
                     self._jobs[job_id]["finished_at"] = time.time()
                     self._jobs[job_id]["message"] = "Upload cancelled by user"
                     cancelled = True
+
         if cancelled:
+            # Notify external services of cancellation
+            try:
+                from services.cancellation import notify_job_cancellation
+
+                results = notify_job_cancellation(job_id)
+                logger.info(
+                    f"Service cancellation notifications sent for job {job_id}",
+                    extra={"job_id": job_id, "notification_results": results},
+                )
+            except Exception as exc:
+                logger.warning(
+                    f"Failed to send service cancellation notifications: {exc}",
+                    extra={"job_id": job_id},
+                )
+
             self._schedule_cleanup(job_id)
+
         return cancelled
 
     def is_cancelled(self, job_id: str) -> bool:
         """Check if a job has been cancelled."""
         with self._lock:
             return self._cancel_flags.get(job_id, False)
+
+    def get_active_jobs(self) -> list[str]:
+        """Get list of currently running job IDs."""
+        with self._lock:
+            return [
+                job_id
+                for job_id, job in self._jobs.items()
+                if job["status"] == "running"
+            ]
 
     def cleanup(self, job_id: str):
         """Remove job data and cancel any pending cleanup timer."""

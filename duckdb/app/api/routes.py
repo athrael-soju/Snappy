@@ -9,6 +9,7 @@ from app.core.logging import logger
 from app.models.schemas import (
     DocumentCheckRequest,
     DocumentInfo,
+    DocumentStoreBatchRequest,
     DocumentStoreRequest,
     HealthResponse,
     InfoResponse,
@@ -156,6 +157,23 @@ async def store_document(request: DocumentStoreRequest) -> Dict[str, Any]:
         }
     except Exception as exc:
         logger.error("Failed to store document: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.post("/documents/store/batch", response_model=Dict[str, Any])
+async def store_documents_batch(request: DocumentStoreBatchRequest) -> Dict[str, Any]:
+    """Store multiple document metadata records in a batch."""
+    try:
+        documents = [doc.model_dump() for doc in request.documents]
+        result = duckdb_service.store_documents_batch(documents)
+        return {
+            "status": "success",
+            "message": f"Stored {result['success_count']} documents ({result['failed_count']} failures)",
+            "success_count": result["success_count"],
+            "failed_count": result["failed_count"],
+        }
+    except Exception as exc:
+        logger.error("Failed to store document batch: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
 
 

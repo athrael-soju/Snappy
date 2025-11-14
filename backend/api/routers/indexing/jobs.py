@@ -17,11 +17,22 @@ class CancellationError(Exception):
 
 def cleanup_temp_files(paths: Iterable[str]) -> None:
     """Best-effort cleanup for temporary files."""
+    cleanup_count = 0
+    failed_count = 0
+
     for path in paths:
         try:
-            os.unlink(path)
-        except Exception:
-            pass
+            if os.path.exists(path):
+                os.unlink(path)
+                cleanup_count += 1
+        except Exception as exc:
+            failed_count += 1
+            logger.warning(f"Failed to clean up temp file {path}: {exc}")
+
+    if cleanup_count > 0:
+        logger.debug(f"Cleaned up {cleanup_count} temporary files")
+    if failed_count > 0:
+        logger.warning(f"Failed to clean up {failed_count} temporary files")
 
 
 def run_indexing_job(job_id: str, paths: List[str], filenames: Dict[str, str]) -> None:
@@ -35,29 +46,35 @@ def run_indexing_job(job_id: str, paths: List[str], filenames: Dict[str, str]) -
         # Get DuckDB service for deduplication check
         duckdb_svc = get_duckdb_service()
 
+        # Create cancellation check function
+        def check_cancellation():
+            if progress_manager.is_cancelled(job_id):
+                raise CancellationError("Job cancelled during PDF conversion")
+
         total_images, image_iterator, document_metadata = convert_pdf_paths_to_images(
-            paths, filenames, duckdb_service=duckdb_svc
+            paths, filenames, duckdb_service=duckdb_svc, cancellation_check=check_cancellation
         )
 
         # Store document metadata in DuckDB BEFORE indexing starts
         # This ensures documents exist before OCR pages are stored
-        if duckdb_svc and duckdb_svc.is_enabled():
-            for doc_meta in document_metadata:
-                try:
-                    duckdb_svc.store_document(
-                        document_id=doc_meta["document_id"],
-                        filename=doc_meta["filename"],
-                        file_size_bytes=doc_meta.get("file_size_bytes"),
-                        total_pages=doc_meta["total_pages"],
-                    )
+        if duckdb_svc and duckdb_svc.is_enabled() and document_metadata:
+            try:
+                result = duckdb_svc.store_documents_batch(document_metadata)
+                success_count = result.get("success_count", 0)
+                failed_count = result.get("failed_count", 0)
+
+                if success_count > 0:
                     logger.info(
-                        f"Pre-stored document metadata for {doc_meta['filename']} "
-                        f"({doc_meta['total_pages']} pages)"
+                        f"Pre-stored {success_count} document metadata records in DuckDB"
                     )
-                except Exception as e:
+                if failed_count > 0:
                     logger.warning(
-                        f"Failed to pre-store document metadata in DuckDB: {e}"
+                        f"Failed to pre-store {failed_count} document metadata records in DuckDB"
                     )
+            except Exception as e:
+                logger.warning(
+                    f"Failed to pre-store document metadata batch in DuckDB: {e}"
+                )
 
         progress_manager.set_total(job_id, total_images)
 

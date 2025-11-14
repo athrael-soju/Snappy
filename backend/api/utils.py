@@ -1,7 +1,7 @@
 import logging
 import os
 import uuid
-from typing import Dict, Iterator, List, Tuple
+from typing import Callable, Dict, Iterator, List, Tuple
 
 import config  # Import module for dynamic config access
 from fastapi import HTTPException
@@ -15,6 +15,7 @@ def convert_pdf_paths_to_images(
     original_filenames: Dict[str, str] | None = None,
     batch_size: int | None = None,
     duckdb_service=None,
+    cancellation_check: Callable[[], None] | None = None,
 ) -> Tuple[int, Iterator[dict], List[dict]]:
     """Stream PDF pages as image dictionaries instead of materialising them all at once.
 
@@ -23,6 +24,7 @@ def convert_pdf_paths_to_images(
         original_filenames: Dict mapping paths to original filenames
         batch_size: Number of pages to convert at once
         duckdb_service: Optional DuckDB service (unused, kept for compatibility)
+        cancellation_check: Optional callable that raises if operation is cancelled
 
     Returns:
         Tuple of (total_pages, image_iterator, document_metadata_list)
@@ -87,6 +89,10 @@ def convert_pdf_paths_to_images(
 
             page = 1
             while page <= total:
+                # Check for cancellation before expensive PDF conversion
+                if cancellation_check is not None:
+                    cancellation_check()
+
                 last_page = min(page + conversion_batch_size - 1, total)
                 try:
                     worker_threads = config.get_ingestion_worker_threads()

@@ -6,7 +6,7 @@ from typing import Dict, List, Tuple
 
 import config
 from PIL import Image
-from services.image_processor import ImageProcessor, ProcessedImage
+from .image_processor import ImageProcessor, ProcessedImage
 
 logger = logging.getLogger(__name__)
 

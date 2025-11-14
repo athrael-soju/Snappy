@@ -708,6 +708,45 @@ class DuckDBAnalyticsService:
 
         return int(row[0])
 
+    def store_documents_batch(
+        self, documents: List[Dict[str, Any]]
+    ) -> Dict[str, int]:
+        """Store multiple document metadata records in a batch.
+
+        Args:
+            documents: List of document metadata dictionaries with keys:
+                - document_id: UUID for the document
+                - filename: Document filename
+                - file_size_bytes: File size in bytes
+                - total_pages: Total number of pages
+
+        Returns:
+            Dict with 'success_count' and 'failed_count' keys
+        """
+        success_count = 0
+        failed_count = 0
+
+        for doc in documents:
+            try:
+                self.store_document(
+                    document_id=doc["document_id"],
+                    filename=doc["filename"],
+                    file_size_bytes=doc.get("file_size_bytes"),
+                    total_pages=doc["total_pages"],
+                )
+                success_count += 1
+            except Exception as exc:
+                logger.warning(
+                    f"Failed to store document {doc.get('filename', 'unknown')} in batch: {exc}"
+                )
+                failed_count += 1
+
+        logger.info(
+            f"Batch document storage: {success_count} succeeded, {failed_count} failed"
+        )
+
+        return {"success_count": success_count, "failed_count": failed_count}
+
     def _get_or_create_document_id(
         self,
         filename: str,

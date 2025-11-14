@@ -7,11 +7,11 @@ from typing import Dict, List, Optional, Tuple
 
 import config
 from PIL import Image
-from services.image_processor import ProcessedImage
 from utils.timing import log_execution_time
 
 from .progress import ProgressNotifier
 from .storage import ImageStorageHandler
+from .image_processor import ProcessedImage
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +66,7 @@ class BatchProcessor:
         embedding_processor,
         image_store: ImageStorageHandler,
         ocr_service=None,
+        job_id: str | None = None,
     ):
         """Initialize batch processor.
 
@@ -73,10 +74,12 @@ class BatchProcessor:
             embedding_processor: Service that generates embeddings
             image_store: Handler for image storage
             ocr_service: Optional OCR service for text extraction
+            job_id: Optional job ID for tracking and cancellation
         """
         self.embedding_processor = embedding_processor
         self.image_store = image_store
         self.ocr_service = ocr_service
+        self.job_id = job_id
 
     def process(
         self,
@@ -113,7 +116,7 @@ class BatchProcessor:
         image_batch, meta_batch = _split_image_batch(batch)
         current_batch_size = len(batch)
 
-        # Step 1: Batch embedding
+        # Step 1: Check cancellation before any processing
         progress.check_cancel(batch_start)
         if not skip_progress:
             progress.stage(
@@ -124,11 +127,14 @@ class BatchProcessor:
                 total=total_images,
             )
 
+        # Step 2: Batch embedding (check cancellation before expensive operation)
+        progress.check_cancel(batch_start)
         original_batch, pooled_by_rows_batch, pooled_by_columns_batch = (
             self._embed_batch(image_batch)
         )
 
-        # Step 2: Storage and optional OCR in parallel
+        # Step 3: Storage and optional OCR in parallel (check before storage)
+        progress.check_cancel(batch_start)
         try:
             image_ids, image_records, processed_images = self.image_store.store(
                 batch_start, image_batch, meta_batch

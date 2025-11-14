@@ -71,6 +71,23 @@ SCHEMA: Dict[str, Any] = {
                 "ui_hidden": True,
                 "ui_type": "number",
             },
+            {
+                "default": 4,
+                "description": "Maximum parallel workers for upload processing.",
+                "help_text": "Controls parallelism during upload operations (duplicate "
+                "checks, metadata extraction, etc.). Higher values speed up "
+                "processing for multiple files but increase CPU and network "
+                "usage. Accepts 1-8 workers. Default 4 balances performance "
+                "and resource usage for typical I/O-bound operations.",
+                "key": "UPLOAD_MAX_WORKERS",
+                "label": "Upload Max Workers",
+                "max": 8,
+                "min": 1,
+                "step": 1,
+                "type": "int",
+                "ui_hidden": True,
+                "ui_type": "number",
+            },
         ],
     }
 }

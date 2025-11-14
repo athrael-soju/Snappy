@@ -117,7 +117,7 @@ class OcrService:
             self.minio_service = minio_service
 
             # Initialize subcomponents
-            from services.image_processor import ImageProcessor
+            from services.pipeline.image_processor import ImageProcessor
 
             self.image_processor = ImageProcessor(
                 default_format=config.IMAGE_FORMAT,
