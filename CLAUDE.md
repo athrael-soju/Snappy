@@ -122,7 +122,7 @@ backend/
 │   ├── colpali.py      # Embedding service client
 │   ├── duckdb.py       # Analytics service client
 │   └── image_processor.py  # PDF rasterization
-├── config_schema.py     # Single source of truth for configuration
+├── config_schema/       # Schema-driven configuration (application, colpali, deepseek_ocr, duckdb, minio, qdrant, upload)
 ├── config.py            # Runtime config access with lazy __getattr__
 └── runtime_config.py    # Thread-safe runtime config storage
 
@@ -149,13 +149,13 @@ duckdb/                # Standalone analytics service
 
 ### Data Flows
 
-**Indexing:** PDF upload → Backend rasterizes → BatchProcessor (embeds via ColPali, stores images in MinIO, optional OCR via DeepSeek) → QdrantIndexer upserts vectors → SSE progress updates
+**Indexing:** PDF upload → **Deduplication check (DuckDB)** → Backend rasterizes → BatchProcessor (embeds via ColPali, stores images in MinIO, optional OCR via DeepSeek with UUID naming) → QdrantIndexer upserts vectors → **Document metadata stored (DuckDB)** → SSE progress updates
 
-**Search:** User query → Backend embeds via ColPali → SearchManager (two-stage: pooled vectors prefetch + multivector rerank) → Results with MinIO image URLs
+**Search:** User query → Backend embeds via ColPali → SearchManager (two-stage: pooled vectors prefetch + multivector rerank) → Results with MinIO image URLs → Optional OCR data from DuckDB
 
 **Chat:** User message → Next.js chat API route → Backend search → OpenAI Responses API → SSE stream to browser (text-delta + kb.images events)
 
-**OCR:** Page/document request → Backend fetches images from MinIO → DeepSeek OCR service → Results stored in MinIO + DuckDB (if enabled) → SSE progress for documents
+**OCR:** Page/document request → Backend fetches images from MinIO → DeepSeek OCR service (adjustable workers) → UUID-named results stored in MinIO → **OCR metadata stored in pages/regions tables (DuckDB)** → SSE progress for documents
 
 ---
 
@@ -163,11 +163,11 @@ duckdb/                # Standalone analytics service
 
 Configuration is **schema-driven** with three layers:
 
-1. **Schema** (`backend/config_schema.py`): Defines defaults, types, UI metadata, and critical keys
-2. **Runtime Store** (`backend/runtime_config.py`): Thread-safe in-memory storage
-3. **Access Layer** (`backend/config.py`): Lazy `__getattr__` for dynamic lookup
+1. **Schema** (`backend/config_schema/`): Modular schema files (application, colpali, deepseek_ocr, duckdb, minio, qdrant, upload) defining defaults, types, UI metadata, and critical keys
+2. **Runtime Store** (`backend/runtime_config.py`): Thread-safe in-memory storage with error tracking
+3. **Access Layer** (`backend/config.py`): Lazy `__getattr__` for dynamic lookup with type coercion
 
-**Critical Pattern:** When a setting marked as "critical" changes via `/config/update`, `invalidate_services()` in `backend/api/dependencies.py` clears all `@lru_cache` decorated service factories to force re-instantiation with new values.
+**Critical Pattern:** When a setting marked as "critical" changes via `/config/update`, `invalidate_services()` in `backend/api/dependencies.py` clears all `@lru_cache` decorated service factories to force re-instantiation with new values. Thread-safe error tracking ensures initialization failures are reported properly.
 
 **Important:** Runtime updates via `/config/update` are ephemeral. Update `.env` file for persistence across restarts.
 
@@ -245,25 +245,37 @@ async def stream_progress(job_id: str):
 
 ### Adding Configuration
 
-1. Add to `backend/config_schema.py`:
+1. Add to appropriate schema file in `backend/config_schema/` (e.g., `my_feature.py`):
 ```python
-"my_feature": {
-    "order": 10,
-    "icon": "settings",
-    "name": "My Feature",
-    "description": "Feature description",
-    "settings": [
-        {
-            "key": "MY_SETTING",
-            "type": "str",
-            "default": "default_value",
-            "label": "My Setting",
-            "description": "Setting description",
-            "help_text": "Detailed help text",
-            "critical": False,  # Set True to trigger service cache invalidation
-        }
-    ]
-}
+def get_my_feature_schema() -> dict:
+    return {
+        "order": 10,
+        "icon": "settings",
+        "name": "My Feature",
+        "description": "Feature description",
+        "settings": [
+            {
+                "key": "MY_SETTING",
+                "type": "str",
+                "default": "default_value",
+                "label": "My Setting",
+                "description": "Setting description",
+                "help_text": "Detailed help text",
+                "critical": False,  # Set True to trigger service cache invalidation
+            }
+        ]
+    }
+```
+
+Then register it in `backend/config_schema/__init__.py`:
+```python
+from .my_feature import get_my_feature_schema
+
+def get_full_schema() -> dict:
+    return {
+        # ... existing schemas ...
+        "my_feature": get_my_feature_schema(),
+    }
 ```
 
 2. Access in code:
@@ -487,7 +499,7 @@ yarn start
 
 **Config changes not persisting:** Update `.env` file (runtime updates are ephemeral)
 
-**Service cache not invalidating:** Mark setting as `critical: True` in `config_schema.py`
+**Service cache not invalidating:** Mark setting as `critical: True` in the appropriate schema file in `backend/config_schema/`
 
 **DeepSeek OCR not working:** Ensure `DEEPSEEK_OCR_ENABLED=True` in `.env` and GPU profile is running (DeepSeek is GPU-only)
 
@@ -525,7 +537,7 @@ yarn gen:zod
 1. **New endpoint?** → Add router in `backend/api/routers/`
 2. **Business logic?** → Create/extend service in `backend/services/`
 3. **UI needed?** → Create page in `frontend/app/` or component in `frontend/components/`
-4. **Configuration?** → Add to `backend/config_schema.py`
+4. **Configuration?** → Add to appropriate schema file in `backend/config_schema/` and register in `__init__.py`
 5. **Long-running task?** → Use `BackgroundTasks` + progress tracking in `backend/api/progress.py`
 6. **State management?** → Add to Zustand store in `frontend/stores/`
 
@@ -591,13 +603,18 @@ Only run one profile at a time to avoid port conflicts.
 - **Optional:** Set `DEEPSEEK_OCR_ENABLED=False` to disable when running CPU profile
 - **Modes:** Gundam (default), Tiny, Small, Base, Large (configurable in `.env`)
 - **Tasks:** markdown, plain_ocr, locate, describe, custom (see `backend/docs/configuration.md`)
+- **UUID Naming:** OCR results use UUID-based filenames for reliable storage and retrieval
+- **Worker Pool:** Adjustable concurrent workers via `DEEPSEEK_OCR_MAX_WORKERS` for batch processing
 
 ### DuckDB Analytics
 
 - **Optional:** Set `DUCKDB_ENABLED=True` to enable
-- **Requires:** DeepSeek OCR must be enabled
-- **Purpose:** Store OCR results in columnar format for SQL-based analytics
+- **Document Deduplication:** Automatically detects and prevents duplicate uploads using content-based fingerprinting (filename, file_size_bytes, total_pages). Duplicates are skipped with user feedback.
+- **Schema:** Three tables - `documents` (metadata), `pages` (page-level OCR data), `regions` (text regions with bounding boxes)
+- **Purpose:** Store document metadata and OCR results in columnar format for SQL-based analytics
+- **Query Sanitization:** SQL queries are sanitized (block comment stripping, length limits) before execution
 - **UI:** DuckDB-Wasm UI available at http://localhost:4213
+- **Graceful Shutdown:** Automatic checkpointing ensures data persistence on close
 
 ---
 
