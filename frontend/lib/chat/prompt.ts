@@ -52,6 +52,32 @@ ${documentSearchTool.description}
 When the user asks for information from the documents, call the document_search tool and base your answer only on the returned OCR-extracted text and labels.
 `.trim();
 
+const ocrWithRegionImagesSystemPrompt = `
+You are a helpful PDF assistant. Use only the provided OCR-extracted document content AND region images (figures, tables, diagrams, and charts) to answer the user's question.
+The content has been extracted using advanced OCR and includes structured text. Additionally, cropped region images show figures, tables, and other visual elements.
+If the answer is not contained in the documents, clearly say you cannot find it.
+
+FORMATTING GUIDELINES:
+- Use **bold** for emphasis and key terms
+- Use *italic* for subtle emphasis
+- Use \`code\` for technical terms or specific values
+- Use - for bullet lists
+- Use ## for section headers when organizing longer responses
+- Structure your response with clear paragraphs
+
+CITATION REQUIREMENTS:
+- ALWAYS cite sources using the exact document labels provided (example: report.pdf - Page 2 of 10)
+- Place citations immediately after the relevant information using parentheses or brackets
+- Copy the labels exactly as written so the UI can attach the preview (do not rewrite or abbreviate them)
+- If a statement cannot be supported by the labels, omit it or explain that no supporting evidence was found
+- Never fabricate labels, page numbers, or citations. If you lack supporting evidence, state that explicitly.
+
+You have access to the following tool:
+${documentSearchTool.description}
+
+When the user asks for information from the documents, call the document_search tool and base your answer on both the OCR-extracted text and region images provided.
+`.trim();
+
 function buildSummaryDirective(summaryPreference?: SummaryPreference): string | null {
     switch (summaryPreference) {
         case "auto":
@@ -77,8 +103,24 @@ function buildSummaryDirective(summaryPreference?: SummaryPreference): string | 
     }
 }
 
-export function buildSystemInstructions(summaryPreference?: SummaryPreference, ocrEnabled: boolean = false): string {
-    const basePrompt = ocrEnabled ? ocrBasedSystemPrompt : imageBasedSystemPrompt;
+export function buildSystemInstructions(
+    summaryPreference?: SummaryPreference,
+    ocrEnabled: boolean = false,
+    ocrIncludeImages: boolean = false
+): string {
+    let basePrompt: string;
+
+    if (ocrEnabled && ocrIncludeImages) {
+        // When sending OCR text + region images (cropped figures/tables)
+        basePrompt = ocrWithRegionImagesSystemPrompt;
+    } else if (ocrEnabled) {
+        // When sending OCR text only
+        basePrompt = ocrBasedSystemPrompt;
+    } else {
+        // When sending full page images (OCR disabled)
+        basePrompt = imageBasedSystemPrompt;
+    }
+
     const sections = [basePrompt];
     const summaryDirective = buildSummaryDirective(summaryPreference);
     if (summaryDirective) {
