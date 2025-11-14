@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Optional
 from qdrant_client import QdrantClient, models
 
 if TYPE_CHECKING:
-    from services.colpali import ColPaliService
+    from clients.colpali import ColPaliClient
 
     from backend import config as config  # type: ignore
 else:  # pragma: no cover - runtime import for application execution
@@ -20,7 +20,7 @@ class CollectionManager:
 
     def __init__(
         self,
-        api_client: Optional["ColPaliService"] = None,
+        api_client: Optional["ColPaliClient"] = None,
     ):
         """Initialize collection manager.
 
@@ -193,11 +193,15 @@ class CollectionManager:
             points_count = count_result.count if hasattr(count_result, "count") else 0
 
             if points_count == 0:
-                logger.info(f"No points found for filename '{filename}' in collection '{collection}'")
+                logger.info(
+                    f"No points found for filename '{filename}' in collection '{collection}'"
+                )
                 return 0
 
             # Delete the points
-            self.service.delete(collection_name=collection, points_selector=points_filter)
+            self.service.delete(
+                collection_name=collection, points_selector=points_filter
+            )
 
             logger.info(
                 f"Deleted {points_count} points for filename '{filename}' from collection '{collection}'"
@@ -209,6 +213,4 @@ class CollectionManager:
                 f"Failed to delete points for filename '{filename}' from collection '{collection}': {e}",
                 exc_info=True,
             )
-            raise Exception(
-                f"Failed to delete points for filename '{filename}': {e}"
-            )
+            raise Exception(f"Failed to delete points for filename '{filename}': {e}")

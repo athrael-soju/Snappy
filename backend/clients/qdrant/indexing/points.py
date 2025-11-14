@@ -92,11 +92,6 @@ class PointFactory:
                         payload["ocr_url"] = ocr_url
                     if ocr_regions:
                         payload["ocr_regions"] = ocr_regions
-            else:
-                # Fallback to meta-based OCR (for backwards compatibility)
-                ocr_summary = meta.get("ocr") if isinstance(meta, dict) else None
-                if isinstance(ocr_summary, dict) and ocr_summary.get("elements_url"):
-                    payload["ocr_url"] = ocr_summary.get("elements_url")
 
             vectors = {"original": orig}
             if use_mean_pooling and rows is not None and cols is not None:

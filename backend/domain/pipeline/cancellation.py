@@ -12,9 +12,9 @@ from typing import Dict, Any, Optional
 from pathlib import Path
 import shutil
 
-from services.minio import MinioService
-from services.duckdb import DuckDBService
-from services.qdrant.collection import CollectionManager
+from clients.minio import MinioClient
+from clients.duckdb import DuckDBClient
+from clients.qdrant.collection import CollectionManager
 import config
 
 logger = logging.getLogger(__name__)
@@ -33,9 +33,9 @@ class CancellationService:
 
     def __init__(
         self,
-        minio_service: Optional[MinioService] = None,
-        duckdb_service: Optional[DuckDBService] = None,
-        qdrant_collection_manager: Optional[CollectionManager] = None
+        minio_service: Optional[MinioClient] = None,
+        duckdb_service: Optional[DuckDBClient] = None,
+        qdrant_collection_manager: Optional[CollectionManager] = None,
     ):
         """
         Initialize the cancellation service with dependent services.
@@ -45,15 +45,17 @@ class CancellationService:
             duckdb_service: DuckDB service instance for database cleanup
             qdrant_collection_manager: Qdrant collection manager for vector database cleanup
         """
-        self.minio_service = minio_service or MinioService()
-        self.duckdb_service = duckdb_service or DuckDBService()
-        self.qdrant_collection_manager = qdrant_collection_manager or CollectionManager()
+        self.minio_service = minio_service or MinioClient()
+        self.duckdb_service = duckdb_service or DuckDBClient()
+        self.qdrant_collection_manager = (
+            qdrant_collection_manager or CollectionManager()
+        )
 
     def cleanup_job_data(
         self,
         job_id: str,
         filename: Optional[str] = None,
-        collection_name: Optional[str] = None
+        collection_name: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Cleanup all data associated with a cancelled or failed job.
@@ -90,7 +92,7 @@ class CancellationService:
         """
         logger.info(
             f"CLEANUP STARTED: job_id={job_id}, filename={filename}, collection={collection_name}",
-            extra={"job_id": job_id, "document_filename": filename}
+            extra={"job_id": job_id, "document_filename": filename},
         )
 
         results = {
@@ -98,35 +100,34 @@ class CancellationService:
             "filename": filename,
             "cleanup_results": {},
             "overall_success": True,
-            "errors": []
+            "errors": [],
         }
 
         if not filename:
-            logger.warning(f"No filename provided for job {job_id}, skipping service cleanup")
-            results["errors"].append("No filename provided - cannot cleanup service data")
+            logger.warning(
+                f"No filename provided for job {job_id}, skipping service cleanup"
+            )
+            results["errors"].append(
+                "No filename provided - cannot cleanup service data"
+            )
             results["overall_success"] = False
             return results
 
         # 1. Cleanup Qdrant vector points
         results["cleanup_results"]["qdrant"] = self._cleanup_qdrant(
             filename=filename,
-            collection_name=collection_name or config.QDRANT_COLLECTION_NAME
+            collection_name=collection_name or config.QDRANT_COLLECTION_NAME,
         )
 
         # 2. Cleanup MinIO objects
-        results["cleanup_results"]["minio"] = self._cleanup_minio(
-            filename=filename
-        )
+        results["cleanup_results"]["minio"] = self._cleanup_minio(filename=filename)
 
         # 3. Cleanup DuckDB records
-        results["cleanup_results"]["duckdb"] = self._cleanup_duckdb(
-            filename=filename
-        )
+        results["cleanup_results"]["duckdb"] = self._cleanup_duckdb(filename=filename)
 
         # 4. Cleanup temporary files
         results["cleanup_results"]["temp_files"] = self._cleanup_temp_files(
-            job_id=job_id,
-            filename=filename
+            job_id=job_id, filename=filename
         )
 
         # Aggregate results
@@ -139,15 +140,13 @@ class CancellationService:
         if results["overall_success"]:
             logger.info(f"Successfully completed cleanup for job {job_id}")
         else:
-            logger.warning(f"Cleanup completed with errors for job {job_id}: {results['errors']}")
+            logger.warning(
+                f"Cleanup completed with errors for job {job_id}: {results['errors']}"
+            )
 
         return results
 
-    def _cleanup_qdrant(
-        self,
-        filename: str,
-        collection_name: str
-    ) -> Dict[str, Any]:
+    def _cleanup_qdrant(self, filename: str, collection_name: str) -> Dict[str, Any]:
         """
         Delete all Qdrant points associated with a document.
 
@@ -162,23 +161,18 @@ class CancellationService:
             logger.debug(f"Cleaning up Qdrant points for filename={filename}")
 
             deleted_count = self.qdrant_collection_manager.delete_points_by_filename(
-                filename=filename,
-                collection_name=collection_name
+                filename=filename, collection_name=collection_name
             )
 
             return {
                 "success": True,
                 "points_deleted": deleted_count,
-                "collection": collection_name
+                "collection": collection_name,
             }
 
         except Exception as e:
             logger.error(f"Failed to cleanup Qdrant for {filename}: {e}", exc_info=True)
-            return {
-                "success": False,
-                "points_deleted": 0,
-                "error": str(e)
-            }
+            return {"success": False, "points_deleted": 0, "error": str(e)}
 
     def _cleanup_minio(self, filename: str) -> Dict[str, Any]:
         """
@@ -207,16 +201,12 @@ class CancellationService:
                 "success": failed == 0,
                 "objects_deleted": deleted,
                 "objects_failed": failed,
-                "prefix": prefix
+                "prefix": prefix,
             }
 
         except Exception as e:
             logger.error(f"Failed to cleanup MinIO for {filename}: {e}", exc_info=True)
-            return {
-                "success": False,
-                "objects_deleted": 0,
-                "error": str(e)
-            }
+            return {"success": False, "objects_deleted": 0, "error": str(e)}
 
     def _cleanup_duckdb(self, filename: str) -> Dict[str, Any]:
         """
@@ -237,22 +227,16 @@ class CancellationService:
             return {
                 "success": success,
                 "records_deleted": "unknown" if success else 0,
-                "message": "Deleted document from DuckDB" if success else "Failed to delete"
+                "message": (
+                    "Deleted document from DuckDB" if success else "Failed to delete"
+                ),
             }
 
         except Exception as e:
             logger.error(f"Failed to cleanup DuckDB for {filename}: {e}", exc_info=True)
-            return {
-                "success": False,
-                "records_deleted": 0,
-                "error": str(e)
-            }
+            return {"success": False, "records_deleted": 0, "error": str(e)}
 
-    def _cleanup_temp_files(
-        self,
-        job_id: str,
-        filename: str
-    ) -> Dict[str, Any]:
+    def _cleanup_temp_files(self, job_id: str, filename: str) -> Dict[str, Any]:
         """
         Remove temporary files created during job processing.
 
@@ -268,7 +252,9 @@ class CancellationService:
             Cleanup result dictionary
         """
         try:
-            logger.debug(f"Cleaning up temporary files for job_id={job_id}, filename={filename}")
+            logger.debug(
+                f"Cleaning up temporary files for job_id={job_id}, filename={filename}"
+            )
 
             removed_files = []
 
@@ -294,21 +280,17 @@ class CancellationService:
             return {
                 "success": True,
                 "files_removed": len(removed_files),
-                "removed_paths": removed_files
+                "removed_paths": removed_files,
             }
 
         except Exception as e:
-            logger.error(f"Failed to cleanup temp files for {filename}: {e}", exc_info=True)
-            return {
-                "success": False,
-                "files_removed": 0,
-                "error": str(e)
-            }
+            logger.error(
+                f"Failed to cleanup temp files for {filename}: {e}", exc_info=True
+            )
+            return {"success": False, "files_removed": 0, "error": str(e)}
 
     def cleanup_multiple_jobs(
-        self,
-        job_data: list[Dict[str, str]],
-        collection_name: Optional[str] = None
+        self, job_data: list[Dict[str, str]], collection_name: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Cleanup data for multiple jobs in batch.
@@ -331,7 +313,7 @@ class CancellationService:
             "total_jobs": len(job_data),
             "successful": 0,
             "failed": 0,
-            "job_results": []
+            "job_results": [],
         }
 
         for job in job_data:
@@ -339,9 +321,7 @@ class CancellationService:
             filename = job.get("filename")
 
             job_result = self.cleanup_job_data(
-                job_id=job_id,
-                filename=filename,
-                collection_name=collection_name
+                job_id=job_id, filename=filename, collection_name=collection_name
             )
 
             results["job_results"].append(job_result)

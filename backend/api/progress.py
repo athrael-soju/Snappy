@@ -133,7 +133,7 @@ class ProgressManager:
             else:
                 logger.warning(f"No completion event for job {job_id}, proceeding with cleanup immediately")
 
-            from services.cancellation import cancellation_service
+            from domain.pipeline.cancellation import cancellation_service
 
             cleanup_results = []
             for filename in filenames:

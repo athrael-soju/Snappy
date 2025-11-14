@@ -79,8 +79,8 @@ Data class containing all processed batch data:
 ### Qdrant Example
 
 ```python
-from services.pipeline import DocumentIndexer, ProcessedBatch
-from services.qdrant.indexing import PointFactory
+from domain.pipeline import DocumentIndexer, ProcessedBatch
+from clients.qdrant.indexing import PointFactory
 
 # Create generic indexer
 indexer = DocumentIndexer(

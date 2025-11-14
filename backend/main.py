@@ -3,7 +3,7 @@ from pathlib import Path
 
 import uvicorn
 from api.app import create_app
-from logging_config import setup_logging
+from config.logging import setup_logging
 
 try:  # pragma: no cover - tooling support
     from config import LOG_LEVEL, UVICORN_RELOAD  # type: ignore

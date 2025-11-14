@@ -11,7 +11,7 @@ from urllib3.util.retry import Retry
 from utils.timing import log_execution_time
 
 
-class ColPaliService:
+class ColPaliClient:
     """Client for ColPali Embedding API"""
 
     def __init__(self, base_url: Optional[str] = None, timeout: Optional[int] = None):

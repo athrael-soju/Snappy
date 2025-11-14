@@ -1,4 +1,4 @@
-"""Legacy entrypoint for backwards compatibility."""
+"""Alternative entrypoint for running the DuckDB service."""
 
 from __future__ import annotations
 

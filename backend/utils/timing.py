@@ -134,7 +134,7 @@ class PerformanceTimer:
         self.start_time: float = 0
         self.end_time: float = 0
         self.duration_s: float = 0
-        self.duration_ms: float = 0  # Keep for backward compatibility
+        self.duration_ms: float = 0
 
     def __enter__(self) -> "PerformanceTimer":
         """Start timing."""
@@ -145,7 +145,7 @@ class PerformanceTimer:
         """Stop timing and optionally log."""
         self.end_time = time.perf_counter()
         self.duration_s = self.end_time - self.start_time
-        self.duration_ms = self.duration_s * 1000  # Keep for backward compatibility
+        self.duration_ms = self.duration_s * 1000
 
         # Only log on successful completion
         if self.log_on_exit and exc_type is None:

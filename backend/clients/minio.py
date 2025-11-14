@@ -30,7 +30,7 @@ from PIL import Image
 from utils.timing import log_execution_time
 
 if TYPE_CHECKING:
-    from services.image_processor import ProcessedImage
+    from domain.pipeline.image_processor import ProcessedImage
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -38,7 +38,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class MinioService:
+class MinioClient:
     """Service for storing and retrieving images from MinIO object storage.
 
     Improvements vs. the basic version:

@@ -5,14 +5,14 @@ from typing import List, Optional
 
 from api.progress import progress_manager
 from qdrant_client import models
-from services.ocr import OcrService
-from services.qdrant import QdrantService
+from clients.ocr import OcrClient
+from clients.qdrant import QdrantClient
 
 logger = logging.getLogger(__name__)
 
 
 async def get_document_pages(
-    qdrant_service: QdrantService,
+    qdrant_service: QdrantClient,
     filename: str,
 ) -> List[int]:
     """Query Qdrant to get all page numbers for a document."""
@@ -50,7 +50,7 @@ async def get_document_pages(
 
 def process_document_background(
     job_id: str,
-    ocr_service: OcrService,
+    ocr_service: OcrClient,
     filename: str,
     page_numbers: List[int],
     mode: Optional[str],

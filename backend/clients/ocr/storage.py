@@ -9,8 +9,8 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
-    from services.duckdb import DuckDBService
-    from services.minio import MinioService
+    from clients.duckdb import DuckDBClient
+    from clients.minio import MinioClient
 
     from .processor import OcrProcessor
 
@@ -30,9 +30,9 @@ class OcrStorageHandler:
 
     def __init__(
         self,
-        minio_service: "MinioService",
+        minio_service: "MinioClient",
         processor: Optional["OcrProcessor"] = None,
-        duckdb_service: Optional["DuckDBService"] = None,
+        duckdb_service: Optional["DuckDBClient"] = None,
     ):
         """
         Initialize storage handler.
