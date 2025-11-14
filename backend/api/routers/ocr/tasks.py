@@ -5,8 +5,8 @@ from typing import List, Optional
 
 from api.progress import progress_manager
 from qdrant_client import models
-from services.ocr import OcrService
-from services.qdrant import QdrantService
+from clients.ocr import OcrService
+from clients.qdrant import QdrantService
 
 logger = logging.getLogger(__name__)
 

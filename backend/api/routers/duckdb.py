@@ -6,7 +6,7 @@ from typing import Any, List, Optional
 from api.dependencies import get_duckdb_service
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from services.duckdb import DuckDBService
+from clients.duckdb import DuckDBService
 
 logger = logging.getLogger(__name__)
 

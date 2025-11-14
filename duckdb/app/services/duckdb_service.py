@@ -755,8 +755,8 @@ class DuckDBAnalyticsService:
     ) -> int:
         """Get existing document ID by filename, or create a placeholder.
 
-        This is a helper for backward compatibility when storing OCR pages
-        without explicit document metadata.
+        Helper method for storing OCR pages when explicit document
+        metadata is not available.
 
         Args:
             filename: Document filename

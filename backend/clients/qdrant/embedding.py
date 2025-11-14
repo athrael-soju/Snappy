@@ -8,7 +8,7 @@ import numpy as np
 from PIL import Image
 
 if TYPE_CHECKING:
-    from services.colpali import ColPaliService
+    from clients.colpali import ColPaliService
 
     from backend import config as config  # type: ignore
 else:  # pragma: no cover - runtime import for application execution

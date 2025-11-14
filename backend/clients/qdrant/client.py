@@ -11,8 +11,8 @@ from .indexing import QdrantDocumentIndexer
 from .search import SearchManager
 
 if TYPE_CHECKING:
-    from services.colpali import ColPaliService
-    from services.minio import MinioService
+    from clients.colpali import ColPaliService
+    from clients.minio import MinioService
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ class QdrantService:
                 embedding_processor=self.embedding_processor,
             )
 
-            # Expose client for backward compatibility
+            # Expose underlying Qdrant client for direct access
             self.service = self.collection_manager.service
             self.collection_name = self.collection_manager.collection_name
 
@@ -125,7 +125,7 @@ class QdrantService:
         """Search for relevant documents and return metadata with URLs.
 
         This is a convenience wrapper around search_with_metadata().
-        For backwards compatibility, use get_image_from_url() to fetch PIL images.
+        Use get_image_from_url() to fetch PIL images from the returned URLs.
         """
         return self.search_manager.search(query, k)
 

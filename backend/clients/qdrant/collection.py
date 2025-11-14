@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Optional
 from qdrant_client import QdrantClient, models
 
 if TYPE_CHECKING:
-    from services.colpali import ColPaliService
+    from clients.colpali import ColPaliService
 
     from backend import config as config  # type: ignore
 else:  # pragma: no cover - runtime import for application execution

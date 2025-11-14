@@ -6,8 +6,8 @@ import uuid
 from api.dependencies import get_ocr_service, get_qdrant_service
 from api.progress import progress_manager
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from services.ocr import OcrService
-from services.qdrant import QdrantService
+from clients.ocr import OcrService
+from clients.qdrant import QdrantService
 from utils.timing import PerformanceTimer
 
 from .models import (

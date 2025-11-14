@@ -3,8 +3,8 @@
 import logging
 from typing import Callable, Iterable, Optional
 
-from services.pipeline import DocumentIndexer as GenericDocumentIndexer
-from services.pipeline import ProcessedBatch
+from domain.pipeline import DocumentIndexer as GenericDocumentIndexer
+from domain.pipeline import ProcessedBatch
 
 from .points import PointFactory
 

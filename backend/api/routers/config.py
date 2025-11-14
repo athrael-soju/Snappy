@@ -5,10 +5,10 @@ from copy import deepcopy
 from typing import Any, Dict, List, Tuple
 
 from api.dependencies import get_colpali_client, invalidate_services
-from config_schema import get_all_config_keys, get_api_schema, get_critical_keys
+from config.schema import get_all_config_keys, get_api_schema, get_critical_keys
+from config.runtime import get_runtime_config
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
-from runtime_config import get_runtime_config
 from utils.timing import PerformanceTimer
 
 logger = logging.getLogger(__name__)

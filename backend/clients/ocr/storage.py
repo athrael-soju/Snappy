@@ -9,8 +9,8 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
-    from services.duckdb import DuckDBService
-    from services.minio import MinioService
+    from clients.duckdb import DuckDBService
+    from clients.minio import MinioService
 
     from .processor import OcrProcessor
 

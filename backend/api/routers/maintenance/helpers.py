@@ -10,9 +10,9 @@ except ModuleNotFoundError:  # pragma: no cover
     from backend import config as config  # type: ignore
 
 if TYPE_CHECKING:  # pragma: no cover
-    from services.duckdb import DuckDBService
-    from services.minio import MinioService
-    from services.qdrant import QdrantService
+    from clients.duckdb import DuckDBService
+    from clients.minio import MinioService
+    from clients.qdrant import QdrantService
 
 
 INACTIVE_MESSAGE = ""

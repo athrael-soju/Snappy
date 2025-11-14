@@ -6,11 +6,11 @@ from threading import Lock
 from typing import Optional
 
 import config
-from services.colpali import ColPaliService
-from services.duckdb import DuckDBService
-from services.minio import MinioService
-from services.ocr import OcrService
-from services.qdrant import QdrantService
+from clients.colpali import ColPaliService
+from clients.duckdb import DuckDBService
+from clients.minio import MinioService
+from clients.ocr import OcrService
+from clients.qdrant import QdrantService
 
 logger = logging.getLogger(__name__)
 

@@ -12,9 +12,9 @@ from typing import Dict, Any, Optional
 from pathlib import Path
 import shutil
 
-from services.minio import MinioService
-from services.duckdb import DuckDBService
-from services.qdrant.collection import CollectionManager
+from clients.minio import MinioService
+from clients.duckdb import DuckDBService
+from clients.qdrant.collection import CollectionManager
 import config
 
 logger = logging.getLogger(__name__)

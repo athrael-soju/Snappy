@@ -4,7 +4,7 @@ from .collection import CollectionManager
 from .embedding import EmbeddingProcessor
 from .indexing import QdrantDocumentIndexer
 from .search import SearchManager
-from .service import QdrantService
+from .client import QdrantService
 
 __all__ = [
     "QdrantService",

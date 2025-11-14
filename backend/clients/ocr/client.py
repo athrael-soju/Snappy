@@ -15,8 +15,8 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
-    from services.duckdb import DuckDBService
-    from services.minio import MinioService
+    from clients.duckdb import DuckDBService
+    from clients.minio import MinioService
 
 from .processor import OcrProcessor
 from .storage import OcrStorageHandler
@@ -117,7 +117,7 @@ class OcrService:
             self.minio_service = minio_service
 
             # Initialize subcomponents
-            from services.pipeline.image_processor import ImageProcessor
+            from domain.pipeline.image_processor import ImageProcessor
 
             self.image_processor = ImageProcessor(
                 default_format=config.IMAGE_FORMAT,
