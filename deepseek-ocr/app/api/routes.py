@@ -50,9 +50,10 @@ async def restart_service():
     def force_exit():
         """Force exit in a separate thread to bypass event loop blocking"""
         import time
+
         time.sleep(0.1)  # Small delay to allow response to be sent
         logger.info("Exiting process for restart")
-        os._exit(0)  # Hard exit - terminates immediately
+        os._exit(1)  # Hard exit with code 1 - terminates immediately
 
     # Use a daemon thread to force exit regardless of event loop state
     exit_thread = threading.Thread(target=force_exit, daemon=True)
@@ -118,8 +119,19 @@ async def ocr_endpoint(
         tmp_path = tmp.name
 
     try:
+        # Run OCR processing in thread pool to avoid blocking event loop
+        # This allows /restart endpoint to be processed immediately during cancellation
+        import asyncio
+        from concurrent.futures import ThreadPoolExecutor
+
+        # Use a shared thread pool executor for CPU-bound OCR operations
+        if not hasattr(ocr_endpoint, '_executor'):
+            ocr_endpoint._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="ocr")
+
         if is_pdf:
-            result = ocr_processor.process_pdf(
+            result = await asyncio.get_event_loop().run_in_executor(
+                ocr_endpoint._executor,
+                ocr_processor.process_pdf,
                 tmp_path,
                 mode.value,
                 task.value,
@@ -129,7 +141,9 @@ async def ocr_endpoint(
             )
         else:
             img = Image.open(tmp_path)
-            result = ocr_processor.process_image(
+            result = await asyncio.get_event_loop().run_in_executor(
+                ocr_endpoint._executor,
+                ocr_processor.process_image,
                 img,
                 mode.value,
                 task.value,

@@ -129,7 +129,7 @@ class CancellationService:
         job_id: str,
         wait_for_restart: bool = True,
         timeout: int = 30,
-        progress_callback=None
+        progress_callback=None,
     ) -> Dict[str, Any]:
         """
         Restart ColPali and DeepSeek OCR services to stop any ongoing processing.
@@ -225,7 +225,9 @@ class CancellationService:
                         "message": "Restart request failed",
                     }
             except Exception as e:
-                logger.error(f"Error requesting DeepSeek OCR restart: {e}", exc_info=True)
+                logger.error(
+                    f"Error requesting DeepSeek OCR restart: {e}", exc_info=True
+                )
                 results["deepseek_ocr"] = {
                     "success": False,
                     "message": f"Error: {str(e)}",
@@ -540,9 +542,14 @@ class CancellationService:
             job_id = job.get("job_id")
             filename = job.get("filename")
 
-            job_result = self.cleanup_job_data(
-                job_id=job_id, filename=filename, collection_name=collection_name
-            )
+            # Skip jobs without a valid job_id to avoid passing None to cleanup_job_data
+            if not job_id:
+                logger.warning("Skipping job with missing job_id")
+                raise ValueError("job_id is required for cleanup")
+            else:
+                job_result = self.cleanup_job_data(
+                    job_id=job_id, filename=filename, collection_name=collection_name
+                )
 
             results["job_results"].append(job_result)
 

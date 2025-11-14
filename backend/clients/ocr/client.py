@@ -390,6 +390,7 @@ class OcrClient:
             # Create a new session WITHOUT retry logic for restart
             # We expect connection errors/timeouts when service restarts
             import requests
+
             restart_session = requests.Session()
 
             response = restart_session.post(
@@ -409,8 +410,12 @@ class OcrClient:
         except Exception as e:
             # Connection errors are EXPECTED during restart - treat as success
             error_msg = str(e).lower()
-            if any(keyword in error_msg for keyword in ["connection", "timeout", "read"]):
-                logger.info("DeepSeek OCR service restart initiated (connection closed)")
+            if any(
+                keyword in error_msg for keyword in ["connection", "timeout", "read"]
+            ):
+                logger.info(
+                    "DeepSeek OCR service restart initiated (connection closed)"
+                )
                 return True
             logger.warning(f"DeepSeek OCR restart request failed: {e}")
             return False
