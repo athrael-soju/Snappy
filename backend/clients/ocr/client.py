@@ -373,6 +373,48 @@ class OcrClient:
             logger.warning("DeepSeek OCR health check failed: %s", exc)
             return False
 
+    def restart(self) -> bool:
+        """Request service restart to stop any ongoing processing.
+
+        Sends a restart request to the DeepSeek OCR service to forcefully stop
+        any ongoing batch processing and reset the service state. The service
+        will exit and automatically restart if configured with a restart policy.
+
+        Returns:
+            True if restart request was accepted, False otherwise
+        """
+        if not self.enabled:
+            logger.debug("Skipping DeepSeek OCR restart: service disabled")
+            return False
+        try:
+            # Create a new session WITHOUT retry logic for restart
+            # We expect connection errors/timeouts when service restarts
+            import requests
+            restart_session = requests.Session()
+
+            response = restart_session.post(
+                f"{self.base_url}/restart",
+                timeout=2,  # Very short timeout - service will exit immediately
+            )
+            restart_session.close()
+
+            if response.status_code == 200:
+                logger.info("DeepSeek OCR service restart requested")
+                return True
+            else:
+                logger.warning(
+                    f"DeepSeek OCR restart request failed: {response.status_code}"
+                )
+                return False
+        except Exception as e:
+            # Connection errors are EXPECTED during restart - treat as success
+            error_msg = str(e).lower()
+            if any(keyword in error_msg for keyword in ["connection", "timeout", "read"]):
+                logger.info("DeepSeek OCR service restart initiated (connection closed)")
+                return True
+            logger.warning(f"DeepSeek OCR restart request failed: {e}")
+            return False
+
     def close(self):
         """Close the HTTP session and release connections."""
         if hasattr(self, "session"):

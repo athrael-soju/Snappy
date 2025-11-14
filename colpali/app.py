@@ -268,6 +268,32 @@ async def health_check():
     return {"status": "healthy", "device": str(model.device)}
 
 
+@app.post("/restart")
+async def restart_service():
+    """
+    Restart the service by exiting the process.
+    The container will automatically restart if configured with restart policy.
+    This is useful for stopping any ongoing processing and resetting service state.
+    """
+    import threading
+    import os
+
+    logger.info("Restart requested - initiating service shutdown")
+
+    def force_exit():
+        """Force exit in a separate thread to bypass event loop blocking"""
+        import time
+        time.sleep(0.1)  # Small delay to allow response to be sent
+        logger.info("Exiting process for restart")
+        os._exit(0)  # Hard exit - terminates immediately
+
+    # Use a daemon thread to force exit regardless of event loop state
+    exit_thread = threading.Thread(target=force_exit, daemon=True)
+    exit_thread.start()
+
+    return {"status": "restarting", "message": "Service will restart momentarily"}
+
+
 @app.get("/info")
 async def version():
     """Version endpoint"""

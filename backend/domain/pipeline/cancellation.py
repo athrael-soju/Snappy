@@ -8,7 +8,7 @@ This service implements the separation of concerns pattern by:
 """
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, TYPE_CHECKING
 from pathlib import Path
 import shutil
 
@@ -16,6 +16,10 @@ from clients.minio import MinioClient
 from clients.duckdb import DuckDBClient
 from clients.qdrant.collection import CollectionManager
 import config
+
+if TYPE_CHECKING:
+    from clients.colpali import ColPaliClient
+    from clients.ocr.client import OcrClient
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +40,8 @@ class CancellationService:
         minio_service: Optional[MinioClient] = None,
         duckdb_service: Optional[DuckDBClient] = None,
         qdrant_collection_manager: Optional[CollectionManager] = None,
+        colpali_client: Optional["ColPaliClient"] = None,
+        ocr_client: Optional["OcrClient"] = None,
     ):
         """
         Initialize the cancellation service with dependent services.
@@ -44,23 +50,109 @@ class CancellationService:
             minio_service: MinIO service instance for object storage cleanup
             duckdb_service: DuckDB service instance for database cleanup
             qdrant_collection_manager: Qdrant collection manager for vector database cleanup
+            colpali_client: ColPali client instance for service restart
+            ocr_client: OCR client instance for service restart
         """
         self.minio_service = minio_service or MinioClient()
         self.duckdb_service = duckdb_service or DuckDBClient()
         self.qdrant_collection_manager = (
             qdrant_collection_manager or CollectionManager()
         )
+        self.colpali_client = colpali_client
+        self.ocr_client = ocr_client
+
+    def restart_services(self, job_id: str) -> Dict[str, Any]:
+        """
+        Restart ColPali and DeepSeek OCR services to stop any ongoing processing.
+
+        This method sends restart requests to both services. The services will:
+        1. Immediately stop any ongoing batch processing
+        2. Exit the process cleanly
+        3. Automatically restart via Docker's restart policy
+
+        This is a non-blocking operation - we send the restart request and continue.
+        The services will restart in the background.
+
+        Args:
+            job_id: Job identifier (for logging purposes)
+
+        Returns:
+            Dictionary containing restart results for each service
+        """
+        logger.info(
+            f"RESTART SERVICES: job_id={job_id}",
+            extra={"job_id": job_id},
+        )
+
+        results = {
+            "colpali": {"success": False, "message": "Not attempted"},
+            "deepseek_ocr": {"success": False, "message": "Not attempted"},
+        }
+
+        # Restart ColPali service
+        if self.colpali_client:
+            try:
+                success = self.colpali_client.restart()
+                results["colpali"] = {
+                    "success": success,
+                    "message": "Restart requested" if success else "Restart failed",
+                }
+                if success:
+                    logger.info("ColPali service restart requested successfully")
+                else:
+                    logger.warning("ColPali service restart request failed")
+            except Exception as e:
+                logger.error(f"Error requesting ColPali restart: {e}", exc_info=True)
+                results["colpali"] = {
+                    "success": False,
+                    "message": f"Error: {str(e)}",
+                }
+        else:
+            logger.debug("ColPali client not available, skipping restart")
+            results["colpali"] = {
+                "success": False,
+                "message": "Client not available",
+            }
+
+        # Restart DeepSeek OCR service
+        if self.ocr_client:
+            try:
+                success = self.ocr_client.restart()
+                results["deepseek_ocr"] = {
+                    "success": success,
+                    "message": "Restart requested" if success else "Restart failed",
+                }
+                if success:
+                    logger.info("DeepSeek OCR service restart requested successfully")
+                else:
+                    logger.warning("DeepSeek OCR service restart request failed")
+            except Exception as e:
+                logger.error(f"Error requesting DeepSeek OCR restart: {e}", exc_info=True)
+                results["deepseek_ocr"] = {
+                    "success": False,
+                    "message": f"Error: {str(e)}",
+                }
+        else:
+            logger.debug("DeepSeek OCR client not available, skipping restart")
+            results["deepseek_ocr"] = {
+                "success": False,
+                "message": "Client not available",
+            }
+
+        return results
 
     def cleanup_job_data(
         self,
         job_id: str,
         filename: Optional[str] = None,
         collection_name: Optional[str] = None,
+        restart_services: bool = True,
     ) -> Dict[str, Any]:
         """
         Cleanup all data associated with a cancelled or failed job.
 
         This method coordinates cleanup across all services:
+        0. (Optional) Restart ColPali and DeepSeek OCR services to stop ongoing processing
         1. Qdrant: Delete vector points for the document
         2. MinIO: Delete all objects under the document prefix
         3. DuckDB: Delete document and OCR records
@@ -72,6 +164,7 @@ class CancellationService:
             job_id: Unique identifier for the job
             filename: Document filename (used as identifier across services)
             collection_name: Qdrant collection name (defaults to config.QDRANT_COLLECTION_NAME)
+            restart_services: Whether to restart ColPali and DeepSeek OCR services before cleanup
 
         Returns:
             Dictionary containing cleanup results for each service
@@ -80,6 +173,10 @@ class CancellationService:
             {
                 "job_id": "123e4567-e89b-12d3-a456-426614174000",
                 "filename": "document.pdf",
+                "restart_results": {
+                    "colpali": {"success": true, "message": "Restart requested"},
+                    "deepseek_ocr": {"success": true, "message": "Restart requested"}
+                },
                 "cleanup_results": {
                     "qdrant": {"success": true, "points_deleted": 15},
                     "minio": {"success": true, "objects_deleted": 45},
@@ -98,10 +195,15 @@ class CancellationService:
         results = {
             "job_id": job_id,
             "filename": filename,
+            "restart_results": {},
             "cleanup_results": {},
             "overall_success": True,
             "errors": [],
         }
+
+        # 0. Restart services to stop any ongoing processing
+        if restart_services:
+            results["restart_results"] = self.restart_services(job_id)
 
         if not filename:
             logger.warning(

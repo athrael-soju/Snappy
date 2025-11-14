@@ -121,7 +121,41 @@ class ProgressManager:
             filenames: List of filenames to cleanup
         """
         try:
-            # Wait for the background job to actually complete/stop
+            # Import clients and create cancellation service with proper dependencies
+            from domain.pipeline.cancellation import CancellationService
+            from api.dependencies import get_colpali_client, get_ocr_service
+
+            colpali_client = get_colpali_client()
+            ocr_client = get_ocr_service()
+
+            # Create cancellation service with clients for service restart capability
+            cancellation_service = CancellationService(
+                colpali_client=colpali_client,
+                ocr_client=ocr_client
+            )
+
+            # IMMEDIATELY restart services to stop any ongoing processing
+            logger.info(f"Restarting services immediately for job {job_id}")
+            restart_results = cancellation_service.restart_services(
+                job_id=job_id,
+                wait_for_restart=True,  # Wait for services to come back up
+                timeout=20  # Max 20s per service
+            )
+            logger.info(f"Service restart results: {restart_results}")
+
+            # Check if restarts succeeded
+            colpali_ok = restart_results.get("colpali", {}).get("success", False)
+            ocr_ok = restart_results.get("deepseek_ocr", {}).get("success", False)
+            if colpali_ok and ocr_ok:
+                logger.info("Both services restarted successfully")
+            elif colpali_ok:
+                logger.warning("ColPali restarted but DeepSeek OCR failed")
+            elif ocr_ok:
+                logger.warning("DeepSeek OCR restarted but ColPali failed")
+            else:
+                logger.error("Both services failed to restart")
+
+            # Now wait for the background job to actually complete/stop
             completion_event = self._job_completion_events.get(job_id)
             if completion_event:
                 logger.info(f"Waiting for job {job_id} to stop before cleanup...")
@@ -133,15 +167,15 @@ class ProgressManager:
             else:
                 logger.warning(f"No completion event for job {job_id}, proceeding with cleanup immediately")
 
-            from domain.pipeline.cancellation import cancellation_service
-
+            # Now cleanup the data (without restarting services again)
             cleanup_results = []
             for filename in filenames:
                 if filename:
                     logger.info(f"Cleaning up services for job {job_id}, filename: {filename}")
                     results = cancellation_service.cleanup_job_data(
                         job_id=job_id,
-                        filename=filename
+                        filename=filename,
+                        restart_services=False  # Already restarted above
                     )
                     cleanup_results.append(results)
 
