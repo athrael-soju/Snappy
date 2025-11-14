@@ -251,54 +251,6 @@ class OcrStorageHandler:
             "ocr_regions": ocr_regions_metadata,
         }
 
-    def fetch_ocr_result(
-        self, filename: str, page_number: int
-    ) -> Optional[Dict[str, Any]]:
-        """
-        Fetch OCR result from MinIO if available.
-
-        Args:
-            filename: Document filename
-            page_number: Page number
-
-        Returns:
-            OCR result dictionary or None if not found
-
-        Note:
-            This method is deprecated with UUID-based storage. Use the ocr_url
-            from Qdrant payload instead of constructing the path.
-        """
-        try:
-            import json
-
-            # List files in ocr/ subfolder
-            prefix = f"{filename}/{page_number}/ocr/"
-
-            for obj in self._minio.service.list_objects(
-                bucket_name=self._minio.bucket_name,
-                prefix=prefix,
-            ):
-                obj_name = getattr(obj, "object_name", "")
-                if obj_name and obj_name.endswith(".json"):
-                    # Found OCR JSON
-                    response = self._minio.service.get_object(
-                        bucket_name=self._minio.bucket_name,
-                        object_name=obj_name,
-                    )
-                    return json.loads(response.read())
-
-            # No OCR result found
-            logger.warning(
-                f"OCR result not found for {filename} page {page_number} in ocr/ subfolder"
-            )
-            return None
-
-        except Exception as exc:
-            logger.error(
-                f"Failed to fetch OCR result for {filename} page {page_number}: {exc}",
-                exc_info=True,
-            )
-            return None
 
     @staticmethod
     def _ensure_figure_links(content: str, figure_map: Dict[int, str]) -> str:

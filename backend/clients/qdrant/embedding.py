@@ -78,11 +78,12 @@ class EmbeddingProcessor:
             indices = None
 
         if indices is None:
-            # Contiguous legacy path
+            # Contiguous slice path (when patch_indices not provided)
             prefix_tokens = image_embedding_np[:start]
             image_patch_tokens = image_embedding_np[start : start + patch_len]
             postfix_tokens = image_embedding_np[start + patch_len :]
         else:
+            # Non-contiguous indices path (when patch_indices provided)
             image_patch_tokens = image_embedding_np[indices]
             prefix_tokens = np.array([])
             postfix_tokens = np.array([])

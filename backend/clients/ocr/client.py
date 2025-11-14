@@ -326,11 +326,6 @@ class OcrClient:
             max_workers=max_workers,
         )
 
-    def fetch_ocr_result(
-        self, filename: str, page_number: int
-    ) -> Optional[Dict[str, Any]]:
-        """Fetch stored OCR result for a page."""
-        return self.storage.fetch_ocr_result(filename, page_number)
 
     def _fetch_page_image(self, filename: str, page_number: int) -> bytes:
         """Fetch page image bytes from MinIO.
