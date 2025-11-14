@@ -5,8 +5,8 @@ from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from typing import Callable, Iterable, Iterator, Optional
 
 import config  # Import module for dynamic config access
-from services.image_processor import ImageProcessor
 
+from .image_processor import ImageProcessor
 from .batch_processor import BatchProcessor, ProcessedBatch
 from .progress import ProgressNotifier
 from .storage import ImageStorageHandler

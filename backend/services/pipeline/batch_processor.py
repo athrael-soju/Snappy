@@ -7,11 +7,11 @@ from typing import Dict, List, Optional, Tuple
 
 import config
 from PIL import Image
-from services.image_processor import ProcessedImage
 from utils.timing import log_execution_time
 
 from .progress import ProgressNotifier
 from .storage import ImageStorageHandler
+from .image_processor import ProcessedImage
 
 logger = logging.getLogger(__name__)
 
