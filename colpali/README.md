@@ -44,7 +44,7 @@ python -m venv .venv
 pip install --upgrade pip
 pip install -r requirements.txt
 
-uvicorn app:app --host 0.0.0.0 --port 7000 --reload
+uvicorn app.main:app --host 0.0.0.0 --port 7000 --reload
 ```
 
 The service picks the device automatically:
@@ -108,4 +108,4 @@ the response payload.
 - The Hugging Face cache is shared between CPU and GPU builds, so the first
   download is the slowest; subsequent rebuilds reuse the weights.
 
-For deeper changes inspect `colpali/app.py` and the Dockerfiles in this folder.
+For deeper changes inspect the `colpali/app/` directory structure and the Dockerfiles in this folder.

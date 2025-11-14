@@ -293,18 +293,17 @@ services:
       - cpu
       - gpu
     <<: *duckdb-base
+  # backend:
+  #   profiles:
+  #     - cpu
+  #     - gpu
+  #   <<: *backend-base
 
-  backend:
-    profiles:
-      - cpu
-      - gpu
-    <<: *backend-base
-
-  frontend:
-    profiles:
-      - cpu
-      - gpu
-    <<: *frontend-base
+  # frontend:
+  #   profiles:
+  #     - cpu
+  #     - gpu
+  #   <<: *frontend-base
 
 networks:
   snappy-network:
