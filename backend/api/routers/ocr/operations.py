@@ -208,7 +208,7 @@ async def process_document(
         )
 
     job_id = str(uuid.uuid4())
-    progress_manager.create(job_id, total=len(page_numbers))
+    progress_manager.create(job_id, total=len(page_numbers), filename=request.filename)
     progress_manager.start(job_id)
 
     background_tasks.add_task(

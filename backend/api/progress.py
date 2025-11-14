@@ -17,8 +17,23 @@ class ProgressManager:
         self._cancel_flags: Dict[str, bool] = {}  # Track cancellation requests
         self._timers: Dict[str, threading.Timer] = {}  # Track cleanup timers
 
-    def create(self, job_id: str, total: int = 0):
+    def create(self, job_id: str, total: int = 0, filename: Optional[str] = None, filenames: Optional[list] = None):
+        """
+        Create a new job with optional filename tracking.
+
+        Args:
+            job_id: Unique job identifier
+            total: Total items to process
+            filename: Single filename (for single-file jobs)
+            filenames: List of filenames (for multi-file jobs)
+        """
         with self._lock:
+            details = None
+            if filenames:
+                details = {"filenames": filenames}
+            elif filename:
+                details = {"filename": filename}
+
             self._jobs[job_id] = {
                 "job_id": job_id,
                 "total": int(total) if total else 0,
@@ -28,7 +43,7 @@ class ProgressManager:
                 "started_at": time.time(),
                 "finished_at": None,
                 "error": None,
-                "details": None,
+                "details": details,
             }
             self._cancel_flags[job_id] = False  # Initialize cancel flag
 
@@ -66,12 +81,67 @@ class ProgressManager:
                     self._jobs[job_id]["message"] = message
         self._schedule_cleanup(job_id)
 
+    def _get_job_filenames(self, job_id: str) -> list:
+        """
+        Extract filenames from job details.
+
+        Returns:
+            List of filenames associated with the job
+        """
+        job = self._jobs.get(job_id)
+        if not job or not job.get("details"):
+            return []
+
+        details = job["details"]
+        # Handle both single filename and list of filenames
+        if "filenames" in details:
+            return details["filenames"]
+        elif "filename" in details:
+            return [details["filename"]]
+        return []
+
     def fail(self, job_id: str, error: str):
         with self._lock:
             if job_id in self._jobs:
                 self._jobs[job_id]["status"] = "failed"
                 self._jobs[job_id]["finished_at"] = time.time()
                 self._jobs[job_id]["error"] = error
+
+        # Cleanup services for failed job
+        try:
+            from backend.services.cancellation import cancellation_service
+            import asyncio
+
+            # Get filenames from job details
+            filenames = self._get_job_filenames(job_id)
+
+            # Run async cleanup for each filename
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+            cleanup_results = []
+            for filename in filenames:
+                if filename:
+                    results = loop.run_until_complete(
+                        cancellation_service.cleanup_job_data(
+                            job_id=job_id,
+                            filename=filename
+                        )
+                    )
+                    cleanup_results.append(results)
+
+            loop.close()
+
+            logger.info(
+                f"Service cleanup completed for failed job {job_id}",
+                extra={"job_id": job_id, "cleanup_results": cleanup_results},
+            )
+        except Exception as exc:
+            logger.warning(
+                f"Failed to cleanup services for failed job: {exc}",
+                extra={"job_id": job_id},
+            )
+
         self._schedule_cleanup(job_id)
 
     def get(self, job_id: str) -> Optional[Dict]:
@@ -94,18 +164,38 @@ class ProgressManager:
                     cancelled = True
 
         if cancelled:
-            # Notify external services of cancellation
+            # Notify external services of cancellation and cleanup job data
             try:
-                from services.cancellation import notify_job_cancellation
+                from backend.services.cancellation import cancellation_service
+                import asyncio
 
-                results = notify_job_cancellation(job_id)
+                # Get filenames from job details
+                filenames = self._get_job_filenames(job_id)
+
+                # Run async cleanup for each filename
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+                cleanup_results = []
+                for filename in filenames:
+                    if filename:
+                        results = loop.run_until_complete(
+                            cancellation_service.cleanup_job_data(
+                                job_id=job_id,
+                                filename=filename
+                            )
+                        )
+                        cleanup_results.append(results)
+
+                loop.close()
+
                 logger.info(
-                    f"Service cancellation notifications sent for job {job_id}",
-                    extra={"job_id": job_id, "notification_results": results},
+                    f"Service cleanup completed for cancelled job {job_id}",
+                    extra={"job_id": job_id, "cleanup_results": cleanup_results},
                 )
             except Exception as exc:
                 logger.warning(
-                    f"Failed to send service cancellation notifications: {exc}",
+                    f"Failed to cleanup services for cancelled job: {exc}",
                     extra={"job_id": job_id},
                 )
 
