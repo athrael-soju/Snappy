@@ -88,7 +88,10 @@ class CancellationService:
                 "errors": []
             }
         """
-        logger.info(f"Starting cleanup for job_id={job_id}, filename={filename}")
+        logger.info(
+            f"CLEANUP STARTED: job_id={job_id}, filename={filename}, collection={collection_name}",
+            extra={"job_id": job_id, "filename": filename}
+        )
 
         results = {
             "job_id": job_id,

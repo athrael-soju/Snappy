@@ -161,9 +161,11 @@ class ProgressManager:
     def cancel(self, job_id: str) -> bool:
         """Request cancellation of a job. Returns True if job exists and can be cancelled."""
         cancelled = False
+        job_status = None
         with self._lock:
             if job_id in self._jobs:
                 status = self._jobs[job_id]["status"]
+                job_status = status
                 # Can only cancel running or pending jobs
                 if status in ("pending", "running"):
                     self._cancel_flags[job_id] = True
@@ -172,9 +174,18 @@ class ProgressManager:
                     self._jobs[job_id]["message"] = "Upload cancelled by user"
                     cancelled = True
 
+        logger.info(
+            f"Cancel request for job {job_id}: status={job_status}, cancelled={cancelled}",
+            extra={"job_id": job_id, "status": job_status, "cancelled": cancelled}
+        )
+
         if cancelled:
             # Schedule cleanup in background thread (non-blocking)
             filenames = self._get_job_filenames(job_id)
+            logger.info(
+                f"Retrieved filenames for cancelled job {job_id}: {filenames}",
+                extra={"job_id": job_id, "filenames": filenames}
+            )
             if filenames:
                 logger.info(f"Scheduling background cleanup for cancelled job {job_id}")
                 self._cleanup_executor.submit(self._cleanup_job_services, job_id, filenames)
