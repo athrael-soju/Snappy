@@ -281,6 +281,12 @@ Keep the services from steps 2 and 3 running while you develop.
   - Full-text search across all OCR data
   - DuckDB-Wasm UI for interactive exploration
   - Document and page-level statistics with metadata tracking
+- 🛑 **Comprehensive job cancellation** with intelligent cleanup:
+  - Optional service restart for ColPali and DeepSeek OCR to stop in-flight processing
+  - Configurable restart timeout and wait behavior
+  - Automatic cleanup across Qdrant, MinIO, DuckDB, and temporary files
+  - Real-time progress tracking via Server-Sent Events
+  - Detailed error reporting and recovery
 - 💬 **Streaming chat responses** from the OpenAI Responses API with inline visual citations so you can see each supporting page.
 - ⚡ **Pipelined indexing** with live Server-Sent Events progress updates.
 - ⚙️ **Runtime configuration UI** backed by a typed schema, with reset and draft flows that make experimentation safe.
@@ -317,6 +323,7 @@ The Next.js 16 frontend with React 19.2 keeps things fast and friendly: real-tim
 
 - 🧠 `COLPALI_URL`, `COLPALI_API_TIMEOUT`
 - 🔍 **DeepSeek OCR**: `DEEPSEEK_OCR_ENABLED`, `DEEPSEEK_OCR_URL`, `DEEPSEEK_OCR_API_TIMEOUT`, `DEEPSEEK_OCR_MAX_WORKERS`, `DEEPSEEK_OCR_POOL_SIZE`, `DEEPSEEK_OCR_MODE`, `DEEPSEEK_OCR_TASK`, `DEEPSEEK_OCR_INCLUDE_GROUNDING`, `DEEPSEEK_OCR_INCLUDE_IMAGES`
+- 🛑 **Job Cancellation**: `JOB_CANCELLATION_RESTART_SERVICES_ENABLED`, `JOB_CANCELLATION_WAIT_FOR_RESTART`, `JOB_CANCELLATION_SERVICE_RESTART_TIMEOUT`
 - 📊 `QDRANT_EMBEDDED`, `QDRANT_URL`, `QDRANT_COLLECTION_NAME`, `QDRANT_PREFETCH_LIMIT`, `QDRANT_MEAN_POOLING_ENABLED`, quantisation toggles
 - 🗄️ `MINIO_URL`, `MINIO_PUBLIC_URL`, credentials, bucket naming, `IMAGE_FORMAT`, `IMAGE_QUALITY`
 - 📝 `LOG_LEVEL`, `ALLOWED_ORIGINS`, `UVICORN_RELOAD`
@@ -338,11 +345,12 @@ All schema-backed settings (and defaults) are documented in `backend/docs/config
 | Retrieval    | `GET /search?q=...&k=5`                  | Page-level search (defaults to 10 when `k` omitted) |
 | Indexing     | `POST /index`                            | Background indexing job (multipart PDF upload) |
 |              | `GET /progress/stream/{job_id}`          | Real-time progress (SSE) |
-|              | `POST /index/cancel/{job_id}`            | Cancel an active job |
+|              | `POST /index/cancel/{job_id}`            | Cancel job with comprehensive cleanup (Qdrant, MinIO, DuckDB, temp files) |
 | OCR          | `POST /ocr/process-page`, `/ocr/process-batch` | DeepSeek OCR per-page and batch processing (requires OCR service) |
 |              | `POST /ocr/process-document`             | Background OCR for an entire indexed document |
 |              | `GET /ocr/progress/{job_id}`, `/ocr/progress/stream/{job_id}` | Poll or stream OCR job progress |
-|              | `POST /ocr/cancel/{job_id}`, `GET /ocr/health` | Cancel jobs and check OCR health |
+|              | `POST /ocr/cancel/{job_id}`              | Cancel OCR job with comprehensive cleanup |
+|              | `GET /ocr/health`                        | Check OCR service health |
 | Maintenance  | `GET /status`                            | Collection, bucket, and DuckDB statistics |
 |              | `POST /initialize`, `DELETE /delete`     | Provision or tear down collection, bucket, and DuckDB storage |
 |              | `POST /clear/qdrant`, `/clear/minio`, `/clear/all` | Data reset helpers (DuckDB participates in reset/all) |
@@ -362,6 +370,7 @@ Chat streaming lives in `frontend/app/api/chat/route.ts`. The route calls the ba
 - 💨 **Config changes vanish?** `/config/update` modifies runtime state only-update `.env` for anything you need to keep after a restart.
 - 📤 **Upload rejected?** The uploader currently accepts PDFs only. Adjust max size, chunk size, or file count limits in the "Uploads" section of the configuration UI.
 - 🔍 **OCR not working?** Ensure `DEEPSEEK_OCR_ENABLED=True` in `.env`, the GPU profile is running (DeepSeek OCR is GPU-only), and the service is reachable at `http://deepseek-ocr:8200`. Check service health with `GET /ocr/health`.
+- 🛑 **Job cleanup after cancellation?** Job cancellation automatically cleans up all resources (Qdrant vectors, MinIO objects, DuckDB records, temp files). Enable service restart via `JOB_CANCELLATION_RESTART_SERVICES_ENABLED=true` to stop in-flight processing. See [backend/README.md](backend/README.md#job-cancellation) for details.
 
 `backend/docs/configuration.md` and `backend/CONFIGURATION_GUIDE.md` cover advanced troubleshooting and implementation details.
 
@@ -373,6 +382,7 @@ Chat streaming lives in `frontend/app/api/chat/route.ts`. The route calls the ba
 - ⚙️ MinIO worker pools auto-size based on hardware. Override only when you have specific throughput limits.
 - 🔄 TypeScript types and Zod schemas regenerate from the OpenAPI spec (`yarn gen:sdk`, `yarn gen:zod`) to keep the frontend in sync.
 - ✅ Pre-commit hooks (autoflake, isort, black, pyright) keep the codebase tidy-run them before contributing.
+- 🏗️ **Architecture:** Service classes follow "Client" naming convention (e.g., `ColPaliClient`, `OcrClient`) for consistent external service interaction patterns.
 - 🏷️ **Version management:** Uses Release Please + Conventional Commits for automated releases. See `VERSIONING.md` for details.
 
 ---
