@@ -12,10 +12,10 @@ from typing import Dict, Any, Optional
 from pathlib import Path
 import shutil
 
-from backend.services.minio import MinIOService
-from backend.services.duckdb import DuckDBService
-from backend.services.qdrant.collection import CollectionManager
-from backend.config import settings
+from services.minio import MinIOService
+from services.duckdb import DuckDBService
+from services.qdrant.collection import CollectionManager
+import config
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +105,7 @@ class CancellationService:
         # 1. Cleanup Qdrant vector points
         results["cleanup_results"]["qdrant"] = await self._cleanup_qdrant(
             filename=filename,
-            collection_name=collection_name or settings.COLLECTION_NAME
+            collection_name=collection_name or config.QDRANT_COLLECTION_NAME
         )
 
         # 2. Cleanup MinIO objects

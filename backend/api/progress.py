@@ -109,7 +109,7 @@ class ProgressManager:
 
         # Cleanup services for failed job
         try:
-            from backend.services.cancellation import cancellation_service
+            from services.cancellation import cancellation_service
             import asyncio
 
             # Get filenames from job details
@@ -166,7 +166,7 @@ class ProgressManager:
         if cancelled:
             # Notify external services of cancellation and cleanup job data
             try:
-                from backend.services.cancellation import cancellation_service
+                from services.cancellation import cancellation_service
                 import asyncio
 
                 # Get filenames from job details
