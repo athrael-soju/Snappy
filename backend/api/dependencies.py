@@ -180,6 +180,56 @@ def get_qdrant_service() -> Optional[QdrantService]:
         return None
 
 
+@lru_cache(maxsize=1)
+def _get_cleanup_coordinator_cached():
+    """Create and cache CleanupCoordinator instance."""
+    from services.cleanup import CleanupCoordinator
+    from services.qdrant.cleanup import QdrantCleanupService
+    from services.minio_cleanup import MinioCleanupService
+    from services.duckdb_cleanup import DuckDBCleanupService
+
+    # Get services
+    qdrant_svc = get_qdrant_service()
+    minio_svc = get_minio_service()
+    duckdb_svc = get_duckdb_service()
+
+    # Create cleanup services
+    qdrant_cleanup = None
+    if qdrant_svc:
+        qdrant_cleanup = QdrantCleanupService(
+            qdrant_client=qdrant_svc.service,
+            collection_name=qdrant_svc.collection_name,
+        )
+
+    minio_cleanup = None
+    if minio_svc:
+        minio_cleanup = MinioCleanupService(
+            minio_service=minio_svc.service,
+            bucket_name=minio_svc.bucket_name,
+        )
+
+    duckdb_cleanup = None
+    if duckdb_svc and duckdb_svc.is_enabled():
+        duckdb_cleanup = DuckDBCleanupService(duckdb_service=duckdb_svc)
+
+    # Create coordinator
+    return CleanupCoordinator(
+        qdrant_cleanup=qdrant_cleanup,
+        minio_cleanup=minio_cleanup,
+        duckdb_cleanup=duckdb_cleanup,
+    )
+
+
+def get_cleanup_coordinator():
+    """Return the cached CleanupCoordinator instance."""
+    try:
+        return _get_cleanup_coordinator_cached()
+    except Exception as exc:
+        logger.error("Failed to initialize CleanupCoordinator: %s", exc)
+        _get_cleanup_coordinator_cached.cache_clear()
+        return None
+
+
 def invalidate_services():
     """Invalidate cached services so they are recreated on next access."""
     logger.info("Invalidating cached services to apply new configuration")
@@ -210,3 +260,4 @@ def invalidate_services():
     _get_colpali_client_cached.cache_clear()
     _get_ocr_service_cached.cache_clear()
     _get_duckdb_service_cached.cache_clear()
+    _get_cleanup_coordinator_cached.cache_clear()

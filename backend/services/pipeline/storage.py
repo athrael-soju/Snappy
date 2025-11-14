@@ -29,6 +29,7 @@ class ImageStorageHandler:
         batch_start: int,
         image_batch: List[Image.Image],
         meta_batch: List[dict],
+        job_id: str | None = None,
     ) -> Tuple[List[str], List[Dict[str, object]], List[ProcessedImage]]:
         """
         Store images in MinIO using hierarchical structure.
@@ -41,6 +42,8 @@ class ImageStorageHandler:
             Images to store
         meta_batch : List[dict]
             Metadata for each image, must contain 'filename' and 'page_number'
+        job_id : str | None
+            Optional job identifier for cleanup tracking
 
         Returns
         -------
@@ -71,12 +74,13 @@ class ImageStorageHandler:
         processed_images = self._image_processor.process_batch(image_batch)
 
         try:
-            # Store pre-processed images in MinIO
+            # Store pre-processed images in MinIO with job_id for cleanup tracking
             image_url_map = self._minio_service.store_processed_images_batch(
                 processed_images,
                 image_ids=image_ids,
                 filenames=filenames,
                 page_numbers=page_numbers,
+                job_id=job_id,
             )
         except Exception as exc:
             raise Exception(

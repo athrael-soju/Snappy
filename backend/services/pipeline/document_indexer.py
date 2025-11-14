@@ -71,6 +71,7 @@ class DocumentIndexer:
         progress: ProgressNotifier,
         *,
         skip_progress: bool = False,
+        job_id: Optional[str] = None,
     ) -> ProcessedBatch:
         """Process a single batch of images.
 
@@ -82,6 +83,7 @@ class DocumentIndexer:
             total_images=total_images,
             progress=progress,
             skip_progress=skip_progress,
+            job_id=job_id,
         )
 
     def index_documents(
@@ -90,6 +92,7 @@ class DocumentIndexer:
         total_images: Optional[int] = None,
         progress_cb: Optional[Callable[[int, dict | None], None]] = None,
         store_batch_cb: Optional[Callable[[ProcessedBatch], None]] = None,
+        job_id: Optional[str] = None,
     ) -> str:
         """Index documents through the pipeline.
 
@@ -98,6 +101,7 @@ class DocumentIndexer:
             total_images: Total count (required for iterators)
             progress_cb: Optional progress callback
             store_batch_cb: Callback to store each processed batch
+            job_id: Optional job identifier for cleanup tracking
 
         Returns:
             Completion message
@@ -119,11 +123,11 @@ class DocumentIndexer:
 
         if config.ENABLE_AUTO_CONFIG_MODE and total > batch_size:
             return self._index_documents_pipelined(
-                image_iter, batch_size, total, progress, store_batch_cb
+                image_iter, batch_size, total, progress, store_batch_cb, job_id
             )
 
         return self._index_documents_sequential(
-            image_iter, batch_size, total, progress, store_batch_cb
+            image_iter, batch_size, total, progress, store_batch_cb, job_id
         )
 
     def _index_documents_sequential(
@@ -133,6 +137,7 @@ class DocumentIndexer:
         total_images: int,
         progress: ProgressNotifier,
         store_batch_cb: Callable[[ProcessedBatch], None],
+        job_id: Optional[str] = None,
     ) -> str:
         """Process batches sequentially."""
         completed = 0
@@ -142,6 +147,7 @@ class DocumentIndexer:
                 batch=batch,
                 total_images=total_images,
                 progress=progress,
+                job_id=job_id,
             )
 
             try:
@@ -173,6 +179,7 @@ class DocumentIndexer:
         total_images: int,
         progress: ProgressNotifier,
         store_batch_cb: Callable[[ProcessedBatch], None],
+        job_id: Optional[str] = None,
     ) -> str:
         """Process batches in parallel pipeline."""
         max_workers = _estimate_pipeline_workers()
@@ -199,6 +206,7 @@ class DocumentIndexer:
                     total_images,
                     progress,
                     skip_progress=True,
+                    job_id=job_id,
                 )
                 process_futures[future] = batch_start
                 return True

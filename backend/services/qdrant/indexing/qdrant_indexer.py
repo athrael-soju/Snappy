@@ -45,10 +45,17 @@ class QdrantDocumentIndexer:
         images: Iterable,
         total_images: Optional[int] = None,
         progress_cb: Optional[Callable[[int, dict | None], None]] = None,
+        job_id: Optional[str] = None,
     ) -> str:
         """Index documents in Qdrant.
 
         Uses the generic pipeline and adds Qdrant point construction.
+
+        Args:
+            images: Iterable of images or dicts with 'image' key
+            total_images: Total count (required for iterators)
+            progress_cb: Optional progress callback
+            job_id: Optional job identifier for cleanup tracking
         """
 
         def store_batch(processed_batch: ProcessedBatch):
@@ -62,6 +69,7 @@ class QdrantDocumentIndexer:
                 image_records=processed_batch.image_records,
                 meta_batch=processed_batch.meta_batch,
                 ocr_results=processed_batch.ocr_results,
+                job_id=job_id,
             )
 
             self.service.upsert(
@@ -74,4 +82,5 @@ class QdrantDocumentIndexer:
             total_images=total_images,
             progress_cb=progress_cb,
             store_batch_cb=store_batch,
+            job_id=job_id,
         )

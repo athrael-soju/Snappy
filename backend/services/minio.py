@@ -208,6 +208,7 @@ class MinioService:
         max_workers: int = MINIO_WORKERS,
         retries: int = MINIO_RETRIES,
         fail_fast: bool = MINIO_FAIL_FAST,
+        job_id: Optional[str] = None,
     ) -> Dict[str, str]:
         """
         Upload many pre-processed images concurrently with retries.
@@ -231,6 +232,8 @@ class MinioService:
             Retry attempts per object (total attempts = retries + 1).
         fail_fast : bool
             If True, raises at first failure; otherwise returns successes only.
+        job_id : Optional[str]
+            Optional job identifier for cleanup tracking (stored as object tag).
 
         Returns
         -------
@@ -284,6 +287,18 @@ class MinioService:
                         length=size,
                         content_type=content_type,
                     )
+
+                    # Set object tags for job_id tracking (for cleanup)
+                    if job_id is not None:
+                        from minio.commonconfig import Tags
+                        tags = Tags.new_object_tags()
+                        tags["job_id"] = job_id
+                        self.service.set_object_tags(
+                            bucket_name=self.bucket_name,
+                            object_name=object_name,
+                            tags=tags,
+                        )
+
                     return img_id, self._get_image_url(object_name)
                 except Exception:
                     if attempt > retries + 1:

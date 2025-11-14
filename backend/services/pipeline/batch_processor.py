@@ -47,6 +47,7 @@ class ProcessedBatch:
     image_records: List[Dict[str, object]]
     meta_batch: List[dict]
     ocr_results: Optional[List[Dict]]
+    job_id: Optional[str] = None
 
 
 class BatchProcessor:
@@ -86,6 +87,7 @@ class BatchProcessor:
         progress: ProgressNotifier,
         *,
         skip_progress: bool = False,
+        job_id: Optional[str] = None,
     ) -> ProcessedBatch:
         """
         Process a batch with embedding, storage, and optional OCR in parallel.
@@ -94,7 +96,7 @@ class BatchProcessor:
         1. Batch embed all images (efficient)
         2. Process images (format/quality conversion)
         3. In parallel:
-           - Store images to MinIO
+           - Store images to MinIO (with job_id metadata)
            - Run OCR if service is available (non-blocking)
         4. Return processed batch data for point construction
         5. Progress: "Processing X/Total pages"
@@ -105,6 +107,7 @@ class BatchProcessor:
             total_images: Total number of images being processed
             progress: Progress notifier
             skip_progress: Whether to skip progress updates
+            job_id: Optional job identifier for cleanup tracking
 
         Returns:
             ProcessedBatch with all data needed for point construction
@@ -131,7 +134,7 @@ class BatchProcessor:
         # Step 2: Storage and optional OCR in parallel
         try:
             image_ids, image_records, processed_images = self.image_store.store(
-                batch_start, image_batch, meta_batch
+                batch_start, image_batch, meta_batch, job_id=job_id
             )
 
             # Step 3: Run OCR in parallel if enabled (non-blocking)
@@ -174,6 +177,7 @@ class BatchProcessor:
             image_records=image_records,
             meta_batch=meta_batch,
             ocr_results=ocr_results,
+            job_id=job_id,
         )
 
     def _embed_batch(self, image_batch: List[Image.Image]):

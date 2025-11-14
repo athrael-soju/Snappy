@@ -27,6 +27,7 @@ class PointFactory:
         image_records: List[Dict[str, object]],
         meta_batch: List[dict],
         ocr_results: List[Dict] | None = None,
+        job_id: str | None = None,
     ) -> List[models.PointStruct]:
         points: List[models.PointStruct] = []
         use_mean_pooling = bool(config.QDRANT_MEAN_POOLING_ENABLED)
@@ -73,6 +74,9 @@ class PointFactory:
                 "total_pages": meta.get("total_pages"),
                 "indexed_at": now_iso,
             }
+            # Add job_id if provided for cleanup tracking
+            if job_id is not None:
+                payload["job_id"] = job_id
             if image_mime:
                 payload["image_mime_type"] = image_mime
             if image_format:

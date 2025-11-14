@@ -91,6 +91,7 @@ class QdrantService:
         images: Iterable,
         total_images: Optional[int] = None,
         progress_cb: Optional[Callable[[int, dict | None], None]] = None,
+        job_id: Optional[str] = None,
     ):
         """Index documents in Qdrant with rich payload metadata.
 
@@ -98,12 +99,19 @@ class QdrantService:
         ``image`` key and optional metadata such as ``filename`` and
         ``pdf_page_index``. When streaming an iterator, ``total_images`` must be
         supplied so that progress reporting remains accurate.
+
+        Args:
+            images: Iterable of images or dicts with 'image' key
+            total_images: Total count (required for iterators)
+            progress_cb: Optional progress callback
+            job_id: Optional job identifier for cleanup tracking
         """
         self._create_collection_if_not_exists()
         return self.indexer.index_documents(
             images,
             total_images=total_images,
             progress_cb=progress_cb,
+            job_id=job_id,
         )
 
     # Search methods

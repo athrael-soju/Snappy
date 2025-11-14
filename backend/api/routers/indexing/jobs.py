@@ -95,6 +95,7 @@ def run_indexing_job(job_id: str, paths: List[str], filenames: Dict[str, str]) -
             image_iterator,
             total_images=total_images,
             progress_cb=progress_cb,
+            job_id=job_id,
         )
 
         if progress_manager.is_cancelled(job_id):
@@ -103,10 +104,34 @@ def run_indexing_job(job_id: str, paths: List[str], filenames: Dict[str, str]) -
         progress_manager.complete(job_id, message=msg)
     except CancellationError as exc:
         logger.info("Job %s cancelled: %s", job_id, exc)
+        # Clean up partial data from cancelled job
+        from api.dependencies import get_cleanup_coordinator
+        coordinator = get_cleanup_coordinator()
+        if coordinator:
+            try:
+                logger.info(f"Cleaning up data for cancelled job {job_id}")
+                cleanup_result = coordinator.cleanup_job(job_id)
+                logger.info(
+                    f"Cleanup completed for job {job_id}: {cleanup_result['total_deleted']} items deleted"
+                )
+            except Exception as cleanup_exc:
+                logger.exception(f"Failed to clean up data for job {job_id}: {cleanup_exc}")
     except Exception as exc:  # noqa: BLE001 - best-effort task protection
         if not progress_manager.is_cancelled(job_id):
             progress_manager.fail(job_id, error=str(exc))
             logger.exception("Job %s failed", job_id)
+            # Clean up partial data from failed job
+            from api.dependencies import get_cleanup_coordinator
+            coordinator = get_cleanup_coordinator()
+            if coordinator:
+                try:
+                    logger.info(f"Cleaning up data for failed job {job_id}")
+                    cleanup_result = coordinator.cleanup_job(job_id)
+                    logger.info(
+                        f"Cleanup completed for job {job_id}: {cleanup_result['total_deleted']} items deleted"
+                    )
+                except Exception as cleanup_exc:
+                    logger.exception(f"Failed to clean up data for job {job_id}: {cleanup_exc}")
     finally:
         cleanup_temp_files(paths)
 
