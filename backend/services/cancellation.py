@@ -49,7 +49,7 @@ class CancellationService:
         self.duckdb_service = duckdb_service or DuckDBService()
         self.qdrant_collection_manager = qdrant_collection_manager or CollectionManager()
 
-    async def cleanup_job_data(
+    def cleanup_job_data(
         self,
         job_id: str,
         filename: Optional[str] = None,
@@ -64,10 +64,12 @@ class CancellationService:
         3. DuckDB: Delete document and OCR records
         4. Filesystem: Remove temporary files
 
+        Note: This is a synchronous blocking operation. All service calls are synchronous.
+
         Args:
             job_id: Unique identifier for the job
             filename: Document filename (used as identifier across services)
-            collection_name: Qdrant collection name (defaults to settings.COLLECTION_NAME)
+            collection_name: Qdrant collection name (defaults to config.QDRANT_COLLECTION_NAME)
 
         Returns:
             Dictionary containing cleanup results for each service
@@ -103,23 +105,23 @@ class CancellationService:
             return results
 
         # 1. Cleanup Qdrant vector points
-        results["cleanup_results"]["qdrant"] = await self._cleanup_qdrant(
+        results["cleanup_results"]["qdrant"] = self._cleanup_qdrant(
             filename=filename,
             collection_name=collection_name or config.QDRANT_COLLECTION_NAME
         )
 
         # 2. Cleanup MinIO objects
-        results["cleanup_results"]["minio"] = await self._cleanup_minio(
+        results["cleanup_results"]["minio"] = self._cleanup_minio(
             filename=filename
         )
 
         # 3. Cleanup DuckDB records
-        results["cleanup_results"]["duckdb"] = await self._cleanup_duckdb(
+        results["cleanup_results"]["duckdb"] = self._cleanup_duckdb(
             filename=filename
         )
 
         # 4. Cleanup temporary files
-        results["cleanup_results"]["temp_files"] = await self._cleanup_temp_files(
+        results["cleanup_results"]["temp_files"] = self._cleanup_temp_files(
             job_id=job_id,
             filename=filename
         )
@@ -138,7 +140,7 @@ class CancellationService:
 
         return results
 
-    async def _cleanup_qdrant(
+    def _cleanup_qdrant(
         self,
         filename: str,
         collection_name: str
@@ -175,7 +177,7 @@ class CancellationService:
                 "error": str(e)
             }
 
-    async def _cleanup_minio(self, filename: str) -> Dict[str, Any]:
+    def _cleanup_minio(self, filename: str) -> Dict[str, Any]:
         """
         Delete all MinIO objects under the document prefix.
 
@@ -193,11 +195,15 @@ class CancellationService:
 
             # Use clear_prefix to delete all objects under {filename}/
             prefix = f"{filename}/"
-            deleted_count = await self.minio_service.clear_prefix(prefix)
+            result = self.minio_service.clear_prefix(prefix)
+
+            deleted = result.get("deleted", 0)
+            failed = result.get("failed", 0)
 
             return {
-                "success": True,
-                "objects_deleted": deleted_count,
+                "success": failed == 0,
+                "objects_deleted": deleted,
+                "objects_failed": failed,
                 "prefix": prefix
             }
 
@@ -209,7 +215,7 @@ class CancellationService:
                 "error": str(e)
             }
 
-    async def _cleanup_duckdb(self, filename: str) -> Dict[str, Any]:
+    def _cleanup_duckdb(self, filename: str) -> Dict[str, Any]:
         """
         Delete all DuckDB records associated with a document.
 
@@ -222,12 +228,13 @@ class CancellationService:
         try:
             logger.debug(f"Cleaning up DuckDB records for filename={filename}")
 
-            result = await self.duckdb_service.delete_document(filename)
+            # delete_document returns a boolean
+            success = self.duckdb_service.delete_document(filename)
 
             return {
-                "success": result.get("success", False),
-                "records_deleted": result.get("deleted", 0),
-                "message": result.get("message", "")
+                "success": success,
+                "records_deleted": "unknown" if success else 0,
+                "message": "Deleted document from DuckDB" if success else "Failed to delete"
             }
 
         except Exception as e:
@@ -238,7 +245,7 @@ class CancellationService:
                 "error": str(e)
             }
 
-    async def _cleanup_temp_files(
+    def _cleanup_temp_files(
         self,
         job_id: str,
         filename: str
@@ -295,7 +302,7 @@ class CancellationService:
                 "error": str(e)
             }
 
-    async def cleanup_multiple_jobs(
+    def cleanup_multiple_jobs(
         self,
         job_data: list[Dict[str, str]],
         collection_name: Optional[str] = None
@@ -328,7 +335,7 @@ class CancellationService:
             job_id = job.get("job_id")
             filename = job.get("filename")
 
-            job_result = await self.cleanup_job_data(
+            job_result = self.cleanup_job_data(
                 job_id=job_id,
                 filename=filename,
                 collection_name=collection_name
