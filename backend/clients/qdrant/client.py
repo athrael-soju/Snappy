@@ -11,19 +11,19 @@ from .indexing import QdrantDocumentIndexer
 from .search import SearchManager
 
 if TYPE_CHECKING:
-    from clients.colpali import ColPaliService
-    from clients.minio import MinioService
+    from clients.colpali import ColPaliClient
+    from clients.minio import MinioClient
 
 logger = logging.getLogger(__name__)
 
 
-class QdrantService:
+class QdrantClient:
     """Main service class for Qdrant operations."""
 
     def __init__(
         self,
-        api_client: Optional["ColPaliService"] = None,
-        minio_service: Optional["MinioService"] = None,
+        api_client: Optional["ColPaliClient"] = None,
+        minio_service: Optional["MinioClient"] = None,
         ocr_service=None,
     ):
         """Initialize Qdrant service with all subcomponents.
@@ -35,7 +35,7 @@ class QdrantService:
         """
         try:
             if minio_service is None:
-                raise ValueError("MinIO service is required for QdrantService")
+                raise ValueError("MinIO service is required for QdrantClient")
 
             # Initialize dependencies
             self.api_client = api_client

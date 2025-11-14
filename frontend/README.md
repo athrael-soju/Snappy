@@ -119,8 +119,8 @@ const response = await fetch(`${baseUrl}/search?q=${query}`);
 - `ConfigurationService` - Runtime configuration management
 - `MaintenanceService` - System status, initialize, clear, delete operations
 - `IndexingService` - Document upload and indexing
-- `OcrService` - OCR processing for documents/pages
-- `DuckdbService` - DuckDB analytics queries and operations
+- `OcrClient` - OCR processing for documents/pages
+- `DuckDBClient` - DuckDB analytics queries and operations
 - `MetaService` - Health checks and version info
 
 ### Regenerating the SDK

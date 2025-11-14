@@ -38,7 +38,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class MinioService:
+class MinioClient:
     """Service for storing and retrieving images from MinIO object storage.
 
     Improvements vs. the basic version:

@@ -37,7 +37,7 @@ This note explains how Snappy approaches document retrieval and how it compares 
 2. **PDF → images** – `api/utils.py::convert_pdf_paths_to_images` rasterises each page via `pdf2image`.
 3. **Batch processing** – `DocumentIndexer` in `services/pipeline/document_indexer.py`
    - Splits pages into batches (`BATCH_SIZE`)
-   - Embeds via `ColPaliService` (original + pooled vectors)
+   - Embeds via `ColPaliClient` (original + pooled vectors)
    - Stores images in MinIO
    - Upserts vectors into Qdrant via `services/qdrant/indexing/qdrant_indexer.py`
    - Runs optional OCR callbacks when a `services/ocr` instance is supplied
@@ -98,13 +98,13 @@ Collection schemas come from the model dimension reported by `/info`. Images liv
 - Collection schema management: `CollectionManager.create_collection_if_not_exists` in `services/qdrant/collection.py`.
 - Pooling logic: `EmbeddingProcessor._pool_image_tokens` in `services/qdrant/embedding.py`.
 - Two-stage query: `SearchManager._reranking_search_batch` in `services/qdrant/search.py`.
-- MinIO URLs: `MinioService._get_image_url()` and `_extract_object_name_from_url()`.
+- MinIO URLs: `MinioClient._get_image_url()` and `_extract_object_name_from_url()`.
 - Chat streaming: `frontend/app/api/chat/route.ts` (SSE) and `frontend/lib/api/chat.ts`.
 
 ---
 
 ## Notes from the Code
 
-- The ColPali API is expected to return embeddings with token boundaries; `ColPaliService.embed_images` already matches that contract.
+- The ColPali API is expected to return embeddings with token boundaries; `ColPaliClient.embed_images` already matches that contract.
 - The frontend controls the OpenAI model via `OPENAI_MODEL` (`frontend/.env.local`). The backend stays focused on retrieval and system duties.
 

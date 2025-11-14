@@ -4,10 +4,10 @@ from .collection import CollectionManager
 from .embedding import EmbeddingProcessor
 from .indexing import QdrantDocumentIndexer
 from .search import SearchManager
-from .client import QdrantService
+from .client import QdrantClient
 
 __all__ = [
-    "QdrantService",
+    "QdrantClient",
     "CollectionManager",
     "EmbeddingProcessor",
     "QdrantDocumentIndexer",

@@ -229,7 +229,7 @@ class SearchRequest(BaseModel):
 
 async def search_documents(
     request: SearchRequest,
-    service: QdrantService
+    service: QdrantClient
 ) -> List[SearchResult]:
     """Search documents using visual embeddings.
     

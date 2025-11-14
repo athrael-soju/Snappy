@@ -6,11 +6,11 @@ from threading import Lock
 from typing import Optional
 
 import config
-from clients.colpali import ColPaliService
-from clients.duckdb import DuckDBService
-from clients.minio import MinioService
-from clients.ocr import OcrService
-from clients.qdrant import QdrantService
+from clients.colpali import ColPaliClient
+from clients.duckdb import DuckDBClient
+from clients.minio import MinioClient
+from clients.ocr import OcrClient
+from clients.qdrant import QdrantClient
 
 logger = logging.getLogger(__name__)
 
@@ -47,11 +47,11 @@ duckdb_init_error = ServiceInitError()
 
 
 @lru_cache(maxsize=1)
-def _get_colpali_client_cached() -> ColPaliService:
-    return ColPaliService()
+def _get_colpali_client_cached() -> ColPaliClient:
+    return ColPaliClient()
 
 
-def get_colpali_client() -> ColPaliService:
+def get_colpali_client() -> ColPaliClient:
     """Return the cached ColPali service instance, capturing initialization errors."""
     try:
         service = _get_colpali_client_cached()
@@ -75,21 +75,21 @@ api_client = _ColPaliClientProxy()
 
 
 @lru_cache(maxsize=1)
-def _get_ocr_service_cached() -> OcrService:
-    """Create and cache OcrService instance."""
+def _get_ocr_service_cached() -> OcrClient:
+    """Create and cache OcrClient instance."""
     if not config.DEEPSEEK_OCR_ENABLED:
         raise RuntimeError("DeepSeek OCR service is disabled in configuration")
 
     minio_service = get_minio_service()
     duckdb_service = get_duckdb_service() if config.DUCKDB_ENABLED else None
 
-    return OcrService(
+    return OcrClient(
         minio_service=minio_service,
         duckdb_service=duckdb_service,
     )
 
 
-def get_ocr_service() -> Optional[OcrService]:
+def get_ocr_service() -> Optional[OcrClient]:
     """Return the cached OCR service if enabled."""
     if not config.DEEPSEEK_OCR_ENABLED:
         ocr_init_error.set("OCR service disabled in configuration")
@@ -107,15 +107,15 @@ def get_ocr_service() -> Optional[OcrService]:
 
 
 @lru_cache(maxsize=1)
-def _get_duckdb_service_cached() -> DuckDBService:
-    """Create and cache DuckDBService instance."""
+def _get_duckdb_service_cached() -> DuckDBClient:
+    """Create and cache DuckDBClient instance."""
     if not config.DUCKDB_ENABLED:
         raise RuntimeError("DuckDB service is disabled in configuration")
 
-    return DuckDBService()
+    return DuckDBClient()
 
 
-def get_duckdb_service() -> Optional[DuckDBService]:
+def get_duckdb_service() -> Optional[DuckDBClient]:
     """Return the cached DuckDB service if enabled."""
     if not config.DUCKDB_ENABLED:
         duckdb_init_error.set("DuckDB service disabled in configuration")
@@ -133,11 +133,11 @@ def get_duckdb_service() -> Optional[DuckDBService]:
 
 
 @lru_cache(maxsize=1)
-def _get_minio_service_cached() -> MinioService:
-    return MinioService()
+def _get_minio_service_cached() -> MinioClient:
+    return MinioClient()
 
 
-def get_minio_service() -> MinioService:
+def get_minio_service() -> MinioClient:
     """Return the cached MinIO service, capturing initialization errors."""
     try:
         service = _get_minio_service_cached()
@@ -151,7 +151,7 @@ def get_minio_service() -> MinioService:
 
 
 @lru_cache(maxsize=1)
-def _get_qdrant_service_cached() -> QdrantService:
+def _get_qdrant_service_cached() -> QdrantClient:
     minio_service = get_minio_service()
 
     ocr_service = None
@@ -160,14 +160,14 @@ def _get_qdrant_service_cached() -> QdrantService:
         if ocr_service is None:
             logger.warning("OCR is enabled but service failed to initialize")
 
-    return QdrantService(
+    return QdrantClient(
         api_client=get_colpali_client(),
         minio_service=minio_service,
         ocr_service=ocr_service,
     )
 
 
-def get_qdrant_service() -> Optional[QdrantService]:
+def get_qdrant_service() -> Optional[QdrantClient]:
     """Return the cached Qdrant service, capturing initialization errors."""
     try:
         service = _get_qdrant_service_cached()

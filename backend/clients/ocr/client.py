@@ -15,8 +15,8 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
-    from clients.duckdb import DuckDBService
-    from clients.minio import MinioService
+    from clients.duckdb import DuckDBClient
+    from clients.minio import MinioClient
 
 from .processor import OcrProcessor
 from .storage import OcrStorageHandler
@@ -24,13 +24,13 @@ from .storage import OcrStorageHandler
 logger = logging.getLogger(__name__)
 
 
-class OcrService:
+class OcrClient:
     """Main service class for OCR operations."""
 
     def __init__(
         self,
-        minio_service: Optional["MinioService"] = None,
-        duckdb_service: Optional["DuckDBService"] = None,
+        minio_service: Optional["MinioClient"] = None,
+        duckdb_service: Optional["DuckDBClient"] = None,
         base_url: Optional[str] = None,
         timeout: Optional[int] = None,
         enabled: Optional[bool] = None,
@@ -56,7 +56,7 @@ class OcrService:
         """
         try:
             if minio_service is None:
-                raise ValueError("MinIO service is required for OcrService")
+                raise ValueError("MinIO service is required for OcrClient")
 
             # Initialize HTTP client for DeepSeek OCR
             self.enabled = (

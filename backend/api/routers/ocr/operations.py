@@ -6,8 +6,8 @@ import uuid
 from api.dependencies import get_ocr_service, get_qdrant_service
 from api.progress import progress_manager
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from clients.ocr import OcrService
-from clients.qdrant import QdrantService
+from clients.ocr import OcrClient
+from clients.qdrant import QdrantClient
 from utils.timing import PerformanceTimer
 
 from .models import (
@@ -27,7 +27,7 @@ router = APIRouter(prefix="", tags=["ocr"])
 @router.post("/process-page", response_model=OcrResponse)
 async def process_page(
     request: OcrPageRequest,
-    ocr_service: OcrService = Depends(get_ocr_service),
+    ocr_service: OcrClient = Depends(get_ocr_service),
 ):
     """Process a single document page with DeepSeek OCR."""
     if not ocr_service:
@@ -89,7 +89,7 @@ async def process_page(
 @router.post("/process-batch", response_model=OcrBatchResponse)
 async def process_batch(
     request: OcrBatchRequest,
-    ocr_service: OcrService = Depends(get_ocr_service),
+    ocr_service: OcrClient = Depends(get_ocr_service),
 ):
     """Process multiple pages from the same document in parallel."""
     if not ocr_service:
@@ -162,8 +162,8 @@ async def process_batch(
 async def process_document(
     request: OcrDocumentRequest,
     background_tasks: BackgroundTasks,
-    ocr_service: OcrService = Depends(get_ocr_service),
-    qdrant_service: QdrantService = Depends(get_qdrant_service),
+    ocr_service: OcrClient = Depends(get_ocr_service),
+    qdrant_service: QdrantClient = Depends(get_qdrant_service),
 ):
     """Process all pages of an indexed document with OCR."""
     if not ocr_service:
@@ -240,7 +240,7 @@ async def process_document(
 
 @router.get("/health")
 async def health_check(
-    ocr_service: OcrService = Depends(get_ocr_service),
+    ocr_service: OcrClient = Depends(get_ocr_service),
 ):
     """Check OCR service health."""
     if not ocr_service:

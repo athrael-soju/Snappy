@@ -14,9 +14,9 @@ from utils.timing import log_execution_time
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
     from domain.pipeline.image_processor import ImageProcessor
-    from clients.minio import MinioService
+    from clients.minio import MinioClient
 
-    from .client import OcrService
+    from .client import OcrClient
     from .storage import OcrStorageHandler
 
 logger = logging.getLogger(__name__)
@@ -35,7 +35,7 @@ class OcrProcessor:
 
     def __init__(
         self,
-        ocr_service: "OcrService",
+        ocr_service: "OcrClient",
         image_processor: "ImageProcessor",
     ):
         """
@@ -131,7 +131,7 @@ class OcrProcessor:
         self,
         filename: str,
         page_numbers: List[int],
-        minio_service: "MinioService",
+        minio_service: "MinioClient",
         storage_handler: "OcrStorageHandler",
         *,
         mode: Optional[str] = None,
@@ -206,7 +206,7 @@ class OcrProcessor:
         self,
         filename: str,
         page_number: int,
-        minio_service: "MinioService",
+        minio_service: "MinioClient",
         storage_handler: "OcrStorageHandler",
         mode: Optional[str],
         task: Optional[str],
@@ -241,7 +241,7 @@ class OcrProcessor:
         }
 
     def _fetch_page_image(
-        self, minio_service: "MinioService", filename: str, page_number: int
+        self, minio_service: "MinioClient", filename: str, page_number: int
     ) -> bytes:
         """Fetch page image bytes from MinIO.
 
@@ -382,7 +382,7 @@ class OcrProcessor:
         crops: List[str],
         filename: str,
         page_number: int,
-        minio_service: "MinioService",
+        minio_service: "MinioClient",
     ) -> List[str]:
         """
         Process base64-encoded extracted images and upload to MinIO.

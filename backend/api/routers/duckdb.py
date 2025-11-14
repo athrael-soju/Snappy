@@ -6,7 +6,7 @@ from typing import Any, List, Optional
 from api.dependencies import get_duckdb_service
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from clients.duckdb import DuckDBService
+from clients.duckdb import DuckDBClient
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ class DocumentInfo(BaseModel):
 
 @router.get("/health")
 async def health_check(
-    duckdb_service: Optional[DuckDBService] = Depends(get_duckdb_service),
+    duckdb_service: Optional[DuckDBClient] = Depends(get_duckdb_service),
 ):
     """Check DuckDB service health."""
     if not duckdb_service:
@@ -73,7 +73,7 @@ async def health_check(
 
 @router.get("/stats", response_model=StatsResponse)
 async def get_stats(
-    duckdb_service: Optional[DuckDBService] = Depends(get_duckdb_service),
+    duckdb_service: Optional[DuckDBClient] = Depends(get_duckdb_service),
 ):
     """Get aggregate statistics from DuckDB."""
     if not duckdb_service:
@@ -92,7 +92,7 @@ async def get_stats(
 async def list_documents(
     limit: int = Query(default=100, le=1000, description="Maximum results"),
     offset: int = Query(default=0, ge=0, description="Results offset"),
-    duckdb_service: Optional[DuckDBService] = Depends(get_duckdb_service),
+    duckdb_service: Optional[DuckDBClient] = Depends(get_duckdb_service),
 ):
     """List all indexed documents in DuckDB."""
     if not duckdb_service:
@@ -110,7 +110,7 @@ async def list_documents(
 @router.get("/documents/{filename}", response_model=DocumentInfo)
 async def get_document(
     filename: str,
-    duckdb_service: Optional[DuckDBService] = Depends(get_duckdb_service),
+    duckdb_service: Optional[DuckDBClient] = Depends(get_duckdb_service),
 ):
     """Get information about a specific document."""
     if not duckdb_service:
@@ -129,7 +129,7 @@ async def get_document(
 async def get_page(
     filename: str,
     page_number: int,
-    duckdb_service: Optional[DuckDBService] = Depends(get_duckdb_service),
+    duckdb_service: Optional[DuckDBClient] = Depends(get_duckdb_service),
 ):
     """Get OCR data for a specific page from DuckDB."""
     if not duckdb_service:
@@ -147,7 +147,7 @@ async def get_page(
 @router.delete("/documents/{filename}")
 async def delete_document(
     filename: str,
-    duckdb_service: Optional[DuckDBService] = Depends(get_duckdb_service),
+    duckdb_service: Optional[DuckDBClient] = Depends(get_duckdb_service),
 ):
     """Delete all data for a document from DuckDB."""
     if not duckdb_service:
@@ -167,7 +167,7 @@ async def delete_document(
 @router.post("/query", response_model=QueryResponse)
 async def execute_query(
     request: QueryRequest,
-    duckdb_service: Optional[DuckDBService] = Depends(get_duckdb_service),
+    duckdb_service: Optional[DuckDBClient] = Depends(get_duckdb_service),
 ):
     """Execute a SQL query against DuckDB.
 
@@ -189,7 +189,7 @@ async def execute_query(
 async def search_text(
     q: str = Query(..., description="Search query"),
     limit: int = Query(default=50, le=500, description="Maximum results"),
-    duckdb_service: Optional[DuckDBService] = Depends(get_duckdb_service),
+    duckdb_service: Optional[DuckDBClient] = Depends(get_duckdb_service),
 ):
     """Full-text search across all OCR data."""
     if not duckdb_service:
