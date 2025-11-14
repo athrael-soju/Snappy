@@ -6,7 +6,7 @@ export const documentSearchTool = {
     type: "function" as const,
     strict: false,
     name: "document_search",
-    description: "Search for relevant documents and images based on a query. Returns image URLs from the backend search API.",
+    description: "Search for relevant documents and images based on a query. Returns citation labels (e.g., 'report.pdf - Page 2 of 10') that should be used when citing sources in your response. The actual document images will be provided separately in the conversation.",
     parameters: {
         type: "object" as const,
         properties: {
@@ -25,16 +25,15 @@ export async function executeDocumentSearch(query: string, k: number, includeOcr
         const data = await RetrievalService.searchSearchGet(query, k, includeOcr);
 
         const results = parseSearchResults(data);
-        const imageUrls = results
-            .map((result) => result.image_url)
-            .filter((url): url is string => typeof url === "string" && url.length > 0);
+        const labels = results
+            .map((result) => result.label)
+            .filter((label): label is string => typeof label === "string" && label.length > 0);
 
         return {
             success: true,
             query,
-            images: imageUrls,
-            results: results,
-            count: imageUrls.length
+            labels: labels,
+            count: labels.length
         };
     } catch (error) {
         logger.error('Document search error', { error, query, k });

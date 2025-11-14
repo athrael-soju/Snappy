@@ -33,8 +33,7 @@ export interface FunctionCallOutputMessage {
 export interface SearchToolResult {
   success: boolean;
   query: string;
-  images?: string[];
-  results?: unknown[];
+  labels?: string[];
   count?: number;
   error?: string;
 }

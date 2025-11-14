@@ -105,16 +105,15 @@ export async function runChatService(options: NormalizedChatRequest): Promise<Ch
                 options.k,
                 ocrEnabled
             );
-            const imageUrls = results
-                .map((result) => result.image_url)
-                .filter((url): url is string => typeof url === "string" && url.length > 0);
+            const labels = results
+                .map((result) => result.label)
+                .filter((label): label is string => typeof label === "string" && label.length > 0);
 
             searchResult = {
                 success: true,
                 query: options.message,
-                images: imageUrls,
-                results: results,
-                count: imageUrls.length
+                labels: labels,
+                count: labels.length
             };
 
             if (results && results.length > 0) {
