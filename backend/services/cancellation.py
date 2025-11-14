@@ -12,7 +12,7 @@ from typing import Dict, Any, Optional
 from pathlib import Path
 import shutil
 
-from services.minio import MinIOService
+from services.minio import MinioService
 from services.duckdb import DuckDBService
 from services.qdrant.collection import CollectionManager
 import config
@@ -33,7 +33,7 @@ class CancellationService:
 
     def __init__(
         self,
-        minio_service: Optional[MinIOService] = None,
+        minio_service: Optional[MinioService] = None,
         duckdb_service: Optional[DuckDBService] = None,
         qdrant_collection_manager: Optional[CollectionManager] = None
     ):
@@ -45,7 +45,7 @@ class CancellationService:
             duckdb_service: DuckDB service instance for database cleanup
             qdrant_collection_manager: Qdrant collection manager for vector database cleanup
         """
-        self.minio_service = minio_service or MinIOService()
+        self.minio_service = minio_service or MinioService()
         self.duckdb_service = duckdb_service or DuckDBService()
         self.qdrant_collection_manager = qdrant_collection_manager or CollectionManager()
 
