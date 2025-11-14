@@ -90,7 +90,7 @@ class CancellationService:
         """
         logger.info(
             f"CLEANUP STARTED: job_id={job_id}, filename={filename}, collection={collection_name}",
-            extra={"job_id": job_id, "filename": filename}
+            extra={"job_id": job_id, "document_filename": filename}
         )
 
         results = {
