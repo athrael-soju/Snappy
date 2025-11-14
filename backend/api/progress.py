@@ -18,6 +18,7 @@ class ProgressManager:
         self._cancel_flags: Dict[str, bool] = {}  # Track cancellation requests
         self._timers: Dict[str, threading.Timer] = {}  # Track cleanup timers
         self._cleanup_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="cleanup")
+        self._job_completion_events: Dict[str, threading.Event] = {}  # Track job completion
 
     def create(self, job_id: str, total: int = 0, filename: Optional[str] = None, filenames: Optional[list] = None):
         """
@@ -48,6 +49,7 @@ class ProgressManager:
                 "details": details,
             }
             self._cancel_flags[job_id] = False  # Initialize cancel flag
+            self._job_completion_events[job_id] = threading.Event()  # Create completion event
 
     def set_total(self, job_id: str, total: int):
         with self._lock:
@@ -81,6 +83,11 @@ class ProgressManager:
                 self._jobs[job_id]["finished_at"] = time.time()
                 if message is not None:
                     self._jobs[job_id]["message"] = message
+
+        # Signal that job has completed
+        if job_id in self._job_completion_events:
+            self._job_completion_events[job_id].set()
+
         self._schedule_cleanup(job_id)
 
     def _get_job_filenames(self, job_id: str) -> list:
@@ -107,12 +114,25 @@ class ProgressManager:
         Background task to cleanup services for a job.
 
         This runs in a separate thread to avoid blocking the main request.
+        IMPORTANT: Waits for the background job to actually stop before cleaning up.
 
         Args:
             job_id: Job identifier
             filenames: List of filenames to cleanup
         """
         try:
+            # Wait for the background job to actually complete/stop
+            completion_event = self._job_completion_events.get(job_id)
+            if completion_event:
+                logger.info(f"Waiting for job {job_id} to stop before cleanup...")
+                # Wait up to 60 seconds for job to stop
+                if completion_event.wait(timeout=60):
+                    logger.info(f"Job {job_id} has stopped, starting cleanup")
+                else:
+                    logger.warning(f"Timeout waiting for job {job_id} to stop, proceeding with cleanup anyway")
+            else:
+                logger.warning(f"No completion event for job {job_id}, proceeding with cleanup immediately")
+
             from services.cancellation import cancellation_service
 
             cleanup_results = []
@@ -142,6 +162,10 @@ class ProgressManager:
                 self._jobs[job_id]["status"] = "failed"
                 self._jobs[job_id]["finished_at"] = time.time()
                 self._jobs[job_id]["error"] = error
+
+        # Signal that job has failed (stopped)
+        if job_id in self._job_completion_events:
+            self._job_completion_events[job_id].set()
 
         # Schedule cleanup in background thread (non-blocking)
         filenames = self._get_job_filenames(job_id)
@@ -210,11 +234,23 @@ class ProgressManager:
                 if job["status"] == "running"
             ]
 
+    def signal_job_stopped(self, job_id: str):
+        """
+        Signal that a background job has actually stopped processing.
+
+        This is called by the background job when it finishes/fails/cancels.
+        This triggers cleanup to proceed if it was waiting.
+        """
+        if job_id in self._job_completion_events:
+            logger.debug(f"Signaling job {job_id} has stopped")
+            self._job_completion_events[job_id].set()
+
     def cleanup(self, job_id: str):
         """Remove job data and cancel any pending cleanup timer."""
         with self._lock:
             self._jobs.pop(job_id, None)
             self._cancel_flags.pop(job_id, None)
+            self._job_completion_events.pop(job_id, None)  # Clean up completion event
             # Cancel and remove timer if it exists
             timer = self._timers.pop(job_id, None)
             if timer is not None:
