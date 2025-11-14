@@ -31,9 +31,11 @@ cp .env.example .env
 Key settings:
 - **ColPali**: `COLPALI_URL`, `COLPALI_API_TIMEOUT`
 - **DeepSeek OCR**: `DEEPSEEK_OCR_ENABLED`, `DEEPSEEK_OCR_URL`, `DEEPSEEK_OCR_API_TIMEOUT`, `DEEPSEEK_OCR_MAX_WORKERS`, `DEEPSEEK_OCR_POOL_SIZE`, `DEEPSEEK_OCR_MODE`, `DEEPSEEK_OCR_TASK`, `DEEPSEEK_OCR_INCLUDE_GROUNDING`, `DEEPSEEK_OCR_INCLUDE_IMAGES`
+- **DuckDB**: `DUCKDB_ENABLED`, `DUCKDB_URL`, `DUCKDB_API_TIMEOUT`
 - **Qdrant**: `QDRANT_EMBEDDED`, `QDRANT_URL`, `QDRANT_COLLECTION_NAME`, quantisation toggles
 - **MinIO**: `MINIO_URL`, `MINIO_PUBLIC_URL`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`
 - **Uploads**: `UPLOAD_ALLOWED_FILE_TYPES` (PDF-only by default), `UPLOAD_MAX_FILE_SIZE_MB`, `UPLOAD_MAX_FILES`, `UPLOAD_CHUNK_SIZE_MBYTES`
+- **Job Cancellation**: `JOB_CANCELLATION_RESTART_SERVICES_ENABLED`, `JOB_CANCELLATION_SERVICE_RESTART_TIMEOUT`, `JOB_CANCELLATION_WAIT_FOR_RESTART`
 
 Defaults assume local services at:
 - Qdrant → `http://localhost:6333`
@@ -99,27 +101,93 @@ MinIO credentials must be provided; the backend stores page images in object sto
 ### Indexing
 - `POST /index` – Upload PDFs as `files[]`; work runs in the background
 - `GET /progress/stream/{job_id}` – Server-Sent Events progress feed
-- `POST /index/cancel/{job_id}` – Cancel a running job
+- `GET /progress/{job_id}` – Poll job progress (alternative to SSE)
+- `POST /index/cancel/{job_id}` – Cancel a running indexing job with comprehensive cleanup
 
 ### OCR
 - `POST /ocr/process-page` - OCR a single indexed page (DeepSeek OCR must be enabled)
 - `POST /ocr/process-batch` - Run OCR across multiple page numbers in parallel
 - `POST /ocr/process-document` - Launch a background OCR job for every page in a document
 - `GET /ocr/progress/{job_id}` / `/ocr/progress/stream/{job_id}` - Poll or stream OCR job status updates
-- `POST /ocr/cancel/{job_id}` - Cancel a running OCR job
+- `POST /ocr/cancel/{job_id}` - Cancel a running OCR job with comprehensive cleanup
 - `GET /ocr/health` - Health check for the OCR client/service
 
+**OCR Retrieval Modes:**
+- When `DUCKDB_ENABLED=True`: OCR data retrieved inline from DuckDB (1 HTTP request)
+- When `DUCKDB_ENABLED=False`: OCR URLs pre-computed and stored in Qdrant payload; frontend fetches from MinIO (2 HTTP requests)
+
 ### Maintenance
-- `GET /status` – Collection and bucket statistics
+- `GET /status` – Collection and bucket statistics (includes DuckDB document count when enabled)
 - `POST /initialize` – Provision collection + bucket (run this once on a new stack)
-- `DELETE /delete` – Tear everything down
-- `POST /clear/qdrant`, `/clear/minio`, `/clear/all` – Data reset helpers
+- `DELETE /delete` – Tear everything down (Qdrant, MinIO, DuckDB)
+- `POST /clear/qdrant` – Clear vector database only
+- `POST /clear/minio` – Clear object storage only
+- `POST /clear/duckdb` – Clear analytics database only (when enabled)
+- `POST /clear/all` – Clear all data across all services
+
+### DuckDB Analytics (Optional)
+- `POST /duckdb/query` - Execute SQL query against OCR analytics database
+- `GET /duckdb/health` - Health check for DuckDB service
 
 ### Configuration
 - `GET /config/schema`, `GET /config/values` – Inspect current settings
 - `POST /config/update`, `POST /config/reset` – Update or reset runtime configuration
 
 Runtime updates are temporary—persist changes in `.env` for restarts.
+
+---
+
+## Job Cancellation
+
+Job cancellation provides comprehensive cleanup when indexing or OCR operations are cancelled or fail.
+
+### How It Works
+
+When you cancel a job via `POST /index/cancel/{job_id}` or `POST /ocr/cancel/{job_id}`, the cancellation service:
+
+1. **Optionally Restarts Services (0-75%)**:
+   - Sends restart requests to ColPali and DeepSeek OCR services
+   - Services exit immediately and restart via Docker policy
+   - Stops any ongoing batch embedding or OCR processing
+   - Configurable via `JOB_CANCELLATION_RESTART_SERVICES_ENABLED`
+
+2. **Cleans Qdrant (75-81%)**:
+   - Deletes all vector points for the document
+   - Removes embeddings and metadata from the collection
+
+3. **Cleans MinIO (81-87%)**:
+   - Deletes all objects under `{filename}/` prefix
+   - Removes page images, OCR JSON, region crops
+
+4. **Cleans DuckDB (87-93%)**:
+   - Deletes document record and cascading pages/regions
+   - Only runs if DuckDB is enabled
+
+5. **Cleans Temp Files (93-100%)**:
+   - Removes PDF conversion artifacts from `/tmp`
+
+### Configuration
+
+Control cancellation behavior via environment variables:
+
+```bash
+# Enable/disable service restart on cancellation
+JOB_CANCELLATION_RESTART_SERVICES_ENABLED=true
+
+# Wait for services to come back online (default: true)
+JOB_CANCELLATION_WAIT_FOR_RESTART=true
+
+# Service restart timeout in seconds (default: 30)
+JOB_CANCELLATION_SERVICE_RESTART_TIMEOUT=30
+```
+
+### Progress Tracking
+
+Cancellation progress is reported via SSE at `/progress/stream/{job_id}`:
+- Service restart status (if enabled)
+- Cleanup progress for each service
+- Success/failure messages
+- Detailed error reporting
 
 ---
 
