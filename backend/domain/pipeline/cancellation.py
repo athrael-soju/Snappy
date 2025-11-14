@@ -61,7 +61,76 @@ class CancellationService:
         self.colpali_client = colpali_client
         self.ocr_client = ocr_client
 
-    def restart_services(self, job_id: str) -> Dict[str, Any]:
+    def _wait_for_service_restart(
+        self, service_name: str, health_check_fn, timeout: int = 30
+    ) -> Dict[str, Any]:
+        """
+        Wait for a service to restart by polling its health check.
+
+        Args:
+            service_name: Name of the service (for logging)
+            health_check_fn: Function to call for health check
+            timeout: Maximum seconds to wait for restart
+
+        Returns:
+            Dictionary with restart verification results
+        """
+        import time
+
+        start_time = time.time()
+        check_interval = 0.5  # Check every 500ms
+
+        # Phase 1: Wait for service to go down (max 5 seconds)
+        logger.info(f"Waiting for {service_name} to go down...")
+        down_detected = False
+        while time.time() - start_time < 5:
+            try:
+                if not health_check_fn():
+                    down_detected = True
+                    logger.info(f"{service_name} is down")
+                    break
+            except Exception:
+                down_detected = True
+                logger.info(f"{service_name} is down")
+                break
+            time.sleep(check_interval)
+
+        if not down_detected:
+            logger.warning(f"{service_name} did not go down within 5 seconds")
+
+        # Phase 2: Wait for service to come back up
+        logger.info(f"Waiting for {service_name} to come back up...")
+        restart_time = time.time()
+        while time.time() - start_time < timeout:
+            try:
+                if health_check_fn():
+                    elapsed = time.time() - start_time
+                    logger.info(f"{service_name} is back up (took {elapsed:.1f}s)")
+                    return {
+                        "success": True,
+                        "message": f"Restarted successfully in {elapsed:.1f}s",
+                        "elapsed_seconds": round(elapsed, 1),
+                    }
+            except Exception as e:
+                pass  # Service still down, keep waiting
+            time.sleep(check_interval)
+
+        # Timeout reached
+        elapsed = time.time() - start_time
+        logger.error(f"{service_name} did not come back up within {timeout}s")
+        return {
+            "success": False,
+            "message": f"Restart timeout after {elapsed:.1f}s",
+            "elapsed_seconds": round(elapsed, 1),
+        }
+
+    def restart_services(
+        self,
+        job_id: str,
+        wait_for_restart: bool = True,
+        timeout: int = 30,
+        progress_callback=None
+    ) -> Dict[str, Any]:
         """
         Restart ColPali and DeepSeek OCR services to stop any ongoing processing.
 
@@ -69,18 +138,19 @@ class CancellationService:
         1. Immediately stop any ongoing batch processing
         2. Exit the process cleanly
         3. Automatically restart via Docker's restart policy
-
-        This is a non-blocking operation - we send the restart request and continue.
-        The services will restart in the background.
+        4. (Optional) Wait for services to come back up
 
         Args:
             job_id: Job identifier (for logging purposes)
+            wait_for_restart: If True, wait for services to restart before returning
+            timeout: Maximum seconds to wait for each service to restart
+            progress_callback: Optional callback(percent, message) for progress updates
 
         Returns:
             Dictionary containing restart results for each service
         """
         logger.info(
-            f"RESTART SERVICES: job_id={job_id}",
+            f"RESTART SERVICES: job_id={job_id}, wait={wait_for_restart}",
             extra={"job_id": job_id},
         )
 
@@ -89,18 +159,32 @@ class CancellationService:
             "deepseek_ocr": {"success": False, "message": "Not attempted"},
         }
 
-        # Restart ColPali service
+        # Restart ColPali service (25-50%)
         if self.colpali_client:
             try:
+                if progress_callback:
+                    progress_callback(25, "Restarting ColPali service...")
+
                 success = self.colpali_client.restart()
-                results["colpali"] = {
-                    "success": success,
-                    "message": "Restart requested" if success else "Restart failed",
-                }
                 if success:
                     logger.info("ColPali service restart requested successfully")
+                    if wait_for_restart:
+                        results["colpali"] = self._wait_for_service_restart(
+                            "ColPali", self.colpali_client.health_check, timeout
+                        )
+                        if progress_callback:
+                            progress_callback(50, "ColPali service restarted")
+                    else:
+                        results["colpali"] = {
+                            "success": True,
+                            "message": "Restart requested (not waiting)",
+                        }
                 else:
                     logger.warning("ColPali service restart request failed")
+                    results["colpali"] = {
+                        "success": False,
+                        "message": "Restart request failed",
+                    }
             except Exception as e:
                 logger.error(f"Error requesting ColPali restart: {e}", exc_info=True)
                 results["colpali"] = {
@@ -114,18 +198,32 @@ class CancellationService:
                 "message": "Client not available",
             }
 
-        # Restart DeepSeek OCR service
+        # Restart DeepSeek OCR service (50-75%)
         if self.ocr_client:
             try:
+                if progress_callback:
+                    progress_callback(50, "Restarting DeepSeek OCR service...")
+
                 success = self.ocr_client.restart()
-                results["deepseek_ocr"] = {
-                    "success": success,
-                    "message": "Restart requested" if success else "Restart failed",
-                }
                 if success:
                     logger.info("DeepSeek OCR service restart requested successfully")
+                    if wait_for_restart:
+                        results["deepseek_ocr"] = self._wait_for_service_restart(
+                            "DeepSeek OCR", self.ocr_client.health_check, timeout
+                        )
+                        if progress_callback:
+                            progress_callback(75, "DeepSeek OCR service restarted")
+                    else:
+                        results["deepseek_ocr"] = {
+                            "success": True,
+                            "message": "Restart requested (not waiting)",
+                        }
                 else:
                     logger.warning("DeepSeek OCR service restart request failed")
+                    results["deepseek_ocr"] = {
+                        "success": False,
+                        "message": "Restart request failed",
+                    }
             except Exception as e:
                 logger.error(f"Error requesting DeepSeek OCR restart: {e}", exc_info=True)
                 results["deepseek_ocr"] = {
@@ -147,6 +245,7 @@ class CancellationService:
         filename: Optional[str] = None,
         collection_name: Optional[str] = None,
         restart_services: bool = True,
+        progress_callback=None,
     ) -> Dict[str, Any]:
         """
         Cleanup all data associated with a cancelled or failed job.
@@ -165,6 +264,7 @@ class CancellationService:
             filename: Document filename (used as identifier across services)
             collection_name: Qdrant collection name (defaults to config.QDRANT_COLLECTION_NAME)
             restart_services: Whether to restart ColPali and DeepSeek OCR services before cleanup
+            progress_callback: Optional callback(percent, message) for progress updates
 
         Returns:
             Dictionary containing cleanup results for each service
@@ -201,9 +301,11 @@ class CancellationService:
             "errors": [],
         }
 
-        # 0. Restart services to stop any ongoing processing
+        # 0. Restart services to stop any ongoing processing (25-75%)
         if restart_services:
-            results["restart_results"] = self.restart_services(job_id)
+            results["restart_results"] = self.restart_services(
+                job_id, progress_callback=progress_callback
+            )
 
         if not filename:
             logger.warning(
@@ -215,22 +317,38 @@ class CancellationService:
             results["overall_success"] = False
             return results
 
-        # 1. Cleanup Qdrant vector points
+        # 1. Cleanup Qdrant vector points (75-81%)
+        if progress_callback:
+            progress_callback(75, "Cleaning up vector database...")
         results["cleanup_results"]["qdrant"] = self._cleanup_qdrant(
             filename=filename,
             collection_name=collection_name or config.QDRANT_COLLECTION_NAME,
         )
+        if progress_callback:
+            progress_callback(81, "Vector database cleaned")
 
-        # 2. Cleanup MinIO objects
+        # 2. Cleanup MinIO objects (81-87%)
+        if progress_callback:
+            progress_callback(81, "Cleaning up object storage...")
         results["cleanup_results"]["minio"] = self._cleanup_minio(filename=filename)
+        if progress_callback:
+            progress_callback(87, "Object storage cleaned")
 
-        # 3. Cleanup DuckDB records
+        # 3. Cleanup DuckDB records (87-93%)
+        if progress_callback:
+            progress_callback(87, "Cleaning up metadata database...")
         results["cleanup_results"]["duckdb"] = self._cleanup_duckdb(filename=filename)
+        if progress_callback:
+            progress_callback(93, "Metadata database cleaned")
 
-        # 4. Cleanup temporary files
+        # 4. Cleanup temporary files (93-100%)
+        if progress_callback:
+            progress_callback(93, "Cleaning up temporary files...")
         results["cleanup_results"]["temp_files"] = self._cleanup_temp_files(
             job_id=job_id, filename=filename
         )
+        if progress_callback:
+            progress_callback(100, "Cleanup completed")
 
         # Aggregate results
         for service, result in results["cleanup_results"].items():
