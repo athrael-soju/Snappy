@@ -8,7 +8,7 @@ import numpy as np
 from PIL import Image
 
 if TYPE_CHECKING:
-    from services.colpali import ColPaliService
+    from clients.colpali import ColPaliClient
 
     from backend import config as config  # type: ignore
 else:  # pragma: no cover - runtime import for application execution
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class EmbeddingProcessor:
     """Handles embedding and pooling operations for images."""
 
-    def __init__(self, api_client: Optional["ColPaliService"] = None) -> None:
+    def __init__(self, api_client: Optional["ColPaliClient"] = None) -> None:
         """Initialize embedding processor.
 
         Args:
@@ -28,7 +28,7 @@ class EmbeddingProcessor:
         """
         self.api_client = api_client
 
-    def _require_client(self) -> "ColPaliService":
+    def _require_client(self) -> "ColPaliClient":
         if self.api_client is None:
             raise ValueError("ColPali API client is not initialized")
         return self.api_client
@@ -78,11 +78,12 @@ class EmbeddingProcessor:
             indices = None
 
         if indices is None:
-            # Contiguous legacy path
+            # Contiguous slice path (when patch_indices not provided)
             prefix_tokens = image_embedding_np[:start]
             image_patch_tokens = image_embedding_np[start : start + patch_len]
             postfix_tokens = image_embedding_np[start + patch_len :]
         else:
+            # Non-contiguous indices path (when patch_indices provided)
             image_patch_tokens = image_embedding_np[indices]
             prefix_tokens = np.array([])
             postfix_tokens = np.array([])

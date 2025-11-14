@@ -268,6 +268,33 @@ async def health_check():
     return {"status": "healthy", "device": str(model.device)}
 
 
+@app.post("/restart")
+async def restart_service():
+    """
+    Restart the service by exiting the process.
+    The container will automatically restart if configured with restart policy.
+    This is useful for stopping any ongoing processing and resetting service state.
+    """
+    import threading
+    import os
+
+    logger.info("Restart requested - initiating service shutdown")
+
+    def force_exit():
+        """Force exit in a separate thread to bypass event loop blocking"""
+        import time
+
+        time.sleep(0.1)  # Small delay to allow response to be sent
+        logger.info("Exiting process for restart")
+        os._exit(1)  # Hard exit with code 1 - terminates immediately
+
+    # Use a daemon thread to force exit regardless of event loop state
+    exit_thread = threading.Thread(target=force_exit, daemon=True)
+    exit_thread.start()
+
+    return {"status": "restarting", "message": "Service will restart momentarily"}
+
+
 @app.get("/info")
 async def version():
     """Version endpoint"""
@@ -395,7 +422,19 @@ async def embed_queries(request: QueryRequest):
         if not queries:
             raise HTTPException(status_code=400, detail="No queries provided")
 
-        embeddings_tensors = generate_query_embeddings(queries)
+        # Run embedding generation in thread pool to avoid blocking event loop
+        import asyncio
+        from concurrent.futures import ThreadPoolExecutor
+
+        # Use a shared thread pool executor for GPU operations
+        if not hasattr(embed_queries, '_executor'):
+            embed_queries._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="query")
+
+        embeddings_tensors = await asyncio.get_event_loop().run_in_executor(
+            embed_queries._executor,
+            generate_query_embeddings,
+            queries
+        )
         embeddings_list = [embedding.tolist() for embedding in embeddings_tensors]
         return QueryEmbeddingResponse(embeddings=embeddings_list)
 
@@ -422,7 +461,20 @@ async def embed_images(files: List[UploadFile] = File(...)):
             image_bytes = await file.read()
             images.append(load_image_from_bytes(image_bytes))
 
-        items = generate_image_embeddings_with_boundaries(images)
+        # Run embedding generation in thread pool to avoid blocking event loop
+        # This allows /restart endpoint to be processed immediately during cancellation
+        import asyncio
+        from concurrent.futures import ThreadPoolExecutor
+
+        # Use a shared thread pool executor for GPU operations
+        if not hasattr(embed_images, '_executor'):
+            embed_images._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="embed")
+
+        items = await asyncio.get_event_loop().run_in_executor(
+            embed_images._executor,
+            generate_image_embeddings_with_boundaries,
+            images
+        )
         return ImageEmbeddingBatchResponse(embeddings=items)
 
     except HTTPException:

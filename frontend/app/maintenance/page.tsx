@@ -229,11 +229,11 @@ export default function MaintenancePage() {
                         </div>
                         <div className="grid grid-cols-2 gap-2 text-body-xs sm:grid-cols-3">
                           <div className="rounded-lg bg-muted/50 px-2 py-1.5">
-                            <p className="text-muted-foreground">Vectors</p>
+                            <p className="text-muted-foreground">Points</p>
                             <p className="font-semibold">{systemStatus.collection.vector_count?.toLocaleString() ?? 0}</p>
                           </div>
                           <div className="rounded-lg bg-muted/50 px-2 py-1.5">
-                            <p className="text-muted-foreground">Files</p>
+                            <p className="text-muted-foreground">Documents</p>
                             <p className="font-semibold">{systemStatus.collection.unique_files?.toLocaleString() ?? 0}</p>
                           </div>
                           <div className="rounded-lg bg-muted/50 px-2 py-1.5">

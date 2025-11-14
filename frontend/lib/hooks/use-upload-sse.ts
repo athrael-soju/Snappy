@@ -156,6 +156,10 @@ export function useUploadSSE({ uploadState, dispatch }: UseUploadSSEOptions) {
           if (typeof window !== 'undefined') {
             toast.error('Upload Failed', { description: errMsg });
           }
+        } else if (data.status === 'cancelling') {
+          // Keep connection open during cleanup - don't close SSE yet
+          // Progress updates (0-100%) will continue to come through
+          // Status text will show cleanup progress
         } else if (data.status === 'cancelled') {
           closeSSEConnection();
           const cancelMsg = data.message || 'Upload cancelled';

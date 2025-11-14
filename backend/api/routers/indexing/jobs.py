@@ -120,6 +120,8 @@ def run_indexing_job(job_id: str, paths: List[str], filenames: Dict[str, str]) -
         progress_manager.complete(job_id, message=msg)
     except CancellationError as exc:
         logger.info("Job %s cancelled: %s", job_id, exc)
+        # Signal that the background job has actually stopped
+        progress_manager.signal_job_stopped(job_id)
     except Exception as exc:  # noqa: BLE001 - best-effort task protection
         if not progress_manager.is_cancelled(job_id):
             progress_manager.fail(job_id, error=str(exc))

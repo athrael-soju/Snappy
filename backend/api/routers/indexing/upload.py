@@ -348,7 +348,9 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
             )
 
         job_id = str(uuid.uuid4())
-        progress_manager.create(job_id, total=0)
+        # Store all filenames for potential cleanup
+        filenames_list = list(original_filenames.values())
+        progress_manager.create(job_id, total=0, filenames=filenames_list)
         progress_manager.start(job_id)
 
         background_tasks.add_task(

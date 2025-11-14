@@ -5,6 +5,7 @@ any specific vector database implementation.
 """
 
 from .batch_processor import BatchProcessor, ProcessedBatch
+from .cancellation import CancellationService
 from .document_indexer import DocumentIndexer
 from .image_processor import ProcessedImage
 from .progress import ProgressNotifier
@@ -13,6 +14,7 @@ from .utils import iter_image_batches
 
 __all__ = [
     "BatchProcessor",
+    "CancellationService",
     "DocumentIndexer",
     "ImageStorageHandler",
     "ProcessedBatch",

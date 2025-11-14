@@ -11,7 +11,7 @@ from urllib3.util.retry import Retry
 from utils.timing import log_execution_time
 
 
-class ColPaliService:
+class ColPaliClient:
     """Client for ColPali Embedding API"""
 
     def __init__(self, base_url: Optional[str] = None, timeout: Optional[int] = None):
@@ -91,6 +91,50 @@ class ColPaliService:
                 return False
         except Exception as e:
             self._logger.debug(f"ColPali cancellation request failed: {e}")
+            return False
+
+    def restart(self) -> bool:
+        """Request service restart to stop any ongoing processing.
+
+        Sends a restart request to the ColPali service to forcefully stop
+        any ongoing batch processing and reset the service state. The service
+        will exit and automatically restart if configured with a restart policy.
+
+        Returns:
+            True if restart request was accepted, False otherwise
+        """
+        try:
+            # Create a new session WITHOUT retry logic for restart
+            # We expect connection errors/timeouts when service restarts
+            import requests
+
+            restart_session = requests.Session()
+
+            response = restart_session.post(
+                f"{self.base_url}/restart",
+                timeout=2,  # Very short timeout - service will exit immediately
+            )
+            restart_session.close()
+
+            if response.status_code == 200:
+                self._logger.info("ColPali service restart requested")
+                return True
+            else:
+                self._logger.warning(
+                    f"ColPali restart request failed: {response.status_code}"
+                )
+                return False
+        except Exception as e:
+            # Connection errors are EXPECTED during restart - treat as success
+            error_msg = str(e).lower()
+            if any(
+                keyword in error_msg for keyword in ["connection", "timeout", "read"]
+            ):
+                self._logger.info(
+                    "ColPali service restart initiated (connection closed)"
+                )
+                return True
+            self._logger.warning(f"ColPali restart request failed: {e}")
             return False
 
     def _validate_patch_results(

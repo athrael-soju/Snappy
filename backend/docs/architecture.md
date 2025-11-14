@@ -66,13 +66,14 @@ flowchart TB
 ## Components
 
 - **FastAPI application** (`backend/api/app.py`) wires the routers for health, retrieval, indexing, maintenance, configuration, OCR, and DuckDB endpoints.
-- **Qdrant integration** (`backend/services/qdrant/`) manages vector collections and search. The database writer in `indexing/qdrant_indexer.py` builds on the shared pipeline package.
-- **Pipeline package** (`backend/services/pipeline/`) hosts the database-agnostic `DocumentIndexer`, batch processor, progress tracking, and storage helpers used during ingestion.
-- **MinIO service** (`backend/services/minio.py`) stores page images with concurrent uploads and retry handling.
-- **ColPali client** (`backend/services/colpali.py`) communicates with the embedding service for both queries and images.
-- **DeepSeek OCR service** (`backend/services/ocr/`) handles OCR requests with UUID-based result naming, integrates with MinIO, and surfaces batch/background helpers for the OCR router.
-- **DuckDB service** (`backend/services/duckdb.py`) provides document deduplication, OCR metadata storage, and SQL-based analytics with query sanitization.
-- **Configuration layer** (`backend/config.py`, `backend/config_schema/`) keeps runtime settings consistent across the API and UI with schema-driven validation.
+- **Qdrant integration** (`backend/clients/qdrant/`) manages vector collections and search. The database writer in `indexing/qdrant_indexer.py` builds on the shared pipeline package.
+- **Pipeline package** (`backend/domain/pipeline/`) hosts the database-agnostic `DocumentIndexer`, batch processor, progress tracking, cancellation service, and storage helpers used during ingestion.
+- **MinIO client** (`backend/clients/minio.py`) stores page images with concurrent uploads and retry handling.
+- **ColPali client** (`backend/clients/colpali.py`) communicates with the embedding service for both queries and images.
+- **DeepSeek OCR client** (`backend/clients/ocr/`) handles OCR requests with UUID-based result naming, integrates with MinIO, and surfaces batch/background helpers for the OCR router.
+- **DuckDB client** (`backend/clients/duckdb.py`) provides document deduplication, OCR metadata storage, and SQL-based analytics with query sanitization.
+- **Cancellation service** (`backend/domain/pipeline/cancellation.py`) coordinates job cancellation and cleanup across Qdrant, MinIO, DuckDB, and temporary files with optional service restart support.
+- **Configuration layer** (`backend/config/`) keeps runtime settings consistent across the API and UI with schema-driven validation.
 - **Support modules**
   - `backend/api/utils.py` – PDF-to-image conversion
   - `backend/api/progress.py` – Job state tracking for SSE
@@ -110,6 +111,21 @@ flowchart TB
 5. `/ocr/progress/{job_id}` and `/ocr/progress/stream/{job_id}` expose job status for polling or SSE streaming, mirroring the indexing progress APIs.
 6. `/ocr/cancel/{job_id}` stops long-running jobs, while `/ocr/health` verifies that the OCR client can reach the external service.
 
+### OCR Retrieval: Two Modes
+
+**When DuckDB Enabled:**
+- OCR text and regions are stored in DuckDB columnar tables during indexing
+- Search endpoint queries DuckDB directly for OCR data
+- Response includes OCR content inline (1 HTTP request)
+- Optimal for analytics queries and full-text search
+
+**When DuckDB Disabled:**
+- OCR URLs are pre-computed during indexing with UUID-based naming
+- URLs are stored in Qdrant vector point payloads (`ocr_url` field)
+- Search endpoint extracts URL from Qdrant payload (no additional database query)
+- Frontend fetches OCR JSON directly from MinIO via HTTP (2 HTTP requests)
+- OCR JSON structure: `{filename}/{page_number}/ocr/{uuid}.json`
+
 ---
 
 ## DuckDB Analytics (Optional)
@@ -130,6 +146,58 @@ The DuckDB service provides columnar storage for document metadata and OCR resul
 5. **DuckDB-Wasm UI**: Interactive web UI at http://localhost:4213 for exploring data, running queries, and visualizing results.
 
 6. **Graceful Shutdown**: Automatic checkpointing on close ensures all data is flushed to disk before shutdown.
+
+---
+
+## Job Cancellation and Cleanup
+
+The cancellation service (`backend/domain/pipeline/cancellation.py`) provides comprehensive job cleanup across all services when indexing or OCR jobs are cancelled or fail.
+
+### Cancellation Flow
+
+When a job is cancelled via `POST /index/cancel/{job_id}` or `POST /ocr/cancel/{job_id}`:
+
+1. **Service Restart (Optional, 0-75%)**:
+   - Sends restart requests to ColPali and DeepSeek OCR services to immediately stop ongoing batch processing
+   - Services exit cleanly and restart via Docker's restart policy
+   - Optionally waits for services to come back online with health check polling
+   - Configurable timeout via `JOB_CANCELLATION_SERVICE_RESTART_TIMEOUT` (default: 30s)
+
+2. **Qdrant Cleanup (75-81%)**:
+   - Deletes all vector points associated with the document using `delete_points_by_filename()`
+   - Removes multivector embeddings and metadata from the collection
+
+3. **MinIO Cleanup (81-87%)**:
+   - Deletes all objects under the document prefix: `{filename}/`
+   - Removes page images, OCR JSON files, region crops, and extracted images
+   - Uses MinIO batch delete API for efficient removal
+
+4. **DuckDB Cleanup (87-93%)**:
+   - Deletes document record from `documents` table
+   - Cascades to delete all associated `pages` and `regions` records
+   - Maintains referential integrity across all tables
+
+5. **Temporary Files Cleanup (93-100%)**:
+   - Removes PDF conversion artifacts from `/tmp`
+   - Cleans up any intermediate processing files
+
+### Progress Reporting
+
+- All cleanup operations report progress via `progress_callback(percent, message)`
+- SSE endpoint `/progress/stream/{job_id}` streams real-time status updates
+- Cleanup results include success/failure status for each service and detailed error messages
+
+### Service Restart Mechanism
+
+The service restart feature (`CancellationService.restart_services()`) provides:
+
+- **Immediate Processing Stop**: Services receive `/restart` endpoint call and exit immediately
+- **Health Check Polling**: Two-phase verification (down detection → up detection)
+- **Configurable Timeout**: Default 30s, adjustable via environment variable
+- **Non-blocking Option**: Can request restart without waiting for completion
+- **Detailed Reporting**: Returns restart status, elapsed time, and error details for each service
+
+This ensures that long-running embedding or OCR operations are terminated promptly when users cancel jobs.
 
 ---
 

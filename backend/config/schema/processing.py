@@ -39,6 +39,21 @@ SCHEMA: Dict[str, Any] = {
                 "type": "bool",
                 "ui_type": "boolean",
             },
+            {
+                "default": 15,
+                "description": "Maximum seconds to wait for service restart during cancellation",
+                "help_text": "When a job is cancelled, the system restarts ColPali and "
+                "DeepSeek OCR services to stop ongoing processing. This "
+                "controls how long to wait for each service to restart. "
+                "Increase if services take longer to initialize on your "
+                "hardware, decrease for faster cancellation response.",
+                "key": "CANCELLATION_RESTART_TIMEOUT",
+                "label": "Service Restart Timeout (seconds)",
+                "max": 60,
+                "min": 5,
+                "type": "int",
+                "ui_type": "number",
+            },
         ],
     }
 }

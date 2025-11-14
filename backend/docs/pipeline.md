@@ -79,8 +79,8 @@ Data class containing all processed batch data:
 ### Qdrant Example
 
 ```python
-from services.pipeline import DocumentIndexer, ProcessedBatch
-from services.qdrant.indexing import PointFactory
+from domain.pipeline import DocumentIndexer, ProcessedBatch
+from clients.qdrant.indexing import PointFactory
 
 # Create generic indexer
 indexer = DocumentIndexer(
@@ -141,16 +141,85 @@ indexer.index_documents(
 
 ---
 
+## Cancellation Service
+
+The `CancellationService` (`cancellation.py`) provides comprehensive job cleanup and service management.
+
+### Features
+
+- **Multi-Service Coordination**: Cleans up data across Qdrant, MinIO, DuckDB, and filesystem
+- **Service Restart**: Optionally restarts ColPali and DeepSeek OCR services to stop ongoing processing
+- **Progress Tracking**: Reports cleanup progress via callbacks for SSE streaming
+- **Graceful Error Handling**: Continues cleanup even if individual services fail
+- **Batch Operations**: Supports cleanup of multiple jobs simultaneously
+
+### Usage
+
+```python
+from domain.pipeline.cancellation import CancellationService
+
+# Initialize with service dependencies
+cancellation = CancellationService(
+    minio_service=minio,
+    duckdb_service=duckdb,
+    qdrant_collection_manager=qdrant,
+    colpali_client=colpali,
+    ocr_client=ocr,
+)
+
+# Cleanup a single job
+result = cancellation.cleanup_job_data(
+    job_id="uuid-123",
+    filename="document.pdf",
+    collection_name="documents",
+    restart_services=True,
+    progress_callback=lambda percent, msg: print(f"{percent}% - {msg}"),
+)
+
+# Result contains detailed cleanup status
+{
+    "job_id": "uuid-123",
+    "filename": "document.pdf",
+    "restart_results": {
+        "colpali": {"success": true, "message": "Restarted in 2.3s"},
+        "deepseek_ocr": {"success": true, "message": "Restarted in 1.8s"}
+    },
+    "cleanup_results": {
+        "qdrant": {"success": true, "points_deleted": 15},
+        "minio": {"success": true, "objects_deleted": 45},
+        "duckdb": {"success": true, "records_deleted": "unknown"},
+        "temp_files": {"success": true, "files_removed": 2}
+    },
+    "overall_success": true,
+    "errors": []
+}
+```
+
+### Service Restart
+
+The restart mechanism provides immediate termination of long-running operations:
+
+- Sends HTTP POST to `/restart` endpoint on ColPali and DeepSeek OCR services
+- Services exit immediately and rely on Docker restart policy to come back online
+- Optional health check polling verifies services are operational before continuing
+- Configurable timeout (default: 30s) prevents indefinite waiting
+- Two-phase verification: down detection → up detection
+
+---
+
 ## Migration Notes
 
-This package was created by extracting generic components from `services/qdrant/indexing/`:
+This package was created by extracting generic components from `clients/qdrant/indexing/`:
 
-- `progress.py` → `pipeline/progress.py`
-- `storage.py` → `pipeline/storage.py`
-- `utils.py` → `pipeline/utils.py`
-- `processor.py` → `pipeline/batch_processor.py`
-- `document_indexer.py` → `pipeline/document_indexer.py`
+- `progress.py` → `domain/pipeline/progress.py`
+- `storage.py` → `domain/pipeline/storage.py`
+- `utils.py` → `domain/pipeline/utils.py`
+- `processor.py` → `domain/pipeline/batch_processor.py`
+- `document_indexer.py` → `domain/pipeline/document_indexer.py`
 
-Qdrant-specific code remains in `services/qdrant/indexing/`:
+New additions to the pipeline package:
+- `cancellation.py` - Job cancellation and cleanup coordination
+
+Qdrant-specific code remains in `clients/qdrant/indexing/`:
 - `points.py` - Qdrant PointStruct construction
 - `qdrant_indexer.py` - Qdrant-specific wrapper

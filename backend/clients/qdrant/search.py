@@ -166,6 +166,6 @@ class SearchManager:
         """Search for relevant documents and return metadata with URLs.
 
         This is a convenience wrapper around search_with_metadata().
-        For backwards compatibility, use get_image_from_url() to fetch PIL images.
+        Use get_image_from_url() to fetch PIL images from the returned URLs.
         """
         return self.search_with_metadata(query, k)

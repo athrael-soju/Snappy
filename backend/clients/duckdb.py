@@ -16,7 +16,7 @@ if TYPE_CHECKING:  # pragma: no cover - hints only
 logger = logging.getLogger(__name__)
 
 
-class DuckDBService:
+class DuckDBClient:
     """Client for DuckDB analytics service."""
 
     def __init__(
@@ -448,7 +448,10 @@ class DuckDBService:
             Dict with 'success_count' and 'failed_count' keys
         """
         if not self.enabled or not documents:
-            return {"success_count": 0, "failed_count": len(documents) if documents else 0}
+            return {
+                "success_count": 0,
+                "failed_count": len(documents) if documents else 0,
+            }
 
         try:
             payload = {"documents": documents}

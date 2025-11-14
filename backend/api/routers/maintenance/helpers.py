@@ -10,9 +10,9 @@ except ModuleNotFoundError:  # pragma: no cover
     from backend import config as config  # type: ignore
 
 if TYPE_CHECKING:  # pragma: no cover
-    from services.duckdb import DuckDBService
-    from services.minio import MinioService
-    from services.qdrant import QdrantService
+    from clients.duckdb import DuckDBClient
+    from clients.minio import MinioClient
+    from clients.qdrant import QdrantClient
 
 
 INACTIVE_MESSAGE = ""
@@ -26,7 +26,7 @@ def bucket_name() -> str:
     return str(getattr(config, "MINIO_BUCKET_NAME", "documents"))
 
 
-def collect_collection_status(svc: Optional["QdrantService"]) -> dict:
+def collect_collection_status(svc: Optional["QdrantClient"]) -> dict:
     embedded = bool(getattr(config, "QDRANT_EMBEDDED", False))
     status = {
         "name": collection_name(),
@@ -70,7 +70,7 @@ def collect_collection_status(svc: Optional["QdrantService"]) -> dict:
     return status
 
 
-def collect_bucket_status(msvc: Optional["MinioService"]) -> dict:
+def collect_bucket_status(msvc: Optional["MinioClient"]) -> dict:
     status = {
         "name": bucket_name(),
         "exists": False,
@@ -112,7 +112,7 @@ def collect_bucket_status(msvc: Optional["MinioService"]) -> dict:
     return status
 
 
-def collect_duckdb_status(dsvc: Optional["DuckDBService"]) -> dict:
+def collect_duckdb_status(dsvc: Optional["DuckDBClient"]) -> dict:
     enabled = bool(getattr(config, "DUCKDB_ENABLED", False))
     status = {
         "name": getattr(config, "DUCKDB_DATABASE_NAME", "documents"),
@@ -182,9 +182,9 @@ def get_vector_total_dim(collection_info: Any) -> int:
 
 
 def clear_all_sync(
-    svc: Optional["QdrantService"],
-    msvc: Optional["MinioService"],
-    dsvc: Optional["DuckDBService"],
+    svc: Optional["QdrantClient"],
+    msvc: Optional["MinioClient"],
+    dsvc: Optional["DuckDBClient"],
 ) -> dict:
     results = {
         "collection": {"status": "pending", "message": ""},
@@ -251,9 +251,9 @@ def clear_all_sync(
 
 
 def initialize_sync(
-    svc: Optional["QdrantService"],
-    msvc: Optional["MinioService"],
-    dsvc: Optional["DuckDBService"],
+    svc: Optional["QdrantClient"],
+    msvc: Optional["MinioClient"],
+    dsvc: Optional["DuckDBClient"],
 ) -> dict:
     results = {
         "collection": {"status": "pending", "message": ""},
@@ -310,9 +310,9 @@ def initialize_sync(
 
 
 def delete_sync(
-    svc: Optional["QdrantService"],
-    msvc: Optional["MinioService"],
-    dsvc: Optional["DuckDBService"],
+    svc: Optional["QdrantClient"],
+    msvc: Optional["MinioClient"],
+    dsvc: Optional["DuckDBClient"],
 ) -> dict:
     results = {
         "collection": {"status": "pending", "message": ""},
@@ -405,7 +405,7 @@ def summarize_status(results: dict) -> str:
     return "error"
 
 
-def collection_exists(svc: "QdrantService") -> bool:
+def collection_exists(svc: "QdrantClient") -> bool:
     try:
         svc.service.get_collection(collection_name())
         return True
@@ -413,14 +413,14 @@ def collection_exists(svc: "QdrantService") -> bool:
         return "not found" not in str(exc).lower()
 
 
-def bucket_exists(msvc: "MinioService") -> bool:
+def bucket_exists(msvc: "MinioClient") -> bool:
     try:
         return bool(msvc.service.bucket_exists(bucket_name()))
     except Exception:
         return False
 
 
-def duckdb_available(dsvc: "DuckDBService") -> bool:
+def duckdb_available(dsvc: "DuckDBClient") -> bool:
     try:
         stats = dsvc.get_stats()
         return bool(stats)

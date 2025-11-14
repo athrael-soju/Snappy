@@ -16,17 +16,17 @@ This note explains how Snappy approaches document retrieval and how it compares 
 
 ## Backend Architecture
 
-- **API server** – `backend/main.py` boots `api.app.create_app()` with routers for `meta`, `retrieval`, `indexing`, `maintenance`, `config`, and `ocr`.
-- **Vector storage** (`services/qdrant/`)
-  - `service.py` – orchestrates collection lifecycle and search
+- **API server** – `backend/main.py` boots `api.app.create_app()` with routers for `meta`, `retrieval`, `indexing`, `maintenance`, `config`, `ocr`, and `duckdb`.
+- **Vector storage** (`clients/qdrant/`)
   - `collection.py` – manages multivector schemas (`original`, `mean_pooling_rows`, `mean_pooling_columns`)
   - `search.py` – two-stage search (prefetch + rerank)
   - `embedding.py` – handles ColPali calls and pooling
   - `indexing/qdrant_indexer.py` – Qdrant-specific storage built on the shared ingestion pipeline
-  - `services/pipeline/` – reusable `DocumentIndexer`, batch processor, storage, and progress helpers (used by Qdrant integration)
-- **ColPali client** (`services/colpali.py`) – talks to the embedding service for images, patches, and queries.
-- **MinIO service** (`services/minio.py`) – uploads images with auto-sized worker pools and retries.
-- **DeepSeek OCR service** (`services/ocr/`) – optional OCR client with storage helpers for batch and background processing.
+- **Pipeline package** (`domain/pipeline/`) – reusable `DocumentIndexer`, batch processor, storage, progress tracking, and cancellation service (used by Qdrant integration)
+- **ColPali client** (`clients/colpali.py`) – talks to the embedding service for images, patches, and queries.
+- **MinIO client** (`clients/minio.py`) – uploads images with auto-sized worker pools and retries.
+- **DeepSeek OCR client** (`clients/ocr/`) – optional OCR client with UUID-based storage and batch/background processing.
+- **DuckDB client** (`clients/duckdb.py`) – optional analytics database for document deduplication and OCR metadata storage.
 - **Chat interface** (`frontend/app/api/chat/route.ts`) – streams OpenAI responses with page citations.
 
 ---
@@ -34,17 +34,20 @@ This note explains how Snappy approaches document retrieval and how it compares 
 ## Indexing Pipeline
 
 1. **Upload** – `POST /index` schedules a background job.
-2. **PDF → images** – `api/utils.py::convert_pdf_paths_to_images` rasterises each page via `pdf2image`.
-3. **Batch processing** – `DocumentIndexer` in `services/pipeline/document_indexer.py`
+2. **Deduplication** – When DuckDB is enabled, checks for duplicate documents using content-based fingerprinting.
+3. **PDF → images** – `api/utils.py::convert_pdf_paths_to_images` rasterises each page via `pdf2image`.
+4. **Batch processing** – `DocumentIndexer` in `domain/pipeline/document_indexer.py`
    - Splits pages into batches (`BATCH_SIZE`)
-   - Embeds via `ColPaliService` (original + pooled vectors)
-   - Stores images in MinIO
-   - Upserts vectors into Qdrant via `services/qdrant/indexing/qdrant_indexer.py`
-   - Runs optional OCR callbacks when a `services/ocr` instance is supplied
-4. **Pipeline mode** – When `ENABLE_AUTO_CONFIG_MODE=True`, embedding, storage, OCR, and upserts overlap using dual thread pools sized from `config.get_pipeline_max_concurrency()`.
-5. **Progress** – `/progress/stream/{job_id}` streams status updates over SSE.
+   - Embeds via `ColPaliClient` (original + pooled vectors)
+   - Stores images in MinIO with hierarchical structure: `{filename}/{page_number}/`
+   - Upserts vectors into Qdrant via `clients/qdrant/indexing/qdrant_indexer.py`
+   - Runs optional OCR callbacks when `clients/ocr` instance is supplied with UUID-based result naming
+   - Stores document metadata in DuckDB when enabled
+5. **Pipeline mode** – When `ENABLE_AUTO_CONFIG_MODE=True`, embedding, storage, OCR, and upserts overlap using dual thread pools sized from `config.get_pipeline_max_concurrency()`.
+6. **Progress** – `/progress/stream/{job_id}` streams status updates over SSE.
+7. **Cancellation** – `/index/cancel/{job_id}` triggers comprehensive cleanup across all services with optional service restart.
 
-Collection schemas come from the model dimension reported by `/info`. Images live under `images/<uuid>.<ext>` with public URLs unless configured otherwise. Disabling pipeline mode processes one batch at a time for easier debugging.
+Collection schemas come from the model dimension reported by `/info`. Images use UUID-based naming within filename-organized folders. Disabling pipeline mode processes one batch at a time for easier debugging.
 
 ---
 
@@ -98,13 +101,13 @@ Collection schemas come from the model dimension reported by `/info`. Images liv
 - Collection schema management: `CollectionManager.create_collection_if_not_exists` in `services/qdrant/collection.py`.
 - Pooling logic: `EmbeddingProcessor._pool_image_tokens` in `services/qdrant/embedding.py`.
 - Two-stage query: `SearchManager._reranking_search_batch` in `services/qdrant/search.py`.
-- MinIO URLs: `MinioService._get_image_url()` and `_extract_object_name_from_url()`.
+- MinIO URLs: `MinioClient._get_image_url()` and `_extract_object_name_from_url()`.
 - Chat streaming: `frontend/app/api/chat/route.ts` (SSE) and `frontend/lib/api/chat.ts`.
 
 ---
 
 ## Notes from the Code
 
-- The ColPali API is expected to return embeddings with token boundaries; `ColPaliService.embed_images` already matches that contract.
+- The ColPali API is expected to return embeddings with token boundaries; `ColPaliClient.embed_images` already matches that contract.
 - The frontend controls the OpenAI model via `OPENAI_MODEL` (`frontend/.env.local`). The backend stays focused on retrieval and system duties.
 

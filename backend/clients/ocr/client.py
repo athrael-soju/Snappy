@@ -15,8 +15,8 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
-    from services.duckdb import DuckDBService
-    from services.minio import MinioService
+    from clients.duckdb import DuckDBClient
+    from clients.minio import MinioClient
 
 from .processor import OcrProcessor
 from .storage import OcrStorageHandler
@@ -24,13 +24,13 @@ from .storage import OcrStorageHandler
 logger = logging.getLogger(__name__)
 
 
-class OcrService:
+class OcrClient:
     """Main service class for OCR operations."""
 
     def __init__(
         self,
-        minio_service: Optional["MinioService"] = None,
-        duckdb_service: Optional["DuckDBService"] = None,
+        minio_service: Optional["MinioClient"] = None,
+        duckdb_service: Optional["DuckDBClient"] = None,
         base_url: Optional[str] = None,
         timeout: Optional[int] = None,
         enabled: Optional[bool] = None,
@@ -56,7 +56,7 @@ class OcrService:
         """
         try:
             if minio_service is None:
-                raise ValueError("MinIO service is required for OcrService")
+                raise ValueError("MinIO service is required for OcrClient")
 
             # Initialize HTTP client for DeepSeek OCR
             self.enabled = (
@@ -117,7 +117,7 @@ class OcrService:
             self.minio_service = minio_service
 
             # Initialize subcomponents
-            from services.pipeline.image_processor import ImageProcessor
+            from domain.pipeline.image_processor import ImageProcessor
 
             self.image_processor = ImageProcessor(
                 default_format=config.IMAGE_FORMAT,
@@ -326,11 +326,6 @@ class OcrService:
             max_workers=max_workers,
         )
 
-    def fetch_ocr_result(
-        self, filename: str, page_number: int
-    ) -> Optional[Dict[str, Any]]:
-        """Fetch stored OCR result for a page."""
-        return self.storage.fetch_ocr_result(filename, page_number)
 
     def _fetch_page_image(self, filename: str, page_number: int) -> bytes:
         """Fetch page image bytes from MinIO.
@@ -371,6 +366,53 @@ class OcrService:
             return bool(payload.get("status") == "healthy")
         except Exception as exc:
             logger.warning("DeepSeek OCR health check failed: %s", exc)
+            return False
+
+    def restart(self) -> bool:
+        """Request service restart to stop any ongoing processing.
+
+        Sends a restart request to the DeepSeek OCR service to forcefully stop
+        any ongoing batch processing and reset the service state. The service
+        will exit and automatically restart if configured with a restart policy.
+
+        Returns:
+            True if restart request was accepted, False otherwise
+        """
+        if not self.enabled:
+            logger.debug("Skipping DeepSeek OCR restart: service disabled")
+            return False
+        try:
+            # Create a new session WITHOUT retry logic for restart
+            # We expect connection errors/timeouts when service restarts
+            import requests
+
+            restart_session = requests.Session()
+
+            response = restart_session.post(
+                f"{self.base_url}/restart",
+                timeout=2,  # Very short timeout - service will exit immediately
+            )
+            restart_session.close()
+
+            if response.status_code == 200:
+                logger.info("DeepSeek OCR service restart requested")
+                return True
+            else:
+                logger.warning(
+                    f"DeepSeek OCR restart request failed: {response.status_code}"
+                )
+                return False
+        except Exception as e:
+            # Connection errors are EXPECTED during restart - treat as success
+            error_msg = str(e).lower()
+            if any(
+                keyword in error_msg for keyword in ["connection", "timeout", "read"]
+            ):
+                logger.info(
+                    "DeepSeek OCR service restart initiated (connection closed)"
+                )
+                return True
+            logger.warning(f"DeepSeek OCR restart request failed: {e}")
             return False
 
     def close(self):

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Optional
 from qdrant_client import QdrantClient, models
 
 if TYPE_CHECKING:
-    from services.colpali import ColPaliService
+    from clients.colpali import ColPaliClient
 
     from backend import config as config  # type: ignore
 else:  # pragma: no cover - runtime import for application execution
@@ -20,7 +20,7 @@ class CollectionManager:
 
     def __init__(
         self,
-        api_client: Optional["ColPaliService"] = None,
+        api_client: Optional["ColPaliClient"] = None,
     ):
         """Initialize collection manager.
 
@@ -156,3 +156,61 @@ class CollectionManager:
         except Exception as e:
             logger.error(f"Qdrant health check failed: {e}")
             return False
+
+    def delete_points_by_filename(
+        self, filename: str, collection_name: Optional[str] = None
+    ) -> int:
+        """
+        Delete all points associated with a specific filename.
+
+        Args:
+            filename: The filename to filter by
+            collection_name: Optional collection name (defaults to configured collection)
+
+        Returns:
+            Number of points deleted
+
+        Example:
+            deleted_count = collection_manager.delete_points_by_filename("document.pdf")
+        """
+        collection = collection_name or self.collection_name
+
+        try:
+            # Create a filter for the filename
+            points_filter = models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="filename",
+                        match=models.MatchValue(value=filename),
+                    )
+                ]
+            )
+
+            # Count points before deletion (for reporting)
+            count_result = self.service.count(
+                collection_name=collection, count_filter=points_filter, exact=True
+            )
+            points_count = count_result.count if hasattr(count_result, "count") else 0
+
+            if points_count == 0:
+                logger.info(
+                    f"No points found for filename '{filename}' in collection '{collection}'"
+                )
+                return 0
+
+            # Delete the points
+            self.service.delete(
+                collection_name=collection, points_selector=points_filter
+            )
+
+            logger.info(
+                f"Deleted {points_count} points for filename '{filename}' from collection '{collection}'"
+            )
+            return points_count
+
+        except Exception as e:
+            logger.error(
+                f"Failed to delete points for filename '{filename}' from collection '{collection}': {e}",
+                exc_info=True,
+            )
+            raise Exception(f"Failed to delete points for filename '{filename}': {e}")
