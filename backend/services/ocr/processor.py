@@ -13,7 +13,7 @@ from PIL import Image
 from utils.timing import log_execution_time
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
-    from services.image_processor import ImageProcessor
+    from services.pipeline.image_processor import ImageProcessor
     from services.minio import MinioService
 
     from .service import OcrService
