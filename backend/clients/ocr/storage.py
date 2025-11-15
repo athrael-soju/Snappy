@@ -49,7 +49,7 @@ class OcrStorageHandler:
     def store_ocr_result(
         self,
         ocr_result: Dict[str, Any],
-        filename: str,
+        document_id: str,
         page_number: int,
         *,
         metadata: Optional[Dict[str, Any]] = None,
@@ -59,9 +59,9 @@ class OcrStorageHandler:
 
         Args:
             ocr_result: Processed OCR result from OcrProcessor
-            filename: Document filename
+            document_id: Document UUID for storage paths
             page_number: Page number
-            metadata: Optional additional metadata
+            metadata: Optional additional metadata (should include 'filename' for display)
 
         Returns:
             Dictionary with ocr_url and ocr_regions array:
@@ -70,6 +70,9 @@ class OcrStorageHandler:
                 "ocr_regions": [{"label": "text", "url": "...", "id": "..."}, ...]
             }
         """
+        # Extract filename from metadata for logging/payload (not for paths)
+        filename = metadata.get("filename") if metadata else None
+
         # Process extracted images if processor is available
         extracted_images_urls: List[str] = []
         crops = ocr_result.get("crops", [])
@@ -79,7 +82,7 @@ class OcrStorageHandler:
             try:
                 extracted_images_urls = self._processor.process_extracted_images(
                     crops=crops,
-                    filename=filename,
+                    document_id=document_id,
                     page_number=page_number,
                     minio_service=self._minio,
                 )
@@ -96,7 +99,7 @@ class OcrStorageHandler:
                             )
             except Exception as exc:
                 logger.warning(
-                    f"Failed to process extracted images for {filename} page {page_number}: {exc}",
+                    f"Failed to process extracted images for document {document_id} page {page_number}: {exc}",
                     exc_info=True,
                 )
 
@@ -130,7 +133,7 @@ class OcrStorageHandler:
                 try:
                     region_url = self._minio.store_json(
                         payload=region_payload,
-                        filename=filename,
+                        document_id=document_id,
                         page_number=page_number,
                         json_filename=region_json_filename,
                     )
@@ -156,7 +159,7 @@ class OcrStorageHandler:
         # Generate UUID for full OCR JSON file in ocr/ subfolder
         ocr_uuid = str(uuid.uuid4())
         json_filename = f"ocr/{ocr_uuid}.json"
-        object_name = f"{filename}/{page_number}/{json_filename}"
+        object_name = f"{document_id}/{page_number}/{json_filename}"
         storage_url = self._minio._get_image_url(object_name)
 
         # Build storage payload
@@ -201,7 +204,7 @@ class OcrStorageHandler:
         # Store full OCR JSON to MinIO with UUID name
         url = self._minio.store_json(
             payload=payload,
-            filename=filename,
+            document_id=document_id,
             page_number=page_number,
             json_filename=json_filename,
         )
@@ -212,7 +215,7 @@ class OcrStorageHandler:
                 self._duckdb.store_ocr_page(
                     provider=payload.get("provider", "deepseek-ocr"),
                     version=payload.get("version", "1.0"),
-                    filename=filename,
+                    filename=str(filename) if filename is not None else "",
                     page_number=page_number,
                     text=payload.get("text", ""),
                     markdown=payload.get("markdown", ""),
@@ -250,7 +253,6 @@ class OcrStorageHandler:
             "ocr_url": url,
             "ocr_regions": ocr_regions_metadata,
         }
-
 
     @staticmethod
     def _ensure_figure_links(content: str, figure_map: Dict[int, str]) -> str:

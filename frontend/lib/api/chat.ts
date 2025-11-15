@@ -3,6 +3,7 @@ import {
   parseKnowledgeBaseItems
 } from '@/lib/api/runtime'
 import type { SearchItem } from "@/lib/api/generated/models/SearchItem";
+import { loadConfigFromStorage } from "@/lib/config/config-store";
 
 export type ChatMessage = {
   role: 'user' | 'assistant'
@@ -15,6 +16,9 @@ export type ChatRequest = {
   toolCallingEnabled: boolean
   reasoning: { effort: 'minimal' | 'low' | 'medium' | 'high' }
   summary?: 'auto' | 'concise' | 'detailed' | null
+  // Config flags for server-side processing
+  ocrEnabled?: boolean
+  duckdbEnabled?: boolean
 }
 
 export async function chatRequest(req: ChatRequest): Promise<Response> {
@@ -22,6 +26,16 @@ export async function chatRequest(req: ChatRequest): Promise<Response> {
   if (payload.summary === null || payload.summary === undefined) {
     delete payload.summary
   }
+
+  // Read config from localStorage and pass to server
+  // (Server doesn't have access to browser localStorage)
+  if (typeof window !== 'undefined') {
+    const config = loadConfigFromStorage();
+    payload.ocrEnabled = config?.DEEPSEEK_OCR_ENABLED === 'True';
+    payload.duckdbEnabled = config?.DUCKDB_ENABLED === 'True';
+    payload.ocrIncludeImages = config?.DEEPSEEK_OCR_INCLUDE_IMAGES === 'True';
+  }
+
   return fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

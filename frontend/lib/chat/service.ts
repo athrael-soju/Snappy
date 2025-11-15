@@ -2,12 +2,11 @@ import type { SearchItem } from "@/lib/api/generated/models/SearchItem";
 import type { Stream } from "openai/streaming";
 import "@/lib/api/client"; // Initialize OpenAPI base URL
 import { RetrievalService } from "@/lib/api/generated";
-import { appendCitationReminder, appendUserImages, buildImageContent, buildMarkdownContent } from "@/lib/chat/content";
+import { buildImageContent, buildMarkdownContent, buildRegionImagesContent } from "@/lib/chat/content";
 import { createInitialToolResponse, createStreamingResponse } from "@/lib/chat/openai";
 import { buildSystemInstructions } from "@/lib/chat/prompt";
 import type { NormalizedChatRequest } from "@/lib/chat/types";
 import type { Message, StreamEvent, FunctionCallOutput, SearchToolResult } from "@/lib/chat/openai-types";
-import { loadConfigFromStorage } from "@/lib/config/config-store";
 import { logger } from "@/lib/utils/logger";
 
 export type ChatServiceResult = {
@@ -15,17 +14,11 @@ export type ChatServiceResult = {
     kbItems: SearchItem[] | null;
 };
 
-/**
- * Check if OCR is enabled in the current configuration
- */
-function isOcrEnabled(): boolean {
-    const config = loadConfigFromStorage();
-    return config?.DEEPSEEK_OCR_ENABLED === "True";
-}
-
 export async function runChatService(options: NormalizedChatRequest): Promise<ChatServiceResult> {
-    const ocrEnabled = isOcrEnabled();
-    const instructions = buildSystemInstructions(options.summaryPreference, ocrEnabled);
+    // Use config flags passed from client (server doesn't have localStorage access)
+    const ocrEnabled = options.ocrEnabled;
+    const ocrIncludeImages = options.ocrIncludeImages;
+    const instructions = buildSystemInstructions(options.summaryPreference, ocrEnabled, ocrIncludeImages);
 
     let input: Message[] = [
         { role: "system", content: [{ type: "input_text", text: instructions }] },
@@ -48,12 +41,38 @@ export async function runChatService(options: NormalizedChatRequest): Promise<Ch
         );
         const useOcrContent = ocrEnabled && hasOcrData;
 
-        const content = useOcrContent
-            ? await buildMarkdownContent(results, options.message)
-            : await buildImageContent(results, options.message);
+        let searchContent: any[];
 
-        appendUserImages(input, content);
-        appendCitationReminder(input, results, useOcrContent);
+        if (useOcrContent && ocrIncludeImages) {
+            // When both OCR and region images are enabled:
+            // - Send OCR text + region images (cropped figures/tables) to LLM
+            // - Full page images are available in kbItems for citations
+            const markdownContent = await buildMarkdownContent(results, options.message);
+            const regionImages = await buildRegionImagesContent(results, options.message);
+
+            // Combine: OCR text + region image items (skip region header at index 0)
+            searchContent = [...markdownContent, ...regionImages.slice(1)];
+        } else if (useOcrContent) {
+            // Only OCR text (when ocrIncludeImages is false or not set)
+            searchContent = await buildMarkdownContent(results, options.message);
+        } else {
+            // Only full page images (when OCR is disabled or no OCR data exists)
+            searchContent = await buildImageContent(results, options.message);
+        }
+
+        // Combine user query text with search results into a single user message
+        // Remove the initial user message and replace with combined content
+        input = [
+            input[0], // Keep system message
+            {
+                role: "user",
+                content: [
+                    { type: "input_text", text: options.message },
+                    ...searchContent
+                ]
+            }
+        ];
+
         kbItems = results;
     };
 

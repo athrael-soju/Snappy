@@ -40,7 +40,7 @@ class ImageStorageHandler:
         image_batch : List[Image.Image]
             Images to store
         meta_batch : List[dict]
-            Metadata for each image, must contain 'filename' and 'page_number'
+            Metadata for each image, must contain 'document_id' and 'page_number'
 
         Returns
         -------
@@ -54,17 +54,17 @@ class ImageStorageHandler:
                 "MinIO service is not configured; it is required for image storage."
             )
 
-        # Extract filenames and page_numbers from metadata
-        filenames = []
+        # Extract document_ids and page_numbers from metadata
+        document_ids = []
         page_numbers = []
         for meta in meta_batch:
-            filename = meta.get("filename")
+            document_id = meta.get("document_id")
             page_num = meta.get("page_number")
-            if filename is None or page_num is None:
+            if document_id is None or page_num is None:
                 raise ValueError(
-                    f"Metadata must contain 'filename' and 'page_number' for hierarchical storage. Got: {meta}"
+                    f"Metadata must contain 'document_id' and 'page_number' for hierarchical storage. Got: {meta}"
                 )
-            filenames.append(filename)
+            document_ids.append(document_id)
             page_numbers.append(page_num)
 
         # Process images once using centralized processor
@@ -75,7 +75,7 @@ class ImageStorageHandler:
             image_url_map = self._minio_service.store_processed_images_batch(
                 processed_images,
                 image_ids=image_ids,
-                filenames=filenames,
+                document_ids=document_ids,
                 page_numbers=page_numbers,
             )
         except Exception as exc:

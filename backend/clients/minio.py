@@ -202,7 +202,7 @@ class MinioClient:
         self,
         processed_images: List["ProcessedImage"],
         image_ids: Optional[List[str]] = None,
-        filenames: Optional[List[str]] = None,
+        document_ids: Optional[List[str]] = None,
         page_numbers: Optional[List[int]] = None,
         max_workers: int = MINIO_WORKERS,
         retries: int = MINIO_RETRIES,
@@ -220,8 +220,8 @@ class MinioClient:
             Pre-processed images with encoded data
         image_ids : Optional[List[str]]
             Provide IDs to align with images; UUIDs will be created if omitted.
-        filenames : Optional[List[str]]
-            Document filenames for organizing storage (required for new structure).
+        document_ids : Optional[List[str]]
+            Document UUIDs for organizing storage (required for new structure).
         page_numbers : Optional[List[int]]
             Page numbers within each document (required for new structure).
         max_workers : int
@@ -245,9 +245,9 @@ class MinioClient:
                 "Number of processed images must match number of image IDs"
             )
 
-        # Require filenames and page_numbers
-        if filenames is None or len(filenames) != n:
-            raise ValueError("filenames is required and must match number of images")
+        # Require document_ids and page_numbers
+        if document_ids is None or len(document_ids) != n:
+            raise ValueError("document_ids is required and must match number of images")
         if page_numbers is None or len(page_numbers) != n:
             raise ValueError("page_numbers is required and must match number of images")
 
@@ -257,7 +257,7 @@ class MinioClient:
         def upload_one(idx: int):
             processed = processed_images[idx]
             img_id = image_ids[idx]
-            filename = filenames[idx]
+            doc_id = document_ids[idx]
             page_num = page_numbers[idx]
 
             attempt = 0
@@ -270,11 +270,11 @@ class MinioClient:
                     used_fmt = processed.format
                     content_type = processed.content_type
 
-                    # Storage structure: {filename}/{page_num}/image/{uuid}.{ext}
+                    # Storage structure: {doc_uuid}/{page_num}/image/{uuid}.{ext}
                     ext = used_fmt.lower()
                     if ext == "jpeg":
                         ext = "jpg"
-                    object_name = f"{filename}/{page_num}/image/{img_id}.{ext}"
+                    object_name = f"{doc_id}/{page_num}/image/{img_id}.{ext}"
 
                     self.service.put_object(
                         bucket_name=self.bucket_name,
@@ -317,7 +317,7 @@ class MinioClient:
         payload: Dict[str, Any],
         *,
         page_number: Optional[int] = None,
-        filename: Optional[str] = None,
+        document_id: Optional[str] = None,
         json_filename: str = "data.json",
         content_type: str = "application/json; charset=utf-8",
     ) -> str:
@@ -330,22 +330,22 @@ class MinioClient:
             JSON-serialisable dictionary to store.
         page_number : int
             Page number for hierarchical structure (required).
-        filename : str
-            Document filename for organizing storage (required).
+        document_id : str
+            Document UUID for organizing storage (required).
         json_filename : str
             Filename for the JSON file (default: "data.json").
         content_type : str
             MIME type for the stored object. Defaults to ``application/json; charset=utf-8``.
         """
         self._require_bucket()
-        # Require filename and page_number
-        if filename is None:
-            raise ValueError("filename is required for storing JSON")
+        # Require document_id and page_number
+        if document_id is None:
+            raise ValueError("document_id is required for storing JSON")
         if page_number is None:
             raise ValueError("page_number is required for storing JSON")
 
-        # Storage structure: {filename}/{page_num}/{json_filename}
-        final_object_name = f"{filename}/{page_number}/{json_filename}"
+        # Storage structure: {doc_uuid}/{page_num}/{json_filename}
+        final_object_name = f"{document_id}/{page_number}/{json_filename}"
 
         data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         stream = io.BytesIO(data)

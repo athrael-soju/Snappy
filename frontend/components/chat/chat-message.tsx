@@ -50,34 +50,17 @@ export function ChatMessageBubble({ message, isLoading, onOpenCitation }: ChatMe
                     )}
                 </div>
                 {message.content ? (
-                    isUser ? (
-                        <p className="min-w-0 break-words whitespace-pre-wrap text-body-sm leading-relaxed text-foreground/90 sm:text-body">
-                            {message.content}
-                        </p>
-                    ) : (
-                        <>
+                    <div className="min-w-0 break-words text-body-sm leading-relaxed text-foreground/90 sm:text-body">
+                        {isUser ? (
+                            <p className="whitespace-pre-wrap">{message.content}</p>
+                        ) : (
                             <MarkdownRenderer
                                 content={message.content}
-                                images={
-                                    Array.isArray(message.citations)
-                                        ? message.citations.map((item) => ({
-                                            url: item.url ?? null,
-                                            label: item.label ?? null,
-                                            score: item.score ?? null,
-                                        }))
-                                        : []
-                                }
-                                onImageClick={(url, label) => onOpenCitation?.(url, label)}
-                                className="text-foreground/90"
+                                citations={message.citations}
+                                onCitationOpen={onOpenCitation}
                             />
-                            {isLoading && (
-                                <div className="mt-2 flex items-center gap-2 text-body-xs text-muted-foreground">
-                                    <Loader2 className="size-icon-sm animate-spin" />
-                                    <span>Streaming response...</span>
-                                </div>
-                            )}
-                        </>
-                    )
+                        )}
+                    </div>
                 ) : (
                     <div className="flex items-center gap-2">
                         <span className="text-body-xs" aria-live="polite">
@@ -88,6 +71,12 @@ export function ChatMessageBubble({ message, isLoading, onOpenCitation }: ChatMe
                             <span className="size-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "150ms" }} />
                             <span className="size-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "300ms" }} />
                         </div>
+                    </div>
+                )}
+                {isLoading && !isUser && message.content && (
+                    <div className="mt-2 flex items-center gap-2 text-body-xs text-muted-foreground">
+                        <Loader2 className="size-icon-sm animate-spin" />
+                        <span>Streaming response...</span>
                     </div>
                 )}
             </div>

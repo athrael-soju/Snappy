@@ -270,6 +270,7 @@ class OcrClient:
     # Public orchestration methods
     def process_document_page(
         self,
+        document_id: str,
         filename: str,
         page_number: int,
         *,
@@ -279,7 +280,7 @@ class OcrClient:
         metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Process a single document page with OCR."""
-        image_bytes = self._fetch_page_image(filename, page_number)
+        image_bytes = self._fetch_page_image(document_id, page_number)
 
         ocr_result = self.processor.process_single(
             image_bytes=image_bytes,
@@ -289,9 +290,14 @@ class OcrClient:
             custom_prompt=custom_prompt,
         )
 
+        # Ensure filename is in metadata
+        if metadata is None:
+            metadata = {}
+        metadata["filename"] = filename
+
         storage_url = self.storage.store_ocr_result(
             ocr_result=ocr_result,
-            filename=filename,
+            document_id=document_id,
             page_number=page_number,
             metadata=metadata,
         )
@@ -327,14 +333,14 @@ class OcrClient:
         )
 
 
-    def _fetch_page_image(self, filename: str, page_number: int) -> bytes:
+    def _fetch_page_image(self, document_id: str, page_number: int) -> bytes:
         """Fetch page image bytes from MinIO.
 
         Note: With UUID-based naming, we need to list objects in the image/ subfolder
-        to find the page image since we don't have the UUID readily available.
+        to find the page image since we don't have the image UUID readily available.
         """
         # List objects in the image/ subfolder for this page
-        prefix = f"{filename}/{page_number}/image/"
+        prefix = f"{document_id}/{page_number}/image/"
 
         for obj in self.minio_service.service.list_objects(
             bucket_name=self.minio_service.bucket_name,
@@ -351,7 +357,7 @@ class OcrClient:
 
         # No image found
         raise FileNotFoundError(
-            f"Page image not found for {filename} page {page_number} in image/ subfolder"
+            f"Page image not found for document {document_id} page {page_number} in image/ subfolder"
         )
 
     def health_check(self) -> bool:
