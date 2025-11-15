@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.6](https://github.com/athrael-soju/Snappy/compare/v0.3.5...v0.3.6) (2025-11-15)
+
+
+### Documentation
+
+* enhance README and architecture documentation for OCR retrieval modes ([924c311](https://github.com/athrael-soju/Snappy/commit/924c3118b2f28ca31e9b0e563aed3410a277e2d8))
+
+
+### Code Refactoring
+
+* enhance chat service to support OCR and region images confi… ([c54353d](https://github.com/athrael-soju/Snappy/commit/c54353d7b67eeb1000e6f80b21e4376307cc53c4))
+* enhance chat service to support OCR and region images configuration ([07cd09c](https://github.com/athrael-soju/Snappy/commit/07cd09cb56170d38a5ba670e6de5a737b9c060bb))
+* improve styling and accessibility in MarkdownRenderer component ([9681596](https://github.com/athrael-soju/Snappy/commit/9681596f0b15f6310b3dd42d22d5316dc90dfbe3))
+
 ## [0.3.1](https://github.com/athrael-soju/Snappy/compare/v0.3.0...v0.3.1) (2025-11-13)
 
 
