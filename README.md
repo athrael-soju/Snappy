@@ -38,13 +38,14 @@
 ---
 
 <p align="center">
-  Snappy pairs a FastAPI backend, a ColPali embedding service, and a Next.js frontend to deliver vision-first retrieval over PDFs. Each page is rasterized, embedded as multivectors, and stored alongside images so you can search by how documents look rather than only extracted text. 🔍✨
+  Snappy pairs a FastAPI backend, ColPali embedding service, DeepSeek OCR, DuckDB analytics, and a Next.js frontend to deliver hybrid vision+text retrieval over PDFs. Each page is rasterized, embedded as multivectors, and stored alongside images and optional OCR text so you can search by visual layout, extracted text, or both. 🔍✨
 </p>
 
 **TL;DR** 🚀
 
 - 👁️ Vision-focused retrieval and chat with ColPali multivector embeddings, MinIO image storage, and Qdrant search.
 - 🔍 DeepSeek OCR integration for advanced text extraction with configurable models and visual grounding.
+- 🦆 DuckDB analytics for document deduplication, OCR metadata storage, and SQL-based queries.
 - ⚡ Streaming responses, live indexing progress, and a schema-driven configuration UI to keep changes safe.
 - 🐳 One Docker Compose stack or individual services for local development and production-style deployments.
 
@@ -127,9 +128,9 @@ Head to `backend/docs/architecture.md` and `backend/docs/analysis.md` for a deep
 
 **Choose your deployment method:** 🎯
 
-- **[Option A](#option-a---run-with-pre-built-docker-images)** 🐳 - Fastest: Use pre-built images from GitHub Container Registry
-- **[Option B](#option-b---run-the-full-stack-with-docker-compose-build-from-source)** 🔨 - Build from source: Full Docker Compose stack
-- **[Option C](#option-c---run-services-locally)** 💻 - Local development: Run services individually
+- **[Option A](#option-a---run-with-pre-built-docker-images)** 🐳 - Fastest: Use pre-built images from GitHub Container Registry-
+- **[Option B](#option-b---run-the-full-stack-with-docker-compose-build-from-source)** 🔨 - Build from source: Full Docker Compose stack-
+- **[Option C](#option-c---run-services-locally)** 💻 - Local development: Run services individually-
 
 ### Prerequisites for all options ✅
 
