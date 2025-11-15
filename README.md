@@ -80,6 +80,7 @@ https://github.com/user-attachments/assets/99438b0d-c62e-4e47-bdc8-623ee1d2236c
 ## Architecture 🏗️
 
 ```mermaid
+
 ---
 config:
   look: classic
@@ -115,6 +116,8 @@ flowchart TB
     style I2 fill:#ffccbc
     style J fill:#e8f5e9
     style End fill:#e1f5ff
+
+```
 
 Head to `backend/docs/architecture.md` and `backend/docs/analysis.md` for a deeper walkthrough of the indexing and retrieval flows. 📖
 
