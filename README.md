@@ -95,13 +95,14 @@ flowchart TB
     D2 --> F2["Qdrant Results"]
     F1 --> G1["Fetch Images from MinIO<br>Convert to base64<br>Attach to OpenAI as images"]
     F2 --> H{"DUCKDB_ENABLED"}
-    H -- True --> I1["OCR data inline in response<br>1 HTTP request"]
-    H -- False --> I2["OCR data via json_url<br>2 HTTP requests"]
+    H -- True --> I1["Query DuckDB for OCR data<br>Inline in response<br>1 HTTP request"]
+    H -- False --> I2["Fetch OCR URLs from Qdrant<br>Frontend fetches from MinIO<br>2 HTTP requests"]
     I1 --> J["Format OCR text<br>Attach to OpenAI as text"]
     I2 --> J
     G1 --> K["OpenAI Streaming Response"]
     J --> K
     K --> End(["User sees answer"])
+
     style Start fill:#e1f5ff
     style A fill:#fff4e6
     style B1 fill:#ffebee
@@ -110,9 +111,10 @@ flowchart TB
     style D2 fill:#e3f2fd
     style G1 fill:#ffebee
     style H fill:#fff4e6
+    style I1 fill:#c8e6c9
+    style I2 fill:#ffccbc
     style J fill:#e8f5e9
     style End fill:#e1f5ff
-```
 
 Head to `backend/docs/architecture.md` and `backend/docs/analysis.md` for a deeper walkthrough of the indexing and retrieval flows. 📖
 
@@ -281,12 +283,15 @@ Keep the services from steps 2 and 3 running while you develop.
   - Full-text search across all OCR data
   - DuckDB-Wasm UI for interactive exploration
   - Document and page-level statistics with metadata tracking
-- 🛑 **Comprehensive job cancellation** with intelligent cleanup:
-  - Optional service restart for ColPali and DeepSeek OCR to stop in-flight processing
-  - Configurable restart timeout and wait behavior
-  - Automatic cleanup across Qdrant, MinIO, DuckDB, and temporary files
+- 🛑 **Comprehensive job cancellation** with multi-stage cleanup:
+  1. **Service Restart** (0-75%, optional): Stops in-flight processing in ColPali/DeepSeek OCR via `/restart` endpoints
+  2. **Qdrant Cleanup** (75-81%): Deletes all vector points by document filename
+  3. **MinIO Cleanup** (81-87%): Removes all objects under document prefix (images, OCR JSON, regions)
+  4. **DuckDB Cleanup** (87-93%): Cascade deletes from documents/pages/regions tables
+  5. **Temp Files** (93-100%): Cleans up PDF conversion artifacts
   - Real-time progress tracking via Server-Sent Events
-  - Detailed error reporting and recovery
+  - Configurable restart timeout (`JOB_CANCELLATION_SERVICE_RESTART_TIMEOUT`)
+  - Enable with `JOB_CANCELLATION_RESTART_SERVICES_ENABLED=true`
 - 💬 **Streaming chat responses** from the OpenAI Responses API with inline visual citations so you can see each supporting page.
 - ⚡ **Pipelined indexing** with live Server-Sent Events progress updates.
 - ⚙️ **Runtime configuration UI** backed by a typed schema, with reset and draft flows that make experimentation safe.
@@ -315,6 +320,30 @@ Snappy excels at retrieval scenarios where visual layout, formatting, and appear
 
 The Next.js 16 frontend with React 19.2 keeps things fast and friendly: real-time streaming, responsive layouts, and design tokens (`text-body-*`, `size-icon-*`) that make extending the UI consistent. Configuration and maintenance pages expose everything the backend can do, while upload/search/chat give you the workflows you need day to day.
 
+### Hybrid RAG Modes 🔄
+
+The chat interface adapts to three retrieval configurations based on backend settings:
+
+1. **Image-Only Mode** (`DEEPSEEK_OCR_ENABLED=false`)
+   - ColPali embeddings match query to page images
+   - Full page images sent to OpenAI as vision context
+   - Best for: Visual layout, diagrams, handwritten notes
+   - System prompt focuses on visual analysis
+
+2. **OCR-Only Mode** (`DEEPSEEK_OCR_ENABLED=true`, `DEEPSEEK_OCR_INCLUDE_IMAGES=false`)
+   - ColPali embeddings + DeepSeek OCR extracted text
+   - Text-only context sent to OpenAI (no images)
+   - Best for: Text-heavy documents, faster inference, lower token costs
+   - System prompt emphasizes text analysis with citations
+
+3. **OCR + Region Images Mode** (`DEEPSEEK_OCR_ENABLED=true`, `DEEPSEEK_OCR_INCLUDE_IMAGES=true`)
+   - ColPali embeddings + OCR text + extracted region images (figures, tables, diagrams)
+   - Hybrid context: text + cropped visual elements sent to OpenAI
+   - Best for: Technical documents, research papers, mixed content
+   - System prompt combines text analysis with visual grounding
+
+The frontend automatically detects the active mode and adjusts the chat system prompt accordingly. Citations render as interactive hover cards showing page previews with relevance scores.
+
 ---
 
 ## Environment Variables ⚙️
@@ -327,6 +356,16 @@ The Next.js 16 frontend with React 19.2 keeps things fast and friendly: real-tim
 - 📊 `QDRANT_EMBEDDED`, `QDRANT_URL`, `QDRANT_COLLECTION_NAME`, `QDRANT_PREFETCH_LIMIT`, `QDRANT_MEAN_POOLING_ENABLED`, quantisation toggles
 - 🗄️ `MINIO_URL`, `MINIO_PUBLIC_URL`, credentials, bucket naming, `IMAGE_FORMAT`, `IMAGE_QUALITY`
 - 📝 `LOG_LEVEL`, `ALLOWED_ORIGINS`, `UVICORN_RELOAD`
+
+**Configuration Organization:** Settings are organized into 8 modular categories (`backend/config/schema/`):
+- `application.py` - App-level settings (CORS, logging, environment)
+- `colpali.py` - ColPali embedding service options
+- `deepseek_ocr.py` - DeepSeek OCR mode, task, workers
+- `duckdb.py` - DuckDB analytics and storage options
+- `minio.py` - MinIO storage, bucket, image quality
+- `processing.py` - Pipeline concurrency and batch sizes
+- `qdrant.py` - Qdrant collection, quantization, pooling
+- `upload.py` - Upload restrictions (file size, count, types)
 
 All schema-backed settings (and defaults) are documented in `backend/docs/configuration.md`. Runtime updates via `/config/update` are ephemeral; update `.env` for persistence. 💾
 

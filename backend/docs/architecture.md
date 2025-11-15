@@ -113,18 +113,34 @@ flowchart TB
 
 ### OCR Retrieval: Two Modes
 
+Snappy supports two strategies for serving OCR results, controlled by the `DUCKDB_ENABLED` configuration flag:
+
+| Aspect | DuckDB Enabled | DuckDB Disabled |
+|--------|----------------|-----------------|
+| **Storage** | Columnar tables (documents/pages/regions) | JSON files in MinIO with UUID naming |
+| **Indexing** | OCR metadata stored in DuckDB during pipeline | OCR URLs pre-computed and stored in Qdrant payloads |
+| **Retrieval** | Backend queries DuckDB for OCR data | Qdrant payload contains `ocr_url`, frontend fetches JSON |
+| **HTTP Requests** | 1 (search returns OCR inline) | 2 (search + MinIO fetch) |
+| **Latency** | Lower (single request) | Higher (sequential requests) |
+| **Analytics** | SQL queries, full-text search, aggregations | Limited (requires parsing JSON blobs) |
+| **Deduplication** | Automatic (fingerprinting during upload) | Manual (application-level checks) |
+| **Schema** | Structured (typed columns) | Unstructured (JSON blobs) |
+| **Best For** | Production deployments, analytics, deduplication | Simple setups, minimal dependencies |
+
 **When DuckDB Enabled:**
 - OCR text and regions are stored in DuckDB columnar tables during indexing
-- Search endpoint queries DuckDB directly for OCR data
+- Search endpoint queries DuckDB directly for OCR data (`SELECT text, regions FROM pages WHERE ...`)
 - Response includes OCR content inline (1 HTTP request)
-- Optimal for analytics queries and full-text search
+- Optimal for analytics queries, full-text search, and document deduplication
+- Example query: `SELECT * FROM pages WHERE text ILIKE '%contract%'`
 
 **When DuckDB Disabled:**
 - OCR URLs are pre-computed during indexing with UUID-based naming
 - URLs are stored in Qdrant vector point payloads (`ocr_url` field)
 - Search endpoint extracts URL from Qdrant payload (no additional database query)
-- Frontend fetches OCR JSON directly from MinIO via HTTP (2 HTTP requests)
+- Frontend fetches OCR JSON directly from MinIO via HTTP (2 HTTP requests: search + fetch)
 - OCR JSON structure: `{filename}/{page_number}/ocr/{uuid}.json`
+- Optimal for simple deployments where analytics are not required
 
 ---
 
