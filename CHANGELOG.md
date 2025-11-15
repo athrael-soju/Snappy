@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.7](https://github.com/athrael-soju/Snappy/compare/v0.3.6...v0.3.7) (2025-11-15)
+
+
+### Documentation
+
+* fix links in deployment options section of README ([4a42ef6](https://github.com/athrael-soju/Snappy/commit/4a42ef6be8aca6b4e9855a0ca1c1efeb03ca77b2))
+* update project description and enhance features in README ([0ab222d](https://github.com/athrael-soju/Snappy/commit/0ab222d85e783a7e350a898a0625bf641011985a))
+
 ## [0.3.6](https://github.com/athrael-soju/Snappy/compare/v0.3.5...v0.3.6) (2025-11-15)
 
 
