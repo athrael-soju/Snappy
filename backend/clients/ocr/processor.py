@@ -6,6 +6,7 @@ import base64
 import io
 import logging
 import re
+import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Sequence
 
@@ -204,6 +205,7 @@ class OcrProcessor:
 
     def _process_page_with_storage(
         self,
+        document_id: str,
         filename: str,
         page_number: int,
         minio_service: "MinioClient",
@@ -213,7 +215,7 @@ class OcrProcessor:
     ) -> Dict[str, Any]:
         """Process a single page and store results."""
         # Fetch image
-        image_bytes = self._fetch_page_image(minio_service, filename, page_number)
+        image_bytes = self._fetch_page_image(minio_service, document_id, page_number)
 
         # Process with OCR
         ocr_result = self.process_single(
@@ -223,11 +225,15 @@ class OcrProcessor:
             task=task,
         )
 
+        # Prepare metadata
+        metadata = {"filename": filename}
+
         # Store results
         storage_url = storage_handler.store_ocr_result(
             ocr_result=ocr_result,
-            filename=filename,
+            document_id=document_id,
             page_number=page_number,
+            metadata=metadata,
         )
 
         return {
@@ -241,15 +247,15 @@ class OcrProcessor:
         }
 
     def _fetch_page_image(
-        self, minio_service: "MinioClient", filename: str, page_number: int
+        self, minio_service: "MinioClient", document_id: str, page_number: int
     ) -> bytes:
         """Fetch page image bytes from MinIO.
 
         Note: With UUID-based naming, we need to list objects in the image/ subfolder
-        to find the page image since we don't have the UUID readily available.
+        to find the page image since we don't have the image UUID readily available.
         """
         # List objects in the image/ subfolder for this page
-        prefix = f"{filename}/{page_number}/image/"
+        prefix = f"{document_id}/{page_number}/image/"
 
         for obj in minio_service.service.list_objects(
             bucket_name=minio_service.bucket_name,
@@ -266,7 +272,7 @@ class OcrProcessor:
 
         # No image found
         raise FileNotFoundError(
-            f"Page image not found for {filename} page {page_number} in image/ subfolder"
+            f"Page image not found for document {document_id} page {page_number} in image/ subfolder"
         )
 
     def _split_segments(self, text: str) -> List[str]:
@@ -380,7 +386,7 @@ class OcrProcessor:
     def process_extracted_images(
         self,
         crops: List[str],
-        filename: str,
+        document_id: str,
         page_number: int,
         minio_service: "MinioClient",
     ) -> List[str]:
@@ -389,7 +395,7 @@ class OcrProcessor:
 
         Args:
             crops: List of base64-encoded image strings from DeepSeek OCR
-            filename: Document filename for storage hierarchy
+            document_id: Document UUID for storage hierarchy
             page_number: Page number for storage hierarchy
             minio_service: MinIO service for uploads
 
@@ -401,7 +407,7 @@ class OcrProcessor:
 
         image_urls = []
 
-        for idx, crop_b64 in enumerate(crops, start=1):
+        for crop_b64 in crops:
             try:
                 # Decode base64 to PIL Image
                 image_data = base64.b64decode(crop_b64)
@@ -410,9 +416,10 @@ class OcrProcessor:
                 # Process image
                 processed = self._image_processor.process(pil_image)
 
-                # Storage structure: {filename}/{page_number}/ocr_regions/figure_{idx}.{ext}
+                # Storage structure: {doc_uuid}/{page_number}/ocr_regions/{uuid}.{ext}
                 ext = self._image_processor.get_extension()
-                object_name = f"{filename}/{page_number}/ocr_regions/figure_{idx}.{ext}"
+                region_uuid = str(uuid.uuid4())
+                object_name = f"{document_id}/{page_number}/ocr_regions/{region_uuid}.{ext}"
 
                 # Upload to MinIO
                 buf = processed.to_buffer()
@@ -429,13 +436,13 @@ class OcrProcessor:
                 image_urls.append(url)
 
                 logger.debug(
-                    f"Uploaded extracted image {idx} to {object_name} "
+                    f"Uploaded extracted image to {object_name} "
                     f"(format={processed.format}, size={processed.size} bytes)"
                 )
 
             except Exception as exc:
                 logger.warning(
-                    f"Failed to process extracted image {idx}: {exc}", exc_info=True
+                    f"Failed to process extracted image: {exc}", exc_info=True
                 )
                 continue
 

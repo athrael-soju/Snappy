@@ -1,321 +1,312 @@
-/* eslint-disable react/no-array-index-key */
-"use client";
-
-import React, { useMemo, useState } from 'react';
-import { AppButton } from '@/components/app-button';
-import { Copy, Check } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
-import CitationHoverCard from './CitationHoverCard';
-
-type ImageData = {
-  url: string | null;
-  label: string | null;
-  score: number | null;
-};
+import { useMemo } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import CitationHoverCard from "@/components/chat/CitationHoverCard";
+import type { ChatCitation } from "./chat-message";
 
 type MarkdownRendererProps = {
-  content: string;
-  images?: ImageData[];
-  onImageClick?: (url: string, label?: string) => void;
-  className?: string;
+    content: string;
+    citations?: ChatCitation[];
+    onCitationOpen?: (url: string, label?: string | null) => void;
 };
 
-// Inline helper to render fenced code blocks with copy functionality
-function CodeBlock({ code, language }: { code: string; language: string }) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      setCopied(false);
-      toast.error('Failed to copy code', {
-        description: 'Please check clipboard permissions'
-      });
-    }
-  };
-
-  return (
-    <div className="relative group my-4">
-      <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
-        <AppButton
-          variant="glass"
-          size="xs"
-          onClick={handleCopy}
-          elevated
-        >
-          {copied ? (
-            <>
-              <Check className="mr-1 size-icon-2xs text-green-500" />
-              <span className="text-body-xs">Copied</span>
-            </>
-          ) : (
-            <>
-              <Copy className="mr-1 size-icon-2xs" />
-              <span className="text-body-xs">Copy</span>
-            </>
-          )}
-        </AppButton>
-      </div>
-      <pre className="max-w-full overflow-x-auto rounded-lg border bg-muted/50 p-4">
-        {language && (
-          <div className="mb-2 text-body-xs font-medium text-muted-foreground">{language}</div>
-        )}
-        <code className="block font-mono text-body-sm text-foreground">{code}</code>
-      </pre>
-    </div>
-  );
-}
-
-/**
- * Lightweight markdown renderer tuned for assistant responses.
- * Supports headings, lists, inline formatting, fenced code, and in-text citations.
- */
 export default function MarkdownRenderer({
-  content,
-  images = [],
-  onImageClick,
-  className,
+    content,
+    citations,
+    onCitationOpen
 }: MarkdownRendererProps) {
-  const citationMap = useMemo(() => {
-    const map = new Map<string, { number: number; image: ImageData }>();
-    let citationNumber = 1;
-    const citationRegex =
-      /\(([^)]*(?:page|Page|PAGE|p\.|P\.)\s*\d+[^)]*)\)|\[([^\]]*(?:page|Page|PAGE|p\.|P\.)\s*\d+[^\]]*)\]/g;
-    const matches = content.matchAll(citationRegex);
+    // Build citation map
+    const citationMap = useMemo(() => {
+        const map = new Map<string, { number: number; citation: ChatCitation }>();
 
-    for (const match of matches) {
-      const citation = match[1] || match[2];
-      if (!citation) continue;
-      const normalized = citation.toLowerCase().trim();
-      if (map.has(normalized)) continue;
-      const image = images.find(
-        (img) => img.label && citation.toLowerCase().includes(img.label.toLowerCase()),
-      );
-      if (image && image.url) {
-        map.set(normalized, { number: citationNumber++, image });
-      }
-    }
+        citations?.forEach((citation, index) => {
+            if (citation.url) {
+                const info = { number: index + 1, citation };
+                map.set(citation.url, info);
+            }
+        });
 
-    return map;
-  }, [content, images]);
+        return map;
+    }, [citations]);
 
-  const getCitationInfo = (citation: string) => {
-    const normalized = citation.toLowerCase().trim();
-    return citationMap.get(normalized);
-  };
+    // Custom component to render grouped citations
+    const renderGroupedCitations = (children: any) => {
+        // Check if we're in a Sources section with multiple list items
+        const listItems: any[] = [];
+        const processChild = (child: any) => {
+            if (child?.type === 'li' || child?.props?.node?.tagName === 'li') {
+                listItems.push(child);
+            }
+        };
 
-  const processTextFormatting = (text: string, baseKey: number): React.ReactNode[] => {
-    const parts: React.ReactNode[] = [];
-    let remaining = text;
-    let keyCounter = 0;
-
-    while (remaining.length > 0) {
-      const boldMatch = remaining.match(/\*\*([^*]+)\*\*/);
-      if (boldMatch && boldMatch.index !== undefined) {
-        if (boldMatch.index > 0) {
-          parts.push(remaining.slice(0, boldMatch.index));
-        }
-        parts.push(
-          <strong key={`${baseKey}-bold-${keyCounter++}`} className="font-semibold text-foreground">
-            {boldMatch[1]}
-          </strong>,
-        );
-        remaining = remaining.slice(boldMatch.index + boldMatch[0].length);
-        continue;
-      }
-
-      const italicMatch = remaining.match(/(?<!\*)\*([^*]+)\*(?!\*)/);
-      if (italicMatch && italicMatch.index !== undefined) {
-        if (italicMatch.index > 0) {
-          parts.push(remaining.slice(0, italicMatch.index));
-        }
-        parts.push(
-          <em key={`${baseKey}-italic-${keyCounter++}`} className="italic">
-            {italicMatch[1]}
-          </em>,
-        );
-        remaining = remaining.slice(italicMatch.index + italicMatch[0].length);
-        continue;
-      }
-
-      const codeMatch = remaining.match(/`([^`]+)`/);
-      if (codeMatch && codeMatch.index !== undefined) {
-        if (codeMatch.index > 0) {
-          parts.push(remaining.slice(0, codeMatch.index));
-        }
-        parts.push(
-          <code
-            key={`${baseKey}-code-${keyCounter++}`}
-            className="rounded border bg-muted px-1.5 py-0.5 font-mono text-body-sm"
-          >
-            {codeMatch[1]}
-          </code>,
-        );
-        remaining = remaining.slice(codeMatch.index + codeMatch[0].length);
-        continue;
-      }
-
-      parts.push(remaining);
-      break;
-    }
-
-    return parts;
-  };
-
-  const renderInlineFormatting = (text: string): React.ReactNode[] => {
-    const parts: React.ReactNode[] = [];
-    let remaining = text;
-    let keyCounter = 0;
-    let citationsInSentence = 0;
-    const MAX_CITATIONS_PER_SENTENCE = 2;
-
-    while (remaining.length > 0) {
-      const sentenceEndMatch = remaining.match(/[.!?]\s/);
-      if (sentenceEndMatch && sentenceEndMatch.index === 0) {
-        citationsInSentence = 0;
-      }
-
-      const citationMatch =
-        remaining.match(/\(([^)]*(?:page|Page|PAGE|p\.|P\.)\s*\d+[^)]*)\)|\[([^\]]*(?:page|Page|PAGE|p\.|P\.)\s*\d+[^\]]*)\]/);
-
-      if (citationMatch) {
-        const beforeCitation = remaining.slice(0, citationMatch.index);
-        const citation = citationMatch[1] || citationMatch[2];
-
-        if (beforeCitation) {
-          parts.push(...processTextFormatting(beforeCitation, keyCounter++));
-        }
-
-        const citationInfo = citation ? getCitationInfo(citation) : null;
-        if (citationInfo && citationsInSentence < MAX_CITATIONS_PER_SENTENCE) {
-          citationsInSentence += 1;
-          parts.push(
-            <CitationHoverCard
-              key={`cite-${keyCounter++}`}
-              number={citationInfo.number}
-              imageUrl={citationInfo.image.url!}
-              label={citationInfo.image.label || citation}
-              score={citationInfo.image.score}
-              onOpen={() => {
-                if (citationInfo.image.url) {
-                  onImageClick?.(citationInfo.image.url, citationInfo.image.label || undefined);
-                }
-              }}
-            />,
-          );
-        }
-        remaining = remaining.slice(citationMatch.index! + citationMatch[0].length);
-      } else {
-        parts.push(...processTextFormatting(remaining, keyCounter++));
-        break;
-      }
-    }
-
-    return parts;
-  };
-
-  const renderContent = () => {
-    const lines = content.split('\n');
-    const elements: React.ReactNode[] = [];
-    let inCodeBlock = false;
-    let codeBlockContent: string[] = [];
-    let codeBlockLang = '';
-
-    lines.forEach((line, idx) => {
-      if (line.trim().startsWith('```')) {
-        if (!inCodeBlock) {
-          inCodeBlock = true;
-          codeBlockLang = line.trim().slice(3).trim();
-          codeBlockContent = [];
+        if (Array.isArray(children)) {
+            children.forEach(processChild);
         } else {
-          elements.push(
-            <CodeBlock key={`code-${idx}`} code={codeBlockContent.join('\n')} language={codeBlockLang} />,
-          );
-          inCodeBlock = false;
-          codeBlockContent = [];
-          codeBlockLang = '';
+            processChild(children);
         }
-        return;
-      }
 
-      if (inCodeBlock) {
-        codeBlockContent.push(line);
-        return;
-      }
+        // If we have list items, try to group them
+        if (listItems.length > 0) {
+            const renderedGroups = new Map<string, any>();
 
-      if (!line.trim()) {
-        elements.push(<div key={`space-${idx}`} className="h-3" />);
-        return;
-      }
+            listItems.forEach((item: any) => {
+                // Find the link in this list item
+                const findLink = (node: any): { href?: string; label?: string } => {
+                    if (node?.props?.href) {
+                        return { href: node.props.href, label: node.props.children };
+                    }
+                    if (node?.props?.children) {
+                        const children = Array.isArray(node.props.children) ? node.props.children : [node.props.children];
+                        for (const child of children) {
+                            const result = findLink(child);
+                            if (result.href) return result;
+                        }
+                    }
+                    return {};
+                };
 
-      if (line.startsWith('# ')) {
-        elements.push(
-          <h1 key={`h1-${idx}`} className="mt-6 mb-3 text-2xl font-bold">
-            {renderInlineFormatting(line.slice(2))}
-          </h1>,
-        );
-        return;
-      }
-      if (line.startsWith('## ')) {
-        elements.push(
-          <h2 key={`h2-${idx}`} className="mt-5 mb-2 text-xl font-bold">
-            {renderInlineFormatting(line.slice(3))}
-          </h2>,
-        );
-        return;
-      }
-      if (line.startsWith('### ')) {
-        elements.push(
-          <h3 key={`h3-${idx}`} className="mt-4 mb-2 text-lg font-semibold">
-            {renderInlineFormatting(line.slice(4))}
-          </h3>,
-        );
-        return;
-      }
+                const { href } = findLink(item);
+                if (!href) return;
 
-      if (line.trim().match(/^[-*]\s/)) {
-        elements.push(
-          <div key={`li-${idx}`} className="my-1 ml-4 flex gap-2">
-            <span className="font-bold text-purple-500">•</span>
-            <span className="flex-1">{renderInlineFormatting(line.trim().slice(2))}</span>
-          </div>,
-        );
-        return;
-      }
+                const citationInfo = citationMap.get(href);
+                if (!citationInfo) return;
 
-      const orderedListMatch = line.trim().match(/^(\d+)\.\s(.*)$/);
-      if (orderedListMatch) {
-        elements.push(
-          <div key={`ol-${idx}`} className="my-1 ml-4 flex gap-2">
-            <span className="font-semibold text-purple-500">{orderedListMatch[1]}.</span>
-            <span className="flex-1">{renderInlineFormatting(orderedListMatch[2])}</span>
-          </div>,
-        );
-        return;
-      }
+                const label = citationInfo.citation.label || '';
+                const filenameMatch = label.match(/^(.+?)\s*-\s*(?:Page|page|p\.)\s*(\d+)/);
+                const filename = filenameMatch ? filenameMatch[1].trim() : label;
 
-      elements.push(
-        <p key={`p-${idx}`} className="my-2 leading-7">
-          {renderInlineFormatting(line)}
-        </p>,
-      );
-    });
+                if (!renderedGroups.has(filename)) {
+                    renderedGroups.set(filename, []);
+                }
+                renderedGroups.get(filename)!.push({ href, citationInfo, label });
+            });
 
-    return elements;
-  };
+            // Render grouped citations
+            const result: any[] = [];
+            let groupIndex = 0;
 
-  return (
-    <div
-      className={cn(
-        'max-w-none space-y-3 text-body-sm leading-relaxed text-foreground sm:text-body',
-        className,
-      )}
-    >
-      {renderContent()}
-    </div>
-  );
+            renderedGroups.forEach((group, filename) => {
+                if (group.length === 1) {
+                    // Single citation - render normally
+                    const { href, citationInfo, label } = group[0];
+                    result.push(
+                        <li key={`citation-${groupIndex++}`} className="ml-4">
+                            <CitationHoverCard
+                                number={citationInfo.number}
+                                imageUrl={href}
+                                label={citationInfo.citation.label || label}
+                                score={citationInfo.citation.score}
+                                onOpen={() => onCitationOpen?.(href, citationInfo.citation.label)}
+                            >
+                                <a
+                                    href="#"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        onCitationOpen?.(href, citationInfo.citation.label);
+                                    }}
+                                    className="text-primary hover:underline cursor-pointer"
+                                >
+                                    {label}
+                                </a>
+                            </CitationHoverCard>
+                        </li>
+                    );
+                } else {
+                    // Multiple citations from same file - group them
+                    result.push(
+                        <li key={`citation-group-${groupIndex++}`} className="ml-4">
+                            <span className="font-medium">{filename}</span>
+                            <span className="ml-2">
+                                {group.map((item: any, idx: number) => {
+                                    const { href, citationInfo, label } = item;
+                                    const pageMatch = label.match(/(?:Page|page|p\.)\s*(\d+)/);
+                                    const pageText = pageMatch ? `Page ${pageMatch[1]}` : label;
+
+                                    return (
+                                        <span key={`page-${idx}`}>
+                                            {idx > 0 && ', '}
+                                            <CitationHoverCard
+                                                number={citationInfo.number}
+                                                imageUrl={href}
+                                                label={citationInfo.citation.label || label}
+                                                score={citationInfo.citation.score}
+                                                onOpen={() => onCitationOpen?.(href, citationInfo.citation.label)}
+                                            >
+                                                <a
+                                                    href="#"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        onCitationOpen?.(href, citationInfo.citation.label);
+                                                    }}
+                                                    className="text-primary hover:underline cursor-pointer"
+                                                >
+                                                    {pageText}
+                                                </a>
+                                            </CitationHoverCard>
+                                        </span>
+                                    );
+                                })}
+                            </span>
+                        </li>
+                    );
+                }
+            });
+
+            return result;
+        }
+
+        return children;
+    };
+
+    return (
+        <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+                // Style paragraphs
+                p: ({ children, ...props }) => (
+                    <p className="mb-2 last:mb-0" {...props}>
+                        {children}
+                    </p>
+                ),
+                // Style code blocks
+                code: ({ inline, className, children, ...props }: any) => {
+                    return inline ? (
+                        <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
+                            {children}
+                        </code>
+                    ) : (
+                        <code className="block bg-muted p-3 rounded-lg text-sm font-mono overflow-x-auto my-2" {...props}>
+                            {children}
+                        </code>
+                    );
+                },
+                // Style list items
+                li: ({ children, ...props }) => (
+                    <li className="ml-4" {...props}>
+                        {children}
+                    </li>
+                ),
+                // Handle citation links
+                a: ({ href, children, ...props }) => {
+                    // Check if this is a citation link
+                    const citationInfo = href ? citationMap.get(href) : undefined;
+
+                    if (citationInfo && href) {
+                        // Render citation as a clickable link with hover card
+                        const label = typeof children === 'string' ? children :
+                                     Array.isArray(children) ? children.join('') : 'Unknown';
+
+                        return (
+                            <CitationHoverCard
+                                number={citationInfo.number}
+                                imageUrl={href}
+                                label={citationInfo.citation.label || label}
+                                score={citationInfo.citation.score}
+                                onOpen={() => onCitationOpen?.(href, citationInfo.citation.label)}
+                            >
+                                <a
+                                    href="#"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        onCitationOpen?.(href, citationInfo.citation.label);
+                                    }}
+                                    className="text-primary hover:underline cursor-pointer"
+                                >
+                                    {label}
+                                </a>
+                            </CitationHoverCard>
+                        );
+                    }
+
+                    // Regular link
+                    return (
+                        <a
+                            href={href}
+                            className="text-primary hover:underline"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            {...props}
+                        >
+                            {children}
+                        </a>
+                    );
+                },
+                // Style lists
+                ul: ({ children, ...props }) => (
+                    <ul className="list-disc list-inside space-y-1 my-2" {...props}>
+                        {children}
+                    </ul>
+                ),
+                ol: ({ children, ...props }) => (
+                    <ol className="list-decimal list-inside space-y-1 my-2" {...props}>
+                        {renderGroupedCitations(children)}
+                    </ol>
+                ),
+                // Style headings
+                h1: ({ children, ...props }) => (
+                    <h1 className="text-2xl font-bold mt-4 mb-2" {...props}>
+                        {children}
+                    </h1>
+                ),
+                h2: ({ children, ...props }) => (
+                    <h2 className="text-xl font-bold mt-3 mb-2" {...props}>
+                        {children}
+                    </h2>
+                ),
+                h3: ({ children, ...props }) => (
+                    <h3 className="text-lg font-semibold mt-2 mb-1" {...props}>
+                        {children}
+                    </h3>
+                ),
+                // Style horizontal rules
+                hr: ({ ...props }) => (
+                    <hr className="my-4 border-border" {...props} />
+                ),
+                // Style blockquotes
+                blockquote: ({ children, ...props }) => (
+                    <blockquote className="border-l-4 border-primary/50 pl-4 italic my-2" {...props}>
+                        {children}
+                    </blockquote>
+                ),
+                // Style tables (GFM)
+                table: ({ children, ...props }) => (
+                    <div className="overflow-x-auto my-4">
+                        <table className="min-w-full border-collapse border border-border" {...props}>
+                            {children}
+                        </table>
+                    </div>
+                ),
+                th: ({ children, ...props }) => (
+                    <th className="border border-border px-4 py-2 bg-muted font-semibold text-left" {...props}>
+                        {children}
+                    </th>
+                ),
+                td: ({ children, ...props }) => (
+                    <td className="border border-border px-4 py-2" {...props}>
+                        {children}
+                    </td>
+                ),
+                // Style strikethrough (GFM)
+                del: ({ children, ...props }) => (
+                    <del className="line-through opacity-75" {...props}>
+                        {children}
+                    </del>
+                ),
+                // Style strong/bold
+                strong: ({ children, ...props }) => (
+                    <strong className="font-semibold" {...props}>
+                        {children}
+                    </strong>
+                ),
+                // Style emphasis/italic
+                em: ({ children, ...props }) => (
+                    <em className="italic" {...props}>
+                        {children}
+                    </em>
+                ),
+            }}
+        >
+            {content}
+        </ReactMarkdown>
+    );
 }

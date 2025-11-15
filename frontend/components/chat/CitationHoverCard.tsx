@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, ReactNode } from 'react';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { AppButton } from '@/components/app-button';
@@ -11,10 +11,12 @@ type CitationHoverCardProps = {
   label: string;
   score?: number | null;
   onOpen?: () => void;
+  children?: ReactNode;
 };
 
 /**
- * Renders a superscript citation indicator that shows a preview popover on hover/focus.
+ * Renders a citation with preview popover on hover/focus.
+ * If children are provided, they will be used as the trigger, otherwise a numbered badge is shown.
  */
 export default function CitationHoverCard({
   number,
@@ -22,6 +24,7 @@ export default function CitationHoverCard({
   label,
   score,
   onOpen,
+  children,
 }: CitationHoverCardProps) {
   const [open, setOpen] = useState(false);
 
@@ -45,20 +48,26 @@ export default function CitationHoverCard({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <span className="ml-1 align-super">
-          <AppButton
-            type="button"
-            variant="link"
-            size="inline"
-            aria-label={`View citation ${number}`}
-            onMouseEnter={handleMouseEnter}
-            onFocus={handleMouseEnter}
-          >
-            [{number}]
-          </AppButton>
-        </span>
+        {children ? (
+          <span onMouseEnter={handleMouseEnter} onFocus={handleMouseEnter}>
+            {children}
+          </span>
+        ) : (
+          <span className="ml-1 align-super">
+            <AppButton
+              type="button"
+              variant="link"
+              size="inline"
+              aria-label={`View citation ${number}`}
+              onMouseEnter={handleMouseEnter}
+              onFocus={handleMouseEnter}
+            >
+              [{number}]
+            </AppButton>
+          </span>
+        )}
       </PopoverTrigger>
-      <PopoverContent className="w-64 space-y-3">
+      <PopoverContent side="top" align="start" className="w-64 space-y-3">
         <div className="space-y-2 text-body-sm">
           <p className="font-semibold leading-tight">{label}</p>
           <div className="flex items-center gap-2 text-body-xs text-muted-foreground">

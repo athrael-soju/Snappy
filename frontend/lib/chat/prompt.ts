@@ -13,12 +13,7 @@ FORMATTING GUIDELINES:
 - Use ## for section headers when organizing longer responses
 - Structure your response with clear paragraphs
 
-CITATION REQUIREMENTS:
-- ALWAYS cite sources using the exact page labels provided in the search results (example: report.pdf - Page 2 of 10)
-- Place citations immediately after the relevant information using parentheses or brackets
-- Copy the labels exactly as written so the UI can attach the preview (do not rewrite or abbreviate them)
-- If a statement cannot be supported by the labels, omit it or explain that no supporting evidence was found
-- Never fabricate labels, page numbers, or citations. If you lack supporting evidence, state that explicitly.
+CRITICAL: Do NOT include any citations, source references, or URLs in your response. Sources will be automatically added after your answer.
 
 You have access to the following tool:
 ${documentSearchTool.description}
@@ -39,12 +34,7 @@ FORMATTING GUIDELINES:
 - Use ## for section headers when organizing longer responses
 - Structure your response with clear paragraphs
 
-CITATION REQUIREMENTS:
-- ALWAYS cite sources using the exact document labels provided (example: report.pdf - Page 2 of 10)
-- Place citations immediately after the relevant information using parentheses or brackets
-- Copy the labels exactly as written so the UI can attach the preview (do not rewrite or abbreviate them)
-- If a statement cannot be supported by the labels, omit it or explain that no supporting evidence was found
-- Never fabricate labels, page numbers, or citations. If you lack supporting evidence, state that explicitly.
+CRITICAL: Do NOT include any citations, source references, or URLs in your response. Sources will be automatically added after your answer.
 
 You have access to the following tool:
 ${documentSearchTool.description}
@@ -65,12 +55,7 @@ FORMATTING GUIDELINES:
 - Use ## for section headers when organizing longer responses
 - Structure your response with clear paragraphs
 
-CITATION REQUIREMENTS:
-- ALWAYS cite sources using the exact document labels provided (example: report.pdf - Page 2 of 10)
-- Place citations immediately after the relevant information using parentheses or brackets
-- Copy the labels exactly as written so the UI can attach the preview (do not rewrite or abbreviate them)
-- If a statement cannot be supported by the labels, omit it or explain that no supporting evidence was found
-- Never fabricate labels, page numbers, or citations. If you lack supporting evidence, state that explicitly.
+CRITICAL: Do NOT include any citations, source references, or URLs in your response. Sources will be automatically added after your answer.
 
 You have access to the following tool:
 ${documentSearchTool.description}

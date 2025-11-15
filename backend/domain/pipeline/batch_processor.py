@@ -257,7 +257,8 @@ class BatchProcessor:
             return None
 
         try:
-            # Get filename and page for naming
+            # Get document_id, filename and page for storage
+            document_id = meta.get("document_id", "unknown")
             filename = meta.get("filename", "unknown")
             page_num = meta.get("page_number", 0)
             extension = self.ocr_service.image_processor.get_extension(
@@ -270,8 +271,12 @@ class BatchProcessor:
                 filename=f"{filename}/page_{page_num}.{extension}",
             )
 
-            # Build metadata for storage
+            # Build metadata for storage (include filename for display/analytics)
             ocr_metadata = {
+                "filename": filename,
+                "document_id": meta.get("document_id"),
+                "pdf_page_index": meta.get("pdf_page_index"),
+                "total_pages": meta.get("total_pages"),
                 "page_width_px": processed_image.width,
                 "page_height_px": processed_image.height,
                 "image_url": processed_image.url,
@@ -282,7 +287,7 @@ class BatchProcessor:
             # Returns: {"ocr_url": "...", "ocr_regions": [{"label": "...", "url": "...", "id": "..."}]}
             storage_result = self.ocr_service.storage.store_ocr_result(
                 ocr_result=ocr_result,
-                filename=filename,
+                document_id=document_id,
                 page_number=page_num,
                 metadata=ocr_metadata,
             )

@@ -27,6 +27,25 @@ export function createSSEStream({ stream, kbItems, onError }: CreateSSEStreamPar
                 await writer.write(encoder.encode(`data: ${payload}\n\n`));
             }
 
+            // Append citations after stream completes
+            if (kbItems && kbItems.length > 0) {
+                const citations = kbItems
+                    .map((item, index) => `${index + 1}. [${item.label || 'Unknown'}](${item.image_url || '#'})`)
+                    .join('\n');
+                const citationText = `\n\n---\n\n**Sources:**\n\n${citations}`;
+
+                // Send citation as text delta to append to same message bubble
+                const citationEvent = {
+                    event: 'response.output_text.delta',
+                    data: {
+                        delta: citationText
+                    }
+                };
+
+                const citationPayload = JSON.stringify(citationEvent);
+                await writer.write(encoder.encode(`data: ${citationPayload}\n\n`));
+            }
+
             await writer.close();
         } catch (error) {
             logger.error('SSE stream error', { error });
