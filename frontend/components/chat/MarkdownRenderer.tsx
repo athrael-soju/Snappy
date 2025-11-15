@@ -104,7 +104,7 @@ export default function MarkdownRenderer({
                                         e.preventDefault();
                                         onCitationOpen?.(href, citationInfo.citation.label);
                                     }}
-                                    className="text-primary hover:underline cursor-pointer"
+                                    className="text-primary hover:text-primary/80 hover:underline cursor-pointer transition-colors"
                                 >
                                     {label}
                                 </a>
@@ -115,7 +115,7 @@ export default function MarkdownRenderer({
                     // Multiple citations from same file - group them
                     result.push(
                         <li key={`citation-group-${groupIndex++}`} className="ml-4">
-                            <span className="font-medium">{filename}</span>
+                            <span className="font-medium text-foreground">{filename}</span>
                             <span className="ml-2">
                                 {group.map((item: any, idx: number) => {
                                     const { href, citationInfo, label } = item;
@@ -138,7 +138,7 @@ export default function MarkdownRenderer({
                                                         e.preventDefault();
                                                         onCitationOpen?.(href, citationInfo.citation.label);
                                                     }}
-                                                    className="text-primary hover:underline cursor-pointer"
+                                                    className="text-primary hover:text-primary/80 hover:underline cursor-pointer transition-colors"
                                                 >
                                                     {pageText}
                                                 </a>
@@ -164,18 +164,18 @@ export default function MarkdownRenderer({
             components={{
                 // Style paragraphs
                 p: ({ children, ...props }) => (
-                    <p className="mb-2 last:mb-0" {...props}>
+                    <p className="mb-2 last:mb-0 text-foreground/90" {...props}>
                         {children}
                     </p>
                 ),
                 // Style code blocks
                 code: ({ inline, className, children, ...props }: any) => {
                     return inline ? (
-                        <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
+                        <code className="bg-muted/60 dark:bg-muted/40 text-foreground px-1.5 py-0.5 rounded text-sm font-mono border border-border/40" {...props}>
                             {children}
                         </code>
                     ) : (
-                        <code className="block bg-muted p-3 rounded-lg text-sm font-mono overflow-x-auto my-2" {...props}>
+                        <code className="block bg-muted/60 dark:bg-muted/40 text-foreground p-3 rounded-lg text-sm font-mono overflow-x-auto my-2 border border-border/40" {...props}>
                             {children}
                         </code>
                     );
@@ -210,7 +210,7 @@ export default function MarkdownRenderer({
                                         e.preventDefault();
                                         onCitationOpen?.(href, citationInfo.citation.label);
                                     }}
-                                    className="text-primary hover:underline cursor-pointer"
+                                    className="text-primary hover:text-primary/80 hover:underline cursor-pointer transition-colors"
                                 >
                                     {label}
                                 </a>
@@ -222,7 +222,7 @@ export default function MarkdownRenderer({
                     return (
                         <a
                             href={href}
-                            className="text-primary hover:underline"
+                            className="text-primary hover:text-primary/80 hover:underline transition-colors"
                             target="_blank"
                             rel="noopener noreferrer"
                             {...props}
@@ -233,74 +233,74 @@ export default function MarkdownRenderer({
                 },
                 // Style lists
                 ul: ({ children, ...props }) => (
-                    <ul className="list-disc list-inside space-y-1 my-2" {...props}>
+                    <ul className="list-disc list-inside space-y-1 my-2 text-foreground/90" {...props}>
                         {children}
                     </ul>
                 ),
                 ol: ({ children, ...props }) => (
-                    <ol className="list-decimal list-inside space-y-1 my-2" {...props}>
+                    <ol className="list-decimal list-inside space-y-1 my-2 text-foreground/90" {...props}>
                         {renderGroupedCitations(children)}
                     </ol>
                 ),
                 // Style headings
                 h1: ({ children, ...props }) => (
-                    <h1 className="text-2xl font-bold mt-4 mb-2" {...props}>
+                    <h1 className="text-2xl font-bold mt-4 mb-2 text-foreground" {...props}>
                         {children}
                     </h1>
                 ),
                 h2: ({ children, ...props }) => (
-                    <h2 className="text-xl font-bold mt-3 mb-2" {...props}>
+                    <h2 className="text-xl font-bold mt-3 mb-2 text-foreground" {...props}>
                         {children}
                     </h2>
                 ),
                 h3: ({ children, ...props }) => (
-                    <h3 className="text-lg font-semibold mt-2 mb-1" {...props}>
+                    <h3 className="text-lg font-semibold mt-2 mb-1 text-foreground" {...props}>
                         {children}
                     </h3>
                 ),
                 // Style horizontal rules
                 hr: ({ ...props }) => (
-                    <hr className="my-4 border-border" {...props} />
+                    <hr className="my-4 border-border/60 dark:border-border/40" {...props} />
                 ),
                 // Style blockquotes
                 blockquote: ({ children, ...props }) => (
-                    <blockquote className="border-l-4 border-primary/50 pl-4 italic my-2" {...props}>
+                    <blockquote className="border-l-4 border-primary/50 dark:border-primary/60 pl-4 italic my-2 text-muted-foreground" {...props}>
                         {children}
                     </blockquote>
                 ),
                 // Style tables (GFM)
                 table: ({ children, ...props }) => (
-                    <div className="overflow-x-auto my-4">
-                        <table className="min-w-full border-collapse border border-border" {...props}>
+                    <div className="overflow-x-auto my-4 rounded-lg border border-border/60 dark:border-border/40">
+                        <table className="min-w-full border-collapse" {...props}>
                             {children}
                         </table>
                     </div>
                 ),
                 th: ({ children, ...props }) => (
-                    <th className="border border-border px-4 py-2 bg-muted font-semibold text-left" {...props}>
+                    <th className="border border-border/60 dark:border-border/40 px-4 py-2 bg-muted/60 dark:bg-muted/40 font-semibold text-left text-foreground" {...props}>
                         {children}
                     </th>
                 ),
                 td: ({ children, ...props }) => (
-                    <td className="border border-border px-4 py-2" {...props}>
+                    <td className="border border-border/60 dark:border-border/40 px-4 py-2 text-foreground/90" {...props}>
                         {children}
                     </td>
                 ),
                 // Style strikethrough (GFM)
                 del: ({ children, ...props }) => (
-                    <del className="line-through opacity-75" {...props}>
+                    <del className="line-through opacity-70 text-muted-foreground" {...props}>
                         {children}
                     </del>
                 ),
                 // Style strong/bold
                 strong: ({ children, ...props }) => (
-                    <strong className="font-semibold" {...props}>
+                    <strong className="font-semibold text-foreground" {...props}>
                         {children}
                     </strong>
                 ),
                 // Style emphasis/italic
                 em: ({ children, ...props }) => (
-                    <em className="italic" {...props}>
+                    <em className="italic text-foreground/90" {...props}>
                         {children}
                     </em>
                 ),
