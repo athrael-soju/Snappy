@@ -128,9 +128,9 @@ Head to `backend/docs/architecture.md` and `backend/docs/analysis.md` for a deep
 
 **Choose your deployment method:** 🎯
 
-- **[Option A](#option-a---run-with-pre-built-docker-images)** 🐳 - Fastest: Use pre-built images from GitHub Container Registry-
-- **[Option B](#option-b---run-the-full-stack-with-docker-compose-build-from-source)** 🔨 - Build from source: Full Docker Compose stack-
-- **[Option C](#option-c---run-services-locally)** 💻 - Local development: Run services individually-
+- **[Option A](#option-a---run-with-pre-built-docker-images-)** 🐳 - Fastest: Use pre-built images from GitHub Container Registry
+- **[Option B](#option-b---run-the-full-stack-with-docker-compose-build-from-source-)** 🔨 - Build from source: Full Docker Compose stack
+- **[Option C](#option-c---run-services-locally-)** 💻 - Local development: Run services individually
 
 ### Prerequisites for all options ✅
 
