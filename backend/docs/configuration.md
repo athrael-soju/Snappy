@@ -13,6 +13,7 @@ Runtime updates take effect immediately but do not persist across restarts—upd
 ## Contents
 
 - [How configuration is resolved](#how-configuration-is-resolved)
+- [Hardware profiles](#hardware-profiles)
 - [Core application](#core-application)
 - [Document ingestion](#document-ingestion)
 - [Upload controls](#upload-controls)
@@ -35,6 +36,266 @@ Runtime updates take effect immediately but do not persist across restarts—upd
 4. `/config/update` and `/config/reset` change the runtime store and invalidate cached service clients if a critical setting changed.
 
 Only keys defined in the schema can be updated at runtime.
+
+---
+
+## Hardware Profiles
+
+This section provides recommended configurations for different PC specifications. These profiles balance performance, memory usage, and feature availability based on your hardware capabilities.
+
+### Entry-Level (2-4 CPU cores, 4-8GB RAM, No GPU)
+
+Best for: Testing, light document processing, development on constrained hardware.
+
+```bash
+# Processing - conservative settings
+BATCH_SIZE=1
+ENABLE_AUTO_CONFIG_MODE=False
+
+# Upload - smaller limits
+UPLOAD_MAX_FILE_SIZE_MB=5
+UPLOAD_MAX_FILES=2
+UPLOAD_CHUNK_SIZE_MBYTES=1
+UPLOAD_MAX_WORKERS=2
+
+# ColPali - extended timeout for CPU processing (~2-3 min/page)
+COLPALI_API_TIMEOUT=600
+
+# DeepSeek OCR - disabled (requires GPU)
+DEEPSEEK_OCR_ENABLED=False
+
+# Qdrant - memory-efficient settings
+QDRANT_ON_DISK=True
+QDRANT_ON_DISK_PAYLOAD=True
+QDRANT_USE_BINARY=True
+QDRANT_MEAN_POOLING_ENABLED=True
+QDRANT_PREFETCH_LIMIT=100
+
+# MinIO - reduced concurrency
+MINIO_WORKERS=4
+MINIO_RETRIES=3
+IMAGE_FORMAT=JPEG
+IMAGE_QUALITY=60
+
+# DuckDB - disabled to reduce resource usage
+DUCKDB_ENABLED=False
+```
+
+**Expected performance:** ~2-3 minutes per page for embedding generation. Suitable for processing small documents (1-10 pages) with limited concurrent operations.
+
+---
+
+### Mid-Range (4-8 CPU cores, 16-32GB RAM, No GPU)
+
+Best for: Regular document processing, moderate workloads, development and testing.
+
+```bash
+# Processing - balanced settings
+BATCH_SIZE=4
+ENABLE_AUTO_CONFIG_MODE=True
+
+# Upload - standard limits
+UPLOAD_MAX_FILE_SIZE_MB=10
+UPLOAD_MAX_FILES=5
+UPLOAD_CHUNK_SIZE_MBYTES=4
+UPLOAD_MAX_WORKERS=4
+
+# ColPali - standard timeout
+COLPALI_API_TIMEOUT=300
+
+# DeepSeek OCR - disabled (requires GPU)
+DEEPSEEK_OCR_ENABLED=False
+
+# Qdrant - balanced memory/performance
+QDRANT_ON_DISK=True
+QDRANT_ON_DISK_PAYLOAD=True
+QDRANT_USE_BINARY=False
+QDRANT_MEAN_POOLING_ENABLED=False
+QDRANT_PREFETCH_LIMIT=200
+
+# MinIO - moderate concurrency
+MINIO_WORKERS=8
+MINIO_RETRIES=3
+IMAGE_FORMAT=JPEG
+IMAGE_QUALITY=75
+
+# DuckDB - optional, enable if analytics needed
+DUCKDB_ENABLED=False
+DUCKDB_BATCH_SIZE=10
+```
+
+**Expected performance:** ~1.5-2 minutes per page for embedding generation. Handles medium documents (10-50 pages) with reasonable throughput.
+
+---
+
+### High-End CPU (8-16 CPU cores, 32-64GB RAM, No GPU)
+
+Best for: Production workloads without GPU, high-throughput document processing, server deployments.
+
+```bash
+# Processing - aggressive batching
+BATCH_SIZE=8
+ENABLE_AUTO_CONFIG_MODE=True
+
+# Upload - increased limits
+UPLOAD_MAX_FILE_SIZE_MB=50
+UPLOAD_MAX_FILES=10
+UPLOAD_CHUNK_SIZE_MBYTES=8
+UPLOAD_MAX_WORKERS=6
+
+# ColPali - reasonable timeout with fast CPU
+COLPALI_API_TIMEOUT=240
+
+# DeepSeek OCR - disabled (requires GPU)
+DEEPSEEK_OCR_ENABLED=False
+
+# Qdrant - performance-oriented
+QDRANT_ON_DISK=True
+QDRANT_ON_DISK_PAYLOAD=False
+QDRANT_USE_BINARY=True
+QDRANT_BINARY_ALWAYS_RAM=True
+QDRANT_MEAN_POOLING_ENABLED=False
+QDRANT_PREFETCH_LIMIT=300
+QDRANT_SEARCH_OVERSAMPLING=3.0
+
+# MinIO - high concurrency
+MINIO_WORKERS=12
+MINIO_RETRIES=4
+IMAGE_FORMAT=WEBP
+IMAGE_QUALITY=80
+
+# DuckDB - enabled for analytics
+DUCKDB_ENABLED=False
+DUCKDB_BATCH_SIZE=20
+```
+
+**Expected performance:** ~1-1.5 minutes per page for embedding generation. Efficiently processes large documents (50-200 pages) with good concurrency.
+
+---
+
+### GPU-Accelerated (8+ CPU cores, 32GB+ RAM, NVIDIA GPU 8GB+ VRAM)
+
+Best for: Production workloads, maximum throughput, full feature set including OCR.
+
+```bash
+# Processing - high throughput
+BATCH_SIZE=12
+ENABLE_AUTO_CONFIG_MODE=True
+
+# Upload - maximum limits
+UPLOAD_MAX_FILE_SIZE_MB=100
+UPLOAD_MAX_FILES=15
+UPLOAD_CHUNK_SIZE_MBYTES=8
+UPLOAD_MAX_WORKERS=8
+
+# ColPali - fast GPU processing
+COLPALI_API_TIMEOUT=120
+
+# DeepSeek OCR - enabled with GPU
+DEEPSEEK_OCR_ENABLED=True
+DEEPSEEK_OCR_API_TIMEOUT=180
+DEEPSEEK_OCR_MAX_WORKERS=4
+DEEPSEEK_OCR_POOL_SIZE=20
+DEEPSEEK_OCR_MODE=Gundam
+DEEPSEEK_OCR_INCLUDE_GROUNDING=True
+DEEPSEEK_OCR_INCLUDE_IMAGES=True
+
+# Qdrant - maximum performance
+QDRANT_ON_DISK=False
+QDRANT_ON_DISK_PAYLOAD=False
+QDRANT_USE_BINARY=True
+QDRANT_BINARY_ALWAYS_RAM=True
+QDRANT_MEAN_POOLING_ENABLED=False
+QDRANT_PREFETCH_LIMIT=400
+QDRANT_SEARCH_OVERSAMPLING=3.0
+
+# MinIO - maximum concurrency
+MINIO_WORKERS=14
+MINIO_RETRIES=4
+IMAGE_FORMAT=WEBP
+IMAGE_QUALITY=85
+
+# DuckDB - enabled for full analytics
+DUCKDB_ENABLED=True
+DUCKDB_BATCH_SIZE=25
+```
+
+**Expected performance:** ~1-3 seconds per page for embedding generation. Processes very large documents (200+ pages) rapidly with full OCR capabilities.
+
+---
+
+### Multi-GPU Server (16+ CPU cores, 64GB+ RAM, Multiple NVIDIA GPUs 16GB+ VRAM each)
+
+Best for: Enterprise deployments, high-volume document processing, maximum quality settings.
+
+```bash
+# Processing - maximum throughput
+BATCH_SIZE=16
+ENABLE_AUTO_CONFIG_MODE=True
+
+# Upload - maximum limits
+UPLOAD_MAX_FILE_SIZE_MB=200
+UPLOAD_MAX_FILES=20
+UPLOAD_CHUNK_SIZE_MBYTES=16
+UPLOAD_MAX_WORKERS=8
+
+# ColPali - minimal timeout with fast multi-GPU
+COLPALI_API_TIMEOUT=60
+
+# DeepSeek OCR - maximum quality and throughput
+DEEPSEEK_OCR_ENABLED=True
+DEEPSEEK_OCR_API_TIMEOUT=120
+DEEPSEEK_OCR_MAX_WORKERS=16
+DEEPSEEK_OCR_POOL_SIZE=60
+DEEPSEEK_OCR_MODE=Large
+DEEPSEEK_OCR_INCLUDE_GROUNDING=True
+DEEPSEEK_OCR_INCLUDE_IMAGES=True
+
+# Qdrant - everything in RAM
+QDRANT_ON_DISK=False
+QDRANT_ON_DISK_PAYLOAD=False
+QDRANT_USE_BINARY=True
+QDRANT_BINARY_ALWAYS_RAM=True
+QDRANT_MEAN_POOLING_ENABLED=False
+QDRANT_PREFETCH_LIMIT=500
+QDRANT_SEARCH_OVERSAMPLING=4.0
+
+# MinIO - maximum parallelism
+MINIO_WORKERS=20
+MINIO_RETRIES=5
+IMAGE_FORMAT=WEBP
+IMAGE_QUALITY=90
+
+# DuckDB - enabled with large batches
+DUCKDB_ENABLED=True
+DUCKDB_BATCH_SIZE=50
+```
+
+**Expected performance:** Sub-second embedding generation. Handles batch processing of thousands of pages with highest quality OCR.
+
+---
+
+### Key Tuning Parameters by Resource
+
+| Resource | Low Usage | High Usage |
+|----------|-----------|------------|
+| **CPU** | `BATCH_SIZE=1-2`, `MINIO_WORKERS=4`, `UPLOAD_MAX_WORKERS=2` | `BATCH_SIZE=12-16`, `MINIO_WORKERS=14-20`, `UPLOAD_MAX_WORKERS=8` |
+| **RAM** | `QDRANT_ON_DISK=True`, `QDRANT_ON_DISK_PAYLOAD=True`, `QDRANT_MEAN_POOLING_ENABLED=True` | `QDRANT_ON_DISK=False`, `QDRANT_ON_DISK_PAYLOAD=False` |
+| **GPU VRAM** | `DEEPSEEK_OCR_MODE=Tiny`, `DEEPSEEK_OCR_MAX_WORKERS=2` | `DEEPSEEK_OCR_MODE=Large`, `DEEPSEEK_OCR_MAX_WORKERS=8-16` |
+| **Storage** | `IMAGE_QUALITY=60`, `IMAGE_FORMAT=JPEG` | `IMAGE_QUALITY=90`, `IMAGE_FORMAT=WEBP` |
+| **Network** | `UPLOAD_CHUNK_SIZE_MBYTES=1`, `MINIO_RETRIES=2` | `UPLOAD_CHUNK_SIZE_MBYTES=16`, `MINIO_RETRIES=5` |
+
+---
+
+### Auto-Sizing Behavior
+
+When `ENABLE_AUTO_CONFIG_MODE=True`, the system automatically adjusts:
+
+- **Pipeline concurrency** scales with CPU count (1-4 workers based on cores)
+- **MinIO workers** scale from 4-14 based on CPU count
+- **Retry attempts** adjust proportionally with worker count
+
+Manual overrides in `.env` take precedence over auto-sizing.
 
 ---
 
