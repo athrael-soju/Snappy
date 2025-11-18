@@ -263,7 +263,7 @@ python -c "import torch; print(torch.cuda.is_available())"
 ### Out of Memory
 - Use smaller processing mode (Tiny or Small)
 - Reduce image resolution before upload
-*** Remove this bullet entirely ***
+
 
 ### Font Errors (Bounding Boxes)
 ```bash

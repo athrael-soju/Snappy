@@ -46,7 +46,7 @@ Defaults assume local services at:
 When the backend runs inside Docker Compose, keep `COLPALI_URL=http://colpali:7000` and `DEEPSEEK_OCR_URL=http://deepseek-ocr:8200` so the containers communicate via the Compose network.
 
 
-- `COLPALI_URL=http://colpali:7000`
+
 Check `backend/docs/configuration.md` for the complete reference.
 
 ---
