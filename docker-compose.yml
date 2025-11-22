@@ -200,34 +200,19 @@ x-duckdb-base: &duckdb-base
 
 services:
   qdrant:
-    profiles:
-      - cpu
-      - gpu
     <<: *qdrant-base
 
   minio:
-    profiles:
-      - cpu
-      - gpu
     <<: *minio-base
 
-  colpali-cpu:
+  colpali:
     <<: *colpali-base
-    profiles:
-      - cpu
-    image: colpali:cpu
+    # GPU-first: Uses GPU Dockerfile by default (30-50x faster)
+    # For CPU-only: Set COLPALI_MODE=cpu in .env
+    image: colpali:${COLPALI_MODE:-gpu}
     build:
       context: ./colpali
-      dockerfile: Dockerfile.cpu
-
-  colpali-gpu:
-    <<: *colpali-base
-    profiles:
-      - gpu
-    image: colpali:gpu
-    build:
-      context: ./colpali
-      dockerfile: Dockerfile.gpu
+      dockerfile: ${COLPALI_DOCKERFILE:-Dockerfile.gpu}
     deploy:
       resources:
         reservations:
@@ -237,10 +222,10 @@ services:
               capabilities:
                 - gpu
 
-  deepseek-ocr-gpu:
+  deepseek-ocr:
     <<: *deepseek-base
-    profiles:
-      - gpu
+    # GPU-only: DeepSeek OCR requires NVIDIA GPU
+    # If you don't have a GPU, set DEEPSEEK_OCR_ENABLED=false in .env
     image: deepseek-ocr:gpu
     build:
       context: ./deepseek-ocr
@@ -255,20 +240,12 @@ services:
                 - gpu
 
   duckdb:
-    profiles:
-      - cpu
-      - gpu
     <<: *duckdb-base
+
   # backend:
-  #   profiles:
-  #     - cpu
-  #     - gpu
   #   <<: *backend-base
 
   # frontend:
-  #   profiles:
-  #     - cpu
-  #     - gpu
   #   <<: *frontend-base
 
 networks:

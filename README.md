@@ -157,11 +157,15 @@ Snappy uses an opinionated configuration approach with automatic optimizations. 
 3. **Start the stack** 🚀
 
    ```bash
-   # GPU-accelerated (recommended - 30-50x faster)
-   docker compose --profile gpu up -d
+   # Single command - uses GPU by default (30-50x faster)
+   docker compose up -d
+   ```
 
-   # CPU-only (slower but works without GPU)
-   docker compose --profile cpu up -d
+   **No GPU?** Edit `.env` and set:
+   ```bash
+   COLPALI_MODE=cpu
+   COLPALI_DOCKERFILE=Dockerfile.cpu
+   DEEPSEEK_OCR_ENABLED=false  # OCR requires GPU
    ```
 
 **That's it!** The system automatically configures:
@@ -170,6 +174,7 @@ Snappy uses an opinionated configuration approach with automatic optimizations. 
 - ✅ Re-ranking (improved accuracy)
 - ✅ Parallelism (workers, connection pools)
 - ✅ Storage optimization (disk vs RAM)
+- ✅ GPU acceleration (when available)
 
 ---
 
@@ -203,17 +208,24 @@ docker compose up -d
 
 ### Option B - Run the Full Stack with Docker Compose (Build from Source) 🔨
 
-At the project root pick a compute profile so the right ColPali and DeepSeek builds come online:
+At the project root, start all services with a single command:
 
 ```bash
-# CPU-only stack
-docker compose --profile cpu up -d --build
-
-# GPU-accelerated stack
-docker compose --profile gpu up -d --build
+# GPU mode (default - 30-50x faster)
+docker compose up -d --build
 ```
 
-> Note: Profiles are mutually exclusive—run one profile at a time so only the matching ColPali/DeepSeek containers bind their ports.
+**For CPU-only systems:** Edit `.env` before running:
+```bash
+COLPALI_MODE=cpu
+COLPALI_DOCKERFILE=Dockerfile.cpu
+DEEPSEEK_OCR_ENABLED=false
+```
+
+Then run:
+```bash
+docker compose up -d --build
+```
 
 Services will come online at: 🌐
 - Backend: http://localhost:8000
@@ -223,11 +235,11 @@ Services will come online at: 🌐
 - DeepSeek OCR: http://localhost:8200 (if enabled)
 - DuckDB Analytics: http://localhost:8300 (if enabled)
 
-Inside Docker, containers reach each other via service names, so keep `COLPALI_URL=http://colpali:7000`, `DEEPSEEK_OCR_URL=http://deepseek-ocr:8200`, and `DUCKDB_URL=http://duckdb:8300` in `.env`. Switch to `http://localhost:*` only when the backend runs directly on your host OS. DeepSeek OCR currently ships only with the GPU profile—when running the CPU stack, set `DEEPSEEK_OCR_ENABLED=false`. DuckDB analytics is optional and requires DeepSeek OCR to be enabled.
+Inside Docker, containers reach each other via service names, so keep `COLPALI_URL=http://colpali:7000`, `DEEPSEEK_OCR_URL=http://deepseek-ocr:8200`, and `DUCKDB_URL=http://duckdb:8300` in `.env`. Switch to `http://localhost:*` only when the backend runs directly on your host OS.
 
+**Note:** DeepSeek OCR requires an NVIDIA GPU. If you don't have one, set `DEEPSEEK_OCR_ENABLED=false` in `.env`. DuckDB analytics is optional and requires DeepSeek OCR to be enabled.
 
-
-Update `.env` and `frontend/.env.local` if you need to expose different hostnames or ports. ⚙️
+Update `.env` if you need to expose different hostnames or ports. ⚙️
 
 ---
 
