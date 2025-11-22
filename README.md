@@ -253,7 +253,7 @@ make clean         # Stop and remove volumes
 make ps            # Show running services
 make health        # Check service health
 ```
-All `make up*` targets pass `--build`, so each start rebuilds images to pick up Dockerfile/dependency changes (expect slower startup).
+Docker Compose automatically detects when images need rebuilding. To explicitly rebuild after Dockerfile or dependency changes, run `make build` or `make build-no-cache` before starting services.
 
 Services will come online at: 🌐
 - Backend: http://localhost:8000

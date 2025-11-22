@@ -159,7 +159,7 @@ The DuckDB service provides columnar storage for document metadata and OCR resul
 
 4. **Full-Text Search**: Full-text indexes on `pages.text` and `regions.content` enable fast text search across all OCR data.
 
-5. **DuckDB-Wasm UI**: Interactive web UI at http://localhost:4213 for exploring data, running queries, and visualizing results.
+5. **DuckDB-Wasm UI**: Interactive web UI at http://localhost:42130 for exploring data, running queries, and visualizing results.
 
 6. **Graceful Shutdown**: Automatic checkpointing on close ensures all data is flushed to disk before shutdown.
 

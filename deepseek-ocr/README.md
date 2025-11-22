@@ -53,7 +53,7 @@ make up-ml
 # Full profile (all services)
 make up-full
 ```
-`make up-*` targets include `--build`, so images rebuild on each start to pick up Dockerfile/dependency changes.
+Docker Compose automatically detects when images need rebuilding. To explicitly rebuild after Dockerfile or dependency changes, run `make build` before starting services.
 
 **Note:** DeepSeek OCR is **not included** in the `minimal` profile since it requires GPU.
 

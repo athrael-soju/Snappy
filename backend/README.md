@@ -99,7 +99,7 @@ make up-ml
 # Full - All services including DuckDB
 make up-full
 ```
-These Makefile targets include `--build` so images rebuild on each start to pick up Dockerfile or dependency changes.
+Docker Compose automatically detects when images need rebuilding. To explicitly rebuild after Dockerfile or dependency changes, run `make build` before starting services.
 
 Or use the legacy approach:
 

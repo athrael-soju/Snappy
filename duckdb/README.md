@@ -34,7 +34,7 @@ From the project root:
 # Full profile only (DuckDB requires OCR data)
 make up-full
 ```
-`make up-full` includes `--build`, so images rebuild on each start to pick up Dockerfile/dependency changes.
+Docker Compose automatically detects when images need rebuilding. To explicitly rebuild after Dockerfile or dependency changes, run `make build` before starting services.
 
 **Note:** DuckDB is **only included** in the `full` profile since it provides analytics over OCR data from DeepSeek OCR.
 
@@ -158,7 +158,7 @@ Stores every grounded region extracted from OCR output.
 
 ### UI
 
-- **DuckDB UI Extension** - Access at `http://localhost:4213` (when service is running)
+- **DuckDB UI Extension** - Access at `http://localhost:42130` (when service is running)
 
 ## Configuration
 
@@ -309,7 +309,7 @@ The service includes the official DuckDB UI extension for interactive data explo
 
 ### Access the UI
 
-**URL:** `http://localhost:4213`
+**URL:** `http://localhost:42130`
 
 The UI provides:
 - **SQL query editor** with syntax highlighting and autocomplete
