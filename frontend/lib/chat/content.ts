@@ -143,7 +143,7 @@ export async function buildImageContent(results: SearchItem[], query: string): P
 export async function buildMarkdownContent(results: SearchItem[], query: string): Promise<any[]> {
     // Build a unified text block containing all pages
     const pageContents: string[] = [];
-    const IMAGE_REGION_LABELS = ['figure', 'table', 'diagram', 'image', 'chart', 'graph'];
+    const IMAGE_REGION_LABELS = ['figure', 'diagram', 'image', 'chart', 'graph'];
 
     for (const result of results || []) {
         try {
@@ -221,7 +221,7 @@ ${pageContents.join("\n\n---\n\n")}`;
 }
 
 export async function buildRegionImagesContent(results: SearchItem[], query: string): Promise<any[]> {
-    const IMAGE_REGION_LABELS = ['figure', 'table', 'diagram', 'image', 'chart', 'graph'];
+    const IMAGE_REGION_LABELS = ['figure', 'diagram', 'image', 'chart', 'graph'];
     const regionImages: any[] = [];
 
     for (const result of results || []) {
