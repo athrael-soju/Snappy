@@ -168,7 +168,12 @@ Snappy uses an opinionated configuration approach with automatic optimizations. 
    make up-full
    ```
 
-   **Legacy docker-compose.yml:** You can still use `docker compose up -d` which starts all services by default.
+   Prefer plain Docker Compose? Use the root `docker-compose.yml` with profiles:
+   ```bash
+   docker compose --profile minimal up -d  # ColPali only (no DeepSeek OCR, no DuckDB)
+   docker compose --profile ml up -d       # ColPali + DeepSeek OCR
+   docker compose --profile full up -d     # All services including DuckDB
+   ```
 
 **That's it!** The system automatically configures:
 - ✅ Hardware detection (NVIDIA GPU → Apple Silicon MPS → CPU)
@@ -230,12 +235,15 @@ make up-ml
 make up-full
 ```
 
-**Using legacy docker-compose.yml:** You can still use the traditional approach:
+Or run Docker Compose directly with the same profiles as the Makefile:
 ```bash
-docker compose up -d --build
+docker compose --profile minimal up -d --build  # ColPali only (CPU ok)
+docker compose --profile ml up -d --build       # Adds DeepSeek OCR (GPU)
+docker compose --profile full up -d --build     # Adds DuckDB analytics
+# Or set COMPOSE_PROFILES=minimal|ml|full then run: docker compose up -d --build
 ```
 
-This starts all services by default. To disable services, edit `.env`:
+To disable services inside a profile without changing the stack, edit `.env`:
 ```bash
 DEEPSEEK_OCR_ENABLED=false  # Disable OCR (if no GPU)
 DUCKDB_ENABLED=false        # Disable DuckDB
@@ -495,7 +503,7 @@ Chat streaming lives in `frontend/app/api/chat/route.ts`. The route calls the ba
   - `Makefile` - Profile-based orchestration (minimal/ml/full)
   - `docker/*.yml` - Split compose files (base/ml/app)
   - `*/docker-compose.yml` - Per-service standalone development
-  - `docker-compose.yml` - Legacy fallback for `docker compose up`
+  - `docker-compose.yml` - Root stack for `docker compose --profile ... up`
 
 ---
 
@@ -546,4 +554,3 @@ Snappy builds on the work of: 🌟
 
 - 🔥 **PyTorch** - core deep learning framework  
    https://pytorch.org/  
-
