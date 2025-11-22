@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.3.7](https://github.com/athrael-soju/Snappy/compare/v0.3.6...v0.3.7) (2025-11-22)
+
+
+### Bug Fixes
+
+* make hard-coded config constants accessible via imports ([b12de46](https://github.com/athrael-soju/Snappy/commit/b12de4607c8e66fd4f1493f62c086744594d255f))
+
+
+### Documentation
+
+* add --build flag notice to all service README deployment sections ([a808755](https://github.com/athrael-soju/Snappy/commit/a8087553c58e4e87c45a5cd7282e4deae84358e6))
+* add hardware profile recommendations to configuration guide ([7aea1b2](https://github.com/athrael-soju/Snappy/commit/7aea1b2626abec2d1478af0ce02bd7d738fbef4b))
+* Add initial documentation for agents, backend, and deepseek-ocr services. ([f403de6](https://github.com/athrael-soju/Snappy/commit/f403de6aa36478e211c3dff4205cf0d622e97286))
+* add Makefile-based deployment with service profiles ([2b52f71](https://github.com/athrael-soju/Snappy/commit/2b52f71efa0c177e8ac2d551c14c625f577bde41))
+* fix links in deployment options section of README ([4a42ef6](https://github.com/athrael-soju/Snappy/commit/4a42ef6be8aca6b4e9855a0ca1c1efeb03ca77b2))
+* update architecture and analysis docs to reflect auto-enabled features ([35445b6](https://github.com/athrael-soju/Snappy/commit/35445b61042c59b1cd1f99d2d2c617354fbba1f6))
+* update configuration help text to reflect unified deployment model ([96dc80c](https://github.com/athrael-soju/Snappy/commit/96dc80cfd9c4098686b3bc61b9f5d084fae78d58))
+* update Docker registry workflow and docs to reflect unified ColPali deployment ([f542a6b](https://github.com/athrael-soju/Snappy/commit/f542a6b980c2b1091a19e8e500b432dbbe24a6ef))
+* update project description and enhance features in README ([0ab222d](https://github.com/athrael-soju/Snappy/commit/0ab222d85e783a7e350a898a0625bf641011985a))
+
+
+### Code Refactoring
+
+* disable mean pooling and restore strict error handling in ColPali client ([96be6c2](https://github.com/athrael-soju/Snappy/commit/96be6c2a7988118c19a0b9d10129b73b67339505))
+* make mean pooling gracefully degrade when model lacks patch support ([551a565](https://github.com/athrael-soju/Snappy/commit/551a56592e965129192aafd0ba951edb652645c8))
+* remove --build flag from Makefile and add graceful degradation for ColPali patch errors ([8a5d418](https://github.com/athrael-soju/Snappy/commit/8a5d41816ea63ba99506f8abb1af063d68d1193c))
+* remove auto-config toggle and add profile-based feature flags ([d494c32](https://github.com/athrael-soju/Snappy/commit/d494c329d173160b1d21d3d04eefc437ed6ed13f))
+* remove CPU/GPU profiles, default to GPU-first deployment ([5acde60](https://github.com/athrael-soju/Snappy/commit/5acde6035bfd59ed84c447bd9826fe737f4e0c07))
+* replace curl with native bash for Qdrant healthchecks ([1e7e84d](https://github.com/athrael-soju/Snappy/commit/1e7e84d085c4fe2b335f6db4d193e3f0198df98a))
+* simplify configuration for wider audience ([b3c941b](https://github.com/athrael-soju/Snappy/commit/b3c941ba7ebfc9c13cf78cd164b85c68821e10c6))
+* unify ColPali deployment with automatic hardware detection ([0b56c04](https://github.com/athrael-soju/Snappy/commit/0b56c04827b8aff1c72433b9b116dc3273951348))
+
 ## [0.3.6](https://github.com/athrael-soju/Snappy/compare/v0.3.5...v0.3.6) (2025-11-15)
 
 
