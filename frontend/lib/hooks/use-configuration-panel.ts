@@ -154,10 +154,11 @@ export function useConfigurationPanel() {
       totalSettings: Object.keys(values).length,
       modifiedSettings: Object.keys(values).filter(key => values[key] !== originalValues[key]).length,
       enabledFeatures: [
-        values.QDRANT_MEAN_POOLING_ENABLED === "True" ? "Mean Pooling" : null,
-        values.ENABLE_AUTO_CONFIG_MODE === "True" ? "Pipeline Indexing" : null,
-        values.QDRANT_USE_BINARY === "True" ? "Binary Quantization" : null,
+        "Mean Pooling", // Always enabled for optimal recall
+        "Pipeline Indexing", // Always enabled for optimal performance
+        "Binary Quantization", // Always enabled (32x memory reduction)
         values.DEEPSEEK_OCR_ENABLED === "True" ? "DeepSeek OCR" : null,
+        values.DUCKDB_ENABLED === "True" ? "DuckDB Analytics" : null,
       ].filter(Boolean) as string[],
     }),
     [values, originalValues]

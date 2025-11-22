@@ -20,6 +20,9 @@ services:
       - QDRANT_URL=http://qdrant:6333
       - MINIO_URL=http://minio:9000
       - MINIO_PUBLIC_URL=http://localhost:9000
+      # Profile-specific feature flags (set by Makefile)
+      - DEEPSEEK_OCR_ENABLED=${DEEPSEEK_OCR_ENABLED:-true}
+      - DUCKDB_ENABLED=${DUCKDB_ENABLED:-true}
     volumes:
       - ../backend:/app
       - backend_cache:/root/.cache
