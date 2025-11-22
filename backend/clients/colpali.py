@@ -147,10 +147,10 @@ class ColPaliClient:
             expected_count: Expected number of results
 
         Returns:
-            Validated results
+            Validated results (may contain error fields for graceful degradation)
 
         Raises:
-            ValueError: If results are malformed
+            ValueError: If results are malformed (structural issues only)
         """
         if not isinstance(results, list):
             raise ValueError(f"Expected list, got {type(results)}")
@@ -162,8 +162,9 @@ class ColPaliClient:
             if not isinstance(result, dict):
                 raise ValueError(f"Result {i} is not a dict: {type(result)}")
 
+            # If result contains error, pass it through for graceful degradation
             if "error" in result:
-                raise ValueError(f"Result {i} contains error: {result['error']}")
+                continue
 
             for key in ["n_patches_x", "n_patches_y"]:
                 if key not in result:
@@ -231,7 +232,8 @@ class ColPaliClient:
             dimensions: List of dictionaries containing 'width' and 'height' keys
 
         Returns:
-            List of dictionaries containing patch information for each dimension
+            List of dictionaries containing patch information for each dimension.
+            Individual results may contain 'error' field for graceful degradation.
         """
         try:
             payload = {"dimensions": dimensions}
@@ -243,10 +245,12 @@ class ColPaliClient:
             if "results" not in result:
                 raise KeyError("Missing 'results' in ColPali /patches response")
 
-            # Validate response structure
+            # Validate response structure (allows error fields to pass through)
             return self._validate_patch_results(result["results"], len(dimensions))
         except Exception as e:
-            raise Exception(f"Failed to get patches: {e}")
+            # For structural errors, wrap all results with error messages
+            self._logger.warning(f"Failed to get patches: {e}")
+            return [{"error": str(e)} for _ in dimensions]
 
     @log_execution_time("embed queries", log_level=logging.INFO, warn_threshold_ms=1000)
     def embed_queries(self, queries: Union[str, List[str]]) -> List[List[List[float]]]:

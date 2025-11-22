@@ -37,7 +37,7 @@ up: up-full ## Start all services (alias for up-full)
 
 up-minimal: ## Start minimal profile (ColPali only)
 	@echo "🚀 Starting minimal profile (ColPali only)..."
-	DEEPSEEK_OCR_ENABLED=false DUCKDB_ENABLED=false $(DOCKER_COMPOSE) --profile minimal up --build -d
+	DEEPSEEK_OCR_ENABLED=false DUCKDB_ENABLED=false $(DOCKER_COMPOSE) --profile minimal up -d
 	@echo "✅ Services started with minimal profile"
 	@echo "   - Base infrastructure (Qdrant, MinIO)"
 	@echo "   - Application (Backend, Frontend)"
@@ -45,7 +45,7 @@ up-minimal: ## Start minimal profile (ColPali only)
 
 up-ml: ## Start ML profile (ColPali + DeepSeek OCR)
 	@echo "🚀 Starting ML profile (ColPali + DeepSeek OCR)..."
-	DEEPSEEK_OCR_ENABLED=true DUCKDB_ENABLED=false $(DOCKER_COMPOSE) --profile ml up --build -d
+	DEEPSEEK_OCR_ENABLED=true DUCKDB_ENABLED=false $(DOCKER_COMPOSE) --profile ml up -d
 	@echo "✅ Services started with ML profile"
 	@echo "   - Base infrastructure (Qdrant, MinIO)"
 	@echo "   - Application (Backend, Frontend)"
@@ -54,7 +54,7 @@ up-ml: ## Start ML profile (ColPali + DeepSeek OCR)
 
 up-full: ## Start full profile (all services)
 	@echo "🚀 Starting full profile (all services)..."
-	DEEPSEEK_OCR_ENABLED=true DUCKDB_ENABLED=true $(DOCKER_COMPOSE) --profile full up --build -d
+	DEEPSEEK_OCR_ENABLED=true DUCKDB_ENABLED=true $(DOCKER_COMPOSE) --profile full up -d
 	@echo "✅ Services started with full profile"
 	@echo "   - Base infrastructure (Qdrant, MinIO)"
 	@echo "   - Application (Backend, Frontend)"
