@@ -106,19 +106,25 @@ def __getattr__(name: str) -> Any:
 
 def _getattr_impl(name: str) -> Any:
     """Implementation of dynamic attribute lookup."""
+    # Handle auto-sized values that were removed from schema
+    if name == "MINIO_WORKERS":
+        return _get_auto_minio_workers()
+    if name == "MINIO_RETRIES":
+        workers = __getattr__("MINIO_WORKERS")
+        return _get_auto_minio_retries(workers)
+
+    # Handle hard-coded constants
+    # Check module-level constants defined below
+    if name in globals():
+        value = globals()[name]
+        # Only return if it's a constant (not a function or class)
+        if not callable(value) and not name.startswith('_'):
+            return value
+
     if name in _CONFIG_DEFAULTS:
         type_str, default = _CONFIG_DEFAULTS[name]
 
         if type_str == "int":
-            if name == "MINIO_WORKERS":
-                if _runtime.has(name):
-                    return _runtime.get_int(name, default)
-                return _get_auto_minio_workers()
-            if name == "MINIO_RETRIES":
-                if _runtime.has(name):
-                    return _runtime.get_int(name, default)
-                workers = __getattr__("MINIO_WORKERS")
-                return _get_auto_minio_retries(workers)
             return _runtime.get_int(name, default)
         elif type_str == "float":
             return _runtime.get_float(name, default)
