@@ -19,7 +19,7 @@ SCHEMA: Dict[str, Any] = {
                 "description": "Number of pages processed per batch",
                 "help_text": "Higher values boost throughput but require more memory. "
                 "Lower values provide steadier progress feedback. "
-                "Recommended: 2-4 for CPU mode, 4-8 for GPU mode.",
+                "Recommended: 2-4 for CPU/Apple Silicon, 4-8 for NVIDIA GPU.",
                 "key": "BATCH_SIZE",
                 "label": "Batch Size",
                 "max": 128,

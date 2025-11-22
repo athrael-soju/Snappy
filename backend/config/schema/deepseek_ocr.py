@@ -17,13 +17,13 @@ SCHEMA: Dict[str, Any] = {
         "settings": [
             {
                 "critical": True,
-                "default": False,
+                "default": True,
                 "description": "Toggle DeepSeek OCR integration for downstream "
                 "workflows.",
                 "help_text": "When enabled the backend initializes the DeepSeek "
-                "OCR HTTP client so future features can submit page "
-                "images for transcription. Disable if you do not run "
-                "the DeepSeek OCR microservice.",
+                "OCR HTTP client for advanced text extraction. "
+                "**Requires NVIDIA GPU** - disable if you don't have GPU "
+                "or aren't running the DeepSeek OCR microservice.",
                 "key": "DEEPSEEK_OCR_ENABLED",
                 "label": "Enable DeepSeek OCR",
                 "type": "bool",
