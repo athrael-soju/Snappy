@@ -132,41 +132,44 @@ Head to `backend/docs/architecture.md` and `backend/docs/analysis.md` for a deep
 - **[Option B](#option-b---run-the-full-stack-with-docker-compose-build-from-source-)** 🔨 - Build from source: Full Docker Compose stack
 - **[Option C](#option-c---run-services-locally-)** 💻 - Local development: Run services individually
 
-### Prerequisites for all options ✅
+### Simplified Configuration ✅
 
-1. **Prepare environment files** 📝
+Snappy uses an opinionated configuration approach with automatic optimizations. You only need to configure essential settings:
+
+1. **Copy the environment file** 📝
 
    ```bash
    cp .env.example .env
-   cp frontend/.env.example frontend/.env.local
    ```
 
-   Add your OpenAI API key to `frontend/.env.local` and review the backend defaults in `.env`. 🔑
-
-2. **Choose and start the ColPali embedding service** 🧠
-
-   From `colpali/` pick one profile:
+2. **Edit essential settings in `.env`** 🔑
 
    ```bash
-   # GPU profile (CUDA + flash-attn tooling)
-   docker compose --profile gpu up -d --build
+   # Required
+   QDRANT_COLLECTION_NAME=your-collection-name  # Name for your document collection
+   OPENAI_API_KEY=your-api-key                  # For chat feature
 
-   # CPU profile (no GPU dependencies)
-   docker compose --profile cpu up -d --build
+   # Optional
+   BATCH_SIZE=4                                 # 2-4 for CPU, 4-8 for GPU
+   DEEPSEEK_OCR_ENABLED=true                    # Enable OCR (requires GPU)
    ```
 
-   Only start one profile at a time to avoid port clashes. The first GPU build compiles `flash-attn`; subsequent builds reuse the cached wheel. ⚠️
-
-3. **Start the DeepSeek OCR service (if needed)** 🔍
-
-   For advanced text extraction with configurable model sizes and modes:
+3. **Start the stack** 🚀
 
    ```bash
-   cd deepseek-ocr
-   docker compose up -d --build
+   # GPU-accelerated (recommended - 30-50x faster)
+   docker compose --profile gpu up -d
+
+   # CPU-only (slower but works without GPU)
+   docker compose --profile cpu up -d
    ```
 
-   The service runs at http://localhost:8200 and requires a GPU. Enable it via `DEEPSEEK_OCR_ENABLED=True` in `.env` only when you plan to run the GPU profile. See `deepseek-ocr/README.md` for setup details.
+**That's it!** The system automatically configures:
+- ✅ Binary quantization (32x memory reduction)
+- ✅ Mean pooling (better recall)
+- ✅ Re-ranking (improved accuracy)
+- ✅ Parallelism (workers, connection pools)
+- ✅ Storage optimization (disk vs RAM)
 
 ---
 
