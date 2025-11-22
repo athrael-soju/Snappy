@@ -82,7 +82,7 @@ services:
     env_file:
       - ../duckdb/.env
     volumes:
-      - duckdb_data:/data
+      - duckdb_data:/app/data
     networks:
       - snappy-network
     restart: unless-stopped
