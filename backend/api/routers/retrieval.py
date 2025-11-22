@@ -109,7 +109,7 @@ async def search(
                                 ocr_success_count += 1
                         except Exception as exc:
                             logger.warning(
-                                "DuckDB OCR fetch failed, continuing without OCR data",
+                                "DuckDB OCR fetch failed, falling back to MinIO URL",
                                 extra={
                                     "operation": "search",
                                     "filename": filename,
@@ -117,6 +117,10 @@ async def search(
                                     "error": str(exc),
                                 },
                             )
+                            # Fallback to MinIO URL when DuckDB fails
+                            json_url = payload.get("ocr_url") or payload.get("storage_url")
+                            if json_url:
+                                ocr_success_count += 1
                     else:
                         # DuckDB disabled: use MinIO json_url
                         json_url = payload.get("ocr_url") or payload.get("storage_url")

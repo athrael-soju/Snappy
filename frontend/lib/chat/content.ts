@@ -3,6 +3,35 @@ import { logger } from '@/lib/utils/logger';
 
 type DataUrl = { mime: string; base64: string };
 
+// Cache for OCR JSON data to avoid duplicate fetches
+const ocrDataCache = new Map<string, any>();
+
+async function fetchOcrData(result: SearchItem): Promise<any> {
+    // Check if OCR data is inline in payload (DuckDB mode)
+    const ocrData = result.payload?.ocr;
+    if (ocrData) {
+        return ocrData;
+    }
+
+    // MinIO mode: fetch from json_url
+    if (result.json_url) {
+        // Check cache first
+        if (ocrDataCache.has(result.json_url)) {
+            return ocrDataCache.get(result.json_url);
+        }
+
+        // Fetch and cache
+        const jsonResponse = await fetch(result.json_url);
+        if (jsonResponse.ok) {
+            const jsonData = await jsonResponse.json();
+            ocrDataCache.set(result.json_url, jsonData);
+            return jsonData;
+        }
+    }
+
+    return null;
+}
+
 async function fetchImageAsDataUrl(url: string): Promise<DataUrl> {
     const response = await fetch(url);
     if (!response.ok) {
@@ -145,51 +174,58 @@ export async function buildMarkdownContent(results: SearchItem[], query: string)
     const pageContents: string[] = [];
     const IMAGE_REGION_LABELS = ['figure', 'diagram', 'image', 'chart', 'graph'];
 
-    for (const result of results || []) {
+    // Parallelize OCR data fetches
+    const fetchTasks = (results || []).map(async (result) => {
         try {
+            const ocrData = await fetchOcrData(result);
+            if (!ocrData) return null;
+
             let pageText: string | null = null;
 
-            // Check if OCR data is inline in payload (DuckDB mode)
-            const ocrData = result.payload?.ocr;
-            if (ocrData) {
-                // DuckDB mode: try pre-formatted fields first
-                // Priority: markdown > text > raw_text
-                pageText = ocrData.markdown || ocrData.text || ocrData.raw_text || null;
+            // Try pre-formatted fields first
+            // Priority: markdown > text > raw_text
+            pageText = ocrData.markdown || ocrData.text || ocrData.raw_text || null;
 
-                // If no pre-formatted fields, build from regions
-                if (!pageText && ocrData.regions && Array.isArray(ocrData.regions)) {
-                    // Exclude image regions (their content is URLs, not text)
-                    const regionTexts = ocrData.regions
-                        .filter((region: any) => !IMAGE_REGION_LABELS.includes(region.label?.toLowerCase()))
-                        .map((region: any) => region.content || '')
-                        .filter((text: string) => text.trim())
-                        .join('\n\n');
+            // If no pre-formatted fields, build from regions
+            if (!pageText && ocrData.regions && Array.isArray(ocrData.regions)) {
+                // Exclude image regions (their content is URLs, not text)
+                const regionTexts = ocrData.regions
+                    .filter((region: any) => !IMAGE_REGION_LABELS.includes(region.label?.toLowerCase()))
+                    .map((region: any) => region.content || '')
+                    .filter((text: string) => text.trim())
+                    .join('\n\n');
 
-                    if (regionTexts) {
-                        pageText = regionTexts;
-                    }
+                if (regionTexts) {
+                    pageText = regionTexts;
                 }
-            } else if (result.json_url) {
-                // MinIO mode: fetch from json_url (when DuckDB disabled)
-                const jsonResponse = await fetch(result.json_url);
-                if (jsonResponse.ok) {
-                    const jsonData = await jsonResponse.json();
-                    // Use the same priority as DuckDB mode
-                    pageText = jsonData.markdown || jsonData.text || jsonData.raw_text || null;
+            }
 
-                    // Inline local images in markdown if present
-                    if (pageText && jsonData.markdown) {
-                        pageText = await inlineLocalImages(pageText);
-                    }
-                }
+            // Inline local images in markdown if present
+            if (pageText && ocrData.markdown) {
+                pageText = await inlineLocalImages(pageText);
             }
 
             if (pageText && pageText.trim()) {
-                // Add page section with label header
-                pageContents.push(`## ${result.label || "Unknown"}\n\n${pageText.trim()}`);
+                return {
+                    label: result.label || "Unknown",
+                    text: pageText.trim()
+                };
             }
+
+            return null;
         } catch (error) {
             logger.error('Failed to process OCR content', { error, label: result.label });
+            return null;
+        }
+    });
+
+    // Wait for all fetches to complete in parallel
+    const fetchedPages = await Promise.all(fetchTasks);
+
+    // Build page contents from fetched data
+    for (const page of fetchedPages) {
+        if (page) {
+            pageContents.push(`## ${page.label}\n\n${page.text}`);
         }
     }
 
@@ -222,79 +258,78 @@ ${pageContents.join("\n\n---\n\n")}`;
 
 export async function buildRegionImagesContent(results: SearchItem[], query: string): Promise<any[]> {
     const IMAGE_REGION_LABELS = ['figure', 'diagram', 'image', 'chart', 'graph'];
-    const regionImages: any[] = [];
+
+    // Helper function to fetch and convert image to base64
+    async function fetchRegionImage(imageUrl: string): Promise<any | null> {
+        if (!imageUrl || !(imageUrl.startsWith('http://') || imageUrl.startsWith('https://'))) {
+            return null;
+        }
+
+        const isLocal = imageUrl.includes("localhost") || imageUrl.includes("127.0.0.1");
+        let resolvedUrl = imageUrl;
+
+        if (process.env.PUBLIC_MINIO_URL_SET === "true" && isLocal) {
+            resolvedUrl = resolvedUrl
+                .replace("localhost", "minio")
+                .replace("127.0.0.1", "minio");
+        }
+
+        if (isLocal) {
+            try {
+                const imageResponse = await fetch(resolvedUrl);
+                if (!imageResponse.ok && resolvedUrl !== imageUrl) {
+                    // Fallback to original URL
+                    const fallbackResponse = await fetch(imageUrl);
+                    if (!fallbackResponse.ok) {
+                        return null;
+                    }
+                    const imageBuffer = await fallbackResponse.arrayBuffer();
+                    const base64 = Buffer.from(imageBuffer).toString("base64");
+                    const mimeType = fallbackResponse.headers.get("content-type") || "image/png";
+                    return { type: "input_image", image_url: `data:${mimeType};base64,${base64}` } as const;
+                } else if (imageResponse.ok) {
+                    const imageBuffer = await imageResponse.arrayBuffer();
+                    const base64 = Buffer.from(imageBuffer).toString("base64");
+                    const mimeType = imageResponse.headers.get("content-type") || "image/png";
+                    return { type: "input_image", image_url: `data:${mimeType};base64,${base64}` } as const;
+                }
+            } catch {
+                return null;
+            }
+        } else {
+            return { type: "input_image", image_url: imageUrl } as const;
+        }
+
+        return null;
+    }
+
+    // Collect all image fetch tasks
+    const imageFetchTasks: Promise<any | null>[] = [];
 
     for (const result of results || []) {
         try {
-            let regions: any[] = [];
-            const ocrData = result.payload?.ocr;
+            // Use cached OCR data from fetchOcrData
+            const ocrData = await fetchOcrData(result);
+            if (!ocrData?.regions) continue;
 
-            if (ocrData?.regions) {
-                // DuckDB mode: regions are inline
-                regions = ocrData.regions;
-            } else if (result.json_url) {
-                // MinIO mode: fetch from json_url
-                const jsonResponse = await fetch(result.json_url);
-                if (jsonResponse.ok) {
-                    const jsonData = await jsonResponse.json();
-                    regions = jsonData.regions || [];
-                }
-            }
-
-            // Filter regions that are images (figures, tables, diagrams, etc.)
-            const imageRegions = regions.filter((region: any) =>
+            // Filter regions that are images (figures, diagrams, etc.)
+            const imageRegions = ocrData.regions.filter((region: any) =>
                 IMAGE_REGION_LABELS.includes(region.label?.toLowerCase())
             );
 
             for (const region of imageRegions) {
-                // For image regions, the URL is stored in the content field
-                const imageUrl = region.content?.trim();
-
-                if (!imageUrl || !(imageUrl.startsWith('http://') || imageUrl.startsWith('https://'))) {
-                    continue;
-                }
-
-                const isLocal = imageUrl.includes("localhost") || imageUrl.includes("127.0.0.1");
-                let resolvedUrl = imageUrl;
-
-                if (process.env.PUBLIC_MINIO_URL_SET === "true" && isLocal) {
-                    resolvedUrl = resolvedUrl
-                        .replace("localhost", "minio")
-                        .replace("127.0.0.1", "minio");
-                }
-
-                if (isLocal) {
-                    try {
-                        const imageResponse = await fetch(resolvedUrl);
-                        if (!imageResponse.ok && resolvedUrl !== imageUrl) {
-                            // Fallback to original URL
-                            const fallbackResponse = await fetch(imageUrl);
-                            if (!fallbackResponse.ok) {
-                                continue;
-                            }
-                            const imageBuffer = await fallbackResponse.arrayBuffer();
-                            const base64 = Buffer.from(imageBuffer).toString("base64");
-                            const mimeType = fallbackResponse.headers.get("content-type") || "image/png";
-                            const dataUrl = `data:${mimeType};base64,${base64}`;
-                            regionImages.push({ type: "input_image", image_url: dataUrl } as const);
-                        } else if (imageResponse.ok) {
-                            const imageBuffer = await imageResponse.arrayBuffer();
-                            const base64 = Buffer.from(imageBuffer).toString("base64");
-                            const mimeType = imageResponse.headers.get("content-type") || "image/png";
-                            const dataUrl = `data:${mimeType};base64,${base64}`;
-                            regionImages.push({ type: "input_image", image_url: dataUrl } as const);
-                        }
-                    } catch {
-                        // Skip images that fail to fetch
-                    }
-                } else {
-                    regionImages.push({ type: "input_image", image_url: imageUrl } as const);
-                }
+                // For image regions, the URL is stored in image_url field (or content field for compatibility)
+                const imageUrl = (region.image_url || region.content)?.trim();
+                imageFetchTasks.push(fetchRegionImage(imageUrl));
             }
         } catch {
             // Skip pages that fail to process
         }
     }
+
+    // Parallelize all image fetches
+    const fetchedImages = await Promise.all(imageFetchTasks);
+    const regionImages = fetchedImages.filter(Boolean);
 
     if (regionImages.length === 0) {
         return [];
