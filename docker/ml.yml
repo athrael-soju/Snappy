@@ -79,6 +79,7 @@ services:
     image: duckdb:latest
     ports:
       - "8300:8300"
+      - "4213:42130"
     env_file:
       - ../duckdb/.env
     volumes:
