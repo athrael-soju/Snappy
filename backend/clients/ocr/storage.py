@@ -212,7 +212,7 @@ class OcrStorageHandler:
         # Store to DuckDB if enabled (non-blocking)
         if self._duckdb and self._duckdb.is_enabled():
             try:
-                self._duckdb.store_ocr_page(
+                success = self._duckdb.store_ocr_page(
                     provider=payload.get("provider", "deepseek-ocr"),
                     version=payload.get("version", "1.0"),
                     filename=str(filename) if filename is not None else "",
@@ -244,9 +244,16 @@ class OcrStorageHandler:
                     ),
                     extracted_images=payload.get("extracted_images", []),
                 )
+                if not success:
+                    logger.error(
+                        f"DuckDB storage returned False for {filename} page {page_number}. "
+                        "Data may not be available via DuckDB. Fallback to MinIO will occur during search."
+                    )
             except Exception as exc:
-                logger.warning(
-                    f"Failed to store OCR result in DuckDB (non-blocking): {exc}"
+                logger.error(
+                    f"Failed to store OCR result in DuckDB for {filename} page {page_number}: {exc}. "
+                    "Data will only be available via MinIO URL during search.",
+                    exc_info=True
                 )
 
         return {

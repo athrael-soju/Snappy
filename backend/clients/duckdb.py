@@ -235,8 +235,37 @@ class DuckDBClient:
             logger.warning(f"Failed to get document from DuckDB: {exc}")
             return None
 
+    def get_page_regions(self, filename: str, page_number: int) -> Optional[List[Dict[str, Any]]]:
+        """Get only regions for a specific page (optimized).
+
+        This is more efficient than get_page() when only regions are needed.
+
+        Args:
+            filename: Document filename
+            page_number: Page number
+
+        Returns:
+            List of region dictionaries or None on error
+        """
+        if not self.enabled:
+            return None
+
+        try:
+            response = self.session.get(
+                f"{self.base_url}/ocr/pages/{filename}/{page_number}/regions",
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+            return response.json()
+
+        except Exception as exc:
+            logger.warning(f"Failed to get page regions from DuckDB: {exc}")
+            return None
+
     def get_page(self, filename: str, page_number: int) -> Optional[Dict[str, Any]]:
-        """Get OCR data for a specific page.
+        """Get complete OCR data for a specific page.
+
+        Use get_page_regions() instead if you only need regions for better performance.
 
         Args:
             filename: Document filename

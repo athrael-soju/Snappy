@@ -1,0 +1,208 @@
+name: snappy
+
+services:
+  qdrant:
+    container_name: qdrant
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - snappy-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/6333 && echo -e 'GET /readyz HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q 'HTTP/1.1 200' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  minio:
+    container_name: minio
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - minio_data:/data
+    networks:
+      - snappy-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  colpali:
+    container_name: colpali
+    build:
+      context: ./colpali
+      dockerfile: Dockerfile
+    image: colpali:latest
+    ports:
+      - "7000:7000"
+    env_file:
+      - ./colpali/.env
+    environment:
+      - HUGGINGFACE_HUB_CACHE=/data/hf-cache
+    volumes:
+      - hf_cache:/data/hf-cache
+    networks:
+      - snappy-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    profiles:
+      - minimal
+      - ml
+      - full
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  deepseek-ocr:
+    container_name: deepseek-ocr
+    build:
+      context: ./deepseek-ocr
+      dockerfile: Dockerfile
+    image: deepseek-ocr:latest
+    ports:
+      - "8200:8200"
+    env_file:
+      - ./deepseek-ocr/.env
+    environment:
+      - HUGGINGFACE_HUB_CACHE=/data/hf-cache
+    volumes:
+      - hf_cache:/data/hf-cache
+    networks:
+      - snappy-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8200/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    profiles:
+      - ml
+      - full
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  duckdb:
+    container_name: duckdb
+    build:
+      context: ./duckdb
+      dockerfile: Dockerfile
+    image: duckdb:latest
+    ports:
+      - "8300:8300"
+      - "4213:42130"
+    env_file:
+      - ./duckdb/.env
+    volumes:
+      - duckdb_data:/app/data
+    networks:
+      - snappy-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8300/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - full
+
+  backend:
+    container_name: backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: backend:latest
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      # Docker service names override localhost URLs
+      - COLPALI_URL=http://colpali:7000
+      - DEEPSEEK_OCR_URL=http://deepseek-ocr:8200
+      - DUCKDB_URL=http://duckdb:8300
+      - QDRANT_URL=http://qdrant:6333
+      - MINIO_URL=http://minio:9000
+      - MINIO_PUBLIC_URL=http://localhost:9000
+      # Profile-specific feature flags (set by Makefile)
+      - DEEPSEEK_OCR_ENABLED=${DEEPSEEK_OCR_ENABLED:-true}
+      - DUCKDB_ENABLED=${DUCKDB_ENABLED:-true}
+    volumes:
+      - ./backend:/app
+      - backend_cache:/root/.cache
+    networks:
+      - snappy-network
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    container_name: frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:8000
+    image: frontend:latest
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./frontend/.env
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+      - API_BASE_URL_INTERNAL=http://backend:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    networks:
+      - snappy-network
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  qdrant_data:
+  minio_data:
+  hf_cache:
+  duckdb_data:
+  backend_cache:
+
+networks:
+  snappy-network:
+    driver: bridge

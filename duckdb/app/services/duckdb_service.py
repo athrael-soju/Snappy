@@ -361,8 +361,61 @@ class DuckDBAnalyticsService:
             total_regions=row[4],
         )
 
+    def get_page_regions(self, filename: str, page_number: int) -> List[Dict[str, Any]]:
+        """Retrieve only regions for a page (optimized for search/retrieval).
+
+        This is more efficient than get_page() when only regions are needed,
+        as it avoids fetching text, markdown, and other metadata.
+
+        Args:
+            filename: Document filename
+            page_number: Page number (same as pdf_page_index in Qdrant)
+
+        Returns:
+            List of region dictionaries with id, label, bbox, and content
+
+        Raises:
+            ValueError: If page not found
+        """
+        rows = self.conn.execute(
+            """
+            SELECT
+                r.region_id, r.label, r.bbox_x1, r.bbox_y1, r.bbox_x2, r.bbox_y2, r.content
+            FROM regions r
+            JOIN pages p ON r.page_id = p.id
+            WHERE p.filename = ? AND p.page_number = ?
+            ORDER BY r.id
+            """,
+            [filename, page_number],
+        ).fetchall()
+
+        if not rows:
+            # Check if page exists to provide better error message
+            page_check = self.conn.execute(
+                "SELECT COUNT(*) FROM pages WHERE filename = ? AND page_number = ?",
+                [filename, page_number],
+            ).fetchone()
+            if page_check and page_check[0] == 0:
+                raise ValueError("Page not found")
+            # Page exists but has no regions - return empty list
+            return []
+
+        regions = []
+        for row in rows:
+            regions.append(
+                {
+                    "id": row[0],
+                    "label": row[1],
+                    "bbox": [row[2], row[3], row[4], row[5]],
+                    "content": row[6],
+                }
+            )
+        return regions
+
     def get_page(self, filename: str, page_number: int) -> Dict[str, Any]:
-        """Retrieve page data by filename and page_number.
+        """Retrieve complete page data by filename and page_number.
+
+        Use get_page_regions() instead if you only need regions for better performance.
 
         This matches Qdrant's payload structure:
         - filename: Document filename

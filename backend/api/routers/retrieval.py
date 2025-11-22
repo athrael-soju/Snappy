@@ -96,20 +96,20 @@ async def search(
                 if filename and page_number is not None:
                     ocr_fetch_count += 1
                     if use_duckdb and duckdb_service:
-                        # DuckDB enabled: fetch only regions from DuckDB
+                        # DuckDB enabled: fetch only regions from DuckDB (optimized query)
                         try:
-                            page_data = await asyncio.to_thread(
-                                duckdb_service.get_page, filename, page_number
+                            regions = await asyncio.to_thread(
+                                duckdb_service.get_page_regions, filename, page_number
                             )
-                            if page_data and page_data.get("regions"):
-                                # Only include regions data (image URLs are in content field)
+                            if regions:
+                                # Include regions data (image URLs are in image_url field)
                                 payload["ocr"] = {
-                                    "regions": page_data.get("regions", []),
+                                    "regions": regions,
                                 }
                                 ocr_success_count += 1
                         except Exception as exc:
                             logger.warning(
-                                "DuckDB OCR fetch failed, continuing without OCR data",
+                                "DuckDB OCR fetch failed, falling back to MinIO URL",
                                 extra={
                                     "operation": "search",
                                     "filename": filename,
@@ -117,6 +117,10 @@ async def search(
                                     "error": str(exc),
                                 },
                             )
+                            # Fallback to MinIO URL when DuckDB fails
+                            json_url = payload.get("ocr_url") or payload.get("storage_url")
+                            if json_url:
+                                ocr_success_count += 1
                     else:
                         # DuckDB disabled: use MinIO json_url
                         json_url = payload.get("ocr_url") or payload.get("storage_url")

@@ -101,9 +101,24 @@ async def get_document(filename: str) -> DocumentInfo:
         raise HTTPException(status_code=500, detail=str(exc))
 
 
+@router.get("/ocr/pages/{filename}/{page_number}/regions", response_model=List[Dict[str, Any]])
+async def get_page_regions(filename: str, page_number: int) -> List[Dict[str, Any]]:
+    """Fetch only regions for a specific page (optimized for search/retrieval)."""
+    try:
+        return duckdb_service.get_page_regions(filename, page_number)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except Exception as exc:
+        logger.error("Failed to get page regions: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 @router.get("/ocr/pages/{filename}/{page_number}", response_model=Dict[str, Any])
 async def get_page(filename: str, page_number: int) -> Dict[str, Any]:
-    """Fetch OCR data for a specific page."""
+    """Fetch complete OCR data for a specific page.
+
+    Use /regions endpoint instead if you only need regions for better performance.
+    """
     try:
         return duckdb_service.get_page(filename, page_number)
     except ValueError as exc:
