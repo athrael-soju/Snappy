@@ -253,6 +253,7 @@ make clean         # Stop and remove volumes
 make ps            # Show running services
 make health        # Check service health
 ```
+All `make up*` targets pass `--build`, so each start rebuilds images to pick up Dockerfile/dependency changes (expect slower startup).
 
 Services will come online at: 🌐
 - Backend: http://localhost:8000
@@ -545,5 +546,4 @@ Snappy builds on the work of: 🌟
 
 - 🔥 **PyTorch** - core deep learning framework  
    https://pytorch.org/  
-
 

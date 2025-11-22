@@ -53,6 +53,7 @@ make up-ml
 # Full profile (all services)
 make up-full
 ```
+`make up-*` targets include `--build`, so images rebuild on each start to pick up Dockerfile/dependency changes.
 
 **Note:** DeepSeek OCR is **not included** in the `minimal` profile since it requires GPU.
 

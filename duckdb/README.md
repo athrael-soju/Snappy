@@ -34,6 +34,7 @@ From the project root:
 # Full profile only (DuckDB requires OCR data)
 make up-full
 ```
+`make up-full` includes `--build`, so images rebuild on each start to pick up Dockerfile/dependency changes.
 
 **Note:** DuckDB is **only included** in the `full` profile since it provides analytics over OCR data from DeepSeek OCR.
 

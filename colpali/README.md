@@ -41,6 +41,7 @@ make up-ml
 # Full profile (all services)
 make up-full
 ```
+The Makefile `up` targets include `--build`, so they rebuild images each start to pick up Dockerfile/dependency changes.
 
 The service exposes the API on `http://localhost:7000`. When running via docker-compose,
 the backend automatically connects using service names (`http://colpali:7000`).

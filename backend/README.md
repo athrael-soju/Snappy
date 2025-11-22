@@ -99,6 +99,7 @@ make up-ml
 # Full - All services including DuckDB
 make up-full
 ```
+These Makefile targets include `--build` so images rebuild on each start to pick up Dockerfile or dependency changes.
 
 Or use the legacy approach:
 
@@ -253,4 +254,3 @@ For implementation details, see `backend/CONFIGURATION_GUIDE.md`.
 - **`docs/analysis.md`** - Vision vs. text RAG comparison
 - **`docs/pipeline.md`** - Pipeline processing architecture (vector DB agnostic)
 - **`CONFIGURATION_GUIDE.md`** - Configuration implementation details
-
