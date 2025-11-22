@@ -207,25 +207,6 @@ class EmbeddingProcessor:
                 raise ValueError("get_patches() returned non-dict response")
             patch_results.append(patch)
 
-        for idx, patch in enumerate(patch_results):
-            patch_error = patch.get("error")
-            if patch_error:
-                logger.warning(
-                    f"Mean pooling disabled: ColPali model does not support patches. "
-                    f"Error for image {idx}: {patch_error}. "
-                    "Falling back to without mean pooling."
-                )
-                # Gracefully fall back to no pooling
-                return original_batch, [], []
-
-            if "n_patches_x" not in patch or "n_patches_y" not in patch:
-                logger.warning(
-                    f"Mean pooling disabled: ColPali model did not return patch dimensions "
-                    f"for image {idx}. Falling back to without mean pooling."
-                )
-                # Gracefully fall back to no pooling
-                return original_batch, [], []
-
         pooled_by_rows_batch = []
         pooled_by_columns_batch = []
 
