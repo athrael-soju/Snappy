@@ -1,0 +1,69 @@
+# Application services
+# Backend and Frontend
+
+services:
+  backend:
+    container_name: backend
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    image: backend:latest
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../backend/.env
+    environment:
+      # Docker service names override localhost URLs
+      - COLPALI_URL=http://colpali:7000
+      - DEEPSEEK_OCR_URL=http://deepseek-ocr:8200
+      - DUCKDB_URL=http://duckdb:8300
+      - QDRANT_URL=http://qdrant:6333
+      - MINIO_URL=http://minio:9000
+      - MINIO_PUBLIC_URL=http://localhost:9000
+    volumes:
+      - ../backend:/app
+      - backend_cache:/root/.cache
+    networks:
+      - snappy-network
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    container_name: frontend
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:8000
+    image: frontend:latest
+    ports:
+      - "3000:3000"
+    env_file:
+      - ../frontend/.env
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+      - /app/.next
+    networks:
+      - snappy-network
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  backend_cache:
+
+networks:
+  snappy-network:
+    driver: bridge

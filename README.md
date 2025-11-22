@@ -149,26 +149,29 @@ Snappy uses an opinionated configuration approach with automatic optimizations. 
    QDRANT_COLLECTION_NAME=your-collection-name  # Name for your document collection
    OPENAI_API_KEY=your-api-key                  # For chat feature
 
-   # Optional
-   BATCH_SIZE=4                                 # 2-4 for CPU, 4-8 for GPU
-   DEEPSEEK_OCR_ENABLED=true                    # Enable OCR (requires GPU)
+   # Optional - Hardware Configuration
+   DEEPSEEK_OCR_ENABLED=true                    # Enable OCR (requires NVIDIA GPU)
+   DUCKDB_ENABLED=false                         # Enable DuckDB analytics
+   BATCH_SIZE=4                                 # 2-4 for CPU/Apple Silicon, 4-8 for NVIDIA GPU
    ```
 
-3. **Start the stack** 🚀
+3. **Start with the appropriate profile** 🚀
 
    ```bash
-   # Single command - uses GPU by default (30-50x faster)
-   docker compose up -d
+   # Minimal (ColPali only - works on any hardware)
+   make up-minimal
+
+   # ML (ColPali + DeepSeek OCR - requires NVIDIA GPU)
+   make up-ml
+
+   # Full (All services including DuckDB)
+   make up-full
    ```
 
-   **No GPU?** Edit `.env` and set:
-   ```bash
-   COLPALI_MODE=cpu
-   COLPALI_DOCKERFILE=Dockerfile.cpu
-   DEEPSEEK_OCR_ENABLED=false  # OCR requires GPU
-   ```
+   **Legacy docker-compose.yml:** You can still use `docker compose up -d` which starts all services by default.
 
 **That's it!** The system automatically configures:
+- ✅ Hardware detection (NVIDIA GPU → Apple Silicon MPS → CPU)
 - ✅ Binary quantization (32x memory reduction)
 - ✅ Mean pooling (better recall)
 - ✅ Re-ranking (improved accuracy)
@@ -184,47 +187,71 @@ Use the pre-built images from GitHub Container Registry for instant deployment: 
 
 ```bash
 # Pull pre-built images
-docker pull ghcr.io/athrael-soju/Snappy/backend:latest
-docker pull ghcr.io/athrael-soju/Snappy/frontend:latest
-docker pull ghcr.io/athrael-soju/Snappy/colpali-cpu:latest
-# DeepSeek OCR for advanced text extraction
-docker pull ghcr.io/athrael-soju/Snappy/deepseek-ocr:latest
+docker pull ghcr.io/athrael-soju/snappy/backend:latest
+docker pull ghcr.io/athrael-soju/snappy/frontend:latest
+docker pull ghcr.io/athrael-soju/snappy/colpali:latest
+docker pull ghcr.io/athrael-soju/snappy/deepseek-ocr:latest
+docker pull ghcr.io/athrael-soju/snappy/duckdb:latest
 
-# Start services using your existing docker-compose.yml
-# Make sure to configure it to use these images
-docker compose up -d
+# Start services using Makefile profiles
+make up-minimal  # ColPali only
+make up-ml       # ColPali + DeepSeek OCR
+make up-full     # All services
 ```
 
 **Available images:** 📦
-- `backend:latest` - FastAPI backend (amd64/arm64)
-- `frontend:latest` - Next.js frontend (amd64/arm64)
-- `colpali-cpu:latest` - CPU embedding service (amd64/arm64)
-- `colpali-gpu:latest` - GPU embedding service (amd64 only)
-- `deepseek-ocr:latest` - DeepSeek OCR service (amd64 only, requires GPU)
+- `backend:latest` - FastAPI backend (amd64)
+- `frontend:latest` - Next.js frontend (amd64)
+- `colpali:latest` - Unified embedding service with GPU auto-detection (amd64)
+- `deepseek-ocr:latest` - DeepSeek OCR service (amd64 only, requires NVIDIA GPU)
+- `duckdb:latest` - DuckDB analytics service (amd64)
 
-**Note:** 📌 For complete pre-built image documentation including docker-compose.yml examples, version tags, and production deployment guides, see the [Docker Registry Guide](.github/DOCKER_REGISTRY.md).
+**Hardware Support:** 🖥️
+- ColPali: Auto-detects NVIDIA GPU → Apple Silicon MPS → CPU at runtime
+- DeepSeek OCR: Requires NVIDIA GPU with CUDA
+- All other services: CPU-compatible
+
+**Note:** 📌 For complete pre-built image documentation including version tags and production deployment guides, see the [Docker Registry Guide](.github/DOCKER_REGISTRY.md).
 
 ---
 
 ### Option B - Run the Full Stack with Docker Compose (Build from Source) 🔨
 
-At the project root, start all services with a single command:
+At the project root, choose your deployment profile based on your hardware:
 
 ```bash
-# GPU mode (default - 30-50x faster)
+# Minimal - ColPali only (works on any hardware)
+make up-minimal
+
+# ML - ColPali + DeepSeek OCR (requires NVIDIA GPU)
+make up-ml
+
+# Full - All services including DuckDB
+make up-full
+```
+
+**Using legacy docker-compose.yml:** You can still use the traditional approach:
+```bash
 docker compose up -d --build
 ```
 
-**For CPU-only systems:** Edit `.env` before running:
+This starts all services by default. To disable services, edit `.env`:
 ```bash
-COLPALI_MODE=cpu
-COLPALI_DOCKERFILE=Dockerfile.cpu
-DEEPSEEK_OCR_ENABLED=false
+DEEPSEEK_OCR_ENABLED=false  # Disable OCR (if no GPU)
+DUCKDB_ENABLED=false        # Disable DuckDB
 ```
 
-Then run:
+**Makefile Commands:** 📋
 ```bash
-docker compose up -d --build
+make help          # Show all available commands
+make up            # Start full profile (alias for up-full)
+make down          # Stop all services
+make logs          # View logs from all services
+make logs-backend  # View specific service logs
+make restart       # Restart services
+make clean         # Stop and remove volumes
+make ps            # Show running services
+make health        # Check service health
 ```
 
 Services will come online at: 🌐
@@ -232,21 +259,46 @@ Services will come online at: 🌐
 - Frontend: http://localhost:3000
 - Qdrant: http://localhost:6333
 - MinIO: http://localhost:9000 (console at :9001)
-- DeepSeek OCR: http://localhost:8200 (if enabled)
-- DuckDB Analytics: http://localhost:8300 (if enabled)
+- ColPali: http://localhost:7000
+- DeepSeek OCR: http://localhost:8200 (ML/Full profiles only)
+- DuckDB Analytics: http://localhost:8300 (Full profile only)
 
-Inside Docker, containers reach each other via service names, so keep `COLPALI_URL=http://colpali:7000`, `DEEPSEEK_OCR_URL=http://deepseek-ocr:8200`, and `DUCKDB_URL=http://duckdb:8300` in `.env`. Switch to `http://localhost:*` only when the backend runs directly on your host OS.
+**Service Communication:** 🔗
+- Inside Docker: Services use container names (`http://colpali:7000`, `http://deepseek-ocr:8200`)
+- From host: Services use `localhost` (`http://localhost:7000`, `http://localhost:8200`)
+- `.env` files use `localhost` URLs by default; docker-compose.yml overrides with service names
 
-**Note:** DeepSeek OCR requires an NVIDIA GPU. If you don't have one, set `DEEPSEEK_OCR_ENABLED=false` in `.env`. DuckDB analytics is optional and requires DeepSeek OCR to be enabled.
-
-Update `.env` if you need to expose different hostnames or ports. ⚙️
+**Hardware Auto-Detection:** 🖥️
+- ColPali automatically detects: NVIDIA GPU → Apple Silicon MPS → CPU
+- No manual configuration needed for GPU/CPU switching
+- DeepSeek OCR requires NVIDIA GPU (disable if unavailable)
 
 ---
 
 ### Option C - Run Services Locally 💻
 
-1. In `backend/`, install dependencies and launch FastAPI:
+Each service has a standalone `docker-compose.yml` for isolated development:
 
+```bash
+# ColPali only
+cd colpali && docker compose up
+
+# DeepSeek OCR only (requires NVIDIA GPU)
+cd deepseek-ocr && docker compose up
+
+# Backend with minimal dependencies (Qdrant + MinIO)
+cd backend && docker compose up
+
+# DuckDB only
+cd duckdb && docker compose up
+
+# Frontend with full backend stack
+cd frontend && docker compose up
+```
+
+**For Python services without Docker:**
+
+1. **Backend:**
    ```bash
    cd backend
    python -m venv .venv
@@ -256,31 +308,27 @@ Update `.env` if you need to expose different hostnames or ports. ⚙️
    uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
    ```
 
-2. Start the ColPali embedding service (Docker Compose or locally):
-
+2. **ColPali:**
    ```bash
-   # Docker (preferred)
-   cd ../colpali
-   docker compose --profile cpu up -d --build
-
-   # Or run locally (inside a separate virtualenv)
+   cd colpali
    python -m venv .venv
    source .venv/bin/activate
    pip install -U pip setuptools wheel
    pip install -r requirements.txt
-   uvicorn app:app --host 0.0.0.0 --port 7000 --reload
+   uvicorn app.main:app --host 0.0.0.0 --port 7000 --reload
    ```
 
-3. Start Qdrant and MinIO (via Docker or your preferred deployment).
-
-4. In `frontend/`, install and run the Next.js app:
-
+3. **Frontend:**
    ```bash
+   cd frontend
    yarn install --frozen-lockfile
    yarn dev
    ```
 
-Keep the services from steps 2 and 3 running while you develop.
+**Development Tips:** 💡
+- Service-specific compose files disable ML dependencies by default for faster startup
+- Enable ML services in individual `.env` files as needed
+- All services automatically detect available hardware (GPU/CPU)
 
 ---
 
@@ -442,6 +490,11 @@ Chat streaming lives in `frontend/app/api/chat/route.ts`. The route calls the ba
 - ✅ Pre-commit hooks (autoflake, isort, black, pyright) keep the codebase tidy-run them before contributing.
 - 🏗️ **Architecture:** Service classes follow "Client" naming convention (e.g., `ColPaliClient`, `OcrClient`) for consistent external service interaction patterns.
 - 🏷️ **Version management:** Uses Release Please + Conventional Commits for automated releases. See `VERSIONING.md` for details.
+- 🐳 **Docker organization:**
+  - `Makefile` - Profile-based orchestration (minimal/ml/full)
+  - `docker/*.yml` - Split compose files (base/ml/app)
+  - `*/docker-compose.yml` - Per-service standalone development
+  - `docker-compose.yml` - Legacy fallback for `docker compose up`
 
 ---
 

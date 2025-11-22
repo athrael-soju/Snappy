@@ -69,24 +69,52 @@ Interactive docs live at http://localhost:8000/docs.
 
 ## Docker Compose
 
-The root `docker-compose.yml` coordinates `qdrant`, `minio`, `backend`, and `frontend`. Environment values are pre-wired for container-to-container networking:
+### Standalone Development
 
-- `COLPALI_URL=http://colpali:7000`
-- `DEEPSEEK_OCR_URL=http://deepseek-ocr:8200` (optional)
-- `QDRANT_URL=http://qdrant:6333`
-- `MINIO_URL=http://minio:9000`
-- `MINIO_PUBLIC_URL=http://localhost:9000`
+Run backend with minimal dependencies (Qdrant + MinIO):
 
-Launch everything:
+```bash
+cd backend
+docker compose up -d --build
+```
+
+This starts:
+- Backend API at `http://localhost:8000`
+- Qdrant at `http://localhost:6333`
+- MinIO at `http://localhost:9000`
+
+ML services (ColPali, DeepSeek OCR, DuckDB) are disabled by default for faster startup.
+
+### As Part of Full Stack
+
+From the project root, use the Makefile with profiles:
+
+```bash
+# Minimal - ColPali only (works on any hardware)
+make up-minimal
+
+# ML - ColPali + DeepSeek OCR (requires NVIDIA GPU)
+make up-ml
+
+# Full - All services including DuckDB
+make up-full
+```
+
+Or use the legacy approach:
 
 ```bash
 docker compose up -d --build
 ```
 
-MinIO credentials must be provided; the backend stores page images in object storage and does not fall back to inline storage.
+**Service Communication:**
+- Inside Docker: Services use container names (`http://colpali:7000`, `http://deepseek-ocr:8200`)
+- From host: Services use `localhost` (`http://localhost:7000`, `http://localhost:8200`)
+- `.env` files use `localhost` URLs by default; docker-compose.yml overrides with service names
 
-**Optional Services:**
-- **DeepSeek OCR**: Enable advanced text extraction with `DEEPSEEK_OCR_ENABLED=True`. Start the service separately (see `deepseek-ocr/README.md`). This container runs only in the GPU compose profile; disable OCR when running the CPU stack.
+**Hardware Configuration:**
+- ColPali: Automatically detects NVIDIA GPU → Apple Silicon MPS → CPU
+- DeepSeek OCR: Requires NVIDIA GPU (set `DEEPSEEK_OCR_ENABLED=false` if unavailable)
+- DuckDB: Optional analytics service (set `DUCKDB_ENABLED=false` to disable)
 
 ---
 
