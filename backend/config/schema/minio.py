@@ -83,46 +83,6 @@ SCHEMA: Dict[str, Any] = {
                 "ui_type": "text",
             },
             {
-                "default": 6,
-                "description": "Number of concurrent upload workers (auto-sized)",
-                "help_text": "The backend now sizes this automatically based on CPU "
-                "cores and pipeline concurrency. Override via environment "
-                "variables only when you need to cap or increase "
-                "concurrency manually.",
-                "key": "MINIO_WORKERS",
-                "label": "Worker Threads",
-                "max": 32,
-                "min": 1,
-                "type": "int",
-                "ui_type": "number",
-            },
-            {
-                "default": 3,
-                "description": "Number of retry attempts on failure (auto-sized)",
-                "help_text": "The backend derives this from the chosen worker "
-                "concurrency. Override via environment variables if you "
-                "need stricter or more lenient retry behaviour.",
-                "key": "MINIO_RETRIES",
-                "label": "Retry Attempts",
-                "max": 10,
-                "min": 0,
-                "type": "int",
-                "ui_hidden": True,
-                "ui_type": "number",
-            },
-            {
-                "default": False,
-                "description": "Stop immediately on first error",
-                "help_text": "Advanced troubleshooting option. When left unset the "
-                "backend keeps the resilient default (False); override "
-                "only if you need to abort batches on the first failure.",
-                "key": "MINIO_FAIL_FAST",
-                "label": "Fail Fast",
-                "type": "bool",
-                "ui_hidden": True,
-                "ui_type": "boolean",
-            },
-            {
                 "default": True,
                 "description": "Allow public read access to files",
                 "help_text": "Makes uploaded files publicly accessible without "
@@ -135,39 +95,6 @@ SCHEMA: Dict[str, Any] = {
                 "type": "bool",
                 "ui_hidden": True,
                 "ui_type": "boolean",
-            },
-            {
-                "default": "JPEG",
-                "description": "Image format for stored files",
-                "help_text": "Format for storing processed document images in MinIO. "
-                "JPEG offers best compression with small quality loss "
-                "(recommended). PNG is lossless but larger files. WEBP "
-                "provides better compression than JPEG but may have "
-                "compatibility issues with older systems. Choose based on "
-                "storage space vs quality needs.",
-                "key": "IMAGE_FORMAT",
-                "label": "Image Format",
-                "options": ["JPEG", "PNG", "WEBP"],
-                "type": "str",
-                "ui_hidden": True,
-                "ui_type": "select",
-            },
-            {
-                "default": 75,
-                "description": "Image compression quality (1-100)",
-                "help_text": "Compression quality for JPEG/WEBP images (1-100). Higher "
-                "values (85-95) preserve more detail but larger files. "
-                "Lower values (50-75) save storage but may reduce visual "
-                "quality. Default 75 balances quality and file size well. "
-                "Applied to MinIO uploads. PNG ignores this setting as "
-                "it's lossless.",
-                "key": "IMAGE_QUALITY",
-                "label": "Image Quality",
-                "max": 100,
-                "min": 1,
-                "type": "int",
-                "ui_hidden": True,
-                "ui_type": "number",
             },
         ],
         "ui_hidden": True,

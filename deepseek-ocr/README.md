@@ -2,6 +2,8 @@
 
 FastAPI-based microservice for DeepSeek-OCR document analysis and optical character recognition.
 
+⚠️ **GPU Required**: This service requires an NVIDIA GPU with CUDA support.
+
 ## Overview
 
 This service wraps the DeepSeek-OCR model in a RESTful API, providing powerful document understanding capabilities:
@@ -20,17 +22,40 @@ This service wraps the DeepSeek-OCR model in a RESTful API, providing powerful d
 - 🎨 **Visual Grounding** - Bounding boxes for detected elements
 - 🖼️ **Image Extraction** - Extract and embed figures from documents
 - 🔄 **Docker Ready** - GPU-enabled container with NVIDIA runtime
+- 🖥️ **GPU Only** - Optimized for NVIDIA CUDA acceleration
 
 ## Quick Start
 
-### Using Docker Compose
+### Standalone Development
+
+⚠️ **Requires NVIDIA GPU with CUDA**
 
 ```bash
 cd deepseek-ocr
 docker compose up -d --build
 ```
 
+This starts DeepSeek OCR in isolation. Perfect for:
+- Testing OCR functionality independently
+- Debugging OCR-specific issues
+- Development without the full stack
+
 The service will be available at `http://localhost:8200`.
+
+### As Part of Full Stack
+
+From the project root:
+
+```bash
+# ML profile (ColPali + DeepSeek OCR)
+make up-ml
+
+# Full profile (all services)
+make up-full
+```
+Docker Compose automatically detects when images need rebuilding. To explicitly rebuild after Dockerfile or dependency changes, run `make build` before starting services.
+
+**Note:** DeepSeek OCR is **not included** in the `minimal` profile since it requires GPU.
 
 ### Local Development
 

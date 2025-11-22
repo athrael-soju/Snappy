@@ -1,32 +1,42 @@
-volumes:
-  hf-cache: {}
-
-x-api-common: &api-common
-  environment:
-    - HUGGINGFACE_HUB_CACHE=/data/hf-cache
-    - HF_HOME=/data/hf-cache
-    - PUBLIC_HOST=${PUBLIC_HOST:-localhost}
-    - PUBLIC_PORT=${PUBLIC_PORT:-7000}
-  volumes:
-    - hf-cache:/data/hf-cache
-  ports:
-    - "${PUBLIC_PORT:-7000}:7000"
-  restart: unless-stopped
+# ColPali Standalone - Development/Testing
+# Run this service in isolation for development
+#
+# Usage:
+#   docker compose up       - Start ColPali service
+#   docker compose logs -f  - View logs
+#   docker compose down     - Stop service
 
 services:
-  api-cpu:
-    <<: *api-common
-    profiles: ["cpu"]
+  colpali:
+    container_name: colpali-dev
     build:
       context: .
-      dockerfile: Dockerfile.cpu
-    container_name: colmodernvbert-api-cpu
+      dockerfile: Dockerfile
+    image: colpali:dev
+    ports:
+      - "7000:7000"
+    env_file:
+      - .env
+    environment:
+      - HUGGINGFACE_HUB_CACHE=/data/hf-cache
+      - HF_HOME=/data/hf-cache
+    volumes:
+      - hf_cache:/data/hf-cache
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    # GPU support - gracefully ignored if no GPU available
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
-  api-gpu:
-    <<: *api-common
-    profiles: ["gpu"]
-    build:
-      context: .
-      dockerfile: Dockerfile.gpu
-    container_name: colmodernvbert-api-gpu
-    gpus: "${COLPALI_GPUS:-all}"
+volumes:
+  hf_cache:

@@ -29,8 +29,8 @@ SCHEMA: Dict[str, Any] = {
                 "default": 300,
                 "description": "Request timeout for ColPali API",
                 "help_text": "Maximum time to wait for embedding generation requests "
-                "before timing out. Large documents or CPU mode may need "
-                "higher values (300-600s). GPU mode with small batches can "
+                "before timing out. CPU systems or large documents may need "
+                "higher values (300-600s). GPU systems with small batches can "
                 "use lower values (60-120s). Increase if you see timeout "
                 "errors during document processing.",
                 "key": "COLPALI_API_TIMEOUT",

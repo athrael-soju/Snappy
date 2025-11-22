@@ -5,11 +5,38 @@ A FastAPI-based service that stores and analyzes OCR data using DuckDB.
 ## Features
 
 - **Persistent Storage**: Store OCR results in a DuckDB database for long-term analytics
+- **Document Deduplication**: Automatic detection and prevention of duplicate uploads using content-based fingerprinting (filename, size, page count)
 - **SQL Query Interface**: Execute SQL queries against OCR data via REST API
 - **DuckDB-Wasm UI**: Interactive web interface for data exploration
 - **Full-Text Search**: Search across all OCR text content
 - **Document Management**: List, retrieve, and delete documents
 - **Statistics**: Aggregate statistics and insights
+
+## Quick Start
+
+### Standalone Development
+
+```bash
+cd duckdb
+docker compose up -d --build
+```
+
+This starts DuckDB service in isolation at `http://localhost:8300`. Perfect for:
+- Testing analytics independently
+- Debugging DuckDB-specific queries
+- Development without the full stack
+
+### As Part of Full Stack
+
+From the project root:
+
+```bash
+# Full profile only (DuckDB requires OCR data)
+make up-full
+```
+Docker Compose automatically detects when images need rebuilding. To explicitly rebuild after Dockerfile or dependency changes, run `make build` before starting services.
+
+**Note:** DuckDB is **only included** in the `full` profile since it provides analytics over OCR data from DeepSeek OCR.
 
 ## Architecture
 
@@ -131,7 +158,7 @@ Stores every grounded region extracted from OCR output.
 
 ### UI
 
-- **DuckDB UI Extension** - Access at `http://localhost:4213` (when service is running)
+- **DuckDB UI Extension** - Access at `http://localhost:42130` (when service is running)
 
 ## Configuration
 
@@ -282,7 +309,7 @@ The service includes the official DuckDB UI extension for interactive data explo
 
 ### Access the UI
 
-**URL:** `http://localhost:4213`
+**URL:** `http://localhost:42130`
 
 The UI provides:
 - **SQL query editor** with syntax highlighting and autocomplete

@@ -89,7 +89,7 @@ flowchart TB
 4. `DocumentIndexer` (`services/pipeline/document_indexer.py`) handles batching, embedding, image uploads, optional OCR callbacks, and delegates upserts via `services/qdrant/indexing/qdrant_indexer.py`.
 5. When DeepSeek OCR is enabled, the batch processor invokes `services/ocr` helpers in parallel with adjustable worker settings, storing UUID-named JSON outputs alongside page images in MinIO.
 6. **Metadata Storage**: When DuckDB is enabled, document metadata (filename, size, page count, timestamps) is stored in the `documents` table, and OCR results are stored in the `pages` and `regions` tables for analytics.
-7. When `ENABLE_AUTO_CONFIG_MODE=True`, dual executors overlap embedding, storage, OCR, and upserts based on `get_pipeline_max_concurrency()`.
+7. The system automatically uses concurrent pipeline processing where dual executors overlap embedding, storage, OCR, and upserts based on `get_pipeline_max_concurrency()`.
 8. `/progress/stream/{job_id}` streams progress updates so the UI can reflect status in real time.
 
 ---
@@ -159,7 +159,7 @@ The DuckDB service provides columnar storage for document metadata and OCR resul
 
 4. **Full-Text Search**: Full-text indexes on `pages.text` and `regions.content` enable fast text search across all OCR data.
 
-5. **DuckDB-Wasm UI**: Interactive web UI at http://localhost:4213 for exploring data, running queries, and visualizing results.
+5. **DuckDB-Wasm UI**: Interactive web UI at http://localhost:42130 for exploring data, running queries, and visualizing results.
 
 6. **Graceful Shutdown**: Automatic checkpointing on close ensures all data is flushed to disk before shutdown.
 

@@ -1,0 +1,31 @@
+# DuckDB Standalone - Development/Testing
+# Run this service in isolation for development
+#
+# Usage:
+#   docker compose up       - Start DuckDB service
+#   docker compose logs -f  - View logs
+#   docker compose down     - Stop service
+
+services:
+  duckdb:
+    container_name: duckdb-dev
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: duckdb:dev
+    ports:
+      - "8300:8300"
+      - "4213:42130"
+    env_file:
+      - .env
+    volumes:
+      - duckdb_data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8300/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  duckdb_data:

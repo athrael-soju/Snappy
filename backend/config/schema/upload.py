@@ -54,40 +54,6 @@ SCHEMA: Dict[str, Any] = {
                 "type": "int",
                 "ui_type": "number",
             },
-            {
-                "default": 4.0,
-                "description": "Chunk size in MB for streaming uploads to disk.",
-                "help_text": "Controls how uploaded files are split into chunks while "
-                "streaming to disk. Larger values reduce overhead but "
-                "increase peak memory usage. Accepts values between 0.5 MB "
-                "and 16 MB. Default 4 MB balances throughput and resource "
-                "usage.",
-                "key": "UPLOAD_CHUNK_SIZE_MBYTES",
-                "label": "Upload Chunk Size (MB)",
-                "max": 16,
-                "min": 0.5,
-                "step": 0.5,
-                "type": "float",
-                "ui_hidden": True,
-                "ui_type": "number",
-            },
-            {
-                "default": 4,
-                "description": "Maximum parallel workers for upload processing.",
-                "help_text": "Controls parallelism during upload operations (duplicate "
-                "checks, metadata extraction, etc.). Higher values speed up "
-                "processing for multiple files but increase CPU and network "
-                "usage. Accepts 1-8 workers. Default 4 balances performance "
-                "and resource usage for typical I/O-bound operations.",
-                "key": "UPLOAD_MAX_WORKERS",
-                "label": "Upload Max Workers",
-                "max": 8,
-                "min": 1,
-                "step": 1,
-                "type": "int",
-                "ui_hidden": True,
-                "ui_type": "number",
-            },
         ],
     }
 }

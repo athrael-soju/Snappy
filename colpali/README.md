@@ -4,34 +4,47 @@ This service wraps the ColModernVBert family of ColPali models behind a focused
 FastAPI app. The FastAPI backend calls it whenever it needs to create text or
 image embeddings; you can also run it independently for local experiments.
 
-The service can run on CPU or GPU, exposes lightweight health and metadata
-endpoints, and ships with Docker Compose profiles to make switching between CPU
-and GPU builds trivial.
+The service **automatically detects available hardware** and runs optimally on:
+- **NVIDIA GPU** with CUDA (30-50x faster than CPU)
+- **Apple Silicon** with MPS acceleration
+- **CPU** with optimized threading
+
+No manual configuration needed - the service adapts at runtime!
 
 ---
 
 ## Quick Start (Docker)
 
+### Standalone Development
+
 ```bash
 cd colpali
-
-# GPU profile (builds flash-attn and enables CUDA)
-docker compose --profile gpu up -d --build
-
-# CPU profile (lean image, no GPU requirements)
-docker compose --profile cpu up -d --build
+docker compose up -d --build
 ```
 
-Environment overrides:
+This starts ColPali in isolation with automatic GPU/CPU detection. Perfect for:
+- Testing embeddings independently
+- Debugging ColPali-specific issues
+- Quick iteration on model changes
 
-- `PUBLIC_PORT=7010 docker compose --profile gpu up -d --build`  
-  Publishes the API on port 7010.
-- `COLPALI_GPUS=0,1 docker compose --profile gpu up -d --build`  
-  Pins the service to specific GPU IDs (defaults to `all`).
+### As Part of Full Stack
 
-Compose mounts a shared Hugging Face cache (`hf-cache` volume) and exposes the
-API on `http://{PUBLIC_HOST}:{PUBLIC_PORT}` (defaults to `http://localhost:7000`).
-Set `COLPALI_URL` in `backend/.env` to match the published URL.
+From the project root:
+
+```bash
+# Minimal profile (ColPali only)
+make up-minimal
+
+# ML profile (ColPali + DeepSeek OCR)
+make up-ml
+
+# Full profile (all services)
+make up-full
+```
+Docker Compose automatically detects when images need rebuilding. To explicitly rebuild after Dockerfile or dependency changes, run `make build` before starting services.
+
+The service exposes the API on `http://localhost:7000`. When running via docker-compose,
+the backend automatically connects using service names (`http://colpali:7000`).
 
 ---
 
@@ -47,11 +60,13 @@ pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 7000 --reload
 ```
 
-The service picks the device automatically:
+**Hardware Detection:** The service automatically selects the best available device:
 
-- `cuda` when a compatible GPU is available.
-- `mps` on Apple Silicon.
-- `cpu` otherwise (torch thread counts are set via `CPU_THREADS`).
+1. `cuda:0` - When NVIDIA GPU with CUDA is available
+2. `mps` - When running on Apple Silicon
+3. `cpu` - Fallback with optimized thread counts (via `CPU_THREADS`)
+
+Check logs on startup to see which device was selected.
 
 ---
 

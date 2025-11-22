@@ -1,440 +1,203 @@
 # Snappy Configuration Guide ⚙️
 
-This document lists every runtime setting exposed by the FastAPI backend. Defaults and metadata live in `backend/config_schema.py`, which also powers:
+Snappy uses a simplified configuration approach with sensible defaults that work well for most use cases. The system automatically optimizes settings based on your hardware.
 
-- the `/config/*` API endpoints,
-- the configuration UI,
-- and the `config` module used throughout the application.
-
-Runtime updates take effect immediately but do not persist across restarts—update your `.env` or deployment secrets for changes you want to keep.
+This document lists the user-facing configuration options. Internal optimizations (binary quantization, mean pooling, parallelism) are handled automatically for best performance.
 
 ---
 
 ## Contents
 
-- [How configuration is resolved](#how-configuration-is-resolved)
-- [Hardware profiles](#hardware-profiles)
-- [Core application](#core-application)
-- [Document ingestion](#document-ingestion)
-- [Upload controls](#upload-controls)
-- [ColPali embedding service](#colpali-embedding-service)
-- [DeepSeek OCR](#deepseek-ocr)
-- [Qdrant vector database](#qdrant-vector-database)
-- [Object storage (MinIO)](#object-storage-minio)
-- [DuckDB analytics](#duckdb-analytics)
-- [Operational environment variables](#operational-environment-variables)
-- [Runtime updates via API](#runtime-updates-via-api)
+- [Quick Start](#quick-start)
+- [Core Configuration](#core-configuration)
+- [How Configuration Works](#how-configuration-works)
+- [Configuration Reference](#configuration-reference)
+- [Advanced Features (Enterprise)](#advanced-features-enterprise)
+- [Runtime Updates via API](#runtime-updates-via-api)
 - [Troubleshooting](#troubleshooting)
 
 ---
 
-## How Configuration Is Resolved
+## Quick Start
 
-1. `.env` (and other environment values) load on startup.
-2. `runtime_config` keeps a mutable copy of every setting.
-3. The `config` module looks up values in the schema, coerces them to the correct type, and applies computed defaults when needed (for example, auto-sized MinIO workers).
-4. `/config/update` and `/config/reset` change the runtime store and invalidate cached service clients if a critical setting changed.
+1. Copy `.env.example` to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
 
-Only keys defined in the schema can be updated at runtime.
+2. Update essential settings:
+   ```bash
+   QDRANT_COLLECTION_NAME=your-collection-name
+   OPENAI_API_KEY=your-api-key  # For chat feature
+   ```
+
+3. Optionally adjust:
+   - `BATCH_SIZE` (2-4 for CPU, 4-8 for GPU)
+   - `DEEPSEEK_OCR_ENABLED` (true to enable OCR)
+   - `UPLOAD_MAX_FILES` / `UPLOAD_MAX_FILE_SIZE_MB` (upload limits)
+
+4. Start with Docker:
+   ```bash
+   docker compose up
+   ```
+
+That's it! The system auto-configures parallelism, quantization, and pooling for optimal performance.
 
 ---
 
-## Hardware Profiles
+## Core Configuration
 
-This section provides recommended configurations for different PC specifications. These profiles balance performance, memory usage, and feature availability based on your hardware capabilities.
+**What You Control:**
+- Collection names and upload limits
+- OCR mode (quality vs speed)
+- Batch size (affects memory usage)
+- Search result limit
 
-### Entry-Level (2-4 CPU cores, 4-8GB RAM, No GPU)
+**What's Automatic:**
+- Binary quantization (32x memory reduction)
+- Mean pooling (better recall)
+- Re-ranking (improved accuracy)
+- Parallelism (CPU/GPU workers, connection pools)
+- Storage optimization (disk vs RAM)
 
-Best for: Testing, light document processing, development on constrained hardware.
+---
+
+## How Configuration Works
+
+1. `.env` loads on startup
+2. Hard-coded optimizations apply automatically:
+   - Binary quantization: Always ON
+   - Mean pooling: Always ON
+   - Re-ranking: Always ON
+   - Auto-config mode: Always ON
+3. System auto-sizes:
+   - Pipeline concurrency (based on CPU cores)
+   - MinIO workers (based on CPU + concurrency)
+   - Connection pools (based on workers)
+
+Runtime updates via `/config/*` API take effect immediately but don't persist across restarts—update `.env` for permanent changes.
+
+---
+
+## Configuration Reference
+
+### Core Application
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LOG_LEVEL` | `INFO` | Logging verbosity (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`) |
+| `ALLOWED_ORIGINS` | `http://localhost:3000,http://localhost:8000` | CORS origins (comma-separated). ⚠️ Use specific URLs in production! |
+
+---
+
+### Qdrant Vector Database
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `QDRANT_COLLECTION_NAME` | `documents` | Collection name (also used for MinIO bucket) |
+| `QDRANT_EMBEDDED` | `false` | Use embedded Qdrant (single-machine only) |
+| `QDRANT_URL` | `http://localhost:6333` | Qdrant service URL |
+| `QDRANT_SEARCH_LIMIT` | `20` | Number of search results to return |
+
+**Note:** Binary quantization, mean pooling, and disk storage are automatically enabled for optimal performance.
+
+---
+
+### Document Processing
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `BATCH_SIZE` | `4` | Pages per batch. Use 2-4 for CPU, 4-8 for GPU |
+
+**Note:** Pipeline concurrency auto-adjusts based on CPU cores and batch size.
+
+---
+
+### Upload Controls
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `UPLOAD_MAX_FILE_SIZE_MB` | `10` | Maximum file size (1-200 MB) |
+| `UPLOAD_MAX_FILES` | `5` | Maximum files per upload (1-20) |
+
+---
+
+### ColPali Embedding Service
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `COLPALI_URL` | `http://localhost:7000` | ColPali service endpoint |
+
+**Note:** API timeouts auto-adjust based on GPU availability (120s for GPU, 300s for CPU).
+
+---
+
+### DeepSeek OCR (Optional)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DEEPSEEK_OCR_ENABLED` | `true` | Enable OCR for text extraction |
+| `DEEPSEEK_OCR_URL` | `http://localhost:8200` | DeepSeek OCR service URL |
+| `DEEPSEEK_OCR_MODE` | `Gundam` | Quality mode: `Tiny` (fast), `Small`, `Gundam` (balanced), `Base`, `Large` (high quality) |
+| `DEEPSEEK_OCR_TASK` | `markdown` | Task type: `markdown` (structured), `plain_ocr` (simple text) |
+
+**Note:** Worker threads and connection pools auto-size based on GPU availability.
+
+---
+
+### MinIO Object Storage
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MINIO_URL` | `http://localhost:9000` | MinIO service URL |
+| `MINIO_PUBLIC_URL` | `http://localhost:9000` | Public URL for image links |
+| `MINIO_ACCESS_KEY` | `minioadmin` | ⚠️ Change in production! |
+| `MINIO_SECRET_KEY` | `minioadmin` | ⚠️ Change in production! |
+| `MINIO_PUBLIC_READ` | `true` | Allow public read access |
+
+**Note:** Upload workers, retry attempts, image format (JPEG), and quality (75) are auto-configured.
+
+---
+
+### Frontend
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NEXT_PUBLIC_API_BASE_URL` | `http://localhost:8000` | Backend API URL (for browser) |
+| `PUBLIC_MINIO_URL_SET` | `true` | Replace localhost with service name in Docker |
+
+---
+
+### OpenAI (Chat Feature)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `OPENAI_API_KEY` | `your-api-key-here` | OpenAI API key |
+| `OPENAI_MODEL` | `gpt-4` | Model to use |
+| `OPENAI_TEMPERATURE` | `0.7` | Creativity (0.0-1.0) |
+
+---
+
+## Advanced Features (Enterprise)
+
+These features add complexity but provide additional capabilities for enterprise deployments:
+
+### DuckDB Analytics
+Disabled by default. Provides SQL-based analytics on OCR data.
 
 ```bash
-# Processing - conservative settings
-BATCH_SIZE=1
-ENABLE_AUTO_CONFIG_MODE=False
-
-# Upload - smaller limits
-UPLOAD_MAX_FILE_SIZE_MB=5
-UPLOAD_MAX_FILES=2
-UPLOAD_CHUNK_SIZE_MBYTES=1
-UPLOAD_MAX_WORKERS=2
-
-# ColPali - extended timeout for CPU processing (~2-3 min/page)
-COLPALI_API_TIMEOUT=600
-
-# DeepSeek OCR - disabled (requires GPU)
-DEEPSEEK_OCR_ENABLED=False
-
-# Qdrant - memory-efficient settings
-QDRANT_ON_DISK=True
-QDRANT_ON_DISK_PAYLOAD=True
-QDRANT_USE_BINARY=True
-QDRANT_MEAN_POOLING_ENABLED=True
-QDRANT_PREFETCH_LIMIT=100
-
-# MinIO - reduced concurrency
-MINIO_WORKERS=4
-MINIO_RETRIES=3
-IMAGE_FORMAT=JPEG
-IMAGE_QUALITY=60
-
-# DuckDB - disabled to reduce resource usage
-DUCKDB_ENABLED=False
+DUCKDB_ENABLED=false  # Set to true to enable
 ```
 
-**Expected performance:** ~2-3 minutes per page for embedding generation. Suitable for processing small documents (1-10 pages) with limited concurrent operations.
-
----
-
-### Mid-Range (4-8 CPU cores, 16-32GB RAM, No GPU)
-
-Best for: Regular document processing, moderate workloads, development and testing.
-
-```bash
-# Processing - balanced settings
-BATCH_SIZE=4
-ENABLE_AUTO_CONFIG_MODE=True
-
-# Upload - standard limits
-UPLOAD_MAX_FILE_SIZE_MB=10
-UPLOAD_MAX_FILES=5
-UPLOAD_CHUNK_SIZE_MBYTES=4
-UPLOAD_MAX_WORKERS=4
-
-# ColPali - standard timeout
-COLPALI_API_TIMEOUT=300
-
-# DeepSeek OCR - disabled (requires GPU)
-DEEPSEEK_OCR_ENABLED=False
-
-# Qdrant - balanced memory/performance
-QDRANT_ON_DISK=True
-QDRANT_ON_DISK_PAYLOAD=True
-QDRANT_USE_BINARY=False
-QDRANT_MEAN_POOLING_ENABLED=False
-QDRANT_PREFETCH_LIMIT=200
-
-# MinIO - moderate concurrency
-MINIO_WORKERS=8
-MINIO_RETRIES=3
-IMAGE_FORMAT=JPEG
-IMAGE_QUALITY=75
-
-# DuckDB - optional, enable if analytics needed
-DUCKDB_ENABLED=False
-DUCKDB_BATCH_SIZE=10
-```
-
-**Expected performance:** ~1.5-2 minutes per page for embedding generation. Handles medium documents (10-50 pages) with reasonable throughput.
-
----
-
-### High-End CPU (8-16 CPU cores, 32-64GB RAM, No GPU)
-
-Best for: Production workloads without GPU, high-throughput document processing, server deployments.
-
-```bash
-# Processing - aggressive batching
-BATCH_SIZE=8
-ENABLE_AUTO_CONFIG_MODE=True
-
-# Upload - increased limits
-UPLOAD_MAX_FILE_SIZE_MB=50
-UPLOAD_MAX_FILES=10
-UPLOAD_CHUNK_SIZE_MBYTES=8
-UPLOAD_MAX_WORKERS=6
-
-# ColPali - reasonable timeout with fast CPU
-COLPALI_API_TIMEOUT=240
-
-# DeepSeek OCR - disabled (requires GPU)
-DEEPSEEK_OCR_ENABLED=False
-
-# Qdrant - performance-oriented
-QDRANT_ON_DISK=True
-QDRANT_ON_DISK_PAYLOAD=False
-QDRANT_USE_BINARY=True
-QDRANT_BINARY_ALWAYS_RAM=True
-QDRANT_MEAN_POOLING_ENABLED=False
-QDRANT_PREFETCH_LIMIT=300
-QDRANT_SEARCH_OVERSAMPLING=3.0
-
-# MinIO - high concurrency
-MINIO_WORKERS=12
-MINIO_RETRIES=4
-IMAGE_FORMAT=WEBP
-IMAGE_QUALITY=80
-
-# DuckDB - enabled for analytics
-DUCKDB_ENABLED=False
-DUCKDB_BATCH_SIZE=20
-```
-
-**Expected performance:** ~1-1.5 minutes per page for embedding generation. Efficiently processes large documents (50-200 pages) with good concurrency.
-
----
-
-### GPU-Accelerated (8+ CPU cores, 32GB+ RAM, NVIDIA GPU 8GB+ VRAM)
-
-Best for: Production workloads, maximum throughput, full feature set including OCR.
-
-```bash
-# Processing - high throughput
-BATCH_SIZE=12
-ENABLE_AUTO_CONFIG_MODE=True
-
-# Upload - maximum limits
-UPLOAD_MAX_FILE_SIZE_MB=100
-UPLOAD_MAX_FILES=15
-UPLOAD_CHUNK_SIZE_MBYTES=8
-UPLOAD_MAX_WORKERS=8
-
-# ColPali - fast GPU processing
-COLPALI_API_TIMEOUT=120
-
-# DeepSeek OCR - enabled with GPU
-DEEPSEEK_OCR_ENABLED=True
-DEEPSEEK_OCR_API_TIMEOUT=180
-DEEPSEEK_OCR_MAX_WORKERS=4
-DEEPSEEK_OCR_POOL_SIZE=20
-DEEPSEEK_OCR_MODE=Gundam
-DEEPSEEK_OCR_INCLUDE_GROUNDING=True
-DEEPSEEK_OCR_INCLUDE_IMAGES=True
-
-# Qdrant - maximum performance
-QDRANT_ON_DISK=False
-QDRANT_ON_DISK_PAYLOAD=False
-QDRANT_USE_BINARY=True
-QDRANT_BINARY_ALWAYS_RAM=True
-QDRANT_MEAN_POOLING_ENABLED=False
-QDRANT_PREFETCH_LIMIT=400
-QDRANT_SEARCH_OVERSAMPLING=3.0
-
-# MinIO - maximum concurrency
-MINIO_WORKERS=14
-MINIO_RETRIES=4
-IMAGE_FORMAT=WEBP
-IMAGE_QUALITY=85
-
-# DuckDB - enabled for full analytics
-DUCKDB_ENABLED=True
-DUCKDB_BATCH_SIZE=25
-```
-
-**Expected performance:** ~1-3 seconds per page for embedding generation. Processes very large documents (200+ pages) rapidly with full OCR capabilities.
-
----
-
-### Multi-GPU Server (16+ CPU cores, 64GB+ RAM, Multiple NVIDIA GPUs 16GB+ VRAM each)
-
-Best for: Enterprise deployments, high-volume document processing, maximum quality settings.
-
-```bash
-# Processing - maximum throughput
-BATCH_SIZE=16
-ENABLE_AUTO_CONFIG_MODE=True
-
-# Upload - maximum limits
-UPLOAD_MAX_FILE_SIZE_MB=200
-UPLOAD_MAX_FILES=20
-UPLOAD_CHUNK_SIZE_MBYTES=16
-UPLOAD_MAX_WORKERS=8
-
-# ColPali - minimal timeout with fast multi-GPU
-COLPALI_API_TIMEOUT=60
-
-# DeepSeek OCR - maximum quality and throughput
-DEEPSEEK_OCR_ENABLED=True
-DEEPSEEK_OCR_API_TIMEOUT=120
-DEEPSEEK_OCR_MAX_WORKERS=16
-DEEPSEEK_OCR_POOL_SIZE=60
-DEEPSEEK_OCR_MODE=Large
-DEEPSEEK_OCR_INCLUDE_GROUNDING=True
-DEEPSEEK_OCR_INCLUDE_IMAGES=True
-
-# Qdrant - everything in RAM
-QDRANT_ON_DISK=False
-QDRANT_ON_DISK_PAYLOAD=False
-QDRANT_USE_BINARY=True
-QDRANT_BINARY_ALWAYS_RAM=True
-QDRANT_MEAN_POOLING_ENABLED=False
-QDRANT_PREFETCH_LIMIT=500
-QDRANT_SEARCH_OVERSAMPLING=4.0
-
-# MinIO - maximum parallelism
-MINIO_WORKERS=20
-MINIO_RETRIES=5
-IMAGE_FORMAT=WEBP
-IMAGE_QUALITY=90
-
-# DuckDB - enabled with large batches
-DUCKDB_ENABLED=True
-DUCKDB_BATCH_SIZE=50
-```
-
-**Expected performance:** Sub-second embedding generation. Handles batch processing of thousands of pages with highest quality OCR.
-
----
-
-### Key Tuning Parameters by Resource
-
-| Resource | Low Usage | High Usage |
-|----------|-----------|------------|
-| **CPU** | `BATCH_SIZE=1-2`, `MINIO_WORKERS=4`, `UPLOAD_MAX_WORKERS=2` | `BATCH_SIZE=12-16`, `MINIO_WORKERS=14-20`, `UPLOAD_MAX_WORKERS=8` |
-| **RAM** | `QDRANT_ON_DISK=True`, `QDRANT_ON_DISK_PAYLOAD=True`, `QDRANT_MEAN_POOLING_ENABLED=True` | `QDRANT_ON_DISK=False`, `QDRANT_ON_DISK_PAYLOAD=False` |
-| **GPU VRAM** | `DEEPSEEK_OCR_MODE=Tiny`, `DEEPSEEK_OCR_MAX_WORKERS=2` | `DEEPSEEK_OCR_MODE=Large`, `DEEPSEEK_OCR_MAX_WORKERS=8-16` |
-| **Storage** | `IMAGE_QUALITY=60`, `IMAGE_FORMAT=JPEG` | `IMAGE_QUALITY=90`, `IMAGE_FORMAT=WEBP` |
-| **Network** | `UPLOAD_CHUNK_SIZE_MBYTES=1`, `MINIO_RETRIES=2` | `UPLOAD_CHUNK_SIZE_MBYTES=16`, `MINIO_RETRIES=5` |
-
----
-
-### Auto-Sizing Behavior
-
-When `ENABLE_AUTO_CONFIG_MODE=True`, the system automatically adjusts:
-
-- **Pipeline concurrency** scales with CPU count (1-4 workers based on cores)
-- **MinIO workers** scale from 4-14 based on CPU count
-- **Retry attempts** adjust proportionally with worker count
-
-Manual overrides in `.env` take precedence over auto-sizing.
-
----
-
-## Core Application
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `LOG_LEVEL` | str | `INFO` | Logging verbosity (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`). |
-| `ALLOWED_ORIGINS` | list | `*` | CORS policy. Use explicit URLs for production. |
-| `UVICORN_RELOAD` | bool | `True` | Hot reload in development. Disable in production. |
-
-⚠️ `ALLOWED_ORIGINS=["*"]` is permissive; lock it down when exposing the API.
-
----
-
-## Document Ingestion
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `BATCH_SIZE` | int | `4` | Pages processed per batch. Higher values increase throughput but need more memory. |
-| `ENABLE_AUTO_CONFIG_MODE` | bool | `True` | Overlaps embedding, storage, and upserts. Disable for debugging or very small machines. |
-
-Helpers:
-- `config.get_ingestion_worker_threads()` estimates PDF conversion threads from CPU count.
-- `config.get_pipeline_max_concurrency()` sizes pipeline concurrency.
-
----
-
-## Upload Controls
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `UPLOAD_ALLOWED_FILE_TYPES` | list | `pdf` | Comma-separated extensions accepted during upload. Snappy currently ships with PDF support only; the configuration UI prevents deselecting the last remaining type. |
-| `UPLOAD_MAX_FILE_SIZE_MB` | int | `10` | Maximum size (MB) for a single file. Values are clamped between 1 and 200 MB. |
-| `UPLOAD_MAX_FILES` | int | `5` | Maximum number of files per upload request. Clamped between 1 and 20. |
-| `UPLOAD_CHUNK_SIZE_MBYTES` | int | `2` | Chunk size used when streaming uploads to disk. Values outside 64 KB to 16 MB are clamped automatically. |
-
-> The upload endpoint validates all limits server-side. Adjusting these values affects both the backend acceptance criteria and the frontend hints.
-
----
-
-## ColPali Embedding Service
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `COLPALI_URL` | str | `http://localhost:7000` | Endpoint for the ColPali service. |
-| `COLPALI_API_TIMEOUT` | int | `300` | Timeout (seconds) for embedding requests. Increase for large documents, especially on CPU. |
-
----
-
-## DeepSeek OCR
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `DEEPSEEK_OCR_ENABLED` | bool | `False` | Enable/disable DeepSeek OCR integration for advanced text extraction. |
-| `DEEPSEEK_OCR_URL` | str | `http://localhost:8200` | Base URL for the DeepSeek OCR microservice. |
-| `DEEPSEEK_OCR_API_TIMEOUT` | int | `180` | Request timeout (seconds) for OCR API calls. Increase for longer documents or CPU-only deployments. |
-| `DEEPSEEK_OCR_MAX_WORKERS` | int | `4` | Maximum concurrent OCR requests per batch. Higher values increase throughput but require more GPU memory. |
-| `DEEPSEEK_OCR_POOL_SIZE` | int | `20` | HTTP connection pool size. Should be ≥ (Max Workers × 3) to handle retries. |
-| `DEEPSEEK_OCR_MODE` | str | `Gundam` | Default processing mode: `Gundam` (best balance), `Tiny` (fastest), `Small` (quick), `Base` (standard), `Large` (highest quality). |
-| `DEEPSEEK_OCR_TASK` | str | `markdown` | Default task type: `markdown` (structured output), `plain_ocr` (simple text), `locate` (find text), `describe` (image description), `custom` (custom prompts). |
-| `DEEPSEEK_OCR_LOCATE_TEXT` | str | `` | Specific text to find when using `locate` task. |
-| `DEEPSEEK_OCR_CUSTOM_PROMPT` | str | `` | Custom prompt when using `custom` task type. Use `<\|grounding\|>` tag for spatial information. |
-| `DEEPSEEK_OCR_INCLUDE_GROUNDING` | bool | `True` | Include bounding box information in OCR results for layout analysis. |
-| `DEEPSEEK_OCR_INCLUDE_IMAGES` | bool | `True` | Extract and embed images from documents as base64-encoded data in markdown output. |
-
-> **GPU requirement:** The DeepSeek OCR container only runs when the GPU Docker Compose profile is active. Disable `DEEPSEEK_OCR_ENABLED` (or point to another OCR service) when running the CPU stack.
-
-The OCR service is optional and runs separately from the main backend. When enabled, it provides advanced text extraction, markdown conversion, visual grounding with bounding boxes, and embedded image extraction. See `deepseek-ocr/README.md` for service setup and `backend/api/routers/ocr.py` for API endpoints.
-
----
-
-## Qdrant Vector Database
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `QDRANT_URL` | str | `http://localhost:6333` | External Qdrant endpoint (ignored in embedded mode). |
-| `QDRANT_HTTP_TIMEOUT` | int | `5` | REST timeout for indexing calls. Increase for large batches. |
-| `QDRANT_EMBEDDED` | bool | `False` | Run Qdrant in-process (handy for tests). |
-| `QDRANT_COLLECTION_NAME` | str | `documents` | Collection name (also drives the MinIO bucket when unset). |
-| `QDRANT_PREFETCH_LIMIT` | int | `200` | Multivector candidates when mean pooling is enabled. Higher values improve recall. |
-| `QDRANT_ON_DISK` | bool | `True` | Store vectors on disk (memory-mapped). |
-| `QDRANT_ON_DISK_PAYLOAD` | bool | `True` | Store payloads on disk. |
-| `QDRANT_USE_BINARY` | bool | `False` | Enable binary quantisation. |
-| `QDRANT_BINARY_ALWAYS_RAM` | bool | `True` | Keep binary vectors in RAM (only when quantisation is enabled). |
-| `QDRANT_SEARCH_IGNORE_QUANT` | bool | `False` | Skip quantisation during search (diagnostic). |
-| `QDRANT_SEARCH_RESCORE` | bool | `True` | Rescore with full precision after quantised search. |
-| `QDRANT_SEARCH_OVERSAMPLING` | float | `2.0` | Candidate oversampling factor for rescoring. |
-| `QDRANT_MEAN_POOLING_ENABLED` | bool | `False` | Enable row/column pooling (improves recall, increases indexing cost). |
-
-Changing collection names, URLs, or quantisation settings triggers client invalidation automatically.
-
----
-
-## Object Storage (MinIO)
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `MINIO_URL` | str | `http://localhost:9000` | Internal endpoint for uploads. |
-| `MINIO_PUBLIC_URL` | str | `http://localhost:9000` | Public URL for image links (defaults to `MINIO_URL` when empty). |
-| `MINIO_ACCESS_KEY` | str | `minioadmin` | Access key (change in production). |
-| `MINIO_SECRET_KEY` | str | `minioadmin` | Secret key (change in production). |
-| `MINIO_BUCKET_NAME` | str | `` (auto) | Bucket name; auto-derived from collection name when blank. |
-| `MINIO_WORKERS` | int | `12` (auto) | Concurrent upload workers. Auto-sized if not set. |
-| `MINIO_RETRIES` | int | `3` (auto) | Retry attempts per object. Auto-sized with workers. |
-| `MINIO_FAIL_FAST` | bool | `False` | Stop on first upload failure. |
-| `MINIO_PUBLIC_READ` | bool | `True` | Apply a public-read bucket policy automatically. |
-| `IMAGE_FORMAT` | str | `JPEG` | Output format (`JPEG`, `PNG`, `WEBP`). |
-| `IMAGE_QUALITY` | int | `75` | JPEG/WEBP quality (ignored for PNG). |
-
-Snappy requires object storage; inline image storage is not supported.
-
----
-
-## DuckDB Analytics
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `DUCKDB_ENABLED` | bool | `False` | Enable DuckDB columnar storage for OCR analytics. |
-| `DUCKDB_URL` | str | `http://localhost:8300` | DuckDB service endpoint. |
-| `DUCKDB_DATABASE_NAME` | str | `documents` | Database name for OCR data storage. |
-| `DUCKDB_API_TIMEOUT` | int | `30` | HTTP timeout for DuckDB API calls (seconds). |
-| `DUCKDB_BATCH_SIZE` | int | `10` | Number of pages to batch for bulk inserts. |
-| `DUCKDB_RETRY_ATTEMPTS` | int | `3` | Retry attempts for failed HTTP requests. |
-
-DuckDB is an optional analytics service that stores OCR results in columnar format for SQL-based analysis. When enabled alongside DeepSeek OCR, extracted text, regions, and metadata are automatically stored in DuckDB for complex queries and reporting. See `duckdb/README.md` for service setup and schema details.
-
-> **Note:** DuckDB integration is non-blocking. If the service is unavailable, OCR processing continues normally with a warning logged.
-
----
-
-## Operational Environment Variables
-
-These values are read directly from the environment and are not part of the dynamic schema:
-
-- `HOST`, `PORT` – used by `backend/main.py` when launching uvicorn.
-- `LOG_LEVEL` – uvicorn respects the environment value at process launch; it remains exposed in the schema for runtime adjustments.
-
-Because they are absent from `config_schema.py`, they cannot be updated through the configuration API.
+### Fine-Grained Control
+The simplified open-source version uses optimized defaults. Enterprise deployments can access:
+- Custom quantization parameters
+- Manual parallelism control
+- Advanced pooling strategies
+- Performance profiling
+- Multi-GPU orchestration
+
+Contact for enterprise licensing and advanced configuration options.
 
 ---
 
@@ -442,19 +205,60 @@ Because they are absent from `config_schema.py`, they cannot be updated through 
 
 | Endpoint | Purpose |
 |----------|---------|
-| `GET /config/schema` | Fetch schema metadata (used by the UI). |
-| `GET /config/values` | Inspect the current runtime values. |
-| `POST /config/update` | Set a single value. Critical keys trigger cache invalidation. |
-| `POST /config/reset` | Restore defaults and clear runtime overrides. |
+| `GET /config/schema` | Fetch schema metadata |
+| `GET /config/values` | Inspect current runtime values |
+| `POST /config/update` | Set a single value (doesn't persist) |
+| `POST /config/reset` | Restore defaults |
+
+**Note:** Changes via API don't persist across restarts. Update `.env` for permanent changes.
 
 ---
 
 ## Troubleshooting
 
-- **Updates ignored?** Ensure the key exists in `config_schema.py`; only schema keys are allowed.
-- **Clients not refreshing?** Critical keys invalidate caches automatically, but manual `.env` changes still require a restart.
-- **MinIO upload failures?** Try reducing `BATCH_SIZE` or temporarily disabling pipeline indexing.
-- **Quantisation changes not applied?** Recreate the Qdrant collection if schema-altering settings changed.
+### Performance
 
-`backend/CONFIGURATION_GUIDE.md` covers how the configuration system is implemented internally.
+**Problem:** Slow indexing on CPU
+- **Solution:** Set `BATCH_SIZE=2` to reduce memory usage and provide better progress feedback
 
+**Problem:** GPU memory issues
+- **Solution:** Reduce `BATCH_SIZE` or switch to `DEEPSEEK_OCR_MODE=Small`
+
+### Configuration
+
+**Problem:** Changes not taking effect
+- **Solution:** Restart services after modifying `.env`. Runtime API updates don't persist.
+
+**Problem:** Upload failures
+- **Solution:** Check `UPLOAD_MAX_FILE_SIZE_MB` limit or try reducing `BATCH_SIZE`
+
+### Deployment
+
+**Problem:** CORS errors in browser
+- **Solution:** Update `ALLOWED_ORIGINS` with your frontend domain (don't use `*` in production)
+
+**Problem:** MinIO connection errors
+- **Solution:** Verify `MINIO_URL` is accessible from backend container (use service name in Docker)
+
+---
+
+## What's Automatic vs Manual
+
+| Feature | Configuration | Notes |
+|---------|--------------|-------|
+| Binary quantization | ✅ Automatic | Always ON (32x memory reduction) |
+| Mean pooling | ✅ Automatic | Always ON (better recall) |
+| Re-ranking | ✅ Automatic | Always ON (improved accuracy) |
+| Disk storage | ✅ Automatic | Always ON (memory optimization) |
+| Pipeline concurrency | ✅ Automatic | Based on CPU cores + batch size |
+| MinIO workers | ✅ Automatic | Based on CPU cores + concurrency |
+| Connection pools | ✅ Automatic | Based on worker counts |
+| Image format/quality | ✅ Automatic | JPEG @ 75% (good balance) |
+| Batch size | 🎛️ Manual | User choice (affects memory) |
+| Upload limits | 🎛️ Manual | User choice (security/UX) |
+| OCR mode | 🎛️ Manual | User choice (speed vs quality) |
+| Collection name | 🎛️ Manual | User choice (organization) |
+
+---
+
+For implementation details, see `backend/config/application.py` which contains the hard-coded optimizations and auto-sizing logic.
