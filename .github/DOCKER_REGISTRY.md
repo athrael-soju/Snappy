@@ -8,10 +8,11 @@ This guide explains how Docker images are automatically built and published to G
 
 The `.github/workflows/docker-publish.yml` workflow automatically:
 
-1. **Builds Docker images** for all components (backend, frontend, colpali-cpu, colpali-gpu, deepseek-ocr, duckdb)
+1. **Builds Docker images** for all components (backend, frontend, colpali, deepseek-ocr, duckdb)
 2. **Publishes to GHCR** at `ghcr.io/athrael-soju/snappy/`
 3. **Tags images** with multiple tags for flexibility
 4. **Supports multi-platform** builds (amd64 and arm64 where applicable)
+5. **Auto-detects hardware** - ColPali image automatically uses GPU/CPU based on runtime detection
 
 ---
 
@@ -93,9 +94,8 @@ Visit: https://github.com/athrael-soju/packages
 You should see:
 - `backend`
 - `frontend`
-- `colpali-cpu`
-- `colpali-gpu`
-- `deepseek-ocr`
+- `colpali` (unified - auto-detects GPU/CPU)
+- `deepseek-ocr` (GPU required)
 - `duckdb`
 
 ### Pull and Test Locally
@@ -201,7 +201,10 @@ To change supported platforms:
 platforms: linux/amd64,linux/arm64,linux/arm/v7
 ```
 
-Note: GPU images should stay `linux/amd64` only due to CUDA compatibility.
+**Note:**
+- ColPali: `linux/amd64` only (contains CUDA libraries for GPU, falls back to CPU at runtime)
+- DeepSeek OCR: `linux/amd64` only (requires NVIDIA GPU with CUDA)
+- Backend/Frontend: Can support multiple platforms
 
 ---
 
@@ -259,4 +262,21 @@ After first successful build:
 
 ---
 
-**Last Updated:** January 12, 2025
+---
+
+## Recent Changes (January 2025)
+
+### Unified ColPali Image
+- ✅ Replaced `colpali-cpu` and `colpali-gpu` with single `colpali` image
+- ✅ Auto-detects GPU at build time (checks for `nvidia-smi`)
+- ✅ Installs CUDA PyTorch + FlashAttention if GPU detected, CPU-only otherwise
+- ✅ Runtime auto-detection: cuda → mps → cpu
+- ✅ Simpler deployment, same performance
+
+### DeepSeek OCR
+- ⚠️ **GPU Required** - Only builds with CUDA support
+- Disable via `DEEPSEEK_OCR_ENABLED=false` if no GPU available
+
+---
+
+**Last Updated:** January 22, 2025
