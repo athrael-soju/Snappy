@@ -43,11 +43,11 @@ This note explains how Snappy approaches document retrieval and how it compares 
    - Upserts vectors into Qdrant via `clients/qdrant/indexing/qdrant_indexer.py`
    - Runs optional OCR callbacks when `clients/ocr` instance is supplied with UUID-based result naming
    - Stores document metadata in DuckDB when enabled
-5. **Pipeline mode** – When `ENABLE_AUTO_CONFIG_MODE=True`, embedding, storage, OCR, and upserts overlap using dual thread pools sized from `config.get_pipeline_max_concurrency()`.
+5. **Pipeline mode** – The system automatically uses concurrent pipeline processing where embedding, storage, OCR, and upserts overlap using dual thread pools sized from `config.get_pipeline_max_concurrency()`.
 6. **Progress** – `/progress/stream/{job_id}` streams status updates over SSE.
 7. **Cancellation** – `/index/cancel/{job_id}` triggers comprehensive cleanup across all services with optional service restart.
 
-Collection schemas come from the model dimension reported by `/info`. Images use UUID-based naming within filename-organized folders. Disabling pipeline mode processes one batch at a time for easier debugging.
+Collection schemas come from the model dimension reported by `/info`. Images use UUID-based naming within filename-organized folders. Pipeline concurrency is automatically optimized based on CPU cores and batch size.
 
 ---
 
@@ -55,7 +55,7 @@ Collection schemas come from the model dimension reported by `/info`. Images use
 
 1. **Query embedding** – `EmbeddingProcessor.batch_embed_query` calls `/embed/queries`.
 2. **Two-stage search** – `SearchManager._reranking_search_batch`
-   - Prefetch against pooled vectors when `QDRANT_MEAN_POOLING_ENABLED=True`
+   - Prefetch against pooled vectors (mean pooling is always enabled)
    - Final rerank with original vectors (`with_payload=True`)
 3. **Response assembly** – `SearchManager.search_with_metadata` returns metadata and image URLs; `/search` formats the API response.
 4. **Multimodal answer** – The frontend chat route streams OpenAI responses and emits `kb.images` events for the UI gallery.
