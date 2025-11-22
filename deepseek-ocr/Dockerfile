@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     ninja-build \
     pkg-config \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Set compiler environment for GPU builds

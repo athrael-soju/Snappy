@@ -210,18 +210,21 @@ class EmbeddingProcessor:
         for idx, patch in enumerate(patch_results):
             patch_error = patch.get("error")
             if patch_error:
-                raise RuntimeError(
-                    "QDRANT_MEAN_POOLING_ENABLED=True but the ColPali /patches"
-                    f" endpoint reported an error for image {idx}: {patch_error}. "
-                    "Disable mean pooling or switch to a model that exposes patch counts."
+                logger.warning(
+                    f"Mean pooling disabled: ColPali model does not support patches. "
+                    f"Error for image {idx}: {patch_error}. "
+                    "Falling back to without mean pooling."
                 )
+                # Gracefully fall back to no pooling
+                return original_batch, [], []
 
             if "n_patches_x" not in patch or "n_patches_y" not in patch:
-                raise RuntimeError(
-                    "QDRANT_MEAN_POOLING_ENABLED=True but the ColPali service did not"
-                    f" return 'n_patches_x'/'n_patches_y' for image {idx}. "
-                    "This model may not support patch estimation; disable mean pooling."
+                logger.warning(
+                    f"Mean pooling disabled: ColPali model did not return patch dimensions "
+                    f"for image {idx}. Falling back to without mean pooling."
                 )
+                # Gracefully fall back to no pooling
+                return original_batch, [], []
 
         pooled_by_rows_batch = []
         pooled_by_columns_batch = []
