@@ -143,26 +143,15 @@ class BatchProcessor:
                 batch_start, image_batch, meta_batch, image_ids
             )
 
-            # Step 3: Run OCR in parallel if enabled (non-blocking)
+            # Step 3: Run OCR in parallel if enabled
             ocr_results: Optional[List[Dict]] = None
             if self.ocr_service is not None and config.DEEPSEEK_OCR_ENABLED:
-                try:
-                    logger.debug(
-                        f"Starting parallel OCR processing for batch {batch_start}"
-                    )
-                    raw_ocr_results = self._process_ocr_batch(
-                        processed_images, meta_batch
-                    )
-                    if raw_ocr_results:
-                        # Filter out None values for type safety
-                        ocr_results = [r for r in raw_ocr_results if r is not None]
-                        if len(ocr_results) != len(raw_ocr_results):
-                            logger.warning(
-                                f"OCR had {len(raw_ocr_results) - len(ocr_results)} failures"
-                            )
-                except Exception as exc:
-                    logger.exception(f"ocr processing failed: {exc}")
-                    # Continue without OCR results
+                logger.debug(
+                    f"Starting parallel OCR processing for batch {batch_start}"
+                )
+                ocr_results = self._process_ocr_batch(
+                    processed_images, meta_batch
+                )
 
         finally:
             for image in image_batch:
@@ -197,12 +186,12 @@ class BatchProcessor:
     )
     def _process_ocr_batch(
         self, processed_images: List[ProcessedImage], meta_batch: List[dict]
-    ) -> Optional[List[Optional[dict]]]:
+    ) -> Optional[List[dict]]:
         """
-        Process OCR for a batch of images in parallel (non-blocking).
+        Process OCR for a batch of images in parallel.
 
-        Returns list of OCR results (or None for each image if OCR disabled/fails).
-        Does not raise exceptions - logs and continues on failure.
+        Raises on failure - no silent fallbacks.
+        Returns None only if OCR is disabled.
         """
         if not self.ocr_service or not self.ocr_service.is_enabled():
             return None
@@ -211,98 +200,86 @@ class BatchProcessor:
             return None
 
         if len(processed_images) != len(meta_batch):
-            logger.warning(
-                "Processed images and metadata length mismatch: %s vs %s",
-                len(processed_images),
-                len(meta_batch),
+            raise ValueError(
+                f"Processed images and metadata length mismatch: {len(processed_images)} vs {len(meta_batch)}"
             )
 
-        effective_length = min(len(processed_images), len(meta_batch))
-        ocr_results: List[Optional[dict]] = [None] * effective_length
+        effective_length = len(processed_images)
+        ocr_results: List[dict] = []
 
-        try:
-            import config
+        import config
 
-            max_workers = getattr(config, "DEEPSEEK_OCR_MAX_WORKERS", 4)
-            max_workers = max(1, min(max_workers, effective_length))
+        max_workers = getattr(config, "DEEPSEEK_OCR_MAX_WORKERS", 4)
+        max_workers = max(1, min(max_workers, effective_length))
 
-            with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                futures = {
-                    executor.submit(self._process_single_ocr, img, meta): idx
-                    for idx, (img, meta) in enumerate(
-                        zip(
-                            processed_images[:effective_length],
-                            meta_batch[:effective_length],
-                        )
-                    )
-                }
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
+                executor.submit(self._process_single_ocr, img, meta): idx
+                for idx, (img, meta) in enumerate(
+                    zip(processed_images, meta_batch)
+                )
+            }
 
-                for future in as_completed(futures):
-                    idx = futures[future]
-                    try:
-                        result = future.result()
-                        ocr_results[idx] = result
-                    except Exception as exc:
-                        logger.warning(f"OCR failed for image {idx} in batch: {exc}")
-                        ocr_results[idx] = None
+            # Pre-allocate list with correct size
+            ocr_results = [None] * effective_length
 
-        except Exception as exc:
-            logger.warning(f"ocr processing error: {exc}")
-            return None
+            for future in as_completed(futures):
+                idx = futures[future]
+                result = future.result()  # Will raise if OCR/storage failed
+                ocr_results[idx] = result
 
         return ocr_results
 
     def _process_single_ocr(
         self, processed_image: ProcessedImage, meta: dict
-    ) -> Optional[dict]:
-        """Process a single image with OCR."""
+    ) -> dict:
+        """Process a single image with OCR.
+
+        Raises on failure - no silent fallbacks.
+        """
         if self.ocr_service is None:
-            return None
+            raise RuntimeError("OCR service not configured")
 
-        try:
-            # Get document_id, filename and page for storage
-            document_id = meta.get("document_id", "unknown")
-            filename = meta.get("filename", "unknown")
-            page_num = meta.get("page_number", 0)
-            extension = self.ocr_service.image_processor.get_extension(
-                processed_image.format
-            )
+        # Extract required fields - will raise KeyError if missing
+        document_id = meta["document_id"]
+        filename = meta["filename"]
+        page_num = meta["page_number"]
+        page_id = meta["page_id"]
 
-            # Run OCR
-            ocr_result = self.ocr_service.processor.process_single(
-                image_bytes=processed_image.data,
-                filename=f"{filename}/page_{page_num}.{extension}",
-            )
+        extension = self.ocr_service.image_processor.get_extension(
+            processed_image.format
+        )
 
-            # Build metadata for storage (include filename for display/analytics)
-            ocr_metadata = {
-                "filename": filename,
-                "document_id": meta.get("document_id"),
-                "page_id": meta.get("page_id"),
-                "pdf_page_index": meta.get("pdf_page_index"),
-                "total_pages": meta.get("total_pages"),
-                "page_width_px": processed_image.width,
-                "page_height_px": processed_image.height,
-                "image_url": processed_image.url,
-                "image_storage": "minio",
-            }
+        # Run OCR
+        ocr_result = self.ocr_service.processor.process_single(
+            image_bytes=processed_image.data,
+            filename=f"{filename}/page_{page_num}.{extension}",
+        )
 
-            # Store OCR results with metadata
-            # Returns: {"ocr_url": "...", "ocr_regions": [{"label": "...", "url": "...", "id": "..."}]}
-            storage_result = self.ocr_service.storage.store_ocr_result(
-                ocr_result=ocr_result,
-                document_id=document_id,
-                page_number=page_num,
-                metadata=ocr_metadata,
-            )
+        # Build metadata with required fields
+        ocr_metadata = {
+            "filename": filename,
+            "document_id": document_id,
+            "page_id": page_id,
+            "pdf_page_index": meta.get("pdf_page_index"),
+            "total_pages": meta.get("total_pages"),
+            "page_width_px": processed_image.width,
+            "page_height_px": processed_image.height,
+            "image_url": processed_image.url,
+            "image_storage": "minio",
+        }
 
-            return {
-                "ocr_url": storage_result.get("ocr_url"),
-                "ocr_regions": storage_result.get("ocr_regions", []),
-                "text_preview": ocr_result.get("text", "")[:200],
-                "region_count": len(ocr_result.get("regions", [])),
-            }
+        # Store OCR results - will raise on DuckDB failure
+        storage_result = self.ocr_service.storage.store_ocr_result(
+            ocr_result=ocr_result,
+            document_id=document_id,
+            page_number=page_num,
+            metadata=ocr_metadata,
+        )
 
-        except Exception as exc:
-            logger.warning(f"Single OCR processing failed: {exc}")
-            return None
+        return {
+            "ocr_url": storage_result["ocr_url"],
+            "ocr_regions": storage_result.get("ocr_regions", []),
+            "text_preview": ocr_result.get("text", "")[:200],
+            "region_count": len(ocr_result.get("regions", [])),
+        }

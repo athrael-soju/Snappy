@@ -414,12 +414,8 @@ class OCRStage:
 
             for future in as_completed(futures):
                 idx = futures[future]
-                try:
-                    result = future.result()
-                    ocr_results[idx] = result
-                except Exception as exc:
-                    logger.warning(f"OCR failed for page {idx}: {exc}")
-                    ocr_results[idx] = None
+                result = future.result()  # Will raise if OCR/storage failed
+                ocr_results[idx] = result
 
         # Cache results
         batch_key = f"{batch.document_id}:{batch.batch_id}"
@@ -428,53 +424,54 @@ class OCRStage:
 
         return ocr_results
 
-    def _process_single_ocr(self, processed_image, meta: Dict) -> Optional[Dict]:
-        """Process single page OCR."""
-        try:
-            document_id = meta.get("document_id", "unknown")
-            filename = meta.get("filename", "unknown")
-            page_num = meta.get("page_number", 0)
-            extension = self.ocr_service.image_processor.get_extension(
-                processed_image.format
-            )
+    def _process_single_ocr(self, processed_image, meta: Dict) -> Dict:
+        """Process single page OCR.
 
-            # Run OCR
-            ocr_result = self.ocr_service.processor.process_single(
-                image_bytes=processed_image.data,
-                filename=f"{filename}/page_{page_num}.{extension}",
-            )
+        Raises on failure - no silent fallbacks.
+        """
+        # Extract required fields - will raise KeyError if missing
+        document_id = meta["document_id"]
+        filename = meta["filename"]
+        page_num = meta["page_number"]
+        page_id = meta["page_id"]
 
-            # Build metadata
-            ocr_metadata = {
-                "filename": filename,
-                "document_id": document_id,
-                "page_id": meta.get("page_id"),
-                "pdf_page_index": meta.get("pdf_page_index"),
-                "total_pages": meta.get("total_pages"),
-                "page_width_px": processed_image.width,
-                "page_height_px": processed_image.height,
-                "image_url": processed_image.url if hasattr(processed_image, "url") else None,
-                "image_storage": "minio",
-            }
+        extension = self.ocr_service.image_processor.get_extension(
+            processed_image.format
+        )
 
-            # Store OCR results
-            storage_result = self.ocr_service.storage.store_ocr_result(
-                ocr_result=ocr_result,
-                document_id=document_id,
-                page_number=page_num,
-                metadata=ocr_metadata,
-            )
+        # Run OCR
+        ocr_result = self.ocr_service.processor.process_single(
+            image_bytes=processed_image.data,
+            filename=f"{filename}/page_{page_num}.{extension}",
+        )
 
-            return {
-                "ocr_url": storage_result.get("ocr_url"),
-                "ocr_regions": storage_result.get("ocr_regions", []),
-                "text_preview": ocr_result.get("text", "")[:200],
-                "region_count": len(ocr_result.get("regions", [])),
-            }
+        # Build metadata with required fields
+        ocr_metadata = {
+            "filename": filename,
+            "document_id": document_id,
+            "page_id": page_id,
+            "pdf_page_index": meta.get("pdf_page_index"),
+            "total_pages": meta.get("total_pages"),
+            "page_width_px": processed_image.width,
+            "page_height_px": processed_image.height,
+            "image_url": processed_image.url if hasattr(processed_image, "url") else None,
+            "image_storage": "minio",
+        }
 
-        except Exception as exc:
-            logger.warning(f"OCR processing failed: {exc}")
-            return None
+        # Store OCR results - will raise on DuckDB failure
+        storage_result = self.ocr_service.storage.store_ocr_result(
+            ocr_result=ocr_result,
+            document_id=document_id,
+            page_number=page_num,
+            metadata=ocr_metadata,
+        )
+
+        return {
+            "ocr_url": storage_result["ocr_url"],
+            "ocr_regions": storage_result.get("ocr_regions", []),
+            "text_preview": ocr_result.get("text", "")[:200],
+            "region_count": len(ocr_result.get("regions", [])),
+        }
 
     def get_ocr_results(
         self, document_id: str, batch_id: int

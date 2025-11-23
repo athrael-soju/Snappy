@@ -56,16 +56,17 @@ class ImageStorageHandler:
                 "MinIO service is not configured; it is required for image storage."
             )
 
-        # Extract document_ids and page_numbers from metadata
+        # Extract required fields from metadata - will raise KeyError if missing
         document_ids = []
         page_numbers = []
         for meta in meta_batch:
-            document_id = meta.get("document_id")
-            page_num = meta.get("page_number")
-            if document_id is None or page_num is None:
+            try:
+                document_id = meta["document_id"]
+                page_num = meta["page_number"]
+            except KeyError as exc:
                 raise ValueError(
-                    f"Metadata must contain 'document_id' and 'page_number' for hierarchical storage. Got: {meta}"
-                )
+                    f"Metadata missing required field {exc} for hierarchical storage. Got: {meta}"
+                ) from exc
             document_ids.append(document_id)
             page_numbers.append(page_num)
 
