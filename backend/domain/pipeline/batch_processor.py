@@ -136,8 +136,11 @@ class BatchProcessor:
         # Step 3: Storage and optional OCR in parallel (check before storage)
         progress.check_cancel(batch_start)
         try:
+            # Extract image_ids (page UUIDs) from metadata - must be provided
+            image_ids = [meta["page_id"] for meta in meta_batch]
+
             image_ids, image_records, processed_images = self.image_store.store(
-                batch_start, image_batch, meta_batch
+                batch_start, image_batch, meta_batch, image_ids
             )
 
             # Step 3: Run OCR in parallel if enabled (non-blocking)

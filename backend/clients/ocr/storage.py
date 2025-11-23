@@ -247,10 +247,12 @@ class OcrStorageHandler:
                     extracted_images=payload.get("extracted_images", []),
                 )
                 if not success:
-                    logger.error(
+                    error_msg = (
                         f"DuckDB storage returned False for {filename} page {page_number}. "
-                        "Data may not be available via DuckDB. Fallback to MinIO will occur during search."
+                        "This indicates a critical storage failure."
                     )
+                    logger.error(error_msg)
+                    raise RuntimeError(error_msg)
             except KeyError as exc:
                 logger.error(
                     f"Missing required field {exc} in payload for {filename} page {page_number}. "
@@ -258,12 +260,16 @@ class OcrStorageHandler:
                     exc_info=True
                 )
                 raise
+            except RuntimeError:
+                # Re-raise RuntimeError from success=False case
+                raise
             except Exception as exc:
                 logger.error(
                     f"Failed to store OCR result in DuckDB for {filename} page {page_number}: {exc}. "
-                    "Data will only be available via MinIO URL during search.",
+                    "This is a critical error that must be fixed.",
                     exc_info=True
                 )
+                raise
 
         return {
             "ocr_url": url,
