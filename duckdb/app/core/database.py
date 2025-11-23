@@ -87,7 +87,8 @@ class DuckDBManager:
 
             CREATE TABLE IF NOT EXISTS pages (
                 id INTEGER PRIMARY KEY DEFAULT nextval('pages_id_seq'),
-                document_id INTEGER NOT NULL,
+                document_id VARCHAR NOT NULL,
+                page_id VARCHAR NOT NULL,
                 filename VARCHAR NOT NULL,
                 page_number INTEGER NOT NULL,
                 page_width_px INTEGER,
@@ -98,13 +99,12 @@ class DuckDBManager:
                 storage_url VARCHAR NOT NULL,
                 extracted_at TIMESTAMP,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(filename, page_number),
-                FOREIGN KEY(document_id) REFERENCES documents(id)
+                UNIQUE(filename, page_number)
             );
 
             CREATE TABLE IF NOT EXISTS regions (
                 id INTEGER PRIMARY KEY DEFAULT nextval('regions_id_seq'),
-                page_id INTEGER NOT NULL,
+                page_id VARCHAR NOT NULL,
                 region_id VARCHAR,
                 label VARCHAR,
                 bbox_x1 INTEGER,
@@ -112,8 +112,7 @@ class DuckDBManager:
                 bbox_x2 INTEGER,
                 bbox_y2 INTEGER,
                 content TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY(page_id) REFERENCES pages(id)
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
             """
         )
@@ -125,6 +124,7 @@ class DuckDBManager:
             CREATE INDEX IF NOT EXISTS idx_documents_lookup ON documents(filename, file_size_bytes, total_pages);
 
             CREATE INDEX IF NOT EXISTS idx_pages_document_id ON pages(document_id);
+            CREATE INDEX IF NOT EXISTS idx_pages_page_id ON pages(page_id);
             CREATE INDEX IF NOT EXISTS idx_pages_filename ON pages(filename);
             CREATE INDEX IF NOT EXISTS idx_pages_page_number ON pages(page_number);
             CREATE INDEX IF NOT EXISTS idx_pages_filename_page ON pages(filename, page_number);

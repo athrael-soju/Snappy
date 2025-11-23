@@ -29,6 +29,7 @@ class ImageStorageHandler:
         batch_start: int,
         image_batch: List[Image.Image],
         meta_batch: List[dict],
+        image_ids: List[str],
     ) -> Tuple[List[str], List[Dict[str, object]], List[ProcessedImage]]:
         """
         Store images in MinIO using hierarchical structure.
@@ -41,13 +42,14 @@ class ImageStorageHandler:
             Images to store
         meta_batch : List[dict]
             Metadata for each image, must contain 'document_id' and 'page_number'
+        image_ids : List[str]
+            Pre-generated image IDs (must be provided - generated during rasterization)
 
         Returns
         -------
         Tuple[List[str], List[Dict[str, object]], List[ProcessedImage]]
             image_ids, image_records, and processed_images for reuse
         """
-        image_ids = [str(uuid.uuid4()) for _ in image_batch]
 
         if self._minio_service is None:
             raise Exception(

@@ -123,104 +123,34 @@ class ProgressManager:
 
     def _cleanup_job_services(self, job_id: str, filenames: list) -> None:
         """
-        Background task to cleanup services for a job.
+        Background task to wait for job to stop and mark as cancelled.
 
         This runs in a separate thread to avoid blocking the main request.
-        IMPORTANT: Waits for the background job to actually stop before cleaning up.
+        Simply waits for the job to stop processing, no service restarts or data cleanup.
 
         Args:
             job_id: Job identifier
-            filenames: List of filenames to cleanup
+            filenames: List of filenames (unused, kept for compatibility)
         """
         try:
-            # Import clients and create cancellation service with proper dependencies
-            from domain.pipeline.cancellation import CancellationService
-            from api.dependencies import get_colpali_client, get_ocr_service
+            logger.info(f"Waiting for job {job_id} to stop...")
 
-            colpali_client = get_colpali_client()
-            ocr_client = get_ocr_service()
-
-            # Create cancellation service with clients for service restart capability
-            cancellation_service = CancellationService(
-                colpali_client=colpali_client, ocr_client=ocr_client
-            )
-
-            # Helper function to update progress during cleanup
-            def update_progress(percent: int, message: str):
-                """Update job progress during cleanup"""
-                try:
-                    self.update(job_id, current=percent, message=message)
-                except Exception as e:
-                    logger.warning(f"Failed to update progress: {e}")
-
-            # Initial progress: 0-25% - Stopping upload
-            update_progress(0, "Stopping upload and preparing cleanup...")
-
-            # IMMEDIATELY restart services to stop any ongoing processing (25-75%)
-            logger.info(f"Restarting services immediately for job {job_id}")
-
-            # Get timeout from config (defaults to 15s)
-            import config
-
-            timeout = getattr(config, "CANCELLATION_RESTART_TIMEOUT", 15)
-
-            restart_results = cancellation_service.restart_services(
-                job_id=job_id,
-                wait_for_restart=True,  # Wait for services to come back up
-                timeout=timeout,  # Max timeout per service (configurable)
-                progress_callback=update_progress,  # Pass progress callback
-            )
-            logger.info(f"Service restart results: {restart_results}")
-
-            # Check if restarts succeeded
-            colpali_ok = restart_results.get("colpali", {}).get("success", False)
-            ocr_ok = restart_results.get("deepseek_ocr", {}).get("success", False)
-            if colpali_ok and ocr_ok:
-                logger.info("Both services restarted successfully")
-            elif colpali_ok:
-                logger.warning("ColPali restarted but DeepSeek OCR failed")
-            elif ocr_ok:
-                logger.warning("DeepSeek OCR restarted but ColPali failed")
-            else:
-                logger.error("Both services failed to restart")
-
-            # Now wait for the background job to actually complete/stop
+            # Wait for the background job to actually complete/stop
             completion_event = self._job_completion_events.get(job_id)
             if completion_event:
-                logger.info(f"Waiting for job {job_id} to stop before cleanup...")
-                # Wait up to 60 seconds for job to stop
-                if completion_event.wait(timeout=60):
-                    logger.info(f"Job {job_id} has stopped, starting cleanup")
+                # Wait up to 10 seconds for job to stop gracefully
+                if completion_event.wait(timeout=10):
+                    logger.info(f"Job {job_id} stopped gracefully")
                 else:
                     logger.warning(
-                        f"Timeout waiting for job {job_id} to stop, proceeding with cleanup anyway"
+                        f"Job {job_id} did not stop within timeout, marking as cancelled anyway"
                     )
             else:
                 logger.warning(
-                    f"No completion event for job {job_id}, proceeding with cleanup immediately"
+                    f"No completion event for job {job_id}, marking as cancelled immediately"
                 )
 
-            # Now cleanup the data (75-100% handled by cleanup_job_data)
-            cleanup_results = []
-            for filename in filenames:
-                if filename:
-                    logger.info(
-                        f"Cleaning up services for job {job_id}, filename: {filename}"
-                    )
-                    results = cancellation_service.cleanup_job_data(
-                        job_id=job_id,
-                        filename=filename,
-                        restart_services=False,  # Already restarted above
-                        progress_callback=update_progress,  # Pass progress callback
-                    )
-                    cleanup_results.append(results)
-
-            logger.info(
-                f"Background service cleanup completed for job {job_id}",
-                extra={"job_id": job_id, "cleanup_results": cleanup_results},
-            )
-
-            # Mark job as fully cancelled now that cleanup is complete
+            # Mark job as cancelled
             with self._lock:
                 if (
                     job_id in self._jobs
@@ -228,18 +158,17 @@ class ProgressManager:
                 ):
                     self._jobs[job_id]["status"] = "cancelled"
                     self._jobs[job_id]["finished_at"] = time.time()
-                    self._jobs[job_id][
-                        "message"
-                    ] = "Upload cancelled and partial data cleaned up"
-                    self._jobs[job_id]["current"] = 100
+                    self._jobs[job_id]["message"] = "Job cancelled"
+
+            logger.info(f"Job {job_id} marked as cancelled")
 
         except Exception as exc:
             logger.error(
-                f"Background service cleanup failed for job {job_id}: {exc}",
+                f"Error marking job {job_id} as cancelled: {exc}",
                 extra={"job_id": job_id},
                 exc_info=True,
             )
-            # Mark job as cancelled even if cleanup failed
+            # Mark job as cancelled even if there was an error
             with self._lock:
                 if (
                     job_id in self._jobs
@@ -247,9 +176,7 @@ class ProgressManager:
                 ):
                     self._jobs[job_id]["status"] = "cancelled"
                     self._jobs[job_id]["finished_at"] = time.time()
-                    self._jobs[job_id][
-                        "message"
-                    ] = "Upload cancelled (cleanup had errors)"
+                    self._jobs[job_id]["message"] = "Job cancelled"
                     self._jobs[job_id]["error"] = str(exc)
 
     def fail(self, job_id: str, error: str):
@@ -262,16 +189,6 @@ class ProgressManager:
         # Signal that job has failed (stopped)
         if job_id in self._job_completion_events:
             self._job_completion_events[job_id].set()
-
-        # Schedule cleanup in background thread (non-blocking)
-        filenames = self._get_job_filenames(job_id)
-        if filenames:
-            logger.info(f"Scheduling background cleanup for failed job {job_id}")
-            self._cleanup_executor.submit(self._cleanup_job_services, job_id, filenames)
-        else:
-            logger.warning(
-                f"No filenames found for failed job {job_id}, skipping service cleanup"
-            )
 
         self._schedule_cleanup(job_id)
 
@@ -291,13 +208,8 @@ class ProgressManager:
                 # Can only cancel running or pending jobs
                 if status in ("pending", "running"):
                     self._cancel_flags[job_id] = True
-                    self._jobs[job_id][
-                        "status"
-                    ] = "cancelling"  # Use "cancelling" status
-                    # Don't set finished_at yet - cleanup is still in progress
-                    self._jobs[job_id]["message"] = "Cancelling upload..."
-                    self._jobs[job_id]["current"] = 0  # Reset progress for cleanup
-                    self._jobs[job_id]["total"] = 100  # Set total to 100 for percentage
+                    self._jobs[job_id]["status"] = "cancelling"
+                    self._jobs[job_id]["message"] = "Cancelling job..."
                     cancelled = True
 
         logger.info(

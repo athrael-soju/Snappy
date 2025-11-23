@@ -275,6 +275,7 @@ class BatchProcessor:
             ocr_metadata = {
                 "filename": filename,
                 "document_id": meta.get("document_id"),
+                "page_id": meta.get("page_id"),
                 "pdf_page_index": meta.get("pdf_page_index"),
                 "total_pages": meta.get("total_pages"),
                 "page_width_px": processed_image.width,

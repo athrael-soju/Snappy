@@ -17,6 +17,7 @@ Benefits:
 import logging
 import queue
 import threading
+import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -28,6 +29,19 @@ from pdf2image import convert_from_path
 from PIL import Image
 
 logger = logging.getLogger(__name__)
+
+
+def log_stage_timing(stage_name: str):
+    """Decorator to log execution time for pipeline stages."""
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            start_time = time.time()
+            result = func(*args, **kwargs)
+            elapsed = time.time() - start_time
+            logger.info(f"[{stage_name}] Completed in {elapsed:.2f}s")
+            return result
+        return wrapper
+    return decorator
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -44,6 +58,7 @@ class PageBatch:
     batch_id: int  # Batch sequence number within document
     page_start: int  # Starting page number (1-indexed)
     images: List[Image.Image]
+    image_ids: List[str]  # Unique ID for each page (shared across all stages)
     metadata: List[Dict[str, Any]]  # Per-page metadata
     total_pages: int  # Total pages in document
     file_size_bytes: Optional[int] = None
@@ -99,11 +114,11 @@ class PDFRasterizer:
         pdf_path: str,
         filename: str,
         document_id: str,
-        output_queue: queue.Queue,
+        output_queues: List[queue.Queue],
         cancellation_check: Optional[Callable] = None,
     ) -> int:
         """
-        Rasterize PDF and immediately push batches to queue.
+        Rasterize PDF and broadcast batches to all output queues.
 
         Returns:
             Total number of pages processed
@@ -143,6 +158,14 @@ class PDFRasterizer:
                     last_page=last_page,
                 )
 
+                # Force load all images to avoid lazy-loading issues when copying
+                # PIL Images are lazy-loaded by default, calling load() forces data into memory
+                for img in images:
+                    img.load()
+
+                # Generate unique image IDs for this batch (shared across all stages)
+                image_ids = [str(uuid.uuid4()) for _ in images]
+
                 # Build metadata for each page
                 metadata = []
                 for offset, img in enumerate(images):
@@ -151,6 +174,7 @@ class PDFRasterizer:
 
                     metadata.append({
                         "document_id": document_id,
+                        "page_id": image_ids[offset],  # Match page_id to image_id
                         "filename": filename,
                         "page_number": page_num,
                         "pdf_page_index": page_num,
@@ -160,24 +184,28 @@ class PDFRasterizer:
                         "file_size_bytes": file_size_bytes,
                     })
 
-                # Create batch and push to queue
-                batch = PageBatch(
-                    document_id=document_id,
-                    filename=filename,
-                    batch_id=batch_id,
-                    page_start=page,
-                    images=images,
-                    metadata=metadata,
-                    total_pages=total_pages,
-                    file_size_bytes=file_size_bytes,
-                )
+                # Broadcast to all output queues with independent copies
+                # Each consumer gets its own copy of the images to avoid PIL threading issues
+                for i, q in enumerate(output_queues):
+                    # Create deep copy of images for thread safety
+                    # PIL Image objects are not thread-safe when shared
+                    images_copy = [img.copy() for img in images] if i > 0 else images
 
-                # Block if queue is full (backpressure)
-                output_queue.put(batch, block=True)
+                    batch = PageBatch(
+                        document_id=document_id,
+                        filename=filename,
+                        batch_id=batch_id,
+                        page_start=page,
+                        images=images_copy,
+                        image_ids=image_ids.copy(),  # Share same IDs across all stages
+                        metadata=metadata.copy(),
+                        total_pages=total_pages,
+                        file_size_bytes=file_size_bytes,
+                    )
+                    q.put(batch, block=True)
 
                 logger.debug(
-                    f"Pushed batch {batch_id} (pages {page}-{last_page}) to queue. "
-                    f"Queue size: {output_queue.qsize()}"
+                    f"Broadcast batch {batch_id} (pages {page}-{last_page}) to {len(output_queues)} queues"
                 )
 
                 batch_id += 1
@@ -206,10 +234,11 @@ class EmbeddingStage:
     def __init__(self, embedding_processor):
         self.embedding_processor = embedding_processor
 
+    @log_stage_timing("Embedding")
     def process_batch(self, batch: PageBatch) -> EmbeddedBatch:
         """Generate embeddings for a batch."""
-        logger.debug(
-            f"Embedding batch {batch.batch_id} (pages {batch.page_start}-"
+        logger.info(
+            f"[Embedding] Starting batch {batch.batch_id + 1} (pages {batch.page_start}-"
             f"{batch.page_start + len(batch.images) - 1})"
         )
 
@@ -218,8 +247,9 @@ class EmbeddingStage:
             self.embedding_processor.embed_and_mean_pool_batch(batch.images)
         )
 
-        # Generate image IDs
-        image_ids = [str(uuid.uuid4()) for _ in batch.images]
+        # Use shared image IDs from PageBatch (generated during rasterization)
+        # This ensures all stages (storage, OCR, upsert) use the same IDs
+        image_ids = batch.image_ids
 
         return EmbeddedBatch(
             document_id=batch.document_id,
@@ -275,18 +305,21 @@ class StorageStage:
         self.url_cache: Dict[str, List[str]] = {}  # batch_key -> urls
         self._lock = threading.Lock()
 
+    @log_stage_timing("Storage")
     def process_batch(self, batch: PageBatch) -> List[str]:
         """Store images and return URLs."""
-        logger.debug(
-            f"Storing batch {batch.batch_id} (pages {batch.page_start}-"
+        logger.info(
+            f"[Storage] Starting batch {batch.batch_id + 1} (pages {batch.page_start}-"
             f"{batch.page_start + len(batch.images) - 1})"
         )
 
-        # Store images (this handles image processing internally)
+        # Store images using shared image_ids from PageBatch
+        # This ensures storage uses the same IDs as embedding and OCR
         image_ids, image_records, _ = self.image_store.store(
             batch_start=batch.page_start,
             image_batch=batch.images,
             meta_batch=batch.metadata,
+            image_ids=batch.image_ids,  # Use pre-generated IDs
         )
 
         # Extract URLs
@@ -345,13 +378,14 @@ class OCRStage:
         self.ocr_cache: Dict[str, List[Optional[Dict]]] = {}  # batch_key -> ocr_results
         self._lock = threading.Lock()
 
+    @log_stage_timing("OCR")
     def process_batch(self, batch: PageBatch) -> List[Optional[Dict]]:
         """Process OCR for batch."""
         if not self.ocr_service or not config.DEEPSEEK_OCR_ENABLED:
             return [None] * len(batch.images)
 
-        logger.debug(
-            f"Processing OCR for batch {batch.batch_id} "
+        logger.info(
+            f"[OCR] Starting batch {batch.batch_id + 1} "
             f"(pages {batch.page_start}-{batch.page_start + len(batch.images) - 1})"
         )
 
@@ -414,6 +448,7 @@ class OCRStage:
             ocr_metadata = {
                 "filename": filename,
                 "document_id": document_id,
+                "page_id": meta.get("page_id"),
                 "pdf_page_index": meta.get("pdf_page_index"),
                 "total_pages": meta.get("total_pages"),
                 "page_width_px": processed_image.width,
@@ -494,47 +529,53 @@ class UpsertStage:
         collection_name: str,
         storage_stage: StorageStage,
         ocr_stage: Optional[OCRStage] = None,
+        progress_callback: Optional[Callable] = None,
+        buffer_size: int = 4,
     ):
         self.point_factory = point_factory
         self.qdrant_service = qdrant_service
         self.collection_name = collection_name
         self.storage_stage = storage_stage
         self.ocr_stage = ocr_stage
+        self.progress_callback = progress_callback
         self.upsert_buffer = []
-        self.buffer_size = 20  # Batch upserts
+        self.buffer_size = buffer_size  # Batch upserts (default: 4 to match batch size)
+        self.pages_upserted = 0  # Track progress
 
+    @log_stage_timing("Upsert")
     def process_batch(self, embedded_batch: EmbeddedBatch):
         """Build points and upsert to Qdrant."""
-        # Wait for storage to complete (with timeout)
-        max_wait = 30  # seconds
-        wait_interval = 0.1
-        waited = 0
+        logger.info(
+            f"[Upsert] Starting batch {embedded_batch.batch_id + 1} "
+            f"(pages {embedded_batch.page_start}-{embedded_batch.page_start + len(embedded_batch.original_embeddings) - 1})"
+        )
 
-        image_urls = None
-        while waited < max_wait:
-            image_urls = self.storage_stage.get_urls(
-                embedded_batch.document_id,
-                embedded_batch.batch_id,
-            )
-            if image_urls:
-                break
-            threading.Event().wait(wait_interval)
-            waited += wait_interval
+        # Look up storage URLs from cache (no waiting - storage runs in parallel)
+        image_urls = self.storage_stage.get_urls(
+            embedded_batch.document_id,
+            embedded_batch.batch_id,
+        )
 
         if not image_urls:
             logger.warning(
-                f"Storage timeout for batch {embedded_batch.batch_id}, "
+                f"Storage data not available for batch {embedded_batch.batch_id + 1}, "
                 "proceeding without URLs"
             )
             image_urls = [""] * len(embedded_batch.original_embeddings)
 
-        # Get OCR results (non-blocking - use if available)
+        # Look up OCR results from cache (no waiting - OCR runs in parallel)
         ocr_results = None
         if self.ocr_stage:
             ocr_results = self.ocr_stage.get_ocr_results(
                 embedded_batch.document_id,
                 embedded_batch.batch_id,
             )
+
+            if not ocr_results:
+                logger.warning(
+                    f"OCR data not available for batch {embedded_batch.batch_id + 1}, "
+                    "proceeding without OCR data"
+                )
 
         # Build image records
         image_records = [
@@ -571,7 +612,8 @@ class UpsertStage:
         if not self.upsert_buffer:
             return
 
-        logger.debug(f"Upserting {len(self.upsert_buffer)} points to Qdrant")
+        num_points = len(self.upsert_buffer)
+        logger.info(f"Upserting {num_points} points to Qdrant")
 
         self.qdrant_service.upsert(
             collection_name=self.collection_name,
@@ -579,6 +621,19 @@ class UpsertStage:
         )
 
         self.upsert_buffer = []
+
+        # Update progress AFTER successful upsert
+        self.pages_upserted += num_points
+        if self.progress_callback:
+            try:
+                self.progress_callback(self.pages_upserted)
+            except Exception as exc:
+                logger.warning(f"Progress callback failed: {exc}")
+
+    def flush_remaining(self):
+        """Public method to flush any remaining buffered points."""
+        logger.info("Flushing remaining buffered points...")
+        self._flush()
 
     def run(
         self,
@@ -643,30 +698,43 @@ class StreamingPipeline:
         self.embedding_stage = EmbeddingStage(embedding_processor)
         self.storage_stage = StorageStage(image_store)
         self.ocr_stage = OCRStage(ocr_service, image_store._image_processor) if ocr_service else None
-        self.upsert_stage = UpsertStage(
-            point_factory,
-            qdrant_service,
-            collection_name,
-            self.storage_stage,
-            self.ocr_stage,
-        )
+        # Note: upsert_stage will be created in process_pdf with the progress callback
+        self.upsert_stage = None
+
+        # Store dependencies for later upsert stage creation
+        self.point_factory = point_factory
+        self.qdrant_service = qdrant_service
+        self.collection_name = collection_name
 
         # Create queues (bounded for backpressure)
-        self.rasterize_queue = queue.Queue(maxsize=max_queue_size)
+        # Each stage needs its own queue to receive broadcast batches
+        self.embedding_input_queue = queue.Queue(maxsize=max_queue_size)
+        self.storage_input_queue = queue.Queue(maxsize=max_queue_size)
+        self.ocr_input_queue = queue.Queue(maxsize=max_queue_size)
         self.embedding_queue = queue.Queue(maxsize=max_queue_size)
 
         # Thread control
         self.stop_event = threading.Event()
         self.threads = []
 
-    def start(self):
-        """Start all consumer stages."""
+    def start(self, progress_callback: Optional[Callable] = None):
+        """Start all consumer stages with optional progress callback."""
         logger.info("Starting streaming pipeline stages")
+
+        # Create upsert stage with progress callback
+        self.upsert_stage = UpsertStage(
+            self.point_factory,
+            self.qdrant_service,
+            self.collection_name,
+            self.storage_stage,
+            self.ocr_stage,
+            progress_callback=progress_callback,
+        )
 
         # Start embedding consumer
         embedding_thread = threading.Thread(
             target=self.embedding_stage.run,
-            args=(self.rasterize_queue, self.embedding_queue, self.stop_event),
+            args=(self.embedding_input_queue, self.embedding_queue, self.stop_event),
             name="embedding-stage",
             daemon=True,
         )
@@ -676,7 +744,7 @@ class StreamingPipeline:
         # Start storage consumer
         storage_thread = threading.Thread(
             target=self.storage_stage.run,
-            args=(self.rasterize_queue, self.stop_event),
+            args=(self.storage_input_queue, self.stop_event),
             name="storage-stage",
             daemon=True,
         )
@@ -687,7 +755,7 @@ class StreamingPipeline:
         if self.ocr_stage:
             ocr_thread = threading.Thread(
                 target=self.ocr_stage.run,
-                args=(self.rasterize_queue, self.stop_event),
+                args=(self.ocr_input_queue, self.stop_event),
                 name="ocr-stage",
                 daemon=True,
             )
@@ -723,18 +791,19 @@ class StreamingPipeline:
 
         logger.info(f"Processing PDF: {filename} (document_id: {document_id})")
 
-        # Rasterize and stream to queue (blocks until complete)
+        # Build list of output queues for broadcasting
+        output_queues = [self.embedding_input_queue, self.storage_input_queue]
+        if self.ocr_stage:
+            output_queues.append(self.ocr_input_queue)
+
+        # Rasterize and broadcast to all queues (blocks until complete)
         total_pages = self.rasterizer.rasterize_streaming(
             pdf_path=pdf_path,
             filename=filename,
             document_id=document_id,
-            output_queue=self.rasterize_queue,
+            output_queues=output_queues,
             cancellation_check=cancellation_check,
         )
-
-        # Signal end of document (sentinel)
-        # Note: We're pushing to rasterize_queue which feeds 3 consumers
-        # Each consumer needs to handle the document independently
 
         logger.info(
             f"Rasterization complete for {filename}. "
@@ -744,16 +813,37 @@ class StreamingPipeline:
         return total_pages
 
     def wait_for_completion(self):
-        """Wait for all queues to be processed."""
+        """
+        Wait for all pipeline stages to complete processing.
+
+        Waits for all queues to drain to ensure complete data:
+        - Embedding: drives the upsert process
+        - Storage: provides image URLs
+        - OCR: provides text extraction (if enabled)
+        """
         logger.info("Waiting for pipeline to drain...")
 
-        # Wait for rasterize queue
-        self.rasterize_queue.join()
-        logger.info("Rasterize queue drained")
+        # Wait for embedding input queue (all batches embedded)
+        self.embedding_input_queue.join()
+        logger.info("Embedding input queue drained")
 
-        # Wait for embedding queue
+        # Wait for storage input queue (all images stored)
+        self.storage_input_queue.join()
+        logger.info("Storage input queue drained")
+
+        # Wait for OCR input queue (all OCR processed, if enabled)
+        if self.ocr_stage:
+            self.ocr_input_queue.join()
+            logger.info("OCR input queue drained")
+
+        # Wait for embedding output queue (all points upserted to buffer)
         self.embedding_queue.join()
-        logger.info("Embedding queue drained")
+        logger.info("Embedding output queue drained")
+
+        # Flush any remaining buffered points to Qdrant
+        if self.upsert_stage:
+            self.upsert_stage.flush_remaining()
+            logger.info("Final buffer flushed to Qdrant")
 
         logger.info("Pipeline processing complete")
 

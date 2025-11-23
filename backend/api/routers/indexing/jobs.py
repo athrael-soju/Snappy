@@ -98,9 +98,6 @@ def run_indexing_job(
             max_queue_size=8,
         )
 
-        # Start consumer threads
-        pipeline.start()
-
         logger.info(f"Job {job_id}: Using streaming pipeline")
 
         # Create cancellation check function
@@ -112,6 +109,20 @@ def run_indexing_job(
         total_pages_all = 0
         pages_processed = 0
         document_metadata_list = []
+
+        # Progress callback for streaming updates
+        def progress_cb(current: int):
+            nonlocal pages_processed
+            pages_processed = current
+
+            progress_manager.update(
+                job_id,
+                current=pages_processed,
+                message=f"Processing {pages_processed}/{total_pages_all} pages",
+            )
+
+        # Start consumer threads with progress callback
+        pipeline.start(progress_callback=progress_cb)
 
         for pdf_path in paths:
             filename = filenames.get(pdf_path, os.path.basename(pdf_path))
@@ -155,35 +166,11 @@ def run_indexing_job(
             if progress_manager.get(job_id):
                 progress_manager.set_total(job_id, total_pages_all)
 
-            # Progress callback for streaming updates
-            def progress_cb(current: int, info: dict = None):
-                nonlocal pages_processed
-
-                if progress_manager.is_cancelled(job_id):
-                    raise CancellationError("Job cancelled by user")
-
-                pages_processed = current
-
-                # Include queue depth in progress message
-                queue_info = ""
-                if pipeline and info:
-                    rq = pipeline.rasterize_queue.qsize()
-                    eq = pipeline.embedding_queue.qsize()
-                    queue_info = f" (queues: r={rq}, e={eq})"
-
-                progress_manager.update(
-                    job_id,
-                    current=pages_processed,
-                    message=f"Processing {pages_processed}/{total_pages_all} pages{queue_info}",
-                    details=info,
-                )
-
             # Process PDF through streaming pipeline
             try:
                 pages_in_doc = pipeline.process_pdf(
                     pdf_path=pdf_path,
                     filename=filename,
-                    progress_callback=progress_cb,
                     cancellation_check=check_cancellation,
                 )
 

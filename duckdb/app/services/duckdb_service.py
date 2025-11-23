@@ -112,23 +112,17 @@ class DuckDBAnalyticsService:
 
         self._delete_page_rows(payload.filename, payload.page_number)
 
-        # Get or create document_id from documents table
-        document_id = self._get_or_create_document_id(
-            filename=payload.filename,
-            file_size_bytes=None,  # Not available in OcrPageData
-            total_pages=None,  # Not available in OcrPageData
-        )
-
         row = conn.execute(
             """
             INSERT INTO pages (
-                document_id, filename, page_number, page_width_px, page_height_px,
+                document_id, page_id, filename, page_number, page_width_px, page_height_px,
                 image_url, text, markdown, storage_url, extracted_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             RETURNING id
             """,
             [
-                document_id,
+                payload.document_id,
+                payload.page_id,
                 payload.filename,
                 payload.page_number,
                 payload.page_width_px,
@@ -144,8 +138,8 @@ class DuckDBAnalyticsService:
         if not row:
             raise RuntimeError("Failed to insert OCR page")
 
-        page_id = int(row[0])
-        self._insert_regions(page_id, payload.regions)
+        page_db_id = int(row[0])
+        self._insert_regions(payload.page_id, payload.regions)
 
         logger.info(
             "Stored OCR data: %s page %s", payload.filename, payload.page_number
@@ -231,8 +225,12 @@ class DuckDBAnalyticsService:
             "message": "Dropped DuckDB OCR tables",
         }
 
-    def _insert_regions(self, page_id: int, regions: Sequence[Dict[str, Any]]) -> None:
+    def _insert_regions(self, page_id: str, regions: Sequence[Dict[str, Any]]) -> None:
         """Insert OCR regions for a page.
+
+        Args:
+            page_id: Page UUID string (not database ID)
+            regions: List of region dictionaries
 
         Stores:
         - region_id: Optional identifier from OCR provider
@@ -382,7 +380,7 @@ class DuckDBAnalyticsService:
             SELECT
                 r.region_id, r.label, r.bbox_x1, r.bbox_y1, r.bbox_x2, r.bbox_y2, r.content
             FROM regions r
-            JOIN pages p ON r.page_id = p.id
+            JOIN pages p ON r.page_id = p.page_id
             WHERE p.filename = ? AND p.page_number = ?
             ORDER BY r.id
             """,
@@ -427,7 +425,7 @@ class DuckDBAnalyticsService:
         row = self.conn.execute(
             """
             SELECT
-                id, filename, page_number, page_width_px, page_height_px,
+                page_id, filename, page_number, page_width_px, page_height_px,
                 image_url, text, markdown, storage_url, extracted_at, created_at
             FROM pages
             WHERE filename = ? AND page_number = ?
@@ -455,8 +453,12 @@ class DuckDBAnalyticsService:
             "created_at": str(row[10]),
         }
 
-    def _fetch_regions(self, page_id: int) -> List[Dict[str, Any]]:
-        """Fetch OCR regions for a page."""
+    def _fetch_regions(self, page_id: str) -> List[Dict[str, Any]]:
+        """Fetch OCR regions for a page.
+
+        Args:
+            page_id: Page UUID string (not database ID)
+        """
         rows = self.conn.execute(
             """
             SELECT
@@ -490,12 +492,12 @@ class DuckDBAnalyticsService:
         if deleted_pages == 0:
             raise ValueError("Document not found")
 
-        # Delete in order: regions -> pages -> documents (respects FK constraints)
+        # Delete in order: regions -> pages -> documents
         self.conn.execute(
             """
             DELETE FROM regions
             WHERE page_id IN (
-                SELECT id FROM pages WHERE filename = ?
+                SELECT page_id FROM pages WHERE filename = ?
             )
             """,
             [filename],
