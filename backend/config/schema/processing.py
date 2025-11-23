@@ -42,21 +42,6 @@ SCHEMA: Dict[str, Any] = {
                 "type": "int",
                 "ui_type": "number",
             },
-            {
-                "default": False,
-                "description": "Enable streaming pipeline for faster ingestion",
-                "help_text": "Streaming pipeline processes PDF pages immediately as they're "
-                "rasterized instead of waiting for all pages to finish. This provides: "
-                "• 3-6x faster ingestion for large documents "
-                "• First results visible in ~10 seconds vs 60+ seconds "
-                "• Progressive user feedback as pages complete "
-                "• Better resource utilization (GPU, CPU, I/O all busy). "
-                "Note: This is experimental. Disable if you encounter issues.",
-                "key": "USE_STREAMING_PIPELINE",
-                "label": "Use Streaming Pipeline (Experimental)",
-                "type": "bool",
-                "ui_type": "switch",
-            },
         ],
     }
 }

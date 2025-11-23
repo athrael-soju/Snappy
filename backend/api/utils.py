@@ -17,7 +17,13 @@ def convert_pdf_paths_to_images(
     duckdb_service=None,
     cancellation_check: Callable[[], None] | None = None,
 ) -> Tuple[int, Iterator[dict], List[dict]]:
-    """Stream PDF pages as image dictionaries instead of materialising them all at once.
+    """
+    DEPRECATED: This function is no longer used by the main ingestion pipeline.
+
+    The streaming pipeline (domain/pipeline/streaming_pipeline.py) now handles
+    PDF rasterization directly for 6x better performance.
+
+    Stream PDF pages as image dictionaries instead of materialising them all at once.
 
     Args:
         paths: List of PDF file paths
@@ -29,6 +35,10 @@ def convert_pdf_paths_to_images(
     Returns:
         Tuple of (total_pages, image_iterator, document_metadata_list)
     """
+    logger.warning(
+        "convert_pdf_paths_to_images is deprecated. "
+        "Use streaming_pipeline.PDFRasterizer instead."
+    )
     if not paths:
         return 0, iter(()), []
 
