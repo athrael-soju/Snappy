@@ -160,7 +160,7 @@ class PDFRasterizer:
 
         except Exception as exc:
             # Import here to avoid circular dependency
-            from api.routers.indexing.jobs import CancellationError
+            from domain.pipeline.errors import CancellationError
 
             # Cancellation is expected, log at info level
             if isinstance(exc, CancellationError):

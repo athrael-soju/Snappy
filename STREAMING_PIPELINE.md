@@ -20,10 +20,9 @@ Snappy indexes documents with a streaming pipeline so users see searchable resul
 
 ## Failure and cancellation
 - Any stage error stops the pipeline and reports the failure through the progress stream.
-- Cancellation removes Qdrant points, MinIO objects, DuckDB rows, and can restart ColPali/OCR services when enabled.
+- Cancellation stops running work; data cleanup is manual if needed.
 
 ## Code reference
 - `backend/domain/pipeline/streaming_pipeline.py` - pipeline orchestration.
 - `backend/domain/pipeline/stages/*` - rasterizer, embedding, storage, OCR, and upsert stages.
-- `backend/domain/pipeline/cancellation.py` - cleanup and service restarts.
 - `backend/api/progress.py` - progress tracking and SSE.

@@ -11,14 +11,11 @@ from typing import Dict, List
 import config
 from api.dependencies import get_duckdb_service, get_qdrant_service, qdrant_init_error
 from api.progress import progress_manager
-from domain.pipeline.streaming_pipeline import StreamingPipeline
 from clients.qdrant.indexing.points import PointFactory
+from domain.pipeline.errors import CancellationError
+from domain.pipeline.streaming_pipeline import StreamingPipeline
 
 logger = logging.getLogger(__name__)
-
-
-class CancellationError(Exception):
-    """Raised when a job is cancelled mid-flight."""
 
 
 def cleanup_temp_files(paths: List[str]) -> None:

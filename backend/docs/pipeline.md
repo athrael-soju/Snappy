@@ -161,14 +161,6 @@ Handles image format conversion:
 - Quality optimization
 - Size calculation
 
-#### `ProgressNotifier`
-Progress callback orchestration:
-- Stage tracking
-- Cancellation support
-- Error handling
-
----
-
 ## Usage with Vector Databases
 
 ### Qdrant Example
@@ -249,9 +241,6 @@ This package was created by extracting generic components from `clients/qdrant/i
 - `utils.py` → `domain/pipeline/utils.py`
 - `processor.py` → `domain/pipeline/batch_processor.py`
 - `document_indexer.py` → `domain/pipeline/document_indexer.py`
-
-New additions to the pipeline package:
-- `cancellation.py` - Job cancellation and cleanup coordination
 
 Qdrant-specific code remains in `clients/qdrant/indexing/`:
 - `points.py` - Qdrant PointStruct construction
@@ -462,7 +451,7 @@ pipeline.stop()
 2. **Better Resource Utilization**: All stages run in parallel (CPU rasterizing while GPU embedding)
 3. **Backpressure Control**: Bounded queues prevent memory overflow
 4. **Fail-Fast Design**: Any stage failure stops the pipeline to maintain data consistency
-5. **Cancellation Support**: Can stop mid-processing with graceful cleanup
+5. **Cancellation Support**: Can stop mid-processing; cleanup is manual if needed
 
 ### Coordination Mechanism
 

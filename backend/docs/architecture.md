@@ -52,9 +52,9 @@ flowchart TB
 - Quantization and pooling options live in `.env` and `backend/config/schema`.
 - See `backend/docs/configuration.md` for full settings and defaults.
 
-## Cancellation and cleanup
-- `/index/cancel/{job_id}` and `/ocr/cancel/{job_id}` stop jobs, remove vectors (Qdrant), objects (MinIO), and records (DuckDB), and optionally restart ColPali/OCR services.
-- Cleanup progress is reported over the same SSE progress stream.
+## Cancellation
+- `/index/cancel/{job_id}` and `/ocr/cancel/{job_id}` stop running jobs. Cleanup of vectors/objects/rows is not automatic; remove data manually if needed.
+- Progress/status is still reported over the SSE progress stream.
 
 ## Where to dig deeper
 - `STREAMING_PIPELINE.md` - how the streaming indexer overlaps stages.
