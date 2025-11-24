@@ -494,7 +494,7 @@ export default function SearchPage() {
                                       <div className="flex flex-wrap gap-1.5">
                                         {typeof item.score === "number" && (
                                           <Badge variant="secondary" className="h-auto px-2 py-0.5 text-body-xs font-semibold">
-                                            {Math.min(100, item.score > 1 ? item.score : item.score * 100).toFixed(3)}% relevance
+                                            {item.score.toFixed(2)} score
                                           </Badge>
                                         )}
                                       </div>
