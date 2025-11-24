@@ -26,7 +26,10 @@ class OCRStage:
 
     @log_stage_timing("OCR")
     def process_batch(self, batch: PageBatch):
-        """Process OCR for batch."""
+        """Process OCR for batch.
+
+        Parallelism is controlled by batch size - all pages in batch are processed concurrently.
+        """
         if not self.ocr_service or not config.DEEPSEEK_OCR_ENABLED:
             logger.debug(f"[OCR] Skipped batch {batch.batch_id} (OCR disabled)")
             return
@@ -34,15 +37,11 @@ class OCRStage:
         # Process images (format conversion)
         processed_images = self.image_processor.process_batch(batch.images)
 
-        # Process OCR in parallel
-        max_workers = min(
-            config.DEEPSEEK_OCR_MAX_WORKERS,
-            len(processed_images),
-        )
+        # Process all pages in batch in parallel (batch size controls parallelism)
+        num_workers = len(processed_images)
+        ocr_results = [None] * num_workers
 
-        ocr_results = [None] * len(processed_images)
-
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        with ThreadPoolExecutor(max_workers=num_workers) as executor:
             futures = {
                 executor.submit(
                     self._process_single_ocr,

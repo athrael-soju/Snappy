@@ -79,21 +79,6 @@ SCHEMA: Dict[str, Any] = {
                 "type": "str",
                 "ui_type": "select",
             },
-            {
-                "default": 2,
-                "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
-                "description": "Number of parallel OCR processes per batch",
-                "help_text": "Controls GPU utilization for OCR processing. Higher values process "
-                "more pages simultaneously, improving throughput but increasing VRAM usage. "
-                "Recommended: 2 for single GPU, 4-8 for high-end GPUs. "
-                "Reduce to 1 if experiencing VRAM errors.",
-                "key": "DEEPSEEK_OCR_MAX_WORKERS",
-                "label": "Parallel OCR Workers",
-                "max": 16,
-                "min": 1,
-                "type": "int",
-                "ui_type": "number",
-            },
         ],
     }
 }

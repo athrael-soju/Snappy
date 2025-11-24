@@ -72,21 +72,6 @@ SCHEMA: Dict[str, Any] = {
                 "ui_hidden": True,
                 "ui_type": "text",
             },
-            {
-                "critical": True,
-                "default": 20,
-                "description": "Number of search results to return",
-                "help_text": "Controls how many results to return from vector search. "
-                "Higher values return more results but slightly slower. "
-                "Typical range: 10-50 for good balance between relevance "
-                "and performance.",
-                "key": "QDRANT_SEARCH_LIMIT",
-                "label": "Search Result Limit",
-                "max": 100,
-                "min": 1,
-                "type": "int",
-                "ui_type": "number",
-            },
         ],
     }
 }

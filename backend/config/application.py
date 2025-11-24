@@ -193,10 +193,6 @@ DEEPSEEK_OCR_INCLUDE_IMAGES = True  # Always extract embedded images
 DEEPSEEK_OCR_LOCATE_TEXT = ""  # Empty by default
 DEEPSEEK_OCR_CUSTOM_PROMPT = ""  # Empty by default
 
-# Configuration-driven pipeline settings
-PIPELINE_MAX_IN_FLIGHT_BATCHES = lambda: max(1, int(__getattr__("PIPELINE_MAX_IN_FLIGHT_BATCHES") or 1))
-DEEPSEEK_OCR_MAX_WORKERS = lambda: max(1, int(__getattr__("DEEPSEEK_OCR_MAX_WORKERS") or 2))
-
 # Hard-coded upload settings (optimized defaults)
 UPLOAD_CHUNK_SIZE_MBYTES = 2.0  # 2MB chunks balance throughput and memory
 UPLOAD_MAX_WORKERS = 4  # Good default for I/O-bound operations

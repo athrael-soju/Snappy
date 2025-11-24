@@ -75,12 +75,14 @@ class ImageStorageHandler:
         processed_images = self._image_processor.process_batch(image_batch)
 
         try:
-            # Store pre-processed images in MinIO
+            # Store pre-processed images in MinIO with batch-size parallelism
+            # Batch size controls parallelism across all stages
             image_url_map = self._minio_service.store_processed_images_batch(
                 processed_images,
                 image_ids=image_ids,
                 document_ids=document_ids,
                 page_numbers=page_numbers,
+                max_workers=len(image_batch),  # Use batch size for parallelism
             )
         except Exception as exc:
             raise Exception(
