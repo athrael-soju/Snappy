@@ -1,255 +1,63 @@
-# Snappy Architecture 🏗️
+# Snappy Architecture
 
-This document outlines how the major components in Snappy work together to deliver vision-grounded document search.
+Snappy is a vision-grounded retrieval system: PDFs are rasterized to images, embedded with ColPali multivectors, and searched by layout and text. Optional DeepSeek OCR and DuckDB add text grounding, analytics, and deduplication.
 
 ```mermaid
 ---
 config:
-  theme: neutral
   layout: elk
+  look: classic
+  theme: base
 ---
 flowchart TB
-  subgraph Frontend["Frontend"]
-    NEXT["Next.js App"]
-    CHAT["Next.js Chat API"]
-  end
-
-  subgraph Backend["FastAPI Backend"]
-    API["REST Routers"]
-    PIPELINE["Streaming Pipeline"]
-    STAGES["Pipeline Stages:<br/>Rasterizer → Embedding<br/>Storage → OCR → Upsert"]
-  end
-
-  subgraph Services["External Services"]
-    QDRANT["Qdrant<br/>(Vector DB)"]
-    MINIO["MinIO<br/>(Image Storage)"]
-    COLPALI["ColPali<br/>(Embeddings)"]
-    DEEPSEEK["DeepSeek OCR<br/>(Text Extraction)"]
-    DUCKDB["DuckDB<br/>(Analytics & Deduplication)"]
-    OPENAI["OpenAI API"]
-  end
-
-  USER["Browser"] <--> NEXT
-  NEXT -- "Upload/Search/OCR Requests" --> API
-
-  %% Indexing flow (streaming pipeline with parallel stages)
-  API -- "Check Duplicates" --> DUCKDB
-  API -- "Index Documents" --> PIPELINE
-  PIPELINE --> STAGES
-  STAGES -- "Generate Embeddings (parallel)" --> COLPALI
-  STAGES -- "Store Images (parallel)" --> MINIO
-  STAGES -- "Extract Text (parallel)" --> DEEPSEEK
-  STAGES -- "Store OCR Results" --> MINIO
-  STAGES -- "Store OCR Metadata" --> DUCKDB
-  STAGES -- "Upsert Vectors (after completion)" --> QDRANT
-  STAGES -- "Record Document Metadata" --> DUCKDB
-
-  %% Search flow
-  API -- "Search Query" --> COLPALI
-  API -- "Vector Search" --> QDRANT
-  API -- "Fetch Images" --> MINIO
-  API -- "Query OCR Data" --> DUCKDB
-
-  %% OCR flow
-  API -- "OCR Processing" --> DEEPSEEK
-  API -- "Fetch/Store OCR" --> MINIO
-  API -- "Store/Query Metadata" --> DUCKDB
-
-  %% Chat flow
-  CHAT -- "Search Context" --> API
-  CHAT -- "Generate Response" --> OPENAI
-  CHAT -- "SSE Stream" --> USER
+    U["User uploads document"] --> R["Rasterize to page images"]
+    R --> E["ColPali embeds pages"] & O["OCR + region detection"]
+    E --> Qdrant[("Qdrant: image/page vectors")]
+    O --> Duck[("DuckDB: regions with text/tables/images")]
+    Q["User question"] --> QE["ColPali query embedding"]
+    QE --> Qdrant
+    Qdrant --> K["Top-K image/page IDs"]
+    K --> JR["Lookup regions by IDs in DuckDB"]
+    JR --> LLM["LLM over text + table + image region"] & Duck
+    LLM --> A["Answer to user"]
+    Duck --> LLM
 ```
 
----
+## Components at a glance
+- **FastAPI backend**: routers for indexing, search, OCR, configuration, maintenance, and health.
+- **Streaming pipeline**: parallel stages for rasterize, embed, store images, optional OCR, and Qdrant upserts.
+- **ColPali service**: query and image embeddings (multivectors with pooled variants).
+- **DeepSeek OCR service (optional)**: text, markdown, and region extraction with bounding boxes.
+- **Qdrant**: vector store for image/page embeddings; payload carries metadata and optional OCR URLs.
+- **MinIO**: page images and OCR JSON storage with hierarchical paths.
+- **DuckDB (optional)**: document metadata, OCR regions, and analytics; powers deduplication and inline OCR responses.
+- **Next.js frontend**: upload, search, and chat flows; streams responses via SSE.
+- **OpenAI**: generates chat answers using retrieved images, text, and tables.
 
-## Components
+## Indexing path (streaming)
+1. Upload PDFs to `POST /index`; optional dedup check when DuckDB is enabled.
+2. Rasterizer produces page batches and fans out to embedding, storage, and optional OCR stages in parallel.
+3. Upsert stage waits for embeddings, generates URLs dynamically, writes vectors to Qdrant, and tracks progress.
+4. Images live in MinIO; OCR output goes to MinIO or DuckDB depending on configuration.
+5. `/progress/stream/{job_id}` streams live status for the UI; failures stop the pipeline to keep data consistent.
 
-- **FastAPI application** (`backend/api/app.py`) wires the routers for health, retrieval, indexing, maintenance, configuration, OCR, and DuckDB endpoints.
-- **Qdrant integration** (`backend/clients/qdrant/`) manages vector collections and search using the `PointFactory` for building vector points.
-- **Pipeline package** (`backend/domain/pipeline/`) provides the streaming pipeline architecture with independent parallel stages (rasterizer, embedding, storage, OCR, upsert) and shared components for image processing and storage.
-- **MinIO client** (`backend/clients/minio.py`) stores page images with concurrent uploads and retry handling.
-- **ColPali client** (`backend/clients/colpali.py`) communicates with the embedding service for both queries and images.
-- **DeepSeek OCR client** (`backend/clients/ocr/`) handles OCR requests with UUID-based result naming, integrates with MinIO, and surfaces batch/background helpers for the OCR router.
-- **DuckDB client** (`backend/clients/duckdb.py`) provides document deduplication, OCR metadata storage, and SQL-based analytics with query sanitization.
-- **Cancellation service** (`backend/domain/pipeline/cancellation.py`) coordinates job cancellation and cleanup across Qdrant, MinIO, DuckDB, and temporary files with optional service restart support.
-- **Configuration layer** (`backend/config/`) keeps runtime settings consistent across the API and UI with schema-driven validation.
-- **Support modules**
-  - `backend/api/utils.py` – PDF-to-image conversion
-  - `backend/api/progress.py` – Job state tracking for SSE
-  - `backend/api/dependencies.py` – Cached service instances and cache invalidation
+## Search and chat path
+1. `GET /search` embeds the query with ColPali and retrieves top-k page IDs from Qdrant.
+2. When DuckDB is enabled, regions/text for those pages come directly from DuckDB; otherwise the payload contains OCR URLs for the frontend to fetch from MinIO.
+3. Chat (`/api/chat` on the frontend) streams an OpenAI response with citations, sending images and/or text depending on OCR settings.
 
----
+## Configuration and modes
+- Toggle OCR with `DEEPSEEK_OCR_ENABLED`; requires the ML profile (GPU).
+- Toggle DuckDB with `DUCKDB_ENABLED` for analytics, deduplication, and inline OCR.
+- Quantization and pooling options live in `.env` and `backend/config/schema`.
+- See `backend/docs/configuration.md` for full settings and defaults.
 
-## Indexing Flow
+## Cancellation and cleanup
+- `/index/cancel/{job_id}` and `/ocr/cancel/{job_id}` stop jobs, remove vectors (Qdrant), objects (MinIO), and records (DuckDB), and optionally restart ColPali/OCR services.
+- Cleanup progress is reported over the same SSE progress stream.
 
-1. `POST /index` receives one or more PDFs and starts validation.
-2. **Deduplication Check**: When DuckDB is enabled, the system checks the `documents` table using content-based fingerprinting (filename, file_size_bytes, total_pages). Duplicate documents are skipped with user feedback, and only new documents proceed to indexing.
-3. **Streaming Pipeline** (`domain/pipeline/streaming_pipeline.py`) orchestrates parallel processing stages:
-   - **PDFRasterizer**: Converts PDF pages to images, broadcasts to all stages with consistent document_id
-   - **EmbeddingStage**: Generates ColPali embeddings in parallel (failures stop pipeline)
-   - **StorageStage**: Uploads images to MinIO in parallel (hierarchical structure: `{doc_id}/{page_num}/image/{page_id}.{ext}`, failures stop pipeline)
-   - **OCRStage**: Extracts text via DeepSeek in parallel (only runs if enabled, failures stop pipeline)
-   - **UpsertStage**: Receives embeddings from queue, generates URLs dynamically, upserts to Qdrant
-4. **Dynamic URL Generation**: UpsertStage generates MinIO URLs from metadata on-the-fly - no coordination with storage/OCR stages needed.
-5. **Independent Stages**: All stages run independently with dedicated queues - failures in any stage stop the pipeline to maintain data consistency.
-6. **Metadata Storage**: When DuckDB is enabled, document metadata is stored in the `documents` table, and OCR results are stored in the `pages` and `regions` tables for analytics.
-7. **Backpressure Control**: Bounded queues prevent memory overflow while maintaining parallelism.
-8. `/progress/stream/{job_id}` streams progress updates so the UI can reflect status in real time - progress updates after each batch is embedded and upserted.
-
----
-
-## Search Flow
-
-1. `GET /search` embeds the incoming query via ColPali.
-2. `SearchManager` (`services/qdrant/search.py`) performs two-stage retrieval:
-   - Prefetch via pooled vectors when mean pooling is enabled.
-   - Final rerank on the original multivectors.
-3. Results include metadata and public image URLs; the frontend decides how to display them.
-
-## OCR Flow (Optional)
-
-1. `/ocr/process-page` and `/ocr/process-batch` use `services/ocr` to fetch page images from MinIO and submit them to the DeepSeek OCR microservice with adjustable worker pool settings.
-2. OCR responses (markdown, text, regions, extracted crops) are persisted in MinIO with UUID-based naming via `services/ocr/storage.py` for reliable retrieval and caching.
-3. When DuckDB is enabled, OCR metadata (text, regions with bounding boxes, page dimensions) is stored in the `pages` and `regions` tables for SQL-based analytics and full-text search.
-4. `/ocr/process-document` launches a background job that iterates every page discovered via Qdrant metadata and reports progress through `api/progress`.
-5. `/ocr/progress/{job_id}` and `/ocr/progress/stream/{job_id}` expose job status for polling or SSE streaming, mirroring the indexing progress APIs.
-6. `/ocr/cancel/{job_id}` stops long-running jobs, while `/ocr/health` verifies that the OCR client can reach the external service.
-
-### OCR Retrieval: Two Modes
-
-Snappy supports two strategies for serving OCR results, controlled by the `DUCKDB_ENABLED` configuration flag:
-
-| Aspect | DuckDB Enabled | DuckDB Disabled |
-|--------|----------------|-----------------|
-| **Storage** | Columnar tables (documents/pages/regions) | JSON files in MinIO with UUID naming |
-| **Indexing** | OCR metadata stored in DuckDB during pipeline | OCR URLs pre-computed and stored in Qdrant payloads |
-| **Retrieval** | Backend queries DuckDB for OCR data | Qdrant payload contains `ocr_url`, frontend fetches JSON |
-| **HTTP Requests** | 1 (search returns OCR inline) | 2 (search + MinIO fetch) |
-| **Latency** | Lower (single request) | Higher (sequential requests) |
-| **Analytics** | SQL queries, full-text search, aggregations | Limited (requires parsing JSON blobs) |
-| **Deduplication** | Automatic (fingerprinting during upload) | Manual (application-level checks) |
-| **Schema** | Structured (typed columns) | Unstructured (JSON blobs) |
-| **Best For** | Production deployments, analytics, deduplication | Simple setups, minimal dependencies |
-
-**When DuckDB Enabled:**
-- OCR text and regions are stored in DuckDB columnar tables during indexing
-- Search endpoint queries DuckDB directly for OCR data (`SELECT text, regions FROM pages WHERE ...`)
-- Response includes OCR content inline (1 HTTP request)
-- Optimal for analytics queries, full-text search, and document deduplication
-- Example query: `SELECT * FROM pages WHERE text ILIKE '%contract%'`
-
-**When DuckDB Disabled:**
-- OCR URLs are pre-computed during indexing with UUID-based naming
-- URLs are stored in Qdrant vector point payloads (`ocr_url` field)
-- Search endpoint extracts URL from Qdrant payload (no additional database query)
-- Frontend fetches OCR JSON directly from MinIO via HTTP (2 HTTP requests: search + fetch)
-- OCR JSON structure: `{filename}/{page_number}/ocr/{uuid}.json`
-- Optimal for simple deployments where analytics are not required
-
----
-
-## DuckDB Analytics (Optional)
-
-The DuckDB service provides columnar storage for document metadata and OCR results, enabling:
-
-1. **Document Deduplication**: Before indexing, the system checks the `documents` table using `(filename, file_size_bytes, total_pages)` as a unique constraint. Duplicate uploads are detected and skipped with user feedback.
-
-2. **Schema Structure**:
-   - `documents` table: Core metadata (document_id, filename, size, page count, first/last indexed timestamps)
-   - `pages` table: Page-level data (dimensions, text, markdown, MinIO URLs, extraction timestamps)
-   - `regions` table: Text regions with bounding boxes (label, coordinates, content) for layout analysis
-
-3. **SQL Query Interface**: `/duckdb/query` endpoint accepts sanitized SQL queries (block comment stripping, length limits) for custom analytics across all indexed documents and OCR results.
-
-4. **Full-Text Search**: Full-text indexes on `pages.text` and `regions.content` enable fast text search across all OCR data.
-
-5. **DuckDB-Wasm UI**: Interactive web UI at http://localhost:42130 for exploring data, running queries, and visualizing results.
-
-6. **Graceful Shutdown**: Automatic checkpointing on close ensures all data is flushed to disk before shutdown.
-
----
-
-## Job Cancellation and Cleanup
-
-The cancellation service (`backend/domain/pipeline/cancellation.py`) provides comprehensive job cleanup across all services when indexing or OCR jobs are cancelled or fail.
-
-### Cancellation Flow
-
-When a job is cancelled via `POST /index/cancel/{job_id}` or `POST /ocr/cancel/{job_id}`:
-
-1. **Service Restart (Optional, 0-75%)**:
-   - Sends restart requests to ColPali and DeepSeek OCR services to immediately stop ongoing batch processing
-   - Services exit cleanly and restart via Docker's restart policy
-   - Optionally waits for services to come back online with health check polling
-   - Configurable timeout via `JOB_CANCELLATION_SERVICE_RESTART_TIMEOUT` (default: 30s)
-
-2. **Qdrant Cleanup (75-81%)**:
-   - Deletes all vector points associated with the document using `delete_points_by_filename()`
-   - Removes multivector embeddings and metadata from the collection
-
-3. **MinIO Cleanup (81-87%)**:
-   - Deletes all objects under the document prefix: `{filename}/`
-   - Removes page images, OCR JSON files, region crops, and extracted images
-   - Uses MinIO batch delete API for efficient removal
-
-4. **DuckDB Cleanup (87-93%)**:
-   - Deletes document record from `documents` table
-   - Cascades to delete all associated `pages` and `regions` records
-   - Maintains referential integrity across all tables
-
-5. **Temporary Files Cleanup (93-100%)**:
-   - Removes PDF conversion artifacts from `/tmp`
-   - Cleans up any intermediate processing files
-
-### Progress Reporting
-
-- All cleanup operations report progress via `progress_callback(percent, message)`
-- SSE endpoint `/progress/stream/{job_id}` streams real-time status updates
-- Cleanup results include success/failure status for each service and detailed error messages
-
-### Service Restart Mechanism
-
-The service restart feature (`CancellationService.restart_services()`) provides:
-
-- **Immediate Processing Stop**: Services receive `/restart` endpoint call and exit immediately
-- **Health Check Polling**: Two-phase verification (down detection → up detection)
-- **Configurable Timeout**: Default 30s, adjustable via environment variable
-- **Non-blocking Option**: Can request restart without waiting for completion
-- **Detailed Reporting**: Returns restart status, elapsed time, and error details for each service
-
-This ensures that long-running embedding or OCR operations are terminated promptly when users cancel jobs.
-
----
-
-## Frontend Integration
-
-- Pages live under `frontend/app/*` (`/upload`, `/search`, `/chat`, `/configuration`, `/maintenance`, etc.).
-- `frontend/lib/api/client.ts` wraps the generated OpenAPI client using `NEXT_PUBLIC_API_BASE_URL`.
-- `frontend/app/api/chat/route.ts` runs in the Edge runtime, calls `GET /search`, invokes the OpenAI Responses API, and streams events (`text-delta`, `kb.images`) back to the browser.
-
----
-
-## ColPali Service
-
-Located in `colpali/`, this FastAPI app powers embeddings.
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/health`, `/info` | Health and model metadata |
-| `POST` | `/patches` | Patch grid estimation |
-| `POST` | `/embed/queries` | Text → embeddings |
-| `POST` | `/embed/images` | Images → embeddings + token boundaries |
-
-Docker Compose profiles are provided for CPU and GPU deployments, each sharing a Hugging Face cache volume.
-
----
-
-## Configuration Lifecycle
-
-1. **Schema** – `config_schema.py` defines defaults, metadata, and critical keys.
-2. **Runtime store** – Values load from `.env` into `runtime_config`.
-3. **Access** – `config.py` exposes typed getters and computed defaults.
-4. **API/UI** – `/config/*` endpoints feed the configuration UI; updates trigger cache invalidation for dependent services.
-
-See `backend/docs/configuration.md` and `backend/CONFIGURATION_GUIDE.md` for details.
+## Where to dig deeper
+- `STREAMING_PIPELINE.md` - how the streaming indexer overlaps stages.
+- `backend/docs/analysis.md` - when to use vision-only vs hybrid text modes.
+- `backend/docs/configuration.md` - complete configuration reference.
+- `frontend/README.md` and `backend/README.md` - development guides.
