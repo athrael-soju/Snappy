@@ -6,7 +6,7 @@ import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, Protocol
 from urllib.parse import urlparse
 
 import urllib3
@@ -28,8 +28,13 @@ from minio.error import S3Error
 from PIL import Image
 from utils.timing import log_execution_time
 
-if TYPE_CHECKING:
-    from domain.pipeline.image_processor import ProcessedImage
+
+class ImageContainer(Protocol):
+    """Protocol for image containers to avoid circular dependencies."""
+    size: int
+    format: str
+    content_type: str
+    def to_buffer(self) -> io.BytesIO: ...
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -200,7 +205,7 @@ class MinioClient:
     )
     def store_processed_images_batch(
         self,
-        processed_images: List["ProcessedImage"],
+        processed_images: List[ImageContainer],
         image_ids: Optional[List[str]] = None,
         document_ids: Optional[List[str]] = None,
         page_numbers: Optional[List[int]] = None,
@@ -216,7 +221,7 @@ class MinioClient:
 
         Parameters
         ----------
-        processed_images : List[ProcessedImage]
+        processed_images : List[ImageContainer]
             Pre-processed images with encoded data
         image_ids : Optional[List[str]]
             Provide IDs to align with images; UUIDs will be created if omitted.

@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import logging
-import os
-import tempfile
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List
@@ -11,15 +9,13 @@ import config
 from api.dependencies import get_duckdb_service, get_qdrant_service, qdrant_init_error
 from api.progress import progress_manager
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
-from pdf2image import pdfinfo_from_path
 from utils.timing import PerformanceTimer
 
-from .file_constraints import (
+from domain.file_constraints import (
     UploadConstraints,
-    get_upload_chunk_size_mbytes,
-    is_allowed_file,
     resolve_upload_constraints,
 )
+from domain.indexing import check_file_duplicate, validate_and_persist_uploads
 from .jobs import cleanup_temp_files, run_indexing_job
 
 logger = logging.getLogger(__name__)
@@ -27,169 +23,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="", tags=["indexing"])
 
 
-def _check_file_duplicate(
-    tmp_path: str, filename: str, duckdb_svc
-) -> tuple[str, str, bool, dict | None]:
-    """Check if a file is a duplicate.
-
-    Args:
-        tmp_path: Temporary file path
-        filename: Original filename
-        duckdb_svc: DuckDB service instance
-
-    Returns:
-        Tuple of (tmp_path, filename, is_duplicate, existing_doc)
-    """
-    try:
-        # Get PDF metadata
-        info = pdfinfo_from_path(tmp_path)
-        pages = int(info.get("Pages", 0))
-        size_bytes = os.path.getsize(tmp_path)
-
-        # Check for duplicates
-        existing_doc = duckdb_svc.check_document_exists(
-            filename=filename,
-            file_size_bytes=size_bytes,
-            total_pages=pages,
-        )
-
-        if existing_doc:
-            logger.info(
-                f"Skipping already indexed document: {filename} "
-                f"(first indexed: {existing_doc.get('first_indexed')})",
-                extra={"operation": "index"},
-            )
-            # Clean up temp file for duplicate
-            try:
-                os.unlink(tmp_path)
-            except Exception as cleanup_exc:
-                logger.warning(
-                    f"Failed to clean up duplicate temp file {tmp_path}: {cleanup_exc}",
-                    extra={"operation": "index"},
-                )
-            return (tmp_path, filename, True, existing_doc)
-
-        return (tmp_path, filename, False, None)
-
-    except Exception as exc:
-        logger.warning(
-            f"Failed to check duplicate for {filename}: {exc}",
-            extra={"operation": "index", "error_type": type(exc).__name__},
-        )
-        # If we can't get metadata, include the file anyway (fail-safe behavior)
-        return (tmp_path, filename, False, None)
-
-
-async def _persist_upload_to_disk(
-    upload: UploadFile,
-    chunk_size: int,
-    max_file_size_bytes: int,
-    max_file_size_mb: int,
-    timeout_seconds: int = 300,
-) -> str:
-    """Persist upload chunks to a temporary file with proper cleanup and timeout.
-
-    Args:
-        upload: File upload to persist
-        chunk_size: Size of chunks to read
-        max_file_size_bytes: Maximum file size in bytes
-        max_file_size_mb: Maximum file size in MB (for error message)
-        timeout_seconds: Upload timeout in seconds (default: 5 minutes)
-
-    Returns:
-        Path to temporary file
-
-    Raises:
-        HTTPException: On timeout, file size exceeded, or upload failure
-    """
-    import asyncio
-    import time
-
-    suffix = os.path.splitext(upload.filename or "")[1] or ".pdf"
-    tmp_file = None
-
-    try:
-        tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
-        written_bytes = 0
-        start_time = time.time()
-
-        while True:
-            # Check timeout
-            if time.time() - start_time > timeout_seconds:
-                raise HTTPException(status_code=408, detail="Upload timeout exceeded")
-
-            chunk = await asyncio.wait_for(
-                upload.read(chunk_size), timeout=timeout_seconds
-            )
-            if not chunk:
-                break
-
-            written_bytes += len(chunk)
-            if written_bytes > max_file_size_bytes:
-                raise HTTPException(
-                    status_code=413,
-                    detail=(
-                        f"File '{upload.filename or 'unnamed'}' exceeds the maximum "
-                        f"allowed size of {max_file_size_mb} MB."
-                    ),
-                )
-
-            tmp_file.write(chunk)
-
-        tmp_file.close()
-        return tmp_file.name
-
-    except HTTPException:
-        if tmp_file:
-            tmp_file.close()
-            try:
-                os.unlink(tmp_file.name)
-            except Exception as e:
-                logger.warning(f"Failed to clean up temp file: {e}")
-        raise
-    except Exception as e:
-        if tmp_file:
-            tmp_file.close()
-            try:
-                os.unlink(tmp_file.name)
-            except Exception:
-                pass
-        raise HTTPException(status_code=400, detail=f"Upload failed: {str(e)}")
-
-
-async def _validate_and_persist_uploads(
-    files: List[UploadFile],
-    constraints: UploadConstraints,
-) -> tuple[list[str], dict[str, str]]:
-    chunk_size = get_upload_chunk_size_mbytes()
-    temp_paths: list[str] = []
-    original_filenames: dict[str, str] = {}
-
-    for upload in files:
-        if not is_allowed_file(upload.filename, upload.content_type, constraints):
-            await upload.close()
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    f"File '{upload.filename or 'unnamed'}' is not an allowed type. "
-                    f"Accepted formats: {constraints.description}."
-                ),
-            )
-
-        try:
-            tmp_path = await _persist_upload_to_disk(
-                upload,
-                chunk_size=chunk_size,
-                max_file_size_bytes=constraints.max_file_size_bytes,
-                max_file_size_mb=constraints.max_file_size_mb,
-            )
-        finally:
-            await upload.close()
-
-        temp_paths.append(tmp_path)
-        original_filenames[tmp_path] = upload.filename or "document.pdf"
-
-    return temp_paths, original_filenames
 
 
 @router.post("/index")
@@ -223,7 +56,7 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
         with PerformanceTimer(
             "validate and persist uploads", log_on_exit=False
         ) as timer:
-            temp_paths, original_filenames = await _validate_and_persist_uploads(
+            temp_paths, original_filenames = await validate_and_persist_uploads(
                 files, constraints
             )
 
@@ -257,7 +90,7 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
                     # Submit all duplicate checks in parallel
                     future_to_path = {
                         executor.submit(
-                            _check_file_duplicate,
+                            check_file_duplicate,
                             tmp_path,
                             original_filenames[tmp_path],
                             duckdb_svc,

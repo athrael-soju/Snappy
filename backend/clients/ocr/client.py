@@ -19,7 +19,7 @@ if TYPE_CHECKING:  # pragma: no cover - hints only
     from clients.minio import MinioClient
 
 from .processor import OcrProcessor
-from .storage import OcrStorageHandler
+from .processor import OcrProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +115,7 @@ class OcrClient:
 
             # Initialize dependencies
             self.minio_service = minio_service
+            self.duckdb_service = duckdb_service
 
             # Initialize subcomponents
             from domain.pipeline.image_processor import ImageProcessor
@@ -129,10 +130,13 @@ class OcrClient:
                 image_processor=self.image_processor,
             )
 
+            # Initialize storage handler
+            from domain.ocr_persistence import OcrStorageHandler
+
             self.storage = OcrStorageHandler(
-                minio_service=minio_service,
+                minio_service=self.minio_service,
                 processor=self.processor,
-                duckdb_service=duckdb_service,
+                duckdb_service=self.duckdb_service,
             )
 
         except Exception as e:
@@ -268,97 +272,8 @@ class OcrClient:
         )
 
     # Public orchestration methods
-    def process_document_page(
-        self,
-        document_id: str,
-        filename: str,
-        page_number: int,
-        *,
-        mode: Optional[str] = None,
-        task: Optional[str] = None,
-        custom_prompt: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
-        """Process a single document page with OCR."""
-        image_bytes = self._fetch_page_image(document_id, page_number)
-
-        ocr_result = self.processor.process_single(
-            image_bytes=image_bytes,
-            filename=f"{filename}/page_{page_number}.png",
-            mode=mode,
-            task=task,
-            custom_prompt=custom_prompt,
-        )
-
-        # Ensure filename is in metadata
-        if metadata is None:
-            metadata = {}
-        metadata["filename"] = filename
-
-        storage_url = self.storage.store_ocr_result(
-            ocr_result=ocr_result,
-            document_id=document_id,
-            page_number=page_number,
-            metadata=metadata,
-        )
-
-        return {
-            "status": "success",
-            "filename": filename,
-            "page_number": page_number,
-            "storage_url": storage_url,
-            "text_preview": ocr_result.get("text", "")[:200],
-            "regions": len(ocr_result.get("regions", [])),
-            "extracted_images": len(ocr_result.get("crops", [])),
-        }
-
-    def process_document_batch(
-        self,
-        filename: str,
-        page_numbers: List[int],
-        *,
-        mode: Optional[str] = None,
-        task: Optional[str] = None,
-        max_workers: Optional[int] = None,
-    ) -> List[Optional[Dict[str, Any]]]:
-        """Process multiple pages from the same document in parallel."""
-        return self.processor.process_batch(
-            filename=filename,
-            page_numbers=page_numbers,
-            minio_service=self.minio_service,
-            storage_handler=self.storage,
-            mode=mode,
-            task=task,
-            max_workers=max_workers,
-        )
 
 
-    def _fetch_page_image(self, document_id: str, page_number: int) -> bytes:
-        """Fetch page image bytes from MinIO.
-
-        Note: With UUID-based naming, we need to list objects in the image/ subfolder
-        to find the page image since we don't have the image UUID readily available.
-        """
-        # List objects in the image/ subfolder for this page
-        prefix = f"{document_id}/{page_number}/image/"
-
-        for obj in self.minio_service.service.list_objects(
-            bucket_name=self.minio_service.bucket_name,
-            prefix=prefix,
-        ):
-            object_name = getattr(obj, "object_name", "")
-            if object_name:
-                # Found the page image, fetch it
-                response = self.minio_service.service.get_object(
-                    bucket_name=self.minio_service.bucket_name,
-                    object_name=object_name,
-                )
-                return response.read()
-
-        # No image found
-        raise FileNotFoundError(
-            f"Page image not found for document {document_id} page {page_number} in image/ subfolder"
-        )
 
     def health_check(self) -> bool:
         """Check if OCR service is healthy and accessible."""

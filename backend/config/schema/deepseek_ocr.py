@@ -79,6 +79,36 @@ SCHEMA: Dict[str, Any] = {
                 "type": "str",
                 "ui_type": "select",
             },
+            {
+                "critical": False,
+                "default": True,
+                "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
+                "description": "Enable grounding extraction (bounding boxes) for OCR results.",
+                "help_text": "When enabled, the OCR service will extract bounding box "
+                "coordinates for detected text regions. This is required for "
+                "tasks like 'locate' and 'markdown' that use grounding tokens. "
+                "Disabling can significantly improve performance (~20-30% faster) "
+                "if you only need plain text extraction.",
+                "key": "DEEPSEEK_OCR_INCLUDE_GROUNDING",
+                "label": "Include Grounding (Bounding Boxes)",
+                "type": "bool",
+                "ui_type": "boolean",
+            },
+            {
+                "critical": False,
+                "default": True,
+                "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
+                "description": "Enable image extraction and embedding in OCR results.",
+                "help_text": "When enabled, the OCR service will extract image regions "
+                "from the document and embed them as base64 in the markdown output. "
+                "This is useful for preserving diagrams, charts, and photos within "
+                "the extracted text. Disabling can improve performance (~15-25% faster) "
+                "and reduce memory usage if you only need text content.",
+                "key": "DEEPSEEK_OCR_INCLUDE_IMAGES",
+                "label": "Include Images",
+                "type": "bool",
+                "ui_type": "boolean",
+            },
         ],
     }
 }

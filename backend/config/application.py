@@ -181,8 +181,6 @@ IMAGE_QUALITY = 75  # Good quality/size balance
 # Hard-coded DeepSeek OCR settings (auto-sized or optimized defaults)
 DEEPSEEK_OCR_API_TIMEOUT = 180  # 3 minutes - balances speed and reliability
 DEEPSEEK_OCR_POOL_SIZE = 20  # Sufficient for retry handling
-DEEPSEEK_OCR_INCLUDE_GROUNDING = True  # Always include bounding boxes
-DEEPSEEK_OCR_INCLUDE_IMAGES = True  # Always extract embedded images
 DEEPSEEK_OCR_LOCATE_TEXT = ""  # Empty by default
 DEEPSEEK_OCR_CUSTOM_PROMPT = ""  # Empty by default
 

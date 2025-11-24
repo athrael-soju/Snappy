@@ -17,7 +17,7 @@ from .models import (
     OcrPageRequest,
     OcrResponse,
 )
-from .tasks import get_document_pages, process_document_background
+from domain.ocr import get_document_pages, process_document_background
 
 logger = logging.getLogger(__name__)
 

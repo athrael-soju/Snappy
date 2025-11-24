@@ -76,6 +76,12 @@ class BatchCompletionTracker:
             if self.batch_completions[batch_key] == self.num_stages:
                 # All stages complete for this batch
                 self.completed_pages += num_pages
+                
+                # Log batch completion
+                logger.info(
+                    f"╚═ Batch {batch_id}: All {self.num_stages} stages complete "
+                    f"(total: {self.completed_pages} pages)"
+                )
 
                 # Clean up tracking for this batch
                 del self.batch_completions[batch_key]

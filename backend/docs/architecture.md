@@ -34,6 +34,24 @@ flowchart TB
 - **Next.js frontend**: upload, search, and chat flows; streams responses via SSE.
 - **OpenAI**: generates chat answers using retrieved images, text, and tables.
 
+## Layered Architecture
+The backend is organized into three distinct layers to ensure maintainability and testability:
+
+1.  **API Layer (`backend/api`)**:
+    - Handles HTTP requests, validation, and responses.
+    - Thin wrappers that delegate work to the Domain layer.
+    - No business logic allowed.
+
+2.  **Domain Layer (`backend/domain`)**:
+    - Contains all business logic, orchestration, and domain rules.
+    - Orchestrates data flow between Clients and processing logic.
+    - Independent of the HTTP framework (FastAPI).
+
+3.  **Infrastructure/Clients Layer (`backend/clients`)**:
+    - Handles communication with external services (MinIO, Qdrant, DuckDB, ColPali, OCR).
+    - Implements specific protocols and error handling for each service.
+    - Decoupled from domain types where possible.
+
 ## Indexing path (streaming)
 1. Upload PDFs to `POST /index`; optional dedup check when DuckDB is enabled.
 2. Rasterizer produces page batches and fans out to embedding, storage, and optional OCR stages in parallel.

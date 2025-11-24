@@ -71,10 +71,12 @@ class OCRStage:
             processed_image.format
         )
 
-        # Run OCR
+        # Run OCR with configuration defaults
         ocr_result = self.ocr_service.processor.process_single(
             image_bytes=processed_image.data,
             filename=f"{filename}/page_{page_num}.{extension}",
+            include_grounding=self.ocr_service.default_include_grounding,
+            include_images=self.ocr_service.default_include_images,
         )
 
         # Build metadata with required fields

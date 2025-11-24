@@ -26,6 +26,6 @@ Snappy is vision-first: it embeds page images with ColPali multivectors so layou
 ## Implementation pointers
 - Search and rerank: `backend/clients/qdrant/search.py`, `backend/clients/qdrant/embedding.py`.
 - Indexing pipeline: `backend/domain/pipeline/streaming_pipeline.py` and stage modules.
-- OCR services: `backend/clients/ocr/*`, `backend/services/ocr/*`.
+- OCR services: `backend/clients/ocr/*` (client), `backend/domain/ocr.py` (orchestration).
 - Configuration: `backend/config/schema/*` and `backend/docs/configuration.md`.
 - Frontend chat flow: `frontend/app/api/chat/route.ts` (streams OpenAI responses with citations).

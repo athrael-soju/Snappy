@@ -2,6 +2,13 @@
 
 FastAPI service for PDF ingestion, vision-grounded search, optional OCR, runtime config, and maintenance.
 
+## Project Structure
+The backend follows a layered architecture to separate concerns:
+- **`api/`**: FastAPI routers and HTTP handling. Delegates all business logic to the Domain layer.
+- **`domain/`**: Core business logic, orchestration, and rules. Pure Python code, independent of HTTP frameworks.
+- **`clients/`**: Infrastructure adapters for external services (MinIO, Qdrant, DuckDB, OCR).
+- **`config/`**: Configuration schemas and loading logic.
+
 ## Quick start
 ```bash
 cd backend

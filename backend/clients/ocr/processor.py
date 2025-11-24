@@ -18,7 +18,7 @@ if TYPE_CHECKING:  # pragma: no cover - hints only
     from clients.minio import MinioClient
 
     from .client import OcrClient
-    from .storage import OcrStorageHandler
+    from domain.ocr_persistence import OcrStorageHandler
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +60,8 @@ class OcrProcessor:
         mode: Optional[str] = None,
         task: Optional[str] = None,
         custom_prompt: Optional[str] = None,
+        include_grounding: Optional[bool] = None,
+        include_images: Optional[bool] = None,
     ) -> Dict[str, Any]:
         """
         Process a single image through DeepSeek OCR.
@@ -70,6 +72,8 @@ class OcrProcessor:
             mode: OCR processing mode (Gundam, Tiny, etc.)
             task: OCR task type (markdown, plain_ocr, etc.)
             custom_prompt: Custom prompt for custom tasks
+            include_grounding: Whether to extract bounding boxes
+            include_images: Whether to extract embedded images
 
         Returns:
             Structured OCR result with text, regions, and extracted images
@@ -89,6 +93,8 @@ class OcrProcessor:
             mode=mode,
             task=task,
             custom_prompt=custom_prompt,
+            include_grounding=include_grounding,
+            include_images=include_images,
         )
 
         # Validate response
