@@ -123,9 +123,6 @@ export function useConfigurationPanel() {
 
       notifyRuntimeConfigUpdated();
       if (appliedOverrides > 0) {
-        toast.success("Configuration restored", {
-          description: `${appliedOverrides} setting${appliedOverrides === 1 ? "" : "s"} re-applied from local storage`,
-        });
         if (typeof window !== "undefined") {
           window.dispatchEvent(new Event("systemStatusChanged"));
         }
