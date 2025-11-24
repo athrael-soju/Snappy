@@ -1,10 +1,8 @@
 """Image storage helpers for pipeline processing."""
 
 import logging
-import uuid
 from typing import Dict, List, Tuple
 
-import config
 from PIL import Image
 from .image_processor import ImageProcessor, ProcessedImage
 
@@ -12,16 +10,19 @@ logger = logging.getLogger(__name__)
 
 
 class ImageStorageHandler:
-    """Handles persistence of image batches in MinIO."""
+    """Handles persistence of image batches in MinIO.
 
-    def __init__(self, minio_service, image_processor: ImageProcessor | None = None):
+    Follows dependency injection principle - all dependencies must be provided.
+    """
+
+    def __init__(self, minio_service, image_processor: ImageProcessor):
+        """Initialize image storage handler.
+
+        Args:
+            minio_service: MinIO service for object storage
+            image_processor: Image processor for format conversion (required)
+        """
         self._minio_service = minio_service
-        # Create processor with config defaults if not provided
-        if image_processor is None:
-            image_processor = ImageProcessor(
-                default_format=config.IMAGE_FORMAT,
-                default_quality=config.IMAGE_QUALITY,
-            )
         self._image_processor = image_processor
 
     def store(

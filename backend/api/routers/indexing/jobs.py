@@ -86,10 +86,11 @@ def run_indexing_job(
             image_processor=image_processor,
         )
 
-        # Initialize streaming pipeline
+        # Initialize streaming pipeline with all dependencies
         pipeline = StreamingPipeline(
             embedding_processor=qdrant_svc.embedding_processor,
             image_store=image_store,
+            image_processor=image_processor,
             ocr_service=qdrant_svc.ocr_service,
             point_factory=PointFactory(),
             qdrant_service=qdrant_svc.service,

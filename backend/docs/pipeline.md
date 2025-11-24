@@ -33,9 +33,16 @@ Main orchestrator that coordinates the entire indexing pipeline:
 - Delegates storage via callback pattern
 
 ```python
+from domain.pipeline import ImageProcessor, ImageStorageHandler
+
+# Create dependencies
+image_processor = ImageProcessor(default_format="JPEG", default_quality=85)
+image_store = ImageStorageHandler(minio_service=minio, image_processor=image_processor)
+
+# Create indexer with injected dependencies
 indexer = DocumentIndexer(
     embedding_processor=embedding_service,
-    minio_service=minio,
+    image_store=image_store,
     ocr_service=ocr,
 )
 
@@ -79,13 +86,17 @@ Data class containing all processed batch data:
 ### Qdrant Example
 
 ```python
-from domain.pipeline import DocumentIndexer, ProcessedBatch
+from domain.pipeline import DocumentIndexer, ProcessedBatch, ImageProcessor, ImageStorageHandler
 from clients.qdrant.indexing import PointFactory
 
-# Create generic indexer
+# Create dependencies with proper injection
+image_processor = ImageProcessor(default_format="JPEG", default_quality=85)
+image_store = ImageStorageHandler(minio_service=minio, image_processor=image_processor)
+
+# Create generic indexer with injected dependencies
 indexer = DocumentIndexer(
     embedding_processor=embedding_service,
-    minio_service=minio,
+    image_store=image_store,
 )
 
 # Create Qdrant-specific point factory
@@ -138,72 +149,6 @@ indexer.index_documents(
 2. **Testability**: Pipeline components can be tested independently
 3. **Flexibility**: Easy to add new vector databases
 4. **Maintainability**: Clear separation between generic and DB-specific code
-
----
-
-## Cancellation Service
-
-The `CancellationService` (`cancellation.py`) provides comprehensive job cleanup and service management.
-
-### Features
-
-- **Multi-Service Coordination**: Cleans up data across Qdrant, MinIO, DuckDB, and filesystem
-- **Service Restart**: Optionally restarts ColPali and DeepSeek OCR services to stop ongoing processing
-- **Progress Tracking**: Reports cleanup progress via callbacks for SSE streaming
-- **Graceful Error Handling**: Continues cleanup even if individual services fail
-- **Batch Operations**: Supports cleanup of multiple jobs simultaneously
-
-### Usage
-
-```python
-from domain.pipeline.cancellation import CancellationService
-
-# Initialize with service dependencies
-cancellation = CancellationService(
-    minio_service=minio,
-    duckdb_service=duckdb,
-    qdrant_collection_manager=qdrant,
-    colpali_client=colpali,
-    ocr_client=ocr,
-)
-
-# Cleanup a single job
-result = cancellation.cleanup_job_data(
-    job_id="uuid-123",
-    filename="document.pdf",
-    collection_name="documents",
-    restart_services=True,
-    progress_callback=lambda percent, msg: print(f"{percent}% - {msg}"),
-)
-
-# Result contains detailed cleanup status
-{
-    "job_id": "uuid-123",
-    "filename": "document.pdf",
-    "restart_results": {
-        "colpali": {"success": true, "message": "Restarted in 2.3s"},
-        "deepseek_ocr": {"success": true, "message": "Restarted in 1.8s"}
-    },
-    "cleanup_results": {
-        "qdrant": {"success": true, "points_deleted": 15},
-        "minio": {"success": true, "objects_deleted": 45},
-        "duckdb": {"success": true, "records_deleted": "unknown"},
-        "temp_files": {"success": true, "files_removed": 2}
-    },
-    "overall_success": true,
-    "errors": []
-}
-```
-
-### Service Restart
-
-The restart mechanism provides immediate termination of long-running operations:
-
-- Sends HTTP POST to `/restart` endpoint on ColPali and DeepSeek OCR services
-- Services exit immediately and rely on Docker restart policy to come back online
-- Optional health check polling verifies services are operational before continuing
-- Configurable timeout (default: 30s) prevents indefinite waiting
-- Two-phase verification: down detection → up detection
 
 ---
 
@@ -396,11 +341,17 @@ graph TB
 
 ```python
 from domain.pipeline.streaming_pipeline import StreamingPipeline
+from domain.pipeline import ImageProcessor, ImageStorageHandler
 
-# Create streaming pipeline
+# Create dependencies with proper injection (following SOLID principles)
+image_processor = ImageProcessor(default_format="JPEG", default_quality=85)
+image_store = ImageStorageHandler(minio_service=minio, image_processor=image_processor)
+
+# Create streaming pipeline with all dependencies injected
 pipeline = StreamingPipeline(
     embedding_processor=embedding_service,
     image_store=image_store,
+    image_processor=image_processor,
     ocr_service=ocr_service,
     point_factory=point_factory,
     qdrant_service=qdrant_service,

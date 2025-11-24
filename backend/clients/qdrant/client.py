@@ -7,7 +7,6 @@ from PIL import Image
 
 from .collection import CollectionManager
 from .embedding import EmbeddingProcessor
-from .indexing import QdrantDocumentIndexer
 from .search import SearchManager
 
 if TYPE_CHECKING:
@@ -51,14 +50,6 @@ class QdrantClient:
                 api_client=api_client,
             )
 
-            self.indexer = QdrantDocumentIndexer(
-                qdrant_client=self.collection_manager.service,
-                collection_name=self.collection_manager.collection_name,
-                embedding_processor=self.embedding_processor,
-                minio_service=minio_service,
-                ocr_service=ocr_service,
-            )
-
             self.search_manager = SearchManager(
                 qdrant_client=self.collection_manager.service,
                 collection_name=self.collection_manager.collection_name,
@@ -85,26 +76,6 @@ class QdrantClient:
         """Check if Qdrant service is healthy and accessible."""
         return self.collection_manager.health_check()
 
-    # Indexing methods
-    def index_documents(
-        self,
-        images: Iterable,
-        total_images: Optional[int] = None,
-        progress_cb: Optional[Callable[[int, dict | None], None]] = None,
-    ):
-        """Index documents in Qdrant with rich payload metadata.
-
-        Accepts either an iterable of PIL Images or dictionaries containing an
-        ``image`` key and optional metadata such as ``filename`` and
-        ``pdf_page_index``. When streaming an iterator, ``total_images`` must be
-        supplied so that progress reporting remains accurate.
-        """
-        self._create_collection_if_not_exists()
-        return self.indexer.index_documents(
-            images,
-            total_images=total_images,
-            progress_cb=progress_cb,
-        )
 
     # Search methods
     def search_with_metadata(

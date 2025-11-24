@@ -1,7 +1,36 @@
 """Utility helpers for pipeline processing."""
 
+import logging
+import time
 from itertools import islice
-from typing import Iterator, List, Tuple
+from typing import Callable, Iterator, List, Tuple
+
+logger = logging.getLogger(__name__)
+
+
+def log_stage_timing(stage_name: str) -> Callable:
+    """Decorator to log execution time for pipeline stages.
+
+    Args:
+        stage_name: Name of the stage for logging
+
+    Returns:
+        Decorator function
+
+    Example:
+        @log_stage_timing("Embedding")
+        def process_batch(self, batch):
+            ...
+    """
+    def decorator(func: Callable) -> Callable:
+        def wrapper(*args, **kwargs):
+            start_time = time.time()
+            result = func(*args, **kwargs)
+            elapsed = time.time() - start_time
+            logger.info(f"[{stage_name}] Completed in {elapsed:.2f}s")
+            return result
+        return wrapper
+    return decorator
 
 
 def iter_image_batches(
