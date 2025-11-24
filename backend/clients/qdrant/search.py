@@ -50,10 +50,10 @@ class SearchManager:
 
         # Optional quantization-aware search params
         params = None
-        if config.QDRANT_USE_BINARY:
+        if config.QDRANT_USE_BINARY_QUANTIZATION:
             params = models.SearchParams(
                 quantization=models.QuantizationSearchParams(
-                    ignore=config.QDRANT_SEARCH_IGNORE_QUANT,
+                    ignore=config.QDRANT_SEARCH_IGNORE_QUANTIZATION,
                     rescore=config.QDRANT_SEARCH_RESCORE,
                     oversampling=config.QDRANT_SEARCH_OVERSAMPLING,
                 )

@@ -24,7 +24,6 @@ class DuckDBClient:
         base_url: Optional[str] = None,
         timeout: Optional[int] = None,
         enabled: Optional[bool] = None,
-        batch_size: Optional[int] = None,
         retry_attempts: Optional[int] = None,
     ):
         """Initialize DuckDB service client.
@@ -33,14 +32,12 @@ class DuckDBClient:
             base_url: DuckDB service URL
             timeout: Request timeout in seconds
             enabled: Enable/disable DuckDB storage
-            batch_size: Number of pages to batch
             retry_attempts: Number of retry attempts
         """
         self.enabled = enabled if enabled is not None else bool(config.DUCKDB_ENABLED)
         default_base = config.DUCKDB_URL or "http://localhost:8300"
         self.base_url = (base_url or default_base).rstrip("/")
         self.timeout = timeout or int(config.DUCKDB_API_TIMEOUT)
-        self.batch_size = batch_size or config.DUCKDB_BATCH_SIZE
         self.retry_attempts = retry_attempts or config.DUCKDB_RETRY_ATTEMPTS
 
         # Setup HTTP session with retry logic

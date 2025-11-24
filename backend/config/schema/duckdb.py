@@ -77,22 +77,6 @@ SCHEMA: Dict[str, Any] = {
                 "ui_type": "number",
             },
             {
-                "default": 5,
-                "depends_on": {"key": "DUCKDB_ENABLED", "value": True},
-                "description": "Number of pages to batch before sending to DuckDB",
-                "help_text": "OCR results are batched before sending to DuckDB for "
-                "efficiency. Higher values (20-50) reduce network overhead "
-                "but increase memory usage. Lower values (5-10) provide "
-                "more frequent updates. Default 10 balances performance and "
-                "responsiveness.",
-                "key": "DUCKDB_BATCH_SIZE",
-                "label": "Batch Size",
-                "max": 100,
-                "min": 1,
-                "type": "int",
-                "ui_type": "number",
-            },
-            {
                 "default": 3,
                 "depends_on": {"key": "DUCKDB_ENABLED", "value": True},
                 "description": "Number of retry attempts on failure",

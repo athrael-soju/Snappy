@@ -256,9 +256,10 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
                 skipped_files: List[str] = []
 
                 # Parallelize duplicate checking for better performance
+                # Use batch size for consistency with pipeline parallelism
                 max_workers = min(
                     len(temp_paths),
-                    max(1, getattr(config, "UPLOAD_MAX_WORKERS", 4)),
+                    max(1, int(config.BATCH_SIZE)),
                 )
                 with ThreadPoolExecutor(max_workers=max_workers) as executor:
                     # Submit all duplicate checks in parallel

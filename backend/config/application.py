@@ -169,14 +169,7 @@ def get_pipeline_max_concurrency() -> int:
         return 1
 
 
-# Hard-coded optimized Qdrant settings (always on for best performance)
-QDRANT_USE_BINARY = True  # Binary quantization (32x memory reduction)
-QDRANT_BINARY_ALWAYS_RAM = True  # Keep binary vectors in RAM
-QDRANT_SEARCH_RESCORE = True  # Rescore with full precision
-QDRANT_SEARCH_OVERSAMPLING = 2.0  # Oversampling factor
-QDRANT_SEARCH_IGNORE_QUANT = False  # Never ignore quantization
-QDRANT_MEAN_POOLING_ENABLED = False  # Disabled: model doesn't support patches
-QDRANT_PREFETCH_LIMIT = 200  # Prefetch candidates for re-ranking
+# Hard-coded Qdrant storage settings (not configurable via UI)
 QDRANT_ON_DISK = True  # Store vectors on disk (memory optimization)
 QDRANT_ON_DISK_PAYLOAD = True  # Store payload on disk
 
@@ -195,4 +188,3 @@ DEEPSEEK_OCR_CUSTOM_PROMPT = ""  # Empty by default
 
 # Hard-coded upload settings (optimized defaults)
 UPLOAD_CHUNK_SIZE_MBYTES = 2.0  # 2MB chunks balance throughput and memory
-UPLOAD_MAX_WORKERS = 4  # Good default for I/O-bound operations

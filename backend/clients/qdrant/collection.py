@@ -93,7 +93,7 @@ class CollectionManager:
                             always_ram=config.QDRANT_BINARY_ALWAYS_RAM
                         )
                     )
-                    if config.QDRANT_USE_BINARY
+                    if config.QDRANT_USE_BINARY_QUANTIZATION
                     else None
                 )
                 return models.VectorParams(
