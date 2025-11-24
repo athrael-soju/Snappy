@@ -15,7 +15,6 @@ SCHEMA: Dict[str, Any] = {
         "order": 4,
         "settings": [
             {
-                "critical": True,
                 "default": "http://localhost:6333",
                 "description": "URL for Qdrant vector database",
                 "help_text": "Connection endpoint for the Qdrant vector database "
@@ -45,7 +44,6 @@ SCHEMA: Dict[str, Any] = {
                 "ui_type": "number",
             },
             {
-                "critical": True,
                 "default": False,
                 "description": "Use an embedded (in-memory) Qdrant instance",
                 "help_text": "When enabled the backend starts an in-memory Qdrant "
@@ -57,7 +55,6 @@ SCHEMA: Dict[str, Any] = {
                 "ui_type": "boolean",
             },
             {
-                "critical": True,
                 "default": "documents",
                 "description": "Name of the Qdrant collection (Also used for MinIO "
                 "bucket)",
@@ -73,7 +70,6 @@ SCHEMA: Dict[str, Any] = {
                 "ui_type": "text",
             },
             {
-                "critical": True,
                 "default": True,
                 "description": "Enable binary quantization for 32x memory reduction",
                 "help_text": "Binary quantization reduces memory usage by 32x while "

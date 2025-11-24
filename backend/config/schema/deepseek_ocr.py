@@ -16,7 +16,6 @@ SCHEMA: Dict[str, Any] = {
         "order": 3,
         "settings": [
             {
-                "critical": True,
                 "default": True,
                 "description": "Toggle DeepSeek OCR integration for downstream "
                 "workflows.",
@@ -30,7 +29,6 @@ SCHEMA: Dict[str, Any] = {
                 "ui_type": "boolean",
             },
             {
-                "critical": True,
                 "default": "http://localhost:8200",
                 "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
                 "description": "Base URL for the DeepSeek OCR microservice.",
@@ -44,7 +42,6 @@ SCHEMA: Dict[str, Any] = {
                 "ui_type": "text",
             },
             {
-                "critical": True,
                 "default": "Gundam",
                 "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
                 "description": "Default OCR processing mode for quality/speed "
@@ -61,26 +58,22 @@ SCHEMA: Dict[str, Any] = {
                 "ui_type": "select",
             },
             {
-                "critical": True,
                 "default": "markdown",
                 "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
                 "description": "Default OCR task type for document processing.",
                 "help_text": "Markdown: structured output with formatting "
                 "(preserves tables, lists, etc.). Plain OCR: simple "
-                "text extraction without formatting. Locate: find "
-                "specific text with bounding boxes. Describe: "
-                "generate image descriptions. Custom: use custom "
-                "prompts. The task type determines both the prompt "
-                "sent to the model and which output format is used as "
-                "the primary result.",
+                "text extraction without formatting. Describe: "
+                "generate image descriptions. Note: 'locate' and 'custom' "
+                "tasks require custom prompts and are only available via "
+                "direct API calls.",
                 "key": "DEEPSEEK_OCR_TASK",
                 "label": "Default Task Type",
-                "options": ["markdown", "plain_ocr", "locate", "describe", "custom"],
+                "options": ["markdown", "plain_ocr", "describe"],
                 "type": "str",
                 "ui_type": "select",
             },
             {
-                "critical": False,
                 "default": True,
                 "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
                 "description": "Enable grounding extraction (bounding boxes) for OCR results.",
@@ -95,7 +88,6 @@ SCHEMA: Dict[str, Any] = {
                 "ui_type": "boolean",
             },
             {
-                "critical": False,
                 "default": True,
                 "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
                 "description": "Enable image extraction and embedding in OCR results.",

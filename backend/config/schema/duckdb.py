@@ -15,7 +15,6 @@ SCHEMA: Dict[str, Any] = {
         "order": 6,
         "settings": [
             {
-                "critical": True,
                 "default": False,
                 "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
                 "description": "Store OCR results in DuckDB for analytics",
@@ -30,7 +29,6 @@ SCHEMA: Dict[str, Any] = {
                 "ui_type": "boolean",
             },
             {
-                "critical": True,
                 "default": "http://localhost:8300",
                 "depends_on": {"key": "DUCKDB_ENABLED", "value": True},
                 "description": "URL of the DuckDB analytics service",
@@ -45,7 +43,6 @@ SCHEMA: Dict[str, Any] = {
                 "ui_type": "text",
             },
             {
-                "critical": True,
                 "default": "documents",
                 "depends_on": {"key": "DUCKDB_ENABLED", "value": True},
                 "description": "Logical name for the DuckDB database",
@@ -60,7 +57,6 @@ SCHEMA: Dict[str, Any] = {
                 "ui_type": "text",
             },
             {
-                "critical": True,
                 "default": 30,
                 "depends_on": {"key": "DUCKDB_ENABLED", "value": True},
                 "description": "Timeout for DuckDB API requests",

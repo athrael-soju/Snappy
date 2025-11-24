@@ -5,7 +5,7 @@ from copy import deepcopy
 from typing import Any, Dict, List, Tuple
 
 from api.dependencies import get_colpali_client, invalidate_services
-from config.schema import get_all_config_keys, get_api_schema, get_critical_keys
+from config.schema import get_all_config_keys, get_api_schema
 from config.runtime import get_runtime_config
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
@@ -35,7 +35,6 @@ class ConfigUpdate(BaseModel):
 # Get configuration schema from single source of truth
 _API_SCHEMA = get_api_schema()
 _ALL_KEYS = get_all_config_keys()
-_CRITICAL_KEYS = get_critical_keys()
 
 # Use schema from single source of truth
 CONFIG_SCHEMA = _API_SCHEMA
@@ -182,7 +181,6 @@ async def update_config(update: ConfigUpdate) -> Dict[str, Any]:
 
     # Capture old value for audit trail
     old_value = runtime_cfg.get(update.key, "")
-    is_critical = update.key in _CRITICAL_KEYS
 
     try:
         with PerformanceTimer("update config", log_on_exit=False) as timer:
@@ -192,20 +190,18 @@ async def update_config(update: ConfigUpdate) -> Dict[str, Any]:
             # Update the runtime configuration
             runtime_cfg.set(update.key, update.value)
 
-            # Invalidate service singletons if critical config changed
-            # This forces services to re-initialize with new config on next use
-            if is_critical:
-                invalidate_services()
+            # Always invalidate service singletons when config changes
+            # This ensures all changes apply immediately without requiring restarts
+            invalidate_services()
 
         logger.info(
-            f"Config updated: {update.key}={update.value}" + (" [critical]" if is_critical else ""),
+            f"Config updated: {update.key}={update.value}",
             extra={
                 "operation": "update_config",
                 "key": update.key,
                 "old_value": old_value,
                 "new_value": update.value,
-                "is_critical": is_critical,
-                "services_invalidated": is_critical,
+                "services_invalidated": True,
                 "duration_ms": timer.duration_ms,
             },
         )
@@ -215,7 +211,7 @@ async def update_config(update: ConfigUpdate) -> Dict[str, Any]:
             "message": f"Configuration updated: {update.key}",
             "key": update.key,
             "value": update.value,
-            "services_invalidated": is_critical,
+            "services_invalidated": True,
             "warning": "This change is runtime-only and will not persist after restart. Update your .env file to make it permanent.",
         }
 
