@@ -187,12 +187,15 @@ IMAGE_QUALITY = 75  # Good quality/size balance
 
 # Hard-coded DeepSeek OCR settings (auto-sized or optimized defaults)
 DEEPSEEK_OCR_API_TIMEOUT = 180  # 3 minutes - balances speed and reliability
-DEEPSEEK_OCR_MAX_WORKERS = 4  # Good default for single GPU
 DEEPSEEK_OCR_POOL_SIZE = 20  # Sufficient for retry handling
 DEEPSEEK_OCR_INCLUDE_GROUNDING = True  # Always include bounding boxes
 DEEPSEEK_OCR_INCLUDE_IMAGES = True  # Always extract embedded images
 DEEPSEEK_OCR_LOCATE_TEXT = ""  # Empty by default
 DEEPSEEK_OCR_CUSTOM_PROMPT = ""  # Empty by default
+
+# Configuration-driven pipeline settings
+PIPELINE_MAX_IN_FLIGHT_BATCHES = lambda: max(1, int(__getattr__("PIPELINE_MAX_IN_FLIGHT_BATCHES") or 1))
+DEEPSEEK_OCR_MAX_WORKERS = lambda: max(1, int(__getattr__("DEEPSEEK_OCR_MAX_WORKERS") or 2))
 
 # Hard-coded upload settings (optimized defaults)
 UPLOAD_CHUNK_SIZE_MBYTES = 2.0  # 2MB chunks balance throughput and memory

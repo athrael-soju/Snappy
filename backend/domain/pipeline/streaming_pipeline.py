@@ -38,15 +38,22 @@ logger = logging.getLogger(__name__)
 class BatchCompletionTracker:
     """Tracks completion of all stages for each batch to coordinate progress updates."""
 
-    def __init__(self, num_stages: int, progress_callback: Optional[Callable] = None):
+    def __init__(
+        self,
+        num_stages: int,
+        progress_callback: Optional[Callable] = None,
+        batch_semaphore: Optional[threading.Semaphore] = None,
+    ):
         """Initialize tracker.
 
         Args:
             num_stages: Number of parallel stages that must complete per batch
             progress_callback: Callback to invoke when all stages complete a batch
+            batch_semaphore: Optional semaphore to release when batch completes
         """
         self.num_stages = num_stages
         self.progress_callback = progress_callback
+        self.batch_semaphore = batch_semaphore
         self.batch_completions = defaultdict(int)  # batch_key -> completion_count
         self.completed_pages = 0
         self._lock = threading.Lock()
@@ -59,7 +66,7 @@ class BatchCompletionTracker:
             batch_id: Batch identifier
             num_pages: Number of pages in this batch
 
-        When all stages complete, triggers progress callback.
+        When all stages complete, triggers progress callback and releases semaphore.
         """
         batch_key = f"{document_id}:{batch_id}"
 
@@ -72,6 +79,10 @@ class BatchCompletionTracker:
 
                 # Clean up tracking for this batch
                 del self.batch_completions[batch_key]
+
+                # Release semaphore to allow next batch to enter pipeline
+                if self.batch_semaphore:
+                    self.batch_semaphore.release()
 
                 # Report progress
                 if self.progress_callback:
@@ -106,7 +117,7 @@ class StreamingPipeline:
         minio_base_url: str,
         minio_bucket: str,
         batch_size: int = 4,
-        max_queue_size: int = 8,
+        max_in_flight_batches: int = 1,
     ):
         """Initialize streaming pipeline with all dependencies injected.
 
@@ -121,10 +132,13 @@ class StreamingPipeline:
             minio_base_url: MinIO base URL for generating dynamic URLs
             minio_bucket: MinIO bucket name
             batch_size: Number of pages per batch
-            max_queue_size: Maximum queue size for backpressure
+            max_in_flight_batches: Maximum batches processing simultaneously
         """
         self.batch_size = batch_size
-        self.max_queue_size = max_queue_size
+        self.max_in_flight_batches = max_in_flight_batches
+
+        # Derive queue size from in-flight batches (allow some buffering)
+        self.max_queue_size = max(2, max_in_flight_batches * 2)
 
         # Create stages with injected dependencies
         self.rasterizer = PDFRasterizer(batch_size=batch_size)
@@ -168,11 +182,18 @@ class StreamingPipeline:
         if self.ocr_stage:
             num_stages += 1  # + ocr
 
-        # Create batch completion tracker
+        # Create semaphore to limit in-flight batches
+        batch_semaphore = threading.Semaphore(self.max_in_flight_batches)
+
+        # Create batch completion tracker with semaphore
         self.completion_tracker = BatchCompletionTracker(
             num_stages=num_stages,
             progress_callback=progress_callback,
+            batch_semaphore=batch_semaphore,
         )
+
+        # Store semaphore for rasterizer to use
+        self.batch_semaphore = batch_semaphore
 
         # Create upsert stage with completion tracker instead of direct callback
         self.upsert_stage = UpsertStage(
@@ -260,6 +281,7 @@ class StreamingPipeline:
             document_id=document_id,
             output_queues=output_queues,
             cancellation_check=cancellation_check,
+            batch_semaphore=self.batch_semaphore,
         )
 
         logger.info(

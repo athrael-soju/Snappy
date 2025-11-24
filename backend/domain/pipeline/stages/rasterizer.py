@@ -33,6 +33,7 @@ class PDFRasterizer:
         document_id: str,
         output_queues: List[queue.Queue],
         cancellation_check: Optional[Callable] = None,
+        batch_semaphore: Optional = None,
     ) -> int:
         """
         Rasterize PDF and broadcast batches to all output queues.
@@ -60,6 +61,10 @@ class PDFRasterizer:
                 # Check cancellation before expensive operation
                 if cancellation_check:
                     cancellation_check()
+
+                # Acquire semaphore before starting batch (blocks if at limit)
+                if batch_semaphore:
+                    batch_semaphore.acquire()
 
                 # Rasterize next batch
                 last_page = min(page + self.batch_size - 1, total_pages)

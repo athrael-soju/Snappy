@@ -28,6 +28,21 @@ SCHEMA: Dict[str, Any] = {
                 "ui_type": "number",
             },
             {
+                "default": 1,
+                "description": "Maximum batches processing simultaneously across all pipeline stages",
+                "help_text": "Limits total in-flight batches to prevent memory overflow with slow OCR. "
+                "1 = strict ordering (one batch at a time, slowest), "
+                "2-4 = balanced (some parallelism with memory safety), "
+                "8+ = maximum throughput (fast stages run far ahead). "
+                "Recommended: 1 for large documents or slow OCR.",
+                "key": "PIPELINE_MAX_IN_FLIGHT_BATCHES",
+                "label": "Max In-Flight Batches",
+                "max": 32,
+                "min": 1,
+                "type": "int",
+                "ui_type": "number",
+            },
+            {
                 "default": 15,
                 "description": "Maximum seconds to wait for service restart during cancellation",
                 "help_text": "When a job is cancelled, the system restarts ColPali and "

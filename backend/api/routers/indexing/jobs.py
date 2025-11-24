@@ -98,7 +98,7 @@ def run_indexing_job(
             minio_base_url=config.MINIO_PUBLIC_URL,
             minio_bucket=config.MINIO_BUCKET_NAME,
             batch_size=int(config.BATCH_SIZE),
-            max_queue_size=8,
+            max_in_flight_batches=config.PIPELINE_MAX_IN_FLIGHT_BATCHES(),
         )
 
         logger.info(f"Job {job_id}: Using streaming pipeline")
