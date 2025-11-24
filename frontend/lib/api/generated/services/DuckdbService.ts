@@ -35,14 +35,14 @@ export class DuckdbService {
         });
     }
     /**
-     * List Documents
+     * List Documents Endpoint
      * List all indexed documents in DuckDB.
      * @param limit Maximum results
      * @param offset Results offset
      * @returns DocumentInfo Successful Response
      * @throws ApiError
      */
-    public static listDocumentsDuckdbDocumentsGet(
+    public static listDocumentsEndpointDuckdbDocumentsGet(
         limit: number = 100,
         offset?: number,
     ): CancelablePromise<Array<DocumentInfo>> {

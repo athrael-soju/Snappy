@@ -4,18 +4,25 @@ import logging
 from typing import Any, List, Optional
 
 from api.dependencies import get_duckdb_service
+from clients.duckdb import DuckDBClient
 from domain.analytics import (
     delete_document_data,
     execute_custom_query,
     get_db_stats,
     get_document_info,
     get_page_data,
-    list_documents as list_docs_domain,
+    list_documents,
     search_text_content,
+)
+from domain.errors import (
+    DocumentNotFoundError,
+    PageNotFoundError,
+    QueryExecutionError,
+    SearchError,
+    StatisticsError,
 )
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from clients.duckdb import DuckDBClient
 
 logger = logging.getLogger(__name__)
 
@@ -90,12 +97,15 @@ async def get_stats(
             status_code=503, detail="DuckDB service is not enabled or available"
         )
 
-    stats = get_db_stats(duckdb_service)
-    return StatsResponse(**stats)
+    try:
+        stats = get_db_stats(duckdb_service)
+        return StatsResponse(**stats)
+    except StatisticsError as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/documents", response_model=List[DocumentInfo])
-async def list_documents(
+async def list_documents_endpoint(
     limit: int = Query(default=100, le=1000, description="Maximum results"),
     offset: int = Query(default=0, ge=0, description="Results offset"),
     duckdb_service: Optional[DuckDBClient] = Depends(get_duckdb_service),
@@ -106,8 +116,11 @@ async def list_documents(
             status_code=503, detail="DuckDB service is not enabled or available"
         )
 
-    documents = list_docs_domain(duckdb_service, limit, offset)
-    return [DocumentInfo(**doc) for doc in documents]
+    try:
+        documents = list_documents(duckdb_service, limit, offset)
+        return [DocumentInfo(**doc) for doc in documents]
+    except QueryExecutionError as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/documents/{filename}", response_model=DocumentInfo)
@@ -121,8 +134,11 @@ async def get_document(
             status_code=503, detail="DuckDB service is not enabled or available"
         )
 
-    document = get_document_info(duckdb_service, filename)
-    return DocumentInfo(**document)
+    try:
+        document = get_document_info(duckdb_service, filename)
+        return DocumentInfo(**document)
+    except DocumentNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.get("/pages/{filename}/{page_number}")
@@ -137,7 +153,10 @@ async def get_page(
             status_code=503, detail="DuckDB service is not enabled or available"
         )
 
-    return get_page_data(duckdb_service, filename, page_number)
+    try:
+        return get_page_data(duckdb_service, filename, page_number)
+    except PageNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.delete("/documents/{filename}")
@@ -151,8 +170,11 @@ async def delete_document(
             status_code=503, detail="DuckDB service is not enabled or available"
         )
 
-    delete_document_data(duckdb_service, filename)
-    return {"status": "success", "filename": filename}
+    try:
+        delete_document_data(duckdb_service, filename)
+        return {"status": "success", "filename": filename}
+    except DocumentNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.post("/query", response_model=QueryResponse)
@@ -169,8 +191,11 @@ async def execute_query(
             status_code=503, detail="DuckDB service is not enabled or available"
         )
 
-    result = execute_custom_query(duckdb_service, request.query, request.limit)
-    return QueryResponse(**result)
+    try:
+        result = execute_custom_query(duckdb_service, request.query, request.limit)
+        return QueryResponse(**result)
+    except QueryExecutionError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/search")
@@ -185,4 +210,7 @@ async def search_text(
             status_code=503, detail="DuckDB service is not enabled or available"
         )
 
-    return search_text_content(duckdb_service, q, limit)
+    try:
+        return search_text_content(duckdb_service, q, limit)
+    except SearchError as e:
+        raise HTTPException(status_code=500, detail=str(e))

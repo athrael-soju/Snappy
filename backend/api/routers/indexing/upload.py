@@ -8,14 +8,20 @@ from typing import Dict, List
 import config
 from api.dependencies import get_duckdb_service, get_qdrant_service, qdrant_init_error
 from api.progress import progress_manager
-from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
-from utils.timing import PerformanceTimer
-
+from domain.errors import (
+    FileSizeExceededError,
+    InvalidFileTypeError,
+    UploadError,
+    UploadTimeoutError,
+)
 from domain.file_constraints import (
     UploadConstraints,
     resolve_upload_constraints,
 )
 from domain.indexing import check_file_duplicate, validate_and_persist_uploads
+from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
+from utils.timing import PerformanceTimer
+
 from .jobs import cleanup_temp_files, run_indexing_job
 
 logger = logging.getLogger(__name__)
@@ -195,6 +201,18 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
 
         return {"status": "started", "job_id": job_id, "total": 0}
 
+    except UploadTimeoutError as e:
+        cleanup_temp_files(temp_paths)
+        raise HTTPException(status_code=408, detail=str(e))
+    except FileSizeExceededError as e:
+        cleanup_temp_files(temp_paths)
+        raise HTTPException(status_code=413, detail=str(e))
+    except InvalidFileTypeError as e:
+        cleanup_temp_files(temp_paths)
+        raise HTTPException(status_code=400, detail=str(e))
+    except UploadError as e:
+        cleanup_temp_files(temp_paths)
+        raise HTTPException(status_code=400, detail=str(e))
     except HTTPException:
         cleanup_temp_files(temp_paths)
         raise

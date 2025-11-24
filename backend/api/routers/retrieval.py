@@ -4,6 +4,7 @@ from typing import List, Optional
 
 import config  # Import module for dynamic config access
 from api.models import SearchItem
+from domain.errors import SearchError, ServiceUnavailableError
 from domain.retrieval import search_documents
 from fastapi import APIRouter, HTTPException, Query
 
@@ -31,4 +32,9 @@ async def search(
         },
     )
 
-    return await search_documents(q, top_k, include_ocr)
+    try:
+        return await search_documents(q, top_k, include_ocr)
+    except ServiceUnavailableError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except SearchError as e:
+        raise HTTPException(status_code=500, detail=str(e))

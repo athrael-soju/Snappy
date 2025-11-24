@@ -5,7 +5,7 @@ from typing import List, Optional
 import config
 from api.dependencies import get_duckdb_service, get_qdrant_service, qdrant_init_error
 from api.models import SearchItem
-from fastapi import HTTPException
+from domain.errors import SearchError, ServiceUnavailableError
 
 logger = logging.getLogger(__name__)
 
@@ -28,10 +28,7 @@ async def search_documents(
                 "error": error_msg,
             },
         )
-        raise HTTPException(
-            status_code=503,
-            detail=f"Service unavailable: {error_msg}",
-        )
+        raise ServiceUnavailableError(f"Service unavailable: {error_msg}")
 
     try:
         # Use simple timing to avoid blocking event loop with PerformanceTimer
@@ -185,7 +182,7 @@ async def search_documents(
 
         return results
 
-    except HTTPException:
+    except (ServiceUnavailableError, SearchError):
         raise
     except Exception as exc:
         logger.error(
@@ -198,4 +195,4 @@ async def search_documents(
                 "include_ocr": include_ocr,
             },
         )
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise SearchError(str(exc))

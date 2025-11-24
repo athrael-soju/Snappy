@@ -11,6 +11,12 @@ import config
 from api.dependencies import get_duckdb_service, get_qdrant_service, qdrant_init_error
 from api.progress import progress_manager
 from clients.qdrant.indexing.points import PointFactory
+from domain.errors import (
+    FileSizeExceededError,
+    InvalidFileTypeError,
+    UploadError,
+    UploadTimeoutError,
+)
 from domain.file_constraints import (
     UploadConstraints,
     get_upload_chunk_size_mbytes,
@@ -18,7 +24,7 @@ from domain.file_constraints import (
 )
 from domain.pipeline.errors import CancellationError
 from domain.pipeline.streaming_pipeline import StreamingPipeline
-from fastapi import HTTPException, UploadFile
+from fastapi import UploadFile
 from pdf2image import pdfinfo_from_path
 
 logger = logging.getLogger(__name__)
@@ -97,7 +103,9 @@ async def _persist_upload_to_disk(
         Path to temporary file
 
     Raises:
-        HTTPException: On timeout, file size exceeded, or upload failure
+        UploadTimeoutError: On timeout
+        FileSizeExceededError: On file size exceeded
+        UploadError: On upload failure
     """
     suffix = os.path.splitext(upload.filename or "")[1] or ".pdf"
     tmp_file = None
@@ -110,7 +118,7 @@ async def _persist_upload_to_disk(
         while True:
             # Check timeout
             if time.time() - start_time > timeout_seconds:
-                raise HTTPException(status_code=408, detail="Upload timeout exceeded")
+                raise UploadTimeoutError("Upload timeout exceeded")
 
             chunk = await asyncio.wait_for(
                 upload.read(chunk_size), timeout=timeout_seconds
@@ -120,12 +128,9 @@ async def _persist_upload_to_disk(
 
             written_bytes += len(chunk)
             if written_bytes > max_file_size_bytes:
-                raise HTTPException(
-                    status_code=413,
-                    detail=(
-                        f"File '{upload.filename or 'unnamed'}' exceeds the maximum "
-                        f"allowed size of {max_file_size_mb} MB."
-                    ),
+                raise FileSizeExceededError(
+                    f"File '{upload.filename or 'unnamed'}' exceeds the maximum "
+                    f"allowed size of {max_file_size_mb} MB."
                 )
 
             tmp_file.write(chunk)
@@ -133,7 +138,7 @@ async def _persist_upload_to_disk(
         tmp_file.close()
         return tmp_file.name
 
-    except HTTPException:
+    except (UploadTimeoutError, FileSizeExceededError):
         if tmp_file:
             tmp_file.close()
             try:
@@ -148,7 +153,7 @@ async def _persist_upload_to_disk(
                 os.unlink(tmp_file.name)
             except Exception:
                 pass
-        raise HTTPException(status_code=400, detail=f"Upload failed: {str(e)}")
+        raise UploadError(f"Upload failed: {str(e)}")
 
 
 async def validate_and_persist_uploads(
@@ -162,12 +167,9 @@ async def validate_and_persist_uploads(
     for upload in files:
         if not is_allowed_file(upload.filename, upload.content_type, constraints):
             await upload.close()
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    f"File '{upload.filename or 'unnamed'}' is not an allowed type. "
-                    f"Accepted formats: {constraints.description}."
-                ),
+            raise InvalidFileTypeError(
+                f"File '{upload.filename or 'unnamed'}' is not an allowed type. "
+                f"Accepted formats: {constraints.description}."
             )
 
         try:

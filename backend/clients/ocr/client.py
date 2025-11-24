@@ -19,7 +19,6 @@ if TYPE_CHECKING:  # pragma: no cover - hints only
     from clients.minio import MinioClient
 
 from .processor import OcrProcessor
-from .processor import OcrProcessor
 
 logger = logging.getLogger(__name__)
 
