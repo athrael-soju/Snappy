@@ -201,19 +201,10 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
     # Get file info for logging
     filenames = [f.filename or "unnamed" for f in files]
 
-    logger.info(
-        "Document upload started",
-        extra={
-            "operation": "index",
-            "file_count": len(files),
-            "filenames": filenames,
-        },
-    )
-
     constraints = resolve_upload_constraints()
     if len(files) > constraints.max_files:
         logger.warning(
-            "Upload rejected: too many files",
+            f"Upload rejected: {len(files)} files exceeds limit of {constraints.max_files}",
             extra={
                 "operation": "index",
                 "file_count": len(files),
@@ -237,10 +228,11 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
             )
 
         logger.info(
-            "Files validated and persisted",
+            f"Upload started: {len(files)} file(s) - {', '.join(filenames)}",
             extra={
                 "operation": "index",
-                "file_count": len(temp_paths),
+                "file_count": len(files),
+                "filenames": filenames,
                 "duration_s": round(timer.duration_s, 3),
             },
         )
@@ -256,9 +248,10 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
                 skipped_files: List[str] = []
 
                 # Parallelize duplicate checking for better performance
+                # Use batch size for consistency with pipeline parallelism
                 max_workers = min(
                     len(temp_paths),
-                    max(1, getattr(config, "UPLOAD_MAX_WORKERS", 4)),
+                    max(1, int(config.BATCH_SIZE)),
                 )
                 with ThreadPoolExecutor(max_workers=max_workers) as executor:
                     # Submit all duplicate checks in parallel
@@ -357,7 +350,7 @@ async def index(background_tasks: BackgroundTasks, files: List[UploadFile] = Fil
             run_indexing_job, job_id, list(temp_paths), dict(original_filenames)
         )
 
-        logger.info(
+        logger.debug(
             "Indexing job queued",
             extra={
                 "operation": "index",

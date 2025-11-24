@@ -182,6 +182,7 @@ class OcrStorageHandler:
             payload.update(
                 {
                     "document_id": metadata.get("document_id"),
+                    "page_id": metadata.get("page_id"),
                     "pdf_page_index": metadata.get("pdf_page_index"),
                     "total_pages": metadata.get("total_pages"),
                     "page_dimensions": {
@@ -217,13 +218,14 @@ class OcrStorageHandler:
                     version=payload.get("version", "1.0"),
                     filename=str(filename) if filename is not None else "",
                     page_number=page_number,
+                    page_id=payload["page_id"],  # Required - Pydantic validates
+                    document_id=payload["document_id"],  # Required - Pydantic validates
                     text=payload.get("text", ""),
                     markdown=payload.get("markdown", ""),
                     raw_text=payload.get("raw_text"),
                     regions=payload.get("regions", []),
                     extracted_at=payload.get("extracted_at", ""),
                     storage_url=url,
-                    document_id=payload.get("document_id"),
                     pdf_page_index=payload.get("pdf_page_index"),
                     total_pages=payload.get("total_pages"),
                     page_width_px=(
@@ -245,16 +247,29 @@ class OcrStorageHandler:
                     extracted_images=payload.get("extracted_images", []),
                 )
                 if not success:
-                    logger.error(
+                    error_msg = (
                         f"DuckDB storage returned False for {filename} page {page_number}. "
-                        "Data may not be available via DuckDB. Fallback to MinIO will occur during search."
+                        "This indicates a critical storage failure."
                     )
+                    logger.error(error_msg)
+                    raise RuntimeError(error_msg)
+            except KeyError as exc:
+                logger.error(
+                    f"Missing required field {exc} in payload for {filename} page {page_number}. "
+                    "This is a schema validation error - check that metadata includes all required fields.",
+                    exc_info=True
+                )
+                raise
+            except RuntimeError:
+                # Re-raise RuntimeError from success=False case
+                raise
             except Exception as exc:
                 logger.error(
                     f"Failed to store OCR result in DuckDB for {filename} page {page_number}: {exc}. "
-                    "Data will only be available via MinIO URL during search.",
+                    "This is a critical error that must be fixed.",
                     exc_info=True
                 )
+                raise
 
         return {
             "ocr_url": url,

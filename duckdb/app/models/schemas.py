@@ -27,13 +27,14 @@ class OcrPageData(BaseModel):
     version: str
     filename: str
     page_number: int
+    page_id: str
+    document_id: str
     text: str
     markdown: str
     raw_text: Optional[str] = None
     regions: List[Dict[str, Any]] = Field(default_factory=list)
     extracted_at: str
     storage_url: str
-    document_id: Optional[str] = None
     pdf_page_index: Optional[int] = None
     total_pages: Optional[int] = None
     page_width_px: Optional[int] = None

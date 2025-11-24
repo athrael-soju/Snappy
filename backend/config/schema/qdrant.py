@@ -74,18 +74,115 @@ SCHEMA: Dict[str, Any] = {
             },
             {
                 "critical": True,
-                "default": 20,
-                "description": "Number of search results to return",
-                "help_text": "Controls how many results to return from vector search. "
-                "Higher values return more results but slightly slower. "
-                "Typical range: 10-50 for good balance between relevance "
-                "and performance.",
+                "default": True,
+                "description": "Enable binary quantization for 32x memory reduction",
+                "help_text": "Binary quantization reduces memory usage by 32x while "
+                "maintaining 95%+ accuracy. Highly recommended for production. "
+                "When enabled, vectors are compressed to binary form in memory. "
+                "Disable only for debugging or if you experience accuracy issues. "
+                "Requires collection recreation to take effect.",
+                "key": "QDRANT_USE_BINARY_QUANTIZATION",
+                "label": "Enable Binary Quantization",
+                "type": "bool",
+                "ui_type": "boolean",
+            },
+            {
+                "default": True,
+                "depends_on": {"key": "QDRANT_USE_BINARY_QUANTIZATION", "value": True},
+                "description": "Keep binary vectors in RAM for faster search",
+                "help_text": "When enabled, binary quantized vectors are kept in RAM "
+                "instead of disk. This provides faster search performance at the "
+                "cost of memory usage (still 32x less than uncompressed). "
+                "Recommended for most deployments. Disable if running on very "
+                "limited memory.",
+                "key": "QDRANT_BINARY_ALWAYS_RAM",
+                "label": "Binary Vectors in RAM",
+                "type": "bool",
+                "ui_type": "boolean",
+            },
+            {
+                "default": False,
+                "description": "Enable mean pooling for two-stage re-ranking",
+                "help_text": "Enables two-stage retrieval: prefetch with mean pooling, "
+                "then re-rank with full multivector comparison. Improves accuracy "
+                "but requires more compute. IMPORTANT: Only enable if your ColPali "
+                "model supports interpretability (get_n_patches).",
+                "key": "QDRANT_MEAN_POOLING_ENABLED",
+                "label": "Enable Mean Pooling Re-ranking",
+                "type": "bool",
+                "ui_type": "boolean",
+                "ui_disabled": True,
+            },
+            {
+                "default": 200,
+                "depends_on": {"key": "QDRANT_MEAN_POOLING_ENABLED", "value": True},
+                "description": "Number of candidates to prefetch for re-ranking",
+                "help_text": "When mean pooling is enabled, this many candidates are "
+                "prefetched using mean pooling before re-ranking with full "
+                "multivector comparison. Higher values improve recall but "
+                "increase search latency. Recommended: 100-200 for most cases.",
+                "key": "QDRANT_PREFETCH_LIMIT",
+                "label": "Prefetch Limit",
+                "max": 1000,
+                "min": 10,
+                "type": "int",
+                "ui_type": "number",
+            },
+            {
+                "default": 10,
+                "description": "Default number of search results to return",
+                "help_text": "Default limit for search results when not specified in "
+                "the request. Frontend typically overrides this with topK. "
+                "Higher values return more results but increase response time.",
                 "key": "QDRANT_SEARCH_LIMIT",
-                "label": "Search Result Limit",
+                "label": "Default Search Limit",
                 "max": 100,
                 "min": 1,
                 "type": "int",
+                "ui_hidden": True,
                 "ui_type": "number",
+            },
+            {
+                "default": True,
+                "depends_on": {"key": "QDRANT_USE_BINARY_QUANTIZATION", "value": True},
+                "description": "Rescore results with full precision after binary search",
+                "help_text": "After searching with binary quantization, rescore top "
+                "candidates using full-precision vectors. This ensures accuracy "
+                "while maintaining speed benefits. Recommended to keep enabled.",
+                "key": "QDRANT_SEARCH_RESCORE",
+                "label": "Rescore After Binary Search",
+                "type": "bool",
+                "ui_hidden": True,
+                "ui_type": "boolean",
+            },
+            {
+                "default": 2.0,
+                "depends_on": {"key": "QDRANT_USE_BINARY_QUANTIZATION", "value": True},
+                "description": "Oversampling factor for binary quantization search",
+                "help_text": "Retrieve more candidates than needed during binary search, "
+                "then rescore. Higher values improve accuracy but increase "
+                "latency. 2.0 means retrieve 2x results, then rescore to limit.",
+                "key": "QDRANT_SEARCH_OVERSAMPLING",
+                "label": "Search Oversampling Factor",
+                "max": 5.0,
+                "min": 1.0,
+                "step": 0.1,
+                "type": "float",
+                "ui_hidden": True,
+                "ui_type": "number",
+            },
+            {
+                "default": False,
+                "depends_on": {"key": "QDRANT_USE_BINARY_QUANTIZATION", "value": True},
+                "description": "Skip quantization and use full precision vectors",
+                "help_text": "When enabled, ignores binary quantization and searches "
+                "using full precision vectors. Only use for debugging accuracy "
+                "issues. Defeats the purpose of quantization.",
+                "key": "QDRANT_SEARCH_IGNORE_QUANTIZATION",
+                "label": "Ignore Quantization",
+                "type": "bool",
+                "ui_hidden": True,
+                "ui_type": "boolean",
             },
         ],
     }

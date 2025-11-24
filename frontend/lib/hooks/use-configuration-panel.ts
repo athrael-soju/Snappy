@@ -123,9 +123,6 @@ export function useConfigurationPanel() {
 
       notifyRuntimeConfigUpdated();
       if (appliedOverrides > 0) {
-        toast.success("Configuration restored", {
-          description: `${appliedOverrides} setting${appliedOverrides === 1 ? "" : "s"} re-applied from local storage`,
-        });
         if (typeof window !== "undefined") {
           window.dispatchEvent(new Event("systemStatusChanged"));
         }
@@ -154,9 +151,8 @@ export function useConfigurationPanel() {
       totalSettings: Object.keys(values).length,
       modifiedSettings: Object.keys(values).filter(key => values[key] !== originalValues[key]).length,
       enabledFeatures: [
-        values.QDRANT_MEAN_POOLING_ENABLED === "True" ? "Mean Pooling" : null,
-        "Pipeline Indexing", // Always enabled for optimal performance
-        "Binary Quantization", // Always enabled (32x memory reduction)
+        values.QDRANT_USE_BINARY_QUANTIZATION === "True" ? "Binary Quantization" : null,
+        values.QDRANT_MEAN_POOLING_ENABLED === "True" ? "Mean Pooling Re-ranking" : null,
         values.DEEPSEEK_OCR_ENABLED === "True" ? "DeepSeek OCR" : null,
         values.DUCKDB_ENABLED === "True" ? "DuckDB Analytics" : null,
       ].filter(Boolean) as string[],

@@ -31,7 +31,7 @@ class PointFactory:
         points: List[models.PointStruct] = []
         use_mean_pooling = bool(config.QDRANT_MEAN_POOLING_ENABLED)
 
-        for offset, (orig, doc_id, image_info, meta) in enumerate(
+        for offset, (orig, page_id, image_info, meta) in enumerate(
             zip(original_batch, image_ids, image_records, meta_batch)
         ):
             rows = None
@@ -48,7 +48,6 @@ class PointFactory:
             image_format = None
             image_size_bytes = None
             image_quality = None
-            page_id = None
 
             if isinstance(image_info, dict):
                 image_url = image_info.get("image_url")
@@ -58,7 +57,9 @@ class PointFactory:
                 image_format = image_info.get("image_format")
                 image_size_bytes = image_info.get("image_size_bytes")
                 image_quality = image_info.get("image_quality")
-                page_id = image_info.get("page_id")
+
+            # Get document_id from metadata (same for all pages in document)
+            document_id = meta.get("document_id")
 
             payload = {
                 "index": batch_start + offset,
@@ -66,7 +67,7 @@ class PointFactory:
                 "image_url": image_url,
                 "image_inline": image_inline,
                 "image_storage": image_storage,
-                "document_id": doc_id,
+                "document_id": document_id,
                 "filename": meta.get("filename"),
                 "file_size_bytes": meta.get("file_size_bytes"),
                 "pdf_page_index": meta.get("pdf_page_index"),
@@ -100,7 +101,7 @@ class PointFactory:
 
             points.append(
                 models.PointStruct(
-                    id=doc_id,
+                    id=page_id,  # Use page_id as point ID (unique per page)
                     vector=vectors,
                     payload=payload,
                 )

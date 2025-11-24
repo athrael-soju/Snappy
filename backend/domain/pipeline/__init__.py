@@ -4,21 +4,16 @@ This package provides generic pipeline components that are independent of
 any specific vector database implementation.
 """
 
-from .batch_processor import BatchProcessor, ProcessedBatch
-from .cancellation import CancellationService
-from .document_indexer import DocumentIndexer
-from .image_processor import ProcessedImage
+from .image_processor import ImageProcessor, ProcessedImage
 from .progress import ProgressNotifier
 from .storage import ImageStorageHandler
-from .utils import iter_image_batches
+from .utils import iter_image_batches, log_stage_timing
 
 __all__ = [
-    "BatchProcessor",
-    "CancellationService",
-    "DocumentIndexer",
+    "ImageProcessor",
     "ImageStorageHandler",
-    "ProcessedBatch",
+    "ProcessedImage",
     "ProgressNotifier",
     "iter_image_batches",
-    "ProcessedImage",
+    "log_stage_timing",
 ]

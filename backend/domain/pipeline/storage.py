@@ -1,10 +1,8 @@
 """Image storage helpers for pipeline processing."""
 
 import logging
-import uuid
 from typing import Dict, List, Tuple
 
-import config
 from PIL import Image
 from .image_processor import ImageProcessor, ProcessedImage
 
@@ -12,16 +10,19 @@ logger = logging.getLogger(__name__)
 
 
 class ImageStorageHandler:
-    """Handles persistence of image batches in MinIO."""
+    """Handles persistence of image batches in MinIO.
 
-    def __init__(self, minio_service, image_processor: ImageProcessor | None = None):
+    Follows dependency injection principle - all dependencies must be provided.
+    """
+
+    def __init__(self, minio_service, image_processor: ImageProcessor):
+        """Initialize image storage handler.
+
+        Args:
+            minio_service: MinIO service for object storage
+            image_processor: Image processor for format conversion (required)
+        """
         self._minio_service = minio_service
-        # Create processor with config defaults if not provided
-        if image_processor is None:
-            image_processor = ImageProcessor(
-                default_format=config.IMAGE_FORMAT,
-                default_quality=config.IMAGE_QUALITY,
-            )
         self._image_processor = image_processor
 
     def store(
@@ -29,6 +30,7 @@ class ImageStorageHandler:
         batch_start: int,
         image_batch: List[Image.Image],
         meta_batch: List[dict],
+        image_ids: List[str],
     ) -> Tuple[List[str], List[Dict[str, object]], List[ProcessedImage]]:
         """
         Store images in MinIO using hierarchical structure.
@@ -41,29 +43,31 @@ class ImageStorageHandler:
             Images to store
         meta_batch : List[dict]
             Metadata for each image, must contain 'document_id' and 'page_number'
+        image_ids : List[str]
+            Pre-generated image IDs (must be provided - generated during rasterization)
 
         Returns
         -------
         Tuple[List[str], List[Dict[str, object]], List[ProcessedImage]]
             image_ids, image_records, and processed_images for reuse
         """
-        image_ids = [str(uuid.uuid4()) for _ in image_batch]
 
         if self._minio_service is None:
             raise Exception(
                 "MinIO service is not configured; it is required for image storage."
             )
 
-        # Extract document_ids and page_numbers from metadata
+        # Extract required fields from metadata - will raise KeyError if missing
         document_ids = []
         page_numbers = []
         for meta in meta_batch:
-            document_id = meta.get("document_id")
-            page_num = meta.get("page_number")
-            if document_id is None or page_num is None:
+            try:
+                document_id = meta["document_id"]
+                page_num = meta["page_number"]
+            except KeyError as exc:
                 raise ValueError(
-                    f"Metadata must contain 'document_id' and 'page_number' for hierarchical storage. Got: {meta}"
-                )
+                    f"Metadata missing required field {exc} for hierarchical storage. Got: {meta}"
+                ) from exc
             document_ids.append(document_id)
             page_numbers.append(page_num)
 
@@ -71,12 +75,14 @@ class ImageStorageHandler:
         processed_images = self._image_processor.process_batch(image_batch)
 
         try:
-            # Store pre-processed images in MinIO
+            # Store pre-processed images in MinIO with batch-size parallelism
+            # Batch size controls parallelism across all stages
             image_url_map = self._minio_service.store_processed_images_batch(
                 processed_images,
                 image_ids=image_ids,
                 document_ids=document_ids,
                 page_numbers=page_numbers,
+                max_workers=len(image_batch),  # Use batch size for parallelism
             )
         except Exception as exc:
             raise Exception(

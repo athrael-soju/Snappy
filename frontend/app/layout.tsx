@@ -6,6 +6,7 @@ import { Footer } from "@/components/footer";
 import { Toaster } from "@/components/ui/sonner";
 import { AppStoreProvider } from "@/stores/app-store";
 import { ThemeProvider } from "@/components/theme-provider";
+import { ConfigInitializer } from "@/components/config-initializer";
 import NextTopLoader from "nextjs-toploader";
 
 export const metadata: Metadata = {
@@ -44,6 +45,7 @@ export default function RootLayout({
             showAtBottom={false}
           />
           <AppStoreProvider>
+            <ConfigInitializer />
             <Toaster position="top-right" />
             {/* 3-row viewport-aware layout with persistent footer */}
             <div className="relative flex h-full min-h-0 flex-col">

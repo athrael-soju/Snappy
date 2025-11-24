@@ -16,29 +16,31 @@ SCHEMA: Dict[str, Any] = {
         "settings": [
             {
                 "default": 4,
-                "description": "Number of pages processed per batch",
-                "help_text": "Higher values boost throughput but require more memory. "
-                "Lower values provide steadier progress feedback. "
-                "Recommended: 2-4 for CPU/Apple Silicon, 4-8 for NVIDIA GPU.",
+                "description": "Number of pages processed in parallel per batch",
+                "help_text": "Controls batch granularity and GPU memory usage. "
+                "Higher values process more pages simultaneously, improving GPU throughput but requiring more memory. "
+                "Lower values use less GPU memory but may be slower. "
+                "Recommended: 2 for 8GB GPU, 4 for 16GB GPU, 6-8 for 24GB+ GPU. "
+                "Reduce to 1 if experiencing GPU memory errors.",
                 "key": "BATCH_SIZE",
                 "label": "Batch Size",
-                "max": 128,
+                "max": 16,
                 "min": 1,
                 "type": "int",
                 "ui_type": "number",
             },
             {
-                "default": 15,
-                "description": "Maximum seconds to wait for service restart during cancellation",
-                "help_text": "When a job is cancelled, the system restarts ColPali and "
-                "DeepSeek OCR services to stop ongoing processing. This "
-                "controls how long to wait for each service to restart. "
-                "Increase if services take longer to initialize on your "
-                "hardware, decrease for faster cancellation response.",
-                "key": "CANCELLATION_RESTART_TIMEOUT",
-                "label": "Service Restart Timeout (seconds)",
-                "max": 60,
-                "min": 5,
+                "default": 1,
+                "description": "Maximum batches processing simultaneously in the pipeline",
+                "help_text": "Controls system memory usage and cancellation responsiveness. "
+                "Higher values allow more batches to be queued, improving throughput but consuming more memory "
+                "and making cancellation slower. Lower values keep memory usage bounded and allow fast cancellation. "
+                "Set to 1 for lowest memory usage and immediate cancellation response. "
+                "Set to 2-4 for better throughput if memory allows.",
+                "key": "PIPELINE_MAX_IN_FLIGHT_BATCHES",
+                "label": "Max In-Flight Batches",
+                "max": 8,
+                "min": 1,
                 "type": "int",
                 "ui_type": "number",
             },
