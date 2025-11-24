@@ -210,6 +210,10 @@ def run_indexing_job(
             message="Finalizing processing...",
         )
 
+        # Check cancellation before waiting (to avoid blocking on cancelled job)
+        if progress_manager.is_cancelled(job_id):
+            raise CancellationError("Job cancelled during processing")
+
         pipeline.wait_for_completion()
 
         # Check for late cancellation
