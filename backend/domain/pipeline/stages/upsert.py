@@ -126,7 +126,7 @@ class UpsertStage:
         stop_event: threading.Event,
     ):
         """Consumer loop: wait for embeddings and upsert."""
-        logger.info("Upsert stage started")
+        logger.debug("Upsert stage started")
 
         while not stop_event.is_set():
             try:

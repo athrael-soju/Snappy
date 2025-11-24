@@ -121,7 +121,7 @@ class OCRStage:
             stop_event: Event to signal shutdown
             completion_tracker: Optional tracker to coordinate batch completion
         """
-        logger.info("OCR stage started")
+        logger.debug("OCR stage started")
 
         while not stop_event.is_set():
             try:

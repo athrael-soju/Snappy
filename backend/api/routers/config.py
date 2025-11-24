@@ -94,13 +94,11 @@ def _ensure_mean_pooling_supported() -> None:
 @router.get("/schema")
 async def get_config_schema() -> Dict[str, Any]:
     """Get the configuration schema with categories and settings."""
-    logger.debug("Retrieving configuration schema")
-
     with PerformanceTimer("get config schema", log_on_exit=False) as timer:
         schema = deepcopy(CONFIG_SCHEMA)
         supported, reason = _check_mean_pooling_support()
 
-    logger.info(
+    logger.debug(
         "Configuration schema retrieved",
         extra={
             "operation": "get_schema",
@@ -136,8 +134,6 @@ async def get_config_schema() -> Dict[str, Any]:
 @router.get("/values")
 async def get_config_values() -> Dict[str, str]:
     """Get current values for all configuration variables."""
-    logger.debug("Retrieving configuration values")
-
     with PerformanceTimer("get config values", log_on_exit=False) as timer:
         runtime_cfg = get_runtime_config()
         values = {}
@@ -148,7 +144,7 @@ async def get_config_values() -> Dict[str, str]:
                 default = setting.get("default", "")
                 values[key] = runtime_cfg.get(key, default)
 
-    logger.info(
+    logger.debug(
         "Configuration values retrieved",
         extra={
             "operation": "get_values",
@@ -188,17 +184,6 @@ async def update_config(update: ConfigUpdate) -> Dict[str, Any]:
     old_value = runtime_cfg.get(update.key, "")
     is_critical = update.key in _CRITICAL_KEYS
 
-    logger.warning(
-        "Configuration update requested",
-        extra={
-            "operation": "update_config",
-            "key": update.key,
-            "old_value": old_value,
-            "new_value": update.value,
-            "is_critical": is_critical,
-        },
-    )
-
     try:
         with PerformanceTimer("update config", log_on_exit=False) as timer:
             if update.key == "QDRANT_MEAN_POOLING_ENABLED" and _is_truthy(update.value):
@@ -212,8 +197,8 @@ async def update_config(update: ConfigUpdate) -> Dict[str, Any]:
             if is_critical:
                 invalidate_services()
 
-        logger.warning(
-            "Configuration updated successfully",
+        logger.info(
+            f"Config updated: {update.key}={update.value}" + (" [critical]" if is_critical else ""),
             extra={
                 "operation": "update_config",
                 "key": update.key,

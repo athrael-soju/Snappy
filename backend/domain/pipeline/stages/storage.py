@@ -43,7 +43,7 @@ class StorageStage:
             stop_event: Event to signal shutdown
             completion_tracker: Optional tracker to coordinate batch completion
         """
-        logger.info("Storage stage started")
+        logger.debug("Storage stage started")
 
         while not stop_event.is_set():
             try:

@@ -47,7 +47,7 @@ class EmbeddingStage:
         stop_event: threading.Event,
     ):
         """Consumer loop: take from input, embed, push to output."""
-        logger.info("Embedding stage started")
+        logger.debug("Embedding stage started")
 
         while not stop_event.is_set():
             try:

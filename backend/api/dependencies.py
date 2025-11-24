@@ -182,7 +182,7 @@ def get_qdrant_service() -> Optional[QdrantClient]:
 
 def invalidate_services():
     """Invalidate cached services so they are recreated on next access."""
-    logger.info("Invalidating cached services to apply new configuration")
+    logger.debug("Invalidating cached services to apply new configuration")
 
     # Close existing service instances before clearing caches to prevent resource leaks
     try:
