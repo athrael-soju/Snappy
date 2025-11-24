@@ -159,5 +159,12 @@ class PDFRasterizer:
             return total_pages
 
         except Exception as exc:
-            logger.error(f"Rasterization failed for {filename}: {exc}", exc_info=True)
+            # Import here to avoid circular dependency
+            from api.routers.indexing.jobs import CancellationError
+
+            # Cancellation is expected, log at info level
+            if isinstance(exc, CancellationError):
+                logger.info(f"Rasterization cancelled for {filename}: {exc}")
+            else:
+                logger.error(f"Rasterization failed for {filename}: {exc}", exc_info=True)
             raise
