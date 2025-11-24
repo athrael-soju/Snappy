@@ -1,6 +1,6 @@
 "use client";
 
-import type { ChangeEvent, FormEvent, Ref } from "react";
+import type { ChangeEvent, FormEvent, KeyboardEvent, Ref } from "react";
 import { forwardRef } from "react";
 import { motion } from "framer-motion";
 import { Loader2, Send, Settings, Trash2, AlertCircle } from "lucide-react";
@@ -64,6 +64,22 @@ export const ChatComposer = forwardRef<HTMLTextAreaElement, ChatComposerProps>(f
         }
     };
 
+    const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+        // Enter without Shift sends the message
+        if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            if (!isSendDisabled) {
+                // Create a synthetic form event to trigger submission
+                const form = event.currentTarget.form;
+                if (form) {
+                    const formEvent = new Event("submit", { bubbles: true, cancelable: true });
+                    form.dispatchEvent(formEvent);
+                }
+            }
+        }
+        // Shift+Enter allows newline (default textarea behavior)
+    };
+
     return (
         <motion.form
             onSubmit={sendMessage}
@@ -83,6 +99,7 @@ export const ChatComposer = forwardRef<HTMLTextAreaElement, ChatComposerProps>(f
                                     id="chat-input-area"
                                     value={input}
                                     onChange={(event) => onInputChange(event.target.value)}
+                                    onKeyDown={handleKeyDown}
                                     placeholder="Ask anything about your documents..."
                                     disabled={!isReady}
                                     rows={3}
