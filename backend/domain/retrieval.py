@@ -91,7 +91,7 @@ async def search_documents(
                             regions = await asyncio.to_thread(
                                 duckdb_service.get_page_regions, filename, page_number
                             )
-                            
+
                             if regions:
                                 # Include regions data (image URLs are in image_url field)
                                 payload["ocr"] = {
@@ -99,17 +99,14 @@ async def search_documents(
                                 }
                                 ocr_success_count += 1
                             else:
-                                # regions is None or empty - error
-                                logger.error(
-                                    "DuckDB failed to fetch OCR regions",
+                                # regions is None or empty - log warning
+                                logger.warning(
+                                    "OCR regions not found in DuckDB",
                                     extra={
                                         "operation": "search",
-                                        "filename": filename,
+                                        "document_filename": filename,
                                         "page_number": page_number,
                                     },
-                                )
-                                raise RuntimeError(
-                                    f"Failed to fetch OCR regions from DuckDB for {filename} page {page_number}"
                                 )
                         else:
                             # Grounding disabled: fetch full page text/markdown
@@ -119,31 +116,44 @@ async def search_documents(
                             if page_data:
                                 # Check task type to determine which field to return
                                 task_type = getattr(config, "DEEPSEEK_OCR_TASK", "markdown")
-                                
+
                                 # Map task types to output fields:
                                 # - "markdown" → markdown field
                                 # - "plain_ocr", "describe", "custom" → text field
                                 # - "locate" → requires grounding, shouldn't be used when grounding disabled
                                 if task_type == "markdown":
-                                    content = page_data.get("markdown", "")
+                                    markdown_content = page_data.get("markdown", "")
+                                    if markdown_content:
+                                        payload["ocr"] = {
+                                            "markdown": markdown_content,
+                                        }
+                                        ocr_success_count += 1
                                 else:  # plain_ocr, describe, custom, locate
-                                    content = page_data.get("text", "")
-                                
-                                payload["ocr"] = {
-                                    "content": content,
-                                }
-                                ocr_success_count += 1
+                                    text_content = page_data.get("text", "")
+                                    if text_content:
+                                        payload["ocr"] = {
+                                            "text": text_content,
+                                        }
+                                        ocr_success_count += 1
+
+                                if not payload.get("ocr"):
+                                    logger.warning(
+                                        "OCR data exists but is empty",
+                                        extra={
+                                            "operation": "search",
+                                            "document_filename": filename,
+                                            "page_number": page_number,
+                                            "task_type": task_type,
+                                        },
+                                    )
                             else:
-                                logger.error(
-                                    "DuckDB failed to fetch OCR page data",
+                                logger.warning(
+                                    "OCR page data not found in DuckDB",
                                     extra={
                                         "operation": "search",
-                                        "filename": filename,
+                                        "document_filename": filename,
                                         "page_number": page_number,
                                     },
-                                )
-                                raise RuntimeError(
-                                    f"Failed to fetch OCR data from DuckDB for {filename} page {page_number}"
                                 )
                     else:
                         # DuckDB disabled: use MinIO json_url
