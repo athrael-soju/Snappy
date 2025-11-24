@@ -111,10 +111,16 @@ class OCRStage:
         self,
         input_queue: queue.Queue,
         stop_event: threading.Event,
+        completion_tracker=None,
     ):
         """Consumer loop: take batches and process OCR.
 
         OCR failures are critical - if OCR is enabled and fails, the pipeline stops.
+
+        Args:
+            input_queue: Queue to read batches from
+            stop_event: Event to signal shutdown
+            completion_tracker: Optional tracker to coordinate batch completion
         """
         logger.info("OCR stage started")
 
@@ -127,6 +133,13 @@ class OCRStage:
             try:
                 self.process_batch(batch)
                 logger.debug(f"Processed OCR for batch {batch.batch_id}")
+
+                # Notify completion tracker that OCR is done for this batch
+                if completion_tracker:
+                    num_pages = len(batch.images)
+                    completion_tracker.mark_stage_complete(
+                        batch.document_id, batch.batch_id, num_pages
+                    )
             except Exception as exc:
                 logger.error(f"OCR failed for batch {batch.batch_id}: {exc}")
                 raise  # OCR failures are critical - stop the pipeline

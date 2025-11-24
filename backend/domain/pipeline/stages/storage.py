@@ -32,10 +32,16 @@ class StorageStage:
         self,
         input_queue: queue.Queue,
         stop_event: threading.Event,
+        completion_tracker=None,
     ):
         """Consumer loop: take batches and store images.
 
         Storage failures are critical - if MinIO is unavailable, the pipeline stops.
+
+        Args:
+            input_queue: Queue to read batches from
+            stop_event: Event to signal shutdown
+            completion_tracker: Optional tracker to coordinate batch completion
         """
         logger.info("Storage stage started")
 
@@ -48,6 +54,13 @@ class StorageStage:
             try:
                 self.process_batch(batch)
                 logger.debug(f"Stored batch {batch.batch_id}")
+
+                # Notify completion tracker that storage is done for this batch
+                if completion_tracker:
+                    num_pages = len(batch.images)
+                    completion_tracker.mark_stage_complete(
+                        batch.document_id, batch.batch_id, num_pages
+                    )
             except Exception as exc:
                 logger.error(f"Storage failed for batch {batch.batch_id}: {exc}")
                 raise  # Storage failures are critical - stop the pipeline

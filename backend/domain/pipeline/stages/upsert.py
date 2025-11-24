@@ -27,15 +27,14 @@ class UpsertStage:
         collection_name: str,
         minio_base_url: str,
         minio_bucket: str,
-        progress_callback: Optional[Callable] = None,
+        completion_tracker=None,
     ):
         self.point_factory = point_factory
         self.qdrant_service = qdrant_service
         self.collection_name = collection_name
         self.minio_base_url = minio_base_url
         self.minio_bucket = minio_bucket
-        self.progress_callback = progress_callback
-        self.pages_upserted = 0
+        self.completion_tracker = completion_tracker
 
     def _generate_image_url(self, document_id: str, page_number: int, page_id: str) -> str:
         """Generate MinIO image URL from metadata.
@@ -115,13 +114,11 @@ class UpsertStage:
             points=points,
         )
 
-        # Update progress
-        self.pages_upserted += num_points
-        if self.progress_callback:
-            try:
-                self.progress_callback(self.pages_upserted)
-            except Exception as exc:
-                logger.warning(f"Progress callback failed: {exc}")
+        # Notify completion tracker that upsert is done for this batch
+        if self.completion_tracker:
+            self.completion_tracker.mark_stage_complete(
+                embedded_batch.document_id, embedded_batch.batch_id, num_points
+            )
 
     def run(
         self,

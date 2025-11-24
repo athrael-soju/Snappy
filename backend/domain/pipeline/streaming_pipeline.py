@@ -21,6 +21,7 @@ Benefits:
 import logging
 import queue
 import threading
+from collections import defaultdict
 from typing import Callable, Optional
 
 from .stages import (
@@ -32,6 +33,52 @@ from .stages import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class BatchCompletionTracker:
+    """Tracks completion of all stages for each batch to coordinate progress updates."""
+
+    def __init__(self, num_stages: int, progress_callback: Optional[Callable] = None):
+        """Initialize tracker.
+
+        Args:
+            num_stages: Number of parallel stages that must complete per batch
+            progress_callback: Callback to invoke when all stages complete a batch
+        """
+        self.num_stages = num_stages
+        self.progress_callback = progress_callback
+        self.batch_completions = defaultdict(int)  # batch_key -> completion_count
+        self.completed_pages = 0
+        self._lock = threading.Lock()
+
+    def mark_stage_complete(self, document_id: str, batch_id: int, num_pages: int):
+        """Mark a stage as complete for a batch.
+
+        Args:
+            document_id: Document identifier
+            batch_id: Batch identifier
+            num_pages: Number of pages in this batch
+
+        When all stages complete, triggers progress callback.
+        """
+        batch_key = f"{document_id}:{batch_id}"
+
+        with self._lock:
+            self.batch_completions[batch_key] += 1
+
+            if self.batch_completions[batch_key] == self.num_stages:
+                # All stages complete for this batch
+                self.completed_pages += num_pages
+
+                # Clean up tracking for this batch
+                del self.batch_completions[batch_key]
+
+                # Report progress
+                if self.progress_callback:
+                    try:
+                        self.progress_callback(self.completed_pages)
+                    except Exception as exc:
+                        logger.warning(f"Progress callback failed: {exc}")
 
 
 class StreamingPipeline:
@@ -103,6 +150,9 @@ class StreamingPipeline:
         self.stop_event = threading.Event()
         self.threads = []
 
+        # Batch completion tracker (created in start())
+        self.completion_tracker = None
+
     def start(self, progress_callback: Optional[Callable] = None):
         """Start all consumer stage threads.
 
@@ -111,15 +161,27 @@ class StreamingPipeline:
         """
         logger.info("Starting streaming pipeline stages")
 
-        # Create upsert stage with progress callback
-        # Upsert only waits for embeddings - storage/OCR run independently
+        # Count active stages (embedding + storage + optional OCR)
+        # Embedding stage doesn't count because it only produces, doesn't complete
+        # We only count stages that perform final work: storage, OCR, upsert
+        num_stages = 2  # storage + upsert
+        if self.ocr_stage:
+            num_stages += 1  # + ocr
+
+        # Create batch completion tracker
+        self.completion_tracker = BatchCompletionTracker(
+            num_stages=num_stages,
+            progress_callback=progress_callback,
+        )
+
+        # Create upsert stage with completion tracker instead of direct callback
         self.upsert_stage = UpsertStage(
             self.point_factory,
             self.qdrant_service,
             self.collection_name,
             self.minio_base_url,
             self.minio_bucket,
-            progress_callback=progress_callback,
+            completion_tracker=self.completion_tracker,
         )
 
         # Start embedding consumer
@@ -135,7 +197,7 @@ class StreamingPipeline:
         # Start storage consumer
         storage_thread = threading.Thread(
             target=self.storage_stage.run,
-            args=(self.storage_input_queue, self.stop_event),
+            args=(self.storage_input_queue, self.stop_event, self.completion_tracker),
             name="storage-stage",
             daemon=True,
         )
@@ -146,7 +208,7 @@ class StreamingPipeline:
         if self.ocr_stage:
             ocr_thread = threading.Thread(
                 target=self.ocr_stage.run,
-                args=(self.ocr_input_queue, self.stop_event),
+                args=(self.ocr_input_queue, self.stop_event, self.completion_tracker),
                 name="ocr-stage",
                 daemon=True,
             )
