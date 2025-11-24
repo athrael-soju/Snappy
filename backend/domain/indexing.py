@@ -5,7 +5,7 @@ import logging
 import os
 import tempfile
 import time
-from typing import Dict, List
+from typing import Dict, List, Optional, Protocol
 
 import config
 from api.dependencies import get_duckdb_service, get_qdrant_service, qdrant_init_error
@@ -24,10 +24,28 @@ from domain.file_constraints import (
 )
 from domain.pipeline.errors import CancellationError
 from domain.pipeline.streaming_pipeline import StreamingPipeline
-from fastapi import UploadFile
 from pdf2image import pdfinfo_from_path
 
 logger = logging.getLogger(__name__)
+
+
+class UploadFileProtocol(Protocol):
+    """Protocol for file upload objects.
+
+    This allows the domain layer to work with any upload implementation
+    (FastAPI, Flask, etc.) without direct framework dependencies.
+    """
+
+    filename: Optional[str]
+    content_type: Optional[str]
+
+    async def read(self, size: int = -1) -> bytes:
+        """Read bytes from the upload."""
+        ...
+
+    async def close(self) -> None:
+        """Close the upload."""
+        ...
 
 
 def check_file_duplicate(
@@ -84,7 +102,7 @@ def check_file_duplicate(
 
 
 async def _persist_upload_to_disk(
-    upload: UploadFile,
+    upload: UploadFileProtocol,
     chunk_size: int,
     max_file_size_bytes: int,
     max_file_size_mb: int,
@@ -157,7 +175,7 @@ async def _persist_upload_to_disk(
 
 
 async def validate_and_persist_uploads(
-    files: List[UploadFile],
+    files: List[UploadFileProtocol],
     constraints: UploadConstraints,
 ) -> tuple[list[str], dict[str, str]]:
     chunk_size = get_upload_chunk_size_mbytes()

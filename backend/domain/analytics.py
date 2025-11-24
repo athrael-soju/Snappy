@@ -1,5 +1,5 @@
 import logging
-from typing import Any, List, Optional
+from typing import List
 
 from clients.duckdb import DuckDBClient
 from domain.errors import (
@@ -20,7 +20,8 @@ def get_db_stats(duckdb_service: DuckDBClient) -> dict:
         duckdb_service: DuckDB client instance
 
     Returns:
-        Dictionary containing statistics (total_documents, total_pages, total_regions, storage_size_mb)
+        Dictionary containing statistics (total_documents, total_pages,
+        total_regions, storage_size_mb)
 
     Raises:
         StatisticsError: If statistics cannot be retrieved
@@ -61,7 +62,8 @@ def get_document_info(duckdb_service: DuckDBClient, filename: str) -> dict:
         filename: Name of the document to retrieve
 
     Returns:
-        Dictionary containing document metadata (filename, page_count, first_indexed, etc.)
+        Dictionary containing document metadata (filename, page_count,
+        first_indexed, etc.)
 
     Raises:
         DocumentNotFoundError: If document does not exist
@@ -72,7 +74,9 @@ def get_document_info(duckdb_service: DuckDBClient, filename: str) -> dict:
     return document
 
 
-def get_page_data(duckdb_service: DuckDBClient, filename: str, page_number: int) -> dict:
+def get_page_data(
+    duckdb_service: DuckDBClient, filename: str, page_number: int
+) -> dict:
     """Get OCR data for a specific page from DuckDB.
 
     Args:
@@ -88,27 +92,27 @@ def get_page_data(duckdb_service: DuckDBClient, filename: str, page_number: int)
     """
     page = duckdb_service.get_page(filename, page_number)
     if not page:
-        raise PageNotFoundError(f"Page {page_number} not found in document '{filename}'")
+        raise PageNotFoundError(
+            f"Page {page_number} not found in document '{filename}'"
+        )
     return page
 
 
-def delete_document_data(duckdb_service: DuckDBClient, filename: str) -> bool:
+def delete_document_data(duckdb_service: DuckDBClient, filename: str) -> None:
     """Delete all data for a document from DuckDB.
 
     Args:
         duckdb_service: DuckDB client instance
         filename: Name of the document to delete
 
-    Returns:
-        True if deletion was successful
-
     Raises:
         DocumentNotFoundError: If document does not exist or deletion fails
     """
     success = duckdb_service.delete_document(filename)
     if not success:
-        raise DocumentNotFoundError(f"Document '{filename}' not found or deletion failed")
-    return True
+        raise DocumentNotFoundError(
+            f"Document '{filename}' not found or deletion failed"
+        )
 
 
 def execute_custom_query(
