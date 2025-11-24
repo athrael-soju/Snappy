@@ -19,11 +19,6 @@ class EmbeddingStage:
     @log_stage_timing("Embedding")
     def process_batch(self, batch: PageBatch) -> EmbeddedBatch:
         """Generate embeddings for a batch."""
-        logger.info(
-            f"[Embedding] Starting batch {batch.batch_id + 1} (pages {batch.page_start}-"
-            f"{batch.page_start + len(batch.images) - 1})"
-        )
-
         # Generate embeddings
         original, pooled_rows, pooled_cols = (
             self.embedding_processor.embed_and_mean_pool_batch(batch.images)

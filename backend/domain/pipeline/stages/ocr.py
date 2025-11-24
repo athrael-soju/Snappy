@@ -20,19 +20,16 @@ class OCRStage:
     def __init__(self, ocr_service, image_processor):
         self.ocr_service = ocr_service
         self.image_processor = image_processor
-        self.ocr_cache: Dict[str, List[Optional[Dict]]] = {}  # batch_key -> ocr_results
+        # Track completion status (OCR data stored in MinIO, not cached here)
+        self.completed_batches: set[str] = set()  # batch_key
         self._lock = threading.Lock()
 
     @log_stage_timing("OCR")
-    def process_batch(self, batch: PageBatch) -> List[Optional[Dict]]:
+    def process_batch(self, batch: PageBatch):
         """Process OCR for batch."""
         if not self.ocr_service or not config.DEEPSEEK_OCR_ENABLED:
-            return [None] * len(batch.images)
-
-        logger.info(
-            f"[OCR] Starting batch {batch.batch_id + 1} "
-            f"(pages {batch.page_start}-{batch.page_start + len(batch.images) - 1})"
-        )
+            logger.debug(f"[OCR] Skipped batch {batch.batch_id} (OCR disabled)")
+            return
 
         # Process images (format conversion)
         processed_images = self.image_processor.process_batch(batch.images)
@@ -59,13 +56,6 @@ class OCRStage:
                 idx = futures[future]
                 result = future.result()  # Will raise if OCR/storage failed
                 ocr_results[idx] = result
-
-        # Cache results
-        batch_key = f"{batch.document_id}:{batch.batch_id}"
-        with self._lock:
-            self.ocr_cache[batch_key] = ocr_results
-
-        return ocr_results
 
     def _process_single_ocr(self, processed_image, meta: Dict) -> Dict:
         """Process single page OCR.
@@ -116,20 +106,16 @@ class OCRStage:
             "region_count": len(ocr_result.get("regions", [])),
         }
 
-    def get_ocr_results(
-        self, document_id: str, batch_id: int
-    ) -> Optional[List[Optional[Dict]]]:
-        """Retrieve cached OCR results."""
-        batch_key = f"{document_id}:{batch_id}"
-        with self._lock:
-            return self.ocr_cache.get(batch_key)
 
     def run(
         self,
         input_queue: queue.Queue,
         stop_event: threading.Event,
     ):
-        """Consumer loop: take batches and process OCR."""
+        """Consumer loop: take batches and process OCR.
+
+        OCR failures are critical - if OCR is enabled and fails, the pipeline stops.
+        """
         logger.info("OCR stage started")
 
         while not stop_event.is_set():
@@ -143,7 +129,7 @@ class OCRStage:
                 logger.debug(f"Processed OCR for batch {batch.batch_id}")
             except Exception as exc:
                 logger.error(f"OCR failed for batch {batch.batch_id}: {exc}")
-                # Don't raise - OCR failures shouldn't kill the pipeline
+                raise  # OCR failures are critical - stop the pipeline
             finally:
                 input_queue.task_done()
 

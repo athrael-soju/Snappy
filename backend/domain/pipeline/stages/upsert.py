@@ -5,6 +5,7 @@ import queue
 import threading
 from typing import Callable, Optional
 
+import config
 from ..streaming_types import EmbeddedBatch
 from ..utils import log_stage_timing
 
@@ -13,9 +14,10 @@ logger = logging.getLogger(__name__)
 
 class UpsertStage:
     """
-    Coordinates final upsert by combining embeddings with storage/OCR results.
+    Upserts embeddings to Qdrant with dynamically generated URLs.
 
-    Waits for storage and OCR to complete for each batch before upserting.
+    Storage and OCR run independently - UpsertStage only waits for embeddings.
+    URLs are generated on-the-fly from metadata (no coordination needed).
     """
 
     def __init__(
@@ -23,55 +25,60 @@ class UpsertStage:
         point_factory,
         qdrant_service,
         collection_name: str,
-        storage_stage,
-        ocr_stage: Optional = None,
+        minio_base_url: str,
+        minio_bucket: str,
         progress_callback: Optional[Callable] = None,
-        buffer_size: int = 4,
     ):
         self.point_factory = point_factory
         self.qdrant_service = qdrant_service
         self.collection_name = collection_name
-        self.storage_stage = storage_stage
-        self.ocr_stage = ocr_stage
+        self.minio_base_url = minio_base_url
+        self.minio_bucket = minio_bucket
         self.progress_callback = progress_callback
-        self.upsert_buffer = []
-        self.buffer_size = buffer_size  # Batch upserts (default: 4 to match batch size)
-        self.pages_upserted = 0  # Track progress
+        self.pages_upserted = 0
+
+    def _generate_image_url(self, document_id: str, page_number: int, page_id: str) -> str:
+        """Generate MinIO image URL from metadata.
+
+        Pattern: {minio_base_url}/{bucket}/{doc_id}/{page_num}/image/{page_id}.{ext}
+        """
+        fmt = config.IMAGE_FORMAT.lower()
+        ext = "jpg" if fmt == "jpeg" else fmt
+        object_name = f"{document_id}/{page_number}/image/{page_id}.{ext}"
+
+        base = self.minio_base_url.rstrip("/")
+        bucket_suffix = f"/{self.minio_bucket}" if self.minio_bucket else ""
+        return f"{base}{bucket_suffix}/{object_name}"
+
+    def _generate_ocr_url(self, document_id: str, page_number: int) -> str:
+        """Generate MinIO OCR JSON URL from metadata.
+
+        Pattern: {minio_base_url}/{bucket}/{doc_id}/{page_num}/ocr.json
+        """
+        object_name = f"{document_id}/{page_number}/ocr.json"
+        base = self.minio_base_url.rstrip("/")
+        bucket_suffix = f"/{self.minio_bucket}" if self.minio_bucket else ""
+        return f"{base}{bucket_suffix}/{object_name}"
 
     @log_stage_timing("Upsert")
     def process_batch(self, embedded_batch: EmbeddedBatch):
-        """Build points and upsert to Qdrant."""
-        logger.info(
-            f"[Upsert] Starting batch {embedded_batch.batch_id + 1} "
-            f"(pages {embedded_batch.page_start}-{embedded_batch.page_start + len(embedded_batch.original_embeddings) - 1})"
-        )
+        """Build points from embeddings and upsert to Qdrant.
 
-        # Look up storage URLs from cache (no waiting - storage runs in parallel)
-        image_urls = self.storage_stage.get_urls(
-            embedded_batch.document_id,
-            embedded_batch.batch_id,
-        )
+        Storage/OCR run independently - we just generate URL references.
+        """
+        # Generate URLs dynamically - no waiting, storage/OCR are independent
+        image_urls = []
+        ocr_urls = []
 
-        if not image_urls:
-            logger.warning(
-                f"Storage data not available for batch {embedded_batch.batch_id + 1}, "
-                "proceeding without URLs"
+        for idx, (page_id, meta) in enumerate(zip(embedded_batch.image_ids, embedded_batch.metadata)):
+            page_number = meta.get("page_number", embedded_batch.page_start + idx)
+
+            image_urls.append(
+                self._generate_image_url(embedded_batch.document_id, page_number, page_id)
             )
-            image_urls = [""] * len(embedded_batch.original_embeddings)
-
-        # Look up OCR results from cache (no waiting - OCR runs in parallel)
-        ocr_results = None
-        if self.ocr_stage:
-            ocr_results = self.ocr_stage.get_ocr_results(
-                embedded_batch.document_id,
-                embedded_batch.batch_id,
+            ocr_urls.append(
+                self._generate_ocr_url(embedded_batch.document_id, page_number)
             )
-
-            if not ocr_results:
-                logger.warning(
-                    f"OCR data not available for batch {embedded_batch.batch_id + 1}, "
-                    "proceeding without OCR data"
-                )
 
         # Build image records
         image_records = [
@@ -83,6 +90,9 @@ class UpsertStage:
             }
             for url, image_id in zip(image_urls, embedded_batch.image_ids)
         ]
+
+        # Build OCR references
+        ocr_results = [{"ocr_url": url} for url in ocr_urls]
 
         # Build Qdrant points
         points = self.point_factory.build(
@@ -96,29 +106,16 @@ class UpsertStage:
             ocr_results=ocr_results,
         )
 
-        # Add to buffer
-        self.upsert_buffer.extend(points)
-
-        # Flush if buffer is full
-        if len(self.upsert_buffer) >= self.buffer_size:
-            self._flush()
-
-    def _flush(self):
-        """Flush accumulated points to Qdrant."""
-        if not self.upsert_buffer:
-            return
-
-        num_points = len(self.upsert_buffer)
-        logger.info(f"Upserting {num_points} points to Qdrant")
+        # Upsert to Qdrant
+        num_points = len(points)
+        logger.info(f"[Upsert] Upserting {num_points} points")
 
         self.qdrant_service.upsert(
             collection_name=self.collection_name,
-            points=self.upsert_buffer,
+            points=points,
         )
 
-        self.upsert_buffer = []
-
-        # Update progress AFTER successful upsert
+        # Update progress
         self.pages_upserted += num_points
         if self.progress_callback:
             try:
@@ -126,17 +123,12 @@ class UpsertStage:
             except Exception as exc:
                 logger.warning(f"Progress callback failed: {exc}")
 
-    def flush_remaining(self):
-        """Public method to flush any remaining buffered points."""
-        logger.info("Flushing remaining buffered points...")
-        self._flush()
-
     def run(
         self,
         input_queue: queue.Queue,
         stop_event: threading.Event,
     ):
-        """Consumer loop: take embedded batches and upsert."""
+        """Consumer loop: wait for embeddings and upsert."""
         logger.info("Upsert stage started")
 
         while not stop_event.is_set():
@@ -156,8 +148,5 @@ class UpsertStage:
                 raise
             finally:
                 input_queue.task_done()
-
-        # Flush remaining points
-        self._flush()
 
         logger.info("Upsert stage stopped")

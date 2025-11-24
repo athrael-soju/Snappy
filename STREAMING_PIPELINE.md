@@ -100,29 +100,29 @@ Time →
 │ ┌───────────────┐ │      │ ┌──────────────────┐ │  │ ┌──────────────┐ │
 │ │ batch=queue.get│ │      │ │ batch=queue.get  │ │  │ │batch=queue.get│ │
 │ │ embed(batch)  │ │      │ │ minio.store()    │ │  │ │ocr.process()  │ │
-│ │ queue2.put()  │ │      │ │ cache_urls()     │ │  │ │cache_results()│ │
+│ │ queue2.put()  │ │      │ │ (fail-fast)      │ │  │ │(fail-fast)    │ │
 │ └───────────────┘ │      │ └──────────────────┘ │  │ └──────────────┘ │
-└─────────┬─────────┘      └──────────┬───────────┘  └─────────┬────────┘
-          │                           │                        │
-          ▼                           │                        │
-┌─────────────────┐                  │                        │
-│ embedding_queue │                  │                        │
-│ [emb1, emb2]    │                  │                        │
-└────────┬────────┘                  │                        │
-         │                            │                        │
-         ▼                            │                        │
-┌────────────────────────────────────┴────────────────────────┴─────┐
-│  STAGE 3: Upsert Coordinator                                      │
-│  Thread: upsert-1                                                 │
-│  ┌──────────────────────────────────────────────────────────────┐ │
-│  │ embedded_batch = queue.get()                                 │ │
-│  │ # Wait for storage/OCR to complete for this batch           │ │
-│  │ urls = storage_stage.get_urls(doc_id, batch_id)  # cached   │ │
-│  │ ocr = ocr_stage.get_ocr_results(doc_id, batch_id)  # cached │ │
-│  │ points = build_points(embeddings, urls, ocr)                │ │
-│  │ qdrant.upsert(points)  # Batched upserts!                   │ │
-│  └──────────────────────────────────────────────────────────────┘ │
-└───────────────────────────────────────────────────────────────────┘
+└─────────┬─────────┘      └──────────────────────┘  └────────────────┘
+          │                   (Parallel)                 (Parallel)
+          ▼
+┌─────────────────┐
+│ embedding_queue │
+│ [emb1, emb2]    │
+└────────┬────────┘
+         │
+         ▼
+┌────────────────────────────────────────────────────────────────────┐
+│  STAGE 3: Upsert Stage (only waits for embeddings)                │
+│  Thread: upsert-1                                                  │
+│  ┌───────────────────────────────────────────────────────────────┐ │
+│  │ embedded_batch = queue.get()  # Only waits for embeddings    │ │
+│  │ urls = generate_urls(doc_id, page_ids)  # Dynamic generation │ │
+│  │ ocr_urls = generate_ocr_urls(doc_id, page_nums)  # Dynamic   │ │
+│  │ points = build_points(embeddings, urls, ocr_urls)            │ │
+│  │ qdrant.upsert(points)                                        │ │
+│  │ update_progress()                                            │ │
+│  └───────────────────────────────────────────────────────────────┘ │
+└────────────────────────────────────────────────────────────────────┘
 ```
 
 ## 🔄 Data Flow Example
@@ -140,24 +140,28 @@ T=0s:  THREE consumers pull from rasterize_queue simultaneously:
        │                 → {doc_id: "doc-123", batch_id: 0, embeddings: [...]}
        │                 → Pushes to embedding_queue
        │
-       ├─ Storage Stage: Gets batch → stores in MinIO → caches URLs
-       │                 → url_cache["doc-123:0"] = ["http://minio/.../1.jpg", ...]
+       ├─ Storage Stage: Gets batch → stores in MinIO (fails-fast on error)
+       │                 → Uploads images to minio/doc-123/1/image/uuid1.jpg, etc.
        │
-       └─ OCR Stage:     Gets batch → processes OCR → caches results
-                         → ocr_cache["doc-123:0"] = [{ocr_url: "...", ...}, ...]
+       └─ OCR Stage:     Gets batch → processes OCR → stores in MinIO (fails-fast on error)
+                         → Stores OCR JSON at minio/doc-123/1/ocr.json, etc.
 
 T=5s:  Embedding complete
 
-T=7s:  Upsert Stage:    Gets EmbeddedBatch from embedding_queue
-                        → Looks up URLs: url_cache["doc-123:0"]
-                        → Looks up OCR:  ocr_cache["doc-123:0"]
-                        → Builds Qdrant points with all data
+T=5s:  Upsert Stage:    Gets EmbeddedBatch from embedding_queue
+                        → Generates URLs dynamically from metadata
+                        → image_urls = ["http://minio/doc-123/1/image/uuid1.jpg", ...]
+                        → ocr_urls = ["http://minio/doc-123/1/ocr.json", ...]
+                        → Builds Qdrant points with embeddings and URLs
                         → Upserts to Qdrant
+                        → Updates progress
 
-T=8s:  ✅ Pages 1-4 are searchable!
+T=6s:  ✅ Pages 1-4 are searchable!
+
+Note: All stages run in parallel. Any failure stops the pipeline to ensure data consistency.
 ```
 
-**Key Insight**: All stages coordinate via `document_id:batch_id` but run **independently**!
+**Key Insight**: All stages run **independently in parallel** with dedicated queues - URLs are generated dynamically!
 
 ## 💻 Usage Example
 
@@ -291,16 +295,17 @@ MINIO_WORKERS = 8  # Moderate to prevent connection exhaustion
 - Already-processed batches remain in Qdrant
 
 **Storage Stage Fails**:
-- Logs error, continues processing
-- Upsert proceeds with empty URLs (degrades functionality but doesn't crash)
+- Pipeline stops (critical - cannot generate valid image URLs)
+- Prevents creation of Qdrant points with broken image references
 
 **OCR Stage Fails**:
-- Logs error, continues processing
-- Upsert proceeds without OCR data (OCR is optional)
+- If OCR is enabled: Pipeline stops (critical - OCR was explicitly requested)
+- If OCR is disabled: Stage doesn't run at all
+- No silent fallbacks - failures are explicit
 
 **Upsert Stage Fails**:
-- Pipeline stops (critical - data loss)
-- Can retry with cached embeddings/URLs/OCR
+- Pipeline stops (critical - embeddings must be stored)
+- Can retry from scratch (no caching needed)
 
 ### Cancellation
 

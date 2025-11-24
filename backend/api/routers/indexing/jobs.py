@@ -95,6 +95,8 @@ def run_indexing_job(
             point_factory=PointFactory(),
             qdrant_service=qdrant_svc.service,
             collection_name=qdrant_svc.collection_name,
+            minio_base_url=config.MINIO_PUBLIC_URL,
+            minio_bucket=config.MINIO_BUCKET_NAME,
             batch_size=int(config.BATCH_SIZE),
             max_queue_size=8,
         )
@@ -136,8 +138,11 @@ def run_indexing_job(
                 message=f"Processing {filename}...",
             )
 
-            # Get PDF info for DuckDB
+            # Get PDF info and generate document_id
             from pdf2image import pdfinfo_from_path
+            from uuid import uuid4
+
+            document_id = str(uuid4())  # Generate once for entire document
 
             try:
                 info = pdfinfo_from_path(pdf_path)
@@ -146,9 +151,6 @@ def run_indexing_job(
 
                 # Store metadata in DuckDB before processing
                 if duckdb_svc and duckdb_svc.is_enabled():
-                    from uuid import uuid4
-
-                    document_id = str(uuid4())
                     doc_metadata = {
                         "document_id": document_id,
                         "filename": filename,
@@ -167,11 +169,12 @@ def run_indexing_job(
             if progress_manager.get(job_id):
                 progress_manager.set_total(job_id, total_pages_all)
 
-            # Process PDF through streaming pipeline
+            # Process PDF through streaming pipeline with consistent document_id
             try:
                 pages_in_doc = pipeline.process_pdf(
                     pdf_path=pdf_path,
                     filename=filename,
+                    document_id=document_id,
                     cancellation_check=check_cancellation,
                 )
 

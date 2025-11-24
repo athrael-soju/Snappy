@@ -34,17 +34,3 @@ class EmbeddedBatch:
     pooled_by_columns: Optional[List]
     image_ids: List[str]
     metadata: List[Dict[str, Any]]
-
-
-@dataclass
-class ProcessedBatch:
-    """A batch fully processed and ready for upsert."""
-
-    document_id: str
-    filename: str
-    batch_id: int
-    page_start: int
-    embeddings: List
-    image_urls: List[str]
-    ocr_results: Optional[List[Dict]]
-    metadata: List[Dict[str, Any]]

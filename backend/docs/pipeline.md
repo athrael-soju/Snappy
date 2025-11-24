@@ -6,12 +6,12 @@ This package provides **vector-database-agnostic** pipeline components for docum
 
 ## Overview
 
-The pipeline package handles the core processing flow for document indexing:
-- Batch processing coordination
-- Image storage management
-- Embedding generation coordination
-- OCR processing (optional)
-- Progress tracking and cancellation
+The pipeline package handles the core processing flow for document indexing using a **streaming architecture**:
+- Parallel stage processing (rasterization, embedding, storage, OCR)
+- Dynamic URL generation (no cache coordination needed)
+- Independent stage execution
+- Backpressure control via bounded queues
+- Progress tracking with immediate feedback
 
 ---
 
@@ -19,65 +19,153 @@ The pipeline package handles the core processing flow for document indexing:
 
 ### Key Principles
 
-1. **Separation of Concerns**: Pipeline logic is independent of vector database implementation
-2. **Reusability**: Components can be used with Qdrant, Pinecone, Weaviate, or any other vector DB
-3. **Callback Pattern**: Database-specific operations (like point construction) are delegated via callbacks
+1. **Streaming Processing**: Pages flow through independent parallel stages as soon as they're ready
+2. **No Blocking**: Stages don't wait for each other - URLs are generated dynamically
+3. **Separation of Concerns**: Each stage has a single responsibility
+4. **Dependency Injection**: All dependencies are injected, not created internally
 
-### Components
+### Streaming Pipeline
 
-#### `DocumentIndexer`
-Main orchestrator that coordinates the entire indexing pipeline:
-- Handles sequential vs pipelined processing modes
-- Manages batch iteration
-- Coordinates progress tracking
-- Delegates storage via callback pattern
+#### `StreamingPipeline`
+Main orchestrator that coordinates parallel processing stages:
+- Manages stage threads and queues
+- Provides backpressure control
+- Coordinates data flow between stages
 
 ```python
 from domain.pipeline import ImageProcessor, ImageStorageHandler
+from domain.pipeline.streaming_pipeline import StreamingPipeline
 
 # Create dependencies
 image_processor = ImageProcessor(default_format="JPEG", default_quality=85)
 image_store = ImageStorageHandler(minio_service=minio, image_processor=image_processor)
 
-# Create indexer with injected dependencies
-indexer = DocumentIndexer(
+# Create streaming pipeline with all dependencies injected
+pipeline = StreamingPipeline(
     embedding_processor=embedding_service,
     image_store=image_store,
-    ocr_service=ocr,
+    image_processor=image_processor,
+    ocr_service=ocr_service,
+    point_factory=point_factory,
+    qdrant_service=qdrant,
+    collection_name="documents",
+    minio_base_url="http://localhost:9000",
+    minio_bucket="documents",
+    batch_size=4,
+    max_queue_size=8,
 )
 
-indexer.index_documents(
-    images=image_list,
-    progress_cb=my_progress_handler,
-    store_batch_cb=my_storage_handler,  # DB-specific
+# Start stage threads
+pipeline.start(progress_callback=my_progress_handler)
+
+# Process documents
+pipeline.process_pdf(
+    pdf_path="/path/to/doc.pdf",
+    filename="doc.pdf",
+    cancellation_check=lambda: check_if_cancelled()
 )
+
+# Wait for completion
+pipeline.wait_for_completion()
+pipeline.stop()
 ```
 
-#### `BatchProcessor`
-Processes individual batches:
-- Generates embeddings
-- Stores images in MinIO
-- Runs OCR (if enabled)
-- Returns `ProcessedBatch` with all metadata
+### Pipeline Stages
+
+All stages are in `domain/pipeline/stages/`:
+
+#### `PDFRasterizer`
+Converts PDF pages to images and broadcasts to all stages:
+- Streams pages as they're rasterized (no waiting for full document)
+- Generates unique page IDs shared across all stages
+- Broadcasts to embedding, storage, and OCR queues
+
+#### `EmbeddingStage`
+Generates vector embeddings:
+- Consumes page batches from rasterizer
+- Produces embeddings (original + pooled variants)
+- Outputs to upsert queue
+
+#### `StorageStage`
+Stores page images in MinIO:
+- Runs in parallel with embedding
+- Uses hierarchical structure: `{doc_id}/{page_num}/image/{page_id}.{ext}`
+- Failures are critical - stops pipeline to prevent broken image URLs
+
+#### `OCRStage`
+Extracts text from page images:
+- Runs in parallel with embedding and storage
+- Stores OCR JSON in MinIO: `{doc_id}/{page_num}/ocr.json`
+- Only runs if OCR is enabled
+- Failures are critical when enabled - stops pipeline
+
+#### `UpsertStage`
+Creates final Qdrant points and upserts:
+- **Only waits for embeddings**: Receives embeddings from queue, generates URLs dynamically
+- Generates image and OCR URLs from metadata (document_id, page_number, page_id)
+- Combines embeddings with generated URLs
+- References OCR data via URL (not embedded in point)
+- Updates progress after successful upsert
+
+### Key Architectural Decision: Dynamic URL Generation + Independent Stages
+
+**All stages run independently** with no synchronization. URLs are generated on-the-fly from metadata:
+
+```python
+# Storage and OCR stages run independently - no coordination
+class StorageStage:
+    def process_batch(self, batch):
+        # Upload images to MinIO
+        image_store.store(...)
+        # That's it - no completion tracking needed
+
+class OCRStage:
+    def process_batch(self, batch):
+        # Process OCR and store results
+        ocr_service.process_and_store(...)
+        # That's it - no completion tracking needed
+
+class UpsertStage:
+    def process_batch(self, embedded_batch):
+        # Generate URLs dynamically from metadata
+        urls = [self._generate_image_url(doc_id, page_num, page_id)
+                for page_id, page_num in pages]
+
+        ocr_urls = [self._generate_ocr_url(doc_id, page_num)
+                    for page_num in page_numbers]
+
+        # Upsert immediately with generated URLs
+        qdrant.upsert(points)
+
+        # Update progress (embeddings processed)
+        self.progress_callback(pages_upserted)
+```
+
+**Benefits**:
+- **No blocking**: All stages run at full speed independently
+- **No data caching**: Minimal memory footprint
+- **Dynamic URLs**: Pattern matches MinIO structure exactly
+- **Immediate progress**: Progress updates as soon as embeddings are processed
+- **Fire-and-forget storage**: Storage and OCR don't block the critical path
+
+### Shared Components
 
 #### `ImageStorageHandler`
 Manages image persistence in MinIO:
-- Format conversion
+- Format conversion and quality optimization
+- Hierarchical storage: `{doc_id}/{page_num}/image/{page_id}.{ext}`
+
+#### `ImageProcessor`
+Handles image format conversion:
+- JPEG/PNG/WebP support
 - Quality optimization
-- Hierarchical storage structure
+- Size calculation
 
 #### `ProgressNotifier`
-Lightweight progress callback orchestration:
+Progress callback orchestration:
 - Stage tracking
 - Cancellation support
 - Error handling
-
-#### `ProcessedBatch`
-Data class containing all processed batch data:
-- Embeddings (original + pooled variants)
-- Image metadata
-- Storage URLs
-- OCR results
 
 ---
 
@@ -208,28 +296,26 @@ graph TB
             EMB_PUSH[Push to<br/>embedding_queue]
         end
 
-        subgraph "2b: Storage Stage Thread"
+        subgraph "2b: Storage Stage Thread (Independent)"
             STOR_GET[Get PageBatch<br/>from storage_input_queue]
             STOR_PROC[image_store.store<br/>Upload to MinIO]
-            STOR_URL[Extract image URLs<br/>from storage records]
-            STOR_CACHE[Cache URLs<br/>url_cache doc_id:batch_id]
+            STOR_DONE[Done - no coordination]
         end
 
-        subgraph "2c: OCR Stage Thread"
+        subgraph "2c: OCR Stage Thread (Independent)"
             OCR_GET[Get PageBatch<br/>from ocr_input_queue]
             OCR_PROC[Process OCR<br/>ThreadPool: 2 workers]
             OCR_STOR[Store OCR results<br/>in MinIO]
-            OCR_CACHE[Cache results<br/>ocr_cache doc_id:batch_id]
+            OCR_DONE[Done - no coordination]
         end
     end
 
-    subgraph "Stage 3: Upsert Coordinator (Final Consumer Thread)"
+    subgraph "Stage 3: Upsert Stage (Final Consumer Thread)"
         UPS_GET[Get EmbeddedBatch<br/>from embedding_queue]
-        UPS_WAIT{Wait for Storage<br/>& OCR completion<br/>max 30s}
-        UPS_FETCH[Fetch cached URLs<br/>and OCR results<br/>by doc_id:batch_id]
-        UPS_BUILD[Build Qdrant points<br/>Combine embeddings<br/>+ URLs + OCR + metadata]
-        UPS_BUF{Buffer size<br/>>= 20 points?}
-        UPS_FLUSH[Flush buffer<br/>Batch upsert to Qdrant]
+        UPS_GEN[Generate URLs dynamically<br/>from metadata<br/>No waiting needed]
+        UPS_BUILD[Build Qdrant points<br/>Combine embeddings<br/>+ URLs + metadata]
+        UPS_FLUSH[Upsert to Qdrant]
+        UPS_PROG[Update progress]
     end
 
     subgraph Output
@@ -260,39 +346,32 @@ graph TB
     EMB_BATCH --> EMB_PUSH
     EMB_PUSH --> EMB_OUT
 
-    %% Storage path
+    %% Storage path (independent - no coordination)
     STOR_GET --> STOR_PROC
-    STOR_PROC --> STOR_URL
-    STOR_URL --> STOR_CACHE
+    STOR_PROC --> STOR_DONE
 
-    %% OCR path
+    %% OCR path (independent - no coordination)
     OCR_GET --> OCR_PROC
     OCR_PROC --> OCR_STOR
-    OCR_STOR --> OCR_CACHE
+    OCR_STOR --> OCR_DONE
 
-    %% Upsert path
+    %% Upsert path (only waits for embeddings)
     EMB_OUT --> UPS_GET
-    UPS_GET --> UPS_WAIT
-    UPS_WAIT -->|Ready| UPS_FETCH
-    STOR_CACHE -.->|Lookup| UPS_FETCH
-    OCR_CACHE -.->|Lookup| UPS_FETCH
-    UPS_FETCH --> UPS_BUILD
-    UPS_BUILD --> UPS_BUF
-    UPS_BUF -->|Yes| UPS_FLUSH
-    UPS_BUF -->|No| UPS_GET
-    UPS_FLUSH --> QDRANT
+    UPS_GET --> UPS_GEN
+    UPS_GEN --> UPS_BUILD
+    UPS_BUILD --> UPS_FLUSH
+    UPS_FLUSH --> UPS_PROG
+    UPS_PROG --> QDRANT
     UPS_FLUSH --> UPS_GET
 
     %% Styling
     classDef queueStyle fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
     classDef stageStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px
     classDef outputStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
-    classDef cacheStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
 
     class EMB_IN,STOR_IN,OCR_IN,EMB_OUT queueStyle
     class RAST,EMB_PROC,STOR_PROC,OCR_PROC,UPS_BUILD stageStyle
     class QDRANT outputStyle
-    class STOR_CACHE,OCR_CACHE cacheStyle
 ```
 
 ### Key Components
@@ -301,7 +380,6 @@ graph TB
 
 - **`PageBatch`**: Rasterized pages with metadata ready for processing
 - **`EmbeddedBatch`**: Pages with embeddings generated (original + pooled variants)
-- **`ProcessedBatch`**: Fully processed batch ready for Qdrant upsert
 
 #### Pipeline Stages
 
@@ -312,16 +390,16 @@ graph TB
    - Blocks when any queue is full (backpressure)
 
 2. **Parallel Consumer Stages** (3 independent threads, each with dedicated queue)
-   - **EmbeddingStage**: Reads from `embedding_input_queue`, generates embeddings → `embedding_queue`
-   - **StorageStage**: Reads from `storage_input_queue`, uploads to MinIO, caches URLs by `doc_id:batch_id`
-   - **OCRStage**: Reads from `ocr_input_queue`, processes OCR, caches results by `doc_id:batch_id`
+   - **EmbeddingStage**: Reads from `embedding_input_queue`, generates embeddings → `embedding_queue` (failures stop pipeline)
+   - **StorageStage**: Reads from `storage_input_queue`, uploads to MinIO (failures stop pipeline)
+   - **OCRStage**: Reads from `ocr_input_queue`, processes OCR, stores results in MinIO (only runs if enabled, failures stop pipeline)
 
 3. **UpsertStage (Final Consumer)**
-   - Gets `EmbeddedBatch` from `embedding_queue`
-   - Waits for storage/OCR completion (max 30s timeout)
-   - Fetches cached URLs and OCR results using `doc_id:batch_id` key
-   - Builds complete Qdrant points with all data
-   - Buffers and batch upserts (every 20 points)
+   - Gets `EmbeddedBatch` from `embedding_queue` (only waits for embeddings)
+   - Generates image and OCR URLs dynamically from metadata
+   - Builds complete Qdrant points with embeddings and URLs
+   - Upserts to Qdrant immediately
+   - Updates progress after successful upsert
 
 ### Performance Characteristics
 
@@ -383,17 +461,17 @@ pipeline.stop()
 1. **Progressive Results**: First pages searchable in ~10 seconds vs 60+ seconds
 2. **Better Resource Utilization**: All stages run in parallel (CPU rasterizing while GPU embedding)
 3. **Backpressure Control**: Bounded queues prevent memory overflow
-4. **Graceful Degradation**: Storage/OCR failures don't crash the pipeline
+4. **Fail-Fast Design**: Any stage failure stops the pipeline to maintain data consistency
 5. **Cancellation Support**: Can stop mid-processing with graceful cleanup
 
 ### Coordination Mechanism
 
-All stages coordinate via `document_id:batch_id` keys but run **independently**:
+All stages run **independently in parallel** with dedicated queues:
 - **Embedding Stage**: Produces `EmbeddedBatch` → `embedding_queue`
-- **Storage Stage**: Caches URLs in `url_cache[doc_id:batch_id]`
-- **OCR Stage**: Caches results in `ocr_cache[doc_id:batch_id]`
-- **Upsert Stage**: Fetches from both caches using the same key
+- **Storage Stage**: Uploads images to MinIO in parallel
+- **OCR Stage**: Processes and stores OCR results in MinIO in parallel (only if enabled)
+- **Upsert Stage**: Receives embeddings, generates URLs dynamically, upserts immediately
 
-This decoupling allows each stage to proceed at its own pace while the upsert stage synchronizes final results.
+This architecture allows each stage to proceed at full speed. All stages run concurrently, and failures in any stage stop the pipeline to ensure data consistency.
 
 For detailed performance analysis, tuning parameters, and migration guide, see [STREAMING_PIPELINE.md](../../STREAMING_PIPELINE.md).

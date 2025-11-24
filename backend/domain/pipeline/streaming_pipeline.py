@@ -21,7 +21,6 @@ Benefits:
 import logging
 import queue
 import threading
-import uuid
 from typing import Callable, Optional
 
 from .stages import (
@@ -57,6 +56,8 @@ class StreamingPipeline:
         point_factory,
         qdrant_service,
         collection_name: str,
+        minio_base_url: str,
+        minio_bucket: str,
         batch_size: int = 4,
         max_queue_size: int = 8,
     ):
@@ -70,6 +71,8 @@ class StreamingPipeline:
             point_factory: Factory for creating Qdrant points
             qdrant_service: Qdrant client for vector storage
             collection_name: Target Qdrant collection
+            minio_base_url: MinIO base URL for generating dynamic URLs
+            minio_bucket: MinIO bucket name
             batch_size: Number of pages per batch
             max_queue_size: Maximum queue size for backpressure
         """
@@ -87,6 +90,8 @@ class StreamingPipeline:
         self.point_factory = point_factory
         self.qdrant_service = qdrant_service
         self.collection_name = collection_name
+        self.minio_base_url = minio_base_url
+        self.minio_bucket = minio_bucket
 
         # Create bounded queues for backpressure control
         self.embedding_input_queue = queue.Queue(maxsize=max_queue_size)
@@ -107,12 +112,13 @@ class StreamingPipeline:
         logger.info("Starting streaming pipeline stages")
 
         # Create upsert stage with progress callback
+        # Upsert only waits for embeddings - storage/OCR run independently
         self.upsert_stage = UpsertStage(
             self.point_factory,
             self.qdrant_service,
             self.collection_name,
-            self.storage_stage,
-            self.ocr_stage,
+            self.minio_base_url,
+            self.minio_bucket,
             progress_callback=progress_callback,
         )
 
@@ -163,6 +169,7 @@ class StreamingPipeline:
         self,
         pdf_path: str,
         filename: str,
+        document_id: str,
         cancellation_check: Optional[Callable] = None,
     ) -> int:
         """
@@ -171,13 +178,12 @@ class StreamingPipeline:
         Args:
             pdf_path: Path to PDF file
             filename: Display name for the document
+            document_id: Unique document identifier (provided by caller)
             cancellation_check: Optional function to check for cancellation
 
         Returns:
             Total pages processed
         """
-        document_id = str(uuid.uuid4())
-
         logger.info(f"Processing PDF: {filename} (document_id: {document_id})")
 
         # Build list of output queues for broadcasting
@@ -211,23 +217,13 @@ class StreamingPipeline:
 
         # Wait for all input queues
         self.embedding_input_queue.join()
-        logger.info("Embedding input queue drained")
-
         self.storage_input_queue.join()
-        logger.info("Storage input queue drained")
 
         if self.ocr_stage:
             self.ocr_input_queue.join()
-            logger.info("OCR input queue drained")
 
         # Wait for embedding output queue
         self.embedding_queue.join()
-        logger.info("Embedding output queue drained")
-
-        # Flush any remaining buffered points
-        if self.upsert_stage:
-            self.upsert_stage.flush_remaining()
-            logger.info("Final buffer flushed to Qdrant")
 
         logger.info("Pipeline processing complete")
 

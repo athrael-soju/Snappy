@@ -16,8 +16,8 @@ flowchart TB
 
   subgraph Backend["FastAPI Backend"]
     API["REST Routers"]
-    PIPELINE["Document Indexer Pipeline"]
-    BATCH["Batch Processor"]
+    PIPELINE["Streaming Pipeline"]
+    STAGES["Pipeline Stages:<br/>Rasterizer → Embedding<br/>Storage → OCR → Upsert"]
   end
 
   subgraph Services["External Services"]
@@ -32,17 +32,17 @@ flowchart TB
   USER["Browser"] <--> NEXT
   NEXT -- "Upload/Search/OCR Requests" --> API
 
-  %% Indexing flow
+  %% Indexing flow (streaming pipeline with parallel stages)
   API -- "Check Duplicates" --> DUCKDB
   API -- "Index Documents" --> PIPELINE
-  PIPELINE --> BATCH
-  BATCH -- "Generate Embeddings" --> COLPALI
-  BATCH -- "Store Images" --> MINIO
-  BATCH -- "Optional: Extract Text" --> DEEPSEEK
-  BATCH -- "Store OCR Results" --> MINIO
-  BATCH -- "Store OCR Metadata" --> DUCKDB
-  PIPELINE -- "Upsert Vectors" --> QDRANT
-  PIPELINE -- "Record Document Metadata" --> DUCKDB
+  PIPELINE --> STAGES
+  STAGES -- "Generate Embeddings (parallel)" --> COLPALI
+  STAGES -- "Store Images (parallel)" --> MINIO
+  STAGES -- "Extract Text (parallel)" --> DEEPSEEK
+  STAGES -- "Store OCR Results" --> MINIO
+  STAGES -- "Store OCR Metadata" --> DUCKDB
+  STAGES -- "Upsert Vectors (after completion)" --> QDRANT
+  STAGES -- "Record Document Metadata" --> DUCKDB
 
   %% Search flow
   API -- "Search Query" --> COLPALI
@@ -66,8 +66,8 @@ flowchart TB
 ## Components
 
 - **FastAPI application** (`backend/api/app.py`) wires the routers for health, retrieval, indexing, maintenance, configuration, OCR, and DuckDB endpoints.
-- **Qdrant integration** (`backend/clients/qdrant/`) manages vector collections and search. The database writer in `indexing/qdrant_indexer.py` builds on the shared pipeline package.
-- **Pipeline package** (`backend/domain/pipeline/`) hosts the database-agnostic `DocumentIndexer`, batch processor, progress tracking, cancellation service, and storage helpers used during ingestion.
+- **Qdrant integration** (`backend/clients/qdrant/`) manages vector collections and search using the `PointFactory` for building vector points.
+- **Pipeline package** (`backend/domain/pipeline/`) provides the streaming pipeline architecture with independent parallel stages (rasterizer, embedding, storage, OCR, upsert) and shared components for image processing and storage.
 - **MinIO client** (`backend/clients/minio.py`) stores page images with concurrent uploads and retry handling.
 - **ColPali client** (`backend/clients/colpali.py`) communicates with the embedding service for both queries and images.
 - **DeepSeek OCR client** (`backend/clients/ocr/`) handles OCR requests with UUID-based result naming, integrates with MinIO, and surfaces batch/background helpers for the OCR router.
@@ -85,12 +85,17 @@ flowchart TB
 
 1. `POST /index` receives one or more PDFs and starts validation.
 2. **Deduplication Check**: When DuckDB is enabled, the system checks the `documents` table using content-based fingerprinting (filename, file_size_bytes, total_pages). Duplicate documents are skipped with user feedback, and only new documents proceed to indexing.
-3. `convert_pdf_paths_to_images` rasterises each page.
-4. `DocumentIndexer` (`services/pipeline/document_indexer.py`) handles batching, embedding, image uploads, optional OCR callbacks, and delegates upserts via `services/qdrant/indexing/qdrant_indexer.py`.
-5. When DeepSeek OCR is enabled, the batch processor invokes `services/ocr` helpers in parallel with adjustable worker settings, storing UUID-named JSON outputs alongside page images in MinIO.
-6. **Metadata Storage**: When DuckDB is enabled, document metadata (filename, size, page count, timestamps) is stored in the `documents` table, and OCR results are stored in the `pages` and `regions` tables for analytics.
-7. The system automatically uses concurrent pipeline processing where dual executors overlap embedding, storage, OCR, and upserts based on `get_pipeline_max_concurrency()`.
-8. `/progress/stream/{job_id}` streams progress updates so the UI can reflect status in real time.
+3. **Streaming Pipeline** (`domain/pipeline/streaming_pipeline.py`) orchestrates parallel processing stages:
+   - **PDFRasterizer**: Converts PDF pages to images, broadcasts to all stages with consistent document_id
+   - **EmbeddingStage**: Generates ColPali embeddings in parallel (failures stop pipeline)
+   - **StorageStage**: Uploads images to MinIO in parallel (hierarchical structure: `{doc_id}/{page_num}/image/{page_id}.{ext}`, failures stop pipeline)
+   - **OCRStage**: Extracts text via DeepSeek in parallel (only runs if enabled, failures stop pipeline)
+   - **UpsertStage**: Receives embeddings from queue, generates URLs dynamically, upserts to Qdrant
+4. **Dynamic URL Generation**: UpsertStage generates MinIO URLs from metadata on-the-fly - no coordination with storage/OCR stages needed.
+5. **Independent Stages**: All stages run independently with dedicated queues - failures in any stage stop the pipeline to maintain data consistency.
+6. **Metadata Storage**: When DuckDB is enabled, document metadata is stored in the `documents` table, and OCR results are stored in the `pages` and `regions` tables for analytics.
+7. **Backpressure Control**: Bounded queues prevent memory overflow while maintaining parallelism.
+8. `/progress/stream/{job_id}` streams progress updates so the UI can reflect status in real time - progress updates after each batch is embedded and upserted.
 
 ---
 

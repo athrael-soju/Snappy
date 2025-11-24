@@ -369,7 +369,7 @@ cd frontend && docker compose up
   - Configurable restart timeout (`JOB_CANCELLATION_SERVICE_RESTART_TIMEOUT`)
   - Enable with `JOB_CANCELLATION_RESTART_SERVICES_ENABLED=true`
 - 💬 **Streaming chat responses** from the OpenAI Responses API with inline visual citations so you can see each supporting page.
-- ⚡ **Pipelined indexing** with live Server-Sent Events progress updates.
+- ⚡ **Streaming pipeline indexing** with parallel stages (rasterizer, embedding, storage, OCR, upsert) - first results in ~8 seconds, 3-6x faster for large documents with live Server-Sent Events progress updates.
 - ⚙️ **Runtime configuration UI** backed by a typed schema, with reset and draft flows that make experimentation safe.
 - 🐳 **Docker Compose profiles** for ColPali (GPU or CPU) plus an all-in-one stack for local development.
 
