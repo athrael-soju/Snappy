@@ -82,7 +82,8 @@ export async function runChatService(options: NormalizedChatRequest): Promise<Ch
             const results = await RetrievalService.searchSearchGet(
                 options.message,
                 options.k,
-                ocrEnabled
+                ocrEnabled,
+                interpretabilityEnabled
             );
             if (results && results.length > 0) {
                 await attachSearchResults(results);
@@ -123,7 +124,8 @@ export async function runChatService(options: NormalizedChatRequest): Promise<Ch
             const results = await RetrievalService.searchSearchGet(
                 options.message,
                 options.k,
-                ocrEnabled
+                ocrEnabled,
+                interpretabilityEnabled
             );
             const imageUrls = results
                 .map((result) => result.image_url)
