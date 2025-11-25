@@ -27,6 +27,7 @@ export interface ChatRouteBody {
     ocrEnabled?: unknown;
     duckdbEnabled?: unknown;
     ocrIncludeImages?: unknown;
+    interpretabilityEnabled?: unknown;
 }
 
 export interface NormalizedChatRequest {
@@ -38,6 +39,7 @@ export interface NormalizedChatRequest {
     ocrEnabled: boolean;
     duckdbEnabled: boolean;
     ocrIncludeImages: boolean;
+    interpretabilityEnabled: boolean;
 }
 
 export function normalizeChatRequest(
@@ -68,6 +70,7 @@ export function normalizeChatRequest(
     const ocrEnabled = typeof body.ocrEnabled === 'boolean' ? body.ocrEnabled : false;
     const duckdbEnabled = typeof body.duckdbEnabled === 'boolean' ? body.duckdbEnabled : false;
     const ocrIncludeImages = typeof body.ocrIncludeImages === 'boolean' ? body.ocrIncludeImages : false;
+    const interpretabilityEnabled = typeof body.interpretabilityEnabled === 'boolean' ? body.interpretabilityEnabled : false;
 
     return {
         ok: true,
@@ -80,6 +83,7 @@ export function normalizeChatRequest(
             ocrEnabled,
             duckdbEnabled,
             ocrIncludeImages,
+            interpretabilityEnabled,
         },
     };
 }

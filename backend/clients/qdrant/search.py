@@ -37,6 +37,7 @@ class SearchManager:
         search_limit: Optional[int] = None,
         prefetch_limit: Optional[int] = None,
         qdrant_filter: Optional[models.Filter] = None,
+        include_vectors: bool = False,
     ):
         """Perform two-stage retrieval with prefetch and multivector rerank.
 
@@ -67,7 +68,7 @@ class SearchManager:
                     query=query_embedding.tolist(),
                     limit=search_limit,
                     with_payload=True,
-                    with_vector=False,
+                    with_vector="original" if include_vectors else False,
                     using="original",
                     filter=qdrant_filter,
                     params=params,
@@ -93,7 +94,7 @@ class SearchManager:
                     ],
                     limit=search_limit,
                     with_payload=True,
-                    with_vector=False,
+                    with_vector="original" if include_vectors else False,
                     using="original",
                     filter=qdrant_filter,
                     params=params,
@@ -113,7 +114,11 @@ class SearchManager:
             raise
 
     def search_with_metadata(
-        self, query: str, k: int = 5, payload_filter: Optional[dict] = None
+        self,
+        query: str,
+        k: int = 5,
+        payload_filter: Optional[dict] = None,
+        include_vectors: bool = False,
     ):
         """Search and return metadata with image URLs.
 
@@ -121,8 +126,13 @@ class SearchManager:
         Images are NOT fetched from MinIO to optimize latency - the frontend
         uses URLs directly for display and chat.
 
-        payload_filter: optional dict of equality filters, e.g.
-          {"filename": "doc.pdf", "pdf_page_index": 3}
+        Args:
+            query: Search query string
+            k: Number of results to return
+            payload_filter: optional dict of equality filters, e.g.
+                {"filename": "doc.pdf", "pdf_page_index": 3}
+            include_vectors: If True, include embedding vectors in results
+                (needed for interpretability computation)
         """
         query_embedding = self.embedding_processor.batch_embed_query([query])
         q_filter = None
@@ -142,7 +152,10 @@ class SearchManager:
         # would be silently capped by the default.
         effective_limit = max(int(k), 1)
         search_results = self.reranking_search_batch(
-            [query_embedding], search_limit=effective_limit, qdrant_filter=q_filter
+            [query_embedding],
+            search_limit=effective_limit,
+            qdrant_filter=q_filter,
+            include_vectors=include_vectors,
         )
 
         items = []
@@ -153,13 +166,25 @@ class SearchManager:
                     logger.warning(f"Point {i} missing image_url in payload")
                     continue
 
-                items.append(
-                    {
-                        "payload": point.payload,
-                        "label": compute_page_label(point.payload),
-                        "score": getattr(point, "score", None),
-                    }
-                )
+                item = {
+                    "payload": point.payload,
+                    "label": compute_page_label(point.payload),
+                    "score": getattr(point, "score", None),
+                }
+
+                # Include vectors if requested (for interpretability computation)
+                if include_vectors and point.vector is not None:
+                    # Qdrant returns vectors as dict when using named vectors
+                    if isinstance(point.vector, dict):
+                        item["embedding"] = point.vector.get("original")
+                    else:
+                        item["embedding"] = point.vector
+
+                items.append(item)
+
+        # Return query embedding alongside items when vectors requested
+        if include_vectors:
+            return {"items": items, "query_embedding": query_embedding.tolist()}
         return items
 
     def search(self, query: str, k: int = 5):

@@ -101,6 +101,20 @@ SCHEMA: Dict[str, Any] = {
                 "type": "bool",
                 "ui_type": "boolean",
             },
+            {
+                "default": False,
+                "depends_on": {"key": "DEEPSEEK_OCR_INCLUDE_GROUNDING", "value": True},
+                "description": "Enable interpretability-based region filtering for OCR results.",
+                "help_text": "When enabled, uses ColPali attention maps to identify which "
+                "document regions are most relevant to the user query. Only OCR regions "
+                "that intersect with high-attention areas are returned to the LLM, "
+                "improving precision and reducing token usage. Requires ColPali service "
+                "with interpretability support.",
+                "key": "COLPALI_INTERPRETABILITY_ENABLED",
+                "label": "Interpretability Selection",
+                "type": "bool",
+                "ui_type": "boolean",
+            },
         ],
     }
 }

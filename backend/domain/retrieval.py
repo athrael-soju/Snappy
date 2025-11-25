@@ -1,22 +1,37 @@
 import asyncio
 import logging
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
+
+import numpy as np
 
 import config
 from api.dependencies import get_duckdb_service, get_qdrant_service, qdrant_init_error
 from api.models import SearchItem
 from domain.errors import SearchError, ServiceUnavailableError
+from utils.interpretability import compute_interpretability, filter_regions_by_attention
 
 logger = logging.getLogger(__name__)
+
+# Default patch size for ColPali models
+COLPALI_PATCH_SIZE = 32
 
 
 async def search_documents(
     q: str,
     top_k: int,
     include_ocr: bool,
+    include_interpretability: bool = False,
 ) -> List[SearchItem]:
     """
     Search for documents using Qdrant and optionally enrich with OCR data from DuckDB.
+
+    Args:
+        q: Search query string
+        top_k: Number of results to return
+        include_ocr: Whether to include OCR data from DuckDB
+        include_interpretability: Whether to use ColPali attention maps to filter
+            OCR regions. When enabled, only regions that intersect with high-attention
+            areas are returned. Requires include_ocr=True and grounding enabled.
     """
     svc = get_qdrant_service()
     if not svc:
@@ -34,8 +49,27 @@ async def search_documents(
         # Use simple timing to avoid blocking event loop with PerformanceTimer
         import time
 
+        # Determine if we need embeddings for interpretability
+        include_grounding = getattr(config, "DEEPSEEK_OCR_INCLUDE_GROUNDING", True)
+        use_interpretability = (
+            include_interpretability
+            and include_ocr
+            and include_grounding
+        )
+
         start_time = time.perf_counter()
-        items = await asyncio.to_thread(svc.search_with_metadata, q, top_k)
+        search_result = await asyncio.to_thread(
+            svc.search_with_metadata, q, top_k, None, use_interpretability
+        )
+
+        # Extract items and query embedding based on return type
+        if use_interpretability and isinstance(search_result, dict):
+            items = search_result.get("items", [])
+            query_embedding = np.array(search_result.get("query_embedding", []))
+        else:
+            items = search_result if isinstance(search_result, list) else []
+            query_embedding = None
+
         duration_ms = (time.perf_counter() - start_time) * 1000
 
         logger.info(
@@ -44,6 +78,7 @@ async def search_documents(
                 "operation": "search",
                 "result_count": len(items),
                 "duration_ms": duration_ms,
+                "include_vectors": use_interpretability,
             },
         )
 
@@ -60,6 +95,7 @@ async def search_documents(
                     "operation": "search",
                     "use_duckdb": use_duckdb,
                     "duckdb_available": duckdb_service is not None,
+                    "use_interpretability": use_interpretability,
                 },
             )
 
@@ -81,15 +117,54 @@ async def search_documents(
                     ocr_fetch_count += 1
                     if use_duckdb and duckdb_service:
                         # Check if grounding (regions) is enabled
-                        include_grounding = getattr(config, "DEEPSEEK_OCR_INCLUDE_GROUNDING", True)
-                        
-                        if include_grounding:
+                        grounding_enabled = getattr(config, "DEEPSEEK_OCR_INCLUDE_GROUNDING", True)
+
+                        if grounding_enabled:
                             # Grounding enabled: fetch regions from DuckDB (optimized query)
                             regions = await asyncio.to_thread(
                                 duckdb_service.get_page_regions, filename, page_number
                             )
 
                             if regions:
+                                # Apply interpretability filtering if enabled
+                                if use_interpretability and query_embedding is not None:
+                                    image_embedding = it.get("embedding")
+                                    if image_embedding is not None:
+                                        # Get image dimensions from payload
+                                        image_width = payload.get("page_width_px", 1024)
+                                        image_height = payload.get("page_height_px", 1024)
+
+                                        # Compute interpretability maps
+                                        interp_result = compute_interpretability(
+                                            query_embedding=query_embedding,
+                                            image_embedding=np.array(image_embedding),
+                                            image_width=image_width,
+                                            image_height=image_height,
+                                            patch_size=COLPALI_PATCH_SIZE,
+                                        )
+
+                                        attention_bboxes = interp_result.get("high_attention_bboxes", [])
+
+                                        if attention_bboxes:
+                                            # Filter regions by attention
+                                            original_count = len(regions)
+                                            regions = filter_regions_by_attention(
+                                                regions,
+                                                attention_bboxes,
+                                                min_overlap_ratio=0.1,
+                                            )
+                                            logger.debug(
+                                                "Interpretability filtering applied",
+                                                extra={
+                                                    "operation": "search",
+                                                    "document_filename": filename,
+                                                    "page_number": page_number,
+                                                    "original_regions": original_count,
+                                                    "filtered_regions": len(regions),
+                                                    "attention_areas": len(attention_bboxes),
+                                                },
+                                            )
+
                                 # Include regions data (image URLs are in image_url field)
                                 payload["ocr"] = {
                                     "regions": regions,

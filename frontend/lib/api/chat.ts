@@ -19,6 +19,8 @@ export type ChatRequest = {
   // Config flags for server-side processing
   ocrEnabled?: boolean
   duckdbEnabled?: boolean
+  ocrIncludeImages?: boolean
+  interpretabilityEnabled?: boolean
 }
 
 export async function chatRequest(req: ChatRequest): Promise<Response> {
@@ -34,6 +36,7 @@ export async function chatRequest(req: ChatRequest): Promise<Response> {
     payload.ocrEnabled = config?.DEEPSEEK_OCR_ENABLED === 'True';
     payload.duckdbEnabled = config?.DUCKDB_ENABLED === 'True';
     payload.ocrIncludeImages = config?.DEEPSEEK_OCR_INCLUDE_IMAGES === 'True';
+    payload.interpretabilityEnabled = config?.COLPALI_INTERPRETABILITY_ENABLED === 'True';
   }
 
   return fetch('/api/chat', {

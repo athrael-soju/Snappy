@@ -79,7 +79,11 @@ class QdrantClient:
 
     # Search methods
     def search_with_metadata(
-        self, query: str, k: int = 5, payload_filter: Optional[dict] = None
+        self,
+        query: str,
+        k: int = 5,
+        payload_filter: Optional[dict] = None,
+        include_vectors: bool = False,
     ):
         """Search and return metadata with image URLs.
 
@@ -87,10 +91,23 @@ class QdrantClient:
         Images are NOT fetched from MinIO to optimize latency - the frontend
         uses URLs directly for display and chat.
 
-        payload_filter: optional dict of equality filters, e.g.
-          {"filename": "doc.pdf", "pdf_page_index": 3}
+        Args:
+            query: Search query string
+            k: Number of results to return
+            payload_filter: optional dict of equality filters, e.g.
+                {"filename": "doc.pdf", "pdf_page_index": 3}
+            include_vectors: If True, include embedding vectors in results
+                (needed for interpretability computation). When True, returns
+                a dict with 'items' and 'query_embedding' keys instead of
+                just a list of items.
+
+        Returns:
+            If include_vectors=False: List of search result dicts
+            If include_vectors=True: Dict with 'items' (list) and 'query_embedding' (list)
         """
-        return self.search_manager.search_with_metadata(query, k, payload_filter)
+        return self.search_manager.search_with_metadata(
+            query, k, payload_filter, include_vectors
+        )
 
     def search(self, query: str, k: int = 5):
         """Search for relevant documents and return metadata with URLs.

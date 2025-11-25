@@ -18,6 +18,7 @@ export async function runChatService(options: NormalizedChatRequest): Promise<Ch
     // Use config flags passed from client (server doesn't have localStorage access)
     const ocrEnabled = options.ocrEnabled;
     const ocrIncludeImages = options.ocrIncludeImages;
+    const interpretabilityEnabled = options.interpretabilityEnabled;
     const instructions = buildSystemInstructions(options.summaryPreference, ocrEnabled, ocrIncludeImages);
 
     let input: Message[] = [
