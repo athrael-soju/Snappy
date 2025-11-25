@@ -35,11 +35,12 @@ def log_stage_timing(stage_name: str) -> Callable:
             # Extract batch from second argument (first is self)
             batch = args[1]
             batch_id = batch.batch_id
+            document_id = batch.document_id
 
             # Get console and mark stage as started
             console = get_pipeline_console()
             stage_key = _STAGE_KEY_MAP[stage_name]
-            console.stage_started(batch_id, stage_key)
+            console.stage_started(batch_id, stage_key, document_id)
 
             start_time = time.time()
             result = func(*args, **kwargs)
@@ -50,7 +51,9 @@ def log_stage_timing(stage_name: str) -> Callable:
             num_pages = (
                 len(batch.images) if hasattr(batch, "images") else len(batch.image_ids)
             )
-            console.stage_completed(batch_id, stage_key, elapsed, f"{num_pages} pages")
+            console.stage_completed(
+                batch_id, stage_key, elapsed, f"{num_pages} pages", document_id
+            )
 
             return result
 

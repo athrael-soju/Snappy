@@ -3,7 +3,7 @@
 import threading
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from rich.console import Console
 from rich.panel import Panel
@@ -88,14 +88,49 @@ class PipelineConsole:
         """
         self.console = console or Console()
         self._lock = threading.Lock()
-        self._batches: Dict[int, BatchProgress] = {}
-        self._current_document: Optional[str] = None
+        self._batches: Dict[str, BatchProgress] = {}  # Key: "doc_id:batch_id"
+        self._documents: List[str] = []  # List of document filenames
         self._total_pages: int = 0
         self._completed_pages: int = 0
+        self._batch_counter: int = 0  # Global batch counter across all documents
+        self._initialized: bool = False
 
+    def start_job(self, filenames: List[str], total_pages: int, total_size_mb: float):
+        """Initialize console for a batch processing job.
+
+        Args:
+            filenames: List of document filenames being processed
+            total_pages: Total pages across all documents
+            total_size_mb: Total file size in megabytes
+        """
+        with self._lock:
+            self._documents = filenames
+            self._total_pages = total_pages
+            self._completed_pages = 0
+            self._batches.clear()
+            self._batch_counter = 0
+            self._initialized = True
+
+            # Create styled header
+            header = Text()
+            header.append("⚡ ", style="yellow bold")
+            header.append("Processing ", style="bold")
+
+            if len(filenames) == 1:
+                header.append(filenames[0], style="cyan bold")
+            else:
+                header.append(f"{len(filenames)} documents", style="cyan bold")
+
+            header.append(f" ({total_pages} pages, {total_size_mb:.1f} MB)", style="dim")
+
+            self.console.print()
+            self.console.print(Panel(header, border_style="blue"))
 
     def start_document(self, filename: str, total_pages: int, file_size_mb: float):
         """Announce start of document processing.
+
+        If start_job() was already called, this is a no-op (filename shown in batch headers).
+        Otherwise, falls back to single-document mode for backwards compatibility.
 
         Args:
             filename: Name of the document being processed
@@ -103,73 +138,108 @@ class PipelineConsole:
             file_size_mb: File size in megabytes
         """
         with self._lock:
-            self._current_document = filename
-            self._total_pages = total_pages
-            self._completed_pages = 0
-            self._batches.clear()
+            if self._initialized:
+                # Job already initialized - no-op, filename will be shown in batch headers
+                pass
+            else:
+                # Fallback: single-document mode (no start_job called)
+                self._documents = [filename]
+                self._total_pages = total_pages
+                self._completed_pages = 0
+                self._batches.clear()
+                self._batch_counter = 0
 
-            # Create styled header
-            header = Text()
-            header.append("⚡ ", style="yellow bold")
-            header.append("Processing ", style="bold")
-            header.append(filename, style="cyan bold")
-            header.append(f" ({total_pages} pages, {file_size_mb:.1f} MB)", style="dim")
+                # Create styled header
+                header = Text()
+                header.append("⚡ ", style="yellow bold")
+                header.append("Processing ", style="bold")
+                header.append(filename, style="cyan bold")
+                header.append(f" ({total_pages} pages, {file_size_mb:.1f} MB)", style="dim")
 
-            self.console.print()
-            self.console.print(Panel(header, border_style="blue"))
+                self.console.print()
+                self.console.print(Panel(header, border_style="blue"))
 
-    def start_batch(self, batch_id: int, page_start: int, page_end: int, num_pages: int):
+    def start_batch(
+        self,
+        batch_id: int,
+        page_start: int,
+        page_end: int,
+        num_pages: int,
+        document_id: str = "",
+        filename: str = "",
+    ):
         """Announce start of a new batch.
 
         Args:
-            batch_id: Batch identifier (0-indexed internally)
+            batch_id: Batch identifier (0-indexed internally, per-document)
             page_start: First page number in batch
             page_end: Last page number in batch
             num_pages: Number of pages in batch
+            document_id: Document identifier for composite key
+            filename: Document filename for display
         """
         with self._lock:
             page_range = f"{page_start}-{page_end}"
-            self._batches[batch_id] = BatchProgress(
-                batch_id=batch_id,
+            batch_key = f"{document_id}:{batch_id}" if document_id else str(batch_id)
+
+            # Increment global batch counter for display
+            self._batch_counter += 1
+            display_batch = self._batch_counter
+
+            self._batches[batch_key] = BatchProgress(
+                batch_id=display_batch - 1,  # Store 0-indexed for internal use
                 num_pages=num_pages,
                 page_range=page_range,
             )
 
-            # Display batch number as 1-indexed for users
-            display_batch = batch_id + 1
-
-            # Print batch start with tree structure (extra newline for separation)
+            # Print batch start with tree structure
             self.console.print()
-            tree = Tree(
-                f"[bold blue]📦 Batch {display_batch}[/] [dim]Pages {page_range} ({num_pages} pages)[/]"
-            )
+            if filename and len(self._documents) > 1:
+                # Multi-document mode: include filename in batch header
+                tree = Tree(
+                    f"[bold blue]📦 Batch {display_batch}[/] [cyan]{filename}[/] [dim]pp. {page_range}[/]"
+                )
+            else:
+                # Single document mode: no need to repeat filename
+                tree = Tree(
+                    f"[bold blue]📦 Batch {display_batch}[/] [dim]Pages {page_range} ({num_pages} pages)[/]"
+                )
             self.console.print(tree)
 
-    def stage_started(self, batch_id: int, stage_name: str):
+    def stage_started(self, batch_id: int, stage_name: str, document_id: str = ""):
         """Mark a stage as started.
 
         Args:
-            batch_id: Batch identifier
+            batch_id: Batch identifier (per-document)
             stage_name: Name of the stage (storage, embedding, ocr, upsert)
+            document_id: Document identifier for composite key
         """
         with self._lock:
-            batch = self._batches.get(batch_id)
+            batch_key = f"{document_id}:{batch_id}" if document_id else str(batch_id)
+            batch = self._batches.get(batch_key)
             if batch and stage_name in batch.stages:
                 batch.stages[stage_name].status = StageStatus.RUNNING
 
     def stage_completed(
-        self, batch_id: int, stage_name: str, duration_s: float, extra_info: str = ""
+        self,
+        batch_id: int,
+        stage_name: str,
+        duration_s: float,
+        extra_info: str = "",
+        document_id: str = "",
     ):
         """Mark a stage as completed and print status.
 
         Args:
-            batch_id: Batch identifier
+            batch_id: Batch identifier (per-document)
             stage_name: Name of the stage
             duration_s: Duration in seconds
             extra_info: Optional additional information to display
+            document_id: Document identifier for composite key
         """
         with self._lock:
-            batch = self._batches.get(batch_id)
+            batch_key = f"{document_id}:{batch_id}" if document_id else str(batch_id)
+            batch = self._batches.get(batch_key)
             if not batch or stage_name not in batch.stages:
                 return
 
@@ -202,16 +272,20 @@ class PipelineConsole:
 
             self.console.print(line)
 
-    def stage_failed(self, batch_id: int, stage_name: str, error: str):
+    def stage_failed(
+        self, batch_id: int, stage_name: str, error: str, document_id: str = ""
+    ):
         """Mark a stage as failed.
 
         Args:
-            batch_id: Batch identifier
+            batch_id: Batch identifier (per-document)
             stage_name: Name of the stage
             error: Error message
+            document_id: Document identifier for composite key
         """
         with self._lock:
-            batch = self._batches.get(batch_id)
+            batch_key = f"{document_id}:{batch_id}" if document_id else str(batch_id)
+            batch = self._batches.get(batch_key)
             if batch and stage_name in batch.stages:
                 batch.stages[stage_name].status = StageStatus.FAILED
 
@@ -222,23 +296,27 @@ class PipelineConsole:
 
             self.console.print(line)
 
-    def batch_completed(self, batch_id: int, num_pages_in_batch: int):
+    def batch_completed(
+        self, batch_id: int, num_pages_in_batch: int, document_id: str = ""
+    ):
         """Mark a batch as fully completed.
 
         Args:
-            batch_id: Batch identifier
+            batch_id: Batch identifier (per-document)
             num_pages_in_batch: Number of pages in this batch
+            document_id: Document identifier for composite key
         """
         with self._lock:
-            batch = self._batches.get(batch_id)
+            batch_key = f"{document_id}:{batch_id}" if document_id else str(batch_id)
+            batch = self._batches.get(batch_key)
             if not batch:
                 return
 
-            # Update per-document completed pages
+            # Update completed pages
             self._completed_pages += num_pages_in_batch
 
-            # Display batch number as 1-indexed for users
-            display_batch = batch_id + 1
+            # Use the stored global batch number (1-indexed for display)
+            display_batch = batch.batch_id + 1
 
             # Print completion line
             line = Text()
@@ -253,7 +331,7 @@ class PipelineConsole:
             self.console.print()  # Blank line between batches
 
     def document_completed(self, total_pages: int, total_time_s: float):
-        """Announce document processing completion.
+        """Announce processing completion.
 
         Args:
             total_pages: Total pages processed
@@ -265,11 +343,17 @@ class PipelineConsole:
             summary.add_column(style="bold")
             summary.add_column()
 
-            summary.add_row("✓ Document", self._current_document or "Unknown")
+            # Show document(s) info
+            if len(self._documents) == 1:
+                summary.add_row("✓ Document", self._documents[0])
+            elif self._documents:
+                summary.add_row("✓ Documents", str(len(self._documents)))
+
             summary.add_row("📄 Pages", str(total_pages))
             summary.add_row("⏱️  Time", f"{total_time_s:.1f}s")
             summary.add_row(
-                "📊 Rate", f"{total_pages / total_time_s:.1f} pages/sec" if total_time_s > 0 else "N/A"
+                "📊 Rate",
+                f"{total_pages / total_time_s:.1f} pages/sec" if total_time_s > 0 else "N/A",
             )
 
             self.console.print()
@@ -280,6 +364,9 @@ class PipelineConsole:
                     border_style="green",
                 )
             )
+
+            # Reset state for next job
+            self._initialized = False
 
     def print_error(self, message: str, exc: Optional[Exception] = None):
         """Print an error message.

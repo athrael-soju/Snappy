@@ -133,7 +133,9 @@ class PDFRasterizer:
                     batch_size = len(images)
 
                     # Announce batch start with Rich console
-                    console.start_batch(batch_id, page, last_page, batch_size)
+                    console.start_batch(
+                        batch_id, page, last_page, batch_size, document_id, filename
+                    )
                     
                     for i, q in enumerate(output_queues):
                         # Create deep copy of images for thread safety

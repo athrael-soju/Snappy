@@ -81,7 +81,7 @@ class BatchCompletionTracker:
 
                 # Log batch completion with Rich console (pass batch page count)
                 console = get_pipeline_console()
-                console.batch_completed(batch_id, num_pages)
+                console.batch_completed(batch_id, num_pages, document_id)
 
                 # Clean up tracking for this batch
                 del self.batch_completions[batch_key]
