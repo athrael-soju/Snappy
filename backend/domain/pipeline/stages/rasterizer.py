@@ -8,8 +8,8 @@ from typing import Callable, List, Optional
 
 import config
 from pdf2image import convert_from_path, pdfinfo_from_path
-from PIL import Image
 
+from ..console import get_pipeline_console
 from ..streaming_types import PageBatch
 
 logger = logging.getLogger(__name__)
@@ -56,10 +56,17 @@ class PDFRasterizer:
 
             # Get file size
             file_size_bytes = Path(pdf_path).stat().st_size
+            file_size_mb = file_size_bytes / 1024 / 1024
 
-            logger.info(
-                f"Starting streaming rasterization: {filename} "
-                f"({total_pages} pages, {file_size_bytes / 1024 / 1024:.1f} MB)"
+            # Announce document start with Rich console
+            console = get_pipeline_console()
+            console.start_document(filename, total_pages, file_size_mb)
+
+            logger.debug(
+                "Starting streaming rasterization: %s (%d pages, %.1f MB)",
+                filename,
+                total_pages,
+                file_size_mb,
             )
 
             batch_id = 0
@@ -84,7 +91,9 @@ class PDFRasterizer:
                     # Rasterize next batch
                     last_page = min(page + self.batch_size - 1, total_pages)
 
-                    logger.debug(f"Rasterizing pages {page}-{last_page} of {total_pages}")
+                    logger.debug(
+                        "Rasterizing pages %d-%d of %d", page, last_page, total_pages
+                    )
 
                     images = convert_from_path(
                         pdf_path,
@@ -122,9 +131,9 @@ class PDFRasterizer:
                     # Broadcast to all output queues with independent copies
                     # Each consumer gets its own copy of the images to avoid PIL threading issues
                     batch_size = len(images)
-                    logger.info(
-                        f"╔═ Batch {batch_id}: Pages {page}-{last_page} ({batch_size} pages) → {len(output_queues)} stages"
-                    )
+
+                    # Announce batch start with Rich console
+                    console.start_batch(batch_id, page, last_page, batch_size)
                     
                     for i, q in enumerate(output_queues):
                         # Create deep copy of images for thread safety
@@ -152,9 +161,11 @@ class PDFRasterizer:
                         batch_semaphore.release()
                     raise
 
-            logger.info(
-                f"Completed rasterization: {filename} "
-                f"({total_pages} pages in {batch_id} batches)"
+            logger.debug(
+                "Completed rasterization: %s (%d pages in %d batches)",
+                filename,
+                total_pages,
+                batch_id,
             )
 
             return total_pages
@@ -165,7 +176,9 @@ class PDFRasterizer:
 
             # Cancellation is expected, log at info level
             if isinstance(exc, CancellationError):
-                logger.info(f"Rasterization cancelled for {filename}: {exc}")
+                logger.info("Rasterization cancelled for %s: %s", filename, exc)
             else:
-                logger.error(f"Rasterization failed for {filename}: {exc}", exc_info=True)
+                logger.error(
+                    "Rasterization failed for %s: %s", filename, exc, exc_info=True
+                )
             raise

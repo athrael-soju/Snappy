@@ -6,6 +6,9 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+from rich.console import Console
+from rich.logging import RichHandler
+
 try:
     from pythonjsonlogger import jsonlogger
 
@@ -75,6 +78,7 @@ def setup_logging(
     log_level: str = "INFO",
     enable_json: bool = False,
     log_file: Optional[Path] = None,
+    enable_rich: bool = True,
 ) -> None:
     """Configure application logging with structured output.
 
@@ -82,6 +86,7 @@ def setup_logging(
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
         enable_json: Enable JSON structured logging (recommended for production)
         log_file: Optional file path for log output with rotation
+        enable_rich: Enable Rich console formatting (default: True for development)
     """
     level = getattr(logging, log_level.upper(), logging.INFO)
 
@@ -94,11 +99,10 @@ def setup_logging(
         root_logger.removeHandler(handler)
 
     # Console handler
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(level)
-
     if enable_json and JSON_LOGGER_AVAILABLE:
         # JSON format for production (parseable by log aggregators)
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(level)
         json_formatter = jsonlogger.JsonFormatter(
             "%(asctime)s %(levelname)s %(name)s %(funcName)s %(lineno)d %(request_id)s %(message)s",
             rename_fields={
@@ -109,6 +113,20 @@ def setup_logging(
             },
         )
         console_handler.setFormatter(json_formatter)
+    elif enable_rich:
+        # Rich handler for colorful development output
+        console = Console(force_terminal=True)
+        console_handler = RichHandler(
+            console=console,
+            show_time=True,
+            show_path=False,
+            rich_tracebacks=True,
+            tracebacks_show_locals=False,
+            markup=True,
+        )
+        console_handler.setLevel(level)
+        # Simple format - Rich handles the rest
+        console_handler.setFormatter(logging.Formatter("%(message)s"))
     else:
         if enable_json and not JSON_LOGGER_AVAILABLE:
             print(
@@ -117,7 +135,9 @@ def setup_logging(
                 file=sys.stderr,
             )
 
-        # Human-readable format for development
+        # Human-readable format for development (fallback)
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(level)
         formatter = logging.Formatter(
             fmt="%(asctime)s | %(request_id)s | %(levelname)-8s | %(name)s:%(funcName)s:%(lineno)d | %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S",
@@ -129,7 +149,7 @@ def setup_logging(
     console_handler.addFilter(RequestContextFilter())
     root_logger.addHandler(console_handler)
 
-    # File handler with rotation (optional)
+    # File handler with rotation (optional) - always uses plain text format
     if log_file:
         log_file_path = Path(log_file)
         log_file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -143,7 +163,12 @@ def setup_logging(
         if enable_json and JSON_LOGGER_AVAILABLE:
             file_handler.setFormatter(json_formatter)
         else:
-            file_handler.setFormatter(formatter)
+            # Plain text format for file logs
+            file_formatter = logging.Formatter(
+                fmt="%(asctime)s | %(request_id)s | %(levelname)-8s | %(name)s:%(funcName)s:%(lineno)d | %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+            )
+            file_handler.setFormatter(file_formatter)
 
         file_handler.addFilter(SensitiveDataFilter())
         file_handler.addFilter(RequestContextFilter())
@@ -163,8 +188,9 @@ def setup_logging(
     # Log startup info
     logger = logging.getLogger(__name__)
     logger.info(
-        "Logging configured: level=%s, json=%s, file=%s",
+        "Logging configured: level=%s, json=%s, rich=%s, file=%s",
         log_level,
         enable_json,
+        enable_rich and not enable_json,
         str(log_file) if log_file else "disabled",
     )

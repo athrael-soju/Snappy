@@ -21,9 +21,11 @@ Benefits:
 import logging
 import queue
 import threading
+import time
 from collections import defaultdict
 from typing import Callable, Optional
 
+from .console import get_pipeline_console
 from .stages import (
     EmbeddingStage,
     OCRStage,
@@ -77,11 +79,9 @@ class BatchCompletionTracker:
                 # All stages complete for this batch
                 self.completed_pages += num_pages
                 
-                # Log batch completion
-                logger.info(
-                    f"╚═ Batch {batch_id}: All {self.num_stages} stages complete "
-                    f"(total: {self.completed_pages} pages)"
-                )
+                # Log batch completion with Rich console
+                console = get_pipeline_console()
+                console.batch_completed(batch_id, self.completed_pages)
 
                 # Clean up tracking for this batch
                 del self.batch_completions[batch_key]
@@ -95,7 +95,7 @@ class BatchCompletionTracker:
                     try:
                         self.progress_callback(self.completed_pages)
                     except Exception as exc:
-                        logger.warning(f"Progress callback failed: {exc}")
+                        logger.warning("Progress callback failed: %s", exc)
 
 
 class StreamingPipeline:
@@ -252,7 +252,7 @@ class StreamingPipeline:
         upsert_thread.start()
         self.threads.append(upsert_thread)
 
-        logger.info(f"Started {len(self.threads)} pipeline stage threads")
+        logger.debug("Started %d pipeline stage threads", len(self.threads))
 
     def process_pdf(
         self,
@@ -273,7 +273,9 @@ class StreamingPipeline:
         Returns:
             Total pages processed
         """
-        logger.info(f"Processing PDF: {filename} (document_id: {document_id})")
+        self._start_time = time.time()
+        self._current_filename = filename
+        logger.debug("Processing PDF: %s (document_id: %s)", filename, document_id)
 
         # Build list of output queues for broadcasting
         output_queues = [self.embedding_input_queue, self.storage_input_queue]
@@ -290,9 +292,10 @@ class StreamingPipeline:
             batch_semaphore=self.batch_semaphore,
         )
 
-        logger.info(
-            f"Rasterization complete for {filename}. "
-            f"Waiting for pipeline stages to finish processing {total_pages} pages..."
+        logger.debug(
+            "Rasterization complete for %s. Waiting for %d pages to finish processing...",
+            filename,
+            total_pages,
         )
 
         return total_pages
@@ -303,7 +306,7 @@ class StreamingPipeline:
 
         Ensures all queues are drained and all data is fully processed.
         """
-        logger.info("Waiting for pipeline to drain...")
+        logger.debug("Waiting for pipeline to drain...")
 
         # Wait for all input queues
         self.embedding_input_queue.join()
@@ -315,7 +318,14 @@ class StreamingPipeline:
         # Wait for embedding output queue
         self.embedding_queue.join()
 
-        logger.info("Pipeline processing complete")
+        # Print completion summary with Rich console
+        if hasattr(self, "_start_time") and self.completion_tracker:
+            total_time = time.time() - self._start_time
+            total_pages = self.completion_tracker.completed_pages
+            console = get_pipeline_console()
+            console.document_completed(total_pages, total_time)
+
+        logger.debug("Pipeline processing complete")
 
     def stop(self):
         """Stop all stages and clean up threads."""

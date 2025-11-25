@@ -3,7 +3,6 @@
 import logging
 import queue
 import threading
-from typing import Callable, Optional
 
 import config
 from ..streaming_types import EmbeddedBatch
@@ -107,7 +106,7 @@ class UpsertStage:
 
         # Upsert to Qdrant
         num_points = len(points)
-        logger.info(f"[Upsert] Upserting {num_points} points")
+        logger.debug("Upserting %d points to Qdrant", num_points)
 
         self.qdrant_service.upsert(
             collection_name=self.collection_name,
@@ -136,10 +135,12 @@ class UpsertStage:
 
             try:
                 self.process_batch(embedded_batch)
-                logger.debug(f"Upserted batch {embedded_batch.batch_id}")
+                logger.debug("Upserted batch %d", embedded_batch.batch_id)
             except Exception as exc:
                 logger.error(
-                    f"Upsert failed for batch {embedded_batch.batch_id}: {exc}",
+                    "Upsert failed for batch %d: %s",
+                    embedded_batch.batch_id,
+                    exc,
                     exc_info=True,
                 )
                 raise

@@ -1,6 +1,7 @@
 pdf2image
 tqdm
 Pillow
+rich
 qdrant-client
 numpy
 python-dotenv
