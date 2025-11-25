@@ -53,7 +53,7 @@ class StorageStage:
 
             try:
                 self.process_batch(batch)
-                logger.debug(f"Stored batch {batch.batch_id}")
+                logger.debug("Stored batch %d", batch.batch_id)
 
                 # Notify completion tracker that storage is done for this batch
                 if completion_tracker:
@@ -62,7 +62,7 @@ class StorageStage:
                         batch.document_id, batch.batch_id, num_pages
                     )
             except Exception as exc:
-                logger.error(f"Storage failed for batch {batch.batch_id}: {exc}")
+                logger.error("Storage failed for batch %d: %s", batch.batch_id, exc)
                 raise  # Storage failures are critical - stop the pipeline
             finally:
                 input_queue.task_done()

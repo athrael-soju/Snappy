@@ -495,9 +495,10 @@ class DuckDBClient:
             success_count = result.get("success_count", len(documents))
             failed_count = result.get("failed_count", 0)
 
-            logger.info(
-                f"Stored {success_count} document metadata records in DuckDB batch "
-                f"({failed_count} failures)"
+            logger.debug(
+                "Stored %d document metadata records in DuckDB batch (%d failures)",
+                success_count,
+                failed_count,
             )
             return {"success_count": success_count, "failed_count": failed_count}
 
@@ -577,9 +578,8 @@ class DuckDBClient:
         """Attempt cleanup on garbage collection."""
         try:
             self.close()
-        except Exception:
-            # Silently fail - resources will be cleaned up by OS
-            # Don't log here as logging may not be available during shutdown
+        except Exception as e:
+            logger.warning(f"Failed to close DuckDB session on garbage collection: {e}")
             pass
 
     def __enter__(self):

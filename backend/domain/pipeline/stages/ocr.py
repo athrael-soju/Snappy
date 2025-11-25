@@ -4,7 +4,7 @@ import logging
 import queue
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Dict, List, Optional
+from typing import Dict
 
 import config
 
@@ -31,7 +31,7 @@ class OCRStage:
         Parallelism is controlled by batch size - all pages in batch are processed concurrently.
         """
         if not self.ocr_service or not config.DEEPSEEK_OCR_ENABLED:
-            logger.debug(f"[OCR] Skipped batch {batch.batch_id} (OCR disabled)")
+            logger.debug("OCR skipped for batch %d (OCR disabled)", batch.batch_id)
             return
 
         # Process images (format conversion)
@@ -133,7 +133,7 @@ class OCRStage:
 
             try:
                 self.process_batch(batch)
-                logger.debug(f"Processed OCR for batch {batch.batch_id}")
+                logger.debug("Processed OCR for batch %d", batch.batch_id)
 
                 # Notify completion tracker that OCR is done for this batch
                 if completion_tracker:
@@ -142,7 +142,7 @@ class OCRStage:
                         batch.document_id, batch.batch_id, num_pages
                     )
             except Exception as exc:
-                logger.error(f"OCR failed for batch {batch.batch_id}: {exc}")
+                logger.error("OCR failed for batch %d: %s", batch.batch_id, exc)
                 raise  # OCR failures are critical - stop the pipeline
             finally:
                 input_queue.task_done()

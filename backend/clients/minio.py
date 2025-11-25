@@ -201,7 +201,7 @@ class MinioClient:
     # Batch Operations
     # -------------------------------------------------------------------
     @log_execution_time(
-        "upload images to MinIO", log_level=logging.INFO, warn_threshold_ms=3000
+        "upload images to MinIO", log_level=logging.DEBUG, warn_threshold_ms=3000
     )
     def store_processed_images_batch(
         self,

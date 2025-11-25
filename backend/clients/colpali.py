@@ -297,7 +297,7 @@ class ColPaliClient:
         finally:
             img_byte_arr.close()
 
-    @log_execution_time("embed images", log_level=logging.INFO, warn_threshold_ms=5000)
+    @log_execution_time("embed images", log_level=logging.DEBUG, warn_threshold_ms=5000)
     def embed_images(self, images: List[Image.Image]) -> List[dict[str, Any]]:
         """
         Generate embeddings for images with proper resource cleanup
@@ -368,9 +368,10 @@ class ColPaliClient:
             for buf in buffers:
                 try:
                     buf.close()
-                except Exception:
-                    # Silently ignore errors during cleanup
-                    pass
+                except Exception as cleanup_err:
+                    self._logger.warning(
+                        f"Failed to close buffer during cleanup: {cleanup_err}"
+                    )
 
     def embed_images_batch(
         self, images: List[Image.Image], batch_size: int = 4

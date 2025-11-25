@@ -1,77 +1,62 @@
 """Utility helpers for pipeline processing."""
 
-import logging
 import time
-from itertools import islice
-from typing import Callable, Iterator, List, Tuple
+from typing import Callable
 
-logger = logging.getLogger(__name__)
+from .console import get_pipeline_console
+
+
+# Map stage names to console stage keys
+_STAGE_KEY_MAP = {
+    "Embedding": "embedding",
+    "Storage": "storage",
+    "OCR": "ocr",
+    "Upsert": "upsert",
+}
 
 
 def log_stage_timing(stage_name: str) -> Callable:
-    """Decorator to log execution time for pipeline stages.
+    """Decorator to log execution time for pipeline stages with Rich output.
 
     Args:
-        stage_name: Name of the stage for logging
+        stage_name: Name of the stage (Embedding, Storage, OCR, or Upsert)
 
     Returns:
         Decorator function
 
     Example:
         @log_stage_timing("Embedding")
-        def process_batch(self, batch):
+        def process_batch(self, batch: PageBatch):
             ...
     """
+
     def decorator(func: Callable) -> Callable:
         def wrapper(*args, **kwargs):
-            # Extract batch info if available
-            batch = None
-            if args and hasattr(args[0], '__class__'):
-                # First arg is self, check second arg for batch
-                if len(args) > 1 and hasattr(args[1], 'batch_id'):
-                    batch = args[1]
-            
-            # Log start with batch info
-            if batch:
-                # Handle both PageBatch (has images) and EmbeddedBatch (has image_ids)
-                num_pages = len(batch.images) if hasattr(batch, 'images') else len(batch.image_ids)
-                batch_info = f"batch {batch.batch_id} ({num_pages} pages)"
-                logger.info(f"┌─ [{stage_name}] Processing {batch_info}")
-            
+            # Extract batch from second argument (first is self)
+            batch = args[1]
+            batch_id = batch.batch_id
+            document_id = batch.document_id
+
+            # Get console and mark stage as started
+            console = get_pipeline_console()
+            stage_key = _STAGE_KEY_MAP[stage_name]
+            console.stage_started(batch_id, stage_key, document_id)
+
             start_time = time.time()
             result = func(*args, **kwargs)
             elapsed = time.time() - start_time
-            
-            # Log completion with timing
-            if batch:
-                num_pages = len(batch.images) if hasattr(batch, 'images') else len(batch.image_ids)
-                batch_info = f"batch {batch.batch_id} ({num_pages} pages)"
-                logger.info(f"└─ [{stage_name}] Completed {batch_info} in {elapsed:.2f}s")
-            else:
-                logger.info(f"[{stage_name}] Completed in {elapsed:.2f}s")
-            
+
+            # Log completion with Rich console
+            # Handle both PageBatch (has images) and EmbeddedBatch (has image_ids)
+            num_pages = (
+                len(batch.images) if hasattr(batch, "images") else len(batch.image_ids)
+            )
+            console.stage_completed(
+                batch_id, stage_key, elapsed, f"{num_pages} pages", document_id
+            )
+
             return result
+
         return wrapper
+
     return decorator
-
-
-def iter_image_batches(
-    images_iter: Iterator,
-    batch_size: int,
-) -> Iterator[Tuple[int, List]]:
-    """Iterate over images in batches.
-
-    Args:
-        images_iter: Iterator of images
-        batch_size: Size of each batch
-
-    Yields:
-        Tuple of (batch_start_index, batch_items)
-    """
-    batch_start = 0
-    while True:
-        batch = list(islice(images_iter, batch_size))
-        if not batch:
-            break
-        yield batch_start, batch
-        batch_start += len(batch)

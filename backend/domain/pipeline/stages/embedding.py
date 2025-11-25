@@ -59,9 +59,9 @@ class EmbeddingStage:
             try:
                 embedded_batch = self.process_batch(batch)
                 output_queue.put(embedded_batch, block=True)
-                logger.debug(f"Embedded batch {batch.batch_id} pushed to queue")
+                logger.debug("Embedded batch %d pushed to queue", batch.batch_id)
             except Exception as exc:
-                logger.error(f"Embedding failed for batch {batch.batch_id}: {exc}")
+                logger.error("Embedding failed for batch %d: %s", batch.batch_id, exc)
                 raise
             finally:
                 input_queue.task_done()

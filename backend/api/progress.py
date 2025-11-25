@@ -102,26 +102,7 @@ class ProgressManager:
 
         self._schedule_cleanup(job_id)
 
-    def _get_job_filenames(self, job_id: str) -> list:
-        """
-        Extract filenames from job details.
-
-        Returns:
-            List of filenames associated with the job
-        """
-        job = self._jobs.get(job_id)
-        if not job or not job.get("details"):
-            return []
-
-        details = job["details"]
-        # Handle both single filename and list of filenames
-        if "filenames" in details:
-            return details["filenames"]
-        elif "filename" in details:
-            return [details["filename"]]
-        return []
-
-    def _cleanup_job_services(self, job_id: str, filenames: list) -> None:
+    def _cleanup_job_services(self, job_id: str) -> None:
         """
         Background task to wait for job to stop and mark as cancelled.
 
@@ -130,7 +111,6 @@ class ProgressManager:
 
         Args:
             job_id: Job identifier
-            filenames: List of filenames (unused, kept for compatibility)
         """
         try:
             logger.info(f"Waiting for job {job_id} to stop...")
@@ -219,21 +199,8 @@ class ProgressManager:
 
         if cancelled:
             # Schedule cleanup in background thread (non-blocking)
-            filenames = self._get_job_filenames(job_id)
-            logger.info(
-                f"Retrieved filenames for cancelled job {job_id}: {filenames}",
-                extra={"job_id": job_id, "filenames": filenames},
-            )
-            if filenames:
-                logger.info(f"Scheduling background cleanup for cancelled job {job_id}")
-                self._cleanup_executor.submit(
-                    self._cleanup_job_services, job_id, filenames
-                )
-            else:
-                logger.warning(
-                    f"No filenames found for cancelled job {job_id}, skipping service cleanup"
-                )
-
+            logger.info(f"Scheduling background cleanup for cancelled job {job_id}")
+            self._cleanup_executor.submit(self._cleanup_job_services, job_id)
             self._schedule_cleanup(job_id)
 
         return cancelled

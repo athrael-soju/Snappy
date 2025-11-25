@@ -6,6 +6,7 @@ import os
 import tempfile
 import time
 from typing import Dict, List, Optional, Protocol
+from uuid import uuid4
 
 import config
 from api.dependencies import get_duckdb_service, get_qdrant_service, qdrant_init_error
@@ -293,8 +294,36 @@ def run_indexing_job(
             if progress_manager.is_cancelled(job_id):
                 raise CancellationError("Job cancelled during processing")
 
-        # Process each PDF
+        # Pre-scan all documents to get total pages and sizes for progress display
         total_pages_all = 0
+        total_size_bytes = 0
+        doc_filenames = []
+        doc_info = {}  # path -> (pages, size_bytes)
+
+        for pdf_path in paths:
+            filename = filenames.get(pdf_path, os.path.basename(pdf_path))
+            doc_filenames.append(filename)
+            try:
+                info = pdfinfo_from_path(pdf_path)
+                pages = int(info.get("Pages", 0))
+                size_bytes = os.path.getsize(pdf_path)
+                doc_info[pdf_path] = (pages, size_bytes)
+                total_pages_all += pages
+                total_size_bytes += size_bytes
+            except Exception as exc:
+                logger.warning(f"Failed to get PDF info for {filename}: {exc}")
+                doc_info[pdf_path] = (0, 0)
+
+        # Initialize Rich console with job info
+        from domain.pipeline.console import get_pipeline_console
+
+        console = get_pipeline_console()
+        console.start_job(doc_filenames, total_pages_all, total_size_bytes / 1024 / 1024)
+
+        # Update progress manager with total
+        if progress_manager.get(job_id):
+            progress_manager.set_total(job_id, total_pages_all)
+
         pages_processed = 0
         document_metadata_list = []
 
@@ -315,7 +344,7 @@ def run_indexing_job(
         for pdf_path in paths:
             filename = filenames.get(pdf_path, os.path.basename(pdf_path))
 
-            logger.info(f"Starting streaming ingestion for: {filename}")
+            logger.debug("Starting streaming ingestion for: %s", filename)
 
             progress_manager.update(
                 job_id,
@@ -323,36 +352,19 @@ def run_indexing_job(
                 message=f"Processing {filename}...",
             )
 
-            # Get PDF info and generate document_id
-            from pdf2image import pdfinfo_from_path
-            from uuid import uuid4
+            # Generate document_id and use pre-scanned info
+            document_id = str(uuid4())
+            total_pages, file_size_bytes = doc_info.get(pdf_path, (0, 0))
 
-            document_id = str(uuid4())  # Generate once for entire document
-
-            try:
-                info = pdfinfo_from_path(pdf_path)
-                total_pages = int(info.get("Pages", 0))
-                file_size_bytes = os.path.getsize(pdf_path)
-
-                # Store metadata in DuckDB before processing
-                if duckdb_svc and duckdb_svc.is_enabled():
-                    doc_metadata = {
-                        "document_id": document_id,
-                        "filename": filename,
-                        "file_size_bytes": file_size_bytes,
-                        "total_pages": total_pages,
-                    }
-                    document_metadata_list.append(doc_metadata)
-
-            except Exception as exc:
-                logger.warning(f"Failed to get PDF metadata for {filename}: {exc}")
-                total_pages = 0
-
-            total_pages_all += total_pages
-
-            # Update progress manager with total
-            if progress_manager.get(job_id):
-                progress_manager.set_total(job_id, total_pages_all)
+            # Store metadata in DuckDB before processing
+            if duckdb_svc and duckdb_svc.is_enabled() and total_pages > 0:
+                doc_metadata = {
+                    "document_id": document_id,
+                    "filename": filename,
+                    "file_size_bytes": file_size_bytes,
+                    "total_pages": total_pages,
+                }
+                document_metadata_list.append(doc_metadata)
 
             # Process PDF through streaming pipeline with consistent document_id
             try:
@@ -363,8 +375,8 @@ def run_indexing_job(
                     cancellation_check=check_cancellation,
                 )
 
-                logger.info(
-                    f"Streaming ingestion complete for {filename}: {pages_in_doc} pages"
+                logger.debug(
+                    "Streaming ingestion complete for %s: %d pages", filename, pages_in_doc
                 )
 
             except CancellationError:
@@ -382,8 +394,8 @@ def run_indexing_job(
                 result = duckdb_svc.store_documents_batch(document_metadata_list)
                 success_count = result.get("success_count", 0)
                 if success_count > 0:
-                    logger.info(
-                        f"Stored {success_count} document metadata records in DuckDB"
+                    logger.debug(
+                        "Stored %d document metadata records in DuckDB", success_count
                     )
             except Exception as exc:
                 logger.warning(f"Failed to store document metadata in DuckDB: {exc}")
