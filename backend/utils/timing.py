@@ -1,5 +1,6 @@
 """Performance timing utilities for backend services."""
 
+import asyncio
 import functools
 import logging
 import time
@@ -104,10 +105,6 @@ def log_execution_time(
             return sync_wrapper  # type: ignore[return-value]
 
     return decorator
-
-
-# Add asyncio import
-import asyncio
 
 
 class PerformanceTimer:

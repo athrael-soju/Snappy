@@ -111,8 +111,9 @@ export function useMaintenanceActions({ onSuccess }: UseMaintenanceActionsOption
           localStorage.setItem("maintenance_operations", String(previous + 1));
           localStorage.setItem("last_maintenance_action", new Date().toISOString());
         }
-      } catch {
-        // Ignore storage errors; they should not block the action.
+      } catch (storageError) {
+        logger.warn("Failed to update maintenance stats in localStorage", { error: storageError });
+        toast.error("Failed to update maintenance stats in localStorage", { description: String(storageError) });
       }
 
       onSuccess?.();

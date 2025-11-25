@@ -577,9 +577,8 @@ class DuckDBClient:
         """Attempt cleanup on garbage collection."""
         try:
             self.close()
-        except Exception:
-            # Silently fail - resources will be cleaned up by OS
-            # Don't log here as logging may not be available during shutdown
+        except Exception as e:
+            logger.warning(f"Failed to close DuckDB session on garbage collection: {e}")
             pass
 
     def __enter__(self):

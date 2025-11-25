@@ -163,7 +163,6 @@ class Logger {
             try {
                 this.config.remoteHandler(entry);
             } catch (error) {
-                // Fail silently to avoid infinite loops
                 console.error('Remote logging handler failed:', error);
             }
         }

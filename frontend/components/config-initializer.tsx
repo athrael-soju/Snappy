@@ -45,7 +45,7 @@ export function ConfigInitializer() {
 
         logger.debug(`Synced ${updates.length} config value(s) from localStorage to backend`);
       } catch (error) {
-        // Silently fail - config page will sync on next visit
+        // Non-critical: config page will sync on next visit
         logger.warn("Failed to sync config on initialization", { error });
       }
     };

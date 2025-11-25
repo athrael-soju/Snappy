@@ -368,9 +368,10 @@ class ColPaliClient:
             for buf in buffers:
                 try:
                     buf.close()
-                except Exception:
-                    # Silently ignore errors during cleanup
-                    pass
+                except Exception as cleanup_err:
+                    self._logger.warning(
+                        f"Failed to close buffer during cleanup: {cleanup_err}"
+                    )
 
     def embed_images_batch(
         self, images: List[Image.Image], batch_size: int = 4
