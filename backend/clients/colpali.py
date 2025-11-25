@@ -297,7 +297,7 @@ class ColPaliClient:
         finally:
             img_byte_arr.close()
 
-    @log_execution_time("embed images", log_level=logging.INFO, warn_threshold_ms=5000)
+    @log_execution_time("embed images", log_level=logging.DEBUG, warn_threshold_ms=5000)
     def embed_images(self, images: List[Image.Image]) -> List[dict[str, Any]]:
         """
         Generate embeddings for images with proper resource cleanup

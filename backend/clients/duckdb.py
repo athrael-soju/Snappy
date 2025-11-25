@@ -495,9 +495,10 @@ class DuckDBClient:
             success_count = result.get("success_count", len(documents))
             failed_count = result.get("failed_count", 0)
 
-            logger.info(
-                f"Stored {success_count} document metadata records in DuckDB batch "
-                f"({failed_count} failures)"
+            logger.debug(
+                "Stored %d document metadata records in DuckDB batch (%d failures)",
+                success_count,
+                failed_count,
             )
             return {"success_count": success_count, "failed_count": failed_count}
 

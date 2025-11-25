@@ -222,18 +222,20 @@ class PipelineConsole:
 
             self.console.print(line)
 
-    def batch_completed(self, batch_id: int, total_completed_pages: int):
+    def batch_completed(self, batch_id: int, num_pages_in_batch: int):
         """Mark a batch as fully completed.
 
         Args:
             batch_id: Batch identifier
-            total_completed_pages: Total pages completed so far
+            num_pages_in_batch: Number of pages in this batch
         """
         with self._lock:
-            self._completed_pages = total_completed_pages
             batch = self._batches.get(batch_id)
             if not batch:
                 return
+
+            # Update per-document completed pages
+            self._completed_pages += num_pages_in_batch
 
             # Display batch number as 1-indexed for users
             display_batch = batch_id + 1
@@ -243,7 +245,9 @@ class PipelineConsole:
             line.append("    └── ", style="dim")
             line.append("✓ ", style="green bold")
             line.append(f"Batch {display_batch} complete", style="green")
-            line.append(f" ({total_completed_pages}/{self._total_pages} pages)", style="dim")
+            line.append(
+                f" ({self._completed_pages}/{self._total_pages} pages)", style="dim"
+            )
 
             self.console.print(line)
             self.console.print()  # Blank line between batches

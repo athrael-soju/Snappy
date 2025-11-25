@@ -315,7 +315,7 @@ def run_indexing_job(
         for pdf_path in paths:
             filename = filenames.get(pdf_path, os.path.basename(pdf_path))
 
-            logger.info(f"Starting streaming ingestion for: {filename}")
+            logger.debug("Starting streaming ingestion for: %s", filename)
 
             progress_manager.update(
                 job_id,
@@ -363,8 +363,8 @@ def run_indexing_job(
                     cancellation_check=check_cancellation,
                 )
 
-                logger.info(
-                    f"Streaming ingestion complete for {filename}: {pages_in_doc} pages"
+                logger.debug(
+                    "Streaming ingestion complete for %s: %d pages", filename, pages_in_doc
                 )
 
             except CancellationError:
@@ -382,8 +382,8 @@ def run_indexing_job(
                 result = duckdb_svc.store_documents_batch(document_metadata_list)
                 success_count = result.get("success_count", 0)
                 if success_count > 0:
-                    logger.info(
-                        f"Stored {success_count} document metadata records in DuckDB"
+                    logger.debug(
+                        "Stored %d document metadata records in DuckDB", success_count
                     )
             except Exception as exc:
                 logger.warning(f"Failed to store document metadata in DuckDB: {exc}")

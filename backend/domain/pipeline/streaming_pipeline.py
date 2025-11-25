@@ -78,10 +78,10 @@ class BatchCompletionTracker:
             if self.batch_completions[batch_key] == self.num_stages:
                 # All stages complete for this batch
                 self.completed_pages += num_pages
-                
-                # Log batch completion with Rich console
+
+                # Log batch completion with Rich console (pass batch page count)
                 console = get_pipeline_console()
-                console.batch_completed(batch_id, self.completed_pages)
+                console.batch_completed(batch_id, num_pages)
 
                 # Clean up tracking for this batch
                 del self.batch_completions[batch_key]

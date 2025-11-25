@@ -133,7 +133,7 @@ class OcrProcessor:
             "crops": crops,  # Pass through for storage handler to process
         }
 
-    @log_execution_time("OCR batch", log_level=logging.INFO, warn_threshold_ms=15000)
+    @log_execution_time("OCR batch", log_level=logging.DEBUG, warn_threshold_ms=15000)
     def process_batch(
         self,
         filename: str,
