@@ -815,9 +815,9 @@
         "tags": [
           "duckdb"
         ],
-        "summary": "List Documents",
+        "summary": "List Documents Endpoint",
         "description": "List all indexed documents in DuckDB.",
-        "operationId": "list_documents_duckdb_documents_get",
+        "operationId": "list_documents_endpoint_duckdb_documents_get",
         "parameters": [
           {
             "name": "limit",
@@ -856,7 +856,7 @@
                   "items": {
                     "$ref": "#/components/schemas/DocumentInfo"
                   },
-                  "title": "Response List Documents Duckdb Documents Get"
+                  "title": "Response List Documents Endpoint Duckdb Documents Get"
                 }
               }
             }

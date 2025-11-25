@@ -5,7 +5,7 @@ import asyncio
 from api.dependencies import get_duckdb_service, get_minio_service, get_qdrant_service
 from fastapi import APIRouter, HTTPException
 
-from .helpers import (
+from domain.maintenance import (
     collect_bucket_status,
     collect_collection_status,
     collect_duckdb_status,

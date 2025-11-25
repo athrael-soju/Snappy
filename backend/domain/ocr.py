@@ -7,6 +7,9 @@ from api.progress import progress_manager
 from qdrant_client import models
 from clients.ocr import OcrClient
 from clients.qdrant import QdrantClient
+from domain.ocr_persistence import OcrStorageHandler
+import config
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +51,112 @@ async def get_document_pages(
         return []
 
 
+def _fetch_page_image(ocr_service: OcrClient, document_id: str, page_number: int) -> bytes:
+    """Fetch page image bytes from MinIO."""
+    # List objects in the image/ subfolder for this page
+    prefix = f"{document_id}/{page_number}/image/"
+
+    for obj in ocr_service.minio_service.service.list_objects(
+        bucket_name=ocr_service.minio_service.bucket_name,
+        prefix=prefix,
+    ):
+        object_name = getattr(obj, "object_name", "")
+        if object_name:
+            # Found the page image, fetch it
+            response = ocr_service.minio_service.service.get_object(
+                bucket_name=ocr_service.minio_service.bucket_name,
+                object_name=object_name,
+            )
+            return response.read()
+
+    # No image found
+    raise FileNotFoundError(
+        f"Page image not found for document {document_id} page {page_number} in image/ subfolder"
+    )
+
+
+def process_document_page(
+    ocr_service: OcrClient,
+    document_id: str,
+    filename: str,
+    page_number: int,
+    *,
+    mode: Optional[str] = None,
+    task: Optional[str] = None,
+    custom_prompt: Optional[str] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Process a single document page with OCR."""
+    image_bytes = _fetch_page_image(ocr_service, document_id, page_number)
+
+    ocr_result = ocr_service.processor.process_single(
+        image_bytes=image_bytes,
+        filename=f"{filename}/page_{page_number}.png",
+        mode=mode,
+        task=task,
+        custom_prompt=custom_prompt,
+        include_grounding=ocr_service.default_include_grounding,
+        include_images=ocr_service.default_include_images,
+    )
+
+    # Ensure filename is in metadata
+    if metadata is None:
+        metadata = {}
+    metadata["filename"] = filename
+
+    # Create storage handler
+    storage = OcrStorageHandler(
+        minio_service=ocr_service.minio_service,
+        processor=ocr_service.processor,
+        duckdb_service=getattr(ocr_service, "duckdb_service", None),
+    )
+
+    storage_url = storage.store_ocr_result(
+        ocr_result=ocr_result,
+        document_id=document_id,
+        page_number=page_number,
+        metadata=metadata,
+    )
+
+    return {
+        "status": "success",
+        "filename": filename,
+        "page_number": page_number,
+        "storage_url": storage_url,
+        "text_preview": ocr_result.get("text", "")[:200],
+        "regions": len(ocr_result.get("regions", [])),
+        "extracted_images": len(ocr_result.get("crops", [])),
+    }
+
+
+def process_document_batch(
+    ocr_service: OcrClient,
+    filename: str,
+    page_numbers: List[int],
+    *,
+    mode: Optional[str] = None,
+    task: Optional[str] = None,
+    max_workers: Optional[int] = None,
+) -> List[Optional[Dict[str, Any]]]:
+    """Process multiple pages from the same document in parallel."""
+    # Create storage handler
+    storage = OcrStorageHandler(
+        minio_service=ocr_service.minio_service,
+        processor=ocr_service.processor,
+        duckdb_service=getattr(ocr_service, "duckdb_service", None),
+    )
+
+    return ocr_service.processor.process_batch(
+        filename=filename,
+        page_numbers=page_numbers,
+        minio_service=ocr_service.minio_service,
+        storage_handler=storage,
+        mode=mode,
+        task=task,
+        max_workers=max_workers,
+    )
+
+
 def process_document_background(
     job_id: str,
     ocr_service: OcrClient,
@@ -60,9 +169,6 @@ def process_document_background(
     try:
         total = len(page_numbers)
         logger.info("Starting OCR job %s for %s: %s pages", job_id, filename, total)
-
-        # Get max workers from config
-        import config
 
         max_workers = getattr(config, "DEEPSEEK_OCR_MAX_WORKERS", 4)
         max_workers = max(1, int(max_workers))
@@ -99,8 +205,9 @@ def process_document_background(
             )
 
             try:
-                # Process batch in parallel
-                results = ocr_service.process_document_batch(
+                # Process batch in parallel using local domain function
+                results = process_document_batch(
+                    ocr_service=ocr_service,
                     filename=filename,
                     page_numbers=batch_pages,
                     mode=mode,
@@ -180,6 +287,3 @@ def process_document_background(
     except Exception as exc:  # noqa: BLE001 - ensure failure recorded
         logger.exception("OCR background processing failed: %s", exc)
         progress_manager.fail(job_id, str(exc))
-
-
-__all__ = ["get_document_pages", "process_document_background"]

@@ -118,21 +118,6 @@ def get_all_config_keys() -> List[str]:
     return keys
 
 
-def get_critical_keys() -> set:
-    """
-    Get set of config keys that require service invalidation on change.
-    These are settings marked with "critical": True in the schema.
-
-    Dynamic extraction ensures consistency between schema and runtime behavior.
-    """
-    critical = set()
-    for category in CONFIG_SCHEMA.values():
-        for setting in category["settings"]:
-            if setting.get("critical", False):
-                critical.add(setting["key"])
-    return critical
-
-
 # Export all public APIs
 __all__ = [
     "CONFIG_SCHEMA",
@@ -142,5 +127,4 @@ __all__ = [
     "get_config_defaults",
     "get_api_schema",
     "get_all_config_keys",
-    "get_critical_keys",
 ]

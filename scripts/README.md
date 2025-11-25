@@ -21,3 +21,9 @@ Interactive helper for releases.
 ```bash
 ./scripts/create_release.sh
 ```
+
+## count_lines.sh
+Count lines of code in the project.
+```bash
+./scripts/count_lines.sh
+```

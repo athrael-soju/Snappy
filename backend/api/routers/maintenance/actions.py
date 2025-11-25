@@ -13,7 +13,12 @@ from api.dependencies import (
 from fastapi import APIRouter, HTTPException
 from utils.timing import PerformanceTimer
 
-from .helpers import clear_all_sync, delete_sync, initialize_sync, summarize_status
+from domain.maintenance import (
+    clear_all_sync,
+    delete_sync,
+    initialize_sync,
+    summarize_status,
+)
 
 logger = logging.getLogger(__name__)
 

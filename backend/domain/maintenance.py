@@ -426,21 +426,3 @@ def duckdb_available(dsvc: "DuckDBClient") -> bool:
         return bool(stats)
     except Exception:
         return False
-
-
-__all__ = [
-    "INACTIVE_MESSAGE",
-    "bucket_name",
-    "bucket_exists",
-    "clear_all_sync",
-    "collect_bucket_status",
-    "collect_collection_status",
-    "collect_duckdb_status",
-    "collection_exists",
-    "delete_sync",
-    "duckdb_available",
-    "estimate_qdrant_size_mb",
-    "get_vector_total_dim",
-    "initialize_sync",
-    "summarize_status",
-]

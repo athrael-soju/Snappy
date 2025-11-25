@@ -121,6 +121,11 @@ class PDFRasterizer:
 
                     # Broadcast to all output queues with independent copies
                     # Each consumer gets its own copy of the images to avoid PIL threading issues
+                    batch_size = len(images)
+                    logger.info(
+                        f"╔═ Batch {batch_id}: Pages {page}-{last_page} ({batch_size} pages) → {len(output_queues)} stages"
+                    )
+                    
                     for i, q in enumerate(output_queues):
                         # Create deep copy of images for thread safety
                         # PIL Image objects are not thread-safe when shared
@@ -138,10 +143,6 @@ class PDFRasterizer:
                             file_size_bytes=file_size_bytes,
                         )
                         q.put(batch, block=True)
-
-                    logger.debug(
-                        f"Broadcast batch {batch_id} (pages {page}-{last_page}) to {len(output_queues)} queues"
-                    )
 
                     batch_id += 1
                     page = last_page + 1

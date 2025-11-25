@@ -11,8 +11,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 if TYPE_CHECKING:  # pragma: no cover - hints only
     from clients.duckdb import DuckDBClient
     from clients.minio import MinioClient
-
-    from .processor import OcrProcessor
+    from clients.ocr.processor import OcrProcessor
 
 logger = logging.getLogger(__name__)
 
