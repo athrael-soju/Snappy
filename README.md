@@ -61,26 +61,8 @@ If you prefer Compose directly: `docker compose --profile minimal|ml|full up -d`
 - DuckDB UI (full profile): http://localhost:42130
 
 ## Architecture
-```mermaid
----
-config:
-  layout: elk
-  look: classic
-  theme: base
----
-flowchart TB
-    U["User uploads document"] --> R["Rasterize to page images"]
-    R --> E["ColPali embeds pages"] & O["OCR + region detection"]
-    E --> Qdrant[("Qdrant: image/page vectors")]
-    O --> Duck[("DuckDB: regions with text/tables/images")]
-    Q["User question"] --> QE["ColPali query embedding"]
-    QE --> Qdrant
-    Qdrant --> K["Top-K image/page IDs"]
-    K --> JR["Lookup regions by IDs in DuckDB"]
-    JR --> LLM["LLM over text + table + image region"] & Duck
-    LLM --> A["Answer to user"]
-    Duck --> LLM
-```
+![unnamed 4](https://github.com/user-attachments/assets/40a4f985-0445-42d9-8984-4a6ddca886a6)
+
 
 ## Modes and options
 | Feature | When to enable | How |
