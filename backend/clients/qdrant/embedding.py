@@ -137,7 +137,13 @@ class EmbeddingProcessor:
         return pooled_by_rows, pooled_by_columns
 
     def pool_single_image(self, item, image, patch_result):
-        """Pool a single image's embeddings (for parallel execution)."""
+        """Pool a single image's embeddings (for parallel execution).
+
+        Note: For Idefics3-style models with image splitting, the model produces
+        LOCAL patches + a GLOBAL patch. The global patch is the last image_seq_len
+        tokens (typically 64). We exclude it from mean pooling since it doesn't
+        have spatial correspondence.
+        """
         if isinstance(item, dict):
             embedding_list = item.get("embedding")
             start = item.get("image_patch_start", -1)
@@ -157,17 +163,54 @@ class EmbeddingProcessor:
             raise ValueError("Embedding list missing from API response")
 
         image_embedding_np = np.asarray(embedding_list, dtype=np.float32)
-        x_patches = patch_result["n_patches_x"]
-        y_patches = patch_result["n_patches_y"]
+        x_patches = patch_result.get("n_patches_x")
+        y_patches = patch_result.get("n_patches_y")
+
+        # Skip pooling if patch calculation returned an error
+        if patch_result.get("error") or x_patches is None or y_patches is None:
+            logger.warning(
+                f"Skipping mean pooling: patch calculation failed with error: "
+                f"{patch_result.get('error', 'missing patch dimensions')}"
+            )
+            return image_embedding_np.tolist(), [], []
+
+        expected_local_patches = x_patches * y_patches
+
+        # For Idefics3-style models: patch_len = local patches + global patch
+        # The global patch is the last image_seq_len tokens (typically 64)
+        # We need to exclude it from pooling
+        IMAGE_SEQ_LEN = 64  # Standard for Idefics3/ColModernVBert
+
+        if patch_len > expected_local_patches:
+            # Model includes a global patch - exclude it from pooling
+            if patch_indices and len(patch_indices) > expected_local_patches:
+                # Remove the last IMAGE_SEQ_LEN indices (global patch)
+                local_patch_indices = patch_indices[:-IMAGE_SEQ_LEN]
+                local_patch_len = len(local_patch_indices)
+                logger.debug(
+                    f"Excluding global patch: {patch_len} total tokens -> "
+                    f"{local_patch_len} local patches for pooling"
+                )
+            else:
+                # Contiguous case: just reduce patch_len
+                local_patch_indices = None
+                local_patch_len = expected_local_patches
+                logger.debug(
+                    f"Excluding global patch (contiguous): {patch_len} -> {local_patch_len}"
+                )
+        else:
+            # No global patch or already matches expected size
+            local_patch_indices = patch_indices
+            local_patch_len = patch_len
 
         # Pool using explicit boundaries; sanity checks inside
         pooled_by_rows, pooled_by_columns = self.pool_image_tokens(
             image_embedding_np=image_embedding_np,
             start=int(start),
-            patch_len=int(patch_len),
+            patch_len=int(local_patch_len),
             x_patches=int(x_patches),
             y_patches=int(y_patches),
-            patch_indices=patch_indices,
+            patch_indices=local_patch_indices,
         )
 
         return image_embedding_np.tolist(), pooled_by_rows, pooled_by_columns

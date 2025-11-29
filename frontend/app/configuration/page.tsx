@@ -16,6 +16,7 @@ import {
   Hash,
   ToggleLeft,
   List,
+  AlertTriangle,
 } from "lucide-react";
 import { AppButton } from "@/components/app-button";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +26,16 @@ import { PageHeader } from "@/components/page-header";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import Loading from "../loading";
 
 const SETTING_OVERRIDES: Record<
@@ -59,6 +70,9 @@ export default function ConfigurationPage() {
     resetToDefaults,
     handleValueChange,
     isSettingVisible,
+    pendingConfirmation,
+    confirmValueChange,
+    cancelValueChange,
   } = useConfigurationPanel();
 
   if (loading && !schema) {
@@ -507,6 +521,26 @@ export default function ConfigurationPage() {
           </motion.div>
         </motion.div>
       </div>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={!!pendingConfirmation} onOpenChange={(open) => !open && cancelValueChange()}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="size-icon-md text-orange-500" />
+              <AlertDialogTitle>Confirm Configuration Change</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="pt-2">
+              {pendingConfirmation?.setting.ui_confirm_message ||
+                "This change may affect your existing data. Are you sure you want to continue?"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelValueChange}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmValueChange}>Continue</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

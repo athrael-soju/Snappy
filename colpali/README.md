@@ -29,13 +29,21 @@ Hardware is auto-detected in order: CUDA -> MPS -> CPU.
 
 ## API surface
 - `GET /health`, `GET /info`
-- `POST /patches` - estimate patch grid
+- `POST /patches` - **estimate patch grid (required for mean pooling re-ranking)**
 - `POST /embed/queries` - text to embeddings
 - `POST /embed/images` - images to multivector embeddings
 
+The `/patches` endpoint is used by the backend to calculate image token boundaries for mean pooling. The `colmodernvbert` model fully supports this functionality.
+
 Example:
 ```bash
+# Query embeddings
 curl -X POST http://localhost:7000/embed/queries \
   -H "Content-Type: application/json" \
   -d '{"queries": ["modern architecture"]}'
+
+# Patch estimation
+curl -X POST http://localhost:7000/patches \
+  -H "Content-Type: application/json" \
+  -d '{"dimensions": [{"width": 1024, "height": 768}]}'
 ```

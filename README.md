@@ -69,7 +69,8 @@ If you prefer Compose directly: `docker compose --profile minimal|ml|full up -d`
 |---------|----------------|-----|
 | DeepSeek OCR | Need extracted text, markdown, or bounding boxes alongside visual retrieval; have an NVIDIA GPU. | Set `DEEPSEEK_OCR_ENABLED=true` and run `make up-ml` or profile `ml`. |
 | DuckDB analytics | Want deduplication, inline OCR results from the backend, or SQL over OCR regions. | Set `DUCKDB_ENABLED=true` and run `make up-full` or profile `full`. |
-| Quantization | Large collections and tight RAM/GPU budget. | Toggle quantization in `.env` (`QDRANT_VECTOR_STORAGE`, etc.). |
+| Mean pooling re-ranking | Improve search accuracy with two-stage retrieval (prefetch + re-rank). More accurate but requires more compute. | Set `QDRANT_MEAN_POOLING_ENABLED=true` in `.env`. Requires ColPali model with `/patches` support (enabled in `colmodernvbert`). |
+| Binary quantization | Large collections and tight RAM/GPU budget (32x memory reduction). | Enabled by default. Toggle in `.env` if needed. |
 
 ## Troubleshooting highlights
 - Progress stuck on upload/indexing: ensure Poppler is installed for PDF rasterization and check backend logs.  
