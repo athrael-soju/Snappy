@@ -52,11 +52,10 @@ That's it! The system auto-configures parallelism, quantization, and pooling for
 - OCR mode (quality vs speed)
 - Batch size (affects memory usage)
 - Search result limit
+- Mean pooling re-ranking (two-stage retrieval for better accuracy)
 
 **What's Automatic:**
 - Binary quantization (32x memory reduction)
-- Mean pooling (better recall)
-- Re-ranking (improved accuracy)
 - Parallelism (CPU/GPU workers, connection pools)
 - Storage optimization (disk vs RAM)
 
@@ -67,8 +66,6 @@ That's it! The system auto-configures parallelism, quantization, and pooling for
 1. `.env` loads on startup
 2. Hard-coded optimizations apply automatically:
    - Binary quantization: Always ON
-   - Mean pooling: Always ON
-   - Re-ranking: Always ON
    - Auto-config mode: Always ON
 3. System auto-sizes:
    - Pipeline concurrency (based on CPU cores)
@@ -98,8 +95,10 @@ Runtime updates via `/config/*` API take effect immediately but don't persist ac
 | `QDRANT_EMBEDDED` | `false` | Use embedded Qdrant (single-machine only) |
 | `QDRANT_URL` | `http://localhost:6333` | Qdrant service URL |
 | `QDRANT_SEARCH_LIMIT` | `20` | Number of search results to return |
+| `QDRANT_MEAN_POOLING_ENABLED` | `false` | Enable two-stage retrieval with mean pooling for improved accuracy |
+| `QDRANT_PREFETCH_LIMIT` | `200` | Number of candidates to prefetch when mean pooling is enabled |
 
-**Note:** Binary quantization, mean pooling, and disk storage are automatically enabled for optimal performance.
+**Note:** Binary quantization and disk storage are automatically enabled for optimal performance. Mean pooling is configurable and requires the ColPali model to support the `/patches` endpoint (enabled in `colmodernvbert`).
 
 ---
 
@@ -247,13 +246,12 @@ Contact for enterprise licensing and advanced configuration options.
 | Feature | Configuration | Notes |
 |---------|--------------|-------|
 | Binary quantization | ✅ Automatic | Always ON (32x memory reduction) |
-| Mean pooling | ✅ Automatic | Always ON (better recall) |
-| Re-ranking | ✅ Automatic | Always ON (improved accuracy) |
 | Disk storage | ✅ Automatic | Always ON (memory optimization) |
 | Pipeline concurrency | ✅ Automatic | Based on CPU cores + batch size |
 | MinIO workers | ✅ Automatic | Based on CPU cores + concurrency |
 | Connection pools | ✅ Automatic | Based on worker counts |
 | Image format/quality | ✅ Automatic | JPEG @ 75% (good balance) |
+| Mean pooling re-ranking | 🎛️ Manual | Two-stage retrieval (better accuracy, more compute) |
 | Batch size | 🎛️ Manual | User choice (affects memory) |
 | Upload limits | 🎛️ Manual | User choice (security/UX) |
 | OCR mode | 🎛️ Manual | User choice (speed vs quality) |
