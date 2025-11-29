@@ -8,5 +8,6 @@ export type SearchItem = {
     payload: Record<string, any>;
     score?: (number | null);
     json_url?: (string | null);
+    heatmap_url?: (string | null);
 };
 

@@ -435,3 +435,71 @@ class ColPaliClient:
             scores.append(max(similarities) if similarities else 0.0)
 
         return np.array(scores)
+
+    @log_execution_time("generate heatmaps", log_level=logging.INFO, warn_threshold_ms=5000)
+    def generate_heatmaps(
+        self, query: str, images: List[Image.Image]
+    ) -> List[dict[str, Any]]:
+        """
+        Generate attention heatmaps for images given a query.
+
+        Args:
+            query: The search query string
+            images: List of PIL Image objects
+
+        Returns:
+            List of heatmap results, each containing:
+            - heatmap: Base64 encoded PNG image with heatmap overlay
+            - width: Image width
+            - height: Image height
+        """
+        files = []
+        buffers = []
+        try:
+            self._logger.debug(
+                f"Generating heatmaps for {len(images)} images via ColPali API"
+            )
+
+            # Parallelize image encoding
+            from concurrent.futures import ThreadPoolExecutor
+
+            with ThreadPoolExecutor(max_workers=min(8, len(images))) as executor:
+                files = list(
+                    executor.map(
+                        lambda args: self._encode_image_to_bytes(args[1], args[0]),
+                        enumerate(images),
+                    )
+                )
+
+            # Extract all BytesIO buffers for explicit tracking
+            buffers = [buf for _, (_, buf, _) in files]
+
+            # Send request with query as form data and images as files
+            response = self.session.post(
+                f"{self.base_url}/heatmap",
+                data={"query": query},
+                files=files,
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+            result = response.json()
+
+            if "results" not in result:
+                self._logger.error(
+                    f"ColPali API response missing 'results' key. Response keys: {list(result.keys())}"
+                )
+                raise KeyError("Missing 'results' in ColPali /heatmap response")
+
+            return result["results"]
+        except Exception as e:
+            self._logger.error(f"Failed to generate heatmaps: {e}")
+            raise
+        finally:
+            # Explicitly close all file buffers to prevent resource leaks
+            for buf in buffers:
+                try:
+                    buf.close()
+                except Exception as cleanup_err:
+                    self._logger.warning(
+                        f"Failed to close buffer during cleanup: {cleanup_err}"
+                    )

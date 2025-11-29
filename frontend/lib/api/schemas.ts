@@ -17,6 +17,7 @@ export const SearchItem = z
         payload: z.object({}).partial().passthrough(),
         score: z.union([z.number(), z.null()]).optional(),
         json_url: z.union([z.string(), z.null()]).optional(),
+        heatmap_url: z.union([z.string(), z.null()]).optional(),
     })
     .passthrough();
 

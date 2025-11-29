@@ -3,13 +3,14 @@ import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { AppButton } from '@/components/app-button';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Flame } from 'lucide-react';
 
 type CitationHoverCardProps = {
   number: number;
   imageUrl: string;
   label: string;
   score?: number | null;
+  heatmapUrl?: string | null;
   onOpen?: () => void;
   children?: ReactNode;
 };
@@ -17,16 +18,19 @@ type CitationHoverCardProps = {
 /**
  * Renders a citation with preview popover on hover/focus.
  * If children are provided, they will be used as the trigger, otherwise a numbered badge is shown.
+ * When heatmapUrl is provided, displays a toggle to switch between original and heatmap views.
  */
 export default function CitationHoverCard({
   number,
   imageUrl,
   label,
   score,
+  heatmapUrl,
   onOpen,
   children,
 }: CitationHoverCardProps) {
   const [open, setOpen] = useState(false);
+  const [showHeatmap, setShowHeatmap] = useState(!!heatmapUrl);
 
   const scoreBadge = useMemo(() => {
     if (typeof score !== 'number') return null;
@@ -42,6 +46,13 @@ export default function CitationHoverCard({
     onOpen?.();
     setOpen(false);
   }, [onOpen]);
+
+  const toggleHeatmap = useCallback(() => {
+    setShowHeatmap((prev) => !prev);
+  }, []);
+
+  // Determine which image to show
+  const displayImageUrl = showHeatmap && heatmapUrl ? heatmapUrl : imageUrl;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -73,17 +84,36 @@ export default function CitationHoverCard({
               Citation {number}
             </Badge>
             {scoreBadge}
+            {heatmapUrl && (
+              <Badge
+                variant={showHeatmap ? 'default' : 'outline'}
+                className="rounded-full px-2 py-0.5 text-body-xs cursor-pointer"
+                onClick={toggleHeatmap}
+              >
+                <Flame className="size-icon-3xs mr-1" />
+                Heatmap
+              </Badge>
+            )}
           </div>
         </div>
         <div className="relative h-32 w-full overflow-hidden rounded-md border">
-          <Image
-            src={imageUrl}
-            alt={label}
-            fill
-            sizes="256px"
-            className="object-cover"
-            priority={false}
-          />
+          {/* Use img tag for data URLs (heatmaps), Next Image for remote URLs */}
+          {displayImageUrl.startsWith('data:') ? (
+            <img
+              src={displayImageUrl}
+              alt={label}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <Image
+              src={displayImageUrl}
+              alt={label}
+              fill
+              sizes="256px"
+              className="object-cover"
+              priority={false}
+            />
+          )}
         </div>
         <AppButton
           type="button"

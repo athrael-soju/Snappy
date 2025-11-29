@@ -18,6 +18,9 @@ async def search(
     q: str = Query(..., description="User query"),
     k: Optional[int] = Query(None, ge=1, le=50),
     include_ocr: bool = Query(False, description="Include OCR results if available"),
+    show_heatmaps: Optional[bool] = Query(
+        None, description="Generate attention heatmaps (defaults to config setting)"
+    ),
 ):
     # Use config default if not provided
     top_k: int = int(k) if k is not None else int(getattr(config, "DEFAULT_TOP_K", 10))
@@ -29,11 +32,12 @@ async def search(
             "query": q,
             "top_k": top_k,
             "include_ocr": include_ocr,
+            "show_heatmaps": show_heatmaps,
         },
     )
 
     try:
-        return await search_documents(q, top_k, include_ocr)
+        return await search_documents(q, top_k, include_ocr, show_heatmaps)
     except ServiceUnavailableError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except SearchError as e:

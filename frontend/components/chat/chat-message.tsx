@@ -7,7 +7,7 @@ import MarkdownRenderer from "@/components/chat/MarkdownRenderer";
 import { getRandomBrainPlaceholder } from "@/lib/chat/brain-states";
 import { cn } from "@/lib/utils";
 
-export type ChatCitation = { url?: string | null; label?: string | null; score?: number | null };
+export type ChatCitation = { url?: string | null; label?: string | null; score?: number | null; heatmapUrl?: string | null };
 
 export type ChatMessageBubbleProps = {
     message: { id: string; role: string; content: string; citations?: ChatCitation[] };

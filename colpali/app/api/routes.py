@@ -13,6 +13,9 @@ from PIL import Image
 
 from app.core.config import settings
 from app.models.schemas import (
+    HeatmapBatchResponse,
+    HeatmapRequest,
+    HeatmapResult,
     ImageEmbeddingBatchResponse,
     PatchBatchResponse,
     PatchRequest,
@@ -32,6 +35,7 @@ router = APIRouter()
 # Thread pool executors for CPU-bound operations
 _query_executor: Optional[ThreadPoolExecutor] = None
 _image_executor: Optional[ThreadPoolExecutor] = None
+_heatmap_executor: Optional[ThreadPoolExecutor] = None
 
 
 def get_query_executor() -> ThreadPoolExecutor:
@@ -48,6 +52,14 @@ def get_image_executor() -> ThreadPoolExecutor:
     if _image_executor is None:
         _image_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="embed")
     return _image_executor
+
+
+def get_heatmap_executor() -> ThreadPoolExecutor:
+    """Get or create the heatmap executor."""
+    global _heatmap_executor
+    if _heatmap_executor is None:
+        _heatmap_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="heatmap")
+    return _heatmap_executor
 
 
 @router.get("/")
@@ -238,4 +250,49 @@ async def embed_images(files: List[UploadFile] = File(...)):
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error generating image embeddings: {str(e)}"
+        )
+
+
+@router.post("/heatmap", response_model=HeatmapBatchResponse)
+async def generate_heatmaps(
+    request: HeatmapRequest = Body(...),
+    files: List[UploadFile] = File(...),
+):
+    """Generate attention heatmaps for images given a query.
+
+    This endpoint computes similarity maps between the query and image patches,
+    then overlays them as a heatmap on the original images.
+    """
+    try:
+        if not files:
+            raise HTTPException(status_code=400, detail="No images provided")
+
+        if not request.query or not request.query.strip():
+            raise HTTPException(status_code=400, detail="Query string is required")
+
+        images: List[Image.Image] = []
+        for file in files:
+            content_type = file.content_type or ""
+            if not content_type.startswith("image/"):
+                raise HTTPException(
+                    status_code=400, detail=f"File {file.filename} is not an image"
+                )
+            image_bytes = await file.read()
+            images.append(load_image_from_bytes(image_bytes))
+
+        # Run heatmap generation in thread pool to avoid blocking event loop
+        results = await asyncio.get_event_loop().run_in_executor(
+            get_heatmap_executor(),
+            embedding_processor.generate_heatmaps,
+            request.query,
+            images,
+        )
+        return HeatmapBatchResponse(results=results)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating heatmaps: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail=f"Error generating heatmaps: {str(e)}"
         )

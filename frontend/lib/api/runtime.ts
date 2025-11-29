@@ -47,6 +47,10 @@ export function parseSearchResults(data: unknown): SearchItem[] {
           typeof item.json_url === "string" || item.json_url === null || typeof item.json_url === "undefined"
             ? item.json_url ?? null
             : null,
+        heatmap_url:
+          typeof item.heatmap_url === "string" || item.heatmap_url === null || typeof item.heatmap_url === "undefined"
+            ? item.heatmap_url ?? null
+            : null,
         payload,
       };
     });

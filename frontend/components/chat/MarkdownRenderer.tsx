@@ -96,6 +96,7 @@ export default function MarkdownRenderer({
                                 imageUrl={href}
                                 label={citationInfo.citation.label || label}
                                 score={citationInfo.citation.score}
+                                heatmapUrl={citationInfo.citation.heatmapUrl}
                                 onOpen={() => onCitationOpen?.(href, citationInfo.citation.label)}
                             >
                                 <a
@@ -130,6 +131,7 @@ export default function MarkdownRenderer({
                                                 imageUrl={href}
                                                 label={citationInfo.citation.label || label}
                                                 score={citationInfo.citation.score}
+                                                heatmapUrl={citationInfo.citation.heatmapUrl}
                                                 onOpen={() => onCitationOpen?.(href, citationInfo.citation.label)}
                                             >
                                                 <a
@@ -202,6 +204,7 @@ export default function MarkdownRenderer({
                                 imageUrl={href}
                                 label={citationInfo.citation.label || label}
                                 score={citationInfo.citation.score}
+                                heatmapUrl={citationInfo.citation.heatmapUrl}
                                 onOpen={() => onCitationOpen?.(href, citationInfo.citation.label)}
                             >
                                 <a

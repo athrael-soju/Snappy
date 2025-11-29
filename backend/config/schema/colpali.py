@@ -40,7 +40,20 @@ SCHEMA: Dict[str, Any] = {
                 "type": "int",
                 "ui_type": "number",
             },
+            {
+                "default": False,
+                "description": "Show attention heatmaps on citation images",
+                "help_text": "When enabled, search results include attention heatmaps "
+                "that visualize which parts of the document are most relevant to "
+                "your query. Heatmaps overlay the original image with bright spots "
+                "indicating high attention areas. Useful for understanding model "
+                "decisions but may increase response time.",
+                "key": "COLPALI_SHOW_HEATMAPS",
+                "label": "Show Retrieval Heatmaps",
+                "type": "bool",
+                "ui_type": "boolean",
+            },
         ],
-        "ui_hidden": True,
+        "ui_hidden": False,
     }
 }

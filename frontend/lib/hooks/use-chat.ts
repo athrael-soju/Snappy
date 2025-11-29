@@ -15,7 +15,7 @@ export type ChatMessage = {
   id: string
   role: 'user' | 'assistant'
   content: string
-  citations?: Array<{ url: string | null; label: string | null; score: number | null }>
+  citations?: Array<{ url: string | null; label: string | null; score: number | null; heatmapUrl?: string | null }>
 }
 
 export function useChat() {
@@ -73,7 +73,7 @@ export function useChat() {
   }, [messages, setMessages]);
 
   // Keep all images keyed by assistant message id to avoid mixing across turns
-  const imagesByMessageRef = useRef<Record<string, Array<{ url: string | null; label: string | null; score: number | null }>>>({})
+  const imagesByMessageRef = useRef<Record<string, Array<{ url: string | null; label: string | null; score: number | null; heatmapUrl?: string | null }>>>({})
   const currentAssistantIdRef = useRef<string | null>(null)
 
   const genId = () =>
@@ -163,6 +163,7 @@ export function useChat() {
           url: it.image_url ?? null,
           label: it.label ?? null,
           score: typeof it.score === 'number' ? it.score : null,
+          heatmapUrl: it.heatmap_url ?? null,
         }))
         if (mapped.length > 0) {
           const msgId = currentAssistantIdRef.current
@@ -174,7 +175,7 @@ export function useChat() {
           // append + dedupe by url
           const combined = [...prev, ...mapped]
           const seen = new Set<string>()
-          const deduped: Array<{ url: string | null; label: string | null; score: number | null }> = []
+          const deduped: Array<{ url: string | null; label: string | null; score: number | null; heatmapUrl?: string | null }> = []
           for (const it of combined) {
             const key = it.url || ''
             if (key && !seen.has(key)) {

@@ -59,3 +59,23 @@ class ImageEmbeddingBatchResponse(BaseModel):
     """Response model for batch image embeddings."""
 
     embeddings: List[ImageEmbeddingItem]
+
+
+class HeatmapRequest(BaseModel):
+    """Request model for heatmap generation."""
+
+    query: str
+
+
+class HeatmapResult(BaseModel):
+    """Result for a single image heatmap."""
+
+    heatmap: str  # Base64 encoded PNG image
+    width: int
+    height: int
+
+
+class HeatmapBatchResponse(BaseModel):
+    """Response model for batch heatmap generation."""
+
+    results: List[HeatmapResult]
