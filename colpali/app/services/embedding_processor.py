@@ -157,9 +157,9 @@ class EmbeddingProcessor:
             # Get patch grid dimensions
             n_patches_x, n_patches_y = self._get_patch_grid(image)
 
-            # Compute attention scores via late interaction (MaxSim)
-            # For each query token, find max similarity across all patches
-            # Then sum across all query tokens to get per-patch importance
+            # Compute attention scores via late interaction
+            # For each patch, find the max similarity across all query tokens
+            # This shows which patches are most relevant to the query
             query_emb = query_embedding[0]  # [query_seq, dim]
 
             # Normalize embeddings for cosine similarity
@@ -169,12 +169,17 @@ class EmbeddingProcessor:
             # Compute similarity: [query_seq, num_patches]
             similarity = torch.matmul(query_norm, patch_norm.T)
 
-            # Sum similarities across query tokens to get patch importance
-            # This gives us how much each patch contributes to the overall relevance
-            patch_scores = similarity.sum(dim=0)  # [num_patches]
+            # For each patch, take max similarity across query tokens (MaxSim)
+            # This highlights patches that strongly match ANY query token
+            patch_scores, _ = similarity.max(dim=0)  # [num_patches]
 
             # Convert to float32 before numpy (BFloat16 not supported by numpy)
             patch_scores = patch_scores.cpu().float().numpy()
+
+            logger.debug(
+                f"Heatmap stats: patches={num_patches}, grid={n_patches_x}x{n_patches_y}, "
+                f"score_range=[{patch_scores.min():.3f}, {patch_scores.max():.3f}]"
+            )
 
         # Create heatmap image
         heatmap_bytes = self._create_heatmap_overlay(
@@ -279,32 +284,20 @@ class EmbeddingProcessor:
         else:
             score_grid = np.zeros_like(score_grid)
 
-        # Resize heatmap to match image dimensions
-        from PIL import ImageFilter
-
+        # Resize heatmap to match image dimensions using bicubic for smoother result
         heatmap_small = Image.fromarray((score_grid * 255).astype(np.uint8), mode="L")
-        heatmap_resized = heatmap_small.resize(image.size, Image.Resampling.BILINEAR)
-
-        # Apply Gaussian blur for smoother visualization
-        heatmap_resized = heatmap_resized.filter(ImageFilter.GaussianBlur(radius=3))
+        heatmap_resized = heatmap_small.resize(image.size, Image.Resampling.BICUBIC)
 
         # Convert to numpy array
         heatmap_array = np.array(heatmap_resized, dtype=np.float32) / 255.0
 
-        # Create colormap (blue -> green -> yellow -> red)
-        # Using a custom viridis-like colormap
+        # Apply jet/thermal colormap (blue -> cyan -> green -> yellow -> red)
         def apply_colormap(values: np.ndarray) -> np.ndarray:
-            """Apply a viridis-like colormap to normalized values."""
-            # Simple plasma-like colormap: dark blue -> purple -> red -> yellow
-            r = np.clip(values * 3 - 1, 0, 1)
-            g = np.clip(values * 3 - 0.5, 0, 1) * np.clip(2 - values * 3, 0, 1)
-            b = np.clip(1 - values * 2, 0, 1)
-
-            # Make it more like a heat map (blue -> cyan -> green -> yellow -> red)
-            r = np.where(values < 0.5, 0, (values - 0.5) * 2)
-            g = np.where(values < 0.5, values * 2, 1 - (values - 0.5) * 2)
-            b = np.where(values < 0.5, 1 - values * 2, 0)
-
+            """Apply a jet-like colormap: blue (low) -> cyan -> green -> yellow -> red (high)."""
+            # Jet colormap approximation
+            r = np.clip(1.5 - np.abs(values - 0.75) * 4, 0, 1)
+            g = np.clip(1.5 - np.abs(values - 0.5) * 4, 0, 1)
+            b = np.clip(1.5 - np.abs(values - 0.25) * 4, 0, 1)
             return np.stack([r, g, b], axis=-1)
 
         heatmap_rgb = apply_colormap(heatmap_array)
