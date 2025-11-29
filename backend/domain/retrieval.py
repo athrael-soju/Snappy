@@ -6,7 +6,7 @@ from typing import List, Optional
 import config
 import requests
 from api.dependencies import get_duckdb_service, get_qdrant_service, qdrant_init_error
-from api.models import SearchItem
+from api.models import HeatmapResponse, SearchItem
 from clients.colpali import ColPaliClient
 from domain.errors import SearchError, ServiceUnavailableError
 from PIL import Image
@@ -29,7 +29,6 @@ async def search_documents(
     q: str,
     top_k: int,
     include_ocr: bool,
-    show_heatmaps: Optional[bool] = None,
 ) -> List[SearchItem]:
     """
     Search for documents using Qdrant and optionally enrich with OCR data from DuckDB.
@@ -38,11 +37,7 @@ async def search_documents(
         q: Search query string
         top_k: Number of results to return
         include_ocr: Include OCR data if available
-        show_heatmaps: Generate attention heatmaps (defaults to config setting)
     """
-    # Determine if heatmaps should be generated
-    if show_heatmaps is None:
-        show_heatmaps = getattr(config, "COLPALI_SHOW_HEATMAPS", False)
     svc = get_qdrant_service()
     if not svc:
         error_msg = qdrant_init_error.get() or "Dependency services are down"
@@ -193,20 +188,6 @@ async def search_documents(
                 )
             )
 
-        # Generate heatmaps if enabled
-        heatmap_count = 0
-        if show_heatmaps and results:
-            try:
-                heatmap_count = await _generate_heatmaps_for_results(q, results)
-            except Exception as e:
-                logger.warning(
-                    "Heatmap generation failed, returning results without heatmaps",
-                    extra={
-                        "operation": "search",
-                        "error": str(e),
-                    },
-                )
-
         logger.info(
             "Search completed successfully",
             extra={
@@ -216,7 +197,6 @@ async def search_documents(
                 "ocr_requested": include_ocr,
                 "ocr_fetch_attempts": ocr_fetch_count,
                 "ocr_success_count": ocr_success_count,
-                "heatmaps_generated": heatmap_count,
             },
         )
 
@@ -238,63 +218,43 @@ async def search_documents(
         raise SearchError(str(exc))
 
 
-async def _generate_heatmaps_for_results(
-    query: str, results: List[SearchItem]
-) -> int:
+async def generate_heatmap_for_image(
+    query: str, image_url: str
+) -> Optional[HeatmapResponse]:
     """
-    Generate attention heatmaps for search results.
+    Generate an attention heatmap for a single image on-demand.
 
-    Fetches images from their URLs, generates heatmaps via ColPali service,
-    and updates each SearchItem's heatmap_url field with a data URL.
+    Fetches the image from the URL, generates a heatmap via ColPali service,
+    and returns the result as a HeatmapResponse.
 
     Args:
         query: The search query used for similarity computation
-        results: List of SearchItem objects to enrich with heatmaps
+        image_url: URL of the image to generate heatmap for
 
     Returns:
-        Number of heatmaps successfully generated
+        HeatmapResponse with the heatmap data URL, or None if generation failed
     """
-    # Collect image URLs and indices
-    image_urls = []
-    indices = []
-    for i, result in enumerate(results):
-        if result.image_url:
-            image_urls.append(result.image_url)
-            indices.append(i)
+    # Fetch the image
+    image = await asyncio.to_thread(_fetch_image_from_url, image_url)
+    if image is None:
+        logger.warning(f"Failed to fetch image for heatmap: {image_url[:100]}")
+        return None
 
-    if not image_urls:
-        return 0
-
-    # Fetch images in parallel
-    images: List[Optional[Image.Image]] = await asyncio.to_thread(
-        lambda: [_fetch_image_from_url(url) for url in image_urls]
-    )
-
-    # Filter out failed fetches
-    valid_images = []
-    valid_indices = []
-    for img, idx in zip(images, indices):
-        if img is not None:
-            valid_images.append(img)
-            valid_indices.append(idx)
-
-    if not valid_images:
-        logger.warning("No images could be fetched for heatmap generation")
-        return 0
-
-    # Generate heatmaps via ColPali service
+    # Generate heatmap via ColPali service
     colpali_client = ColPaliClient()
     heatmap_results = await asyncio.to_thread(
-        colpali_client.generate_heatmaps, query, valid_images
+        colpali_client.generate_heatmaps, query, [image]
     )
 
-    # Update results with heatmap data URLs
-    success_count = 0
-    for heatmap, idx in zip(heatmap_results, valid_indices):
-        if heatmap and heatmap.get("heatmap"):
-            # Create data URL from base64 encoded PNG
-            data_url = f"data:image/png;base64,{heatmap['heatmap']}"
-            results[idx].heatmap_url = data_url
-            success_count += 1
+    if not heatmap_results or not heatmap_results[0].get("heatmap"):
+        logger.warning("ColPali service returned empty heatmap result")
+        return None
 
-    return success_count
+    heatmap = heatmap_results[0]
+    data_url = f"data:image/png;base64,{heatmap['heatmap']}"
+
+    return HeatmapResponse(
+        heatmap_url=data_url,
+        width=heatmap.get("width", 0),
+        height=heatmap.get("height", 0),
+    )

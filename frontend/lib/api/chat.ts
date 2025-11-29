@@ -126,3 +126,31 @@ export async function readFullAssistant(res: Response): Promise<string> {
   }
   return full
 }
+
+export type HeatmapResponse = {
+  heatmap_url: string
+  width: number
+  height: number
+}
+
+/**
+ * Fetch a heatmap for a specific image and query on-demand.
+ * Returns the heatmap as a base64 data URL.
+ */
+export async function fetchHeatmap(
+  query: string,
+  imageUrl: string
+): Promise<HeatmapResponse> {
+  const response = await fetch('/api/search/heatmap', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, image_url: imageUrl }),
+  })
+
+  if (!response.ok) {
+    const error = await response.text()
+    throw new Error(`Failed to fetch heatmap: ${error}`)
+  }
+
+  return response.json()
+}

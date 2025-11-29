@@ -7,12 +7,16 @@ import type { ChatCitation } from "./chat-message";
 type MarkdownRendererProps = {
     content: string;
     citations?: ChatCitation[];
+    query?: string | null;
+    heatmapsEnabled?: boolean;
     onCitationOpen?: (url: string, label?: string | null) => void;
 };
 
 export default function MarkdownRenderer({
     content,
     citations,
+    query,
+    heatmapsEnabled = false,
     onCitationOpen
 }: MarkdownRendererProps) {
     // Build citation map
@@ -96,7 +100,8 @@ export default function MarkdownRenderer({
                                 imageUrl={href}
                                 label={citationInfo.citation.label || label}
                                 score={citationInfo.citation.score}
-                                heatmapUrl={citationInfo.citation.heatmapUrl}
+                                query={query}
+                                heatmapsEnabled={heatmapsEnabled}
                                 onOpen={() => onCitationOpen?.(href, citationInfo.citation.label)}
                             >
                                 <a
@@ -131,7 +136,8 @@ export default function MarkdownRenderer({
                                                 imageUrl={href}
                                                 label={citationInfo.citation.label || label}
                                                 score={citationInfo.citation.score}
-                                                heatmapUrl={citationInfo.citation.heatmapUrl}
+                                                query={query}
+                                                heatmapsEnabled={heatmapsEnabled}
                                                 onOpen={() => onCitationOpen?.(href, citationInfo.citation.label)}
                                             >
                                                 <a
@@ -204,7 +210,8 @@ export default function MarkdownRenderer({
                                 imageUrl={href}
                                 label={citationInfo.citation.label || label}
                                 score={citationInfo.citation.score}
-                                heatmapUrl={citationInfo.citation.heatmapUrl}
+                                query={query}
+                                heatmapsEnabled={heatmapsEnabled}
                                 onOpen={() => onCitationOpen?.(href, citationInfo.citation.label)}
                             >
                                 <a

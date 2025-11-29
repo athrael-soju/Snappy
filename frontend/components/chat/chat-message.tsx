@@ -7,15 +7,17 @@ import MarkdownRenderer from "@/components/chat/MarkdownRenderer";
 import { getRandomBrainPlaceholder } from "@/lib/chat/brain-states";
 import { cn } from "@/lib/utils";
 
-export type ChatCitation = { url?: string | null; label?: string | null; score?: number | null; heatmapUrl?: string | null };
+export type ChatCitation = { url?: string | null; label?: string | null; score?: number | null };
 
 export type ChatMessageBubbleProps = {
     message: { id: string; role: string; content: string; citations?: ChatCitation[] };
+    query?: string | null;
+    heatmapsEnabled?: boolean;
     isLoading?: boolean;
     onOpenCitation?: (url: string, label?: string | null) => void;
 };
 
-export function ChatMessageBubble({ message, isLoading, onOpenCitation }: ChatMessageBubbleProps) {
+export function ChatMessageBubble({ message, query, heatmapsEnabled = false, isLoading, onOpenCitation }: ChatMessageBubbleProps) {
     const isUser = message.role === "user";
     const thinkingPlaceholder = useMemo(() => getRandomBrainPlaceholder(), []);
 
@@ -57,6 +59,8 @@ export function ChatMessageBubble({ message, isLoading, onOpenCitation }: ChatMe
                             <MarkdownRenderer
                                 content={message.content}
                                 citations={message.citations}
+                                query={query}
+                                heatmapsEnabled={heatmapsEnabled}
                                 onCitationOpen={onOpenCitation}
                             />
                         )}

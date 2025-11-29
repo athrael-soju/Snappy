@@ -13,7 +13,7 @@ export interface SearchState {
 
 export interface ChatState {
   messages: ChatMessage[];
-  imageGroups: Array<{ url: string | null; label: string | null; score: number | null; heatmapUrl?: string | null }>[];
+  imageGroups: Array<{ url: string | null; label: string | null; score: number | null }>[];
   k: number;
   toolCallingEnabled: boolean;
   loading: boolean;
@@ -105,8 +105,8 @@ export type AppAction =
   | { type: 'CHAT_SET_MESSAGES'; payload: ChatMessage[] }
   | { type: 'CHAT_ADD_MESSAGE'; payload: ChatMessage }
   | { type: 'CHAT_UPDATE_LAST_MESSAGE'; payload: string }
-  | { type: 'CHAT_UPDATE_MESSAGE_CITATIONS'; payload: { messageId: string; citations: Array<{ url: string | null; label: string | null; score: number | null; heatmapUrl?: string | null }> } }
-  | { type: 'CHAT_SET_IMAGE_GROUPS'; payload: Array<{ url: string | null; label: string | null; score: number | null; heatmapUrl?: string | null }>[] }
+  | { type: 'CHAT_UPDATE_MESSAGE_CITATIONS'; payload: { messageId: string; citations: Array<{ url: string | null; label: string | null; score: number | null }> } }
+  | { type: 'CHAT_SET_IMAGE_GROUPS'; payload: Array<{ url: string | null; label: string | null; score: number | null }>[] }
   | { type: 'CHAT_SET_K'; payload: number }
   | { type: 'CHAT_SET_TOOL_CALLING'; payload: boolean }
   | { type: 'CHAT_SET_LOADING'; payload: boolean }

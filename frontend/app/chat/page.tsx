@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import "@/lib/api/client";
 import { useChat } from "@/lib/hooks/use-chat";
 import { useSystemStatus } from "@/stores/app-store";
+import { useConfigStore } from "@/lib/config/config-store";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import ImageLightbox from "@/components/lightbox";
@@ -35,6 +36,16 @@ export default function ChatPage() {
     reset,
   } = useChat();
   const { isReady } = useSystemStatus();
+  const config = useConfigStore((state) => state.config);
+
+  // Check if heatmaps are enabled in config
+  const heatmapsEnabled = config?.COLPALI_SHOW_HEATMAPS === 'True';
+
+  // Track the most recent user query for heatmap generation
+  const lastUserQuery = useMemo(() => {
+    const userMessages = messages.filter((msg) => msg.role === 'user');
+    return userMessages.length > 0 ? userMessages[userMessages.length - 1].content : null;
+  }, [messages]);
 
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string>("");
@@ -159,6 +170,8 @@ export default function ChatPage() {
                         <ChatMessageBubble
                           key={message.id}
                           message={message}
+                          query={lastUserQuery}
+                          heatmapsEnabled={heatmapsEnabled}
                           isLoading={loading && isLastAssistantMessage}
                           onOpenCitation={handleCitationOpen}
                         />
@@ -171,6 +184,8 @@ export default function ChatPage() {
                       <ChatMessageBubble
                         key="loading"
                         message={{ id: "loading", role: "assistant", content: "" }}
+                        query={lastUserQuery}
+                        heatmapsEnabled={heatmapsEnabled}
                         isLoading={true}
                       />
                     )}

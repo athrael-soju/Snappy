@@ -9,4 +9,11 @@ class SearchItem(BaseModel):
     payload: Dict[str, Any]
     score: Optional[float] = None
     json_url: Optional[str] = None  # OCR JSON URL when available
-    heatmap_url: Optional[str] = None  # Attention heatmap data URL when enabled
+
+
+class HeatmapResponse(BaseModel):
+    """Response for on-demand heatmap generation."""
+
+    heatmap_url: str  # Base64 data URL of the heatmap image
+    width: int
+    height: int
