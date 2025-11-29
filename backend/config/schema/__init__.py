@@ -103,6 +103,10 @@ def get_api_schema() -> Dict[str, Any]:
                 api_setting["ui_hidden"] = setting["ui_hidden"]
             if "ui_indent_level" in setting:
                 api_setting["ui_indent_level"] = setting["ui_indent_level"]
+            if "ui_confirm" in setting:
+                api_setting["ui_confirm"] = setting["ui_confirm"]
+            if "ui_confirm_message" in setting:
+                api_setting["ui_confirm_message"] = setting["ui_confirm_message"]
 
             api_schema[cat_key]["settings"].append(api_setting)
 

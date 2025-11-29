@@ -103,9 +103,14 @@ SCHEMA: Dict[str, Any] = {
                 "then re-rank with full multivector comparison. Improves accuracy "
                 "but requires more compute.",
                 "key": "QDRANT_MEAN_POOLING_ENABLED",
-                "label": "Enable Mean Pooling Re-ranking",
+                "label": "Enable Mean Pooling & Re-ranking",
                 "type": "bool",
                 "ui_type": "boolean",
+                "ui_confirm": True,
+                "ui_confirm_message": "Changing this setting requires recreating your Qdrant collection. "
+                "Existing collections will not have the required vector structures. "
+                "Enable BEFORE indexing documents, or delete and recreate the collection after toggling.\n\n"
+                "Continue?",
             },
             {
                 "default": 200,

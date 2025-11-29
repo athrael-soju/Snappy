@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { ConfigurationService, ApiError } from "@/lib/api/generated";
 import "@/lib/api/client";
-import { saveConfigToStorage, clearConfigFromStorage, loadConfigFromStorage, loadStoredConfigMeta } from "@/lib/config/config-store";
+import { saveConfigToStorage, loadConfigFromStorage, loadStoredConfigMeta } from "@/lib/config/config-store";
 import { logger } from "@/lib/utils/logger";
 
 const RUNTIME_CONFIG_EVENT = "runtimeConfigUpdated";
@@ -26,6 +26,8 @@ export interface ConfigSetting {
   ui_hidden?: boolean;
   ui_disabled?: boolean;
   ui_indent_level?: number;
+  ui_confirm?: boolean;
+  ui_confirm_message?: string;
 }
 
 export interface ConfigCategory {
@@ -45,6 +47,12 @@ interface ConfigStats {
   enabledFeatures: string[];
 }
 
+export interface PendingConfirmation {
+  key: string;
+  value: string;
+  setting: ConfigSetting;
+}
+
 export function useConfigurationPanel() {
   const [values, setValues] = useState<Record<string, string>>({});
   const [originalValues, setOriginalValues] = useState<Record<string, string>>({});
@@ -55,6 +63,7 @@ export function useConfigurationPanel() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("application");
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
   const notifyRuntimeConfigUpdated = useCallback(() => {
     if (typeof window !== "undefined") {
       window.dispatchEvent(new Event(RUNTIME_CONFIG_EVENT));
@@ -172,6 +181,12 @@ export function useConfigurationPanel() {
             ) {
               return;
             }
+
+            // Check if this setting requires confirmation
+            if (setting.ui_confirm && value !== values[key]) {
+              setPendingConfirmation({ key, value, setting });
+              return;
+            }
             break;
           }
         }
@@ -179,8 +194,19 @@ export function useConfigurationPanel() {
 
       setValues(prev => ({ ...prev, [key]: value }));
     },
-    [schema]
+    [schema, values]
   );
+
+  const confirmValueChange = useCallback(() => {
+    if (pendingConfirmation) {
+      setValues(prev => ({ ...prev, [pendingConfirmation.key]: pendingConfirmation.value }));
+      setPendingConfirmation(null);
+    }
+  }, [pendingConfirmation]);
+
+  const cancelValueChange = useCallback(() => {
+    setPendingConfirmation(null);
+  }, []);
 
   const isSettingVisible = useCallback(
     (setting: ConfigSetting): boolean => {
@@ -324,5 +350,8 @@ export function useConfigurationPanel() {
     resetToDefaults,
     handleValueChange,
     isSettingVisible,
+    pendingConfirmation,
+    confirmValueChange,
+    cancelValueChange,
   };
 }
