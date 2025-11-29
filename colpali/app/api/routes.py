@@ -108,65 +108,51 @@ async def get_n_patches(
         request: PatchRequest containing a list of dimensions with 'width' and 'height' keys
     """
     try:
-        results = []
-        get_n_patches_fn = getattr(model_service.processor, "get_n_patches", None)
-        supports_patches = callable(get_n_patches_fn)
+        # get_n_patches is now mandatory for the model
+        get_n_patches_fn = model_service.processor.get_n_patches
         call_kwargs: dict[str, Any] = {}
-        unsupported_reason: Optional[str] = None
 
-        if supports_patches:
-            try:
-                if get_n_patches_fn is not None:
-                    signature = inspect.signature(get_n_patches_fn)
-                else:
-                    signature = None
-            except (TypeError, ValueError):
-                signature = None
+        # Inspect signature to gather required parameters
+        try:
+            signature = inspect.signature(get_n_patches_fn)
 
-            if signature is not None:
-                for name, param in signature.parameters.items():
-                    if name == "image_size":
-                        continue
+            for name, param in signature.parameters.items():
+                # Skip image_size (provided directly) and variadic parameters (*args, **kwargs)
+                if name == "image_size" or param.kind in (
+                    inspect.Parameter.VAR_POSITIONAL,
+                    inspect.Parameter.VAR_KEYWORD,
+                ):
+                    continue
 
-                    value: Any = None
-                    if name in {"patch_size", "spatial_merge_size"}:
-                        value = getattr(model_service.model, "spatial_merge_size", None)
-                    elif hasattr(model_service.processor, name):
-                        value = getattr(model_service.processor, name)
-                    elif hasattr(model_service.model, name):
-                        value = getattr(model_service.model, name)
+                value: Any = None
+                if name in {"patch_size", "spatial_merge_size"}:
+                    value = getattr(model_service.model, "spatial_merge_size", None)
+                elif hasattr(model_service.processor, name):
+                    value = getattr(model_service.processor, name)
+                elif hasattr(model_service.model, name):
+                    value = getattr(model_service.model, name)
 
-                    if value is None:
-                        if param.default is inspect._empty:
-                            supports_patches = False
-                            unsupported_reason = f"Required parameter '{name}' is not provided by the current model."
-                            break
-                        continue
+                if value is None:
+                    if param.default is inspect._empty:
+                        raise ValueError(
+                            f"Required parameter '{name}' is not available on the model"
+                        )
+                    continue
 
-                    call_kwargs[name] = value
+                call_kwargs[name] = value
+        except (TypeError, ValueError) as e:
+            # If signature inspection fails, proceed without extra kwargs
+            logger.warning(f"Could not inspect get_n_patches signature: {e}")
+            call_kwargs = {}
 
-            if supports_patches and signature is None:
-                # Unable to inspect signature safely; proceed without extra kwargs.
-                call_kwargs = {}
-
-        if not supports_patches:
-            unsupported_reason = (
-                unsupported_reason
-                or "Patch estimation is not available for the current model."
-            )
-
+        # Calculate patches for all dimensions
+        results = []
         for dim in request.dimensions:
             try:
-                if not supports_patches:
-                    raise NotImplementedError(unsupported_reason)
-
                 image_size = (dim.width, dim.height)
-                try:
-                    n_patches_x, n_patches_y = get_n_patches_fn(  # type: ignore[misc]
-                        image_size, **call_kwargs
-                    )
-                except NotImplementedError:
-                    raise
+                n_patches_x, n_patches_y = get_n_patches_fn(
+                    image_size, **call_kwargs
+                )
 
                 results.append(
                     PatchResult(
@@ -185,6 +171,11 @@ async def get_n_patches(
                     )
                 )
         return {"results": results}
+    except AttributeError:
+        raise HTTPException(
+            status_code=501,
+            detail="The current model does not support get_n_patches functionality"
+        )
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error processing patch request: {str(e)}"
