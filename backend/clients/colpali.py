@@ -435,3 +435,54 @@ class ColPaliClient:
             scores.append(max(similarities) if similarities else 0.0)
 
         return np.array(scores)
+
+    @log_execution_time("generate heatmap", log_level=logging.INFO, warn_threshold_ms=5000)
+    def generate_heatmap(
+        self, image: Image.Image, query: str, alpha: float = 0.5
+    ) -> bytes:
+        """
+        Generate attention heatmap for a query-image pair.
+
+        Args:
+            image: PIL Image of the document page
+            query: Search query text
+            alpha: Heatmap overlay transparency (0-1)
+
+        Returns:
+            PNG image bytes with heatmap overlay
+        """
+        buffer = None
+        try:
+            self._logger.debug(f"Generating heatmap for query: {query[:50]}...")
+
+            # Encode image to bytes
+            img_buffer = io.BytesIO()
+            image.save(img_buffer, format="PNG")
+            img_buffer.seek(0)
+
+            # Prepare multipart form data
+            files = {
+                "file": ("image.png", img_buffer, "image/png"),
+            }
+            data = {
+                "query": query,
+                "alpha": str(alpha),
+            }
+
+            response = self.session.post(
+                f"{self.base_url}/heatmap",
+                files=files,
+                data=data,
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+
+            # Return PNG bytes directly
+            return response.content
+
+        except Exception as e:
+            self._logger.error(f"Failed to generate heatmap: {e}")
+            raise
+        finally:
+            if buffer:
+                buffer.close()

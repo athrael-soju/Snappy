@@ -2,7 +2,7 @@
 
 from typing import List, Optional, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class QueryRequest(BaseModel):
@@ -59,3 +59,15 @@ class ImageEmbeddingBatchResponse(BaseModel):
     """Response model for batch image embeddings."""
 
     embeddings: List[ImageEmbeddingItem]
+
+
+class HeatmapRequest(BaseModel):
+    """Request model for heatmap generation (query sent as form field)."""
+
+    query: str = Field(..., description="Search query text")
+    alpha: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="Heatmap overlay transparency (0=invisible, 1=opaque)",
+    )

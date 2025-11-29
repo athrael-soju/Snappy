@@ -12,7 +12,10 @@ from fastapi import APIRouter, Body, File, HTTPException, UploadFile
 from PIL import Image
 
 from app.core.config import settings
+from fastapi.responses import Response
+
 from app.models.schemas import (
+    HeatmapRequest,
     ImageEmbeddingBatchResponse,
     PatchBatchResponse,
     PatchRequest,
@@ -48,6 +51,12 @@ def get_image_executor() -> ThreadPoolExecutor:
     if _image_executor is None:
         _image_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="embed")
     return _image_executor
+
+
+# Heatmap executor (shares with image executor to avoid GPU memory conflicts)
+def get_heatmap_executor() -> ThreadPoolExecutor:
+    """Get or create the heatmap executor (shares with image executor)."""
+    return get_image_executor()
 
 
 @router.get("/")
@@ -238,4 +247,69 @@ async def embed_images(files: List[UploadFile] = File(...)):
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error generating image embeddings: {str(e)}"
+        )
+
+
+@router.post("/heatmap", response_class=Response)
+async def generate_heatmap(
+    file: UploadFile = File(..., description="Document page image"),
+    query: str = Body(..., embed=True, description="Search query text"),
+    alpha: float = Body(0.5, embed=True, ge=0.0, le=1.0, description="Heatmap transparency"),
+):
+    """Generate attention heatmap for a query-image pair.
+
+    Computes late interaction attention between query tokens and image patches,
+    returns a PNG image with heatmap overlaid on the original document.
+
+    The heatmap shows which regions of the document are most relevant to the query:
+    - Red/warm colors: High attention (most relevant regions)
+    - Blue/cool colors: Low attention (less relevant regions)
+
+    Args:
+        file: Document page image (PNG, JPEG, etc.)
+        query: The search query to visualize attention for
+        alpha: Heatmap overlay transparency (0=invisible, 1=opaque)
+
+    Returns:
+        PNG image with heatmap overlay
+    """
+    try:
+        # Validate image file
+        content_type = file.content_type or ""
+        if not content_type.startswith("image/"):
+            raise HTTPException(
+                status_code=400, detail=f"File {file.filename} is not an image"
+            )
+
+        if not query or not query.strip():
+            raise HTTPException(status_code=400, detail="Query cannot be empty")
+
+        # Load image
+        image_bytes = await file.read()
+        image = load_image_from_bytes(image_bytes)
+
+        # Generate heatmap in thread pool
+        heatmap_bytes = await asyncio.get_event_loop().run_in_executor(
+            get_heatmap_executor(),
+            embedding_processor.generate_heatmap,
+            query.strip(),
+            image,
+            alpha,
+        )
+
+        return Response(
+            content=heatmap_bytes,
+            media_type="image/png",
+            headers={
+                "Content-Disposition": f"inline; filename=heatmap.png",
+                "Cache-Control": "public, max-age=3600",  # Cache for 1 hour
+            },
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Error generating heatmap")
+        raise HTTPException(
+            status_code=500, detail=f"Error generating heatmap: {str(e)}"
         )

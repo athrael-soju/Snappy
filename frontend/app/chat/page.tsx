@@ -7,7 +7,7 @@ import { useChat } from "@/lib/hooks/use-chat";
 import { useSystemStatus } from "@/stores/app-store";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import ImageLightbox from "@/components/lightbox";
+import PageImageDialog from "@/components/chat/PageImageDialog";
 import { AlertCircle, Bot, Sparkles, Timer } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { SuggestionPanel } from "@/components/chat/suggestion-panel";
@@ -39,6 +39,7 @@ export default function ChatPage() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string>("");
   const [lightboxAlt, setLightboxAlt] = useState<string | null>(null);
+  const [lightboxQuery, setLightboxQuery] = useState<string>("");
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
@@ -56,6 +57,12 @@ export default function ChatPage() {
     [messages],
   );
 
+  // Get the most recent user query for heatmap generation
+  const latestUserQuery = useMemo(() => {
+    const userMessages = messages.filter((msg) => msg.role === "user" && msg.content.trim().length > 0);
+    return userMessages.length > 0 ? userMessages[userMessages.length - 1].content : "";
+  }, [messages]);
+
   const isSendDisabled = loading || !isReady || !input.trim() || !isSettingsValid;
   const hasMessages = messages.length > 0;
 
@@ -70,6 +77,7 @@ export default function ChatPage() {
     }
     setLightboxSrc(url);
     setLightboxAlt(label ?? null);
+    setLightboxQuery(latestUserQuery);
     setLightboxOpen(true);
   };
 
@@ -204,15 +212,17 @@ export default function ChatPage() {
           />
         </motion.div>
       </div>
-      <ImageLightbox
+      <PageImageDialog
         open={lightboxOpen}
         src={lightboxSrc}
         alt={lightboxAlt ?? undefined}
+        query={lightboxQuery}
         onOpenChange={(open) => {
           setLightboxOpen(open);
           if (!open) {
             setLightboxSrc("");
             setLightboxAlt(null);
+            setLightboxQuery("");
           }
         }}
       />

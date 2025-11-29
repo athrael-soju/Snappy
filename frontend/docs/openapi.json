@@ -141,6 +141,69 @@
         }
       }
     },
+    "/heatmap": {
+      "get": {
+        "tags": [
+          "retrieval"
+        ],
+        "summary": "Get Heatmap",
+        "description": "Generate attention heatmap for a query-image pair.\n\nFetches the image from the provided URL, generates an attention heatmap\nusing the ColPali service, and returns a PNG image with the heatmap overlay.\n\nThe heatmap visualizes which regions of the document are most relevant\nto the search query based on the ColPali model's late interaction attention.\n\nArgs:\n    image_url: URL of the document page image (typically from MinIO)\n    query: The search query to visualize attention for\n    alpha: Heatmap overlay transparency (0=invisible, 1=opaque)\n\nReturns:\n    PNG image with heatmap overlay",
+        "operationId": "get_heatmap_heatmap_get",
+        "parameters": [
+          {
+            "name": "image_url",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "URL of the document page image",
+              "title": "Image Url"
+            },
+            "description": "URL of the document page image"
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Search query text",
+              "title": "Query"
+            },
+            "description": "Search query text"
+          },
+          {
+            "name": "alpha",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "description": "Heatmap transparency",
+              "default": 0.5,
+              "title": "Alpha"
+            },
+            "description": "Heatmap transparency"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/index": {
       "post": {
         "tags": [
