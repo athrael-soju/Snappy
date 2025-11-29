@@ -1,6 +1,6 @@
 # torch, torchvision, and flash-attn (GPU-only) are installed during the Dockerfile.gpu build
 transformers
-colpali-engine
+ git+https://github.com/illuin-tech/colpali
 fastapi
 uvicorn
 Pillow
