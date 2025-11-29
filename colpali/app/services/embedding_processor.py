@@ -173,8 +173,8 @@ class EmbeddingProcessor:
             # This gives us how much each patch contributes to the overall relevance
             patch_scores = similarity.sum(dim=0)  # [num_patches]
 
-            # Reshape to patch grid
-            patch_scores = patch_scores.cpu().numpy()
+            # Convert to float32 before numpy (BFloat16 not supported by numpy)
+            patch_scores = patch_scores.cpu().float().numpy()
 
         # Create heatmap image
         heatmap_bytes = self._create_heatmap_overlay(
