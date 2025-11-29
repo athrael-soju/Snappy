@@ -59,3 +59,34 @@ class ImageEmbeddingBatchResponse(BaseModel):
     """Response model for batch image embeddings."""
 
     embeddings: List[ImageEmbeddingItem]
+
+
+class SimilarityMapRequest(BaseModel):
+    """Request model for similarity map generation."""
+
+    query: str
+    selected_tokens: Optional[List[int]] = None  # Token indices to generate maps for (None = all)
+
+
+class TokenInfo(BaseModel):
+    """Information about a query token."""
+
+    index: int
+    token: str
+    should_filter: bool  # Whether this token should be filtered out (stopword, punctuation, etc.)
+
+
+class SimilarityMapResult(BaseModel):
+    """Similarity map for a single token."""
+
+    token_index: int
+    token: str
+    similarity_map_base64: str  # Base64-encoded PNG image with heatmap overlay
+
+
+class SimilarityMapResponse(BaseModel):
+    """Response model for similarity map generation."""
+
+    query: str
+    tokens: List[TokenInfo]  # All tokens with filter info
+    similarity_maps: List[SimilarityMapResult]  # Maps for selected tokens

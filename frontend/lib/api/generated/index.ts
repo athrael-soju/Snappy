@@ -19,12 +19,17 @@ export type { OcrResponse } from './models/OcrResponse';
 export type { QueryRequest } from './models/QueryRequest';
 export type { QueryResponse } from './models/QueryResponse';
 export type { SearchItem } from './models/SearchItem';
+export type { SimilarityMapRequest } from './models/SimilarityMapRequest';
+export type { SimilarityMapResponse } from './models/SimilarityMapResponse';
+export type { SimilarityMapResult } from './models/SimilarityMapResult';
 export type { StatsResponse } from './models/StatsResponse';
+export type { TokenInfo } from './models/TokenInfo';
 export type { ValidationError } from './models/ValidationError';
 
 export { ConfigurationService } from './services/ConfigurationService';
 export { DuckdbService } from './services/DuckdbService';
 export { IndexingService } from './services/IndexingService';
+export { InterpretabilityService } from './services/InterpretabilityService';
 export { MaintenanceService } from './services/MaintenanceService';
 export { MetaService } from './services/MetaService';
 export { OcrService } from './services/OcrService';

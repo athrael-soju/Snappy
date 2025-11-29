@@ -435,3 +435,68 @@ class ColPaliClient:
             scores.append(max(similarities) if similarities else 0.0)
 
         return np.array(scores)
+
+    @log_execution_time(
+        "generate similarity maps", log_level=logging.INFO, warn_threshold_ms=5000
+    )
+    def generate_similarity_maps(
+        self,
+        image_bytes: bytes,
+        query: str,
+        selected_tokens: Optional[List[int]] = None,
+        alpha: float = 0.5,
+    ) -> dict[str, Any]:
+        """
+        Generate interpretability similarity maps for query tokens on an image.
+
+        Args:
+            image_bytes: Raw image bytes (PNG, JPEG, etc.)
+            query: The search query text
+            selected_tokens: Optional list of token indices to generate maps for
+            alpha: Blend factor for overlay (0 = original only, 1 = heatmap only)
+
+        Returns:
+            Dict containing:
+            - query: The query string
+            - tokens: List of token info dicts
+            - similarity_maps: List of similarity map result dicts
+        """
+        try:
+            self._logger.debug(
+                f"Generating similarity maps for query: {query[:50]}..."
+            )
+
+            # Prepare multipart form data
+            files = [("file", ("image.png", io.BytesIO(image_bytes), "image/png"))]
+
+            # Prepare form fields - FastAPI expects these as form data
+            data = {
+                "query": query,
+                "alpha": str(alpha),
+            }
+
+            if selected_tokens is not None:
+                # Send as JSON-encoded string for form data
+                import json
+
+                data["selected_tokens"] = json.dumps(selected_tokens)
+
+            response = self.session.post(
+                f"{self.base_url}/similarity-map",
+                files=files,
+                data=data,
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+            result = response.json()
+
+            if "query" not in result or "tokens" not in result:
+                raise KeyError(
+                    "Missing required fields in ColPali /similarity-map response"
+                )
+
+            return result
+
+        except Exception as e:
+            self._logger.error(f"Failed to generate similarity maps: {e}")
+            raise

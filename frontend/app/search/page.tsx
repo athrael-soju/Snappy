@@ -16,6 +16,7 @@ import {
   FileText,
   Clock,
   Compass,
+  Layers,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AppButton } from "@/components/app-button";
@@ -26,6 +27,7 @@ import { parseSearchResults } from "@/lib/api/runtime";
 import { useSearchStore } from "@/lib/hooks/use-search-store";
 import { useSystemStatus } from "@/stores/app-store";
 import ImageLightbox from "@/components/lightbox";
+import InterpretabilityViewer from "@/components/interpretability-viewer";
 import { InfoTooltip } from "@/components/info-tooltip";
 import { PageHeader } from "@/components/page-header";
 
@@ -94,6 +96,11 @@ export default function SearchPage() {
   const [lightboxSrc, setLightboxSrc] = useState<string>("");
   const [lightboxAlt, setLightboxAlt] = useState<string | null>(null);
 
+  // Interpretability viewer state
+  const [interpretabilityOpen, setInterpretabilityOpen] = useState(false);
+  const [interpretabilityImageUrl, setInterpretabilityImageUrl] = useState<string>("");
+  const [interpretabilityTitle, setInterpretabilityTitle] = useState<string>("");
+
   const truncatedResults = useMemo(() => results.slice(0, k), [results, k]);
 
   const handleNumberChange = (event: ChangeEvent<HTMLInputElement>, setter: (value: number) => void) => {
@@ -138,6 +145,14 @@ export default function SearchPage() {
     setLightboxSrc(url);
     setLightboxAlt(label ?? null);
     setLightboxOpen(true);
+  };
+
+  const handleInterpretabilityOpen = (url: string, title: string, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent opening lightbox
+    if (!url || !query.trim()) return;
+    setInterpretabilityImageUrl(url);
+    setInterpretabilityTitle(title);
+    setInterpretabilityOpen(true);
   };
 
   return (
@@ -491,11 +506,24 @@ export default function SearchPage() {
                                       <h3 className="line-clamp-2 text-body-sm sm:text-body font-bold text-foreground">
                                         {displayTitle}
                                       </h3>
-                                      <div className="flex flex-wrap gap-1.5">
+                                      <div className="flex flex-wrap items-center gap-1.5">
                                         {typeof item.score === "number" && (
                                           <Badge variant="secondary" className="h-auto px-2 py-0.5 text-body-xs font-semibold">
                                             {item.score.toFixed(2)} score
                                           </Badge>
+                                        )}
+                                        {item.image_url && (
+                                          <AppButton
+                                            type="button"
+                                            variant="ghost"
+                                            size="xs"
+                                            onClick={(e) => handleInterpretabilityOpen(item.image_url!, displayTitle, e)}
+                                            className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                            title="View interpretability map"
+                                          >
+                                            <Layers className="size-icon-xs mr-1" />
+                                            <span className="hidden sm:inline">Explain</span>
+                                          </AppButton>
                                         )}
                                       </div>
                                     </div>
@@ -525,6 +553,19 @@ export default function SearchPage() {
             setLightboxAlt(null);
           }
         }}
+      />
+      <InterpretabilityViewer
+        open={interpretabilityOpen}
+        onOpenChange={(open) => {
+          setInterpretabilityOpen(open);
+          if (!open) {
+            setInterpretabilityImageUrl("");
+            setInterpretabilityTitle("");
+          }
+        }}
+        imageUrl={interpretabilityImageUrl}
+        query={query}
+        title={interpretabilityTitle}
       />
     </div>
   );

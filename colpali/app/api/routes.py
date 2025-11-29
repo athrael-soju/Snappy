@@ -19,9 +19,12 @@ from app.models.schemas import (
     PatchResult,
     QueryEmbeddingResponse,
     QueryRequest,
+    SimilarityMapRequest,
+    SimilarityMapResponse,
 )
 from app.services.embedding_processor import embedding_processor
 from app.services.model_service import model_service
+from app.services.similarity_map import similarity_map_generator
 from app.utils.image_processing import load_image_from_bytes
 
 logger = logging.getLogger(__name__)
@@ -238,4 +241,64 @@ async def embed_images(files: List[UploadFile] = File(...)):
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error generating image embeddings: {str(e)}"
+        )
+
+
+@router.post("/similarity-map", response_model=SimilarityMapResponse)
+async def generate_similarity_map(
+    file: UploadFile = File(...),
+    query: str = Body(..., embed=True),
+    selected_tokens: Optional[List[int]] = Body(None, embed=True),
+    alpha: float = Body(0.5, embed=True, ge=0.0, le=1.0),
+):
+    """Generate interpretability similarity maps for query tokens on an image.
+
+    This endpoint creates visual overlays showing which parts of the image
+    are most similar to each query token, enabling interpretability analysis.
+
+    Args:
+        file: The image file to analyze
+        query: The search query text
+        selected_tokens: Optional list of token indices to generate maps for.
+                        If None, generates maps for all non-filtered tokens.
+        alpha: Blend factor for overlay (0 = original only, 1 = heatmap only)
+
+    Returns:
+        SimilarityMapResponse with token info and base64-encoded similarity map images
+    """
+    try:
+        # Validate file is an image
+        content_type = file.content_type or ""
+        if not content_type.startswith("image/"):
+            raise HTTPException(
+                status_code=400, detail=f"File {file.filename} is not an image"
+            )
+
+        # Load image
+        image_bytes = await file.read()
+        image = load_image_from_bytes(image_bytes)
+
+        # Generate similarity maps in thread pool
+        tokens, similarity_maps = await asyncio.get_event_loop().run_in_executor(
+            get_image_executor(),
+            lambda: similarity_map_generator.generate_similarity_maps(
+                image=image,
+                query=query,
+                selected_tokens=selected_tokens,
+                alpha=alpha,
+            ),
+        )
+
+        return SimilarityMapResponse(
+            query=query,
+            tokens=tokens,
+            similarity_maps=similarity_maps,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Error generating similarity maps")
+        raise HTTPException(
+            status_code=500, detail=f"Error generating similarity maps: {str(e)}"
         )
