@@ -115,11 +115,10 @@ class SearchManager:
     def search_with_metadata(
         self, query: str, k: int = 5, payload_filter: Optional[dict] = None
     ):
-        """Search and return metadata with image URLs.
+        """Search and return metadata with inline base64 images.
 
-        Returns search results with payload metadata including image_url.
-        Images are NOT fetched from MinIO to optimize latency - the frontend
-        uses URLs directly for display and chat.
+        Returns search results with payload metadata including image_data (base64).
+        Images are stored inline in Qdrant payloads for direct use by frontend.
 
         payload_filter: optional dict of equality filters, e.g.
           {"filename": "doc.pdf", "pdf_page_index": 3}
@@ -148,9 +147,9 @@ class SearchManager:
         items = []
         if search_results and search_results[0].points:
             for i, point in enumerate(search_results[0].points[:k]):
-                image_url = point.payload.get("image_url") if point.payload else None
-                if not image_url:
-                    logger.warning(f"Point {i} missing image_url in payload")
+                image_data = point.payload.get("image_data") if point.payload else None
+                if not image_data:
+                    logger.warning(f"Point {i} missing image_data in payload")
                     continue
 
                 items.append(
@@ -163,9 +162,9 @@ class SearchManager:
         return items
 
     def search(self, query: str, k: int = 5):
-        """Search for relevant documents and return metadata with URLs.
+        """Search for relevant documents and return metadata with inline images.
 
         This is a convenience wrapper around search_with_metadata().
-        Use get_image_from_url() to fetch PIL images from the returned URLs.
+        Image data is included inline as base64 in the payload.
         """
         return self.search_with_metadata(query, k)

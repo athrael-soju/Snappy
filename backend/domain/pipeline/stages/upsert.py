@@ -3,8 +3,8 @@
 import logging
 import queue
 import threading
+from typing import Any, Dict, List
 
-import config
 from ..streaming_types import EmbeddedBatch
 from ..utils import log_stage_timing
 
@@ -13,10 +13,10 @@ logger = logging.getLogger(__name__)
 
 class UpsertStage:
     """
-    Upserts embeddings to Qdrant with dynamically generated URLs.
+    Upserts embeddings to Qdrant with inline data from storage and OCR stages.
 
-    Storage and OCR run independently - UpsertStage only waits for embeddings.
-    URLs are generated on-the-fly from metadata (no coordination needed).
+    Storage and OCR run independently and populate shared state dicts.
+    Upsert reads from these dicts when building points.
     """
 
     def __init__(
@@ -24,75 +24,47 @@ class UpsertStage:
         point_factory,
         qdrant_service,
         collection_name: str,
-        minio_base_url: str,
-        minio_bucket: str,
+        shared_image_records: Dict[str, List[Dict[str, Any]]],
+        shared_ocr_results: Dict[str, List[Dict[str, Any]]],
         completion_tracker=None,
     ):
         self.point_factory = point_factory
         self.qdrant_service = qdrant_service
         self.collection_name = collection_name
-        self.minio_base_url = minio_base_url
-        self.minio_bucket = minio_bucket
+        self.shared_image_records = shared_image_records
+        self.shared_ocr_results = shared_ocr_results
         self.completion_tracker = completion_tracker
-
-    def _generate_image_url(self, document_id: str, page_number: int, page_id: str) -> str:
-        """Generate MinIO image URL from metadata.
-
-        Pattern: {minio_base_url}/{bucket}/{doc_id}/{page_num}/image/{page_id}.{ext}
-        """
-        fmt = config.IMAGE_FORMAT.lower()
-        ext = "jpg" if fmt == "jpeg" else fmt
-        object_name = f"{document_id}/{page_number}/image/{page_id}.{ext}"
-
-        base = self.minio_base_url.rstrip("/")
-        bucket_suffix = f"/{self.minio_bucket}" if self.minio_bucket else ""
-        return f"{base}{bucket_suffix}/{object_name}"
-
-    def _generate_ocr_url(self, document_id: str, page_number: int) -> str:
-        """Generate MinIO OCR JSON URL from metadata.
-
-        Pattern: {minio_base_url}/{bucket}/{doc_id}/{page_num}/ocr.json
-        """
-        object_name = f"{document_id}/{page_number}/ocr.json"
-        base = self.minio_base_url.rstrip("/")
-        bucket_suffix = f"/{self.minio_bucket}" if self.minio_bucket else ""
-        return f"{base}{bucket_suffix}/{object_name}"
 
     @log_stage_timing("Upsert")
     def process_batch(self, embedded_batch: EmbeddedBatch):
         """Build points from embeddings and upsert to Qdrant.
 
-        Storage/OCR run independently - we just generate URL references.
+        Reads inline data from shared state populated by storage and OCR stages.
         """
-        # Generate URLs dynamically - no waiting, storage/OCR are independent
-        image_urls = []
-        ocr_urls = []
+        # Build batch key for lookup
+        batch_key = f"{embedded_batch.document_id}:{embedded_batch.batch_id}"
 
-        for idx, (page_id, meta) in enumerate(zip(embedded_batch.image_ids, embedded_batch.metadata)):
-            page_number = meta.get("page_number", embedded_batch.page_start + idx)
+        # Wait for storage data (with timeout)
+        max_wait = 30  # seconds
+        wait_interval = 0.1
+        total_wait = 0
 
-            image_urls.append(
-                self._generate_image_url(embedded_batch.document_id, page_number, page_id)
+        while batch_key not in self.shared_image_records and total_wait < max_wait:
+            threading.Event().wait(wait_interval)
+            total_wait += wait_interval
+
+        if batch_key not in self.shared_image_records:
+            raise RuntimeError(
+                f"Timeout waiting for image records for batch {batch_key}"
             )
-            ocr_urls.append(
-                self._generate_ocr_url(embedded_batch.document_id, page_number)
-            )
 
-        # Build image records
-        image_records = [
-            {
-                "image_url": url,
-                "image_inline": False,
-                "image_storage": "minio",
-                "page_id": image_id,
-            }
-            for url, image_id in zip(image_urls, embedded_batch.image_ids)
-        ]
+        # Get inline image data from shared state
+        image_records = self.shared_image_records.get(batch_key, [])
 
-        # Build OCR references
-        ocr_results = [{"ocr_url": url} for url in ocr_urls]
+        # Get inline OCR data from shared state (optional)
+        ocr_results = self.shared_ocr_results.get(batch_key, [])
 
-        # Build Qdrant points
+        # Build Qdrant points with inline data
         points = self.point_factory.build(
             batch_start=embedded_batch.page_start,
             original_batch=embedded_batch.original_embeddings,
@@ -112,6 +84,12 @@ class UpsertStage:
             collection_name=self.collection_name,
             points=points,
         )
+
+        # Clean up shared state for this batch
+        if batch_key in self.shared_image_records:
+            del self.shared_image_records[batch_key]
+        if batch_key in self.shared_ocr_results:
+            del self.shared_ocr_results[batch_key]
 
         # Notify completion tracker that upsert is done for this batch
         if self.completion_tracker:

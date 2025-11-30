@@ -4,7 +4,7 @@ import logging
 import queue
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Dict
+from typing import Any, Dict, List
 
 import config
 
@@ -15,14 +15,12 @@ logger = logging.getLogger(__name__)
 
 
 class OCRStage:
-    """Processes OCR independently and stores results."""
+    """Processes OCR independently and formats results for inline storage."""
 
-    def __init__(self, ocr_service, image_processor):
+    def __init__(self, ocr_service, image_processor, shared_ocr_results: Dict[str, List[Dict[str, Any]]]):
         self.ocr_service = ocr_service
         self.image_processor = image_processor
-        # Track completion status (OCR data stored in MinIO, not cached here)
-        self.completed_batches: set[str] = set()  # batch_key
-        self._lock = threading.Lock()
+        self.shared_ocr_results = shared_ocr_results
 
     @log_stage_timing("OCR")
     def process_batch(self, batch: PageBatch):
@@ -32,6 +30,9 @@ class OCRStage:
         """
         if not self.ocr_service or not config.DEEPSEEK_OCR_ENABLED:
             logger.debug("OCR skipped for batch %d (OCR disabled)", batch.batch_id)
+            # Store empty results so Upsert doesn't wait
+            batch_key = f"{batch.document_id}:{batch.batch_id}"
+            self.shared_ocr_results[batch_key] = []
             return
 
         # Process images (format conversion)
@@ -53,8 +54,14 @@ class OCRStage:
 
             for future in as_completed(futures):
                 idx = futures[future]
-                result = future.result()  # Will raise if OCR/storage failed
+                result = future.result()  # Will raise if OCR fails
                 ocr_results[idx] = result
+
+        # Store in shared state for Upsert stage to consume
+        batch_key = f"{batch.document_id}:{batch.batch_id}"
+        self.shared_ocr_results[batch_key] = ocr_results
+
+        logger.debug(f"Stored {len(ocr_results)} OCR results for batch {batch_key}")
 
     def _process_single_ocr(self, processed_image, meta: Dict) -> Dict:
         """Process single page OCR.
@@ -88,11 +95,9 @@ class OCRStage:
             "total_pages": meta.get("total_pages"),
             "page_width_px": processed_image.width,
             "page_height_px": processed_image.height,
-            "image_url": processed_image.url if hasattr(processed_image, "url") else None,
-            "image_storage": "minio",
         }
 
-        # Store OCR results - will raise on DuckDB failure
+        # Format OCR results for inline storage (returns structured OCR data)
         storage_result = self.ocr_service.storage.store_ocr_result(
             ocr_result=ocr_result,
             document_id=document_id,
@@ -100,12 +105,7 @@ class OCRStage:
             metadata=ocr_metadata,
         )
 
-        return {
-            "ocr_url": storage_result["ocr_url"],
-            "ocr_regions": storage_result.get("ocr_regions", []),
-            "text_preview": ocr_result.get("text", "")[:200],
-            "region_count": len(ocr_result.get("regions", [])),
-        }
+        return storage_result
 
 
     def run(

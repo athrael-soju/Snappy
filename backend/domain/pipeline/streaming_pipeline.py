@@ -120,8 +120,6 @@ class StreamingPipeline:
         point_factory,
         qdrant_service,
         collection_name: str,
-        minio_base_url: str,
-        minio_bucket: str,
         batch_size: int = 4,
         max_in_flight_batches: int = 1,
     ):
@@ -129,14 +127,12 @@ class StreamingPipeline:
 
         Args:
             embedding_processor: Service for generating embeddings
-            image_store: Handler for image storage
+            image_store: Handler for base64 conversion
             image_processor: Processor for image format conversion
             ocr_service: Optional OCR service
             point_factory: Factory for creating Qdrant points
             qdrant_service: Qdrant client for vector storage
             collection_name: Target Qdrant collection
-            minio_base_url: MinIO base URL for generating dynamic URLs
-            minio_bucket: MinIO bucket name
             batch_size: Number of pages per batch
             max_in_flight_batches: Maximum batches processing simultaneously
         """
@@ -146,19 +142,21 @@ class StreamingPipeline:
         # Derive queue size from in-flight batches (allow some buffering)
         self.max_queue_size = max(2, max_in_flight_batches * 2)
 
+        # Create shared state for coordinating inline data between stages
+        self.shared_image_records = {}  # batch_key -> List[Dict]
+        self.shared_ocr_results = {}    # batch_key -> List[Dict]
+
         # Create stages with injected dependencies
         self.rasterizer = PDFRasterizer(batch_size=batch_size)
         self.embedding_stage = EmbeddingStage(embedding_processor)
-        self.storage_stage = StorageStage(image_store)
-        self.ocr_stage = OCRStage(ocr_service, image_processor) if ocr_service else None
+        self.storage_stage = StorageStage(image_store, self.shared_image_records)
+        self.ocr_stage = OCRStage(ocr_service, image_processor, self.shared_ocr_results) if ocr_service else None
         self.upsert_stage = None  # Created in start() with progress callback
 
         # Store dependencies for upsert stage creation
         self.point_factory = point_factory
         self.qdrant_service = qdrant_service
         self.collection_name = collection_name
-        self.minio_base_url = minio_base_url
-        self.minio_bucket = minio_bucket
 
         # Create bounded queues for backpressure control
         self.embedding_input_queue = queue.Queue(maxsize=self.max_queue_size)
@@ -201,13 +199,13 @@ class StreamingPipeline:
         # Store semaphore for rasterizer to use
         self.batch_semaphore = batch_semaphore
 
-        # Create upsert stage with completion tracker instead of direct callback
+        # Create upsert stage with shared state and completion tracker
         self.upsert_stage = UpsertStage(
             self.point_factory,
             self.qdrant_service,
             self.collection_name,
-            self.minio_base_url,
-            self.minio_bucket,
+            self.shared_image_records,
+            self.shared_ocr_results,
             completion_tracker=self.completion_tracker,
         )
 
