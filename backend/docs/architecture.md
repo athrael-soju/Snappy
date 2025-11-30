@@ -1,6 +1,6 @@
 # Snappy Architecture
 
-Snappy is a vision-grounded retrieval system: PDFs are rasterized to images, embedded with ColPali multivectors, and searched by layout and text. Optional DeepSeek OCR and DuckDB add text grounding, analytics, and deduplication.
+Snappy implements **spatially-grounded hybrid document retrieval**, unifying vision-language late interaction with structured OCR for region-level retrieval-augmented generation. PDFs are rasterized to images, embedded with ColPali multivectors using late interaction, and searched by layout and text. Optional DeepSeek OCR and DuckDB add text grounding, region-level filtering, analytics, and deduplication.
 
 ```mermaid
 ---
@@ -23,15 +23,36 @@ flowchart TB
     Duck --> LLM
 ```
 
+## Core Retrieval Paradigm
+
+Snappy's retrieval architecture is built on three foundational pillars:
+
+### 1. Vision-Language Late Interaction
+ColPali embeddings preserve spatial structure through **multi-vector representations** (one vector per image patch). Each query token finds its best match among all document patches via MaxSim scoring, enabling fine-grained layout-aware retrieval without losing context. Two-stage retrieval (prefetch with pooled vectors + rerank with original multivectors) balances speed and accuracy.
+
+**See**: [Late Interaction Documentation](late_interaction.md)
+
+### 2. Spatial Grounding
+Spatial information flows through the entire pipeline: pixel coordinates → patch grid → embeddings → interpretability maps → region filtering. This preserves **where** content appears on the page, not just **what** it says. Region-level retrieval uses interpretability maps to filter OCR regions by query relevance, returning only spatially-relevant content.
+
+**See**: [Spatial Grounding Documentation](spatial_grounding.md)
+
+### 3. Hybrid Vision + Text Retrieval
+Snappy combines vision-first retrieval (ColPali image embeddings) with structured OCR (DeepSeek text/bounding boxes). Vision handles layout, handwriting, and diagrams; OCR provides searchable text and region metadata. Region-level filtering uses vision-based attention maps to score OCR regions, creating a true hybrid approach.
+
+**See**: [Analysis: Vision vs Text RAG](analysis.md)
+
+---
+
 ## Components at a glance
-- **FastAPI backend**: routers for indexing, search, OCR, configuration, maintenance, and health.
+- **FastAPI backend**: routers for indexing, search, OCR, interpretability, configuration, maintenance, and health.
 - **Streaming pipeline**: parallel stages for rasterize, embed, store images, optional OCR, and Qdrant upserts.
-- **ColPali service**: query and image embeddings (multivectors with pooled variants).
+- **ColPali service**: query and image embeddings (multivectors with pooled variants), interpretability map generation.
 - **DeepSeek OCR service (optional)**: text, markdown, and region extraction with bounding boxes.
-- **Qdrant**: vector store for image/page embeddings; payload carries metadata and optional OCR URLs.
+- **Qdrant**: vector store for image/page embeddings (multi-vector with pooling); payload carries metadata and optional OCR URLs.
 - **MinIO**: page images and OCR JSON storage with hierarchical paths.
 - **DuckDB (optional)**: document metadata, OCR regions, and analytics; powers deduplication and inline OCR responses.
-- **Next.js frontend**: upload, search, and chat flows; streams responses via SSE.
+- **Next.js frontend**: upload, search, chat, and interpretability visualization; streams responses via SSE.
 - **OpenAI**: generates chat answers using retrieved images, text, and tables.
 
 ## Layered Architecture
@@ -60,9 +81,15 @@ The backend is organized into three distinct layers to ensure maintainability an
 5. `/progress/stream/{job_id}` streams live status for the UI; failures stop the pipeline to keep data consistent.
 
 ## Search and chat path
-1. `GET /search` embeds the query with ColPali and retrieves top-k page IDs from Qdrant.
+1. `GET /search` embeds the query with ColPali and retrieves top-k page IDs from Qdrant using late interaction (two-stage retrieval with prefetch + rerank when mean pooling is enabled).
 2. When DuckDB is enabled, regions/text for those pages come directly from DuckDB; otherwise the payload contains OCR URLs for the frontend to fetch from MinIO.
-3. Chat (`/api/chat` on the frontend) streams an OpenAI response with citations, sending images and/or text depending on OCR settings.
+3. If region-level retrieval is enabled (`ENABLE_REGION_LEVEL_RETRIEVAL=true`), OCR regions are filtered using interpretability maps to return only query-relevant regions.
+4. Chat (`/api/chat` on the frontend) streams an OpenAI response with citations, sending images and/or filtered text regions depending on OCR and region filtering settings.
+
+## Interpretability
+- `POST /api/interpretability` generates token-level similarity maps showing which document patches contribute to query matches.
+- Used for debugging retrieval behavior and understanding late interaction in action.
+- Powers region-level filtering by computing relevance scores for OCR bounding boxes.
 
 ## Configuration and modes
 - Toggle OCR with `DEEPSEEK_OCR_ENABLED`; requires the ML profile (GPU).
@@ -75,7 +102,9 @@ The backend is organized into three distinct layers to ensure maintainability an
 - Progress/status is still reported over the SSE progress stream.
 
 ## Where to dig deeper
-- `STREAMING_PIPELINE.md` - how the streaming indexer overlaps stages.
-- `backend/docs/analysis.md` - when to use vision-only vs hybrid text modes.
-- `backend/docs/configuration.md` - complete configuration reference.
-- `frontend/README.md` and `backend/README.md` - development guides.
+- [Late Interaction](late_interaction.md) - multi-vector retrieval, MaxSim scoring, and two-stage search.
+- [Spatial Grounding](spatial_grounding.md) - how spatial information flows from pixels to regions.
+- [STREAMING_PIPELINE.md](../../STREAMING_PIPELINE.md) - how the streaming indexer overlaps stages.
+- [Analysis: Vision vs Text RAG](analysis.md) - when to use vision-only vs hybrid text modes.
+- [Configuration Reference](configuration.md) - complete configuration reference.
+- [Frontend README](../../frontend/README.md) and [Backend README](../README.md) - development guides.

@@ -31,9 +31,18 @@
   <a href="https://docs.docker.com/compose/"><img src="https://img.shields.io/badge/Orchestration-Docker-2496ed?style=flat-square&logo=docker" alt="Docker"></a>
 </p>
 
-# Snappy - Vision-Grounded Document Retrieval
+# Snappy - Spatially-Grounded Hybrid Document Retrieval
 
-  Snappy pairs a FastAPI backend, ColPali embedding service, DeepSeek OCR, DuckDB analytics, and a Next.js frontend to deliver hybrid vision+text retrieval over PDFs. Each page is rasterized, embedded as multivectors, and stored alongside images and optional OCR text so you can search by visual layout, extracted text, or both.
+Snappy implements **spatially-grounded hybrid document retrieval**, unifying vision-language late interaction with structured OCR for region-level retrieval-augmented generation.
+
+Each PDF page is rasterized to an image and embedded using ColPali multi-vector representations (one vector per image patch). Vision-language late interaction enables token-level query matching via MaxSim scoring, where each query token finds its best match among all document patches. Optional DeepSeek OCR adds structured text extraction with bounding boxes. Region-level retrieval uses interpretability maps to filter OCR regions by query relevance, returning only spatially-relevant content.
+
+**Key Features**:
+- **Vision-Language Late Interaction**: Multi-vector embeddings with two-stage retrieval (prefetch + rerank)
+- **Spatial Grounding**: Preserves pixel → patch → embedding → region coordinate flow
+- **Hybrid Retrieval**: Combines visual layout understanding with structured OCR text
+- **Region-Level Filtering**: Query-focused region scoring using interpretability maps
+- **Streaming Pipeline**: Fast parallel processing (5-6× faster than batch mode)
 
 
 
@@ -70,6 +79,8 @@ If you prefer Compose directly: `docker compose --profile minimal|ml|full up -d`
 | DeepSeek OCR | Need extracted text, markdown, or bounding boxes alongside visual retrieval; have an NVIDIA GPU. | Set `DEEPSEEK_OCR_ENABLED=true` and run `make up-ml` or profile `ml`. |
 | DuckDB analytics | Want deduplication, inline OCR results from the backend, or SQL over OCR regions. | Set `DUCKDB_ENABLED=true` and run `make up-full` or profile `full`. |
 | Mean pooling re-ranking | Improve search accuracy with two-stage retrieval (prefetch + re-rank). More accurate but requires more compute. | Set `QDRANT_MEAN_POOLING_ENABLED=true` in `.env`. Requires ColPali model with `/patches` support (enabled in `colmodernvbert`). |
+| Interpretability maps | Visualize which document regions contribute to query matches. Useful for understanding and debugging retrieval behavior. | Available in the lightbox after search. Upload a document image and query to see token-level similarity heatmaps at `/api/interpretability`. |
+| Region-level retrieval | Filter OCR regions by query relevance, reducing noise and improving precision. Uses interpretability maps to return only relevant regions. | Set `ENABLE_REGION_LEVEL_RETRIEVAL=true` in Configuration UI or `.env`. Adjust `REGION_RELEVANCE_THRESHOLD` (default 0.3) to control filtering sensitivity. |
 | Binary quantization | Large collections and tight RAM/GPU budget (32x memory reduction). | Enabled by default. Toggle in `.env` if needed. |
 
 ## Troubleshooting highlights
@@ -79,11 +90,20 @@ If you prefer Compose directly: `docker compose --profile minimal|ml|full up -d`
 - Config not sticking: `/config/update` is runtime-only; edit `.env` for persistence.
 
 ## Where to go next
-- `STREAMING_PIPELINE.md` - how the streaming indexer works.  
-- `backend/docs/architecture.md` - deeper component and flow description.  
-- `backend/docs/configuration.md` - full config reference.  
-- `backend/docs/analysis.md` - when to use vision vs text.  
-- `frontend/README.md`, `backend/README.md` - service-specific guides.
+
+### Core Concepts
+- [`backend/docs/late_interaction.md`](backend/docs/late_interaction.md) - multi-vector retrieval, MaxSim scoring, and two-stage search.
+- [`backend/docs/spatial_grounding.md`](backend/docs/spatial_grounding.md) - how spatial information flows from pixels to regions.
+- [`backend/docs/analysis.md`](backend/docs/analysis.md) - when to use vision vs text RAG.
+
+### System Details
+- [`STREAMING_PIPELINE.md`](STREAMING_PIPELINE.md) - how the streaming indexer works.
+- [`backend/docs/architecture.md`](backend/docs/architecture.md) - deeper component and flow description.
+- [`backend/docs/configuration.md`](backend/docs/configuration.md) - full config reference.
+
+### Development
+- [`frontend/README.md`](frontend/README.md), [`backend/README.md`](backend/README.md) - service-specific guides.
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) - contribution guidelines.
 
 ## License
 MIT License (see `LICENSE`).
