@@ -134,7 +134,7 @@ class ImageProcessor:
         Process a PIL image into the configured format with quality settings.
 
         This method performs the image conversion once, and the result can be
-        reused by multiple consumers (MinIO, OCR, etc.).
+        reused by multiple consumers (Qdrant storage, OCR, etc.).
 
         Parameters
         ----------
@@ -156,8 +156,8 @@ class ImageProcessor:
         --------
         >>> processor = ImageProcessor(default_format="JPEG", default_quality=85)
         >>> processed = processor.process(pil_image)
-        >>> # Reuse for MinIO
-        >>> minio.store_from_bytes(processed.data, ...)
+        >>> # Store as base64 in Qdrant payload
+        >>> payload["image_data"] = processed.to_base64()
         >>> # Reuse for OCR
         >>> ocr.run_ocr_bytes(processed.data, ...)
         """

@@ -3,13 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from api.dependencies import (
-    get_duckdb_service,
-    get_minio_service,
-    get_qdrant_service,
-    minio_init_error,
-    qdrant_init_error,
-)
+from api.dependencies import get_qdrant_service, qdrant_init_error
 from fastapi import APIRouter, HTTPException
 from utils.timing import PerformanceTimer
 
@@ -64,64 +58,18 @@ async def clear_qdrant():
         raise HTTPException(status_code=500, detail=str(exc))
 
 
-@router.post("/clear/minio")
-async def clear_minio():
-    logger.warning(
-        "DESTRUCTIVE: Clearing MinIO storage",
-        extra={"operation": "clear_minio", "service": "minio"},
-    )
-
-    try:
-        msvc = get_minio_service()
-        if not msvc:
-            raise HTTPException(
-                status_code=503,
-                detail=f"Service unavailable: {minio_init_error.get() or 'Dependency services are down'}",
-            )
-
-        with PerformanceTimer("clear MinIO storage", log_on_exit=False) as timer:
-            res = await asyncio.to_thread(msvc.clear_images)
-
-        logger.warning(
-            "MinIO storage cleared",
-            extra={
-                "operation": "clear_minio",
-                "deleted": res.get("deleted"),
-                "failed": res.get("failed"),
-                "duration_ms": timer.duration_ms,
-            },
-        )
-
-        return {
-            "status": "ok",
-            "deleted": res.get("deleted"),
-            "failed": res.get("failed"),
-        }
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.error(
-            "Failed to clear MinIO storage",
-            exc_info=exc,
-            extra={"operation": "clear_minio"},
-        )
-        raise HTTPException(status_code=500, detail=str(exc))
-
-
 @router.post("/clear/all")
 async def clear_all():
     logger.warning(
-        "DESTRUCTIVE: Clearing ALL data (Qdrant, MinIO, DuckDB)",
+        "DESTRUCTIVE: Clearing ALL data (Qdrant)",
         extra={"operation": "clear_all"},
     )
 
     try:
         svc = get_qdrant_service()
-        msvc = get_minio_service()
-        dsvc = get_duckdb_service()
 
         with PerformanceTimer("clear all data", log_on_exit=False) as timer:
-            results = await asyncio.to_thread(clear_all_sync, svc, msvc, dsvc)
+            results = await asyncio.to_thread(clear_all_sync, svc)
 
         status = summarize_status(results)
 
@@ -149,11 +97,9 @@ async def initialize():
 
     try:
         svc = get_qdrant_service()
-        msvc = get_minio_service()
-        dsvc = get_duckdb_service()
 
         with PerformanceTimer("initialize services", log_on_exit=False) as timer:
-            result = await asyncio.to_thread(initialize_sync, svc, msvc, dsvc)
+            result = await asyncio.to_thread(initialize_sync, svc)
 
         logger.info(
             "Services initialized",
@@ -175,22 +121,20 @@ async def initialize():
 
 
 @router.delete("/delete")
-async def delete_collection_and_bucket():
+async def delete_collection():
     logger.critical(
-        "DESTRUCTIVE: Deleting collection and bucket (PERMANENT)",
+        "DESTRUCTIVE: Deleting collection (PERMANENT)",
         extra={"operation": "delete_all", "warning": "PERMANENT_DELETION"},
     )
 
     try:
         svc = get_qdrant_service()
-        msvc = get_minio_service()
-        dsvc = get_duckdb_service()
 
         with PerformanceTimer("delete all", log_on_exit=False) as timer:
-            result = await asyncio.to_thread(delete_sync, svc, msvc, dsvc)
+            result = await asyncio.to_thread(delete_sync, svc)
 
         logger.critical(
-            "Collection and bucket deleted (PERMANENT)",
+            "Collection deleted (PERMANENT)",
             extra={
                 "operation": "delete_all",
                 "result": result,
@@ -201,7 +145,7 @@ async def delete_collection_and_bucket():
         return result
     except Exception as exc:
         logger.error(
-            "Failed to delete collection and bucket",
+            "Failed to delete collection",
             exc_info=exc,
             extra={"operation": "delete_all"},
         )

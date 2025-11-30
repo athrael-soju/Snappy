@@ -1,24 +1,15 @@
-"""OCR processing logic - extracted from qdrant/indexing/ocr.py."""
+"""OCR processing logic - simplified for inline storage."""
 
 from __future__ import annotations
 
-import base64
-import io
 import logging
 import re
-import uuid
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Sequence
-
-from PIL import Image
-from utils.timing import log_execution_time
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
     from domain.pipeline.image_processor import ImageProcessor
-    from clients.minio import MinioClient
 
     from .client import OcrClient
-    from domain.ocr_persistence import OcrStorageHandler
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +21,7 @@ class OcrProcessor:
     Responsibilities:
     - Execute OCR on image bytes
     - Parse and structure OCR responses
-    - Extract and process embedded images
-    - Format results for storage
+    - Format results for inline storage in Qdrant
     """
 
     def __init__(
@@ -121,165 +111,13 @@ class OcrProcessor:
         bounding_boxes = response.get("bounding_boxes") or []
         regions = self._build_regions_from_bboxes(filename, bounding_boxes, raw_text)
 
-        # Extract base64-encoded images if present
-        crops = response.get("crops") or []
-
         return {
             "text": text,
             "markdown": markdown,
             "raw_text": raw_text,
             "text_segments": text_segments,
             "regions": regions,
-            "crops": crops,  # Pass through for storage handler to process
         }
-
-    @log_execution_time("OCR batch", log_level=logging.DEBUG, warn_threshold_ms=15000)
-    def process_batch(
-        self,
-        filename: str,
-        page_numbers: List[int],
-        minio_service: "MinioClient",
-        storage_handler: "OcrStorageHandler",
-        *,
-        mode: Optional[str] = None,
-        task: Optional[str] = None,
-        max_workers: Optional[int] = None,
-    ) -> List[Optional[Dict[str, Any]]]:
-        """
-        Process multiple pages in parallel.
-
-        Args:
-            filename: Document filename
-            page_numbers: List of page numbers to process
-            minio_service: MinIO service for fetching images
-            storage_handler: OCR storage handler
-            mode: OCR processing mode
-            task: OCR task type
-            max_workers: Concurrent processing workers
-
-        Returns:
-            List of OCR result summaries
-        """
-        if not page_numbers:
-            return []
-
-        # Determine worker count
-        if max_workers is None:
-            import config
-
-            max_workers_config = getattr(config, "DEEPSEEK_OCR_MAX_WORKERS", None)
-            if max_workers_config:
-                max_workers = max(1, min(16, int(max_workers_config)))
-            else:
-                max_workers = 4
-
-        max_workers = max(1, min(max_workers, len(page_numbers)))
-
-        results: List[Optional[Dict[str, Any]]] = [None] * len(page_numbers)
-
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = {
-                executor.submit(
-                    self._process_page_with_storage,
-                    filename,
-                    page_num,
-                    minio_service,
-                    storage_handler,
-                    mode,
-                    task,
-                ): idx
-                for idx, page_num in enumerate(page_numbers)
-            }
-
-            for future in as_completed(futures):
-                idx = futures[future]
-                try:
-                    result = future.result()
-                    results[idx] = result
-                except Exception as exc:
-                    logger.exception(
-                        f"OCR processing failed for {filename} page {page_numbers[idx]}: {exc}"
-                    )
-                    results[idx] = {
-                        "status": "error",
-                        "filename": filename,
-                        "page_number": page_numbers[idx],
-                        "error": str(exc),
-                    }
-
-        return results
-
-    def _process_page_with_storage(
-        self,
-        document_id: str,
-        filename: str,
-        page_number: int,
-        minio_service: "MinioClient",
-        storage_handler: "OcrStorageHandler",
-        mode: Optional[str],
-        task: Optional[str],
-    ) -> Dict[str, Any]:
-        """Process a single page and store results."""
-        # Fetch image
-        image_bytes = self._fetch_page_image(minio_service, document_id, page_number)
-
-        # Process with OCR
-        ocr_result = self.process_single(
-            image_bytes=image_bytes,
-            filename=f"{filename}/page_{page_number}.png",
-            mode=mode,
-            task=task,
-        )
-
-        # Prepare metadata
-        metadata = {"filename": filename}
-
-        # Store results
-        storage_url = storage_handler.store_ocr_result(
-            ocr_result=ocr_result,
-            document_id=document_id,
-            page_number=page_number,
-            metadata=metadata,
-        )
-
-        return {
-            "status": "success",
-            "filename": filename,
-            "page_number": page_number,
-            "storage_url": storage_url,
-            "text_preview": ocr_result.get("text", "")[:200],
-            "regions": len(ocr_result.get("regions", [])),
-            "extracted_images": len(ocr_result.get("crops", [])),
-        }
-
-    def _fetch_page_image(
-        self, minio_service: "MinioClient", document_id: str, page_number: int
-    ) -> bytes:
-        """Fetch page image bytes from MinIO.
-
-        Note: With UUID-based naming, we need to list objects in the image/ subfolder
-        to find the page image since we don't have the image UUID readily available.
-        """
-        # List objects in the image/ subfolder for this page
-        prefix = f"{document_id}/{page_number}/image/"
-
-        for obj in minio_service.service.list_objects(
-            bucket_name=minio_service.bucket_name,
-            prefix=prefix,
-        ):
-            object_name = getattr(obj, "object_name", "")
-            if object_name:
-                # Found the page image, fetch it
-                response = minio_service.service.get_object(
-                    bucket_name=minio_service.bucket_name,
-                    object_name=object_name,
-                )
-                return response.read()
-
-        # No image found
-        raise FileNotFoundError(
-            f"Page image not found for document {document_id} page {page_number} in image/ subfolder"
-        )
 
     def _split_segments(self, text: str) -> List[str]:
         """Split OCR text into distinct segments."""
@@ -358,8 +196,6 @@ class OcrProcessor:
         Returns:
             Dictionary mapping labels to lists of their content
         """
-        import re
-
         content_map: Dict[str, List[str]] = {}
 
         if not raw_text:
@@ -388,97 +224,3 @@ class OcrProcessor:
                 content_map[label].append(content)
 
         return content_map
-
-    def process_extracted_images(
-        self,
-        crops: List[str],
-        document_id: str,
-        page_number: int,
-        minio_service: "MinioClient",
-    ) -> List[str]:
-        """
-        Process base64-encoded extracted images and upload to MinIO.
-
-        Args:
-            crops: List of base64-encoded image strings from DeepSeek OCR
-            document_id: Document UUID for storage hierarchy
-            page_number: Page number for storage hierarchy
-            minio_service: MinIO service for uploads
-
-        Returns:
-            List of MinIO URLs for uploaded images
-        """
-        if not crops:
-            return []
-
-        image_urls = []
-
-        for crop_b64 in crops:
-            try:
-                # Decode base64 to PIL Image
-                image_data = base64.b64decode(crop_b64)
-                pil_image = Image.open(io.BytesIO(image_data))
-
-                # Process image
-                processed = self._image_processor.process(pil_image)
-
-                # Storage structure: {doc_uuid}/{page_number}/ocr_regions/{uuid}.{ext}
-                ext = self._image_processor.get_extension()
-                region_uuid = str(uuid.uuid4())
-                object_name = f"{document_id}/{page_number}/ocr_regions/{region_uuid}.{ext}"
-
-                # Upload to MinIO
-                buf = processed.to_buffer()
-                minio_service.service.put_object(
-                    bucket_name=minio_service.bucket_name,
-                    object_name=object_name,
-                    data=buf,
-                    length=processed.size,
-                    content_type=processed.content_type,
-                )
-
-                # Generate public URL
-                url = minio_service._get_image_url(object_name)
-                image_urls.append(url)
-
-                logger.debug(
-                    f"Uploaded extracted image to {object_name} "
-                    f"(format={processed.format}, size={processed.size} bytes)"
-                )
-
-            except Exception as exc:
-                logger.warning(
-                    f"Failed to process extracted image: {exc}", exc_info=True
-                )
-                continue
-
-        return image_urls
-
-    @staticmethod
-    def replace_base64_with_urls(markdown: str, image_urls: List[str]) -> str:
-        """
-        Replace base64-encoded image data URLs in markdown with MinIO URLs.
-
-        Args:
-            markdown: Markdown text with base64 image data URLs
-            image_urls: List of MinIO URLs to replace with
-
-        Returns:
-            Updated markdown with MinIO URLs
-        """
-        if not image_urls:
-            return markdown
-
-        # Pattern to match base64 image data URLs in markdown
-        # Format: ![Figure N](data:image/png;base64,...)
-        pattern = r"!\[Figure (\d+)\]\(data:image/[^;]+;base64,[^)]+\)"
-
-        def replacer(match):
-            figure_num = int(match.group(1))
-            # Figure numbers are 1-indexed
-            if 1 <= figure_num <= len(image_urls):
-                url = image_urls[figure_num - 1]
-                return f"![Figure {figure_num}]({url})"
-            return match.group(0)  # Keep original if no URL available
-
-        return re.sub(pattern, replacer, markdown)

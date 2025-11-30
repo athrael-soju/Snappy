@@ -3,13 +3,9 @@ import asyncio
 from __version__ import __version__
 from api.dependencies import (
     colpali_init_error,
-    duckdb_init_error,
     get_colpali_client,
-    get_duckdb_service,
-    get_minio_service,
     get_ocr_service,
     get_qdrant_service,
-    minio_init_error,
     ocr_init_error,
     qdrant_init_error,
 )
@@ -35,22 +31,18 @@ async def root():
 
 @router.get("/health")
 async def health():
-    colpali_ok, minio_ok, qdrant_ok, duckdb_ok, ocr_ok = await asyncio.gather(
+    colpali_ok, qdrant_ok, ocr_ok = await asyncio.gather(
         asyncio.to_thread(_check_colpali),
-        asyncio.to_thread(_check_minio),
         asyncio.to_thread(_check_qdrant),
-        asyncio.to_thread(_check_duckdb),
         asyncio.to_thread(_check_ocr),
     )
 
     # Core services must be healthy; OCR is optional
-    core_ok = colpali_ok and minio_ok and qdrant_ok and duckdb_ok
+    core_ok = colpali_ok and qdrant_ok
     response: dict[str, object] = {
         "status": "ok" if core_ok else "degraded",
         "colpali": colpali_ok,
-        "minio": minio_ok,
         "qdrant": qdrant_ok,
-        "duckdb": duckdb_ok,
         "ocr": ocr_ok,
     }
 
@@ -61,12 +53,6 @@ async def health():
     qdrant_err = qdrant_init_error.get()
     if qdrant_err:
         response["qdrant_init_error"] = qdrant_err
-    minio_err = minio_init_error.get()
-    if minio_err:
-        response["minio_init_error"] = minio_err
-    duckdb_err = duckdb_init_error.get()
-    if duckdb_err:
-        response["duckdb_init_error"] = duckdb_err
     ocr_err = ocr_init_error.get()
     if ocr_err:
         response["ocr_init_error"] = ocr_err
@@ -91,14 +77,6 @@ def _check_colpali() -> bool:
         return False
 
 
-def _check_minio() -> bool:
-    try:
-        svc = get_minio_service()
-        return bool(svc and svc.health_check())
-    except Exception:
-        return False
-
-
 def _check_qdrant() -> bool:
     try:
         svc = get_qdrant_service()
@@ -114,15 +92,5 @@ def _check_ocr() -> bool:
         if service is None:
             return True
         return bool(service.health_check())
-    except Exception:
-        return False
-
-
-def _check_duckdb() -> bool:
-    try:
-        svc = get_duckdb_service()
-        if not svc:
-            return False
-        return svc.health_check()
     except Exception:
         return False

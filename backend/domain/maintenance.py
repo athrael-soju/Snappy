@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Optional
 
-from api.dependencies import duckdb_init_error, minio_init_error, qdrant_init_error
+from api.dependencies import qdrant_init_error
 
 try:  # pragma: no cover - tooling support
     import config  # type: ignore
@@ -10,8 +10,6 @@ except ModuleNotFoundError:  # pragma: no cover
     from backend import config as config  # type: ignore
 
 if TYPE_CHECKING:  # pragma: no cover
-    from clients.duckdb import DuckDBClient
-    from clients.minio import MinioClient
     from clients.qdrant import QdrantClient
 
 
@@ -22,11 +20,8 @@ def collection_name() -> str:
     return str(getattr(config, "QDRANT_COLLECTION_NAME", "documents"))
 
 
-def bucket_name() -> str:
-    return str(getattr(config, "MINIO_BUCKET_NAME", "documents"))
-
-
 def collect_collection_status(svc: Optional["QdrantClient"]) -> dict:
+    """Collect status for Qdrant collection."""
     embedded = bool(getattr(config, "QDRANT_EMBEDDED", False))
     status = {
         "name": collection_name(),
@@ -35,7 +30,7 @@ def collect_collection_status(svc: Optional["QdrantClient"]) -> dict:
         "unique_files": 0,
         "error": None,
         "embedded": embedded,
-        "image_store_mode": "minio",
+        "image_store_mode": "inline",
         "size_mb": 0.0,
     }
     if not svc:
@@ -67,85 +62,6 @@ def collect_collection_status(svc: Optional["QdrantClient"]) -> dict:
             status["error"] = INACTIVE_MESSAGE
         else:
             status["error"] = str(exc)
-    return status
-
-
-def collect_bucket_status(msvc: Optional["MinioClient"]) -> dict:
-    status = {
-        "name": bucket_name(),
-        "exists": False,
-        "object_count": 0,
-        "page_count": 0,
-        "element_count": 0,
-        "size_mb": 0.0,
-        "error": None,
-    }
-    if not msvc:
-        status["error"] = minio_init_error.get() or "Service unavailable"
-        return status
-    try:
-        bucket_exists = msvc.service.bucket_exists(bucket_name())
-        status["exists"] = bucket_exists
-        if bucket_exists:
-            total_bytes = 0
-            for obj in msvc.service.list_objects(bucket_name(), recursive=True):
-                status["object_count"] += 1
-                size = getattr(obj, "size", 0) or 0
-                total_bytes += size
-                object_name = getattr(obj, "object_name", "") or ""
-
-                # Count only new subfolder structure
-                if "/image/" in object_name:
-                    # {filename}/{page}/image/{uuid}.{ext}
-                    status["page_count"] += 1
-                elif "/ocr/" in object_name and object_name.endswith(".json"):
-                    # {filename}/{page}/ocr/{uuid}.json
-                    status["element_count"] += 1
-                # Note: /ocr_regions/ files (region JSONs and figures) are not counted separately
-            status["size_mb"] = (
-                round(total_bytes / (1024 * 1024), 2) if total_bytes else 0.0
-            )
-        else:
-            status["error"] = INACTIVE_MESSAGE
-    except Exception as exc:
-        status["error"] = str(exc)
-    return status
-
-
-def collect_duckdb_status(dsvc: Optional["DuckDBClient"]) -> dict:
-    enabled = bool(getattr(config, "DUCKDB_ENABLED", False))
-    status = {
-        "name": getattr(config, "DUCKDB_DATABASE_NAME", "documents"),
-        "enabled": enabled,
-        "available": False,
-        "page_count": 0,
-        "region_count": 0,
-        "database_size_mb": 0.0,
-        "error": None,
-    }
-
-    if not enabled:
-        status["error"] = "Disabled via configuration"
-        return status
-
-    if not dsvc:
-        status["error"] = duckdb_init_error.get() or "Service unavailable"
-        return status
-
-    try:
-        stats = dsvc.get_stats() or {}
-        if not stats.get("schema_active", True):
-            status["error"] = INACTIVE_MESSAGE
-            return status
-
-        status["available"] = True
-        status["page_count"] = int(stats.get("total_pages", 0) or 0)
-        status["region_count"] = int(stats.get("total_regions", 0) or 0)
-        status["document_count"] = int(stats.get("total_documents", 0) or 0)
-        status["database_size_mb"] = float(stats.get("storage_size_mb", 0) or 0)
-    except Exception as exc:
-        status["error"] = str(exc)
-
     return status
 
 
@@ -181,15 +97,10 @@ def get_vector_total_dim(collection_info: Any) -> int:
     return total
 
 
-def clear_all_sync(
-    svc: Optional["QdrantClient"],
-    msvc: Optional["MinioClient"],
-    dsvc: Optional["DuckDBClient"],
-) -> dict:
+def clear_all_sync(svc: Optional["QdrantClient"]) -> dict:
+    """Clear all data from Qdrant collection."""
     results = {
         "collection": {"status": "pending", "message": ""},
-        "bucket": {"status": "pending", "message": ""},
-        "duckdb": {"status": "pending", "message": ""},
     }
 
     if svc:
@@ -210,55 +121,13 @@ def clear_all_sync(
             qdrant_init_error.get() or "Qdrant service unavailable"
         )
 
-    if msvc:
-        if bucket_exists(msvc):
-            try:
-                msvc.clear_images()
-                results["bucket"]["status"] = "success"
-                results["bucket"]["message"] = "Cleared MinIO objects"
-            except Exception as exc:
-                results["bucket"]["status"] = "error"
-                results["bucket"]["message"] = str(exc)
-        else:
-            results["bucket"]["status"] = "skipped"
-            results["bucket"]["message"] = "Bucket missing; initialize first"
-    else:
-        results["bucket"]["status"] = "error"
-        results["bucket"]["message"] = (
-            minio_init_error.get() or "MinIO service unavailable"
-        )
-
-    if not getattr(config, "DUCKDB_ENABLED", False):
-        results["duckdb"]["status"] = "skipped"
-        results["duckdb"]["message"] = "DuckDB disabled via configuration"
-    elif not dsvc:
-        results["duckdb"]["status"] = "error"
-        results["duckdb"]["message"] = duckdb_init_error.get() or "DuckDB unavailable"
-    else:
-        if duckdb_available(dsvc):
-            try:
-                dsvc.clear_storage()
-                results["duckdb"]["status"] = "success"
-                results["duckdb"]["message"] = "Cleared DuckDB tables"
-            except Exception as exc:
-                results["duckdb"]["status"] = "error"
-                results["duckdb"]["message"] = str(exc)
-        else:
-            results["duckdb"]["status"] = "skipped"
-            results["duckdb"]["message"] = "DuckDB missing; initialize first"
-
     return results
 
 
-def initialize_sync(
-    svc: Optional["QdrantClient"],
-    msvc: Optional["MinioClient"],
-    dsvc: Optional["DuckDBClient"],
-) -> dict:
+def initialize_sync(svc: Optional["QdrantClient"]) -> dict:
+    """Initialize Qdrant collection."""
     results = {
         "collection": {"status": "pending", "message": ""},
-        "bucket": {"status": "pending", "message": ""},
-        "duckdb": {"status": "pending", "message": ""},
     }
     if svc:
         try:
@@ -275,49 +144,15 @@ def initialize_sync(
         results["collection"]["message"] = (
             qdrant_init_error.get() or "Service unavailable"
         )
-    if msvc:
-        try:
-            msvc._create_bucket_if_not_exists()
-            results["bucket"]["status"] = "success"
-            results["bucket"][
-                "message"
-            ] = f"Bucket '{bucket_name()}' initialized successfully"
-        except Exception as exc:
-            results["bucket"]["status"] = "error"
-            results["bucket"]["message"] = str(exc)
-    else:
-        results["bucket"]["status"] = "error"
-        results["bucket"]["message"] = minio_init_error.get() or "Service unavailable"
-    if not getattr(config, "DUCKDB_ENABLED", False):
-        results["duckdb"]["status"] = "skipped"
-        results["duckdb"]["message"] = "DuckDB disabled via configuration"
-    elif not dsvc:
-        results["duckdb"]["status"] = "error"
-        results["duckdb"]["message"] = duckdb_init_error.get() or "Service unavailable"
-    else:
-        try:
-            res = dsvc.initialize_storage()
-            results["duckdb"]["status"] = "success" if res else "error"
-            results["duckdb"]["message"] = (
-                str(res.get("message") or "") if isinstance(res, dict) else ""
-            )
-        except Exception as exc:
-            results["duckdb"]["status"] = "error"
-            results["duckdb"]["message"] = str(exc)
 
     overall_status = summarize_status(results)
     return {"status": overall_status, "results": results}
 
 
-def delete_sync(
-    svc: Optional["QdrantClient"],
-    msvc: Optional["MinioClient"],
-    dsvc: Optional["DuckDBClient"],
-) -> dict:
+def delete_sync(svc: Optional["QdrantClient"]) -> dict:
+    """Delete Qdrant collection."""
     results = {
         "collection": {"status": "pending", "message": ""},
-        "bucket": {"status": "pending", "message": ""},
-        "duckdb": {"status": "pending", "message": ""},
     }
     if svc:
         try:
@@ -338,57 +173,6 @@ def delete_sync(
         results["collection"]["message"] = (
             qdrant_init_error.get() or "Service unavailable"
         )
-    if msvc:
-        try:
-            bucket_exists = msvc.service.bucket_exists(bucket_name())
-            if bucket_exists:
-                objects = msvc.list_object_names(recursive=True)
-                if objects:
-                    from minio.deleteobjects import DeleteObject
-
-                    delete_objects = [DeleteObject(name) for name in objects]
-                    errors = list(
-                        msvc.service.remove_objects(
-                            bucket_name(),
-                            delete_objects,
-                        )
-                    )
-                    if errors:
-                        results["bucket"]["status"] = "error"
-                        results["bucket"][
-                            "message"
-                        ] = f"Failed to delete some objects: {len(errors)} errors"
-                        return {"status": "error", "results": results}
-                msvc.service.remove_bucket(bucket_name())
-                results["bucket"]["status"] = "success"
-                results["bucket"][
-                    "message"
-                ] = f"Bucket '{bucket_name()}' deleted successfully"
-            else:
-                results["bucket"]["status"] = "success"
-                results["bucket"]["message"] = "Bucket did not exist"
-        except Exception as exc:
-            results["bucket"]["status"] = "error"
-            results["bucket"]["message"] = str(exc)
-    else:
-        results["bucket"]["status"] = "error"
-        results["bucket"]["message"] = minio_init_error.get() or "Service unavailable"
-    if not getattr(config, "DUCKDB_ENABLED", False):
-        results["duckdb"]["status"] = "skipped"
-        results["duckdb"]["message"] = "DuckDB disabled via configuration"
-    elif not dsvc:
-        results["duckdb"]["status"] = "error"
-        results["duckdb"]["message"] = duckdb_init_error.get() or "Service unavailable"
-    else:
-        try:
-            res = dsvc.delete_storage()
-            results["duckdb"]["status"] = "success" if res else "error"
-            results["duckdb"]["message"] = (
-                str(res.get("message") or "") if isinstance(res, dict) else ""
-            )
-        except Exception as exc:
-            results["duckdb"]["status"] = "error"
-            results["duckdb"]["message"] = str(exc)
 
     overall_status = summarize_status(results)
     return {"status": overall_status, "results": results}
@@ -411,18 +195,3 @@ def collection_exists(svc: "QdrantClient") -> bool:
         return True
     except Exception as exc:
         return "not found" not in str(exc).lower()
-
-
-def bucket_exists(msvc: "MinioClient") -> bool:
-    try:
-        return bool(msvc.service.bucket_exists(bucket_name()))
-    except Exception:
-        return False
-
-
-def duckdb_available(dsvc: "DuckDBClient") -> bool:
-    try:
-        stats = dsvc.get_stats()
-        return bool(stats)
-    except Exception:
-        return False

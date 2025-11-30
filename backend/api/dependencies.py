@@ -71,19 +71,31 @@ class _ColPaliClientProxy:
 api_client = _ColPaliClientProxy()
 
 
-def _get_ocr_service():
+@lru_cache(maxsize=1)
+def _get_ocr_service_cached():
     """Create OCR service if enabled."""
     if not config.DEEPSEEK_OCR_ENABLED:
         return None
 
-    try:
-        # Lazy import to avoid circular dependencies
-        from clients.ocr import OcrClient
+    # Lazy import to avoid circular dependencies
+    from clients.ocr import OcrClient
 
-        return OcrClient()
+    return OcrClient()
+
+
+def get_ocr_service():
+    """Return the cached OCR service instance, capturing initialization errors."""
+    if not config.DEEPSEEK_OCR_ENABLED:
+        return None
+
+    try:
+        service = _get_ocr_service_cached()
+        ocr_init_error.clear()
+        return service
     except Exception as exc:
         logger.error("Failed to initialize OCR service: %s", exc)
         ocr_init_error.set(str(exc))
+        _get_ocr_service_cached.cache_clear()
         return None
 
 
@@ -91,7 +103,7 @@ def _get_ocr_service():
 def _get_qdrant_service_cached() -> QdrantClient:
     ocr_service = None
     if config.DEEPSEEK_OCR_ENABLED:
-        ocr_service = _get_ocr_service()
+        ocr_service = get_ocr_service()
         if ocr_service is None:
             logger.warning("OCR is enabled but service failed to initialize")
 
@@ -126,3 +138,4 @@ def invalidate_services():
     # Clear caches
     _get_qdrant_service_cached.cache_clear()
     _get_colpali_client_cached.cache_clear()
+    _get_ocr_service_cached.cache_clear()

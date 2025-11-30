@@ -56,8 +56,7 @@ SCHEMA: Dict[str, Any] = {
             },
             {
                 "default": "documents",
-                "description": "Name of the Qdrant collection (Also used for MinIO "
-                "bucket)",
+                "description": "Name of the Qdrant collection for document storage",
                 "help_text": "Name of the Qdrant collection storing your document "
                 "embeddings. Think of it as a database table. Changing this "
                 "creates/uses a different collection. Useful for testing or "
