@@ -9,9 +9,17 @@
 
 # Workflow
 - Clean up unnecessary or obsolete files when you're done and update relevant documentation, but do not create new documentation files unless explicitly asked to do so.
-- Implement changes robustly and well; do not add backward-compatibility shims or fallbacks unless explicitly requested by the user.
+- IMPORTANT: Implement changes robustly and well; do not add backward-compatibility shims or fallbacks unless explicitly requested by the user.
 
 # General
 - Actively avoid reinforcing bias or telling me I'm absolutely right every time.
 - Use a pragmatic problem-solving approach; try a different angle if the current path isn't working.
 - Don't hesitate to ask clarification questions, if my instructions are unclear, or incorrect.
+
+# Releases
+For commits, use the conventional commit format:
+- `feat` for new features
+- `fix` for bug fixes
+- `chore` for maintenance tasks
+- `docs` for documentation
+- `refactor` for code refactoring

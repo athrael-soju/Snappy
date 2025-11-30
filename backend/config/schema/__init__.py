@@ -23,6 +23,7 @@ from .duckdb import SCHEMA as DUCKDB_SCHEMA
 from .minio import SCHEMA as MINIO_SCHEMA
 from .processing import SCHEMA as PROCESSING_SCHEMA
 from .qdrant import SCHEMA as QDRANT_SCHEMA
+from .retrieval import SCHEMA as RETRIEVAL_SCHEMA
 from .upload import SCHEMA as UPLOAD_SCHEMA
 
 # Combine all schemas into the main CONFIG_SCHEMA
@@ -30,6 +31,7 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
     **APPLICATION_SCHEMA,
     **PROCESSING_SCHEMA,
     **UPLOAD_SCHEMA,
+    **RETRIEVAL_SCHEMA,
     **COLPALI_SCHEMA,
     **DEEPSEEK_OCR_SCHEMA,
     **QDRANT_SCHEMA,
