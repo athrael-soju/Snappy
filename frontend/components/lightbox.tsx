@@ -50,18 +50,25 @@ export default function ImageLightbox({
   const [interpretabilityData, setInterpretabilityData] =
     useState<InterpretabilityData | null>(null);
   const [selectedToken, setSelectedToken] = useState<number | null>(null);
-  const [colorScale, setColorScale] = useState<ColorScale>(() => {
-    const stored = localStorage.getItem("interpretability-color-scale");
-    return (stored as ColorScale) || "YlOrRd";
-  });
-  const [normalizationStrategy, setNormalizationStrategy] = useState<NormalizationStrategy>(() => {
-    const stored = localStorage.getItem("interpretability-normalization-strategy");
-    return (stored as NormalizationStrategy) || "percentile";
-  });
+  const [colorScale, setColorScale] = useState<ColorScale>("YlOrRd");
+  const [normalizationStrategy, setNormalizationStrategy] = useState<NormalizationStrategy>("percentile");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
   const imgRef = useRef<HTMLImageElement>(null);
+
+  // Load preferences from localStorage on mount (client-side only)
+  useEffect(() => {
+    const storedColorScale = localStorage.getItem("interpretability-color-scale");
+    const storedNormalization = localStorage.getItem("interpretability-normalization-strategy");
+
+    if (storedColorScale) {
+      setColorScale(storedColorScale as ColorScale);
+    }
+    if (storedNormalization) {
+      setNormalizationStrategy(storedNormalization as NormalizationStrategy);
+    }
+  }, []);
 
   // Save color scale to localStorage
   useEffect(() => {
