@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.9](https://github.com/athrael-soju/Snappy/compare/v0.3.8...v0.3.9) (2025-11-30)
+
+
+### Features
+
+* update contribution guidelines to emphasize robust implementation and commit format ([9392807](https://github.com/athrael-soju/Snappy/commit/9392807ec5f378b5ad4aab81ba0214b3daac7f80))
+
 ## [0.3.8](https://github.com/athrael-soju/Snappy/compare/v0.3.7...v0.3.8) (2025-11-25)
 
 
