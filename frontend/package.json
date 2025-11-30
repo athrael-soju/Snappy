@@ -1,6 +1,6 @@
 {
   "name": "frontend",
-  "version": "0.3.5",
+  "version": "0.3.8",
   "private": true,
   "description": "Vision-first document retrieval system using ColPali embeddings for visual PDF search with Next.js 16 and React 19.2",
   "keywords": [
@@ -67,6 +67,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@tabler/icons-react": "^3.35.0",
     "@zodios/core": "^10.9.6",
+    "chroma-js": "^3.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.22",
@@ -79,12 +80,14 @@
     "react-dom": "19.2.0",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
+    "simple-statistics": "^7.8.8",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1",
     "zod": "^4.1.12"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/chroma-js": "^3.1.2",
     "@types/node": "^20",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",

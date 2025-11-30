@@ -1,12 +1,12 @@
 """Embedding generation processor service."""
 
 import logging
-from typing import List, cast
+from typing import Any, List, cast
 
 import torch
 from PIL import Image
 
-from app.models.schemas import ImageEmbeddingItem
+from app.models.schemas import ImageEmbeddingItem, InterpretabilityResponse, TokenSimilarityMap
 from app.services.model_service import model_service
 
 logger = logging.getLogger(__name__)
@@ -97,6 +97,100 @@ class EmbeddingProcessor:
                 )
 
             return batch_items
+
+    def generate_interpretability_maps(
+        self, query: str, image: Image.Image
+    ) -> InterpretabilityResponse:
+        """Generate interpretability maps showing query-document token correspondence.
+
+        Args:
+            query: The query text to interpret
+            image: The document image to analyze
+
+        Returns:
+            InterpretabilityResponse with per-token similarity maps
+        """
+        device = model_service.model.device
+
+        with torch.no_grad():
+            # Process query and image
+            batch_query = model_service.processor.process_queries([query]).to(device)
+            batch_images = model_service.processor.process_images([image]).to(device)
+
+            # Generate embeddings
+            query_embeddings = cast(
+                torch.Tensor, model_service.model(**batch_query)
+            )  # [1, seq, dim]
+            image_embeddings = cast(
+                torch.Tensor, model_service.model(**batch_images)
+            )  # [1, seq, dim]
+
+            # Get number of patches for the image
+            n_patches = model_service.processor.get_n_patches(
+                (image.size[1], image.size[0])
+            )  # (height, width) -> (n_patches_x, n_patches_y)
+
+            # Get local image mask (excludes global patch tokens for spatial correspondence)
+            image_mask = model_service.processor.get_local_image_mask(
+                cast(Any, batch_images)
+            )
+
+            # Generate similarity maps using processor's interpretability method
+            similarity_maps_batch = (
+                model_service.processor.get_similarity_maps_from_embeddings(
+                    image_embeddings=image_embeddings,
+                    query_embeddings=query_embeddings,
+                    n_patches=n_patches,
+                    image_mask=image_mask,
+                )
+            )  # [1, query_length, n_patches_x, n_patches_y]
+
+            # Get the similarity map for our input (unbatch)
+            similarity_maps = similarity_maps_batch[0]  # [query_length, n_patches_x, n_patches_y]
+
+            # Extract query tokens (filtering out special tokens)
+            input_ids = batch_query.input_ids[0].tolist()
+            query_tokens = model_service.processor.tokenizer.convert_ids_to_tokens(
+                batch_query.input_ids[0]
+            )
+            special_token_ids = set(
+                model_service.processor.tokenizer.all_special_ids or []
+            )
+
+            # Filter tokens and their corresponding similarity maps
+            filtered_token_maps: List[TokenSimilarityMap] = []
+
+            for idx, (token, token_id) in enumerate(zip(query_tokens, input_ids)):
+                if token_id in special_token_ids:
+                    continue
+
+                # Get the similarity map for this token using idx (not a separate counter)
+                # similarity_maps includes ALL tokens, so we use idx to get the correct map
+                token_sim_map = similarity_maps[idx].cpu().tolist()
+
+                # Clean token for display (remove special characters)
+                display_token = token.replace("Ġ", " ").replace("▁", " ")
+
+                filtered_token_maps.append(
+                    TokenSimilarityMap(
+                        token=display_token,
+                        token_index=idx,
+                        similarity_map=token_sim_map,
+                    )
+                )
+
+            # Extract just the token strings for the response
+            filtered_tokens = [tm.token for tm in filtered_token_maps]
+
+            return InterpretabilityResponse(
+                query=query,
+                tokens=filtered_tokens,
+                similarity_maps=filtered_token_maps,
+                n_patches_x=int(n_patches[0]),
+                n_patches_y=int(n_patches[1]),
+                image_width=image.size[0],
+                image_height=image.size[1],
+            )
 
 
 # Global embedding processor instance

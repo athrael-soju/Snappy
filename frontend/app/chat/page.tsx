@@ -39,6 +39,7 @@ export default function ChatPage() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string>("");
   const [lightboxAlt, setLightboxAlt] = useState<string | null>(null);
+  const [lightboxQuery, setLightboxQuery] = useState<string | undefined>(undefined);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
@@ -68,8 +69,16 @@ export default function ChatPage() {
     if (!url) {
       return;
     }
+
+    // Find the most recent user message as the query context for interpretability
+    const lastUserMessage = messages
+      .slice()
+      .reverse()
+      .find((msg) => msg.role === "user" && msg.content.trim().length > 0);
+
     setLightboxSrc(url);
     setLightboxAlt(label ?? null);
+    setLightboxQuery(lastUserMessage?.content);
     setLightboxOpen(true);
   };
 
@@ -208,11 +217,13 @@ export default function ChatPage() {
         open={lightboxOpen}
         src={lightboxSrc}
         alt={lightboxAlt ?? undefined}
+        query={lightboxQuery}
         onOpenChange={(open) => {
           setLightboxOpen(open);
           if (!open) {
             setLightboxSrc("");
             setLightboxAlt(null);
+            setLightboxQuery(undefined);
           }
         }}
       />
