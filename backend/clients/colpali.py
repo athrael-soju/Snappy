@@ -435,3 +435,52 @@ class ColPaliClient:
             scores.append(max(similarities) if similarities else 0.0)
 
         return np.array(scores)
+
+    def generate_interpretability_maps(
+        self, query: str, image: Image.Image
+    ) -> dict[str, Any]:
+        """Generate interpretability maps for a query-image pair.
+
+        This is separate from embedding/search to avoid performance overhead.
+        Shows which document regions contribute to similarity scores for each query token.
+
+        Args:
+            query: The query text to interpret
+            image: The document image to analyze
+
+        Returns:
+            Dictionary containing:
+            - query: Original query text
+            - tokens: List of query tokens (filtered)
+            - similarity_maps: Per-token similarity maps
+            - n_patches_x: Number of patches in x dimension
+            - n_patches_y: Number of patches in y dimension
+            - image_width: Original image width
+            - image_height: Original image height
+        """
+        try:
+            self._logger.debug(f"Generating interpretability maps for query: {query}")
+
+            # Encode image to bytes
+            img_byte_arr = io.BytesIO()
+            image.save(img_byte_arr, format="PNG")
+            img_byte_arr.seek(0)
+
+            # Prepare multipart form data
+            files = {"file": ("image.png", img_byte_arr, "image/png")}
+            data = {"query": query}
+
+            response = self.session.post(
+                f"{self.base_url}/interpret",
+                data=data,
+                files=files,
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+
+            return response.json()
+        except Exception as e:
+            self._logger.error(f"Failed to generate interpretability maps: {e}")
+            raise
+        finally:
+            img_byte_arr.close()
