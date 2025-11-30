@@ -27,8 +27,8 @@ import {
   InterpretabilityHeatmap,
   type InterpretabilityData,
   type ColorScale,
-  type NormalizationStrategy,
 } from "@/components/interpretability-heatmap";
+import { type NormalizationStrategy } from "@/lib/utils/normalization";
 import { generateInterpretabilityMaps } from "@/lib/api/interpretability";
 
 export type ImageLightboxProps = {
@@ -51,7 +51,7 @@ export default function ImageLightbox({
     useState<InterpretabilityData | null>(null);
   const [selectedToken, setSelectedToken] = useState<number | null>(null);
   const [colorScale, setColorScale] = useState<ColorScale>("YlOrRd");
-  const [normalizationStrategy, setNormalizationStrategy] = useState<NormalizationStrategy>("percentile");
+  const [normalizationStrategy, setNormalizationStrategy] = useState<NormalizationStrategy>("minmax");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
@@ -230,9 +230,11 @@ export default function ImageLightbox({
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="percentile">Percentile</SelectItem>
+                            <SelectItem value="percentile">Percentile (2-98%)</SelectItem>
                             <SelectItem value="minmax">Min-Max</SelectItem>
-                            <SelectItem value="robust">Robust</SelectItem>
+                            <SelectItem value="robust">Robust (IQR)</SelectItem>
+                            <SelectItem value="zscore">Z-Score</SelectItem>
+                            <SelectItem value="mad">MAD (Median)</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

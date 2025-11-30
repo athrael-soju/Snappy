@@ -2,6 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import chroma from "chroma-js";
+import {
+  normalizeValues,
+  type NormalizationStrategy,
+} from "@/lib/utils/normalization";
 
 export type TokenSimilarityMap = {
   token: string;
@@ -29,8 +33,6 @@ export type ColorScale =
   | "Blues"
   | "Oranges"
   | "Purples";
-
-export type NormalizationStrategy = "percentile" | "minmax" | "robust";
 
 export type InterpretabilityHeatmapProps = {
   data: InterpretabilityData;
@@ -61,46 +63,6 @@ function getColorScale(scale: ColorScale): chroma.Scale {
   return chroma.scale(chroma.brewer[scale]);
 }
 
-/**
- * Normalize values based on the specified strategy
- * - percentile: 2nd-98th percentile (robust to outliers, default)
- * - minmax: Full range (may be noisy)
- * - robust: IQR-based (very resistant to outliers)
- */
-function normalizeValues(
-  values: number[],
-  strategy: NormalizationStrategy
-): { min: number; max: number } {
-  const sorted = [...values].sort((a, b) => a - b);
-
-  switch (strategy) {
-    case "percentile": {
-      // Use 2nd and 98th percentile for better outlier handling
-      const lowIndex = Math.floor(sorted.length * 0.02);
-      const highIndex = Math.floor(sorted.length * 0.98);
-      return {
-        min: sorted[lowIndex],
-        max: sorted[highIndex],
-      };
-    }
-    case "minmax": {
-      return {
-        min: sorted[0],
-        max: sorted[sorted.length - 1],
-      };
-    }
-    case "robust": {
-      // IQR-based normalization (25th to 75th percentile)
-      const q1Index = Math.floor(sorted.length * 0.25);
-      const q3Index = Math.floor(sorted.length * 0.75);
-      return {
-        min: sorted[q1Index],
-        max: sorted[q3Index],
-      };
-    }
-  }
-}
-
 export function InterpretabilityHeatmap({
   data,
   imageWidth,
@@ -108,7 +70,7 @@ export function InterpretabilityHeatmap({
   selectedToken,
   opacity = 0.7,
   colorScale = "YlOrRd",
-  normalizationStrategy = "percentile",
+  normalizationStrategy = "minmax",
 }: InterpretabilityHeatmapProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hoveredToken, setHoveredToken] = useState<number | null>(null);
