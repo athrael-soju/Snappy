@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import chroma from "chroma-js";
 
 export type TokenSimilarityMap = {
   token: string;
@@ -18,20 +19,96 @@ export type InterpretabilityData = {
   image_height: number;
 };
 
+export type ColorScale =
+  | "Spectral"
+  | "RdYlBu"
+  | "RdBu"
+  | "YlOrRd"
+  | "YlGnBu"
+  | "Reds"
+  | "Blues"
+  | "Oranges"
+  | "Purples";
+
+export type NormalizationStrategy = "percentile" | "minmax" | "robust";
+
 export type InterpretabilityHeatmapProps = {
   data: InterpretabilityData;
   imageWidth: number;
   imageHeight: number;
   selectedToken?: number;
   opacity?: number;
+  colorScale?: ColorScale;
+  normalizationStrategy?: NormalizationStrategy;
 };
+
+/**
+ * Get a ColorBrewer scale from chroma-js
+ * Diverging scales (for comparing high/low):
+ * - Spectral: Multi-hue diverging
+ * - RdYlBu: Red-Yellow-Blue diverging
+ * - RdBu: Red-Blue diverging
+ *
+ * Sequential scales (for intensity):
+ * - YlOrRd: Yellow-Orange-Red
+ * - YlGnBu: Yellow-Green-Blue
+ * - Reds: White to red
+ * - Blues: White to blue
+ * - Oranges: White to orange
+ * - Purples: White to purple
+ */
+function getColorScale(scale: ColorScale): chroma.Scale {
+  return chroma.scale(chroma.brewer[scale]);
+}
+
+/**
+ * Normalize values based on the specified strategy
+ * - percentile: 2nd-98th percentile (robust to outliers, default)
+ * - minmax: Full range (may be noisy)
+ * - robust: IQR-based (very resistant to outliers)
+ */
+function normalizeValues(
+  values: number[],
+  strategy: NormalizationStrategy
+): { min: number; max: number } {
+  const sorted = [...values].sort((a, b) => a - b);
+
+  switch (strategy) {
+    case "percentile": {
+      // Use 2nd and 98th percentile for better outlier handling
+      const lowIndex = Math.floor(sorted.length * 0.02);
+      const highIndex = Math.floor(sorted.length * 0.98);
+      return {
+        min: sorted[lowIndex],
+        max: sorted[highIndex],
+      };
+    }
+    case "minmax": {
+      return {
+        min: sorted[0],
+        max: sorted[sorted.length - 1],
+      };
+    }
+    case "robust": {
+      // IQR-based normalization (25th to 75th percentile)
+      const q1Index = Math.floor(sorted.length * 0.25);
+      const q3Index = Math.floor(sorted.length * 0.75);
+      return {
+        min: sorted[q1Index],
+        max: sorted[q3Index],
+      };
+    }
+  }
+}
 
 export function InterpretabilityHeatmap({
   data,
   imageWidth,
   imageHeight,
   selectedToken,
-  opacity = 0.75,
+  opacity = 0.7,
+  colorScale = "YlOrRd",
+  normalizationStrategy = "percentile",
 }: InterpretabilityHeatmapProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hoveredToken, setHoveredToken] = useState<number | null>(null);
@@ -45,41 +122,31 @@ export function InterpretabilityHeatmap({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Clear canvas first
     ctx.clearRect(0, 0, imageWidth, imageHeight);
 
-    // If no token selected, don't draw anything
     if (activeToken === null || activeToken === undefined) return;
 
-    // Get the similarity map for the active token
     const tokenMap = data.similarity_maps[activeToken];
     if (!tokenMap) return;
 
     const simMap = tokenMap.similarity_map;
 
-    // Collect all values for percentile-based normalization
-    const allValues: number[] = [];
-    for (const row of simMap) {
-      for (const val of row) {
-        allValues.push(val);
-      }
-    }
-    allValues.sort((a, b) => a - b);
+    // Flatten similarity values for normalization
+    const allValues = simMap.flat();
 
-    // Use 5th and 95th percentile for better contrast
-    const p5Index = Math.floor(allValues.length * 0.05);
-    const p95Index = Math.floor(allValues.length * 0.95);
-    const min = allValues[p5Index];
-    const max = allValues[p95Index];
+    // Get normalization bounds
+    const { min, max } = normalizeValues(allValues, normalizationStrategy);
 
-    // Create a temporary canvas at patch resolution for smooth upscaling
-    const tempCanvas = document.createElement('canvas');
+    // Get the color scale
+    const scale = getColorScale(colorScale);
+
+    // Create temporary canvas at patch resolution for smooth upscaling
+    const tempCanvas = document.createElement("canvas");
     tempCanvas.width = data.n_patches_x;
     tempCanvas.height = data.n_patches_y;
-    const tempCtx = tempCanvas.getContext('2d');
+    const tempCtx = tempCanvas.getContext("2d");
     if (!tempCtx) return;
 
-    // Draw heatmap at patch resolution (1 pixel = 1 patch)
     const imageData = tempCtx.createImageData(data.n_patches_x, data.n_patches_y);
     const pixels = imageData.data;
 
@@ -87,34 +154,22 @@ export function InterpretabilityHeatmap({
       for (let y = 0; y < data.n_patches_y; y++) {
         const value = simMap[x][y];
         const normalized = max > min ? (value - min) / (max - min) : 0;
+        const [r, g, b] = scale(normalized).rgb();
 
-        // Color mapping: blue (low) -> white (mid) -> red (high)
-        const r = normalized < 0.5
-          ? Math.round(255 * (normalized * 2))
-          : 255;
-        const g = normalized < 0.5
-          ? Math.round(255 * (normalized * 2))
-          : Math.round(255 * (1 - (normalized - 0.5) * 2));
-        const b = normalized < 0.5
-          ? 255
-          : Math.round(255 * (1 - (normalized - 0.5) * 2));
-
-        // Calculate pixel index (note: y is row, x is column)
         const idx = (y * data.n_patches_x + x) * 4;
-        pixels[idx] = r;
-        pixels[idx + 1] = g;
-        pixels[idx + 2] = b;
+        pixels[idx] = Math.round(r);
+        pixels[idx + 1] = Math.round(g);
+        pixels[idx + 2] = Math.round(b);
         pixels[idx + 3] = Math.round(opacity * 255);
       }
     }
 
     tempCtx.putImageData(imageData, 0, 0);
 
-    // Draw scaled up to main canvas with smoothing enabled
     ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
+    ctx.imageSmoothingQuality = "high";
     ctx.drawImage(tempCanvas, 0, 0, imageWidth, imageHeight);
-  }, [data, imageWidth, imageHeight, activeToken, opacity]);
+  }, [data, imageWidth, imageHeight, activeToken, opacity, colorScale, normalizationStrategy]);
 
   return (
     <canvas
@@ -134,32 +189,3 @@ export function InterpretabilityHeatmap({
   );
 }
 
-export type TokenSelectorProps = {
-  tokens: string[];
-  selectedToken: number | null;
-  onTokenSelect: (index: number | null) => void;
-};
-
-export function TokenSelector({
-  tokens,
-  selectedToken,
-  onTokenSelect,
-}: TokenSelectorProps) {
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {tokens.map((token, idx) => (
-        <button
-          key={idx}
-          onClick={() => onTokenSelect(selectedToken === idx ? null : idx)}
-          className={`px-2 py-0.5 rounded text-xs transition-all ${
-            selectedToken === idx
-              ? "bg-primary text-primary-foreground"
-              : "bg-secondary/60 text-secondary-foreground hover:bg-secondary"
-          }`}
-        >
-          {token}
-        </button>
-      ))}
-    </div>
-  );
-}

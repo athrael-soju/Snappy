@@ -9,12 +9,25 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Loader2 } from "lucide-react";
 import {
   InterpretabilityHeatmap,
-  TokenSelector,
   type InterpretabilityData,
+  type ColorScale,
+  type NormalizationStrategy,
 } from "@/components/interpretability-heatmap";
 import { generateInterpretabilityMaps } from "@/lib/api/interpretability";
 
@@ -37,10 +50,28 @@ export default function ImageLightbox({
   const [interpretabilityData, setInterpretabilityData] =
     useState<InterpretabilityData | null>(null);
   const [selectedToken, setSelectedToken] = useState<number | null>(null);
+  const [colorScale, setColorScale] = useState<ColorScale>(() => {
+    const stored = localStorage.getItem("interpretability-color-scale");
+    return (stored as ColorScale) || "YlOrRd";
+  });
+  const [normalizationStrategy, setNormalizationStrategy] = useState<NormalizationStrategy>(() => {
+    const stored = localStorage.getItem("interpretability-normalization-strategy");
+    return (stored as NormalizationStrategy) || "percentile";
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
   const imgRef = useRef<HTMLImageElement>(null);
+
+  // Save color scale to localStorage
+  useEffect(() => {
+    localStorage.setItem("interpretability-color-scale", colorScale);
+  }, [colorScale]);
+
+  // Save normalization strategy to localStorage
+  useEffect(() => {
+    localStorage.setItem("interpretability-normalization-strategy", normalizationStrategy);
+  }, [normalizationStrategy]);
 
   // Reset state when dialog opens/closes
   useEffect(() => {
@@ -128,48 +159,120 @@ export default function ImageLightbox({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!max-w-fit sm:!max-w-fit !max-h-[95vh] p-0 overflow-hidden flex flex-col w-auto">
+      <DialogContent className="!max-w-fit sm:!max-w-fit !max-h-[95vh] p-0 overflow-hidden flex flex-col w-auto" showCloseButton={false}>
         <DialogHeader className="sr-only">
           <DialogTitle>{alt || "Image"}</DialogTitle>
           <DialogDescription>Full size image view</DialogDescription>
         </DialogHeader>
 
         {query && (
-          <div className="border-b px-4 py-3 flex items-start gap-3">
-            <div className="flex items-center gap-2 shrink-0">
-              <Switch
-                id="interpretability-toggle"
-                checked={showInterpretability}
-                onCheckedChange={setShowInterpretability}
-                disabled={loading}
-              />
-              <Label
-                htmlFor="interpretability-toggle"
-                className="text-body-sm cursor-pointer whitespace-nowrap"
-              >
-                Show Heat Map
-              </Label>
-              {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-            </div>
-            {showInterpretability && interpretabilityData && (
-              <>
-                <div className="h-5 w-px bg-border shrink-0" />
-                <div className="flex-1 min-w-0 max-h-16 overflow-y-auto">
-                  <TokenSelector
-                    tokens={interpretabilityData.tokens}
-                    selectedToken={selectedToken}
-                    onTokenSelect={setSelectedToken}
-                  />
-                </div>
-              </>
-            )}
-            {error && (
-              <div className="px-3 py-2 bg-destructive/10 border border-destructive/20 rounded-md w-full">
-                <p className="text-body-sm text-destructive font-medium">{error}</p>
-                <p className="text-body-xs text-destructive/80 mt-1">Check browser console (F12) for details</p>
+          <TooltipProvider>
+            <div className="relative border-b px-4 flex items-center gap-3 h-12 overflow-hidden">
+              <div className="flex items-center gap-2 shrink-0 h-8">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center h-8">
+                      <Switch
+                        id="interpretability-toggle"
+                        checked={showInterpretability}
+                        onCheckedChange={setShowInterpretability}
+                        disabled={loading}
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Show heat map overlay</p>
+                  </TooltipContent>
+                </Tooltip>
+                {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
               </div>
-            )}
-          </div>
+              {showInterpretability && (
+                <>
+                  <div className="h-8 w-px bg-border shrink-0" />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center flex-1 h-8">
+                        <Select value={colorScale} onValueChange={(value) => setColorScale(value as ColorScale)}>
+                          <SelectTrigger id="color-scale" className="h-8 w-full text-body-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="YlOrRd">Yellow-Red</SelectItem>
+                            <SelectItem value="YlGnBu">Yellow-Blue</SelectItem>
+                            <SelectItem value="Reds">Reds</SelectItem>
+                            <SelectItem value="Blues">Blues</SelectItem>
+                            <SelectItem value="Oranges">Oranges</SelectItem>
+                            <SelectItem value="Purples">Purples</SelectItem>
+                            <SelectItem value="Spectral">Spectral</SelectItem>
+                            <SelectItem value="RdYlBu">Red-Blue</SelectItem>
+                            <SelectItem value="RdBu">Red-Blue (alt)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Color scale for heat map</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <div className="h-8 w-px bg-border shrink-0" />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center flex-1 h-8">
+                        <Select value={normalizationStrategy} onValueChange={(value) => setNormalizationStrategy(value as NormalizationStrategy)}>
+                          <SelectTrigger id="normalization-strategy" className="h-8 w-full text-body-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="percentile">Percentile</SelectItem>
+                            <SelectItem value="minmax">Min-Max</SelectItem>
+                            <SelectItem value="robust">Robust</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Normalization strategy</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </>
+              )}
+              {showInterpretability && interpretabilityData && (
+                <>
+                  <div className="h-8 w-px bg-border shrink-0" />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center flex-1 h-8">
+                        <Select
+                          value={selectedToken !== null ? selectedToken.toString() : undefined}
+                          onValueChange={(value) => setSelectedToken(parseInt(value))}
+                        >
+                          <SelectTrigger id="token-selector" className="h-8 w-full text-body-xs">
+                            <SelectValue placeholder="Select token" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {interpretabilityData.tokens.map((token, idx) => (
+                              <SelectItem key={idx} value={idx.toString()}>
+                                {token}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Select token to visualize</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </>
+              )}
+              {error && (
+                <div className="absolute top-full left-0 right-0 z-10 px-4 py-2 bg-destructive/10 border-b border-destructive/20">
+                  <p className="text-body-sm text-destructive font-medium">{error}</p>
+                  <p className="text-body-xs text-destructive/80 mt-1">Check browser console (F12) for details</p>
+                </div>
+              )}
+            </div>
+          </TooltipProvider>
         )}
 
         <div className="relative flex items-center justify-center bg-background p-0">
@@ -187,6 +290,8 @@ export default function ImageLightbox({
                   imageWidth={imageDimensions.width}
                   imageHeight={imageDimensions.height}
                   selectedToken={selectedToken ?? undefined}
+                  colorScale={colorScale}
+                  normalizationStrategy={normalizationStrategy}
                 />
               )}
             </>
