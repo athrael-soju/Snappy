@@ -83,6 +83,14 @@ class PointFactory:
             if image_quality is not None:
                 payload["image_quality"] = image_quality
 
+            # Add page dimensions for region-level retrieval
+            page_width_px = meta.get("page_width_px")
+            page_height_px = meta.get("page_height_px")
+            if page_width_px is not None:
+                payload["page_width_px"] = page_width_px
+            if page_height_px is not None:
+                payload["page_height_px"] = page_height_px
+
             # Add OCR metadata if available (from parallel OCR processing)
             if ocr_results and offset < len(ocr_results):
                 ocr_result = ocr_results[offset]

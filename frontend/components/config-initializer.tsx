@@ -19,10 +19,17 @@ export function ConfigInitializer() {
 
     const syncConfigToBackend = async () => {
       try {
+        logger.debug("ConfigInitializer: Starting config sync from localStorage to backend");
+
         const storedValues = loadConfigFromStorage();
         if (!storedValues || Object.keys(storedValues).length === 0) {
-          return; // No stored config to sync
+          logger.debug("ConfigInitializer: No stored config found in localStorage");
+          return;
         }
+
+        logger.debug(`ConfigInitializer: Found ${Object.keys(storedValues).length} stored config values`, {
+          keys: Object.keys(storedValues)
+        });
 
         // Get current backend values
         const serverValues = await ConfigurationService.getConfigValuesConfigValuesGet();
@@ -33,24 +40,39 @@ export function ConfigInitializer() {
         );
 
         if (updates.length === 0) {
-          return; // Backend already has correct values
+          logger.debug("ConfigInitializer: Backend already has correct values, no sync needed");
+          return;
         }
 
-        // Sync differences to backend
-        await Promise.all(
-          updates.map(([key, value]) =>
-            ConfigurationService.updateConfigConfigUpdatePost({ key, value })
-          )
-        );
+        logger.info(`ConfigInitializer: Syncing ${updates.length} config value(s) to backend`, {
+          updates: updates.map(([key, value]) => ({ key, value }))
+        });
 
-        logger.debug(`Synced ${updates.length} config value(s) from localStorage to backend`);
+        // Sync differences to backend sequentially to avoid race conditions
+        for (const [key, value] of updates) {
+          try {
+            await ConfigurationService.updateConfigConfigUpdatePost({ key, value });
+            logger.debug(`ConfigInitializer: Synced ${key}=${value}`);
+          } catch (error) {
+            logger.error(`ConfigInitializer: Failed to sync ${key}`, { error });
+          }
+        }
+
+        logger.info(`ConfigInitializer: Successfully synced ${updates.length} config value(s)`);
       } catch (error) {
-        // Non-critical: config page will sync on next visit
-        logger.warn("Failed to sync config on initialization", { error });
+        logger.error("ConfigInitializer: Failed to sync config on initialization", {
+          error,
+          errorMessage: error instanceof Error ? error.message : String(error)
+        });
       }
     };
 
-    syncConfigToBackend();
+    // Add small delay to ensure server is ready
+    const timeoutId = setTimeout(() => {
+      syncConfigToBackend();
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
   return null; // This component renders nothing
