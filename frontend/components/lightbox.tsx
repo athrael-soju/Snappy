@@ -25,11 +25,15 @@ import {
 import { Loader2 } from "lucide-react";
 import {
   InterpretabilityHeatmap,
-  type InterpretabilityData,
   type ColorScale,
 } from "@/components/interpretability-heatmap";
 import { type NormalizationStrategy } from "@/lib/utils/normalization";
-import { generateInterpretabilityMaps } from "@/lib/api/interpretability";
+import { useInterpretability } from "@/hooks/use-interpretability";
+
+// Timing constants for image dimension updates
+const DIMENSION_UPDATE_DELAY_AFTER_DATA_LOAD = 50; // ms - delay after interpretability data loads
+const DIMENSION_UPDATE_RETRY_DELAY = 100; // ms - retry delay when dimensions aren't ready
+const DIMENSION_UPDATE_INITIAL_DELAY = 10; // ms - initial delay for already-loaded images
 
 export type ImageLightboxProps = {
   open: boolean;
@@ -47,82 +51,49 @@ export default function ImageLightbox({
   onOpenChange,
 }: ImageLightboxProps) {
   const [showInterpretability, setShowInterpretability] = useState(false);
-  const [interpretabilityData, setInterpretabilityData] =
-    useState<InterpretabilityData | null>(null);
-  const [selectedToken, setSelectedToken] = useState<number | null>(null);
-  const [colorScale, setColorScale] = useState<ColorScale>("YlOrRd");
-  const [normalizationStrategy, setNormalizationStrategy] = useState<NormalizationStrategy>("minmax");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
   const imgRef = useRef<HTMLImageElement>(null);
 
-  // Load preferences from localStorage on mount (client-side only)
-  useEffect(() => {
-    const storedColorScale = localStorage.getItem("interpretability-color-scale");
-    const storedNormalization = localStorage.getItem("interpretability-normalization-strategy");
-
-    if (storedColorScale) {
-      setColorScale(storedColorScale as ColorScale);
-    }
-    if (storedNormalization) {
-      setNormalizationStrategy(storedNormalization as NormalizationStrategy);
-    }
-  }, []);
-
-  // Save color scale to localStorage
-  useEffect(() => {
-    localStorage.setItem("interpretability-color-scale", colorScale);
-  }, [colorScale]);
-
-  // Save normalization strategy to localStorage
-  useEffect(() => {
-    localStorage.setItem("interpretability-normalization-strategy", normalizationStrategy);
-  }, [normalizationStrategy]);
+  const {
+    interpretabilityData,
+    selectedToken,
+    setSelectedToken,
+    colorScale,
+    setColorScale,
+    normalizationStrategy,
+    setNormalizationStrategy,
+    loading,
+    error,
+    fetchInterpretability,
+    reset,
+  } = useInterpretability(query, src);
 
   // Reset state when dialog opens/closes
   useEffect(() => {
     if (!open) {
       setShowInterpretability(false);
-      setInterpretabilityData(null);
-      setSelectedToken(null);
-      setError(null);
+      reset();
     }
-  }, [open]);
+  }, [open, reset]);
 
   // Load interpretability data when toggle is enabled
   useEffect(() => {
     if (showInterpretability && !interpretabilityData && query && src) {
-      setLoading(true);
-      setError(null);
-
-      generateInterpretabilityMaps(query, src)
-        .then((data) => {
-          setInterpretabilityData(data);
-          // Auto-select the first token to show the heatmap immediately
-          if (data.tokens && data.tokens.length > 0) {
-            setSelectedToken(0);
+      fetchInterpretability().then(() => {
+        // Force dimension update when data loads
+        // The ResizeObserver might not have fired yet if dimensions haven't changed
+        setTimeout(() => {
+          const img = imgRef.current;
+          if (img && img.clientWidth > 0 && img.clientHeight > 0) {
+            setImageDimensions({
+              width: img.clientWidth,
+              height: img.clientHeight,
+            });
           }
-          setLoading(false);
-
-          // Force dimension update when data loads
-          // The ResizeObserver might not have fired yet if dimensions haven't changed
-          setTimeout(() => {
-            const img = imgRef.current;
-            if (img && img.clientWidth > 0 && img.clientHeight > 0) {
-              setImageDimensions({
-                width: img.clientWidth,
-                height: img.clientHeight,
-              });
-            }
-          }, 50);
-        })
-        .catch((err) => {
-          setError(`Failed to load interpretability: ${err.message}`);
-          setLoading(false);
-        });
+        }, DIMENSION_UPDATE_DELAY_AFTER_DATA_LOAD);
+      });
     }
-  }, [showInterpretability, interpretabilityData, query, src]);
+  }, [showInterpretability, interpretabilityData, query, src, fetchInterpretability]);
 
   // Track DISPLAYED image dimensions (not natural dimensions)
   useEffect(() => {
@@ -142,7 +113,7 @@ export default function ImageLightbox({
         });
       } else {
         // Retry after a short delay if dimensions aren't ready
-        setTimeout(updateDimensions, 100);
+        setTimeout(updateDimensions, DIMENSION_UPDATE_RETRY_DELAY);
       }
     };
 
@@ -151,7 +122,7 @@ export default function ImageLightbox({
 
     if (img.complete && img.naturalWidth > 0) {
       // Image already loaded, wait a tick for layout
-      setTimeout(updateDimensions, 10);
+      setTimeout(updateDimensions, DIMENSION_UPDATE_INITIAL_DELAY);
     } else {
       img.addEventListener("load", updateDimensions);
     }

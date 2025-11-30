@@ -11,6 +11,9 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["interpretability"])
 
+# Maximum file size in bytes (10 MB)
+MAX_FILE_SIZE = 10 * 1024 * 1024
+
 
 @router.post("/interpretability")
 async def generate_interpretability_maps(
@@ -46,8 +49,15 @@ async def generate_interpretability_maps(
                 status_code=400, detail=f"File must be an image, got {file.content_type}"
             )
 
-        # Read image
+        # Read image with size limit
         image_bytes = await file.read()
+
+        # Validate file size
+        if len(image_bytes) > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=413,
+                detail=f"File size ({len(image_bytes)} bytes) exceeds maximum allowed size ({MAX_FILE_SIZE} bytes / {MAX_FILE_SIZE // (1024 * 1024)} MB)"
+            )
         image = Image.open(io.BytesIO(image_bytes))
 
         logger.info(

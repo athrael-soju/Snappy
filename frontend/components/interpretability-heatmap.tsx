@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import chroma from "chroma-js";
 import {
   normalizeValues,
@@ -73,9 +73,8 @@ export function InterpretabilityHeatmap({
   normalizationStrategy = "minmax",
 }: InterpretabilityHeatmapProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [hoveredToken, setHoveredToken] = useState<number | null>(null);
 
-  const activeToken = selectedToken ?? hoveredToken ?? null;
+  const activeToken = selectedToken ?? null;
 
   useEffect(() => {
     const canvas = canvasRef.current;
