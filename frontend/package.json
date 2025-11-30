@@ -1,6 +1,6 @@
 {
   "name": "frontend",
-  "version": "0.3.5",
+  "version": "0.3.8",
   "private": true,
   "description": "Vision-first document retrieval system using ColPali embeddings for visual PDF search with Next.js 16 and React 19.2",
   "keywords": [
