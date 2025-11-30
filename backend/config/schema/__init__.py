@@ -19,13 +19,12 @@ from .application import SCHEMA as APPLICATION_SCHEMA
 from .base import ConfigDefault, ConfigType, ConfigUIType, _infer_ui_type
 from .colpali import SCHEMA as COLPALI_SCHEMA
 from .deepseek_ocr import SCHEMA as DEEPSEEK_OCR_SCHEMA
-from .duckdb import SCHEMA as DUCKDB_SCHEMA
-from .minio import SCHEMA as MINIO_SCHEMA
 from .processing import SCHEMA as PROCESSING_SCHEMA
 from .qdrant import SCHEMA as QDRANT_SCHEMA
 from .upload import SCHEMA as UPLOAD_SCHEMA
 
 # Combine all schemas into the main CONFIG_SCHEMA
+# Note: MinIO and DuckDB removed - images and OCR data stored inline in Qdrant
 CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
     **APPLICATION_SCHEMA,
     **PROCESSING_SCHEMA,
@@ -33,8 +32,6 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
     **COLPALI_SCHEMA,
     **DEEPSEEK_OCR_SCHEMA,
     **QDRANT_SCHEMA,
-    **MINIO_SCHEMA,
-    **DUCKDB_SCHEMA,
 }
 
 

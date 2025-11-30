@@ -8,7 +8,6 @@ Defaults and types are defined in config_schema.py (single source of truth).
 
 import logging
 import os
-import re
 import threading
 from typing import Any
 
@@ -30,56 +29,6 @@ _MAX_LOOKUP_DEPTH = 10
 
 # Logger for config errors
 logger = logging.getLogger(__name__)
-
-
-def _slugify_bucket_name(name: str) -> str:
-    sanitized = re.sub(r"[^a-z0-9-]+", "-", name.lower())
-    sanitized = re.sub(r"-{2,}", "-", sanitized).strip("-")
-    return sanitized or "documents"
-
-
-def _get_auto_bucket_name() -> str:
-    base = __getattr__("QDRANT_COLLECTION_NAME")
-    return _slugify_bucket_name(base)
-
-
-def _get_auto_minio_workers() -> int:
-    """Auto-calculate MinIO workers with safety checks."""
-    try:
-        cpu = os.cpu_count() or 4
-        if cpu <= 4:
-            base = 4
-        elif cpu <= 8:
-            base = 6
-        elif cpu <= 16:
-            base = 10
-        else:
-            base = 14
-
-        # Safely get concurrency without circular calls
-        try:
-            concurrency = get_pipeline_max_concurrency()
-        except (AttributeError, RecursionError) as e:
-            logger.warning(
-                f"Could not determine pipeline concurrency: {e}, using default"
-            )
-            concurrency = 1
-
-        workers = base + max(0, concurrency - 1) * 2
-        return max(4, min(32, workers))
-    except Exception as e:
-        logger.error(f"Error calculating MINIO_WORKERS: {e}, using default")
-        return 4
-
-
-def _get_auto_minio_retries(workers: int) -> int:
-    if workers >= 24:
-        return 5
-    if workers >= 16:
-        return 4
-    if workers >= 8:
-        return 3
-    return 2
 
 
 def __getattr__(name: str) -> Any:
@@ -106,14 +55,6 @@ def __getattr__(name: str) -> Any:
 
 def _getattr_impl(name: str) -> Any:
     """Implementation of dynamic attribute lookup."""
-    # Handle auto-sized values that were removed from schema
-    if name == "MINIO_WORKERS":
-        return _get_auto_minio_workers()
-    if name == "MINIO_RETRIES":
-        workers = __getattr__("MINIO_WORKERS")
-        return _get_auto_minio_retries(workers)
-
-    # Handle hard-coded constants
     # Check module-level constants defined below
     if name in globals():
         value = globals()[name]
@@ -136,12 +77,7 @@ def _getattr_impl(name: str) -> Any:
                 return ["*"]
             return [o.strip() for o in raw.split(",") if o.strip()]
         else:  # str
-            value = _runtime.get(name, str(default))
-            if name == "MINIO_PUBLIC_URL" and not value:
-                return __getattr__("MINIO_URL")
-            if name == "MINIO_BUCKET_NAME" and not value.strip():
-                return _get_auto_bucket_name()
-            return value
+            return _runtime.get(name, str(default))
 
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
@@ -155,10 +91,8 @@ def get_ingestion_worker_threads() -> int:
 def get_pipeline_max_concurrency() -> int:
     """Estimate concurrent pipeline batches based on hardware and batch size."""
     try:
-        # Auto-config is always enabled for optimal performance
         batch_size = max(1, __getattr__("BATCH_SIZE"))
         cpu = os.cpu_count() or 4
-        # Aim for at least 2 workers when batches are large enough and hardware permits
         base = 1 if batch_size < 4 else 2
         workers = max(base, min(4, cpu // 2))
         return max(1, workers)
@@ -173,16 +107,15 @@ def get_pipeline_max_concurrency() -> int:
 QDRANT_ON_DISK = True  # Store vectors on disk (memory optimization)
 QDRANT_ON_DISK_PAYLOAD = True  # Store payload on disk
 
-# Hard-coded MinIO settings (auto-sized or optimized defaults)
-MINIO_FAIL_FAST = False  # Resilient by default
-IMAGE_FORMAT = "JPEG"  # Best compression/quality balance
-IMAGE_QUALITY = 75  # Good quality/size balance
+# Hard-coded image settings for inline storage
+IMAGE_FORMAT = "WEBP"  # Best compression for inline storage (~25-35% smaller than JPEG)
+IMAGE_QUALITY = 70  # Good quality/size balance for WebP
 
-# Hard-coded DeepSeek OCR settings (auto-sized or optimized defaults)
+# Hard-coded DeepSeek OCR settings
 DEEPSEEK_OCR_API_TIMEOUT = 180  # 3 minutes - balances speed and reliability
 DEEPSEEK_OCR_POOL_SIZE = 20  # Sufficient for retry handling
 DEEPSEEK_OCR_LOCATE_TEXT = ""  # Empty by default
 DEEPSEEK_OCR_CUSTOM_PROMPT = ""  # Empty by default
 
-# Hard-coded upload settings (optimized defaults)
+# Hard-coded upload settings
 UPLOAD_CHUNK_SIZE_MBYTES = 2.0  # 2MB chunks balance throughput and memory

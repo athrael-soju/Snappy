@@ -10,6 +10,9 @@ from qdrant_client import models
 
 logger = logging.getLogger(__name__)
 
+# Large payload fields to exclude by default for performance
+EXCLUDE_LARGE_FIELDS = ["image_data_full"]
+
 
 class SearchManager:
     """Handles search operations in Qdrant."""
@@ -31,16 +34,42 @@ class SearchManager:
         self.collection_name = collection_name
         self.embedding_processor = embedding_processor
 
+    def _build_payload_selector(
+        self, include_full_images: bool = False
+    ) -> models.PayloadSelectorExclude:
+        """Build payload selector to exclude large fields.
+
+        Args:
+            include_full_images: If True, include full-resolution image data
+
+        Returns:
+            PayloadSelectorExclude with appropriate exclusions
+        """
+        if include_full_images:
+            # Include everything
+            return True
+
+        # Exclude large fields for performance
+        return models.PayloadSelectorExclude(exclude=EXCLUDE_LARGE_FIELDS)
+
     def reranking_search_batch(
         self,
         query_embeddings_batch: List[np.ndarray],
         search_limit: Optional[int] = None,
         prefetch_limit: Optional[int] = None,
         qdrant_filter: Optional[models.Filter] = None,
+        include_full_images: bool = False,
     ):
         """Perform two-stage retrieval with prefetch and multivector rerank.
 
         If QDRANT_MEAN_POOLING_ENABLED is False, performs simple single-vector search.
+
+        Args:
+            query_embeddings_batch: List of query embeddings
+            search_limit: Maximum number of results
+            prefetch_limit: Number of candidates for reranking
+            qdrant_filter: Optional filter conditions
+            include_full_images: If True, include full-resolution image data
         """
         # Use config defaults if not specified
         if search_limit is None:
@@ -58,6 +87,10 @@ class SearchManager:
                     oversampling=config.QDRANT_SEARCH_OVERSAMPLING,
                 )
             )
+
+        # Build payload selector
+        payload_selector = self._build_payload_selector(include_full_images)
+
         search_queries = []
         for query_embedding in query_embeddings_batch:
             if not config.QDRANT_MEAN_POOLING_ENABLED:
@@ -66,7 +99,7 @@ class SearchManager:
                 req = models.QueryRequest(
                     query=query_embedding.tolist(),
                     limit=search_limit,
-                    with_payload=True,
+                    with_payload=payload_selector,
                     with_vector=False,
                     using="original",
                     filter=qdrant_filter,
@@ -92,7 +125,7 @@ class SearchManager:
                         ),
                     ],
                     limit=search_limit,
-                    with_payload=True,
+                    with_payload=payload_selector,
                     with_vector=False,
                     using="original",
                     filter=qdrant_filter,
@@ -113,16 +146,25 @@ class SearchManager:
             raise
 
     def search_with_metadata(
-        self, query: str, k: int = 5, payload_filter: Optional[dict] = None
+        self,
+        query: str,
+        k: int = 5,
+        payload_filter: Optional[dict] = None,
+        include_full_images: bool = False,
     ):
-        """Search and return metadata with image URLs.
+        """Search and return metadata with inline image data.
 
-        Returns search results with payload metadata including image_url.
-        Images are NOT fetched from MinIO to optimize latency - the frontend
-        uses URLs directly for display and chat.
+        Returns search results with payload metadata. For inline storage,
+        image_data contains base64-encoded thumbnail for display.
 
-        payload_filter: optional dict of equality filters, e.g.
-          {"filename": "doc.pdf", "pdf_page_index": 3}
+        Args:
+            query: Search query text
+            k: Number of results to return
+            payload_filter: Optional dict of equality filters
+            include_full_images: If True, include full-resolution image data
+
+        Returns:
+            List of search result items with payload, label, and score
         """
         query_embedding = self.embedding_processor.batch_embed_query([query])
         q_filter = None
@@ -138,19 +180,30 @@ class SearchManager:
                 q_filter = models.Filter(must=conditions) if conditions else None
             except Exception:
                 q_filter = None
-        # Ensure we request at least k results from Qdrant; otherwise k>QDRANT_SEARCH_LIMIT
-        # would be silently capped by the default.
+
+        # Ensure we request at least k results from Qdrant
         effective_limit = max(int(k), 1)
         search_results = self.reranking_search_batch(
-            [query_embedding], search_limit=effective_limit, qdrant_filter=q_filter
+            [query_embedding],
+            search_limit=effective_limit,
+            qdrant_filter=q_filter,
+            include_full_images=include_full_images,
         )
 
         items = []
         if search_results and search_results[0].points:
             for i, point in enumerate(search_results[0].points[:k]):
-                image_url = point.payload.get("image_url") if point.payload else None
-                if not image_url:
-                    logger.warning(f"Point {i} missing image_url in payload")
+                if not point.payload:
+                    logger.warning(f"Point {i} has no payload")
+                    continue
+
+                # Check for inline image data or URL
+                has_inline = point.payload.get("image_inline", False)
+                has_image_data = point.payload.get("image_data") is not None
+
+                if not has_inline and not has_image_data:
+                    # No image data available
+                    logger.warning(f"Point {i} has no image data")
                     continue
 
                 items.append(
@@ -163,9 +216,34 @@ class SearchManager:
         return items
 
     def search(self, query: str, k: int = 5):
-        """Search for relevant documents and return metadata with URLs.
+        """Search for relevant documents and return metadata.
 
         This is a convenience wrapper around search_with_metadata().
-        Use get_image_from_url() to fetch PIL images from the returned URLs.
+        Returns thumbnail image data for display.
         """
         return self.search_with_metadata(query, k)
+
+    def get_point_with_full_image(self, point_id: str) -> Optional[dict]:
+        """Retrieve a specific point with full-resolution image data.
+
+        Use this to fetch the full image when user wants to view details.
+
+        Args:
+            point_id: The page_id/point ID to retrieve
+
+        Returns:
+            Point payload with full image data, or None if not found
+        """
+        try:
+            result = self.service.retrieve(
+                collection_name=self.collection_name,
+                ids=[point_id],
+                with_payload=True,
+                with_vectors=False,
+            )
+            if result and len(result) > 0:
+                return result[0].payload
+            return None
+        except Exception as exc:
+            logger.error(f"Failed to retrieve point {point_id}: {exc}")
+            return None

@@ -3,20 +3,29 @@
 import logging
 import queue
 import threading
+import time
+from typing import TYPE_CHECKING, List, Dict, Optional
 
-import config
 from ..streaming_types import EmbeddedBatch
 from ..utils import log_stage_timing
 
+if TYPE_CHECKING:
+    from .storage import ProcessedImageRegistry
+    from .ocr import OcrResultRegistry
+
 logger = logging.getLogger(__name__)
+
+# Maximum wait time for processing to complete (seconds)
+MAX_WAIT_TIME = 30
+POLL_INTERVAL = 0.1
 
 
 class UpsertStage:
     """
-    Upserts embeddings to Qdrant with dynamically generated URLs.
+    Upserts embeddings to Qdrant with inline image and OCR data.
 
-    Storage and OCR run independently - UpsertStage only waits for embeddings.
-    URLs are generated on-the-fly from metadata (no coordination needed).
+    Retrieves processed images and OCR results from shared registries
+    and includes all data directly in the Qdrant payload.
     """
 
     def __init__(
@@ -24,75 +33,105 @@ class UpsertStage:
         point_factory,
         qdrant_service,
         collection_name: str,
-        minio_base_url: str,
-        minio_bucket: str,
+        image_registry: Optional["ProcessedImageRegistry"] = None,
+        ocr_registry: Optional["OcrResultRegistry"] = None,
         completion_tracker=None,
     ):
+        """Initialize upsert stage.
+
+        Args:
+            point_factory: Factory for creating Qdrant points
+            qdrant_service: Qdrant client for upserting
+            collection_name: Target collection name
+            image_registry: Shared registry for retrieving processed images
+            ocr_registry: Shared registry for retrieving OCR results
+            completion_tracker: Optional tracker to coordinate batch completion
+        """
         self.point_factory = point_factory
         self.qdrant_service = qdrant_service
         self.collection_name = collection_name
-        self.minio_base_url = minio_base_url
-        self.minio_bucket = minio_bucket
+        self.image_registry = image_registry
+        self.ocr_registry = ocr_registry
         self.completion_tracker = completion_tracker
 
-    def _generate_image_url(self, document_id: str, page_number: int, page_id: str) -> str:
-        """Generate MinIO image URL from metadata.
+    def _wait_for_image_records(
+        self, document_id: str, batch_id: int
+    ) -> Optional[List[Dict]]:
+        """Wait for image processing to complete and return records.
 
-        Pattern: {minio_base_url}/{bucket}/{doc_id}/{page_num}/image/{page_id}.{ext}
+        Polls the registry until data is available or timeout is reached.
         """
-        fmt = config.IMAGE_FORMAT.lower()
-        ext = "jpg" if fmt == "jpeg" else fmt
-        object_name = f"{document_id}/{page_number}/image/{page_id}.{ext}"
+        if not self.image_registry:
+            logger.warning("No image registry configured - images won't be stored inline")
+            return None
 
-        base = self.minio_base_url.rstrip("/")
-        bucket_suffix = f"/{self.minio_bucket}" if self.minio_bucket else ""
-        return f"{base}{bucket_suffix}/{object_name}"
+        start_time = time.time()
+        while time.time() - start_time < MAX_WAIT_TIME:
+            result = self.image_registry.get(document_id, batch_id)
+            if result is not None:
+                image_records, _ = result
+                return image_records
+            time.sleep(POLL_INTERVAL)
 
-    def _generate_ocr_url(self, document_id: str, page_number: int) -> str:
-        """Generate MinIO OCR JSON URL from metadata.
+        logger.error(
+            f"Timeout waiting for image processing: document={document_id}, batch={batch_id}"
+        )
+        return None
 
-        Pattern: {minio_base_url}/{bucket}/{doc_id}/{page_num}/ocr.json
+    def _wait_for_ocr_results(
+        self, document_id: str, batch_id: int
+    ) -> Optional[List[Dict]]:
+        """Wait for OCR processing to complete and return results.
+
+        Polls the registry until data is available or timeout is reached.
         """
-        object_name = f"{document_id}/{page_number}/ocr.json"
-        base = self.minio_base_url.rstrip("/")
-        bucket_suffix = f"/{self.minio_bucket}" if self.minio_bucket else ""
-        return f"{base}{bucket_suffix}/{object_name}"
+        if not self.ocr_registry:
+            # OCR registry not configured - return empty results
+            return None
+
+        start_time = time.time()
+        while time.time() - start_time < MAX_WAIT_TIME:
+            result = self.ocr_registry.get(document_id, batch_id)
+            if result is not None:
+                return result
+            time.sleep(POLL_INTERVAL)
+
+        logger.warning(
+            f"Timeout waiting for OCR processing: document={document_id}, batch={batch_id}"
+        )
+        return None
 
     @log_stage_timing("Upsert")
     def process_batch(self, embedded_batch: EmbeddedBatch):
         """Build points from embeddings and upsert to Qdrant.
 
-        Storage/OCR run independently - we just generate URL references.
+        Waits for image and OCR processing to complete before building points.
         """
-        # Generate URLs dynamically - no waiting, storage/OCR are independent
-        image_urls = []
-        ocr_urls = []
+        # Wait for image processing to complete
+        image_records = self._wait_for_image_records(
+            embedded_batch.document_id, embedded_batch.batch_id
+        )
 
-        for idx, (page_id, meta) in enumerate(zip(embedded_batch.image_ids, embedded_batch.metadata)):
-            page_number = meta.get("page_number", embedded_batch.page_start + idx)
-
-            image_urls.append(
-                self._generate_image_url(embedded_batch.document_id, page_number, page_id)
+        if image_records is None:
+            # Fallback: create minimal records without inline images
+            logger.warning(
+                f"Using fallback records without inline images for batch {embedded_batch.batch_id}"
             )
-            ocr_urls.append(
-                self._generate_ocr_url(embedded_batch.document_id, page_number)
-            )
+            image_records = [
+                {
+                    "page_id": image_id,
+                    "image_inline": False,
+                    "image_storage": "none",
+                }
+                for image_id in embedded_batch.image_ids
+            ]
 
-        # Build image records
-        image_records = [
-            {
-                "image_url": url,
-                "image_inline": False,
-                "image_storage": "minio",
-                "page_id": image_id,
-            }
-            for url, image_id in zip(image_urls, embedded_batch.image_ids)
-        ]
+        # Wait for OCR processing to complete (if registry is configured)
+        ocr_results = self._wait_for_ocr_results(
+            embedded_batch.document_id, embedded_batch.batch_id
+        )
 
-        # Build OCR references
-        ocr_results = [{"ocr_url": url} for url in ocr_urls]
-
-        # Build Qdrant points
+        # Build Qdrant points with inline image and OCR data
         points = self.point_factory.build(
             batch_start=embedded_batch.page_start,
             original_batch=embedded_batch.original_embeddings,

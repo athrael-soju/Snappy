@@ -1,9 +1,12 @@
 """Data structures for streaming pipeline."""
 
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from PIL import Image
+
+if TYPE_CHECKING:
+    from .image_processor import ProcessedImage
 
 
 @dataclass
@@ -22,6 +25,22 @@ class PageBatch:
 
 
 @dataclass
+class ProcessedBatch:
+    """A batch with processed images ready for inline storage."""
+
+    document_id: str
+    filename: str
+    batch_id: int
+    page_start: int
+    image_ids: List[str]
+    metadata: List[Dict[str, Any]]
+    total_pages: int
+    # Processed images for inline storage
+    full_images: List["ProcessedImage"] = field(default_factory=list)
+    thumbnails: List["ProcessedImage"] = field(default_factory=list)
+
+
+@dataclass
 class EmbeddedBatch:
     """A batch with embeddings generated."""
 
@@ -34,3 +53,6 @@ class EmbeddedBatch:
     pooled_by_columns: Optional[List]
     image_ids: List[str]
     metadata: List[Dict[str, Any]]
+    # Processed images for inline storage (set by coordinator)
+    full_images: List["ProcessedImage"] = field(default_factory=list)
+    thumbnails: List["ProcessedImage"] = field(default_factory=list)

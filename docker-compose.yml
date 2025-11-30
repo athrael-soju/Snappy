@@ -18,27 +18,6 @@ services:
       timeout: 5s
       retries: 3
 
-  minio:
-    container_name: minio
-    image: minio/minio:latest
-    command: server /data --console-address ":9001"
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    environment:
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
-    volumes:
-      - minio_data:/data
-    networks:
-      - snappy-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
-
   colpali:
     container_name: colpali
     build:
@@ -108,30 +87,6 @@ services:
               count: all
               capabilities: [gpu]
 
-  duckdb:
-    container_name: duckdb
-    build:
-      context: ./duckdb
-      dockerfile: Dockerfile
-    image: duckdb:latest
-    ports:
-      - "8300:8300"
-      - "4213:42130"
-    env_file:
-      - ./duckdb/.env
-    volumes:
-      - duckdb_data:/app/data
-    networks:
-      - snappy-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8300/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    profiles:
-      - full
-
   backend:
     container_name: backend
     build:
@@ -146,13 +101,9 @@ services:
       # Docker service names override localhost URLs
       - COLPALI_URL=http://colpali:7000
       - DEEPSEEK_OCR_URL=http://deepseek-ocr:8200
-      - DUCKDB_URL=http://duckdb:8300
       - QDRANT_URL=http://qdrant:6333
-      - MINIO_URL=http://minio:9000
-      - MINIO_PUBLIC_URL=http://localhost:9000
-      # Profile-specific feature flags (set by Makefile)
+      # OCR is optional - set to false if not using deepseek-ocr service
       - DEEPSEEK_OCR_ENABLED=${DEEPSEEK_OCR_ENABLED:-true}
-      - DUCKDB_ENABLED=${DUCKDB_ENABLED:-true}
     volumes:
       - ./backend:/app
       - backend_cache:/root/.cache
@@ -160,8 +111,6 @@ services:
       - snappy-network
     depends_on:
       qdrant:
-        condition: service_healthy
-      minio:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
@@ -198,9 +147,7 @@ services:
 
 volumes:
   qdrant_data:
-  minio_data:
   hf_cache:
-  duckdb_data:
   backend_cache:
 
 networks:

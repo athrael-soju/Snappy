@@ -1,9 +1,10 @@
 """Centralized image processing service.
 
 This module provides a single point for image format conversion and quality
-optimization, eliminating redundant conversions across MinIO and OCR services.
+optimization. Supports inline storage via base64 encoding for Qdrant payloads.
 """
 
+import base64
 import io
 import logging
 from typing import Dict, Optional
@@ -11,6 +12,9 @@ from typing import Dict, Optional
 from PIL import Image
 
 logger = logging.getLogger(__name__)
+
+# Default thumbnail width for search result previews
+DEFAULT_THUMBNAIL_WIDTH = 400
 
 
 class ProcessedImage:
@@ -49,7 +53,8 @@ class ProcessedImage:
         self.size = size
         self.width = width
         self.height = height
-        self.url: str | None = None  # Set by storage handler
+        self.url: str | None = None  # Legacy: for backwards compatibility
+        self._base64_cache: str | None = None
 
     def to_buffer(self) -> io.BytesIO:
         """Create a BytesIO buffer from the processed data."""
@@ -57,13 +62,23 @@ class ProcessedImage:
         buf.seek(0)
         return buf
 
+    def to_base64(self) -> str:
+        """Return base64-encoded image data (cached)."""
+        if self._base64_cache is None:
+            self._base64_cache = base64.b64encode(self.data).decode("ascii")
+        return self._base64_cache
+
+    def to_data_uri(self) -> str:
+        """Return data URI for inline embedding in HTML/JSON."""
+        return f"data:{self.content_type};base64,{self.to_base64()}"
+
 
 class ImageProcessor:
     """
     Centralized image processing service.
 
-    Handles format conversion and quality optimization for images before
-    they are passed to storage (MinIO) or OCR (DeepSeek) services.
+    Handles format conversion, quality optimization, and thumbnail generation
+    for images. Supports inline storage via base64 encoding for Qdrant payloads.
 
     This eliminates redundant image conversions and ensures consistent
     processing across all services.
@@ -269,3 +284,128 @@ class ImageProcessor:
         """
         fmt = (format or self.default_format).upper()
         return self.CONTENT_TYPES.get(fmt, "application/octet-stream")
+
+    def create_thumbnail(
+        self,
+        image: Image.Image,
+        *,
+        max_width: int = DEFAULT_THUMBNAIL_WIDTH,
+        format: Optional[str] = None,
+        quality: Optional[int] = None,
+    ) -> ProcessedImage:
+        """
+        Create a thumbnail from a PIL image.
+
+        Resizes the image proportionally to fit within max_width while
+        maintaining aspect ratio. Useful for search result previews.
+
+        Parameters
+        ----------
+        image : Image.Image
+            PIL Image to create thumbnail from
+        max_width : int
+            Maximum width in pixels (default: 400)
+        format : str, optional
+            Output format. Uses default if not specified.
+        quality : int, optional
+            Compression quality. Uses default if not specified.
+
+        Returns
+        -------
+        ProcessedImage
+            Thumbnail image container with base64 encoding support
+        """
+        # Calculate new dimensions maintaining aspect ratio
+        original_width, original_height = image.size
+
+        if original_width <= max_width:
+            # Image is already small enough, just process it
+            return self.process(image, format=format, quality=quality)
+
+        # Calculate proportional height
+        ratio = max_width / original_width
+        new_height = int(original_height * ratio)
+
+        # Resize using high-quality resampling
+        thumbnail = image.resize((max_width, new_height), Image.Resampling.LANCZOS)
+
+        logger.debug(
+            f"Created thumbnail: {original_width}x{original_height} -> {max_width}x{new_height}"
+        )
+
+        return self.process(thumbnail, format=format, quality=quality)
+
+    def process_with_thumbnail(
+        self,
+        image: Image.Image,
+        *,
+        thumbnail_width: int = DEFAULT_THUMBNAIL_WIDTH,
+        format: Optional[str] = None,
+        quality: Optional[int] = None,
+    ) -> tuple[ProcessedImage, ProcessedImage]:
+        """
+        Process an image and create a thumbnail in one operation.
+
+        Parameters
+        ----------
+        image : Image.Image
+            PIL Image to process
+        thumbnail_width : int
+            Maximum width for thumbnail (default: 400)
+        format : str, optional
+            Output format for both images
+        quality : int, optional
+            Compression quality for both images
+
+        Returns
+        -------
+        tuple[ProcessedImage, ProcessedImage]
+            (full_image, thumbnail) - both with base64 encoding support
+        """
+        full_image = self.process(image, format=format, quality=quality)
+        thumbnail = self.create_thumbnail(
+            image, max_width=thumbnail_width, format=format, quality=quality
+        )
+        return full_image, thumbnail
+
+    def process_batch_with_thumbnails(
+        self,
+        images: list[Image.Image],
+        *,
+        thumbnail_width: int = DEFAULT_THUMBNAIL_WIDTH,
+        format: Optional[str] = None,
+        quality: Optional[int] = None,
+    ) -> tuple[list[ProcessedImage], list[ProcessedImage]]:
+        """
+        Process a batch of images and create thumbnails for each.
+
+        Parameters
+        ----------
+        images : list[Image.Image]
+            List of PIL Images to process
+        thumbnail_width : int
+            Maximum width for thumbnails (default: 400)
+        format : str, optional
+            Output format for all images
+        quality : int, optional
+            Compression quality for all images
+
+        Returns
+        -------
+        tuple[list[ProcessedImage], list[ProcessedImage]]
+            (full_images, thumbnails) - both lists with base64 encoding support
+        """
+        full_images = []
+        thumbnails = []
+
+        for img in images:
+            full_img, thumb = self.process_with_thumbnail(
+                img,
+                thumbnail_width=thumbnail_width,
+                format=format,
+                quality=quality,
+            )
+            full_images.append(full_img)
+            thumbnails.append(thumb)
+
+        return full_images, thumbnails

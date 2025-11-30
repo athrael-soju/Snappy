@@ -6,7 +6,7 @@ import io
 import logging
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import config
 import requests
@@ -14,22 +14,20 @@ from PIL import Image
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-if TYPE_CHECKING:  # pragma: no cover - hints only
-    from clients.duckdb import DuckDBClient
-    from clients.minio import MinioClient
-
 from .processor import OcrProcessor
 
 logger = logging.getLogger(__name__)
 
 
 class OcrClient:
-    """Main service class for OCR operations."""
+    """Main service class for OCR operations.
+
+    Simplified OCR client that processes images and returns inline results.
+    No external storage dependencies - results are stored in Qdrant payloads.
+    """
 
     def __init__(
         self,
-        minio_service: Optional["MinioClient"] = None,
-        duckdb_service: Optional["DuckDBClient"] = None,
         base_url: Optional[str] = None,
         timeout: Optional[int] = None,
         enabled: Optional[bool] = None,
@@ -39,11 +37,9 @@ class OcrClient:
         include_grounding: Optional[bool] = None,
         include_images: Optional[bool] = None,
     ):
-        """Initialize OCR service with all subcomponents.
+        """Initialize OCR service.
 
         Args:
-            minio_service: MinIO service for image storage
-            duckdb_service: DuckDB service for analytics storage
             base_url: DeepSeek OCR service URL
             timeout: Request timeout in seconds
             enabled: Enable/disable OCR service
@@ -54,9 +50,6 @@ class OcrClient:
             include_images: Default image extraction
         """
         try:
-            if minio_service is None:
-                raise ValueError("MinIO service is required for OcrClient")
-
             # Initialize HTTP client for DeepSeek OCR
             self.enabled = (
                 enabled if enabled is not None else bool(config.DEEPSEEK_OCR_ENABLED)
@@ -112,11 +105,7 @@ class OcrClient:
             self.session.mount("http://", adapter)
             self.session.mount("https://", adapter)
 
-            # Initialize dependencies
-            self.minio_service = minio_service
-            self.duckdb_service = duckdb_service
-
-            # Initialize subcomponents
+            # Initialize image processor
             from domain.pipeline.image_processor import ImageProcessor
 
             self.image_processor = ImageProcessor(
@@ -127,15 +116,6 @@ class OcrClient:
             self.processor = OcrProcessor(
                 ocr_service=self,
                 image_processor=self.image_processor,
-            )
-
-            # Initialize storage handler
-            from domain.ocr_persistence import OcrStorageHandler
-
-            self.storage = OcrStorageHandler(
-                minio_service=self.minio_service,
-                processor=self.processor,
-                duckdb_service=self.duckdb_service,
             )
 
         except Exception as e:
@@ -270,10 +250,6 @@ class OcrClient:
             **kwargs,
         )
 
-    # Public orchestration methods
-
-
-
     def health_check(self) -> bool:
         """Check if OCR service is healthy and accessible."""
         if not self.enabled:
@@ -289,28 +265,15 @@ class OcrClient:
             return False
 
     def restart(self) -> bool:
-        """Request service restart to stop any ongoing processing.
-
-        Sends a restart request to the DeepSeek OCR service to forcefully stop
-        any ongoing batch processing and reset the service state. The service
-        will exit and automatically restart if configured with a restart policy.
-
-        Returns:
-            True if restart request was accepted, False otherwise
-        """
+        """Request service restart to stop any ongoing processing."""
         if not self.enabled:
             logger.debug("Skipping DeepSeek OCR restart: service disabled")
             return False
         try:
-            # Create a new session WITHOUT retry logic for restart
-            # We expect connection errors/timeouts when service restarts
-            import requests
-
             restart_session = requests.Session()
-
             response = restart_session.post(
                 f"{self.base_url}/restart",
-                timeout=2,  # Very short timeout - service will exit immediately
+                timeout=2,
             )
             restart_session.close()
 
@@ -323,7 +286,6 @@ class OcrClient:
                 )
                 return False
         except Exception as e:
-            # Connection errors are EXPECTED during restart - treat as success
             error_msg = str(e).lower()
             if any(
                 keyword in error_msg for keyword in ["connection", "timeout", "read"]

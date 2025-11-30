@@ -4,7 +4,7 @@ import logging
 import queue
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Dict
+from typing import Dict, List, Optional, Tuple
 
 import config
 
@@ -14,14 +14,55 @@ from ..utils import log_stage_timing
 logger = logging.getLogger(__name__)
 
 
-class OCRStage:
-    """Processes OCR independently and stores results."""
+class OcrResultRegistry:
+    """Thread-safe registry for sharing OCR results between stages.
 
-    def __init__(self, ocr_service, image_processor):
+    OCR stage populates this registry, upsert stage reads from it.
+    """
+
+    def __init__(self):
+        self._data: Dict[str, List[Dict]] = {}
+        self._lock = threading.Lock()
+
+    def put(
+        self,
+        document_id: str,
+        batch_id: int,
+        ocr_results: List[Dict],
+    ):
+        """Store OCR results for a batch."""
+        key = f"{document_id}:{batch_id}"
+        with self._lock:
+            self._data[key] = ocr_results
+
+    def get(
+        self, document_id: str, batch_id: int
+    ) -> Optional[List[Dict]]:
+        """Retrieve and remove OCR results for a batch."""
+        key = f"{document_id}:{batch_id}"
+        with self._lock:
+            return self._data.pop(key, None)
+
+    def clear(self):
+        """Clear all stored data."""
+        with self._lock:
+            self._data.clear()
+
+
+class OCRStage:
+    """Processes OCR and stores results in registry for inline storage."""
+
+    def __init__(self, ocr_service, image_processor, registry: Optional[OcrResultRegistry] = None):
+        """Initialize OCR stage.
+
+        Args:
+            ocr_service: OCR service for text extraction
+            image_processor: Image processor for format conversion
+            registry: Shared registry to store results for upsert stage
+        """
         self.ocr_service = ocr_service
         self.image_processor = image_processor
-        # Track completion status (OCR data stored in MinIO, not cached here)
-        self.completed_batches: set[str] = set()  # batch_key
+        self.registry = registry
         self._lock = threading.Lock()
 
     @log_stage_timing("OCR")
@@ -29,9 +70,14 @@ class OCRStage:
         """Process OCR for batch.
 
         Parallelism is controlled by batch size - all pages in batch are processed concurrently.
+        Results are stored in the shared registry for the upsert stage.
         """
         if not self.ocr_service or not config.DEEPSEEK_OCR_ENABLED:
             logger.debug("OCR skipped for batch %d (OCR disabled)", batch.batch_id)
+            # Store empty results so upsert doesn't wait forever
+            if self.registry:
+                empty_results = [{"ocr_text": None, "ocr_markdown": None} for _ in batch.images]
+                self.registry.put(batch.document_id, batch.batch_id, empty_results)
             return
 
         # Process images (format conversion)
@@ -53,23 +99,24 @@ class OCRStage:
 
             for future in as_completed(futures):
                 idx = futures[future]
-                result = future.result()  # Will raise if OCR/storage failed
+                result = future.result()  # Will raise if OCR failed
                 ocr_results[idx] = result
+
+        # Store results in registry for upsert stage
+        if self.registry:
+            self.registry.put(batch.document_id, batch.batch_id, ocr_results)
 
     def _process_single_ocr(self, processed_image, meta: Dict) -> Dict:
         """Process single page OCR.
 
+        Returns inline OCR data (text, markdown) instead of URLs.
         Raises on failure - no silent fallbacks.
         """
-        # Extract required fields - will raise KeyError if missing
-        document_id = meta["document_id"]
+        # Extract required fields
         filename = meta["filename"]
         page_num = meta["page_number"]
-        page_id = meta["page_id"]
 
-        extension = self.ocr_service.image_processor.get_extension(
-            processed_image.format
-        )
+        extension = self.image_processor.get_extension(processed_image.format)
 
         # Run OCR with configuration defaults
         ocr_result = self.ocr_service.processor.process_single(
@@ -79,34 +126,11 @@ class OCRStage:
             include_images=self.ocr_service.default_include_images,
         )
 
-        # Build metadata with required fields
-        ocr_metadata = {
-            "filename": filename,
-            "document_id": document_id,
-            "page_id": page_id,
-            "pdf_page_index": meta.get("pdf_page_index"),
-            "total_pages": meta.get("total_pages"),
-            "page_width_px": processed_image.width,
-            "page_height_px": processed_image.height,
-            "image_url": processed_image.url if hasattr(processed_image, "url") else None,
-            "image_storage": "minio",
-        }
-
-        # Store OCR results - will raise on DuckDB failure
-        storage_result = self.ocr_service.storage.store_ocr_result(
-            ocr_result=ocr_result,
-            document_id=document_id,
-            page_number=page_num,
-            metadata=ocr_metadata,
-        )
-
+        # Return inline OCR data
         return {
-            "ocr_url": storage_result["ocr_url"],
-            "ocr_regions": storage_result.get("ocr_regions", []),
-            "text_preview": ocr_result.get("text", "")[:200],
-            "region_count": len(ocr_result.get("regions", [])),
+            "ocr_text": ocr_result.get("text", ""),
+            "ocr_markdown": ocr_result.get("markdown", ""),
         }
-
 
     def run(
         self,

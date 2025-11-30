@@ -1,44 +1,38 @@
 """Main Qdrant service that orchestrates all operations."""
 
 import logging
-from typing import TYPE_CHECKING, Callable, Iterable, Optional
+from typing import TYPE_CHECKING, Optional
 
-from PIL import Image
+if TYPE_CHECKING:
+    from clients.colpali import ColPaliClient
 
 from .collection import CollectionManager
 from .embedding import EmbeddingProcessor
 from .search import SearchManager
 
-if TYPE_CHECKING:
-    from clients.colpali import ColPaliClient
-    from clients.minio import MinioClient
-
 logger = logging.getLogger(__name__)
 
 
 class QdrantClient:
-    """Main service class for Qdrant operations."""
+    """Main service class for Qdrant operations.
+
+    Handles document indexing, search, and retrieval with inline image storage.
+    """
 
     def __init__(
         self,
         api_client: Optional["ColPaliClient"] = None,
-        minio_service: Optional["MinioClient"] = None,
         ocr_service=None,
     ):
         """Initialize Qdrant service with all subcomponents.
 
         Args:
             api_client: ColPali client for embeddings
-            minio_service: MinIO service for image storage
             ocr_service: Optional OCR service for parallel processing
         """
         try:
-            if minio_service is None:
-                raise ValueError("MinIO service is required for QdrantClient")
-
             # Initialize dependencies
             self.api_client = api_client
-            self.minio_service = minio_service
             self.ocr_service = ocr_service
 
             # Initialize subcomponents
@@ -76,39 +70,40 @@ class QdrantClient:
         """Check if Qdrant service is healthy and accessible."""
         return self.collection_manager.health_check()
 
-
     # Search methods
     def search_with_metadata(
-        self, query: str, k: int = 5, payload_filter: Optional[dict] = None
+        self,
+        query: str,
+        k: int = 5,
+        payload_filter: Optional[dict] = None,
+        include_full_images: bool = False,
     ):
-        """Search and return metadata with image URLs.
+        """Search and return metadata with inline image data.
 
-        Returns search results with payload metadata including image_url.
-        Images are NOT fetched from MinIO to optimize latency - the frontend
-        uses URLs directly for display and chat.
+        Returns search results with payload metadata. Images are stored inline
+        as base64-encoded data in the payload.
 
-        payload_filter: optional dict of equality filters, e.g.
-          {"filename": "doc.pdf", "pdf_page_index": 3}
+        Args:
+            query: Search query text
+            k: Number of results to return
+            payload_filter: Optional dict of equality filters
+            include_full_images: If True, include full-resolution images
         """
-        return self.search_manager.search_with_metadata(query, k, payload_filter)
+        return self.search_manager.search_with_metadata(
+            query, k, payload_filter, include_full_images
+        )
 
     def search(self, query: str, k: int = 5):
-        """Search for relevant documents and return metadata with URLs.
+        """Search for relevant documents and return metadata.
 
         This is a convenience wrapper around search_with_metadata().
-        Use get_image_from_url() to fetch PIL images from the returned URLs.
+        Returns thumbnail images for display.
         """
         return self.search_manager.search(query, k)
 
-    # Image retrieval
-    def get_image_from_url(self, image_url: str) -> Image.Image:
-        """Fetch a PIL Image from MinIO by URL.
+    def get_point_with_full_image(self, point_id: str) -> Optional[dict]:
+        """Retrieve a specific point with full-resolution image data.
 
-        Use this when you need the actual image object (e.g., for server-side processing).
-        The main search flow returns URLs to avoid unnecessary downloads.
+        Use this when user wants to view the full image.
         """
-        if not image_url:
-            raise Exception("No image reference provided")
-        if not self.minio_service:
-            raise Exception("MinIO service not available")
-        return self.minio_service.get_image(image_url)
+        return self.search_manager.get_point_with_full_image(point_id)

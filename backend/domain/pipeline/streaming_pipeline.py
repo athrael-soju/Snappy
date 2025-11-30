@@ -8,7 +8,8 @@ the stages/ subpackage.
 Architecture:
 - PDF rasterization produces pages as soon as they're ready
 - Embedding, storage, and OCR run independently in parallel
-- All stages coordinate via document_id:batch_id keys
+- Storage stage processes images and stores results in a shared registry
+- Upsert stage retrieves processed images and stores in Qdrant
 - Backpressure prevents memory overflow via bounded queues
 
 Benefits:
@@ -28,8 +29,10 @@ from typing import Callable, Optional
 from .console import get_pipeline_console
 from .stages import (
     EmbeddingStage,
+    OcrResultRegistry,
     OCRStage,
     PDFRasterizer,
+    ProcessedImageRegistry,
     StorageStage,
     UpsertStage,
 )
@@ -105,7 +108,7 @@ class StreamingPipeline:
     Responsibilities:
     - Create and manage processing queues
     - Start and stop stage threads
-    - Coordinate data flow between stages
+    - Coordinate data flow between stages via shared registry
     - Provide lifecycle management
 
     Does NOT contain stage logic - delegates to stage classes.
@@ -120,8 +123,6 @@ class StreamingPipeline:
         point_factory,
         qdrant_service,
         collection_name: str,
-        minio_base_url: str,
-        minio_bucket: str,
         batch_size: int = 4,
         max_in_flight_batches: int = 1,
     ):
@@ -129,14 +130,12 @@ class StreamingPipeline:
 
         Args:
             embedding_processor: Service for generating embeddings
-            image_store: Handler for image storage
+            image_store: Handler for image processing
             image_processor: Processor for image format conversion
             ocr_service: Optional OCR service
             point_factory: Factory for creating Qdrant points
             qdrant_service: Qdrant client for vector storage
             collection_name: Target Qdrant collection
-            minio_base_url: MinIO base URL for generating dynamic URLs
-            minio_bucket: MinIO bucket name
             batch_size: Number of pages per batch
             max_in_flight_batches: Maximum batches processing simultaneously
         """
@@ -146,19 +145,25 @@ class StreamingPipeline:
         # Derive queue size from in-flight batches (allow some buffering)
         self.max_queue_size = max(2, max_in_flight_batches * 2)
 
+        # Create shared registries for passing data between stages
+        self.image_registry = ProcessedImageRegistry()
+        self.ocr_registry = OcrResultRegistry() if ocr_service else None
+
         # Create stages with injected dependencies
         self.rasterizer = PDFRasterizer(batch_size=batch_size)
         self.embedding_stage = EmbeddingStage(embedding_processor)
-        self.storage_stage = StorageStage(image_store)
-        self.ocr_stage = OCRStage(ocr_service, image_processor) if ocr_service else None
+        self.storage_stage = StorageStage(image_store, self.image_registry)
+        self.ocr_stage = (
+            OCRStage(ocr_service, image_processor, registry=self.ocr_registry)
+            if ocr_service
+            else None
+        )
         self.upsert_stage = None  # Created in start() with progress callback
 
         # Store dependencies for upsert stage creation
         self.point_factory = point_factory
         self.qdrant_service = qdrant_service
         self.collection_name = collection_name
-        self.minio_base_url = minio_base_url
-        self.minio_bucket = minio_bucket
 
         # Create bounded queues for backpressure control
         self.embedding_input_queue = queue.Queue(maxsize=self.max_queue_size)
@@ -201,13 +206,13 @@ class StreamingPipeline:
         # Store semaphore for rasterizer to use
         self.batch_semaphore = batch_semaphore
 
-        # Create upsert stage with completion tracker instead of direct callback
+        # Create upsert stage with shared registries for retrieving processed data
         self.upsert_stage = UpsertStage(
             self.point_factory,
             self.qdrant_service,
             self.collection_name,
-            self.minio_base_url,
-            self.minio_bucket,
+            image_registry=self.image_registry,
+            ocr_registry=self.ocr_registry,
             completion_tracker=self.completion_tracker,
         )
 
@@ -325,6 +330,11 @@ class StreamingPipeline:
             console = get_pipeline_console()
             console.document_completed(total_pages, total_time)
 
+        # Clear the registries
+        self.image_registry.clear()
+        if self.ocr_registry:
+            self.ocr_registry.clear()
+
         logger.debug("Pipeline processing complete")
 
     def stop(self):
@@ -332,6 +342,11 @@ class StreamingPipeline:
         logger.info("Stopping streaming pipeline")
 
         self.stop_event.set()
+
+        # Clear any pending data in the registries
+        self.image_registry.clear()
+        if self.ocr_registry:
+            self.ocr_registry.clear()
 
         # Wait for threads to finish
         for thread in self.threads:

@@ -1,28 +1,28 @@
-"""Image storage helpers for pipeline processing."""
+"""Image processing helpers for pipeline - prepares images for inline Qdrant storage."""
 
 import logging
 from typing import Dict, List, Tuple
 
 from PIL import Image
+
 from .image_processor import ImageProcessor, ProcessedImage
 
 logger = logging.getLogger(__name__)
 
 
 class ImageStorageHandler:
-    """Handles persistence of image batches in MinIO.
+    """Prepares images for inline storage in Qdrant payloads.
 
-    Follows dependency injection principle - all dependencies must be provided.
+    Processes images and generates thumbnails for efficient search result display.
+    All image data is stored as base64-encoded strings in Qdrant payloads.
     """
 
-    def __init__(self, minio_service, image_processor: ImageProcessor):
+    def __init__(self, image_processor: ImageProcessor):
         """Initialize image storage handler.
 
         Args:
-            minio_service: MinIO service for object storage
-            image_processor: Image processor for format conversion (required)
+            image_processor: Image processor for format conversion and thumbnails
         """
-        self._minio_service = minio_service
         self._image_processor = image_processor
 
     def store(
@@ -33,80 +33,57 @@ class ImageStorageHandler:
         image_ids: List[str],
     ) -> Tuple[List[str], List[Dict[str, object]], List[ProcessedImage]]:
         """
-        Store images in MinIO using hierarchical structure.
+        Process images for inline storage in Qdrant.
 
         Parameters
         ----------
         batch_start : int
             Starting index of this batch
         image_batch : List[Image.Image]
-            Images to store
+            Images to process
         meta_batch : List[dict]
-            Metadata for each image, must contain 'document_id' and 'page_number'
+            Metadata for each image
         image_ids : List[str]
-            Pre-generated image IDs (must be provided - generated during rasterization)
+            Pre-generated image IDs
 
         Returns
         -------
         Tuple[List[str], List[Dict[str, object]], List[ProcessedImage]]
-            image_ids, image_records, and processed_images for reuse
+            image_ids, image_records (with inline data), and processed_images
         """
-
-        if self._minio_service is None:
-            raise Exception(
-                "MinIO service is not configured; it is required for image storage."
-            )
-
-        # Extract required fields from metadata - will raise KeyError if missing
-        document_ids = []
-        page_numbers = []
-        for meta in meta_batch:
-            try:
-                document_id = meta["document_id"]
-                page_num = meta["page_number"]
-            except KeyError as exc:
-                raise ValueError(
-                    f"Metadata missing required field {exc} for hierarchical storage. Got: {meta}"
-                ) from exc
-            document_ids.append(document_id)
-            page_numbers.append(page_num)
-
-        # Process images once using centralized processor
-        processed_images = self._image_processor.process_batch(image_batch)
-
-        try:
-            # Store pre-processed images in MinIO with batch-size parallelism
-            # Batch size controls parallelism across all stages
-            image_url_map = self._minio_service.store_processed_images_batch(
-                processed_images,
-                image_ids=image_ids,
-                document_ids=document_ids,
-                page_numbers=page_numbers,
-                max_workers=len(image_batch),  # Use batch size for parallelism
-            )
-        except Exception as exc:
-            raise Exception(
-                f"Error storing images in MinIO for batch starting at {batch_start}: {exc}"
-            ) from exc
+        # Process images and create thumbnails in one pass
+        full_images, thumbnails = self._image_processor.process_batch_with_thumbnails(
+            image_batch
+        )
 
         records: List[Dict[str, object]] = []
         for idx, image_id in enumerate(image_ids):
-            image_url = image_url_map.get(image_id)
-            if image_url is None:
-                raise Exception(
-                    f"Image upload failed for batch starting at {batch_start}: missing URL for {image_id}"
-                )
-            # Attach URL to processed image for downstream use (e.g., OCR storage)
-            if idx < len(processed_images):
-                processed_images[idx].url = image_url
+            full_img = full_images[idx]
+            thumb = thumbnails[idx]
 
             records.append(
                 {
-                    "image_url": image_url,
-                    "image_inline": False,
-                    "image_storage": "minio",
                     "page_id": image_id,
+                    "image_inline": True,
+                    "image_storage": "qdrant",
+                    # Thumbnail for search results (smaller, faster to transfer)
+                    "image_data": thumb.to_base64(),
+                    "image_mime_type": thumb.content_type,
+                    "image_format": thumb.format,
+                    "image_size_bytes": thumb.size,
+                    "image_width": thumb.width,
+                    "image_height": thumb.height,
+                    # Full image data for detailed view
+                    "image_data_full": full_img.to_base64(),
+                    "image_full_size_bytes": full_img.size,
+                    "image_full_width": full_img.width,
+                    "image_full_height": full_img.height,
                 }
             )
 
-        return image_ids, records, processed_images
+        logger.debug(
+            f"Processed {len(image_batch)} images for inline storage "
+            f"(batch starting at {batch_start})"
+        )
+
+        return image_ids, records, full_images

@@ -35,6 +35,14 @@ const suggestedQueries = [
   "Which contracts mention service levels?",
 ];
 
+/**
+ * Get the image source from a search item.
+ * Prefers inline base64 data URI over URL.
+ */
+function getImageSrc(item: { image_data_uri?: string | null; image_url?: string | null }): string | null {
+  return item.image_data_uri || item.image_url || null;
+}
+
 type SearchHelperCard = {
   id: string;
   title: string;
@@ -448,12 +456,14 @@ export default function SearchPage() {
                                 ? `${filename}${typeof pageIndex === 'number' ? ` - Page ${pageIndex + 1}` : ''}`
                                 : item.label ?? `Result ${index + 1}`;
 
+                              const imageSrc = getImageSrc(item);
+
                               return (
                                 <motion.article
                                   key={`${item.label ?? index}-${index}`}
                                   onClick={() => {
-                                    if (item.image_url) {
-                                      handleImageOpen(item.image_url, displayTitle);
+                                    if (imageSrc) {
+                                      handleImageOpen(imageSrc, displayTitle);
                                     }
                                   }}
                                   className="group relative flex gap-3 overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 cursor-pointer touch-manipulation"
@@ -467,10 +477,10 @@ export default function SearchPage() {
                                   <div className="absolute inset-0 bg-gradient-to-br from-primary to-chart-4 opacity-0 transition-opacity group-hover:opacity-5" />
 
                                   {/* Thumbnail */}
-                                  {item.image_url ? (
+                                  {imageSrc ? (
                                     <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg border border-border/50 bg-background/50">
                                       <Image
-                                        src={item.image_url}
+                                        src={imageSrc}
                                         alt={displayTitle}
                                         width={96}
                                         height={96}
