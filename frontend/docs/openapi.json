@@ -1103,10 +1103,75 @@
           }
         }
       }
+    },
+    "/api/interpretability": {
+      "post": {
+        "tags": [
+          "interpretability"
+        ],
+        "summary": "Generate Interpretability Maps",
+        "description": "Generate interpretability maps showing query-document token correspondence.\n\nThis endpoint is separate from the search pipeline to avoid performance impact.\nIt shows which document regions contribute to similarity scores for each query token.\n\nArgs:\n    query: The query text to interpret\n    file: The document image to analyze\n    colpali_client: Injected ColPali client dependency\n\nReturns:\n    Dictionary containing:\n    - query: Original query text\n    - tokens: List of query tokens (filtered)\n    - similarity_maps: Per-token similarity maps\n    - n_patches_x: Number of patches in x dimension\n    - n_patches_y: Number of patches in y dimension\n    - image_width: Original image width\n    - image_height: Original image height",
+        "operationId": "generate_interpretability_maps_api_interpretability_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_generate_interpretability_maps_api_interpretability_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Generate Interpretability Maps Api Interpretability Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "Body_generate_interpretability_maps_api_interpretability_post": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query",
+            "description": "Query text to interpret"
+          },
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File",
+            "description": "Document image to analyze"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query",
+          "file"
+        ],
+        "title": "Body_generate_interpretability_maps_api_interpretability_post"
+      },
       "Body_index_index_post": {
         "properties": {
           "files": {

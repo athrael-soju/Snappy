@@ -59,3 +59,23 @@ class ImageEmbeddingBatchResponse(BaseModel):
     """Response model for batch image embeddings."""
 
     embeddings: List[ImageEmbeddingItem]
+
+
+class TokenSimilarityMap(BaseModel):
+    """Similarity map for a single query token."""
+
+    token: str  # The actual token text
+    token_index: int  # Position in the query
+    similarity_map: List[List[float]]  # [n_patches_x, n_patches_y]
+
+
+class InterpretabilityResponse(BaseModel):
+    """Response model for interpretability map generation."""
+
+    query: str  # Original query text
+    tokens: List[str]  # All query tokens (filtered)
+    similarity_maps: List[TokenSimilarityMap]  # Per-token similarity maps
+    n_patches_x: int  # Number of patches in x dimension
+    n_patches_y: int  # Number of patches in y dimension
+    image_width: int  # Original image width
+    image_height: int  # Original image height

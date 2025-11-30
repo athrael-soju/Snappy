@@ -8,17 +8,19 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, List, Optional
 
-from fastapi import APIRouter, Body, File, HTTPException, UploadFile
+from fastapi import APIRouter, Body, File, Form, HTTPException, UploadFile
 from PIL import Image
 
 from app.core.config import settings
 from app.models.schemas import (
     ImageEmbeddingBatchResponse,
+    InterpretabilityResponse,
     PatchBatchResponse,
     PatchRequest,
     PatchResult,
     QueryEmbeddingResponse,
     QueryRequest,
+    TokenSimilarityMap,
 )
 from app.services.embedding_processor import embedding_processor
 from app.services.model_service import model_service
@@ -238,4 +240,52 @@ async def embed_images(files: List[UploadFile] = File(...)):
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error generating image embeddings: {str(e)}"
+        )
+
+
+@router.post("/interpret", response_model=InterpretabilityResponse)
+async def generate_interpretability_maps(
+    query: str = Form(...), file: UploadFile = File(...)
+):
+    """Generate interpretability maps showing query-document token correspondence.
+
+    This endpoint is separate from the search pipeline to avoid performance impact.
+    It shows which document regions contribute to similarity scores for each query token.
+
+    Args:
+        query: The query text to interpret
+        file: The document image to analyze
+
+    Returns:
+        InterpretabilityResponse with per-token similarity maps
+    """
+    try:
+        # Validate image file
+        content_type = file.content_type or ""
+        if not content_type.startswith("image/"):
+            raise HTTPException(
+                status_code=400, detail=f"File {file.filename} is not an image"
+            )
+
+        # Load image
+        image_bytes = await file.read()
+        image = load_image_from_bytes(image_bytes)
+
+        # Run interpretability generation in thread pool
+        result = await asyncio.get_event_loop().run_in_executor(
+            get_query_executor(),
+            embedding_processor.generate_interpretability_maps,
+            query,
+            image,
+        )
+
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating interpretability maps: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating interpretability maps: {str(e)}",
         )

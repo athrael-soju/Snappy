@@ -7,6 +7,7 @@ export { CancelablePromise, CancelError } from './core/CancelablePromise';
 export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
+export type { Body_generate_interpretability_maps_api_interpretability_post } from './models/Body_generate_interpretability_maps_api_interpretability_post';
 export type { Body_index_index_post } from './models/Body_index_index_post';
 export type { ConfigUpdate } from './models/ConfigUpdate';
 export type { DocumentInfo } from './models/DocumentInfo';
@@ -25,6 +26,7 @@ export type { ValidationError } from './models/ValidationError';
 export { ConfigurationService } from './services/ConfigurationService';
 export { DuckdbService } from './services/DuckdbService';
 export { IndexingService } from './services/IndexingService';
+export { InterpretabilityService } from './services/InterpretabilityService';
 export { MaintenanceService } from './services/MaintenanceService';
 export { MetaService } from './services/MetaService';
 export { OcrService } from './services/OcrService';

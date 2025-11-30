@@ -1,6 +1,15 @@
 import logging
 
-from api.routers import config, duckdb, indexing, maintenance, meta, ocr, retrieval
+from api.routers import (
+    config,
+    duckdb,
+    indexing,
+    interpretability,
+    maintenance,
+    meta,
+    ocr,
+    retrieval,
+)
 from config import ALLOWED_ORIGINS
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -57,5 +66,6 @@ def create_app() -> FastAPI:
     app.include_router(config.router)
     app.include_router(ocr.router)
     app.include_router(duckdb.router)
+    app.include_router(interpretability.router)
 
     return app

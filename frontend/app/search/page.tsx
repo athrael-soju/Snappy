@@ -518,6 +518,7 @@ export default function SearchPage() {
         open={lightboxOpen}
         src={lightboxSrc}
         alt={lightboxAlt ?? undefined}
+        query={hasSearched ? query : undefined}
         onOpenChange={(open) => {
           setLightboxOpen(open);
           if (!open) {
