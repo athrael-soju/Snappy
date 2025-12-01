@@ -10,17 +10,33 @@ config:
   theme: base
 ---
 flowchart TB
-    U["User uploads document"] --> R["Rasterize to page images"]
-    R --> E["ColPali embeds pages"] & O["OCR + region detection"]
-    E --> Qdrant[("Qdrant: image/page vectors")]
-    O --> Duck[("DuckDB: regions with text/tables/images")]
-    Q["User question"] --> QE["ColPali query embedding"]
-    QE --> Qdrant
-    Qdrant --> K["Top-K image/page IDs"]
-    K --> JR["Lookup regions by IDs in DuckDB"]
-    JR --> LLM["LLM over text + table + image region"] & Duck
-    LLM --> A["Answer to user"]
-    Duck --> LLM
+    subgraph Indexing["📄 Document Indexing Pipeline"]
+        U["User uploads document"] --> R["Rasterize to page images"]
+        R --> E["ColPali embeds pages"] & O["OCR + region detection"]
+        E --> Qdrant[("Qdrant<br/>image/page vectors")]
+        O --> Duck[("DuckDB<br/>regions with text/tables/images")]
+    end
+
+    subgraph Query["🔍 Query Processing Pipeline"]
+        Q["User question"] --> QE["ColPali query embedding"]
+        QE --> Qdrant
+        Qdrant --> K["Top-K image/page IDs"]
+        K --> Duck
+        Duck --> IM["Generate Interpretability Maps<br/>(patch-level attention)"]
+        IM --> RF["Region-Level Filtering<br/>(score OCR regions by relevance)"]
+        RF --> LLM["LLM over relevant regions<br/>(text + tables + images)"]
+        LLM --> A["Answer with spatial context"]
+    end
+
+    classDef userNode fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
+    classDef processNode fill:#fff9e6,stroke:#f9a825,stroke-width:2px
+    classDef storageNode fill:#e8f5e9,stroke:#43a047,stroke-width:2px
+    classDef resultNode fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px
+
+    class U,Q userNode
+    class R,E,O,QE,IM,RF processNode
+    class Qdrant,Duck storageNode
+    class K,LLM,A resultNode
 ```
 
 ## Core Retrieval Paradigm
