@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.9](https://github.com/athrael-soju/Snappy/compare/v0.3.8...v0.3.9) (2025-12-02)
+
+
+### Features
+
+* add DuckDB badge to README for analytics support ([89ccb7d](https://github.com/athrael-soju/Snappy/commit/89ccb7d97aa59784d900aa72f00ba02dedf619f7))
+* enhance architecture documentation with detailed indexing and query processing pipelines ([7dbc1cd](https://github.com/athrael-soju/Snappy/commit/7dbc1cdf9a74ac889c2da7e7243f818dc0f6eaa6))
+* enhance documentation for spatially-grounded hybrid document retrieval and late interaction mechanisms ([e2cdc06](https://github.com/athrael-soju/Snappy/commit/e2cdc06603051d94c6d0320a53b0df7b07919c4a))
+* update contribution guidelines to emphasize robust implementation and commit format ([9392807](https://github.com/athrael-soju/Snappy/commit/9392807ec5f378b5ad4aab81ba0214b3daac7f80))
+
 ## [0.3.8](https://github.com/athrael-soju/Snappy/compare/v0.3.7...v0.3.8) (2025-11-25)
 
 
