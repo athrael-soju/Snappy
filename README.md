@@ -1,80 +1,87 @@
-<p align="center">
-  <img width="754" height="643" alt="Snappy_light_readme" src="https://github.com/user-attachments/assets/1da5d693-2b1b-483b-8c50-88c53aae3b59" />
-</p>
+<div align="center">
 
-<p align="center">
-  <!-- Project Stats -->
-  <a href="https://github.com/athrael-soju/Snappy/releases"><img src="https://img.shields.io/github/v/release/athrael-soju/Snappy?include_prereleases&sort=semver&display_name=tag&style=flat-square&logo=github&color=blue" alt="GitHub Release"></a>
-  <a href="https://github.com/athrael-soju/Snappy/stargazers"><img src="https://img.shields.io/github/stars/athrael-soju/Snappy?style=flat-square&logo=github&color=yellow" alt="GitHub Stars"></a>
-  <a href="https://github.com/athrael-soju/Snappy/network/members"><img src="https://img.shields.io/github/forks/athrael-soju/Snappy?style=flat-square&logo=github&color=green" alt="GitHub Forks"></a>
-  <a href="https://github.com/athrael-soju/Snappy/issues"><img src="https://img.shields.io/github/issues/athrael-soju/Snappy?style=flat-square&logo=github&color=red" alt="GitHub Issues"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square" alt="License: MIT"></a>
-</p>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/snappy_dark_nobg_resized.png">
+  <source media="(prefers-color-scheme: light)" srcset="assets/snappy_light_nobg_resized.png">
+  <img width="400" alt="Snappy Logo" src="assets/snappy_light_nobg_resized.png">
+</picture>
 
-<p align="center">
-  <!-- Build & Quality -->
-  <a href="https://github.com/athrael-soju/Snappy/actions"><img src="https://img.shields.io/github/actions/workflow/status/athrael-soju/Snappy/release-please.yml?style=flat-square&logo=githubactions&label=CI%2FCD" alt="CI/CD"></a>
-  <a href="https://github.com/athrael-soju/Snappy/security/code-scanning"><img src="https://img.shields.io/github/actions/workflow/status/athrael-soju/Snappy/codeql.yml?style=flat-square&logo=github&label=CodeQL" alt="CodeQL"></a>
-  <a href="https://github.com/athrael-soju/Snappy"><img src="https://img.shields.io/badge/code%20quality-A+-brightgreen?style=flat-square&logo=codacy" alt="Code Quality"></a>
-  <a href="https://github.com/pre-commit/pre-commit"><img src="https://img.shields.io/badge/pre--commit-enabled-brightgreen?style=flat-square&logo=pre-commit" alt="Pre-commit"></a>
-</p>
+<br/>
 
-<p align="center">
-  <!-- Tech Stack -->
-  <a href="https://fastapi.tiangolo.com/"><img src="https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square&logo=fastapi" alt="FastAPI"></a>
-  <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Frontend-Next.js%2016-000000?style=flat-square&logo=next.js" alt="Next.js"></a>
-  <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19.2-61DAFB?style=flat-square&logo=react" alt="React"></a>
-  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python"></a>
-  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript"></a>
-  <a href="https://qdrant.tech/"><img src="https://img.shields.io/badge/VectorDB-Qdrant-ff6b6b?style=flat-square&logo=qdrant" alt="Qdrant"></a>
-  <a href="https://min.io/"><img src="https://img.shields.io/badge/Storage-MinIO-f79533?style=flat-square&logo=minio" alt="MinIO"></a>
-  <a href="https://duckdb.org/"><img src="https://img.shields.io/badge/Analytics-DuckDB-FFF000?style=flat-square&logo=duckdb&logoColor=black" alt="DuckDB"></a>
-  <a href="https://docs.docker.com/compose/"><img src="https://img.shields.io/badge/Orchestration-Docker-2496ed?style=flat-square&logo=docker" alt="Docker"></a>
-</p>
+[![arXiv](https://img.shields.io/badge/arXiv-2512.02660-b31b1b?style=for-the-badge&logo=arxiv&logoColor=white)](https://arxiv.org/abs/2512.02660)
 
-# Snappy - Spatially-Grounded Hybrid Document Retrieval
 
-Snappy implements **spatially-grounded hybrid document retrieval**, unifying vision-language late interaction with structured OCR for region-level retrieval-augmented generation.
+[![Release](https://img.shields.io/github/v/release/athrael-soju/Snappy?include_prereleases&sort=semver&display_name=tag&style=flat-square&logo=github&color=blue)](https://github.com/athrael-soju/Snappy/releases)
+[![Stars](https://img.shields.io/github/stars/athrael-soju/Snappy?style=flat-square&logo=github&color=yellow)](https://github.com/athrael-soju/Snappy/stargazers)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
+[![CI/CD](https://img.shields.io/github/actions/workflow/status/athrael-soju/Snappy/release-please.yml?style=flat-square&logo=githubactions&label=build)](https://github.com/athrael-soju/Snappy/actions)
 
-Each PDF page is rasterized to an image and embedded using ColPali multi-vector representations (one vector per image patch). Vision-language late interaction enables token-level query matching via MaxSim scoring, where each query token finds its best match among all document patches. Optional DeepSeek OCR adds structured text extraction with bounding boxes. Region-level retrieval uses interpretability maps to filter OCR regions by query relevance, returning only spatially-relevant content.
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Next.js](https://img.shields.io/badge/Next.js_16-000000?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![Python](https://img.shields.io/badge/Python_3.11+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript_5.0+-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Qdrant](https://img.shields.io/badge/Qdrant-DC244C?style=flat-square&logo=qdrant&logoColor=white)](https://qdrant.tech/)
+[![DuckDB](https://img.shields.io/badge/DuckDB-FFF000?style=flat-square&logo=duckdb&logoColor=black)](https://duckdb.org/)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)](https://docs.docker.com/compose/)
 
-**Key Features**:
-- **Vision-Language Late Interaction**: Multi-vector embeddings with two-stage retrieval (prefetch + rerank)
-- **Spatial Grounding**: Preserves pixel → patch → embedding → region coordinate flow
-- **Hybrid Retrieval**: Combines visual layout understanding with structured OCR text
-- **Region-Level Filtering**: Query-focused region scoring using interpretability maps
-- **Streaming Pipeline**: Fast parallel processing (5-6× faster than batch mode)
+</div>
+
+# Snappy - Spatially-Grounded Document Retrieval via Patch-to-Region Relevance Propagation
+
+> **Research Paper**: [Spatially-Grounded Document Retrieval via Patch-to-Region Relevance Propagation](https://arxiv.org/abs/2512.02660)
+
+Snappy implements **region-level document retrieval** by unifying vision-language models with OCR through spatial coordinate mapping. Unlike traditional systems that return entire pages (VLMs) or lack semantic grounding (OCR-only), Snappy uses ColPali's patch-level similarity scores as spatial relevance filters over OCR-extracted regions; operating entirely at inference time without additional training.
+
+## Motivation
+
+Vision-language models like ColPali achieve state-of-the-art document retrieval by embedding pages as images with fine-grained patch representations. However, they return **entire pages** as retrieval units, introducing irrelevant content into RAG context windows. Conversely, OCR systems extract structured text with bounding boxes but cannot assess **which regions are relevant** to a query.
+
+Snappy bridges these paradigms through **patch-to-region relevance propagation**. The approach formalizes coordinate mapping between vision transformer patch grids (32×32) and OCR bounding boxes, repurposing ColPali's late interaction mechanism to generate interpretability maps. Patch similarity scores propagate to OCR regions via IoU-weighted intersection, enabling two-stage retrieval: efficient candidate retrieval using mean-pooled embeddings, followed by full-resolution region reranking.
+
+This yields region-level granularity (return specific paragraphs, tables, or figures instead of entire pages), operates purely at inference time (no additional training), provides spatial interpretability (visual heatmaps showing which document regions match query tokens), and combines VLM semantic understanding with OCR structural precision in a production-ready system.
 
 
 
-## Showcase 🎬
+## Demo 🎬
 
-https://github.com/user-attachments/assets/99438b0d-c62e-4e47-bdc8-623ee1d2236c
+<div align="center">
+
+https://github.com/user-attachments/assets/95b37778-8dc3-4633-b4b2-639fc5017470
+
+</div>
 
 
 ## Quick start
-Prereqs: Docker with Compose, Make (or use the equivalent `docker compose` commands below).
 
-1) Copy envs and set the essentials  
-`cp .env.example .env`  
+Prerequisites: Docker with Compose, Make (or use the equivalent `docker compose` commands below).
+
+**1. Copy envs and set the essentials**
+```bash
+cp .env.example .env
+```
 Set `OPENAI_API_KEY` (required for chat). Other defaults are ready for local use.
 
-2) Choose a profile  
-- Minimal (ColPali only; works on CPU or GPU): `make up-minimal`  
-- ML (adds DeepSeek OCR; needs NVIDIA GPU): `make up-ml`  
-- Full (adds DuckDB analytics and deduplication): `make up-full`  
+**2. Choose a profile**
+- Minimal (ColPali only; works on CPU or GPU): `make up-minimal`
+- ML (adds DeepSeek OCR; needs NVIDIA GPU): `make up-ml`
+- Full (adds DuckDB analytics and deduplication): `make up-full`
+
 If you prefer Compose directly: `docker compose --profile minimal|ml|full up -d`.
 
-3) Open the UI  
-- Frontend: http://localhost:3000  
-- Backend: http://localhost:8000/docs (OpenAPI)  
+**3. Open the UI**
+- Frontend: http://localhost:3000
+- Backend: http://localhost:8000/docs (OpenAPI)
 - DuckDB UI (full profile): http://localhost:42130
 
 ## Architecture
-![unnamed 4](https://github.com/user-attachments/assets/40a4f985-0445-42d9-8984-4a6ddca886a6)
 
+<div align="center">
 
-## Modes and options
+![architecture](https://github.com/user-attachments/assets/856228fa-53e9-48d7-9452-0231cf3905a6)
+</div>
+
+## Configuration
+
 | Feature | When to enable | How |
 |---------|----------------|-----|
 | DeepSeek OCR | Need extracted text, markdown, or bounding boxes alongside visual retrieval; have an NVIDIA GPU. | Set `DEEPSEEK_OCR_ENABLED=true` and run `make up-ml` or profile `ml`. |
@@ -84,27 +91,28 @@ If you prefer Compose directly: `docker compose --profile minimal|ml|full up -d`
 | Region-level retrieval | Filter OCR regions by query relevance, reducing noise and improving precision. Uses interpretability maps to return only relevant regions. | Set `ENABLE_REGION_LEVEL_RETRIEVAL=true` in Configuration UI or `.env`. Adjust `REGION_RELEVANCE_THRESHOLD` (default 0.3) to control filtering sensitivity. |
 | Binary quantization | Large collections and tight RAM/GPU budget (32x memory reduction). | Enabled by default. Toggle in `.env` if needed. |
 
-## Troubleshooting highlights
-- Progress stuck on upload/indexing: ensure Poppler is installed for PDF rasterization and check backend logs.  
-- Missing images: confirm MinIO credentials/URLs and allowed domains in `frontend/next.config.ts`.  
-- OCR not running: `DEEPSEEK_OCR_ENABLED=true`, GPU profile running, and `/ocr/health` reachable.  
+## Troubleshooting
+- Progress stuck on upload/indexing: ensure Poppler is installed for PDF rasterization and check backend logs.
+- Missing images: confirm MinIO credentials/URLs and allowed domains in `frontend/next.config.ts`.
+- OCR not running: `DEEPSEEK_OCR_ENABLED=true`, GPU profile running, and `/ocr/health` reachable.
 - Config not sticking: `/config/update` is runtime-only; edit `.env` for persistence.
 
-## Where to go next
+## Documentation
 
-### Core Concepts
-- [`backend/docs/late_interaction.md`](backend/docs/late_interaction.md) - multi-vector retrieval, MaxSim scoring, and two-stage search.
-- [`backend/docs/spatial_grounding.md`](backend/docs/spatial_grounding.md) - how spatial information flows from pixels to regions.
-- [`backend/docs/analysis.md`](backend/docs/analysis.md) - when to use vision vs text RAG.
+**Core concepts** — [Late Interaction](backend/docs/late_interaction.md) explains multi-vector retrieval, MaxSim scoring, and two-stage search. [Spatial Grounding](backend/docs/spatial_grounding.md) covers how spatial information flows from pixels to regions. [Analysis](backend/docs/analysis.md) discusses when to use vision vs text RAG.
 
-### System Details
-- [`STREAMING_PIPELINE.md`](STREAMING_PIPELINE.md) - how the streaming indexer works.
-- [`backend/docs/architecture.md`](backend/docs/architecture.md) - deeper component and flow description.
-- [`backend/docs/configuration.md`](backend/docs/configuration.md) - full config reference.
+**System internals** — [Streaming Pipeline](STREAMING_PIPELINE.md) details how the indexer overlaps stages. [Architecture](backend/docs/architecture.md) provides deeper component and flow descriptions. [Configuration](backend/docs/configuration.md) is the full config reference.
 
-### Development
-- [`frontend/README.md`](frontend/README.md), [`backend/README.md`](backend/README.md) - service-specific guides.
-- [`CONTRIBUTING.md`](CONTRIBUTING.md) - contribution guidelines.
+**Development** — Service-specific guides are in [frontend/README.md](frontend/README.md) and [backend/README.md](backend/README.md). See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
+
+## Star History
+
+<div align="center">
+
+[![Star History Chart](https://api.star-history.com/svg?repos=athrael-soju/Snappy&type=Date)](https://star-history.com/#athrael-soju/Snappy&Date)
+
+</div>
 
 ## License
-MIT License (see `LICENSE`).
+
+[MIT](LICENSE)

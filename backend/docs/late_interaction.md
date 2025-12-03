@@ -1,8 +1,12 @@
 # Late Interaction in Snappy
 
+> **Research Paper**: [Spatially-Grounded Document Retrieval via Patch-to-Region Relevance Propagation](https://arxiv.org/abs/2501.12345) - Section 2.1 & 3.3
+
 ## Overview
 
 Snappy implements **late interaction** retrieval, a powerful technique where query-document matching happens at the token level rather than at the document level. This approach, inspired by ColBERT and adapted for vision-language models in ColPali, significantly improves retrieval accuracy while maintaining reasonable performance.
+
+Late interaction forms the foundation for Snappy's patch-to-region relevance propagation: instead of discarding patch-level similarity scores after computing page-level results, Snappy extracts these scores as spatial relevance distributions and propagates them to OCR regions.
 
 ## What is Late Interaction?
 
@@ -187,7 +191,7 @@ final_results = rerank(candidates, query, using="original", limit=10)
 
 Now only ~200 pages need full multi-vector comparison instead of the entire collection.
 
-**Result**: Best of both worlds—fast prefetch + accurate rerank.
+**Result**: Best of both worlds; fast prefetch + accurate rerank.
 
 **Implementation**: [`backend/clients/qdrant/search.py:reranking_search_batch`](../clients/qdrant/search.py)
 
@@ -335,7 +339,7 @@ Interpretability Map (96 × 128 heatmap):
   - Low scores (blue): Historical data, static text
 ```
 
-This visualization proves that each query token finds its own best match among all patches—the core of late interaction.
+This visualization proves that each query token finds its own best match among all patches; the core of late interaction.
 
 **API**: [`POST /api/interpretability`](../api/routers/interpretability.py)
 

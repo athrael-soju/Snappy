@@ -36,9 +36,9 @@ export default function RootLayout({
           <NextTopLoader
             initialPosition={0.08}
             crawlSpeed={200}
-            height={3}
+            height={5}
             crawl={true}
-            showSpinner={true}
+            showSpinner={false}
             easing="ease"
             speed={200}
             zIndex={1600}

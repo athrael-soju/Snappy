@@ -72,7 +72,7 @@ That's it! The system auto-configures parallelism, quantization, and pooling for
    - MinIO workers (based on CPU + concurrency)
    - Connection pools (based on workers)
 
-Runtime updates via `/config/*` API take effect immediately but don't persist across restarts—update `.env` for permanent changes.
+Runtime updates via `/config/*` API take effect immediately but don't persist across restarts; update `.env` for permanent changes.
 
 ---
 

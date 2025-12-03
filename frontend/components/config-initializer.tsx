@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import "@/lib/api/client";
 import { ConfigurationService } from "@/lib/api/generated";
 import { loadConfigFromStorage } from "@/lib/config/config-store";
 import { logger } from "@/lib/utils/logger";

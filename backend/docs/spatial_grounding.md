@@ -1,8 +1,12 @@
 # Spatial Grounding in Snappy
 
+> **Research Paper**: [Spatially-Grounded Document Retrieval via Patch-to-Region Relevance Propagation](https://arxiv.org/abs/2501.12345) - Section 3.1 & 3.2
+
 ## Overview
 
-Snappy implements **spatially-grounded document retrieval**, preserving spatial layout information throughout the entire retrieval pipeline—from PDF pages to visual embeddings to region-level filtering. This approach enables Snappy to understand not just *what* content matches a query, but precisely *where* on the page that content appears.
+Snappy implements **spatially-grounded document retrieval** through **patch-to-region relevance propagation**, preserving spatial layout information throughout the entire retrieval pipeline; from PDF pages to visual embeddings to region-level filtering. This approach enables Snappy to understand not just *what* content matches a query, but precisely *where* on the page that content appears.
+
+The system formalizes the coordinate mapping between vision transformer patch grids (32×32 at 448×448 resolution) and OCR bounding boxes, enabling IoU-weighted propagation of patch-level similarity scores to structured text regions.
 
 ## Why Spatial Grounding Matters
 
@@ -31,19 +35,23 @@ Spatial coordinates at this stage are in **pixel space**: `(x, y)` coordinates w
 
 ### 2. Images → Patch Grid (Patch Space)
 
-ColPali divides each image into a grid of **patches** (typically 16×16 pixels each):
+ColPali divides each image into a grid of **patches**. For ColPali-v1.3 with 448×448 input resolution and 32×32 grid:
 
 ```
-Image (2048 × 1536 px) → Patch Grid (128 × 96 patches)
+Image → Resized to 448 × 448 px → Patch Grid (32 × 32 patches)
+Each patch: 14 × 14 pixels (448 / 32 = 14)
+Total patches: 1,024
 ```
 
-Each patch becomes a token in the vision transformer. The spatial transformation is:
+Each patch becomes a token in the vision transformer, indexed in raster scan order (left-to-right, top-to-bottom). The coordinate mapping from patch index k to bounding box:
+
 ```python
-patch_x = pixel_x / patch_width   # e.g., 1024 / 16 = 64
-patch_y = pixel_y / patch_height  # e.g., 768 / 16 = 48
+row = k // 32
+col = k % 32
+patch_bbox = (col * 14, row * 14, (col + 1) * 14, (row + 1) * 14)
 ```
 
-**Key insight**: Spatial information is now encoded in the **position** of each patch token in the embedding sequence.
+**Key insight**: Spatial information is now encoded in the **position** of each patch token in the embedding sequence, with explicit mathematical correspondence to pixel coordinates.
 
 **Implementation**: [`colpali/app/services/embedding_processor.py`](../../colpali/app/services/embedding_processor.py)
 
@@ -51,10 +59,10 @@ patch_y = pixel_y / patch_height  # e.g., 768 / 16 = 48
 
 ### 3. Patches → Multi-Vector Embeddings (Embedding Space)
 
-ColPali generates a **multi-vector embedding** for each page—one vector per patch:
+ColPali generates a **multi-vector embedding** for each page; one vector per patch:
 
 ```
-Patch Grid (128 × 96) → Embedding Tensor (12,288 × 128 dimensions)
+Patch Grid (32 × 32) → Embedding Tensor (1,024 × 128 dimensions)
 ```
 
 Each patch embedding captures:
@@ -119,36 +127,43 @@ Region Relevance Scores
 Filtered Regions (only relevant to query)
 ```
 
-**The Algorithm** ([`backend/domain/region_relevance.py`](../domain/region_relevance.py)):
+**The Algorithm - IoU-Weighted Aggregation** ([`backend/domain/region_relevance.py`](../domain/region_relevance.py)):
 
-1. **Get OCR bounding boxes** in pixel space:
+The formal approach uses **Intersection over Union (IoU)** weighting to properly handle partial patch-region overlaps:
+
+1. **Get OCR bounding boxes** in pixel space and scale to model coordinates:
    ```python
-   bbox = [x1, y1, x2, y2]  # e.g., [512, 768, 1024, 896]
+   bbox = [x1, y1, x2, y2]  # Original pixel coordinates
+   # Scale to model's 448×448 coordinate space
+   bbox_scaled = [
+       x1 * (448 / original_width),
+       y1 * (448 / original_height),
+       x2 * (448 / original_width),
+       y2 * (448 / original_height)
+   ]
    ```
 
-2. **Transform to patch space**:
+2. **Compute per-patch similarity scores** (MaxSim across query tokens):
    ```python
-   patch_x1 = int(x1 / patch_width)   # 512 / 16 = 32
-   patch_y1 = int(y1 / patch_height)  # 768 / 16 = 48
-   patch_x2 = int(x2 / patch_width)   # 1024 / 16 = 64
-   patch_y2 = int(y2 / patch_height)  # 896 / 16 = 56
+   # For each patch j, compute max similarity to any query token
+   patch_scores[j] = max(similarity_matrix[:, j])  # Max over query tokens
    ```
 
-3. **Extract similarity values** for patches overlapping this region:
+3. **Propagate scores via IoU-weighted aggregation**:
    ```python
-   for token_map in similarity_maps:
-       region_similarities = token_map[patch_y1:patch_y2, patch_x1:patch_x2]
-       token_score = max(region_similarities)  # Highest similarity in region
+   region_score = 0
+   for patch_j in all_patches:
+       patch_bbox = compute_patch_bbox(j)  # From raster scan index
+       iou = compute_iou(region_bbox, patch_bbox)
+       if iou > 0:
+           region_score += iou * patch_scores[j]
    ```
 
-4. **Aggregate across query tokens**:
-   ```python
-   relevance_score = max(token_scores)  # or mean/sum
-   ```
+   This weights each patch's contribution by its spatial overlap with the region, ensuring patches fully contained contribute more than peripheral patches.
 
-5. **Filter and rank**:
+4. **Filter and rank**:
    ```python
-   if relevance_score >= threshold:  # e.g., 0.3
+   if region_score >= threshold:  # e.g., 0.3
        keep_region()
    ```
 
