@@ -3,7 +3,7 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/snappy_dark_nobg_resized.png">
   <source media="(prefers-color-scheme: light)" srcset="assets/snappy_light_nobg_resized.png">
-  <img width="400" alt="Snappy Logo" src="assets/snappy_light_nobg_resized.png">
+  <img width="600" alt="Snappy Logo" src="assets/snappy_light_nobg_resized.png">
 </picture>
 
 <br/>
