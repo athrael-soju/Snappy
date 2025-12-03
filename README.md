@@ -28,7 +28,7 @@
 
 # Snappy - Spatially-Grounded Document Retrieval via Patch-to-Region Relevance Propagation
 
-> **Read the Paper at arxiv.org**: [Spatially-Grounded Document Retrieval via Patch-to-Region Relevance Propagation](https://arxiv.org/abs/2512.02660)
+> **Read the Full Paper on arxiv.org**: [Spatially-Grounded Document Retrieval via Patch-to-Region Relevance Propagation](https://arxiv.org/abs/2512.02660)
 
 Snappy implements **region-level document retrieval** by unifying vision-language models with OCR through spatial coordinate mapping. Unlike traditional systems that return entire pages (VLMs) or lack semantic grounding (OCR-only), Snappy uses ColPali's patch-level similarity scores as spatial relevance filters over OCR-extracted regions; operating entirely at inference time without additional training.
 
