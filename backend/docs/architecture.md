@@ -1,6 +1,10 @@
 # Snappy Architecture
 
-Snappy implements **spatially-grounded hybrid document retrieval**, unifying vision-language late interaction with structured OCR for region-level retrieval-augmented generation. PDFs are rasterized to images, embedded with ColPali multivectors using late interaction, and searched by layout and text. Optional DeepSeek OCR and DuckDB add text grounding, region-level filtering, analytics, and deduplication.
+> **Research Paper**: [Spatially-Grounded Document Retrieval via Patch-to-Region Relevance Propagation](https://arxiv.org/abs/2501.12345)
+
+Snappy implements **region-level document retrieval** through patch-to-region relevance propagation; a hybrid architecture that unifies vision-language models with OCR at inference time without additional training. The system uses ColPali's patch-level similarity scores as spatial relevance filters over OCR-extracted regions, achieving precise retrieval granularity while preserving the semantic understanding of vision-language models.
+
+PDFs are rasterized to images, embedded with ColPali multivectors using late interaction, and searched by layout and text. Coordinate mapping between vision transformer patch grids (32×32) and OCR bounding boxes enables relevance propagation via interpretability maps, filtering OCR regions to return only spatially-relevant content.
 
 ```mermaid
 ---
@@ -41,20 +45,32 @@ flowchart TB
 
 ## Core Retrieval Paradigm
 
-Snappy's retrieval architecture is built on three foundational pillars:
+Snappy's retrieval architecture is built on four foundational pillars:
 
-### 1. Vision-Language Late Interaction
-ColPali embeddings preserve spatial structure through **multi-vector representations** (one vector per image patch). Each query token finds its best match among all document patches via MaxSim scoring, enabling fine-grained layout-aware retrieval without losing context. Two-stage retrieval (prefetch with pooled vectors + rerank with original multivectors) balances speed and accuracy.
+### 1. Coordinate Mapping: Patches to Bounding Boxes
+Formalizes the mathematical correspondence between vision transformer patch grids and OCR bounding boxes. ColPali encodes each page as a 32×32 grid of patch embeddings over 448×448 input resolution, where each patch corresponds to a 14×14 pixel region. OCR bounding boxes are scaled to the model's coordinate space, enabling spatial alignment between heterogeneous representations.
 
-**See**: [Late Interaction Documentation](late_interaction.md)
+**Mathematical Foundation**: For patch index k, the bounding box is computed via raster scan order (row = ⌊k/32⌋, col = k mod 32), with OCR coordinates scaled by the ratio of model resolution to original document dimensions.
 
-### 2. Spatial Grounding
-Spatial information flows through the entire pipeline: pixel coordinates → patch grid → embeddings → interpretability maps → region filtering. This preserves **where** content appears on the page, not just **what** it says. Region-level retrieval uses interpretability maps to filter OCR regions by query relevance, returning only spatially-relevant content.
+### 2. Relevance Propagation via Interpretability Maps
+Repurposes ColPali's late interaction mechanism to generate per-query-token similarity heatmaps, then propagates these scores to OCR regions through IoU-weighted patch-region intersection. Instead of discarding patch-level attention when returning page-level results, Snappy extracts spatial relevance distributions and maps them to structured OCR regions.
+
+**Aggregation Strategy**: Region relevance score = Σ IoU(region_bbox, patch_bbox) × patch_score, weighted by spatial overlap to ensure patches fully contained within regions contribute more than peripheral patches.
 
 **See**: [Spatial Grounding Documentation](spatial_grounding.md)
 
-### 3. Hybrid Vision + Text Retrieval
-Snappy combines vision-first retrieval (ColPali image embeddings) with structured OCR (DeepSeek text/bounding boxes). Vision handles layout, handwriting, and diagrams; OCR provides searchable text and region metadata. Region-level filtering uses vision-based attention maps to score OCR regions, creating a true hybrid approach.
+### 3. Two-Stage Retrieval Architecture
+Balances efficiency and precision through mean-pooling compression for candidate retrieval followed by full-resolution reranking.
+
+- **Stage 1**: Mean-pool patch embeddings to obtain single page-level vectors, enabling efficient ANN search via Qdrant to retrieve top-K candidates
+- **Stage 2**: Compute full patch-level similarity for candidates and propagate scores to OCR regions as described above
+
+This approach provides substantial speedup (1000× search space reduction with K=100, N=100K pages) while preserving region-level granularity where it matters.
+
+**See**: [Late Interaction Documentation](late_interaction.md)
+
+### 4. Inference-Time Operation
+Unlike RegionRAG (which requires hybrid training with bounding box annotations) or LayoutLM (which operates at pre-training time), Snappy achieves region-level retrieval purely at inference time using ColPali's emergent patch attention. This provides flexibility: the same approach works with any OCR system providing bounding boxes and any ColPali-family model (including the 10× smaller ColModernVBERT).
 
 **See**: [Analysis: Vision vs Text RAG](analysis.md)
 

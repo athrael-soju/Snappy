@@ -1,6 +1,10 @@
 # Snappy System Analysis - Vision vs Text RAG
 
+> **Research Paper**: [Spatially-Grounded Document Retrieval via Patch-to-Region Relevance Propagation](https://arxiv.org/abs/2501.12345) - Section 4
+
 Snappy is vision-first: it embeds page images with ColPali multivectors so layout, figures, and handwriting stay searchable. OCR and DuckDB are optional add-ons that improve text grounding and analytics when you need them.
+
+The hybrid architecture achieves **region-level granularity** without sacrificing the semantic understanding of vision-language models. Theoretical analysis shows expected context reduction factors of 5× (returning 3 regions instead of 15-region pages) while improving signal-to-noise ratio through relevance-based filtering.
 
 ## What is different about Snappy
 - Multivector embeddings per page (original tokens plus pooled variants) keep layout signals.
