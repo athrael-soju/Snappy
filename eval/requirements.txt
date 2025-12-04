@@ -1,0 +1,15 @@
+# Core dependencies
+numpy>=1.24.0
+pillow>=10.0.0
+tiktoken>=0.5.0
+aiohttp>=3.9.0
+
+# LLM integration
+openai>=1.0.0
+
+# Visualization (optional)
+matplotlib>=3.7.0
+
+# For development/testing
+pytest>=7.0.0
+pytest-asyncio>=0.21.0

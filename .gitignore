@@ -210,3 +210,8 @@ __marimo__/
 qdrant_storage/
 deepseek-ocr/models/
 .claude/
+
+# Evaluation results
+eval/results/
+eval/analysis/
+data/
