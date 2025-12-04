@@ -304,10 +304,7 @@ class BenchmarkRunner:
             )
 
             result.correctness = CorrectnessMetrics(
-                exact_match=correctness_result.exact_match,
                 f1_score=correctness_result.f1_score,
-                anls=correctness_result.anls,
-                semantic_similarity=correctness_result.semantic_similarity,
                 llm_judge_score=correctness_result.llm_judge_score,
             )
 

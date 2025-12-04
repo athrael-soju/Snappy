@@ -2,7 +2,7 @@
 Metrics collection and calculation for benchmarking.
 
 Tracks:
-- Correctness: Answer accuracy metrics (exact match, F1, ANLS)
+- Correctness: Answer accuracy metrics (F1, LLM Judge)
 - Latency: Response time measurements
 - Tokens: Input/output token counts for LLM calls
 - Retrieval: Hit rate, MRR, precision@k
@@ -57,10 +57,7 @@ class RetrievalMetrics:
 class CorrectnessMetrics:
     """Answer correctness metrics for a single sample."""
 
-    exact_match: float = 0.0  # Binary exact match (normalized)
     f1_score: float = 0.0  # Token-level F1 score
-    anls: float = 0.0  # Average Normalized Levenshtein Similarity
-    semantic_similarity: float = 0.0  # Embedding-based similarity
     llm_judge_score: float = 0.0  # LLM-based semantic correctness
 
 
@@ -180,14 +177,7 @@ class MetricsCollector:
 
         # Correctness aggregates
         correctness_stats = {
-            "exact_match": float(
-                np.mean([r.correctness.exact_match for r in successful])
-            ),
             "f1_score": float(np.mean([r.correctness.f1_score for r in successful])),
-            "anls": float(np.mean([r.correctness.anls for r in successful])),
-            "semantic_similarity": float(
-                np.mean([r.correctness.semantic_similarity for r in successful])
-            ),
             "llm_judge_score": float(
                 np.mean([r.correctness.llm_judge_score for r in successful])
             ),
@@ -236,7 +226,7 @@ class MetricsCollector:
 
                     # Correctness improvement (higher is better)
                     if "correctness" in baseline and "correctness" in current:
-                        for metric in ["exact_match", "f1_score", "anls", "llm_judge_score"]:
+                        for metric in ["f1_score", "llm_judge_score"]:
                             baseline_val = baseline["correctness"].get(metric, 0)
                             current_val = current["correctness"].get(metric, 0)
                             if baseline_val > 0:

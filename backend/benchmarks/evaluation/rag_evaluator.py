@@ -152,6 +152,18 @@ class RAGEvaluator:
             system_prompt = self._build_system_prompt()
             user_text = self._build_user_prompt(query, context)
 
+            # Log what we're sending to the LLM
+            img_info = ""
+            if images:
+                img_sizes = [f"{img.width}x{img.height}" for img in images]
+                img_info = f", images={len(images)} ({', '.join(img_sizes)})"
+            if image_urls:
+                img_info += f", image_urls={len(image_urls)}"
+            self._logger.info(
+                f"LLM input: query=\"{query}\"{img_info}\n"
+                f"Context ({len(context)} chars):\n{context}"
+            )
+
             # Build input based on whether we have images
             if images or image_urls:
                 # Multimodal input with images

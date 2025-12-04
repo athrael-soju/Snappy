@@ -369,9 +369,8 @@ async def cmd_run(args: argparse.Namespace) -> int:
         for strategy, metrics in comparison.items():
             print(f"\n{strategy}:")
             if "correctness" in metrics:
-                print(f"  ANLS: {metrics['correctness'].get('anls', 0):.4f}")
                 print(f"  F1: {metrics['correctness'].get('f1_score', 0):.4f}")
-                print(f"  EM: {metrics['correctness'].get('exact_match', 0):.4f}")
+                print(f"  LLM Judge: {metrics['correctness'].get('llm_judge_score', 0):.4f}")
             if "latency" in metrics:
                 total = metrics["latency"].get("total_ms", {})
                 print(

@@ -1,11 +1,9 @@
 """
 Correctness evaluation for benchmark answers.
 
-Implements multiple metrics:
-- Exact Match (EM): Normalized string comparison
+Implements:
 - F1 Score: Token-level overlap
-- ANLS: Average Normalized Levenshtein Similarity (DocVQA standard)
-- Semantic Similarity: Embedding-based similarity
+- LLM Judge: Semantic correctness via LLM evaluation
 """
 
 import logging
@@ -16,8 +14,6 @@ import numpy as np
 from openai import OpenAI
 
 from benchmarks.metrics import (
-    compute_anls,
-    compute_exact_match,
     compute_f1_score,
     compute_bbox_iou,
 )
@@ -29,19 +25,13 @@ logger = logging.getLogger(__name__)
 class CorrectnessResult:
     """Result of correctness evaluation."""
 
-    exact_match: float
     f1_score: float
-    anls: float
-    semantic_similarity: float
     bbox_iou: float
     llm_judge_score: float = 0.0  # LLM-based semantic correctness
 
     def to_dict(self) -> Dict[str, float]:
         return {
-            "exact_match": self.exact_match,
             "f1_score": self.f1_score,
-            "anls": self.anls,
-            "semantic_similarity": self.semantic_similarity,
             "bbox_iou": self.bbox_iou,
             "llm_judge_score": self.llm_judge_score,
         }
@@ -51,60 +41,35 @@ class CorrectnessEvaluator:
     """
     Evaluator for answer correctness.
 
-    Computes multiple metrics to assess answer quality:
-    - Lexical metrics (EM, F1)
-    - Edit distance metrics (ANLS)
-    - Semantic metrics (embedding similarity)
-    - Spatial metrics (bounding box IoU)
+    Computes:
+    - F1 Score: Token-level overlap
+    - LLM Judge: Semantic correctness via LLM evaluation
+    - BBox IoU: Spatial accuracy
     """
 
     def __init__(
         self,
-        use_semantic_similarity: bool = False,
         use_llm_judge: bool = False,
-        embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2",
-        anls_threshold: float = 0.5,
         llm_model: str = "gpt-5-nano",
         llm_api_key: Optional[str] = None,
+        # Legacy parameters (ignored)
+        use_semantic_similarity: bool = False,
+        embedding_model: str = "",
+        anls_threshold: float = 0.5,
     ):
         """
         Initialize correctness evaluator.
 
         Args:
-            use_semantic_similarity: Whether to compute embedding-based similarity
             use_llm_judge: Whether to use LLM for semantic correctness evaluation
-            embedding_model: Model for semantic similarity
-            anls_threshold: Threshold for ANLS scoring
             llm_model: Model for LLM judge
             llm_api_key: API key for LLM judge
         """
-        self.use_semantic_similarity = use_semantic_similarity
         self.use_llm_judge = use_llm_judge
-        self.embedding_model = embedding_model
-        self.anls_threshold = anls_threshold
-
-        self._embedder = None
         self._llm_judge = None
-
-        if use_semantic_similarity:
-            self._initialize_embedder()
 
         if use_llm_judge:
             self._llm_judge = LLMJudge(model=llm_model, api_key=llm_api_key)
-
-    def _initialize_embedder(self) -> None:
-        """Initialize sentence transformer for semantic similarity."""
-        try:
-            from sentence_transformers import SentenceTransformer
-
-            self._embedder = SentenceTransformer(self.embedding_model)
-            logger.info(f"Loaded embedding model: {self.embedding_model}")
-        except ImportError:
-            logger.warning(
-                "sentence-transformers not installed. "
-                "Semantic similarity will be disabled."
-            )
-            self.use_semantic_similarity = False
 
     def evaluate(
         self,
@@ -123,19 +88,10 @@ class CorrectnessEvaluator:
             ground_truth_bboxes: Optional ground truth bounding boxes
 
         Returns:
-            CorrectnessResult with all metrics
+            CorrectnessResult with metrics
         """
-        # Lexical metrics
-        exact_match = compute_exact_match(prediction, ground_truth)
+        # F1 score
         f1_score = compute_f1_score(prediction, ground_truth)
-
-        # Edit distance metric
-        anls = compute_anls(prediction, ground_truth, self.anls_threshold)
-
-        # Semantic similarity
-        semantic_sim = 0.0
-        if self.use_semantic_similarity and self._embedder:
-            semantic_sim = self._compute_semantic_similarity(prediction, ground_truth)
 
         # Bounding box IoU
         bbox_iou = 0.0
@@ -143,10 +99,7 @@ class CorrectnessEvaluator:
             bbox_iou = compute_bbox_iou(predicted_bboxes, ground_truth_bboxes)
 
         return CorrectnessResult(
-            exact_match=exact_match,
             f1_score=f1_score,
-            anls=anls,
-            semantic_similarity=semantic_sim,
             bbox_iou=bbox_iou,
         )
 
@@ -180,31 +133,6 @@ class CorrectnessEvaluator:
             result.llm_judge_score = llm_score
 
         return result
-
-    def _compute_semantic_similarity(self, prediction: str, ground_truth: str) -> float:
-        """Compute cosine similarity between embeddings."""
-        if not self._embedder:
-            return 0.0
-
-        try:
-            embeddings = self._embedder.encode(
-                [prediction, ground_truth],
-                convert_to_numpy=True,
-            )
-
-            # Cosine similarity
-            pred_emb = embeddings[0]
-            gt_emb = embeddings[1]
-
-            similarity = np.dot(pred_emb, gt_emb) / (
-                np.linalg.norm(pred_emb) * np.linalg.norm(gt_emb) + 1e-8
-            )
-
-            return float(similarity)
-
-        except Exception as e:
-            logger.warning(f"Semantic similarity computation failed: {e}")
-            return 0.0
 
     def batch_evaluate(
         self,
@@ -259,16 +187,14 @@ class CorrectnessEvaluator:
             return {}
 
         metrics = {
-            "exact_match": [r.exact_match for r in results],
             "f1_score": [r.f1_score for r in results],
-            "anls": [r.anls for r in results],
-            "semantic_similarity": [r.semantic_similarity for r in results],
+            "llm_judge_score": [r.llm_judge_score for r in results],
             "bbox_iou": [r.bbox_iou for r in results],
         }
 
         aggregated = {}
         for name, values in metrics.items():
-            valid_values = [v for v in values if v > 0 or name in ["exact_match"]]
+            valid_values = [v for v in values if v > 0]
             if valid_values:
                 aggregated[name] = {
                     "mean": float(np.mean(valid_values)),
