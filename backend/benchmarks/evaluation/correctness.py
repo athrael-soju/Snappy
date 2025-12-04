@@ -50,7 +50,7 @@ class CorrectnessEvaluator:
     def __init__(
         self,
         use_llm_judge: bool = False,
-        llm_model: str = "gpt-5-nano",
+        llm_model: str = "gpt-5-mini",
         llm_api_key: str = "",
     ):
         """
@@ -221,7 +221,7 @@ class LLMJudge:
 
     def __init__(
         self,
-        model: str = "gpt-5-nano",
+        model: str = "gpt-5-mini",
         api_key: str = "",
     ):
         if not api_key:

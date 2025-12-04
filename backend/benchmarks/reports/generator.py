@@ -224,6 +224,7 @@ class ReportGenerator:
                     "total_s": result.latency.total_s,
                     "input_tokens": result.tokens.input_tokens,
                     "output_tokens": result.tokens.output_tokens,
+                    "image_path": result.image_path or "",
                     "error": result.error or "",
                 }
                 all_samples.append(row)
@@ -264,6 +265,7 @@ class ReportGenerator:
             "error": sample.error,
             "retrieved_context": sample.retrieved_context,
             "retrieved_regions": sample.retrieved_regions,
+            "image_path": sample.image_path,
         }
 
     def generate_comparison_table(

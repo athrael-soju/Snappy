@@ -63,6 +63,7 @@ class SampleResult:
     retrieved_context: Optional[str] = None
     retrieved_regions: Optional[List[Dict[str, Any]]] = None  # Filtered regions with scores
     raw_response: Optional[Dict[str, Any]] = None
+    image_path: Optional[str] = None  # Local path to sample image
 
 
 class MetricsCollector:

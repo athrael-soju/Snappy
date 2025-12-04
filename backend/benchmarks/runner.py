@@ -205,6 +205,7 @@ class BenchmarkRunner:
             ground_truth=sample.answer,
             predicted_answer="",
             strategy=strategy.name,
+            image_path=self._get_image_local_path(sample),
         )
 
         try:
@@ -289,6 +290,32 @@ class BenchmarkRunner:
             self._logger.error(f"Sample processing error: {e}", exc_info=True)
 
         return result
+
+    def _get_image_local_path(self, sample: BenchmarkSample) -> Optional[str]:
+        """
+        Get local file path to the sample image.
+
+        Args:
+            sample: Benchmark sample with image_paths
+
+        Returns:
+            Local file path to the image, or None if not available
+        """
+        from pathlib import Path
+
+        if not sample.image_paths:
+            return None
+
+        cache_dir = Path(self.config.cache_dir)
+
+        # Find the images zip in the cache
+        for snapshot_dir in (cache_dir / "datasets--Yuwh07--BBox_DocVQA_Bench" / "snapshots").glob("*"):
+            zip_path = snapshot_dir / "BBox_DocVQA_Bench_Images.zip"
+            if zip_path.exists():
+                # Return path in format: zip_path!/internal_path
+                return f"{zip_path}!/{sample.image_paths[0]}"
+
+        return None
 
     def _load_sample_image(self, sample: BenchmarkSample):
         """
