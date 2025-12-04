@@ -127,6 +127,9 @@ class BBoxDocVQADataset:
         "answer": "$1,234.56",
         "bbox": [x1, y1, x2, y2] or {"x": x, "y": y, "width": w, "height": h}
     }
+
+    If the dataset doesn't exist at the specified path, it will be automatically
+    downloaded (if auto_download=True).
     """
 
     def __init__(
@@ -135,6 +138,7 @@ class BBoxDocVQADataset:
         annotations_file: Optional[Path] = None,
         ocr_dir: Optional[Path] = None,
         images_dir: Optional[Path] = None,
+        auto_download: bool = True,
     ):
         """
         Initialize the dataset loader.
@@ -144,25 +148,35 @@ class BBoxDocVQADataset:
             annotations_file: Path to annotations JSON (default: dataset_root/annotations.json)
             ocr_dir: Directory with pre-extracted OCR (default: dataset_root/ocr/)
             images_dir: Directory with document images (default: dataset_root/images/)
+            auto_download: Whether to automatically download if dataset doesn't exist
         """
         self.dataset_root = Path(dataset_root)
         self.annotations_file = annotations_file or self.dataset_root / "annotations.json"
         self.ocr_dir = ocr_dir or self.dataset_root / "ocr"
         self.images_dir = images_dir or self.dataset_root / "images"
+        self.auto_download = auto_download
 
         self._samples: List[Sample] = []
         self._loaded = False
 
     def load(self) -> "BBoxDocVQADataset":
-        """Load the dataset from disk."""
+        """Load the dataset from disk, downloading if necessary."""
         if self._loaded:
             return self
 
         logger.info(f"Loading BBox-DocVQA dataset from {self.dataset_root}")
 
-        # Load annotations
+        # Check if dataset exists, download if needed
         if not self.annotations_file.exists():
-            raise FileNotFoundError(f"Annotations file not found: {self.annotations_file}")
+            if self.auto_download:
+                logger.info("Dataset not found, attempting to download...")
+                self._download_dataset()
+            else:
+                raise FileNotFoundError(
+                    f"Annotations file not found: {self.annotations_file}\n"
+                    f"Run 'python -m eval.download' to download the dataset, "
+                    f"or set auto_download=True."
+                )
 
         with open(self.annotations_file, "r", encoding="utf-8") as f:
             annotations = json.load(f)
@@ -254,6 +268,27 @@ class BBoxDocVQADataset:
             full_page_text=full_page_text,
             metadata=ann.get("metadata", {}),
         )
+
+    def _download_dataset(self) -> None:
+        """Download the dataset if not present."""
+        try:
+            from eval.download import download_dataset, create_synthetic_dataset
+        except ImportError:
+            raise ImportError(
+                "Download module not available. Please download the dataset manually "
+                "or run 'python -m eval.download'"
+            )
+
+        # Determine dataset name from path
+        dataset_name = self.dataset_root.name
+        if dataset_name in ["bbox-docvqa", "docvqa", "docvqa-val"]:
+            download_dataset(dataset_name, output_dir=self.dataset_root)
+        else:
+            # Unknown dataset - create synthetic for testing
+            logger.warning(
+                f"Unknown dataset '{dataset_name}'. Creating synthetic dataset for testing."
+            )
+            create_synthetic_dataset(self.dataset_root, n_samples=100)
 
     def _load_ocr(self, ocr_file: Path) -> Tuple[List[OCRRegion], str]:
         """Load pre-extracted OCR data."""

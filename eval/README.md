@@ -35,7 +35,34 @@ pip install -r requirements.txt
 
 ## Dataset Setup
 
-Download and organize the BBox-DocVQA dataset:
+### Automatic Download
+
+The evaluation suite can automatically download datasets:
+
+```bash
+# Download BBox-DocVQA (or fallback to DocVQA if not yet released)
+python -m eval.download bbox-docvqa
+
+# Download standard DocVQA validation set
+python -m eval.download docvqa-val
+
+# Create synthetic dataset for testing
+python -m eval.download --synthetic 100
+
+# List available datasets
+python -m eval.download --list
+```
+
+Datasets are automatically downloaded when running the benchmark if not present:
+
+```bash
+# This will auto-download if data/bbox-docvqa doesn't exist
+python -m eval.benchmark --dataset data/bbox-docvqa
+```
+
+### Manual Setup
+
+Alternatively, download and organize the dataset manually:
 
 ```
 data/bbox-docvqa/
