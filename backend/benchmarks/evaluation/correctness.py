@@ -136,9 +136,7 @@ class CorrectnessEvaluator:
             bbox_iou=bbox_iou,
         )
 
-    def _compute_semantic_similarity(
-        self, prediction: str, ground_truth: str
-    ) -> float:
+    def _compute_semantic_similarity(self, prediction: str, ground_truth: str) -> float:
         """Compute cosine similarity between embeddings."""
         if not self._embedder:
             return 0.0
@@ -185,9 +183,7 @@ class CorrectnessEvaluator:
         results = []
 
         for i in range(len(predictions)):
-            pred_bboxes = (
-                predicted_bboxes_list[i] if predicted_bboxes_list else None
-            )
+            pred_bboxes = predicted_bboxes_list[i] if predicted_bboxes_list else None
             gt_bboxes = (
                 ground_truth_bboxes_list[i] if ground_truth_bboxes_list else None
             )
@@ -250,7 +246,7 @@ class LLMJudge:
 
     def __init__(
         self,
-        model: str = "gpt-4o-mini",
+        model: str = "gpt-5-nano",
         api_key: Optional[str] = None,
     ):
         self.model = model

@@ -15,8 +15,13 @@ import sys
 from pathlib import Path
 from typing import List, Optional
 
+from dotenv import load_dotenv
+
 from benchmarks.config import BenchmarkConfig, LLMProvider, RetrievalStrategy
 from benchmarks.runner import BenchmarkRunner, run_benchmark
+
+# Load environment variables from .env files (searches up from current directory)
+load_dotenv(override=False)  # Load from .env files in current or parent directories
 
 
 def setup_logging(verbose: bool = False) -> None:
@@ -69,7 +74,7 @@ Examples:
   python -m benchmarks.cli run --categories cs,math
 
   # Use specific LLM
-  python -m benchmarks.cli run --llm-model gpt-4o --llm-provider openai
+  python -m benchmarks.cli run --llm-model gpt-5-nano --llm-provider openai
 
   # Generate report from existing results
   python -m benchmarks.cli report --input benchmark_results.json
@@ -147,7 +152,7 @@ Examples:
     )
     run_parser.add_argument(
         "--llm-model",
-        default="gpt-4o-mini",
+        default="gpt-5-nano",
         help="LLM model name",
     )
     run_parser.add_argument(
@@ -206,7 +211,8 @@ Examples:
         help="Timeout per sample in seconds",
     )
     run_parser.add_argument(
-        "-v", "--verbose",
+        "-v",
+        "--verbose",
         action="store_true",
         help="Enable verbose logging",
     )
@@ -229,7 +235,8 @@ Examples:
         help="Generate LaTeX table",
     )
     report_parser.add_argument(
-        "-v", "--verbose",
+        "-v",
+        "--verbose",
         action="store_true",
         help="Enable verbose logging",
     )
@@ -306,9 +313,13 @@ async def cmd_run(args: argparse.Namespace) -> int:
                 print(f"  EM: {metrics['correctness'].get('exact_match', 0):.4f}")
             if "latency" in metrics:
                 total = metrics["latency"].get("total_ms", {})
-                print(f"  Latency: {total.get('mean', 0):.1f}ms (p95: {total.get('p95', 0):.1f}ms)")
+                print(
+                    f"  Latency: {total.get('mean', 0):.1f}ms (p95: {total.get('p95', 0):.1f}ms)"
+                )
             if "tokens" in metrics:
-                print(f"  Tokens: {metrics['tokens'].get('total_tokens', {}).get('mean', 0):.0f} avg")
+                print(
+                    f"  Tokens: {metrics['tokens'].get('total_tokens', {}).get('mean', 0):.0f} avg"
+                )
 
         print()
         print(f"Total time: {results.get('total_time_seconds', 0):.1f}s")
@@ -324,6 +335,7 @@ async def cmd_run(args: argparse.Namespace) -> int:
         print(f"Error: {e}", file=sys.stderr)
         if args.verbose:
             import traceback
+
             traceback.print_exc()
         return 1
 
@@ -358,7 +370,12 @@ def cmd_report(args: argparse.Namespace) -> int:
         for metric in ["anls", "f1_score", "exact_match"]:
             values = []
             for s in strategies:
-                val = comparison[s].get("aggregate_metrics", {}).get("correctness", {}).get(metric, 0)
+                val = (
+                    comparison[s]
+                    .get("aggregate_metrics", {})
+                    .get("correctness", {})
+                    .get(metric, 0)
+                )
                 values.append(f"{val:.3f}")
             print(f"{metric} & " + " & ".join(values) + " \\\\")
 
@@ -376,7 +393,12 @@ def cmd_report(args: argparse.Namespace) -> int:
         for metric in ["anls", "f1_score", "exact_match"]:
             row = f"| {metric}".ljust(20)
             for s in strategies:
-                val = comparison[s].get("aggregate_metrics", {}).get("correctness", {}).get(metric, 0)
+                val = (
+                    comparison[s]
+                    .get("aggregate_metrics", {})
+                    .get("correctness", {})
+                    .get(metric, 0)
+                )
                 row += f"| {val:^15.3f}"
             row += "|"
             print(row)

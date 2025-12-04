@@ -57,7 +57,7 @@ class BenchmarkConfig:
 
     # LLM settings for RAG evaluation
     llm_provider: LLMProvider = LLMProvider.OPENAI
-    llm_model: str = "gpt-4o-mini"  # Default to cost-effective model
+    llm_model: str = "gpt-5-nano"  # Default to cost-effective model
     llm_temperature: float = 0.0  # Deterministic for reproducibility
     llm_max_tokens: int = 512
     llm_api_key: Optional[str] = field(
@@ -129,6 +129,6 @@ class BenchmarkConfig:
         return cls(
             max_samples=int(os.environ.get("BENCHMARK_MAX_SAMPLES", 0)) or None,
             top_k=int(os.environ.get("BENCHMARK_TOP_K", 5)),
-            llm_model=os.environ.get("BENCHMARK_LLM_MODEL", "gpt-4o-mini"),
+            llm_model=os.environ.get("BENCHMARK_LLM_MODEL", "gpt-5-nano"),
             batch_size=int(os.environ.get("BENCHMARK_BATCH_SIZE", 10)),
         )

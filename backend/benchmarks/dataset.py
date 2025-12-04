@@ -117,32 +117,44 @@ class BBoxDocVQADataset:
         max_samples: Optional[int],
         categories: Optional[List[str]],
     ) -> None:
-        """Load dataset using HuggingFace datasets library."""
-        try:
-            from datasets import load_dataset
-        except ImportError:
-            raise ImportError(
-                "HuggingFace datasets library required. "
-                "Install with: pip install datasets"
-            )
+        """Load dataset from HuggingFace cache."""
+        from huggingface_hub import hf_hub_download
 
-        logger.info(f"Loading dataset {self.dataset_name} from HuggingFace...")
-        self._dataset = load_dataset(
-            self.dataset_name, split=split, cache_dir=str(self.cache_dir)
+        logger.info(f"Loading dataset {self.dataset_name} from HuggingFace (split={split})...")
+
+        # Download the JSONL file and images zip to cache
+        jsonl_path = hf_hub_download(
+            repo_id=self.dataset_name,
+            filename="BBox_DocVQA_Bench.jsonl",
+            repo_type="dataset",
+            cache_dir=str(self.cache_dir)
         )
 
+        # Also ensure images are downloaded
+        hf_hub_download(
+            repo_id=self.dataset_name,
+            filename="BBox_DocVQA_Bench_Images.zip",
+            repo_type="dataset",
+            cache_dir=str(self.cache_dir)
+        )
+
+        # Load directly from JSONL file
+        logger.info(f"Reading JSONL from {jsonl_path}")
         self._samples = []
-        for idx, item in enumerate(self._dataset):
-            if max_samples and idx >= max_samples:
-                break
 
-            sample = self._parse_sample(item, idx)
+        with open(jsonl_path, "r", encoding="utf-8") as f:
+            for idx, line in enumerate(f):
+                if max_samples and idx >= max_samples:
+                    break
 
-            # Filter by category if specified
-            if categories and sample.category not in categories:
-                continue
+                item = json.loads(line.strip())
+                sample = self._parse_sample(item, idx)
 
-            self._samples.append(sample)
+                # Filter by category if specified
+                if categories and sample.category not in categories:
+                    continue
+
+                self._samples.append(sample)
 
     def _load_from_local(
         self,
@@ -196,6 +208,9 @@ class BBoxDocVQADataset:
 
         # Sub-image type
         subimg_type = item.get("subimg_tpye") or item.get("subimg_type", "text")
+        # Convert list to comma-separated string if needed
+        if isinstance(subimg_type, list):
+            subimg_type = ",".join(str(t) for t in subimg_type) if subimg_type else "text"
 
         return BenchmarkSample(
             sample_id=f"{category}_{doc_name}_{idx}",
@@ -248,7 +263,13 @@ class BBoxDocVQADataset:
 
         for sample in self._samples:
             categories[sample.category] = categories.get(sample.category, 0) + 1
-            types[sample.subimg_type] = types.get(sample.subimg_type, 0) + 1
+
+            # Handle subimg_type which might be a list or string
+            subimg_key = sample.subimg_type
+            if isinstance(subimg_key, list):
+                subimg_key = ",".join(str(t) for t in subimg_key) if subimg_key else "unknown"
+            types[subimg_key] = types.get(subimg_key, 0) + 1
+
             if sample.is_multi_page:
                 multi_page_count += 1
             if sample.has_multiple_bboxes:

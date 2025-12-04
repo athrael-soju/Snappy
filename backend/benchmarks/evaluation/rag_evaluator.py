@@ -2,7 +2,7 @@
 RAG Evaluator for generating answers using retrieved context.
 
 Supports multiple LLM providers:
-- OpenAI (GPT-4, GPT-4o-mini, etc.)
+- OpenAI (GPT-5, gpt-5-nano, etc.)
 - Anthropic (Claude 3, etc.)
 - Local models via Ollama/vLLM
 """
@@ -45,7 +45,7 @@ class RAGEvaluator:
     def __init__(
         self,
         provider: LLMProvider = LLMProvider.OPENAI,
-        model: str = "gpt-4o-mini",
+        model: str = "gpt-5-nano",
         api_key: Optional[str] = None,
         anthropic_api_key: Optional[str] = None,
         temperature: float = 0.0,
@@ -98,9 +98,7 @@ class RAGEvaluator:
 
         try:
             if self.provider == LLMProvider.OPENAI:
-                response = await self._call_openai(
-                    query, context, images, image_urls
-                )
+                response = await self._call_openai(query, context, images, image_urls)
             elif self.provider == LLMProvider.ANTHROPIC:
                 response = await self._call_anthropic(
                     query, context, images, image_urls
@@ -403,9 +401,7 @@ Answer:"""
             batch = samples[i : i + batch_size]
 
             # Process batch concurrently
-            tasks = [
-                self.generate_answer(query, context) for query, context in batch
-            ]
+            tasks = [self.generate_answer(query, context) for query, context in batch]
             batch_results = await asyncio.gather(*tasks, return_exceptions=True)
 
             for result in batch_results:
