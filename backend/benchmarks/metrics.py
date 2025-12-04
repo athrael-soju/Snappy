@@ -158,23 +158,6 @@ class MetricsCollector:
             },
         }
 
-        # Retrieval aggregates
-        retrieval_stats = {
-            "hit_rate": float(np.mean([r.retrieval.hit for r in successful])),
-            "mrr": float(
-                np.mean([r.retrieval.reciprocal_rank for r in successful])
-            ),
-            "precision_at_k": float(
-                np.mean([r.retrieval.precision_at_k for r in successful])
-            ),
-            "recall_at_k": float(
-                np.mean([r.retrieval.recall_at_k for r in successful])
-            ),
-            "mean_bbox_iou": float(
-                np.mean([r.retrieval.bbox_iou for r in successful])
-            ),
-        }
-
         # Correctness aggregates
         correctness_stats = {
             "f1_score": float(np.mean([r.correctness.f1_score for r in successful])),
@@ -190,7 +173,6 @@ class MetricsCollector:
             "error_rate": (len(results) - len(successful)) / len(results),
             "latency": latency_stats,
             "tokens": token_stats,
-            "retrieval": retrieval_stats,
             "correctness": correctness_stats,
         }
 

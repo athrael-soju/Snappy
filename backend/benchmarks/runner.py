@@ -258,18 +258,10 @@ class BenchmarkRunner:
                 result.error = f"Retrieval error: {retrieval_result.error}"
                 return result
 
-            # Record retrieval metrics
+            # Record latency metrics
             result.latency.retrieval_ms = retrieval_result.retrieval_time_ms
             result.latency.embedding_ms = retrieval_result.embedding_time_ms
             result.latency.region_filtering_ms = retrieval_result.region_filtering_time_ms
-
-            # Compute retrieval quality metrics
-            result.retrieval = self._compute_retrieval_metrics(
-                retrieved_pages=retrieval_result.retrieved_pages,
-                relevant_pages=sample.evidence_pages,
-                retrieved_bboxes=retrieval_result.retrieved_bboxes,
-                relevant_bboxes=sample.bboxes,
-            )
 
             # Step 2: Generate answer using RAG
             self._metrics_collector.start_timer("rag")
@@ -326,48 +318,6 @@ class BenchmarkRunner:
             self._logger.error(f"Sample processing error: {e}", exc_info=True)
 
         return result
-
-    def _compute_retrieval_metrics(
-        self,
-        retrieved_pages: List[int],
-        relevant_pages: List[int],
-        retrieved_bboxes: List[List[int]],
-        relevant_bboxes: List[List[int]],
-    ) -> RetrievalMetrics:
-        """Compute retrieval quality metrics."""
-        from benchmarks.metrics import compute_bbox_iou
-
-        metrics = RetrievalMetrics(
-            retrieved_pages=retrieved_pages,
-            relevant_pages=relevant_pages,
-        )
-
-        # Hit: at least one relevant page retrieved
-        relevant_set = set(relevant_pages)
-        retrieved_set = set(retrieved_pages)
-        metrics.hit = bool(relevant_set & retrieved_set)
-
-        # Reciprocal rank
-        for rank, page in enumerate(retrieved_pages, 1):
-            if page in relevant_set:
-                metrics.reciprocal_rank = 1.0 / rank
-                break
-
-        # Precision@k
-        if retrieved_pages:
-            relevant_in_retrieved = len(relevant_set & retrieved_set)
-            metrics.precision_at_k = relevant_in_retrieved / len(retrieved_pages)
-
-        # Recall@k
-        if relevant_pages:
-            relevant_in_retrieved = len(relevant_set & retrieved_set)
-            metrics.recall_at_k = relevant_in_retrieved / len(relevant_pages)
-
-        # Bounding box IoU
-        if retrieved_bboxes and relevant_bboxes:
-            metrics.bbox_iou = compute_bbox_iou(retrieved_bboxes, relevant_bboxes)
-
-        return metrics
 
     def _load_sample_image(self, sample: BenchmarkSample):
         """

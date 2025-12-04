@@ -191,13 +191,6 @@ class ReportGenerator:
                     )
                 lines.append("")
 
-            # Retrieval details
-            if "retrieval" in metrics:
-                lines.extend(["#### Retrieval Metrics", ""])
-                for name, value in metrics["retrieval"].items():
-                    lines.append(f"- **{name}:** {value:.4f}")
-                lines.append("")
-
         # Save Markdown
         md_path = self.output_dir / "benchmark_report.md"
         with open(md_path, "w", encoding="utf-8") as f:
@@ -231,8 +224,6 @@ class ReportGenerator:
                     "total_ms": result.latency.total_ms,
                     "input_tokens": result.tokens.input_tokens,
                     "output_tokens": result.tokens.output_tokens,
-                    "hit": result.retrieval.hit,
-                    "mrr": result.retrieval.reciprocal_rank,
                     "error": result.error or "",
                 }
                 all_samples.append(row)
@@ -265,13 +256,6 @@ class ReportGenerator:
                 "input_tokens": sample.tokens.input_tokens,
                 "output_tokens": sample.tokens.output_tokens,
                 "total_tokens": sample.tokens.total_tokens,
-            },
-            "retrieval": {
-                "hit": sample.retrieval.hit,
-                "reciprocal_rank": sample.retrieval.reciprocal_rank,
-                "precision_at_k": sample.retrieval.precision_at_k,
-                "recall_at_k": sample.retrieval.recall_at_k,
-                "bbox_iou": sample.retrieval.bbox_iou,
             },
             "correctness": {
                 "f1_score": sample.correctness.f1_score,
