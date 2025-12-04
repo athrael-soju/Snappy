@@ -131,7 +131,13 @@ Examples:
         "--region-aggregation",
         default="max",
         choices=["max", "mean", "sum"],
-        help="Region score aggregation method",
+        help="Region score aggregation across query tokens",
+    )
+    run_parser.add_argument(
+        "--patch-aggregation",
+        default="max",
+        choices=["max", "mean", "coverage", "weighted_mean"],
+        help="Patch score aggregation within regions (max=any hot patch, mean=average, coverage=dense activation, weighted_mean=balanced)",
     )
 
     # LLM options
@@ -257,6 +263,7 @@ async def cmd_run(args: argparse.Namespace) -> int:
         region_relevance_threshold=args.region_threshold,
         region_top_k=args.region_top_k,
         region_score_aggregation=args.region_aggregation,
+        region_patch_aggregation=args.patch_aggregation,
         skip_llm_evaluation=args.skip_llm,
         llm_model=args.llm_model,
         llm_temperature=args.llm_temperature,

@@ -88,6 +88,7 @@ class BenchmarkRunner:
                     region_relevance_threshold=self.config.region_relevance_threshold,
                     region_top_k=self.config.region_top_k,
                     region_score_aggregation=self.config.region_score_aggregation,
+                    region_patch_aggregation=self.config.region_patch_aggregation,
                 )
                 await strategy.initialize()
                 self._strategies[strategy.name] = strategy
@@ -346,6 +347,7 @@ class BenchmarkRunner:
             "region_relevance_threshold": self.config.region_relevance_threshold,
             "region_top_k": self.config.region_top_k,
             "region_score_aggregation": self.config.region_score_aggregation,
+            "region_patch_aggregation": self.config.region_patch_aggregation,
         }
 
     async def cleanup(self) -> None:

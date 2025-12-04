@@ -21,6 +21,7 @@ def compute_region_relevance_scores(
     image_width: int,
     image_height: int,
     aggregation: str = "max",
+    patch_aggregation: str = "max",
 ) -> List[Tuple[Dict[str, Any], float]]:
     """
     Compute relevance scores for OCR regions based on interpretability maps.
@@ -33,6 +34,7 @@ def compute_region_relevance_scores(
         image_width: Original image width in pixels
         image_height: Original image height in pixels
         aggregation: How to aggregate scores across query tokens ('max', 'mean', 'sum')
+        patch_aggregation: How to aggregate patch scores within a region ('max', 'mean', 'coverage', 'weighted_mean')
 
     Returns:
         List of tuples (region, relevance_score) sorted by score descending
@@ -91,8 +93,28 @@ def compute_region_relevance_scores(
                 region_patch_values = token_map[patch_y1:patch_y2, patch_x1:patch_x2]
 
                 if region_patch_values.size > 0:
-                    # Use max similarity within the region for this token
-                    token_score = float(np.max(region_patch_values))
+                    # Aggregate patch scores within the region based on method
+                    if patch_aggregation == "max":
+                        # Use highest patch score (rewards any overlap with hot patches)
+                        token_score = float(np.max(region_patch_values))
+                    elif patch_aggregation == "mean":
+                        # Use average patch score (rewards consistently high activation)
+                        token_score = float(np.mean(region_patch_values))
+                    elif patch_aggregation == "coverage":
+                        # Fraction of patches above median (rewards dense activation)
+                        median = np.median(token_map)
+                        above_median = np.sum(region_patch_values > median)
+                        token_score = float(above_median / region_patch_values.size)
+                    elif patch_aggregation == "weighted_mean":
+                        # Weight by activation intensity, normalized by region size
+                        # Smaller regions with high activation score higher
+                        mean_activation = float(np.mean(region_patch_values))
+                        max_activation = float(np.max(region_patch_values))
+                        # Combine mean and max (balanced approach)
+                        token_score = 0.5 * mean_activation + 0.5 * max_activation
+                    else:
+                        # Default to max
+                        token_score = float(np.max(region_patch_values))
                     token_scores.append(token_score)
 
             # Aggregate across query tokens
@@ -134,6 +156,7 @@ def filter_regions_by_relevance(
     threshold: float = 0.0,
     top_k: Optional[int] = None,
     aggregation: str = "max",
+    patch_aggregation: str = "max",
 ) -> List[Dict[str, Any]]:
     """
     Filter and rank OCR regions based on interpretability map relevance.
@@ -147,7 +170,8 @@ def filter_regions_by_relevance(
         image_height: Original image height in pixels
         threshold: Minimum relevance score (0.0-1.0) to include a region
         top_k: Maximum number of regions to return (None = all above threshold)
-        aggregation: How to aggregate scores across query tokens
+        aggregation: How to aggregate scores across query tokens ('max', 'mean', 'sum')
+        patch_aggregation: How to aggregate patch scores within a region ('max', 'mean', 'coverage', 'weighted_mean')
 
     Returns:
         Filtered and ranked list of regions with relevance scores added
@@ -161,6 +185,7 @@ def filter_regions_by_relevance(
         image_width,
         image_height,
         aggregation,
+        patch_aggregation,
     )
 
     # Filter by threshold

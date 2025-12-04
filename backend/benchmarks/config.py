@@ -43,7 +43,8 @@ class BenchmarkConfig:
     # Region relevance settings
     region_relevance_threshold: float = 0.3
     region_top_k: int = 3
-    region_score_aggregation: str = "max"
+    region_score_aggregation: str = "max"  # Aggregation across query tokens
+    region_patch_aggregation: str = "max"  # Aggregation within region patches
 
     # LLM settings for RAG evaluation
     llm_provider: LLMProvider = LLMProvider.OPENAI

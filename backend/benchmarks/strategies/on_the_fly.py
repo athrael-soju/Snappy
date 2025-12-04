@@ -40,6 +40,7 @@ class OnTheFlyStrategy(BaseRetrievalStrategy):
         region_relevance_threshold: float = 0.3,
         region_top_k: int = 10,
         region_score_aggregation: str = "max",
+        region_patch_aggregation: str = "max",
         # OCR settings
         ocr_mode: str = "Gundam",
         ocr_task: str = "markdown",  # markdown with include_grounding returns bboxes
@@ -55,6 +56,7 @@ class OnTheFlyStrategy(BaseRetrievalStrategy):
         self.region_relevance_threshold = region_relevance_threshold
         self.region_top_k = region_top_k
         self.region_score_aggregation = region_score_aggregation
+        self.region_patch_aggregation = region_patch_aggregation
         self.ocr_mode = ocr_mode
         self.ocr_task = ocr_task
         self.ocr_max_concurrent = ocr_max_concurrent
@@ -205,6 +207,7 @@ class OnTheFlyStrategy(BaseRetrievalStrategy):
                 threshold=self.region_relevance_threshold,
                 top_k=self.region_top_k if self.region_top_k > 0 else None,
                 aggregation=self.region_score_aggregation,
+                patch_aggregation=self.region_patch_aggregation,
             )
             result.region_filtering_time_s = time.perf_counter() - filter_start
 
