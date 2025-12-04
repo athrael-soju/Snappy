@@ -1,0 +1,21 @@
+# Benchmark suite dependencies
+# Install with: pip install -r benchmarks/requirements.txt
+
+# Dataset loading
+datasets>=2.14.0
+huggingface_hub>=0.17.0
+
+# Image processing
+Pillow>=9.0.0
+
+# Numerical computation
+numpy>=1.21.0
+
+# HTTP requests
+requests>=2.28.0
+
+# Optional: Semantic similarity (for enhanced correctness evaluation)
+# sentence-transformers>=2.2.0
+
+# Optional: Local LLM support (Ollama)
+# ollama>=0.1.0
