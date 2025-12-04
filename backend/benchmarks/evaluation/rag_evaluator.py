@@ -169,7 +169,7 @@ class RAGEvaluator:
 
 IMPORTANT: Be extremely concise. Give just the answer with minimal words.
 
-Examples of good answers:
+Examples of GOOD answers:
 Q: What color is the header?
 A: blue
 
@@ -184,6 +184,16 @@ A: 15.3%
 
 Q: Which section mentions the deadline?
 A: Section 3.2; paragraph 4
+
+Examples of BAD answers (too verbose):
+Q: What color is the header?
+A: The header in the document appears to be blue in color.
+
+Q: List the authors in order.
+A: Based on the document, the authors listed are Smith, Jones, and Brown in that order.
+
+Q: What percentage is shown for revenue growth?
+A: According to the context provided, the revenue growth percentage shown is 15.3%.
 
 If the answer is not in the context, respond: "Not found in context"
 Do NOT explain your reasoning or add extra words."""
