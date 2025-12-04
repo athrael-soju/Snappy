@@ -36,7 +36,7 @@ class RAGEvaluator:
 
     def __init__(
         self,
-        model: str = "gpt-5-nano",
+        model: str = "gpt-5-mini",
         api_key: str = "",
         temperature: float = 0.0,
         max_tokens: int = 512,
@@ -106,30 +106,36 @@ class RAGEvaluator:
         if image_urls:
             img_info += f", image_urls={len(image_urls)}"
         self._logger.debug(
-            f"LLM input: query=\"{query}\"{img_info}, context={len(context)} chars"
+            f'LLM input: query="{query}"{img_info}, context={len(context)} chars'
         )
 
         # Build input based on whether we have images
         if images or image_urls:
             # Multimodal input with images
-            content = [{"type": "input_text", "text": f"{system_prompt}\n\n{user_text}"}]
+            content = [
+                {"type": "input_text", "text": f"{system_prompt}\n\n{user_text}"}
+            ]
 
             # Add PIL images as base64
             if images:
                 for img in images:
                     img_b64 = self._image_to_base64(img)
-                    content.append({
-                        "type": "input_image",
-                        "image_url": f"data:image/png;base64,{img_b64}",
-                    })
+                    content.append(
+                        {
+                            "type": "input_image",
+                            "image_url": f"data:image/png;base64,{img_b64}",
+                        }
+                    )
 
             # Add image URLs
             if image_urls:
                 for url in image_urls:
-                    content.append({
-                        "type": "input_image",
-                        "image_url": url,
-                    })
+                    content.append(
+                        {
+                            "type": "input_image",
+                            "image_url": url,
+                        }
+                    )
 
             api_input = [{"role": "user", "content": content}]
         else:
@@ -145,7 +151,9 @@ class RAGEvaluator:
         )
 
         answer = response.output_text
-        self._logger.debug(f"OpenAI response: {len(answer)} chars, output_tokens={response.usage.output_tokens}")
+        self._logger.debug(
+            f"OpenAI response: {len(answer)} chars, output_tokens={response.usage.output_tokens}"
+        )
 
         return RAGResponse(
             answer=answer,
@@ -157,34 +165,41 @@ class RAGEvaluator:
 
     def _build_system_prompt(self) -> str:
         """Build system prompt for RAG."""
-        return """You are a helpful document question-answering assistant.
-Your task is to answer questions based on the provided document context.
+        return """You are a document question-answering assistant. Answer questions based ONLY on the provided context.
 
-Instructions:
-1. Answer the question directly and concisely
-2. Only use information from the provided context
-3. If the answer cannot be found in the context, say "I cannot find the answer in the provided context"
-4. Do not make up information or hallucinate
-5. Keep answers brief and to the point"""
+IMPORTANT: Be extremely concise. Give just the answer with minimal words.
+
+Examples of good answers:
+Q: What color is the header?
+A: blue
+
+Q: Which cells are shaded in the table?
+A: B2, C4, D1
+
+Q: List the authors in order.
+A: Smith, Jones, Brown
+
+Q: What percentage is shown for revenue growth?
+A: 15.3%
+
+Q: Which section mentions the deadline?
+A: Section 3.2; paragraph 4
+
+If the answer is not in the context, respond: "Not found in context"
+Do NOT explain your reasoning or add extra words."""
 
     def _build_user_prompt(self, query: str, context: str) -> str:
         """Build user prompt with context and query."""
         if context and not context.startswith("[IMAGES:"):
-            return f"""Context from retrieved documents:
----
+            return f"""Context:
 {context}
----
 
-Question: {query}
-
-Answer:"""
+Q: {query}
+A:"""
         else:
             # For image-only context
-            return f"""Based on the document images shown above, please answer the following question.
-
-Question: {query}
-
-Answer:"""
+            return f"""Q: {query}
+A:"""
 
     def _image_to_base64(self, image: Image.Image) -> str:
         """Convert PIL image to base64 string."""

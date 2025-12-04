@@ -39,8 +39,6 @@ class BenchmarkConfig:
     strategies: List[RetrievalStrategy] = field(
         default_factory=lambda: [RetrievalStrategy.ON_THE_FLY]
     )
-    top_k: int = 1  # Number of documents to retrieve
-    include_ocr: bool = True  # Include OCR data in retrieval
 
     # Region relevance settings
     region_relevance_threshold: float = 0.3
@@ -49,17 +47,12 @@ class BenchmarkConfig:
 
     # LLM settings for RAG evaluation
     llm_provider: LLMProvider = LLMProvider.OPENAI
-    llm_model: str = "gpt-5-nano"  # Default to cost-effective model
-    llm_temperature: float = 1  # Deterministic for reproducibility
+    llm_model: str = "gpt-5-mini"  # Default to cost-effective model
+    llm_temperature: float = 0  # Deterministic for reproducibility
     llm_max_tokens: int = 1024  # Increased for multimodal responses
     llm_api_key: Optional[str] = field(
         default_factory=lambda: os.environ.get("OPENAI_API_KEY")
     )
-
-    # Metrics settings
-    measure_latency: bool = True
-    measure_tokens: bool = True
-    measure_correctness: bool = True
 
     # Output settings
     output_dir: str = field(
@@ -67,7 +60,6 @@ class BenchmarkConfig:
             "BENCHMARK_OUTPUT_DIR", "./benchmark_results"
         )
     )
-    save_raw_results: bool = True
     generate_report: bool = True
 
     # Service URLs (use environment or defaults)
@@ -82,15 +74,10 @@ class BenchmarkConfig:
 
     # Execution settings
     batch_size: int = 10  # Process samples in batches
-    num_workers: int = 4  # Parallel workers for data loading
     timeout: int = 120  # Timeout per sample in seconds
-    retry_count: int = 3  # Retries on failure
 
     def validate(self) -> None:
         """Validate configuration settings."""
-        if self.top_k < 1:
-            raise ValueError("top_k must be at least 1")
-
         if self.region_relevance_threshold < 0 or self.region_relevance_threshold > 1:
             raise ValueError("region_relevance_threshold must be between 0 and 1")
 
@@ -105,7 +92,6 @@ class BenchmarkConfig:
         """Create configuration from environment variables."""
         return cls(
             max_samples=int(os.environ.get("BENCHMARK_MAX_SAMPLES", 0)) or None,
-            top_k=int(os.environ.get("BENCHMARK_TOP_K", 5)),
             llm_model=os.environ.get("BENCHMARK_LLM_MODEL", "gpt-5-nano"),
             batch_size=int(os.environ.get("BENCHMARK_BATCH_SIZE", 10)),
         )

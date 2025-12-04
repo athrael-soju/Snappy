@@ -13,10 +13,7 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 from openai import OpenAI
 
-from benchmarks.metrics import (
-    compute_f1_score,
-    compute_bbox_iou,
-)
+from benchmarks.metrics import compute_f1_score
 
 logger = logging.getLogger(__name__)
 
@@ -26,13 +23,11 @@ class CorrectnessResult:
     """Result of correctness evaluation."""
 
     f1_score: float
-    bbox_iou: float
     llm_judge_correct: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "f1_score": self.f1_score,
-            "bbox_iou": self.bbox_iou,
             "llm_judge_correct": self.llm_judge_correct,
         }
 
@@ -44,7 +39,6 @@ class CorrectnessEvaluator:
     Computes:
     - F1 Score: Token-level overlap
     - LLM Judge: Semantic correctness via LLM evaluation
-    - BBox IoU: Spatial accuracy
     """
 
     def __init__(
@@ -73,8 +67,6 @@ class CorrectnessEvaluator:
         self,
         prediction: str,
         ground_truth: str,
-        predicted_bboxes: Optional[List[List[int]]] = None,
-        ground_truth_bboxes: Optional[List[List[int]]] = None,
     ) -> CorrectnessResult:
         """
         Evaluate answer correctness.
@@ -82,32 +74,18 @@ class CorrectnessEvaluator:
         Args:
             prediction: Model-generated answer
             ground_truth: Ground truth answer
-            predicted_bboxes: Optional predicted bounding boxes
-            ground_truth_bboxes: Optional ground truth bounding boxes
 
         Returns:
             CorrectnessResult with metrics
         """
-        # F1 score
         f1_score = compute_f1_score(prediction, ground_truth)
-
-        # Bounding box IoU
-        bbox_iou = 0.0
-        if predicted_bboxes and ground_truth_bboxes:
-            bbox_iou = compute_bbox_iou(predicted_bboxes, ground_truth_bboxes)
-
-        return CorrectnessResult(
-            f1_score=f1_score,
-            bbox_iou=bbox_iou,
-        )
+        return CorrectnessResult(f1_score=f1_score)
 
     async def evaluate_async(
         self,
         question: str,
         prediction: str,
         ground_truth: str,
-        predicted_bboxes: Optional[List[List[int]]] = None,
-        ground_truth_bboxes: Optional[List[List[int]]] = None,
     ) -> CorrectnessResult:
         """
         Evaluate answer correctness with async LLM judge support.
@@ -116,14 +94,12 @@ class CorrectnessEvaluator:
             question: Original question (needed for LLM judge context)
             prediction: Model-generated answer
             ground_truth: Ground truth answer
-            predicted_bboxes: Optional predicted bounding boxes
-            ground_truth_bboxes: Optional ground truth bounding boxes
 
         Returns:
             CorrectnessResult with all metrics including LLM judge score
         """
         # Get base metrics from sync method
-        result = self.evaluate(prediction, ground_truth, predicted_bboxes, ground_truth_bboxes)
+        result = self.evaluate(prediction, ground_truth)
 
         # Add LLM judge result if enabled
         if self.use_llm_judge and self._llm_judge:
@@ -135,8 +111,6 @@ class CorrectnessEvaluator:
         self,
         predictions: List[str],
         ground_truths: List[str],
-        predicted_bboxes_list: Optional[List[List[List[int]]]] = None,
-        ground_truth_bboxes_list: Optional[List[List[List[int]]]] = None,
     ) -> List[CorrectnessResult]:
         """
         Evaluate multiple predictions.
@@ -144,29 +118,14 @@ class CorrectnessEvaluator:
         Args:
             predictions: List of model predictions
             ground_truths: List of ground truth answers
-            predicted_bboxes_list: Optional list of predicted bboxes per sample
-            ground_truth_bboxes_list: Optional list of ground truth bboxes per sample
 
         Returns:
             List of CorrectnessResult objects
         """
-        results = []
-
-        for i in range(len(predictions)):
-            pred_bboxes = predicted_bboxes_list[i] if predicted_bboxes_list else None
-            gt_bboxes = (
-                ground_truth_bboxes_list[i] if ground_truth_bboxes_list else None
-            )
-
-            result = self.evaluate(
-                predictions[i],
-                ground_truths[i],
-                pred_bboxes,
-                gt_bboxes,
-            )
-            results.append(result)
-
-        return results
+        return [
+            self.evaluate(pred, gt)
+            for pred, gt in zip(predictions, ground_truths)
+        ]
 
     def aggregate_results(
         self, results: List[CorrectnessResult]
@@ -183,23 +142,17 @@ class CorrectnessEvaluator:
         if not results:
             return {}
 
-        # Aggregate float metrics
-        float_metrics = {
-            "f1_score": [r.f1_score for r in results],
-            "bbox_iou": [r.bbox_iou for r in results],
-        }
-
+        # Aggregate F1 scores
+        f1_values = [r.f1_score for r in results if r.f1_score > 0]
         aggregated = {}
-        for name, values in float_metrics.items():
-            valid_values = [v for v in values if v > 0]
-            if valid_values:
-                aggregated[name] = {
-                    "mean": float(np.mean(valid_values)),
-                    "std": float(np.std(valid_values)),
-                    "min": float(np.min(valid_values)),
-                    "max": float(np.max(valid_values)),
-                    "count": len(valid_values),
-                }
+        if f1_values:
+            aggregated["f1_score"] = {
+                "mean": float(np.mean(f1_values)),
+                "std": float(np.std(f1_values)),
+                "min": float(np.min(f1_values)),
+                "max": float(np.max(f1_values)),
+                "count": len(f1_values),
+            }
 
         # Aggregate LLM judge (boolean -> accuracy)
         correct_count = sum(1 for r in results if r.llm_judge_correct)

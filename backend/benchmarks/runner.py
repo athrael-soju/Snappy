@@ -213,7 +213,7 @@ class BenchmarkRunner:
             self._metrics_collector.start_timer("retrieval")
 
             # For on-the-fly strategy, load and pass the image directly
-            retrieve_kwargs = {"query": sample.query, "top_k": self.config.top_k}
+            retrieve_kwargs = {"query": sample.query}
             if strategy.name == "on_the_fly":
                 # Load image from dataset for on-the-fly processing
                 if sample.image_paths:
@@ -263,8 +263,6 @@ class BenchmarkRunner:
                 question=sample.query,
                 prediction=rag_response.answer,
                 ground_truth=sample.answer,
-                predicted_bboxes=retrieval_result.retrieved_bboxes,
-                ground_truth_bboxes=sample.bboxes,
             )
 
             result.correctness = CorrectnessMetrics(
@@ -377,7 +375,6 @@ class BenchmarkRunner:
             "max_samples": self.config.max_samples,
             "categories": self.config.categories,
             "strategies": [s.value for s in self.config.strategies],
-            "top_k": self.config.top_k,
             "llm_provider": self.config.llm_provider.value,
             "llm_model": self.config.llm_model,
             "region_relevance_threshold": self.config.region_relevance_threshold,

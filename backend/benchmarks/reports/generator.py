@@ -118,7 +118,6 @@ class ReportGenerator:
             "",
             f"- **Dataset:** {config.get('dataset_name', 'N/A')}",
             f"- **Samples:** {config.get('max_samples', 'All')}",
-            f"- **Top-K:** {config.get('top_k', 5)}",
             f"- **LLM:** {config.get('llm_model', 'N/A')}",
             "",
             "## Summary Comparison",

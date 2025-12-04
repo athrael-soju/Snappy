@@ -33,7 +33,6 @@ class TokenMetrics:
     input_tokens: int = 0  # Tokens in LLM prompt
     output_tokens: int = 0  # Tokens in LLM response
     total_tokens: int = 0  # Total tokens used
-    context_tokens: int = 0  # Tokens from retrieved context
 
 
 @dataclass
@@ -62,7 +61,6 @@ class SampleResult:
     error: Optional[str] = None
     retrieved_context: Optional[str] = None
     retrieved_regions: Optional[List[Dict[str, Any]]] = None  # Filtered regions with scores
-    raw_response: Optional[Dict[str, Any]] = None
     image_path: Optional[str] = None  # Local path to sample image
 
 
@@ -220,90 +218,6 @@ def compute_f1_score(prediction: str, ground_truth: str) -> float:
     recall = len(common) / len(gt_tokens)
 
     return 2 * precision * recall / (precision + recall)
-
-
-def _normalize_bbox(bbox: Any) -> Optional[List[int]]:
-    """
-    Normalize a bounding box to [x1, y1, x2, y2] format.
-
-    Handles various input formats:
-    - [x1, y1, x2, y2] -> [x1, y1, x2, y2]
-    - [[x1, y1, x2, y2]] -> [x1, y1, x2, y2]
-    - Invalid formats -> None
-    """
-    if not bbox:
-        return None
-
-    # Unwrap extra nesting if present
-    while isinstance(bbox, list) and len(bbox) == 1 and isinstance(bbox[0], list):
-        bbox = bbox[0]
-
-    # Validate format: should be [x1, y1, x2, y2] with numeric values
-    if isinstance(bbox, list) and len(bbox) >= 4:
-        try:
-            return [int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])]
-        except (TypeError, ValueError):
-            return None
-
-    return None
-
-
-def _normalize_bbox_list(bboxes: List[Any]) -> List[List[int]]:
-    """Normalize a list of bounding boxes, filtering out invalid ones."""
-    normalized = []
-    for bbox in bboxes:
-        norm = _normalize_bbox(bbox)
-        if norm:
-            normalized.append(norm)
-    return normalized
-
-
-def compute_bbox_iou(
-    predicted_bboxes: List[List[int]], ground_truth_bboxes: List[List[int]]
-) -> float:
-    """
-    Compute Intersection over Union between predicted and ground truth bboxes.
-
-    Args:
-        predicted_bboxes: List of [x1, y1, x2, y2] predictions
-        ground_truth_bboxes: List of [x1, y1, x2, y2] ground truths
-
-    Returns:
-        Average IoU across all ground truth boxes
-    """
-    if not predicted_bboxes or not ground_truth_bboxes:
-        return 0.0
-
-    # Normalize bbox formats to handle inconsistent nesting
-    pred_boxes = _normalize_bbox_list(predicted_bboxes)
-    gt_boxes = _normalize_bbox_list(ground_truth_bboxes)
-
-    if not pred_boxes or not gt_boxes:
-        return 0.0
-
-    def single_iou(box1: List[int], box2: List[int]) -> float:
-        x1 = max(box1[0], box2[0])
-        y1 = max(box1[1], box2[1])
-        x2 = min(box1[2], box2[2])
-        y2 = min(box1[3], box2[3])
-
-        if x2 < x1 or y2 < y1:
-            return 0.0
-
-        intersection = (x2 - x1) * (y2 - y1)
-        area1 = (box1[2] - box1[0]) * (box1[3] - box1[1])
-        area2 = (box2[2] - box2[0]) * (box2[3] - box2[1])
-        union = area1 + area2 - intersection
-
-        return intersection / union if union > 0 else 0.0
-
-    # For each ground truth box, find best matching prediction
-    ious = []
-    for gt_box in gt_boxes:
-        best_iou = max(single_iou(pred_box, gt_box) for pred_box in pred_boxes)
-        ious.append(best_iou)
-
-    return float(np.mean(ious)) if ious else 0.0
 
 
 def _normalize_answer(text: str) -> str:

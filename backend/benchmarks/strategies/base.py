@@ -30,12 +30,6 @@ class RetrievalResult:
     embedding_time_s: float = 0.0
     region_filtering_time_s: float = 0.0
 
-    # Bounding boxes (for spatial grounding evaluation)
-    retrieved_bboxes: List[List[int]] = field(default_factory=list)
-
-    # Raw response for debugging
-    raw_response: Optional[Dict[str, Any]] = None
-
     # Error information
     error: Optional[str] = None
 
@@ -86,7 +80,6 @@ class BaseRetrievalStrategy(ABC):
     async def retrieve(
         self,
         query: str,
-        top_k: int = 5,
         **kwargs,
     ) -> RetrievalResult:
         """
@@ -94,29 +87,10 @@ class BaseRetrievalStrategy(ABC):
 
         Args:
             query: Search query text
-            top_k: Number of results to retrieve
             **kwargs: Additional retrieval parameters
 
         Returns:
             RetrievalResult with retrieved documents and context
-        """
-        pass
-
-    @abstractmethod
-    async def index_documents(
-        self,
-        documents: List[Dict[str, Any]],
-        **kwargs,
-    ) -> bool:
-        """
-        Index documents for retrieval.
-
-        Args:
-            documents: List of documents to index
-            **kwargs: Additional indexing parameters
-
-        Returns:
-            True if indexing succeeded
         """
         pass
 

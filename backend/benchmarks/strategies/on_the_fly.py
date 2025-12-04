@@ -113,7 +113,6 @@ class OnTheFlyStrategy(BaseRetrievalStrategy):
     async def retrieve(
         self,
         query: str,
-        top_k: int = 5,
         image: Optional[Image.Image] = None,
         **kwargs,
     ) -> RetrievalResult:
@@ -122,7 +121,6 @@ class OnTheFlyStrategy(BaseRetrievalStrategy):
 
         Args:
             query: Search query text
-            top_k: Ignored (no retrieval step)
             image: PIL Image to process (required for on-the-fly mode)
             **kwargs: Additional parameters
 
@@ -202,21 +200,16 @@ class OnTheFlyStrategy(BaseRetrievalStrategy):
 
             # Build context from filtered regions only - structured format
             context_parts = []
-            retrieved_bboxes = []
             retrieved_images = []
 
             for region in filtered_regions:
                 content = region.get("content", "")
-                bbox = region.get("bbox")
                 label = region.get("label", "unknown")
 
                 if content:
                     # Include region metadata for context
                     context_parts.append(f"[{label}]: {content}")
                     result.context_regions.append(region)
-
-                if bbox:
-                    retrieved_bboxes.append(bbox)
 
                 # For image/figure regions, include the cropped image
                 if label.lower() in ("image", "figure") and "image_index" in region:
@@ -229,7 +222,6 @@ class OnTheFlyStrategy(BaseRetrievalStrategy):
             result.context_text = "\n".join(context_parts)
             # Only include cropped images from relevant figure/image regions
             result.retrieved_images = retrieved_images if retrieved_images else None
-            result.retrieved_bboxes = retrieved_bboxes
             result.retrieved_pages = [1]  # Single page, ground truth
             result.scores = [1.0]  # Perfect retrieval (oracle mode)
 
@@ -238,15 +230,6 @@ class OnTheFlyStrategy(BaseRetrievalStrategy):
                 f"Region filtering: {len(regions)} total -> {len(filtered_regions)} relevant, "
                 f"context={len(result.context_text)} chars, images={len(retrieved_images)}"
             )
-
-            # Store timing info
-            result.raw_response = {
-                "ocr_time_s": ocr_time,
-                "interp_time_s": interp_time,
-                "total_regions": len(regions),
-                "filtered_regions": len(filtered_regions),
-                "context_chars": len(result.context_text),
-            }
 
         except Exception as e:
             result.error = str(e)
@@ -393,15 +376,6 @@ class OnTheFlyStrategy(BaseRetrievalStrategy):
                 content_map[label].append(content)
 
         return content_map
-
-    async def index_documents(
-        self,
-        documents: List[Dict[str, Any]],
-        **kwargs,
-    ) -> bool:
-        """Not needed for on-the-fly mode."""
-        self._logger.debug("Indexing not required for on-the-fly strategy")
-        return True
 
     async def cleanup(self) -> None:
         """Clean up resources."""

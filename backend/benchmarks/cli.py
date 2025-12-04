@@ -113,12 +113,6 @@ Examples:
         default="on_the_fly",
         help="Comma-separated strategies to benchmark",
     )
-    run_parser.add_argument(
-        "--top-k",
-        type=int,
-        default=5,
-        help="Number of documents to retrieve",
-    )
 
     # Region relevance options
     run_parser.add_argument(
@@ -143,7 +137,7 @@ Examples:
     # LLM options
     run_parser.add_argument(
         "--llm-model",
-        default="gpt-5-nano",
+        default="gpt-5-mini",
         help="OpenAI model name for RAG",
     )
     run_parser.add_argument(
@@ -255,7 +249,6 @@ async def cmd_run(args: argparse.Namespace) -> int:
         max_samples=args.max_samples,
         categories=categories,
         strategies=strategies,
-        top_k=args.top_k,
         region_relevance_threshold=args.region_threshold,
         region_top_k=args.region_top_k,
         region_score_aggregation=args.region_aggregation,
@@ -293,7 +286,9 @@ async def cmd_run(args: argparse.Namespace) -> int:
             print(f"\n{strategy}:")
             if "correctness" in metrics:
                 print(f"  F1: {metrics['correctness'].get('f1_score', 0):.4f}")
-                print(f"  LLM Judge Acc: {metrics['correctness'].get('llm_judge_accuracy', 0):.2%}")
+                print(
+                    f"  LLM Judge Acc: {metrics['correctness'].get('llm_judge_accuracy', 0):.2%}"
+                )
             if "latency" in metrics:
                 total = metrics["latency"].get("total_s", {})
                 print(
