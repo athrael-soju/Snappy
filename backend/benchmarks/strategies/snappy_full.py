@@ -43,7 +43,7 @@ class SnappyFullStrategy(BaseRetrievalStrategy):
         region_top_k: int = 10,
         region_score_aggregation: str = "max",
         # Search settings
-        use_mean_pooling: bool = True,
+        use_mean_pooling: bool = False,
         prefetch_limit: int = 100,
         **kwargs,
     ):
@@ -159,7 +159,7 @@ class SnappyFullStrategy(BaseRetrievalStrategy):
             )
             result.embedding_time_ms = (time.perf_counter() - embed_start) * 1000
 
-            # Step 2: Vector search in Qdrant
+            # Step 2: Vector search in Qdrant (pass multi-vector directly)
             search_start = time.perf_counter()
             search_results = await self._search_qdrant(query_embedding[0], top_k)
             result.retrieval_time_ms = (time.perf_counter() - search_start) * 1000
@@ -176,13 +176,16 @@ class SnappyFullStrategy(BaseRetrievalStrategy):
                 payload = item.get("payload", {})
                 score = item.get("score", 0.0)
 
-                result.retrieved_pages.append(payload.get("pdf_page_index", 0))
+                result.retrieved_pages.append(
+                    payload.get("pdf_page_index") or payload.get("page_num", 0)
+                )
                 result.scores.append(score)
 
                 if include_regions:
                     # Fetch OCR regions from DuckDB
-                    filename = payload.get("filename")
-                    page_num = payload.get("pdf_page_index")
+                    # Note: indexer stores as doc_name/page_num, not filename/pdf_page_index
+                    filename = payload.get("filename") or payload.get("doc_name")
+                    page_num = payload.get("pdf_page_index") or payload.get("page_num")
 
                     if filename and page_num is not None:
                         regions = await self._fetch_ocr_regions(filename, page_num)
@@ -230,7 +233,7 @@ class SnappyFullStrategy(BaseRetrievalStrategy):
     async def _search_qdrant(
         self, query_embedding: List[List[float]], top_k: int
     ) -> List[Dict[str, Any]]:
-        """Execute vector search in Qdrant."""
+        """Execute vector search in Qdrant with multi-vector."""
         # Prepare search request
         if self.use_mean_pooling:
             # Two-stage search with prefetch
@@ -253,6 +256,7 @@ class SnappyFullStrategy(BaseRetrievalStrategy):
                 "using": "original",
             }
         else:
+            # Simple multi-vector search with named "original" vector
             request = {
                 "query": query_embedding,
                 "limit": top_k,
@@ -281,16 +285,19 @@ class SnappyFullStrategy(BaseRetrievalStrategy):
     async def _fetch_ocr_regions(
         self, filename: str, page_num: int
     ) -> List[Dict[str, Any]]:
-        """Fetch OCR regions from DuckDB."""
+        """Fetch OCR regions from DuckDB standalone service."""
         try:
+            # DuckDB service uses /ocr/pages/{filename}/{page_number}/regions
             response = await asyncio.to_thread(
                 self._session.get,
-                f"{self.duckdb_url}/pages/{filename}/{page_num}/regions",
+                f"{self.duckdb_url}/ocr/pages/{filename}/{page_num}/regions",
                 timeout=10,
             )
 
             if response.status_code == 200:
-                return response.json().get("regions", [])
+                return response.json()
+            elif response.status_code == 404:
+                self._logger.debug(f"No OCR data found for {filename} page {page_num}")
         except Exception as e:
             self._logger.warning(f"Failed to fetch OCR regions: {e}")
 

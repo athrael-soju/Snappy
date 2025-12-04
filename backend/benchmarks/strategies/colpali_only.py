@@ -34,7 +34,7 @@ class ColPaliOnlyStrategy(BaseRetrievalStrategy):
         colpali_url: str = "http://localhost:7000",
         qdrant_url: str = "http://localhost:6333",
         collection_name: str = "benchmark_documents",
-        use_mean_pooling: bool = True,
+        use_mean_pooling: bool = False,
         prefetch_limit: int = 100,
         # VLM settings for context extraction
         use_vlm_for_context: bool = True,
@@ -132,7 +132,7 @@ class ColPaliOnlyStrategy(BaseRetrievalStrategy):
             )
             result.embedding_time_ms = (time.perf_counter() - embed_start) * 1000
 
-            # Step 2: Vector search in Qdrant
+            # Step 2: Vector search in Qdrant (pass multi-vector directly)
             search_start = time.perf_counter()
             search_results = await self._search_qdrant(query_embedding[0], top_k)
             search_time = (time.perf_counter() - search_start) * 1000
@@ -142,15 +142,18 @@ class ColPaliOnlyStrategy(BaseRetrievalStrategy):
                 return result
 
             # Step 3: Process results
+            # Note: indexer stores as doc_name/page_num/image_path, not filename/pdf_page_index/image_url
             image_urls = []
             for item in search_results:
                 payload = item.get("payload", {})
                 score = item.get("score", 0.0)
 
-                result.retrieved_pages.append(payload.get("pdf_page_index", 0))
+                result.retrieved_pages.append(
+                    payload.get("pdf_page_index") or payload.get("page_num", 0)
+                )
                 result.scores.append(score)
 
-                image_url = payload.get("image_url")
+                image_url = payload.get("image_url") or payload.get("image_path")
                 if image_url:
                     image_urls.append(image_url)
 
@@ -179,7 +182,7 @@ class ColPaliOnlyStrategy(BaseRetrievalStrategy):
     async def _search_qdrant(
         self, query_embedding: List[List[float]], top_k: int
     ) -> List[Dict[str, Any]]:
-        """Execute vector search in Qdrant."""
+        """Execute vector search in Qdrant with multi-vector."""
         if self.use_mean_pooling:
             request = {
                 "query": query_embedding,
@@ -200,6 +203,7 @@ class ColPaliOnlyStrategy(BaseRetrievalStrategy):
                 "using": "original",
             }
         else:
+            # Simple multi-vector search with named "original" vector
             request = {
                 "query": query_embedding,
                 "limit": top_k,

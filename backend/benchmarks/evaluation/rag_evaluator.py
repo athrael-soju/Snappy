@@ -16,6 +16,7 @@ from io import BytesIO
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
+from openai import OpenAI
 from PIL import Image
 
 from benchmarks.config import LLMProvider
@@ -74,6 +75,9 @@ class RAGEvaluator:
 
         self._session = requests.Session()
         self._logger = logging.getLogger(__name__)
+
+        # Initialize OpenAI client (sync for Responses API)
+        self._openai_client = OpenAI(api_key=api_key) if api_key else None
 
     async def generate_answer(
         self,
@@ -134,8 +138,8 @@ class RAGEvaluator:
         images: Optional[List[Image.Image]],
         image_urls: Optional[List[str]],
     ) -> RAGResponse:
-        """Call OpenAI API for answer generation."""
-        if not self.api_key:
+        """Call OpenAI API for answer generation using official SDK."""
+        if not self._openai_client:
             return RAGResponse(
                 answer="",
                 input_tokens=0,
@@ -144,81 +148,35 @@ class RAGEvaluator:
                 error="OpenAI API key not provided",
             )
 
-        # Build messages
-        messages = []
+        try:
+            # Build input text combining system prompt and user content
+            system_prompt = self._build_system_prompt()
+            user_text = self._build_user_prompt(query, context)
+            full_input = f"{system_prompt}\n\n{user_text}"
 
-        # System message
-        system_prompt = self._build_system_prompt()
-        messages.append({"role": "system", "content": system_prompt})
+            # Make API call using OpenAI Responses API
+            response = await asyncio.to_thread(
+                self._openai_client.responses.create,
+                model=self.model,
+                input=full_input,
+                max_output_tokens=self.max_tokens,
+            )
 
-        # User message with context and query
-        user_content = []
-
-        # Add images if available (for vision models)
-        if images or image_urls:
-            if images:
-                for img in images:
-                    img_base64 = self._image_to_base64(img)
-                    user_content.append(
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/png;base64,{img_base64}",
-                                "detail": "high",
-                            },
-                        }
-                    )
-            elif image_urls:
-                for url in image_urls:
-                    user_content.append(
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": url, "detail": "high"},
-                        }
-                    )
-
-        # Add text content
-        user_text = self._build_user_prompt(query, context)
-        user_content.append({"type": "text", "text": user_text})
-
-        messages.append({"role": "user", "content": user_content})
-
-        # Make API call
-        response = await asyncio.to_thread(
-            self._session.post,
-            "https://api.openai.com/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": self.model,
-                "messages": messages,
-                "temperature": self.temperature,
-                "max_tokens": self.max_tokens,
-            },
-            timeout=self.timeout,
-        )
-
-        if response.status_code != 200:
+            return RAGResponse(
+                answer=response.output_text,
+                input_tokens=response.usage.input_tokens if response.usage else 0,
+                output_tokens=response.usage.output_tokens if response.usage else 0,
+                latency_ms=0,  # Will be set by caller
+                raw_response={"output": response.output_text, "id": response.id},
+            )
+        except Exception as e:
             return RAGResponse(
                 answer="",
                 input_tokens=0,
                 output_tokens=0,
                 latency_ms=0,
-                error=f"OpenAI API error: {response.text}",
+                error=f"OpenAI API error: {str(e)}",
             )
-
-        data = response.json()
-        usage = data.get("usage", {})
-
-        return RAGResponse(
-            answer=data["choices"][0]["message"]["content"],
-            input_tokens=usage.get("prompt_tokens", 0),
-            output_tokens=usage.get("completion_tokens", 0),
-            latency_ms=0,  # Will be set by caller
-            raw_response=data,
-        )
 
     async def _call_anthropic(
         self,

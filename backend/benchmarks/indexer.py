@@ -205,26 +205,28 @@ async def index_benchmark_dataset(
     sample_embedding_result = await asyncio.to_thread(colpali_client.embed_images, [sample_image])
     sample_embedding = sample_embedding_result[0]["embedding"]
 
-    import numpy as np
-    # Use mean pooling to get single vector size
-    sample_pooled = np.mean([np.array(v) for v in sample_embedding], axis=0).tolist()
-    vector_size = len(sample_pooled)
+    vector_size = len(sample_embedding[0])  # Dimension of each vector
 
-    logger.info(f"Determined vector size: {vector_size} (pooled from {len(sample_embedding)} vectors of {len(sample_embedding[0])} dims each)")
+    logger.info(f"Determined vector size: {vector_size} dims, {len(sample_embedding)} vectors per image (multivector)")
 
-    # Create the collection
+    # Create the collection with multivector configuration (matching Snappy's setup)
     create_response = requests.put(
         f"{qdrant_url}/collections/{collection_name}",
         json={
             "vectors": {
-                "size": vector_size,
-                "distance": "Cosine"
+                "original": {
+                    "size": vector_size,
+                    "distance": "Cosine",
+                    "multivector_config": {
+                        "comparator": "max_sim"
+                    }
+                }
             }
         },
         timeout=30,
     )
     create_response.raise_for_status()
-    logger.info(f"Collection '{collection_name}' created successfully with size {vector_size}")
+    logger.info(f"Collection '{collection_name}' created successfully with multivector config (size={vector_size})")
 
     # Index documents
     indexed_count = 0
@@ -294,16 +296,12 @@ async def _index_page(
     # Get embedding
     embedding_result = await asyncio.to_thread(colpali_client.embed_images, [image])
 
-    # Extract embedding from result and use mean pooling to get single vector
+    # Extract the original multi-vector embedding (no pooling!)
     embedding = embedding_result[0]["embedding"]
 
-    import numpy as np
-    # Use mean pooling across all vectors to get a single 128-dim vector
-    pooled_embedding = np.mean([np.array(v) for v in embedding], axis=0).tolist()
+    logger.debug(f"Embedding shape: {len(embedding)} vectors of {len(embedding[0])} dims each (multivector)")
 
-    logger.debug(f"Embedding shape: {len(embedding)} vectors of {len(embedding[0])} dims each, pooled to {len(pooled_embedding)} dims")
-
-    # 2. Store in Qdrant
+    # 2. Store in Qdrant with named vector "original"
     logger.debug(f"Storing in Qdrant: {doc_name} page {page_num}")
 
     # Use a hash of doc_name and page_num as ID (Qdrant needs numeric IDs)
@@ -316,7 +314,9 @@ async def _index_page(
             "points": [
                 {
                     "id": point_id,
-                    "vector": pooled_embedding,
+                    "vector": {
+                        "original": embedding  # Store full multi-vector under "original" name
+                    },
                     "payload": {
                         "doc_name": doc_name,
                         "page_num": page_num,

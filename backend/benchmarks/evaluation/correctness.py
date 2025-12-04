@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 import numpy as np
+from openai import OpenAI
 
 from benchmarks.metrics import (
     compute_anls,
@@ -251,7 +252,7 @@ class LLMJudge:
     ):
         self.model = model
         self.api_key = api_key
-        self._session = None
+        self._openai_client = OpenAI(api_key=api_key) if api_key else None
 
     async def judge(
         self,
@@ -270,9 +271,7 @@ class LLMJudge:
         Returns:
             Score from 0.0 to 1.0
         """
-        import requests
-
-        if not self.api_key:
+        if not self._openai_client:
             return 0.0
 
         prompt = f"""You are an expert evaluator for document question answering.
@@ -296,29 +295,16 @@ Respond with a score from 0 to 100, where:
 Score:"""
 
         try:
-            if self._session is None:
-                self._session = requests.Session()
+            import asyncio
 
-            response = self._session.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {self.api_key}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": self.model,
-                    "messages": [{"role": "user", "content": prompt}],
-                    "temperature": 0.0,
-                    "max_tokens": 10,
-                },
-                timeout=30,
+            response = await asyncio.to_thread(
+                self._openai_client.responses.create,
+                model=self.model,
+                input=prompt,
+                max_output_tokens=10,
             )
 
-            if response.status_code != 200:
-                return 0.0
-
-            data = response.json()
-            answer = data["choices"][0]["message"]["content"].strip()
+            answer = response.output_text.strip()
 
             # Parse score
             import re

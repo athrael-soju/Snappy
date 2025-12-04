@@ -314,6 +314,42 @@ def compute_anls(prediction: str, ground_truth: str, threshold: float = 0.5) -> 
     return nls if nls >= threshold else 0.0
 
 
+def _normalize_bbox(bbox: Any) -> Optional[List[int]]:
+    """
+    Normalize a bounding box to [x1, y1, x2, y2] format.
+
+    Handles various input formats:
+    - [x1, y1, x2, y2] -> [x1, y1, x2, y2]
+    - [[x1, y1, x2, y2]] -> [x1, y1, x2, y2]
+    - Invalid formats -> None
+    """
+    if not bbox:
+        return None
+
+    # Unwrap extra nesting if present
+    while isinstance(bbox, list) and len(bbox) == 1 and isinstance(bbox[0], list):
+        bbox = bbox[0]
+
+    # Validate format: should be [x1, y1, x2, y2] with numeric values
+    if isinstance(bbox, list) and len(bbox) >= 4:
+        try:
+            return [int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])]
+        except (TypeError, ValueError):
+            return None
+
+    return None
+
+
+def _normalize_bbox_list(bboxes: List[Any]) -> List[List[int]]:
+    """Normalize a list of bounding boxes, filtering out invalid ones."""
+    normalized = []
+    for bbox in bboxes:
+        norm = _normalize_bbox(bbox)
+        if norm:
+            normalized.append(norm)
+    return normalized
+
+
 def compute_bbox_iou(
     predicted_bboxes: List[List[int]], ground_truth_bboxes: List[List[int]]
 ) -> float:
@@ -328,6 +364,13 @@ def compute_bbox_iou(
         Average IoU across all ground truth boxes
     """
     if not predicted_bboxes or not ground_truth_bboxes:
+        return 0.0
+
+    # Normalize bbox formats to handle inconsistent nesting
+    pred_boxes = _normalize_bbox_list(predicted_bboxes)
+    gt_boxes = _normalize_bbox_list(ground_truth_bboxes)
+
+    if not pred_boxes or not gt_boxes:
         return 0.0
 
     def single_iou(box1: List[int], box2: List[int]) -> float:
@@ -348,8 +391,8 @@ def compute_bbox_iou(
 
     # For each ground truth box, find best matching prediction
     ious = []
-    for gt_box in ground_truth_bboxes:
-        best_iou = max(single_iou(pred_box, gt_box) for pred_box in predicted_bboxes)
+    for gt_box in gt_boxes:
+        best_iou = max(single_iou(pred_box, gt_box) for pred_box in pred_boxes)
         ious.append(best_iou)
 
     return float(np.mean(ious)) if ious else 0.0
