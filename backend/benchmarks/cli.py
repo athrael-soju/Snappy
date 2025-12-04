@@ -61,14 +61,11 @@ def create_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Run full benchmark with all strategies
+  # Run benchmark
   python -m benchmarks.cli run
 
   # Quick test with 10 samples
   python -m benchmarks.cli run --max-samples 10
-
-  # Compare specific strategies
-  python -m benchmarks.cli run --strategies snappy_full,colpali_only
 
   # Filter by category
   python -m benchmarks.cli run --categories cs,math
@@ -113,7 +110,7 @@ Examples:
     # Strategy options
     run_parser.add_argument(
         "--strategies",
-        default="snappy_full,colpali_only,ocr_only",
+        default="on_the_fly",
         help="Comma-separated strategies to benchmark",
     )
     run_parser.add_argument(
@@ -175,14 +172,9 @@ Examples:
         help="ColPali service URL",
     )
     run_parser.add_argument(
-        "--qdrant-url",
-        default="http://localhost:6333",
-        help="Qdrant service URL",
-    )
-    run_parser.add_argument(
-        "--duckdb-url",
-        default="http://localhost:8300",
-        help="DuckDB service URL",
+        "--deepseek-ocr-url",
+        default="http://localhost:8200",
+        help="DeepSeek OCR service URL",
     )
 
     # Output options
@@ -249,67 +241,6 @@ Examples:
         help="Dataset to show info for",
     )
 
-    # Index command
-    index_parser = subparsers.add_parser("index", help="Index benchmark dataset into Snappy")
-    index_parser.add_argument(
-        "--dataset",
-        default="Yuwh07/BBox_DocVQA_Bench",
-        help="HuggingFace dataset name",
-    )
-    index_parser.add_argument(
-        "--cache-dir",
-        default="./benchmark_cache",
-        help="Directory for caching dataset",
-    )
-    index_parser.add_argument(
-        "--max-docs",
-        type=int,
-        default=None,
-        help="Maximum documents to index (default: all)",
-    )
-    index_parser.add_argument(
-        "--categories",
-        type=str,
-        default=None,
-        help="Comma-separated arXiv categories to include (e.g., cs,math)",
-    )
-    index_parser.add_argument(
-        "--collection-name",
-        default="benchmark_documents",
-        help="Qdrant collection name to use",
-    )
-    index_parser.add_argument(
-        "--colpali-url",
-        default="http://localhost:7000",
-        help="ColPali service URL",
-    )
-    index_parser.add_argument(
-        "--qdrant-url",
-        default="http://localhost:6333",
-        help="Qdrant service URL",
-    )
-    index_parser.add_argument(
-        "--duckdb-url",
-        default="http://localhost:8300",
-        help="DuckDB service URL",
-    )
-    index_parser.add_argument(
-        "--minio-url",
-        default="http://localhost:9000",
-        help="MinIO service URL",
-    )
-    index_parser.add_argument(
-        "--deepseek-ocr-url",
-        default="http://localhost:8200",
-        help="DeepSeek OCR service URL",
-    )
-    index_parser.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        help="Enable verbose logging",
-    )
-
     return parser
 
 
@@ -339,8 +270,7 @@ async def cmd_run(args: argparse.Namespace) -> int:
         llm_temperature=args.llm_temperature,
         llm_max_tokens=args.llm_max_tokens,
         colpali_url=args.colpali_url,
-        qdrant_url=args.qdrant_url,
-        duckdb_url=args.duckdb_url,
+        deepseek_ocr_url=args.deepseek_ocr_url,
         output_dir=args.output_dir,
         generate_report=not args.no_report,
         batch_size=args.batch_size,
@@ -494,58 +424,6 @@ def cmd_info(args: argparse.Namespace) -> int:
         return 1
 
 
-async def cmd_index(args: argparse.Namespace) -> int:
-    """Index benchmark dataset into Snappy."""
-    from benchmarks.indexer import index_benchmark_dataset
-
-    # Parse categories
-    categories = None
-    if args.categories:
-        categories = [c.strip() for c in args.categories.split(",")]
-
-    print("=" * 60)
-    print("Benchmark Dataset Indexing")
-    print("=" * 60)
-    print(f"Dataset: {args.dataset}")
-    print(f"Max documents: {args.max_docs or 'All'}")
-    print(f"Categories: {categories or 'All'}")
-    print(f"Collection: {args.collection_name}")
-    print("=" * 60)
-    print()
-
-    try:
-        result = await index_benchmark_dataset(
-            dataset_name=args.dataset,
-            cache_dir=args.cache_dir,
-            max_docs=args.max_docs,
-            categories=categories,
-            collection_name=args.collection_name,
-            colpali_url=args.colpali_url,
-            qdrant_url=args.qdrant_url,
-            duckdb_url=args.duckdb_url,
-            minio_url=args.minio_url,
-            deepseek_ocr_url=args.deepseek_ocr_url,
-        )
-
-        print()
-        print("=" * 60)
-        print("Indexing Summary")
-        print("=" * 60)
-        print(f"Documents indexed: {result['indexed_count']}")
-        print(f"Pages processed: {result['total_pages']}")
-        print(f"Total time: {result['total_time']:.1f}s")
-        print("=" * 60)
-
-        return 0
-
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        if args.verbose:
-            import traceback
-            traceback.print_exc()
-        return 1
-
-
 def main() -> int:
     """Main entry point."""
     parser = create_parser()
@@ -566,8 +444,6 @@ def main() -> int:
         return cmd_report(args)
     elif args.command == "info":
         return cmd_info(args)
-    elif args.command == "index":
-        return asyncio.run(cmd_index(args))
     else:
         parser.print_help()
         return 1

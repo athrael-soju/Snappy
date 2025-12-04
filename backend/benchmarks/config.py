@@ -11,9 +11,6 @@ from typing import List, Optional
 class RetrievalStrategy(str, Enum):
     """Available retrieval strategies for benchmarking."""
 
-    SNAPPY_FULL = "snappy_full"  # ColPali + OCR + Region Relevance
-    COLPALI_ONLY = "colpali_only"  # Pure ColPali retrieval
-    OCR_ONLY = "ocr_only"  # Traditional OCR-based retrieval
     ON_THE_FLY = "on_the_fly"  # On-the-fly OCR + filtering (no storage)
 
 
@@ -42,11 +39,7 @@ class BenchmarkConfig:
 
     # Retrieval settings
     strategies: List[RetrievalStrategy] = field(
-        default_factory=lambda: [
-            RetrievalStrategy.SNAPPY_FULL,
-            RetrievalStrategy.COLPALI_ONLY,
-            RetrievalStrategy.OCR_ONLY,
-        ]
+        default_factory=lambda: [RetrievalStrategy.ON_THE_FLY]
     )
     top_k: int = 1  # Number of documents to retrieve
     include_ocr: bool = True  # Include OCR data in retrieval
@@ -85,15 +78,6 @@ class BenchmarkConfig:
     # Service URLs (use environment or defaults)
     colpali_url: str = field(
         default_factory=lambda: os.environ.get("COLPALI_URL", "http://localhost:7000")
-    )
-    qdrant_url: str = field(
-        default_factory=lambda: os.environ.get("QDRANT_URL", "http://localhost:6333")
-    )
-    duckdb_url: str = field(
-        default_factory=lambda: os.environ.get("DUCKDB_URL", "http://localhost:8300")
-    )
-    minio_url: str = field(
-        default_factory=lambda: os.environ.get("MINIO_URL", "http://localhost:9000")
     )
     deepseek_ocr_url: str = field(
         default_factory=lambda: os.environ.get(

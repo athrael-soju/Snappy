@@ -28,10 +28,7 @@ from benchmarks.metrics import (
 )
 from benchmarks.reports.generator import ReportGenerator
 from benchmarks.strategies.base import BaseRetrievalStrategy
-from benchmarks.strategies.colpali_only import ColPaliOnlyStrategy
-from benchmarks.strategies.ocr_only import OCROnlyStrategy
 from benchmarks.strategies.on_the_fly import OnTheFlyStrategy
-from benchmarks.strategies.snappy_full import SnappyFullStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -42,9 +39,6 @@ class BenchmarkRunner:
     """
 
     STRATEGY_MAP: Dict[RetrievalStrategy, Type[BaseRetrievalStrategy]] = {
-        RetrievalStrategy.SNAPPY_FULL: SnappyFullStrategy,
-        RetrievalStrategy.COLPALI_ONLY: ColPaliOnlyStrategy,
-        RetrievalStrategy.OCR_ONLY: OCROnlyStrategy,
         RetrievalStrategy.ON_THE_FLY: OnTheFlyStrategy,
     }
 
@@ -89,26 +83,13 @@ class BenchmarkRunner:
         for strategy_type in self.config.strategies:
             strategy_class = self.STRATEGY_MAP.get(strategy_type)
             if strategy_class:
-                if strategy_type == RetrievalStrategy.ON_THE_FLY:
-                    # On-the-fly strategy has different initialization
-                    strategy = strategy_class(
-                        colpali_url=self.config.colpali_url,
-                        deepseek_url=self.config.deepseek_ocr_url,
-                        region_relevance_threshold=self.config.region_relevance_threshold,
-                        region_top_k=self.config.region_top_k,
-                        region_score_aggregation=self.config.region_score_aggregation,
-                    )
-                else:
-                    strategy = strategy_class(
-                        colpali_url=self.config.colpali_url,
-                        qdrant_url=self.config.qdrant_url,
-                        duckdb_url=self.config.duckdb_url,
-                        minio_url=self.config.minio_url,
-                        region_relevance_threshold=self.config.region_relevance_threshold,
-                        region_top_k=self.config.region_top_k,
-                        region_score_aggregation=self.config.region_score_aggregation,
-                        image_cache_dir=self.config.cache_dir,
-                    )
+                strategy = strategy_class(
+                    colpali_url=self.config.colpali_url,
+                    deepseek_url=self.config.deepseek_ocr_url,
+                    region_relevance_threshold=self.config.region_relevance_threshold,
+                    region_top_k=self.config.region_top_k,
+                    region_score_aggregation=self.config.region_score_aggregation,
+                )
                 await strategy.initialize()
                 self._strategies[strategy.name] = strategy
                 self._logger.info(f"Initialized strategy: {strategy.name}")
