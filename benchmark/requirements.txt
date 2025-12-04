@@ -1,0 +1,12 @@
+# Benchmark module dependencies
+
+# Core dependencies
+numpy>=1.21.0
+Pillow>=9.0.0
+requests>=2.25.0
+
+# Dataset handling
+huggingface_hub>=0.16.0
+
+# Logging and CLI
+tqdm>=4.60.0
