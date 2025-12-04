@@ -44,7 +44,7 @@ class BenchmarkConfig:
     top_k: int = 1  # Number of documents to retrieve
     include_ocr: bool = True  # Include OCR data in retrieval
 
-    # Region relevance settings (for Snappy Full)
+    # Region relevance settings
     region_relevance_threshold: float = 0.3
     region_top_k: int = 10
     region_score_aggregation: str = "max"

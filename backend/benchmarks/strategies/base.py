@@ -43,22 +43,11 @@ class RetrievalResult:
 
 
 class BaseRetrievalStrategy(ABC):
-    """
-    Abstract base class for retrieval strategies.
-
-    Each strategy implements a different approach to document retrieval:
-    - SnappyFull: Uses ColPali + OCR + Region Relevance
-    - ColPaliOnly: Uses only ColPali embeddings
-    - OCROnly: Uses only OCR text matching
-    """
+    """Abstract base class for retrieval strategies."""
 
     def __init__(
         self,
         colpali_url: str = "http://localhost:7000",
-        qdrant_url: str = "http://localhost:6333",
-        duckdb_url: str = "http://localhost:8300",
-        minio_url: str = "http://localhost:9000",
-        collection_name: str = "benchmark_documents",
         **kwargs,
     ):
         """
@@ -66,17 +55,9 @@ class BaseRetrievalStrategy(ABC):
 
         Args:
             colpali_url: URL of ColPali embedding service
-            qdrant_url: URL of Qdrant vector database
-            duckdb_url: URL of DuckDB analytics service
-            minio_url: URL of MinIO storage service
-            collection_name: Qdrant collection name
             **kwargs: Additional strategy-specific parameters
         """
         self.colpali_url = colpali_url
-        self.qdrant_url = qdrant_url
-        self.duckdb_url = duckdb_url
-        self.minio_url = minio_url
-        self.collection_name = collection_name
         self.kwargs = kwargs
 
         self._initialized = False
@@ -168,9 +149,5 @@ class BaseRetrievalStrategy(ABC):
         return {
             "name": self.name,
             "colpali_url": self.colpali_url,
-            "qdrant_url": self.qdrant_url,
-            "duckdb_url": self.duckdb_url,
-            "minio_url": self.minio_url,
-            "collection_name": self.collection_name,
             **self.kwargs,
         }

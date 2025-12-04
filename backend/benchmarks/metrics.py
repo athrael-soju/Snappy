@@ -5,7 +5,6 @@ Tracks:
 - Correctness: Answer accuracy metrics (F1, LLM Judge)
 - Latency: Response time measurements
 - Tokens: Input/output token counts for LLM calls
-- Retrieval: Hit rate, MRR, precision@k
 """
 
 import logging
@@ -41,19 +40,6 @@ class TokenMetrics:
 
 
 @dataclass
-class RetrievalMetrics:
-    """Retrieval quality metrics for a single sample."""
-
-    hit: bool = False  # Did we retrieve at least one relevant doc?
-    reciprocal_rank: float = 0.0  # 1/rank of first relevant result
-    precision_at_k: float = 0.0  # Precision at k
-    recall_at_k: float = 0.0  # Recall at k
-    retrieved_pages: List[int] = field(default_factory=list)
-    relevant_pages: List[int] = field(default_factory=list)
-    bbox_iou: float = 0.0  # IoU between retrieved and ground truth bbox
-
-
-@dataclass
 class CorrectnessMetrics:
     """Answer correctness metrics for a single sample."""
 
@@ -73,7 +59,6 @@ class SampleResult:
 
     latency: LatencyMetrics = field(default_factory=LatencyMetrics)
     tokens: TokenMetrics = field(default_factory=TokenMetrics)
-    retrieval: RetrievalMetrics = field(default_factory=RetrievalMetrics)
     correctness: CorrectnessMetrics = field(default_factory=CorrectnessMetrics)
 
     # Additional metadata
@@ -221,15 +206,6 @@ class MetricsCollector:
         return comparison
 
 
-def compute_exact_match(prediction: str, ground_truth: str) -> float:
-    """Compute normalized exact match score."""
-    # Normalize both strings
-    pred_norm = _normalize_answer(prediction)
-    gt_norm = _normalize_answer(ground_truth)
-
-    return 1.0 if pred_norm == gt_norm else 0.0
-
-
 def compute_f1_score(prediction: str, ground_truth: str) -> float:
     """Compute token-level F1 score."""
     pred_tokens = set(_normalize_answer(prediction).split())
@@ -246,49 +222,6 @@ def compute_f1_score(prediction: str, ground_truth: str) -> float:
     recall = len(common) / len(gt_tokens)
 
     return 2 * precision * recall / (precision + recall)
-
-
-def compute_anls(prediction: str, ground_truth: str, threshold: float = 0.5) -> float:
-    """
-    Compute Average Normalized Levenshtein Similarity (ANLS).
-
-    ANLS is commonly used for document VQA evaluation.
-    """
-
-    def levenshtein_distance(s1: str, s2: str) -> int:
-        if len(s1) < len(s2):
-            return levenshtein_distance(s2, s1)
-
-        if len(s2) == 0:
-            return len(s1)
-
-        prev_row = range(len(s2) + 1)
-        for i, c1 in enumerate(s1):
-            curr_row = [i + 1]
-            for j, c2 in enumerate(s2):
-                insertions = prev_row[j + 1] + 1
-                deletions = curr_row[j] + 1
-                substitutions = prev_row[j] + (c1 != c2)
-                curr_row.append(min(insertions, deletions, substitutions))
-            prev_row = curr_row
-
-        return prev_row[-1]
-
-    pred_norm = _normalize_answer(prediction)
-    gt_norm = _normalize_answer(ground_truth)
-
-    if not gt_norm:
-        return 1.0 if not pred_norm else 0.0
-
-    distance = levenshtein_distance(pred_norm, gt_norm)
-    max_len = max(len(pred_norm), len(gt_norm))
-
-    if max_len == 0:
-        return 1.0
-
-    nls = 1 - distance / max_len
-
-    return nls if nls >= threshold else 0.0
 
 
 def _normalize_bbox(bbox: Any) -> Optional[List[int]]:

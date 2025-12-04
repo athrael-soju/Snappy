@@ -182,28 +182,27 @@ class OnTheFlyStrategy(BaseRetrievalStrategy):
             image_height = interp_result.get("image_height", image.height)
 
             if not similarity_maps or not n_patches_x or not n_patches_y:
-                # Fall back to all regions if interpretability fails
                 result.error = "Interpretability maps generation failed"
-                filtered_regions = regions
-            else:
-                # Step 3: Filter regions by relevance
-                from domain.region_relevance import filter_regions_by_relevance
+                return result
 
-                filter_start = time.perf_counter()
-                filtered_regions = filter_regions_by_relevance(
-                    regions=regions,
-                    similarity_maps=similarity_maps,
-                    n_patches_x=n_patches_x,
-                    n_patches_y=n_patches_y,
-                    image_width=image_width,
-                    image_height=image_height,
-                    threshold=self.region_relevance_threshold,
-                    top_k=self.region_top_k if self.region_top_k > 0 else None,
-                    aggregation=self.region_score_aggregation,
-                )
-                result.region_filtering_time_ms = (
-                    time.perf_counter() - filter_start
-                ) * 1000
+            # Step 3: Filter regions by relevance
+            from domain.region_relevance import filter_regions_by_relevance
+
+            filter_start = time.perf_counter()
+            filtered_regions = filter_regions_by_relevance(
+                regions=regions,
+                similarity_maps=similarity_maps,
+                n_patches_x=n_patches_x,
+                n_patches_y=n_patches_y,
+                image_width=image_width,
+                image_height=image_height,
+                threshold=self.region_relevance_threshold,
+                top_k=self.region_top_k if self.region_top_k > 0 else None,
+                aggregation=self.region_score_aggregation,
+            )
+            result.region_filtering_time_ms = (
+                time.perf_counter() - filter_start
+            ) * 1000
 
             # Build context from filtered regions only - structured format
             context_parts = []

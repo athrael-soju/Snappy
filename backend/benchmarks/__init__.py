@@ -1,11 +1,7 @@
 """
 Snappy Benchmarking Suite
 
-A comprehensive benchmarking framework for comparing document retrieval strategies:
-- Snappy Full: ColPali + OCR + Spatially-Grounded Region Relevance Propagation
-- ColPali Only: Pure vision-language model retrieval
-- OCR Only: Traditional text-based retrieval
-
+A benchmarking framework for evaluating document retrieval with region relevance filtering.
 Uses the BBox_DocVQA_Bench dataset from Hugging Face for evaluation.
 """
 

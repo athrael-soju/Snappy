@@ -22,7 +22,6 @@ from benchmarks.metrics import (
     CorrectnessMetrics,
     LatencyMetrics,
     MetricsCollector,
-    RetrievalMetrics,
     SampleResult,
     TokenMetrics,
 )
@@ -105,8 +104,7 @@ class BenchmarkRunner:
         )
 
         self._correctness_evaluator = CorrectnessEvaluator(
-            use_semantic_similarity=False,  # Skip for speed
-            use_llm_judge=True,  # Use LLM for semantic correctness
+            use_llm_judge=True,
             llm_model=self.config.llm_model,
             llm_api_key=self.config.llm_api_key,
         )

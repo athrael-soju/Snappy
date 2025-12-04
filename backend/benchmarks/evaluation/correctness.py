@@ -52,10 +52,6 @@ class CorrectnessEvaluator:
         use_llm_judge: bool = False,
         llm_model: str = "gpt-5-nano",
         llm_api_key: Optional[str] = None,
-        # Legacy parameters (ignored)
-        use_semantic_similarity: bool = False,
-        embedding_model: str = "",
-        anls_threshold: float = 0.5,
     ):
         """
         Initialize correctness evaluator.

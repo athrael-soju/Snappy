@@ -3,7 +3,7 @@ Command-line interface for running benchmarks.
 
 Usage:
     python -m benchmarks.cli --help
-    python -m benchmarks.cli run --max-samples 100 --strategies snappy_full,colpali_only
+    python -m benchmarks.cli run --max-samples 100 --strategies on_the_fly
     python -m benchmarks.cli report --input results.json
 """
 
@@ -51,7 +51,7 @@ def parse_strategies(strategies_str: str) -> List[RetrievalStrategy]:
             strategies.append(RetrievalStrategy(name))
         except ValueError:
             print(f"Warning: Unknown strategy '{name}', skipping")
-    return strategies or [RetrievalStrategy.SNAPPY_FULL]
+    return strategies or [RetrievalStrategy.ON_THE_FLY]
 
 
 def create_parser() -> argparse.ArgumentParser:
