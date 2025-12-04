@@ -42,7 +42,7 @@ class BenchmarkConfig:
 
     # Region relevance settings
     region_relevance_threshold: float = 0.3
-    region_top_k: int = 10
+    region_top_k: int = 3
     region_score_aggregation: str = "max"
 
     # LLM settings for RAG evaluation

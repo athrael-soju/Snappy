@@ -220,6 +220,10 @@ class OnTheFlyStrategy(BaseRetrievalStrategy):
                     # Include region metadata for context
                     context_parts.append(f"[{label}]: {content}")
                     result.context_regions.append(region)
+                elif label.lower() in ("image", "figure"):
+                    # Add image/figure regions even without text content
+                    # so retrieval metrics can compare their bboxes against ground truth
+                    result.context_regions.append(region)
 
                 # For image/figure regions, include the cropped image
                 if label.lower() in ("image", "figure") and "image_index" in region:

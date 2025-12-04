@@ -124,7 +124,7 @@ Examples:
     run_parser.add_argument(
         "--region-top-k",
         type=int,
-        default=10,
+        default=3,
         help="Max regions to keep per page",
     )
     run_parser.add_argument(
