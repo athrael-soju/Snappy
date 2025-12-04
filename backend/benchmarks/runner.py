@@ -287,8 +287,9 @@ class BenchmarkRunner:
                 + result.latency.region_filtering_ms
             )
 
-            # Store context for debugging
+            # Store context and regions for debugging
             result.retrieved_context = retrieval_result.context_text
+            result.retrieved_regions = retrieval_result.context_regions
 
         except asyncio.TimeoutError:
             result.error = f"Timeout after {self.config.timeout}s"

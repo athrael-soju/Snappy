@@ -281,6 +281,8 @@ class ReportGenerator:
                 "semantic_similarity": sample.correctness.semantic_similarity,
             },
             "error": sample.error,
+            "retrieved_context": sample.retrieved_context,
+            "retrieved_regions": sample.retrieved_regions,
         }
 
     def generate_comparison_table(

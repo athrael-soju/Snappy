@@ -47,7 +47,7 @@ class BenchmarkConfig:
             RetrievalStrategy.OCR_ONLY,
         ]
     )
-    top_k: int = 5  # Number of documents to retrieve
+    top_k: int = 1  # Number of documents to retrieve
     include_ocr: bool = True  # Include OCR data in retrieval
 
     # Region relevance settings (for Snappy Full)
@@ -58,7 +58,7 @@ class BenchmarkConfig:
     # LLM settings for RAG evaluation
     llm_provider: LLMProvider = LLMProvider.OPENAI
     llm_model: str = "gpt-5-nano"  # Default to cost-effective model
-    llm_temperature: float = 0.0  # Deterministic for reproducibility
+    llm_temperature: float = 1  # Deterministic for reproducibility
     llm_max_tokens: int = 512
     llm_api_key: Optional[str] = field(
         default_factory=lambda: os.environ.get("OPENAI_API_KEY")

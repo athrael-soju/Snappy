@@ -81,6 +81,7 @@ class SampleResult:
     # Additional metadata
     error: Optional[str] = None
     retrieved_context: Optional[str] = None
+    retrieved_regions: Optional[List[Dict[str, Any]]] = None  # Filtered regions with scores
     raw_response: Optional[Dict[str, Any]] = None
 
 
