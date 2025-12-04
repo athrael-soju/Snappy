@@ -11,6 +11,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Sequence
 
 from PIL import Image
+
+from utils.ocr import extract_region_content
 from utils.timing import log_execution_time
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
@@ -348,9 +350,7 @@ class OcrProcessor:
         """
         Extract content for each labeled region from raw OCR output.
 
-        The raw text contains patterns like:
-        <|ref|>label<|/ref|><|det|>[[coords]]<|/det|>
-        Content here
+        Delegates to the shared utility function for parsing grounding markers.
 
         Args:
             raw_text: Raw OCR output with grounding references
@@ -358,36 +358,7 @@ class OcrProcessor:
         Returns:
             Dictionary mapping labels to lists of their content
         """
-        import re
-
-        content_map: Dict[str, List[str]] = {}
-
-        if not raw_text:
-            return content_map
-
-        # Pattern to match: <|ref|>label<|/ref|><|det|>coords<|/det|>Content
-        # This captures the label and the content following it
-        pattern = (
-            r"<\|ref\|>([^<]+)<\|/ref\|><\|det\|>.*?<\|/det\|>\s*(.*?)(?=<\|ref\|>|$)"
-        )
-
-        matches = re.findall(pattern, raw_text, re.DOTALL)
-
-        for label, content in matches:
-            label = label.strip()
-            content = content.strip()
-
-            if label not in content_map:
-                content_map[label] = []
-
-            # Clean the content - remove any remaining grounding markers
-            content = re.sub(r"<\|[^|]+\|>", "", content)
-            content = content.strip()
-
-            if content:
-                content_map[label].append(content)
-
-        return content_map
+        return extract_region_content(raw_text)
 
     def process_extracted_images(
         self,

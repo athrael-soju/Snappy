@@ -4,16 +4,15 @@ RAG Evaluator for generating answers using retrieved context.
 Uses OpenAI (GPT-5, gpt-5-nano, etc.) for answer generation.
 """
 
-import asyncio
-import base64
 import logging
 import time
 from dataclasses import dataclass
-from io import BytesIO
 from typing import Any, Dict, List, Optional, Tuple
 
-from openai import OpenAI
 from PIL import Image
+
+from benchmarks.llm import LLMClient
+from benchmarks.utils.images import encode_image_base64
 
 
 @dataclass
@@ -48,21 +47,14 @@ class RAGEvaluator:
         Args:
             model: Model name/ID
             api_key: OpenAI API key (required)
-            temperature: Sampling temperature
-            max_tokens: Maximum tokens in response
+            temperature: Sampling temperature (unused, kept for interface compatibility)
+            max_tokens: Maximum tokens in response (unused, kept for interface compatibility)
             timeout: Request timeout in seconds
         """
-        if not api_key:
-            raise ValueError("OpenAI API key is required")
-
         self.model = model
-        self.api_key = api_key
-        self.temperature = temperature
-        self.max_tokens = max_tokens
         self.timeout = timeout
-
         self._logger = logging.getLogger(__name__)
-        self._openai_client = OpenAI(api_key=api_key)
+        self._llm_client = LLMClient(api_key=api_key, model=model, timeout=timeout)
 
     async def generate_answer(
         self,
@@ -95,9 +87,10 @@ class RAGEvaluator:
         images: Optional[List[Image.Image]],
         image_urls: Optional[List[str]],
     ) -> RAGResponse:
-        """Call OpenAI API for answer generation using official SDK."""
+        """Call OpenAI API for answer generation using shared LLM client."""
         system_prompt = self._build_system_prompt()
         user_text = self._build_user_prompt(query, context)
+        prompt = f"{system_prompt}\n\n{user_text}"
 
         # Log what we're sending to the LLM
         img_info = ""
@@ -109,58 +102,32 @@ class RAGEvaluator:
             f'LLM input: query="{query}"{img_info}, context={len(context)} chars'
         )
 
-        # Build input based on whether we have images
-        if images or image_urls:
-            # Multimodal input with images
-            content = [
-                {"type": "input_text", "text": f"{system_prompt}\n\n{user_text}"}
-            ]
+        # Build image list for multimodal input
+        all_images = []
+        if images:
+            for img in images:
+                img_b64 = self._image_to_base64(img)
+                all_images.append(f"data:image/png;base64,{img_b64}")
+        if image_urls:
+            all_images.extend(image_urls)
 
-            # Add PIL images as base64
-            if images:
-                for img in images:
-                    img_b64 = self._image_to_base64(img)
-                    content.append(
-                        {
-                            "type": "input_image",
-                            "image_url": f"data:image/png;base64,{img_b64}",
-                        }
-                    )
-
-            # Add image URLs
-            if image_urls:
-                for url in image_urls:
-                    content.append(
-                        {
-                            "type": "input_image",
-                            "image_url": url,
-                        }
-                    )
-
-            api_input = [{"role": "user", "content": content}]
-        else:
-            # Text-only input (simple string)
-            api_input = f"{system_prompt}\n\n{user_text}"
-
-        # Make API call using OpenAI Responses API
-        response = await asyncio.to_thread(
-            self._openai_client.responses.create,
-            model=self.model,
-            input=api_input,
-            reasoning={"effort": "low"},
+        # Use shared LLM client
+        response = await self._llm_client.generate(
+            prompt=prompt,
+            images=all_images if all_images else None,
+            reasoning_effort="low",
         )
 
-        answer = response.output_text
         self._logger.debug(
-            f"OpenAI response: {len(answer)} chars, output_tokens={response.usage.output_tokens}"
+            f"OpenAI response: {len(response.output_text)} chars, output_tokens={response.output_tokens}"
         )
 
         return RAGResponse(
-            answer=answer,
-            input_tokens=response.usage.input_tokens,
-            output_tokens=response.usage.output_tokens,
+            answer=response.output_text,
+            input_tokens=response.input_tokens,
+            output_tokens=response.output_tokens,
             latency_s=0,  # Will be set by caller
-            raw_response={"output": answer, "id": response.id},
+            raw_response=response.raw_response,
         )
 
     def _build_system_prompt(self) -> str:
@@ -213,9 +180,7 @@ A:"""
 
     def _image_to_base64(self, image: Image.Image) -> str:
         """Convert PIL image to base64 string."""
-        buffer = BytesIO()
-        image.save(buffer, format="PNG")
-        return base64.b64encode(buffer.getvalue()).decode("utf-8")
+        return encode_image_base64(image)
 
     async def batch_generate(
         self,

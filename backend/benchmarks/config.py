@@ -73,7 +73,7 @@ class BenchmarkConfig:
     )
 
     # Execution settings
-    batch_size: int = 10  # Process samples in batches
+    batch_size: int = 5  # Process samples in batches (reduced to prevent OCR overload)
     timeout: int = 120  # Timeout per sample in seconds
 
     def validate(self) -> None:
@@ -93,5 +93,5 @@ class BenchmarkConfig:
         return cls(
             max_samples=int(os.environ.get("BENCHMARK_MAX_SAMPLES", 0)) or None,
             llm_model=os.environ.get("BENCHMARK_LLM_MODEL", "gpt-5-nano"),
-            batch_size=int(os.environ.get("BENCHMARK_BATCH_SIZE", 10)),
+            batch_size=int(os.environ.get("BENCHMARK_BATCH_SIZE", 5)),
         )

@@ -293,31 +293,21 @@ class BenchmarkRunner:
         """
         Get local file path to the sample image.
 
+        Delegates to the dataset's get_image_local_path method.
+
         Args:
             sample: Benchmark sample with image_paths
 
         Returns:
             Local file path to the image, or None if not available
         """
-        from pathlib import Path
-
-        if not sample.image_paths:
-            return None
-
-        cache_dir = Path(self.config.cache_dir)
-
-        # Find the images zip in the cache
-        for snapshot_dir in (cache_dir / "datasets--Yuwh07--BBox_DocVQA_Bench" / "snapshots").glob("*"):
-            zip_path = snapshot_dir / "BBox_DocVQA_Bench_Images.zip"
-            if zip_path.exists():
-                # Return path in format: zip_path!/internal_path
-                return f"{zip_path}!/{sample.image_paths[0]}"
-
-        return None
+        return self._dataset.get_image_local_path(sample)
 
     def _load_sample_image(self, sample: BenchmarkSample):
         """
         Load image for a benchmark sample from the dataset cache.
+
+        Delegates to the dataset's load_sample_image method.
 
         Args:
             sample: Benchmark sample with image_paths
@@ -325,48 +315,7 @@ class BenchmarkRunner:
         Returns:
             PIL Image or None if loading fails
         """
-        import zipfile
-        from io import BytesIO
-        from pathlib import Path
-
-        from PIL import Image
-
-        if not sample.image_paths:
-            self._logger.warning(f"Sample {sample.sample_id} has no image_paths")
-            return None
-
-        cache_dir = Path(self.config.cache_dir)
-        self._logger.debug(f"Looking for images zip in {cache_dir}")
-
-        # Try to find the images zip in the cache
-        zip_file = None
-        for snapshot_dir in (cache_dir / "datasets--Yuwh07--BBox_DocVQA_Bench" / "snapshots").glob("*"):
-            zip_path = snapshot_dir / "BBox_DocVQA_Bench_Images.zip"
-            self._logger.debug(f"Checking {zip_path}")
-            if zip_path.exists():
-                zip_file = zipfile.ZipFile(zip_path, 'r')
-                break
-
-        if not zip_file:
-            self._logger.warning("Images zip not found in cache")
-            return None
-
-        try:
-            # Use first image path
-            image_path = sample.image_paths[0]
-            self._logger.debug(f"Loading image from zip: {image_path}")
-
-            # Try to open from zip
-            with zip_file.open(image_path) as img_file:
-                img = Image.open(BytesIO(img_file.read())).convert("RGB")
-                self._logger.debug(f"Loaded image: {img.width}x{img.height}")
-                return img
-
-        except Exception as e:
-            self._logger.error(f"Failed to load image {sample.image_paths[0]}: {e}")
-            return None
-        finally:
-            zip_file.close()
+        return self._dataset.load_sample_image(sample)
 
     def _get_config_dict(self) -> Dict[str, Any]:
         """Convert config to dictionary for reporting."""

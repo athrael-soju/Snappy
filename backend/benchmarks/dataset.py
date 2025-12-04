@@ -14,7 +14,9 @@ Dataset structure:
 
 import json
 import logging
+import zipfile
 from dataclasses import dataclass
+from io import BytesIO
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
@@ -287,13 +289,18 @@ class BBoxDocVQADataset:
         """
         Load an image from the dataset.
 
+        Tries multiple sources in order:
+        1. Direct file path
+        2. HuggingFace cache zip file
+        3. Local cache directories
+
         Args:
             image_path: Relative path to image within dataset
 
         Returns:
             PIL Image or None if not found
         """
-        # Try multiple potential locations
+        # Try direct file paths first
         potential_paths = [
             self.cache_dir / image_path,
             Path(image_path),
@@ -307,7 +314,105 @@ class BBoxDocVQADataset:
                 except Exception as e:
                     logger.warning(f"Failed to load image {path}: {e}")
 
+        # Try loading from HuggingFace cache zip
+        image = self._load_from_zip(image_path)
+        if image:
+            return image
+
         logger.warning(f"Image not found: {image_path}")
+        return None
+
+    def _load_from_zip(self, image_path: str) -> Optional[Image.Image]:
+        """
+        Load an image from the HuggingFace cache zip file.
+
+        Args:
+            image_path: Relative path to image within the zip
+
+        Returns:
+            PIL Image or None if not found
+        """
+        zip_path = self._find_images_zip()
+        if not zip_path:
+            return None
+
+        try:
+            with zipfile.ZipFile(zip_path, "r") as zf:
+                with zf.open(image_path) as img_file:
+                    return Image.open(BytesIO(img_file.read())).convert("RGB")
+        except KeyError:
+            logger.debug(f"Image {image_path} not found in zip")
+            return None
+        except Exception as e:
+            logger.warning(f"Failed to load image from zip: {e}")
+            return None
+
+    def _find_images_zip(self) -> Optional[Path]:
+        """
+        Find the images zip file in the HuggingFace cache.
+
+        Returns:
+            Path to the zip file or None if not found
+        """
+        # Look for the zip in HuggingFace cache structure
+        hf_cache_pattern = "datasets--Yuwh07--BBox_DocVQA_Bench"
+        for snapshot_dir in (self.cache_dir / hf_cache_pattern / "snapshots").glob("*"):
+            zip_path = snapshot_dir / "BBox_DocVQA_Bench_Images.zip"
+            if zip_path.exists():
+                return zip_path
+
+        return None
+
+    def load_sample_image(self, sample: BenchmarkSample) -> Optional[Image.Image]:
+        """
+        Load the first image for a benchmark sample.
+
+        This is a convenience method for loading sample images during benchmarking.
+
+        Args:
+            sample: Benchmark sample with image_paths
+
+        Returns:
+            PIL Image or None if not available
+        """
+        if not sample.image_paths:
+            logger.warning(f"Sample {sample.sample_id} has no image_paths")
+            return None
+
+        return self.load_image(sample.image_paths[0])
+
+    def get_image_local_path(self, sample: BenchmarkSample) -> Optional[str]:
+        """
+        Get the local file path to a sample's image.
+
+        Returns a path string in the format "zip_path!/internal_path" for zip files.
+
+        Args:
+            sample: Benchmark sample with image_paths
+
+        Returns:
+            Local file path string, or None if not available
+        """
+        if not sample.image_paths:
+            return None
+
+        # Check if it's in a zip file
+        zip_path = self._find_images_zip()
+        if zip_path:
+            return f"{zip_path}!/{sample.image_paths[0]}"
+
+        # Check direct paths
+        image_path = sample.image_paths[0]
+        potential_paths = [
+            self.cache_dir / image_path,
+            Path(image_path),
+            self.cache_dir / "images" / image_path,
+        ]
+
+        for path in potential_paths:
+            if path.exists():
+                return str(path)
+
         return None
 
     def prepare_for_indexing(

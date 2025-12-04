@@ -14,6 +14,8 @@ import requests
 from PIL import Image
 
 from benchmarks.strategies.base import BaseRetrievalStrategy, RetrievalResult
+from benchmarks.utils.images import decode_base64_image
+from utils.ocr import extract_region_content
 
 
 class OnTheFlyStrategy(BaseRetrievalStrategy):
@@ -41,6 +43,7 @@ class OnTheFlyStrategy(BaseRetrievalStrategy):
         # OCR settings
         ocr_mode: str = "Gundam",
         ocr_task: str = "markdown",  # markdown with include_grounding returns bboxes
+        ocr_max_concurrent: int = 2,  # Limit concurrent OCR requests to prevent overload
         **kwargs,
     ):
         super().__init__(
@@ -54,9 +57,11 @@ class OnTheFlyStrategy(BaseRetrievalStrategy):
         self.region_score_aggregation = region_score_aggregation
         self.ocr_mode = ocr_mode
         self.ocr_task = ocr_task
+        self.ocr_max_concurrent = ocr_max_concurrent
 
         self._colpali_client = None
         self._session = None
+        self._ocr_semaphore: Optional[asyncio.Semaphore] = None
 
     @property
     def name(self) -> str:
@@ -79,6 +84,7 @@ class OnTheFlyStrategy(BaseRetrievalStrategy):
         )
 
         self._session = requests.Session()
+        self._ocr_semaphore = asyncio.Semaphore(self.ocr_max_concurrent)
 
         health = await self.health_check()
         if not all(health.values()):
@@ -86,7 +92,9 @@ class OnTheFlyStrategy(BaseRetrievalStrategy):
             raise RuntimeError(f"Services not healthy: {unhealthy}")
 
         self._initialized = True
-        self._logger.info("OnTheFlyStrategy initialized")
+        self._logger.info(
+            f"OnTheFlyStrategy initialized (max {self.ocr_max_concurrent} concurrent OCR)"
+        )
 
     async def health_check(self) -> Dict[str, bool]:
         """Check health of required services."""
@@ -156,7 +164,9 @@ class OnTheFlyStrategy(BaseRetrievalStrategy):
             # Extract cropped images (base64) for figure/image regions
             crops = ocr_result.get("crops", [])
 
-            self._logger.debug(f"Extracted {len(regions)} regions with content, {len(crops)} crops")
+            self._logger.debug(
+                f"Extracted {len(regions)} regions with content, {len(crops)} crops"
+            )
 
             if not regions:
                 result.error = f"No regions extracted from OCR (bboxes={len(ocr_result.get('bounding_boxes', []))})"
@@ -238,39 +248,80 @@ class OnTheFlyStrategy(BaseRetrievalStrategy):
         result.retrieval_time_s = time.perf_counter() - total_start
         return result
 
-    async def _run_ocr(self, image: Image.Image) -> Optional[Dict[str, Any]]:
-        """Run DeepSeek OCR on the image."""
+    async def _run_ocr(
+        self,
+        image: Image.Image,
+        max_retries: int = 3,
+        base_delay: float = 5.0,
+        timeout: int = 300,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Run DeepSeek OCR on the image with retry and exponential backoff.
+
+        Uses a semaphore to limit concurrent OCR requests and prevent service overload.
+
+        Args:
+            image: PIL Image to process
+            max_retries: Maximum number of retry attempts
+            base_delay: Base delay in seconds for exponential backoff
+            timeout: Request timeout in seconds
+
+        Returns:
+            OCR result dictionary or None on failure
+        """
         import io
 
-        try:
-            # Convert PIL image to bytes
-            buffer = io.BytesIO()
-            image.save(buffer, format="PNG")
-            image_bytes = buffer.getvalue()
+        # Convert PIL image to bytes once
+        buffer = io.BytesIO()
+        image.save(buffer, format="PNG")
+        image_bytes = buffer.getvalue()
 
-            # Send to DeepSeek OCR
-            response = await asyncio.to_thread(
-                self._session.post,
-                f"{self.deepseek_url}/api/ocr",
-                files={"image": ("page.png", image_bytes, "image/png")},
-                data={
-                    "mode": self.ocr_mode,
-                    "task": self.ocr_task,
-                    "include_grounding": "true",
-                    "include_images": "true",  # Extract cropped images for figures
-                },
-                timeout=120,
-            )
+        last_error = None
 
-            if response.status_code != 200:
-                self._logger.error(f"OCR failed: {response.status_code} - {response.text}")
-                return None
+        # Use semaphore to limit concurrent OCR requests (create lazily if needed)
+        if self._ocr_semaphore is None:
+            self._ocr_semaphore = asyncio.Semaphore(self.ocr_max_concurrent)
 
-            return response.json()
+        async with self._ocr_semaphore:
+            for attempt in range(max_retries + 1):
+                try:
+                    # Send to DeepSeek OCR
+                    response = await asyncio.to_thread(
+                        self._session.post,
+                        f"{self.deepseek_url}/api/ocr",
+                        files={"image": ("page.png", image_bytes, "image/png")},
+                        data={
+                            "mode": self.ocr_mode,
+                            "task": self.ocr_task,
+                            "include_grounding": "true",
+                            "include_images": "true",  # Extract cropped images for figures
+                        },
+                        timeout=timeout,
+                    )
 
-        except Exception as e:
-            self._logger.error(f"OCR request failed: {e}")
-            return None
+                    if response.status_code == 200:
+                        return response.json()
+
+                    # Non-200 status - log and potentially retry
+                    last_error = f"HTTP {response.status_code}: {response.text[:200]}"
+                    self._logger.warning(
+                        f"OCR request failed (attempt {attempt + 1}/{max_retries + 1}): {last_error}"
+                    )
+
+                except Exception as e:
+                    last_error = str(e)
+                    self._logger.warning(
+                        f"OCR request error (attempt {attempt + 1}/{max_retries + 1}): {e}"
+                    )
+
+                # Retry with exponential backoff if not last attempt
+                if attempt < max_retries:
+                    delay = base_delay * (2**attempt)  # 5s, 10s, 20s
+                    self._logger.info(f"Retrying OCR in {delay:.1f}s...")
+                    await asyncio.sleep(delay)
+
+        self._logger.error(f"OCR failed after {max_retries + 1} attempts: {last_error}")
+        return None
 
     def _extract_regions(
         self, ocr_result: Dict[str, Any], image: Image.Image
@@ -328,54 +379,18 @@ class OnTheFlyStrategy(BaseRetrievalStrategy):
 
     def _decode_crop(self, crop_b64: str) -> Optional[Image.Image]:
         """Decode a base64-encoded crop to PIL Image."""
-        import base64
-        import io
-
-        try:
-            image_data = base64.b64decode(crop_b64)
-            return Image.open(io.BytesIO(image_data)).convert("RGB")
-        except Exception as e:
-            self._logger.warning(f"Failed to decode crop: {e}")
-            return None
+        return decode_base64_image(crop_b64)
 
     def _extract_region_content(self, raw_text: str) -> Dict[str, List[str]]:
         """
         Extract content for each labeled region from raw OCR output.
 
-        Same logic as Snappy's OcrProcessor._extract_region_content.
-
-        The raw text contains patterns like:
-        <|ref|>label<|/ref|><|det|>[[coords]]<|/det|>
-        Content here
+        Delegates to the shared utility function for parsing grounding markers.
 
         Returns:
             Dictionary mapping labels to lists of their content
         """
-        import re
-
-        content_map: Dict[str, List[str]] = {}
-
-        if not raw_text:
-            return content_map
-
-        # Pattern to match: <|ref|>label<|/ref|><|det|>coords<|/det|>Content
-        pattern = r"<\|ref\|>([^<]+)<\|/ref\|><\|det\|>.*?<\|/det\|>\s*(.*?)(?=<\|ref\|>|$)"
-
-        for match in re.finditer(pattern, raw_text, re.DOTALL):
-            label = match.group(1).strip()
-            content = match.group(2).strip()
-
-            if label not in content_map:
-                content_map[label] = []
-
-            # Clean content - remove any remaining grounding markers
-            content = re.sub(r"<\|[^|]+\|>", "", content)
-            content = content.strip()
-
-            if content:
-                content_map[label].append(content)
-
-        return content_map
+        return extract_region_content(raw_text)
 
     async def cleanup(self) -> None:
         """Clean up resources."""

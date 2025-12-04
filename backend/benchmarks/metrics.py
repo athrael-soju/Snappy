@@ -14,6 +14,18 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 
+# Re-export compute_f1_score for backward compatibility
+from benchmarks.utils.text import compute_f1_score
+
+__all__ = [
+    "LatencyMetrics",
+    "TokenMetrics",
+    "CorrectnessMetrics",
+    "SampleResult",
+    "MetricsCollector",
+    "compute_f1_score",
+]
+
 
 @dataclass
 class LatencyMetrics:
@@ -200,41 +212,3 @@ class MetricsCollector:
                     comparison[strategy]["relative_to_baseline"] = relative
 
         return comparison
-
-
-def compute_f1_score(prediction: str, ground_truth: str) -> float:
-    """Compute token-level F1 score."""
-    pred_tokens = set(_normalize_answer(prediction).split())
-    gt_tokens = set(_normalize_answer(ground_truth).split())
-
-    if not pred_tokens or not gt_tokens:
-        return 0.0
-
-    common = pred_tokens & gt_tokens
-    if not common:
-        return 0.0
-
-    precision = len(common) / len(pred_tokens)
-    recall = len(common) / len(gt_tokens)
-
-    return 2 * precision * recall / (precision + recall)
-
-
-def _normalize_answer(text: str) -> str:
-    """Normalize answer text for comparison."""
-    import re
-    import string
-
-    # Convert to lowercase
-    text = text.lower()
-
-    # Remove punctuation
-    text = text.translate(str.maketrans("", "", string.punctuation))
-
-    # Remove articles
-    text = re.sub(r"\b(a|an|the)\b", " ", text)
-
-    # Remove extra whitespace
-    text = " ".join(text.split())
-
-    return text.strip()

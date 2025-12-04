@@ -11,8 +11,8 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 import numpy as np
-from openai import OpenAI
 
+from benchmarks.llm import LLMClient
 from benchmarks.metrics import compute_f1_score
 
 logger = logging.getLogger(__name__)
@@ -172,6 +172,14 @@ class LLMJudge:
     Uses an LLM to judge answer correctness with a simple boolean output.
     """
 
+    # JSON schema for structured output
+    JUDGE_SCHEMA = {
+        "type": "object",
+        "properties": {"correct": {"type": "boolean"}},
+        "required": ["correct"],
+        "additionalProperties": False,
+    }
+
     def __init__(
         self,
         model: str = "gpt-5-mini",
@@ -181,7 +189,7 @@ class LLMJudge:
             raise ValueError("OpenAI API key is required for LLM judge")
 
         self.model = model
-        self._openai_client = OpenAI(api_key=api_key)
+        self._llm_client = LLMClient(api_key=api_key, model=model)
 
     async def judge(
         self,
@@ -200,9 +208,6 @@ class LLMJudge:
         Returns:
             True if correct, False if incorrect
         """
-        import asyncio
-        import json
-
         prompt = f"""Judge if the predicted answer is semantically correct compared to the ground truth.
 
 Question: {question}
@@ -211,29 +216,13 @@ Predicted: {prediction}
 
 Is the predicted answer correct? Consider semantic equivalence, not exact match."""
 
-        response = await asyncio.to_thread(
-            self._openai_client.responses.create,
-            model=self.model,
-            input=prompt,
-            text={
-                "format": {
-                    "type": "json_schema",
-                    "name": "judge_result",
-                    "schema": {
-                        "type": "object",
-                        "properties": {
-                            "correct": {"type": "boolean"}
-                        },
-                        "required": ["correct"],
-                        "additionalProperties": False,
-                    },
-                    "strict": True,
-                }
-            },
-            reasoning={"effort": "low"},
+        result = await self._llm_client.generate_structured(
+            prompt=prompt,
+            schema=self.JUDGE_SCHEMA,
+            schema_name="judge_result",
+            reasoning_effort="low",
         )
 
-        result = json.loads(response.output_text)
         is_correct = result["correct"]
         logger.info(f"LLM judge: correct={is_correct}")
         return is_correct

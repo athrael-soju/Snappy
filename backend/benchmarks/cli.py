@@ -13,12 +13,12 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 from dotenv import load_dotenv
 
 from benchmarks.config import BenchmarkConfig, RetrievalStrategy
-from benchmarks.runner import BenchmarkRunner, run_benchmark
+from benchmarks.runner import run_benchmark
 
 # Load environment variables from .env files (searches up from current directory)
 load_dotenv(override=False)  # Load from .env files in current or parent directories
