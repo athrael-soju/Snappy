@@ -18,8 +18,6 @@ class LLMProvider(str, Enum):
     """LLM providers for RAG answer generation."""
 
     OPENAI = "openai"
-    ANTHROPIC = "anthropic"
-    LOCAL = "local"  # For local models via Ollama/vLLM
 
 
 @dataclass
@@ -56,9 +54,6 @@ class BenchmarkConfig:
     llm_max_tokens: int = 1024  # Increased for multimodal responses
     llm_api_key: Optional[str] = field(
         default_factory=lambda: os.environ.get("OPENAI_API_KEY")
-    )
-    anthropic_api_key: Optional[str] = field(
-        default_factory=lambda: os.environ.get("ANTHROPIC_API_KEY")
     )
 
     # Metrics settings
@@ -102,11 +97,8 @@ class BenchmarkConfig:
         if self.llm_temperature < 0 or self.llm_temperature > 2:
             raise ValueError("llm_temperature must be between 0 and 2")
 
-        if self.llm_provider == LLMProvider.OPENAI and not self.llm_api_key:
-            raise ValueError("OpenAI API key required for OPENAI provider")
-
-        if self.llm_provider == LLMProvider.ANTHROPIC and not self.anthropic_api_key:
-            raise ValueError("Anthropic API key required for ANTHROPIC provider")
+        if not self.llm_api_key:
+            raise ValueError("OpenAI API key required")
 
     @classmethod
     def from_env(cls) -> "BenchmarkConfig":

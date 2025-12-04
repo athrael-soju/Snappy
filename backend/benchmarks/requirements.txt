@@ -16,6 +16,3 @@ requests>=2.28.0
 
 # Optional: Semantic similarity (for enhanced correctness evaluation)
 # sentence-transformers>=2.2.0
-
-# Optional: Local LLM support (Ollama)
-# ollama>=0.1.0

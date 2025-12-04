@@ -41,7 +41,7 @@ class CorrectnessMetrics:
     """Answer correctness metrics for a single sample."""
 
     f1_score: float = 0.0  # Token-level F1 score
-    llm_judge_score: float = 0.0  # LLM-based semantic correctness
+    llm_judge_correct: bool = False  # LLM-based semantic correctness
 
 
 @dataclass
@@ -141,11 +141,11 @@ class MetricsCollector:
         }
 
         # Correctness aggregates
+        correct_count = sum(1 for r in successful if r.correctness.llm_judge_correct)
         correctness_stats = {
             "f1_score": float(np.mean([r.correctness.f1_score for r in successful])),
-            "llm_judge_score": float(
-                np.mean([r.correctness.llm_judge_score for r in successful])
-            ),
+            "llm_judge_correct": correct_count,
+            "llm_judge_accuracy": correct_count / len(successful),
         }
 
         return {
@@ -190,7 +190,7 @@ class MetricsCollector:
 
                     # Correctness improvement (higher is better)
                     if "correctness" in baseline and "correctness" in current:
-                        for metric in ["f1_score", "llm_judge_score"]:
+                        for metric in ["f1_score", "llm_judge_accuracy"]:
                             baseline_val = baseline["correctness"].get(metric, 0)
                             current_val = current["correctness"].get(metric, 0)
                             if baseline_val > 0:

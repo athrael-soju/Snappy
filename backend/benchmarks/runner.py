@@ -93,10 +93,8 @@ class BenchmarkRunner:
 
         # Initialize evaluators
         self._rag_evaluator = RAGEvaluator(
-            provider=self.config.llm_provider,
             model=self.config.llm_model,
             api_key=self.config.llm_api_key,
-            anthropic_api_key=self.config.anthropic_api_key,
             temperature=self.config.llm_temperature,
             max_tokens=self.config.llm_max_tokens,
         )
@@ -249,10 +247,6 @@ class BenchmarkRunner:
             )
             rag_time = self._metrics_collector.stop_timer("rag")
 
-            if rag_response.error:
-                result.error = f"RAG error: {rag_response.error}"
-                return result
-
             result.predicted_answer = rag_response.answer
             result.latency.llm_inference_s = rag_response.latency_s
 
@@ -274,7 +268,7 @@ class BenchmarkRunner:
 
             result.correctness = CorrectnessMetrics(
                 f1_score=correctness_result.f1_score,
-                llm_judge_score=correctness_result.llm_judge_score,
+                llm_judge_correct=correctness_result.llm_judge_correct,
             )
 
             # Calculate total latency

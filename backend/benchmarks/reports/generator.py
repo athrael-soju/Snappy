@@ -131,7 +131,7 @@ class ReportGenerator:
             lines.append("|--------|" + "|".join(["--------"] * len(strategies)) + "|")
 
             # Correctness metrics
-            for metric in ["f1_score", "llm_judge_score"]:
+            for metric in ["f1_score", "llm_judge_accuracy"]:
                 values = []
                 for s in strategies:
                     val = comparison[s].get("correctness", {}).get(metric, 0)
@@ -218,7 +218,7 @@ class ReportGenerator:
                     "ground_truth": result.ground_truth,
                     "predicted_answer": result.predicted_answer,
                     "f1_score": result.correctness.f1_score,
-                    "llm_judge_score": result.correctness.llm_judge_score,
+                    "llm_judge_correct": result.correctness.llm_judge_correct,
                     "retrieval_s": result.latency.retrieval_s,
                     "llm_inference_s": result.latency.llm_inference_s,
                     "total_s": result.latency.total_s,
@@ -259,7 +259,7 @@ class ReportGenerator:
             },
             "correctness": {
                 "f1_score": sample.correctness.f1_score,
-                "llm_judge_score": sample.correctness.llm_judge_score,
+                "llm_judge_correct": sample.correctness.llm_judge_correct,
             },
             "error": sample.error,
             "retrieved_context": sample.retrieved_context,
@@ -306,7 +306,7 @@ class ReportGenerator:
         # Add metrics
         metrics_to_show = [
             ("F1 Score", "correctness", "f1_score"),
-            ("LLM Judge", "correctness", "llm_judge_score"),
+            ("LLM Judge Acc", "correctness", "llm_judge_accuracy"),
             ("Latency (s)", "latency", "total_s"),
             ("Input Tokens", "tokens", "input_tokens"),
         ]
@@ -354,7 +354,7 @@ class ReportGenerator:
         # Add metrics
         metrics_to_show = [
             ("F1 Score", "correctness", "f1_score"),
-            ("LLM Judge", "correctness", "llm_judge_score"),
+            ("LLM Judge Acc", "correctness", "llm_judge_accuracy"),
             ("Latency (s)", "latency", "total_s"),
             ("Input Tokens", "tokens", "input_tokens"),
             ("Output Tokens", "tokens", "output_tokens"),

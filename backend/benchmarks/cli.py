@@ -17,7 +17,7 @@ from typing import List, Optional
 
 from dotenv import load_dotenv
 
-from benchmarks.config import BenchmarkConfig, LLMProvider, RetrievalStrategy
+from benchmarks.config import BenchmarkConfig, RetrievalStrategy
 from benchmarks.runner import BenchmarkRunner, run_benchmark
 
 # Load environment variables from .env files (searches up from current directory)
@@ -142,15 +142,9 @@ Examples:
 
     # LLM options
     run_parser.add_argument(
-        "--llm-provider",
-        default="openai",
-        choices=["openai", "anthropic", "local"],
-        help="LLM provider for RAG",
-    )
-    run_parser.add_argument(
         "--llm-model",
         default="gpt-5-nano",
-        help="LLM model name",
+        help="OpenAI model name for RAG",
     )
     run_parser.add_argument(
         "--llm-temperature",
@@ -265,7 +259,6 @@ async def cmd_run(args: argparse.Namespace) -> int:
         region_relevance_threshold=args.region_threshold,
         region_top_k=args.region_top_k,
         region_score_aggregation=args.region_aggregation,
-        llm_provider=LLMProvider(args.llm_provider),
         llm_model=args.llm_model,
         llm_temperature=args.llm_temperature,
         llm_max_tokens=args.llm_max_tokens,
@@ -283,7 +276,7 @@ async def cmd_run(args: argparse.Namespace) -> int:
     print(f"Dataset: {config.dataset_name}")
     print(f"Samples: {config.max_samples or 'All'}")
     print(f"Strategies: {[s.value for s in strategies]}")
-    print(f"LLM: {config.llm_provider.value}/{config.llm_model}")
+    print(f"LLM: OpenAI/{config.llm_model}")
     print("=" * 60)
     print()
 
@@ -300,7 +293,7 @@ async def cmd_run(args: argparse.Namespace) -> int:
             print(f"\n{strategy}:")
             if "correctness" in metrics:
                 print(f"  F1: {metrics['correctness'].get('f1_score', 0):.4f}")
-                print(f"  LLM Judge: {metrics['correctness'].get('llm_judge_score', 0):.4f}")
+                print(f"  LLM Judge Acc: {metrics['correctness'].get('llm_judge_accuracy', 0):.2%}")
             if "latency" in metrics:
                 total = metrics["latency"].get("total_s", {})
                 print(
