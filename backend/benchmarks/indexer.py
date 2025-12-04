@@ -21,6 +21,42 @@ from clients.colpali import ColPaliClient
 logger = logging.getLogger(__name__)
 
 
+def _extract_region_content(raw_text: str) -> Dict[str, List[str]]:
+    """
+    Extract content for each labeled region from raw OCR output.
+
+    The raw text contains patterns like:
+    <|ref|>label<|/ref|><|det|>[[coords]]<|/det|>
+    Content here
+
+    Args:
+        raw_text: Raw OCR output with grounding references
+
+    Returns:
+        Dictionary mapping labels to lists of their content
+    """
+    import re
+
+    content_map: Dict[str, List[str]] = {}
+
+    if not raw_text:
+        return content_map
+
+    # Pattern to match: <|ref|>label<|/ref|><|det|>coords<|/det|>Content
+    pattern = r"<\|ref\|>([^<]+)<\|/ref\|><\|det\|>.*?<\|/det\|>\s*(.*?)(?=<\|ref\|>|$)"
+
+    for match in re.finditer(pattern, raw_text, re.DOTALL):
+        label = match.group(1).strip()
+        content = match.group(2).strip()
+
+        if label and content:
+            if label not in content_map:
+                content_map[label] = []
+            content_map[label].append(content)
+
+    return content_map
+
+
 async def index_benchmark_dataset(
     dataset_name: str,
     cache_dir: str,
@@ -317,14 +353,26 @@ async def _index_page(
         document_id = hashlib.md5(doc_name.encode()).hexdigest()
 
         # Convert bounding_boxes to regions format expected by DuckDB
+        # Extract content mapping from raw text using the same logic as Snappy's OCR processor
+        raw_text = ocr_result.get("raw", "")
+        content_map = _extract_region_content(raw_text) if raw_text else {}
+
         regions = []
         for i, bbox in enumerate(ocr_result.get("bounding_boxes", [])):
-            regions.append({
-                "id": f"region_{i}",
-                "label": bbox.get("label", ""),
+            label = bbox.get("label", "unknown")
+            region = {
+                "id": f"{doc_name}#region-{i+1}",
+                "label": label,
                 "bbox": [bbox.get("x1"), bbox.get("y1"), bbox.get("x2"), bbox.get("y2")],
-                "content": ""  # DeepSeek bounding_boxes have coordinates but not extracted text per region
-            })
+            }
+
+            # Add content if available from raw text parsing
+            if label in content_map and content_map[label]:
+                content_list = content_map[label]
+                if content_list:
+                    region["content"] = content_list.pop(0)
+
+            regions.append(region)
 
         duckdb_payload = {
             "provider": "deepseek",
