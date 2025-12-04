@@ -22,9 +22,11 @@ from benchmarks.metrics import (
     CorrectnessMetrics,
     LatencyMetrics,
     MetricsCollector,
+    RetrievalMetrics,
     SampleResult,
     TokenMetrics,
 )
+from benchmarks.evaluation.retrieval import compute_retrieval_metrics
 from benchmarks.reports.generator import ReportGenerator
 from benchmarks.strategies.base import BaseRetrievalStrategy
 from benchmarks.strategies.on_the_fly import OnTheFlyStrategy
@@ -91,19 +93,22 @@ class BenchmarkRunner:
                 self._strategies[strategy.name] = strategy
                 self._logger.info(f"Initialized strategy: {strategy.name}")
 
-        # Initialize evaluators
-        self._rag_evaluator = RAGEvaluator(
-            model=self.config.llm_model,
-            api_key=self.config.llm_api_key,
-            temperature=self.config.llm_temperature,
-            max_tokens=self.config.llm_max_tokens,
-        )
+        # Initialize evaluators (only if LLM evaluation is enabled)
+        if not self.config.skip_llm_evaluation:
+            self._rag_evaluator = RAGEvaluator(
+                model=self.config.llm_model,
+                api_key=self.config.llm_api_key,
+                temperature=self.config.llm_temperature,
+                max_tokens=self.config.llm_max_tokens,
+            )
 
-        self._correctness_evaluator = CorrectnessEvaluator(
-            use_llm_judge=True,
-            llm_model=self.config.llm_model,
-            llm_api_key=self.config.llm_api_key,
-        )
+            self._correctness_evaluator = CorrectnessEvaluator(
+                use_llm_judge=True,
+                llm_model=self.config.llm_model,
+                llm_api_key=self.config.llm_api_key,
+            )
+        else:
+            self._logger.info("LLM evaluation disabled - only retrieval metrics will be computed")
 
         # Initialize collectors and reporters
         self._metrics_collector = MetricsCollector()
@@ -206,6 +211,7 @@ class BenchmarkRunner:
             predicted_answer="",
             strategy=strategy.name,
             image_path=self._get_image_local_path(sample),
+            ground_truth_bboxes=sample.bboxes,
         )
 
         try:
@@ -239,36 +245,46 @@ class BenchmarkRunner:
             result.latency.embedding_s = retrieval_result.embedding_time_s
             result.latency.region_filtering_s = retrieval_result.region_filtering_time_s
 
-            # Step 2: Generate answer using RAG
-            self._metrics_collector.start_timer("rag")
-            rag_response = await self._rag_evaluator.generate_answer(
-                query=sample.query,
-                context=retrieval_result.context_text,
-                images=retrieval_result.retrieved_images if retrieval_result.retrieved_images else None,
-            )
-            rag_time = self._metrics_collector.stop_timer("rag")
-
-            result.predicted_answer = rag_response.answer
-            result.latency.llm_inference_s = rag_response.latency_s
-
-            # Record token usage
-            result.tokens = TokenMetrics(
-                input_tokens=rag_response.input_tokens,
-                output_tokens=rag_response.output_tokens,
-                total_tokens=rag_response.input_tokens + rag_response.output_tokens,
+            # Compute retrieval metrics (LLM-independent evaluation)
+            # This measures how well retrieved regions overlap with ground truth bboxes
+            result.retrieval = compute_retrieval_metrics(
+                retrieved_regions=retrieval_result.context_regions,
+                ground_truth_bboxes=sample.bboxes,
+                iou_threshold=0.1,
             )
 
-            # Step 3: Evaluate correctness (async for LLM judge support)
-            correctness_result = await self._correctness_evaluator.evaluate_async(
-                question=sample.query,
-                prediction=rag_response.answer,
-                ground_truth=sample.answer,
-            )
+            # Step 2 & 3: LLM evaluation (skip if disabled)
+            if not self.config.skip_llm_evaluation:
+                # Generate answer using RAG
+                self._metrics_collector.start_timer("rag")
+                rag_response = await self._rag_evaluator.generate_answer(
+                    query=sample.query,
+                    context=retrieval_result.context_text,
+                    images=retrieval_result.retrieved_images if retrieval_result.retrieved_images else None,
+                )
+                rag_time = self._metrics_collector.stop_timer("rag")
 
-            result.correctness = CorrectnessMetrics(
-                f1_score=correctness_result.f1_score,
-                llm_judge_correct=correctness_result.llm_judge_correct,
-            )
+                result.predicted_answer = rag_response.answer
+                result.latency.llm_inference_s = rag_response.latency_s
+
+                # Record token usage
+                result.tokens = TokenMetrics(
+                    input_tokens=rag_response.input_tokens,
+                    output_tokens=rag_response.output_tokens,
+                    total_tokens=rag_response.input_tokens + rag_response.output_tokens,
+                )
+
+                # Evaluate correctness (async for LLM judge support)
+                correctness_result = await self._correctness_evaluator.evaluate_async(
+                    question=sample.query,
+                    prediction=rag_response.answer,
+                    ground_truth=sample.answer,
+                )
+
+                result.correctness = CorrectnessMetrics(
+                    f1_score=correctness_result.f1_score,
+                    llm_judge_correct=correctness_result.llm_judge_correct,
+                )
 
             # Calculate total latency
             result.latency.total_s = (
@@ -325,7 +341,8 @@ class BenchmarkRunner:
             "categories": self.config.categories,
             "strategies": [s.value for s in self.config.strategies],
             "llm_provider": self.config.llm_provider.value,
-            "llm_model": self.config.llm_model,
+            "llm_model": self.config.llm_model if not self.config.skip_llm_evaluation else "N/A (skipped)",
+            "skip_llm_evaluation": self.config.skip_llm_evaluation,
             "region_relevance_threshold": self.config.region_relevance_threshold,
             "region_top_k": self.config.region_top_k,
             "region_score_aggregation": self.config.region_score_aggregation,

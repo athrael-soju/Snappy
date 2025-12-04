@@ -39,7 +39,7 @@ class LLMClient:
     def __init__(
         self,
         api_key: str,
-        model: str = "gpt-5-mini",
+        model: str = "",
         timeout: int = 60,
     ):
         """
@@ -84,7 +84,10 @@ class LLMClient:
                 else:
                     # Assume base64 without data URI prefix
                     content.append(
-                        {"type": "input_image", "image_url": f"data:image/png;base64,{img}"}
+                        {
+                            "type": "input_image",
+                            "image_url": f"data:image/png;base64,{img}",
+                        }
                     )
             api_input = [{"role": "user", "content": content}]
         else:

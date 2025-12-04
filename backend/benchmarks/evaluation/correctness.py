@@ -44,7 +44,7 @@ class CorrectnessEvaluator:
     def __init__(
         self,
         use_llm_judge: bool = False,
-        llm_model: str = "gpt-5-mini",
+        llm_model: str = "",
         llm_api_key: str = "",
     ):
         """
@@ -103,7 +103,9 @@ class CorrectnessEvaluator:
 
         # Add LLM judge result if enabled
         if self.use_llm_judge and self._llm_judge:
-            result.llm_judge_correct = await self._llm_judge.judge(question, prediction, ground_truth)
+            result.llm_judge_correct = await self._llm_judge.judge(
+                question, prediction, ground_truth
+            )
 
         return result
 
@@ -122,10 +124,7 @@ class CorrectnessEvaluator:
         Returns:
             List of CorrectnessResult objects
         """
-        return [
-            self.evaluate(pred, gt)
-            for pred, gt in zip(predictions, ground_truths)
-        ]
+        return [self.evaluate(pred, gt) for pred, gt in zip(predictions, ground_truths)]
 
     def aggregate_results(
         self, results: List[CorrectnessResult]
@@ -182,7 +181,7 @@ class LLMJudge:
 
     def __init__(
         self,
-        model: str = "gpt-5-mini",
+        model: str = "",
         api_key: str = "",
     ):
         if not api_key:

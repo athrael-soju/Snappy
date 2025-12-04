@@ -83,5 +83,5 @@ Thumbs.db
 *.key
 
 # Evals/Benchmarks
-benchmark_cache
+# benchmark_cache
 benchmark_results

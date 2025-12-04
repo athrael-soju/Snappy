@@ -129,7 +129,22 @@ class ReportGenerator:
             lines.append("| Metric | " + " | ".join(strategies) + " |")
             lines.append("|--------|" + "|".join(["--------"] * len(strategies)) + "|")
 
-            # Correctness metrics
+            # Retrieval metrics (LLM-independent)
+            lines.append("| **Retrieval (LLM-independent)** | " + " | ".join([""] * len(strategies)) + " |")
+            for metric in ["mean_max_iou", "hit_rate", "precision", "recall"]:
+                values = []
+                for s in strategies:
+                    val = (
+                        comparison[s]
+                        .get("retrieval", {})
+                        .get(metric, {})
+                        .get("mean", 0)
+                    )
+                    values.append(f"{val:.3f}")
+                lines.append(f"| {metric} | " + " | ".join(values) + " |")
+
+            # Correctness metrics (LLM-dependent)
+            lines.append("| **Answer Quality (LLM-dependent)** | " + " | ".join([""] * len(strategies)) + " |")
             for metric in ["f1_score", "llm_judge_accuracy"]:
                 values = []
                 for s in strategies:
@@ -173,9 +188,27 @@ class ReportGenerator:
                 ]
             )
 
-            # Correctness details
+            # Retrieval details (LLM-independent)
+            if "retrieval" in metrics and metrics["retrieval"]:
+                lines.extend(["#### Retrieval Metrics (LLM-independent)", ""])
+                retrieval = metrics["retrieval"]
+                for name in ["mean_max_iou", "hit_rate", "precision", "recall"]:
+                    if name in retrieval:
+                        stats = retrieval[name]
+                        lines.append(
+                            f"- **{name}:** mean={stats['mean']:.3f}, "
+                            f"std={stats['std']:.3f}, median={stats['median']:.3f}"
+                        )
+                if "totals" in retrieval:
+                    totals = retrieval["totals"]
+                    lines.append(f"- **Total GT bboxes:** {totals.get('total_gt_bboxes', 0)}")
+                    lines.append(f"- **Total retrieved:** {totals.get('total_retrieved', 0)}")
+                    lines.append(f"- **Total hits:** {totals.get('total_hits', 0)}")
+                lines.append("")
+
+            # Correctness details (LLM-dependent)
             if "correctness" in metrics:
-                lines.extend(["#### Correctness Metrics", ""])
+                lines.extend(["#### Answer Correctness Metrics (LLM-dependent)", ""])
                 for name, value in metrics["correctness"].items():
                     lines.append(f"- **{name}:** {value:.4f}")
                 lines.append("")
@@ -216,8 +249,18 @@ class ReportGenerator:
                     "query": result.query,
                     "ground_truth": result.ground_truth,
                     "predicted_answer": result.predicted_answer,
+                    # Retrieval metrics (LLM-independent)
+                    "retrieval_mean_max_iou": result.retrieval.mean_max_iou,
+                    "retrieval_hit_rate": result.retrieval.hit_rate,
+                    "retrieval_precision": result.retrieval.precision,
+                    "retrieval_recall": result.retrieval.recall,
+                    "retrieval_num_gt_bboxes": result.retrieval.num_gt_bboxes,
+                    "retrieval_num_retrieved": result.retrieval.num_retrieved_regions,
+                    "retrieval_num_hits": result.retrieval.num_hits,
+                    # Answer correctness (LLM-dependent)
                     "f1_score": result.correctness.f1_score,
                     "llm_judge_correct": result.correctness.llm_judge_correct,
+                    # Latency
                     "retrieval_s": result.latency.retrieval_s,
                     "llm_inference_s": result.latency.llm_inference_s,
                     "total_s": result.latency.total_s,
@@ -257,6 +300,7 @@ class ReportGenerator:
                 "output_tokens": sample.tokens.output_tokens,
                 "total_tokens": sample.tokens.total_tokens,
             },
+            "retrieval": sample.retrieval.to_dict(),
             "correctness": {
                 "f1_score": sample.correctness.f1_score,
                 "llm_judge_correct": sample.correctness.llm_judge_correct,
@@ -264,6 +308,7 @@ class ReportGenerator:
             "error": sample.error,
             "retrieved_context": sample.retrieved_context,
             "retrieved_regions": sample.retrieved_regions,
+            "ground_truth_bboxes": sample.ground_truth_bboxes,
             "image_path": sample.image_path,
         }
 
@@ -306,6 +351,12 @@ class ReportGenerator:
 
         # Add metrics
         metrics_to_show = [
+            # Retrieval metrics (LLM-independent)
+            ("Mean Max IoU", "retrieval", "mean_max_iou"),
+            ("Hit Rate", "retrieval", "hit_rate"),
+            ("Precision", "retrieval", "precision"),
+            ("Recall", "retrieval", "recall"),
+            # Answer metrics (LLM-dependent)
             ("F1 Score", "correctness", "f1_score"),
             ("LLM Judge Acc", "correctness", "llm_judge_accuracy"),
             ("Latency (s)", "latency", "total_s"),
@@ -315,7 +366,7 @@ class ReportGenerator:
         for display_name, category, metric in metrics_to_show:
             values = []
             for s in strategies:
-                if category == "latency":
+                if category in ["latency", "retrieval"]:
                     val = (
                         comparison[s]
                         .get(category, {})
@@ -354,6 +405,12 @@ class ReportGenerator:
 
         # Add metrics
         metrics_to_show = [
+            # Retrieval metrics (LLM-independent)
+            ("Mean Max IoU", "retrieval", "mean_max_iou"),
+            ("Hit Rate", "retrieval", "hit_rate"),
+            ("Precision", "retrieval", "precision"),
+            ("Recall", "retrieval", "recall"),
+            # Answer metrics (LLM-dependent)
             ("F1 Score", "correctness", "f1_score"),
             ("LLM Judge Acc", "correctness", "llm_judge_accuracy"),
             ("Latency (s)", "latency", "total_s"),
@@ -364,7 +421,7 @@ class ReportGenerator:
         for display_name, category, metric in metrics_to_show:
             values = []
             for s in strategies:
-                if category == "latency":
+                if category in ["latency", "retrieval"]:
                     val = (
                         comparison[s]
                         .get(category, {})

@@ -1,9 +1,10 @@
 """
 RAG Evaluator for generating answers using retrieved context.
 
-Uses OpenAI (GPT-5, gpt-5-nano, etc.) for answer generation.
+Uses OpenAI (gpt-5, gpt-5-nano, etc.) for answer generation.
 """
 
+import asyncio
 import logging
 import time
 from dataclasses import dataclass
@@ -35,10 +36,8 @@ class RAGEvaluator:
 
     def __init__(
         self,
-        model: str = "gpt-5-mini",
+        model: str = "",
         api_key: str = "",
-        temperature: float = 0.0,
-        max_tokens: int = 512,
         timeout: int = 60,
     ):
         """

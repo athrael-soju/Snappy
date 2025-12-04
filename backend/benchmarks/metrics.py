@@ -2,6 +2,7 @@
 Metrics collection and calculation for benchmarking.
 
 Tracks:
+- Retrieval: Region retrieval quality (IoU, hit rate, precision)
 - Correctness: Answer accuracy metrics (F1, LLM Judge)
 - Latency: Response time measurements
 - Tokens: Input/output token counts for LLM calls
@@ -16,11 +17,16 @@ import numpy as np
 
 # Re-export compute_f1_score for backward compatibility
 from benchmarks.utils.text import compute_f1_score
+from benchmarks.evaluation.retrieval import (
+    RetrievalMetrics,
+    aggregate_retrieval_metrics,
+)
 
 __all__ = [
     "LatencyMetrics",
     "TokenMetrics",
     "CorrectnessMetrics",
+    "RetrievalMetrics",
     "SampleResult",
     "MetricsCollector",
     "compute_f1_score",
@@ -68,11 +74,13 @@ class SampleResult:
     latency: LatencyMetrics = field(default_factory=LatencyMetrics)
     tokens: TokenMetrics = field(default_factory=TokenMetrics)
     correctness: CorrectnessMetrics = field(default_factory=CorrectnessMetrics)
+    retrieval: RetrievalMetrics = field(default_factory=RetrievalMetrics)
 
     # Additional metadata
     error: Optional[str] = None
     retrieved_context: Optional[str] = None
     retrieved_regions: Optional[List[Dict[str, Any]]] = None  # Filtered regions with scores
+    ground_truth_bboxes: Optional[List[List[int]]] = None  # GT bboxes for retrieval eval
     image_path: Optional[str] = None  # Local path to sample image
 
 
@@ -159,6 +167,10 @@ class MetricsCollector:
             "llm_judge_accuracy": correct_count / len(successful),
         }
 
+        # Retrieval aggregates (LLM-independent metrics)
+        retrieval_metrics_list = [r.retrieval for r in successful]
+        retrieval_stats = aggregate_retrieval_metrics(retrieval_metrics_list)
+
         return {
             "strategy": strategy,
             "total_samples": len(results),
@@ -167,6 +179,7 @@ class MetricsCollector:
             "latency": latency_stats,
             "tokens": token_stats,
             "correctness": correctness_stats,
+            "retrieval": retrieval_stats,
         }
 
     def compare_strategies(self) -> Dict[str, Any]:

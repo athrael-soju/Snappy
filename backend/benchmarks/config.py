@@ -47,12 +47,17 @@ class BenchmarkConfig:
 
     # LLM settings for RAG evaluation
     llm_provider: LLMProvider = LLMProvider.OPENAI
-    llm_model: str = "gpt-5-mini"  # Default to cost-effective model
+    llm_model: str = field(
+        default_factory=lambda: os.environ.get("BENCHMARK_LLM_MODEL", "gpt-5-mini")
+    )
     llm_temperature: float = 0  # Deterministic for reproducibility
     llm_max_tokens: int = 1024  # Increased for multimodal responses
     llm_api_key: Optional[str] = field(
         default_factory=lambda: os.environ.get("OPENAI_API_KEY")
     )
+
+    # Evaluation mode
+    skip_llm_evaluation: bool = False  # If True, only compute retrieval metrics (no LLM calls)
 
     # Output settings
     output_dir: str = field(
@@ -84,14 +89,13 @@ class BenchmarkConfig:
         if self.llm_temperature < 0 or self.llm_temperature > 2:
             raise ValueError("llm_temperature must be between 0 and 2")
 
-        if not self.llm_api_key:
-            raise ValueError("OpenAI API key required")
+        if not self.skip_llm_evaluation and not self.llm_api_key:
+            raise ValueError("OpenAI API key required (or set skip_llm_evaluation=True)")
 
     @classmethod
     def from_env(cls) -> "BenchmarkConfig":
         """Create configuration from environment variables."""
         return cls(
             max_samples=int(os.environ.get("BENCHMARK_MAX_SAMPLES", 0)) or None,
-            llm_model=os.environ.get("BENCHMARK_LLM_MODEL", "gpt-5-nano"),
             batch_size=int(os.environ.get("BENCHMARK_BATCH_SIZE", 5)),
         )

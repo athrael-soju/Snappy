@@ -231,7 +231,7 @@ class OnTheFlyStrategy(BaseRetrievalStrategy):
 
             result.context_text = "\n".join(context_parts)
             # Only include cropped images from relevant figure/image regions
-            result.retrieved_images = retrieved_images if retrieved_images else None
+            result.retrieved_images = retrieved_images
             result.retrieved_pages = [1]  # Single page, ground truth
             result.scores = [1.0]  # Perfect retrieval (oracle mode)
 

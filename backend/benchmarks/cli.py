@@ -136,6 +136,11 @@ Examples:
 
     # LLM options
     run_parser.add_argument(
+        "--skip-llm",
+        action="store_true",
+        help="Skip LLM evaluation (only compute retrieval metrics)",
+    )
+    run_parser.add_argument(
         "--llm-model",
         default="gpt-5-mini",
         help="OpenAI model name for RAG",
@@ -252,6 +257,7 @@ async def cmd_run(args: argparse.Namespace) -> int:
         region_relevance_threshold=args.region_threshold,
         region_top_k=args.region_top_k,
         region_score_aggregation=args.region_aggregation,
+        skip_llm_evaluation=args.skip_llm,
         llm_model=args.llm_model,
         llm_temperature=args.llm_temperature,
         llm_max_tokens=args.llm_max_tokens,
@@ -269,7 +275,10 @@ async def cmd_run(args: argparse.Namespace) -> int:
     print(f"Dataset: {config.dataset_name}")
     print(f"Samples: {config.max_samples or 'All'}")
     print(f"Strategies: {[s.value for s in strategies]}")
-    print(f"LLM: OpenAI/{config.llm_model}")
+    if config.skip_llm_evaluation:
+        print("Mode: Retrieval-only (LLM evaluation skipped)")
+    else:
+        print(f"LLM: OpenAI/{config.llm_model}")
     print("=" * 60)
     print()
 
@@ -284,17 +293,26 @@ async def cmd_run(args: argparse.Namespace) -> int:
         comparison = results.get("comparison", {})
         for strategy, metrics in comparison.items():
             print(f"\n{strategy}:")
-            if "correctness" in metrics:
-                print(f"  F1: {metrics['correctness'].get('f1_score', 0):.4f}")
+            # Retrieval metrics (always shown)
+            if "retrieval" in metrics and metrics["retrieval"]:
+                retrieval = metrics["retrieval"]
+                print(f"  [Retrieval]")
+                print(f"    Mean Max IoU: {retrieval.get('mean_max_iou', {}).get('mean', 0):.3f}")
+                print(f"    Hit Rate: {retrieval.get('hit_rate', {}).get('mean', 0):.2%}")
+                print(f"    Precision: {retrieval.get('precision', {}).get('mean', 0):.2%}")
+            # Answer metrics (only if LLM evaluation was run)
+            if "correctness" in metrics and metrics["correctness"].get("f1_score", 0) > 0:
+                print(f"  [Answer Quality]")
+                print(f"    F1: {metrics['correctness'].get('f1_score', 0):.4f}")
                 print(
-                    f"  LLM Judge Acc: {metrics['correctness'].get('llm_judge_accuracy', 0):.2%}"
+                    f"    LLM Judge Acc: {metrics['correctness'].get('llm_judge_accuracy', 0):.2%}"
                 )
             if "latency" in metrics:
                 total = metrics["latency"].get("total_s", {})
                 print(
                     f"  Latency: {total.get('mean', 0):.3f}s (p95: {total.get('p95', 0):.3f}s)"
                 )
-            if "tokens" in metrics:
+            if "tokens" in metrics and metrics["tokens"].get("total_tokens", {}).get("mean", 0) > 0:
                 print(
                     f"  Tokens: {metrics['tokens'].get('total_tokens', {}).get('mean', 0):.0f} avg"
                 )
