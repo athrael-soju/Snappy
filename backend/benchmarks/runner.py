@@ -30,6 +30,7 @@ from benchmarks.reports.generator import ReportGenerator
 from benchmarks.strategies.base import BaseRetrievalStrategy
 from benchmarks.strategies.colpali_only import ColPaliOnlyStrategy
 from benchmarks.strategies.ocr_only import OCROnlyStrategy
+from benchmarks.strategies.on_the_fly import OnTheFlyStrategy
 from benchmarks.strategies.snappy_full import SnappyFullStrategy
 
 logger = logging.getLogger(__name__)
@@ -44,6 +45,7 @@ class BenchmarkRunner:
         RetrievalStrategy.SNAPPY_FULL: SnappyFullStrategy,
         RetrievalStrategy.COLPALI_ONLY: ColPaliOnlyStrategy,
         RetrievalStrategy.OCR_ONLY: OCROnlyStrategy,
+        RetrievalStrategy.ON_THE_FLY: OnTheFlyStrategy,
     }
 
     def __init__(self, config: BenchmarkConfig):
@@ -87,16 +89,26 @@ class BenchmarkRunner:
         for strategy_type in self.config.strategies:
             strategy_class = self.STRATEGY_MAP.get(strategy_type)
             if strategy_class:
-                strategy = strategy_class(
-                    colpali_url=self.config.colpali_url,
-                    qdrant_url=self.config.qdrant_url,
-                    duckdb_url=self.config.duckdb_url,
-                    minio_url=self.config.minio_url,
-                    region_relevance_threshold=self.config.region_relevance_threshold,
-                    region_top_k=self.config.region_top_k,
-                    region_score_aggregation=self.config.region_score_aggregation,
-                    image_cache_dir=self.config.cache_dir,
-                )
+                if strategy_type == RetrievalStrategy.ON_THE_FLY:
+                    # On-the-fly strategy has different initialization
+                    strategy = strategy_class(
+                        colpali_url=self.config.colpali_url,
+                        deepseek_url=self.config.deepseek_ocr_url,
+                        region_relevance_threshold=self.config.region_relevance_threshold,
+                        region_top_k=self.config.region_top_k,
+                        region_score_aggregation=self.config.region_score_aggregation,
+                    )
+                else:
+                    strategy = strategy_class(
+                        colpali_url=self.config.colpali_url,
+                        qdrant_url=self.config.qdrant_url,
+                        duckdb_url=self.config.duckdb_url,
+                        minio_url=self.config.minio_url,
+                        region_relevance_threshold=self.config.region_relevance_threshold,
+                        region_top_k=self.config.region_top_k,
+                        region_score_aggregation=self.config.region_score_aggregation,
+                        image_cache_dir=self.config.cache_dir,
+                    )
                 await strategy.initialize()
                 self._strategies[strategy.name] = strategy
                 self._logger.info(f"Initialized strategy: {strategy.name}")
@@ -220,10 +232,23 @@ class BenchmarkRunner:
         try:
             # Step 1: Retrieve documents
             self._metrics_collector.start_timer("retrieval")
-            retrieval_result = await strategy.retrieve(
-                query=sample.query,
-                top_k=self.config.top_k,
-            )
+
+            # For on-the-fly strategy, load and pass the image directly
+            retrieve_kwargs = {"query": sample.query, "top_k": self.config.top_k}
+            if strategy.name == "on_the_fly":
+                # Load image from dataset for on-the-fly processing
+                if sample.image_paths:
+                    image = self._load_sample_image(sample)
+                    if image:
+                        retrieve_kwargs["image"] = image
+                    else:
+                        result.error = f"Failed to load image for sample {sample.sample_id}"
+                        return result
+                else:
+                    result.error = f"No image path for sample {sample.sample_id}"
+                    return result
+
+            retrieval_result = await strategy.retrieve(**retrieve_kwargs)
             retrieval_time = self._metrics_collector.stop_timer("retrieval")
 
             if retrieval_result.error:
@@ -248,6 +273,7 @@ class BenchmarkRunner:
             rag_response = await self._rag_evaluator.generate_answer(
                 query=sample.query,
                 context=retrieval_result.context_text,
+                images=retrieval_result.retrieved_images if retrieval_result.retrieved_images else None,
             )
             rag_time = self._metrics_collector.stop_timer("rag")
 
@@ -340,6 +366,59 @@ class BenchmarkRunner:
             metrics.bbox_iou = compute_bbox_iou(retrieved_bboxes, relevant_bboxes)
 
         return metrics
+
+    def _load_sample_image(self, sample: BenchmarkSample):
+        """
+        Load image for a benchmark sample from the dataset cache.
+
+        Args:
+            sample: Benchmark sample with image_paths
+
+        Returns:
+            PIL Image or None if loading fails
+        """
+        import zipfile
+        from io import BytesIO
+        from pathlib import Path
+
+        from PIL import Image
+
+        if not sample.image_paths:
+            self._logger.warning(f"Sample {sample.sample_id} has no image_paths")
+            return None
+
+        cache_dir = Path(self.config.cache_dir)
+        self._logger.debug(f"Looking for images zip in {cache_dir}")
+
+        # Try to find the images zip in the cache
+        zip_file = None
+        for snapshot_dir in (cache_dir / "datasets--Yuwh07--BBox_DocVQA_Bench" / "snapshots").glob("*"):
+            zip_path = snapshot_dir / "BBox_DocVQA_Bench_Images.zip"
+            self._logger.debug(f"Checking {zip_path}")
+            if zip_path.exists():
+                zip_file = zipfile.ZipFile(zip_path, 'r')
+                break
+
+        if not zip_file:
+            self._logger.warning("Images zip not found in cache")
+            return None
+
+        try:
+            # Use first image path
+            image_path = sample.image_paths[0]
+            self._logger.info(f"Loading image from zip: {image_path}")
+
+            # Try to open from zip
+            with zip_file.open(image_path) as img_file:
+                img = Image.open(BytesIO(img_file.read())).convert("RGB")
+                self._logger.info(f"Loaded image: {img.width}x{img.height}")
+                return img
+
+        except Exception as e:
+            self._logger.error(f"Failed to load image {sample.image_paths[0]}: {e}")
+            return None
+        finally:
+            zip_file.close()
 
     def _get_config_dict(self) -> Dict[str, Any]:
         """Convert config to dictionary for reporting."""

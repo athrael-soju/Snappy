@@ -149,25 +149,55 @@ class RAGEvaluator:
             )
 
         try:
-            # Build input text combining system prompt and user content
             system_prompt = self._build_system_prompt()
             user_text = self._build_user_prompt(query, context)
-            full_input = f"{system_prompt}\n\n{user_text}"
+
+            # Build input based on whether we have images
+            if images or image_urls:
+                # Multimodal input with images
+                content = [{"type": "input_text", "text": f"{system_prompt}\n\n{user_text}"}]
+
+                # Add PIL images as base64
+                if images:
+                    for img in images:
+                        img_b64 = self._image_to_base64(img)
+                        content.append({
+                            "type": "input_image",
+                            "image_url": f"data:image/png;base64,{img_b64}",
+                        })
+
+                # Add image URLs
+                if image_urls:
+                    for url in image_urls:
+                        content.append({
+                            "type": "input_image",
+                            "image_url": url,
+                        })
+
+                api_input = [{"role": "user", "content": content}]
+            else:
+                # Text-only input (simple string)
+                api_input = f"{system_prompt}\n\n{user_text}"
 
             # Make API call using OpenAI Responses API
             response = await asyncio.to_thread(
                 self._openai_client.responses.create,
                 model=self.model,
-                input=full_input,
-                max_output_tokens=self.max_tokens,
+                input=api_input,
+                reasoning={"effort": "low"},
             )
 
+            answer = response.output_text or ""
+            self._logger.info(f"OpenAI response: {len(answer)} chars, output_tokens={response.usage.output_tokens if response.usage else 0}")
+            if not answer and response.usage and response.usage.output_tokens > 0:
+                self._logger.warning(f"Empty output_text despite {response.usage.output_tokens} tokens. Raw: {response}")
+
             return RAGResponse(
-                answer=response.output_text,
+                answer=answer,
                 input_tokens=response.usage.input_tokens if response.usage else 0,
                 output_tokens=response.usage.output_tokens if response.usage else 0,
                 latency_ms=0,  # Will be set by caller
-                raw_response={"output": response.output_text, "id": response.id},
+                raw_response={"output": answer, "id": response.id},
             )
         except Exception as e:
             return RAGResponse(

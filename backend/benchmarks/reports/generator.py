@@ -94,7 +94,7 @@ class ReportGenerator:
             }
 
         # Save JSON
-        json_path = self.output_dir / f"benchmark_results_{self._timestamp}.json"
+        json_path = self.output_dir / "benchmark_results.json"
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(report, f, indent=2, default=str)
 
@@ -199,7 +199,7 @@ class ReportGenerator:
                 lines.append("")
 
         # Save Markdown
-        md_path = self.output_dir / f"benchmark_report_{self._timestamp}.md"
+        md_path = self.output_dir / "benchmark_report.md"
         with open(md_path, "w", encoding="utf-8") as f:
             f.write("\n".join(lines))
 
@@ -212,7 +212,7 @@ class ReportGenerator:
         """Generate CSV export of sample-level results."""
         import csv
 
-        csv_path = self.output_dir / f"benchmark_samples_{self._timestamp}.csv"
+        csv_path = self.output_dir / "benchmark_samples.csv"
 
         # Collect all samples
         all_samples = []

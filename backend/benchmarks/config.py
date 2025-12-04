@@ -14,6 +14,7 @@ class RetrievalStrategy(str, Enum):
     SNAPPY_FULL = "snappy_full"  # ColPali + OCR + Region Relevance
     COLPALI_ONLY = "colpali_only"  # Pure ColPali retrieval
     OCR_ONLY = "ocr_only"  # Traditional OCR-based retrieval
+    ON_THE_FLY = "on_the_fly"  # On-the-fly OCR + filtering (no storage)
 
 
 class LLMProvider(str, Enum):
@@ -59,7 +60,7 @@ class BenchmarkConfig:
     llm_provider: LLMProvider = LLMProvider.OPENAI
     llm_model: str = "gpt-5-nano"  # Default to cost-effective model
     llm_temperature: float = 1  # Deterministic for reproducibility
-    llm_max_tokens: int = 512
+    llm_max_tokens: int = 1024  # Increased for multimodal responses
     llm_api_key: Optional[str] = field(
         default_factory=lambda: os.environ.get("OPENAI_API_KEY")
     )

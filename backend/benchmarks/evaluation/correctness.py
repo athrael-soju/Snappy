@@ -302,6 +302,7 @@ Score:"""
                 model=self.model,
                 input=prompt,
                 max_output_tokens=10,
+                reasoning={"effort": "low"},
             )
 
             answer = response.output_text.strip()
