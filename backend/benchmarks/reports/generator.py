@@ -139,7 +139,7 @@ class ReportGenerator:
                 lines.append(f"| {metric} | " + " | ".join(values) + " |")
 
             # Latency metrics
-            for metric in ["total_ms", "retrieval_ms"]:
+            for metric in ["total_s", "retrieval_s"]:
                 values = []
                 for s in strategies:
                     val = (
@@ -148,7 +148,7 @@ class ReportGenerator:
                         .get(metric, {})
                         .get("mean", 0)
                     )
-                    values.append(f"{val:.1f}")
+                    values.append(f"{val:.3f}")
                 lines.append(f"| {metric} (mean) | " + " | ".join(values) + " |")
 
             # Token metrics
@@ -183,11 +183,11 @@ class ReportGenerator:
 
             # Latency details
             if "latency" in metrics:
-                lines.extend(["#### Latency Metrics (ms)", ""])
+                lines.extend(["#### Latency Metrics (seconds)", ""])
                 for name, stats in metrics["latency"].items():
                     lines.append(
-                        f"- **{name}:** mean={stats['mean']:.1f}, "
-                        f"p50={stats['p50']:.1f}, p95={stats['p95']:.1f}"
+                        f"- **{name}:** mean={stats['mean']:.3f}, "
+                        f"p50={stats['p50']:.3f}, p95={stats['p95']:.3f}"
                     )
                 lines.append("")
 
@@ -219,9 +219,9 @@ class ReportGenerator:
                     "predicted_answer": result.predicted_answer,
                     "f1_score": result.correctness.f1_score,
                     "llm_judge_score": result.correctness.llm_judge_score,
-                    "retrieval_ms": result.latency.retrieval_ms,
-                    "llm_inference_ms": result.latency.llm_inference_ms,
-                    "total_ms": result.latency.total_ms,
+                    "retrieval_s": result.latency.retrieval_s,
+                    "llm_inference_s": result.latency.llm_inference_s,
+                    "total_s": result.latency.total_s,
                     "input_tokens": result.tokens.input_tokens,
                     "output_tokens": result.tokens.output_tokens,
                     "error": result.error or "",
@@ -246,11 +246,11 @@ class ReportGenerator:
             "predicted_answer": sample.predicted_answer,
             "strategy": sample.strategy,
             "latency": {
-                "retrieval_ms": sample.latency.retrieval_ms,
-                "llm_inference_ms": sample.latency.llm_inference_ms,
-                "total_ms": sample.latency.total_ms,
-                "region_filtering_ms": sample.latency.region_filtering_ms,
-                "embedding_ms": sample.latency.embedding_ms,
+                "retrieval_s": sample.latency.retrieval_s,
+                "llm_inference_s": sample.latency.llm_inference_s,
+                "total_s": sample.latency.total_s,
+                "region_filtering_s": sample.latency.region_filtering_s,
+                "embedding_s": sample.latency.embedding_s,
             },
             "tokens": {
                 "input_tokens": sample.tokens.input_tokens,
@@ -307,7 +307,7 @@ class ReportGenerator:
         metrics_to_show = [
             ("F1 Score", "correctness", "f1_score"),
             ("LLM Judge", "correctness", "llm_judge_score"),
-            ("Latency (ms)", "latency", "total_ms"),
+            ("Latency (s)", "latency", "total_s"),
             ("Input Tokens", "tokens", "input_tokens"),
         ]
 
@@ -355,7 +355,7 @@ class ReportGenerator:
         metrics_to_show = [
             ("F1 Score", "correctness", "f1_score"),
             ("LLM Judge", "correctness", "llm_judge_score"),
-            ("Latency (ms)", "latency", "total_ms"),
+            ("Latency (s)", "latency", "total_s"),
             ("Input Tokens", "tokens", "input_tokens"),
             ("Output Tokens", "tokens", "output_tokens"),
         ]

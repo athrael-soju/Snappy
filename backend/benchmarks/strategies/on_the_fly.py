@@ -15,8 +15,6 @@ from PIL import Image
 
 from benchmarks.strategies.base import BaseRetrievalStrategy, RetrievalResult
 
-logger = logging.getLogger(__name__)
-
 
 class OnTheFlyStrategy(BaseRetrievalStrategy):
     """
@@ -140,16 +138,16 @@ class OnTheFlyStrategy(BaseRetrievalStrategy):
 
         try:
             # Step 1: OCR the image
-            self._logger.info(f"Running OCR on image ({image.width}x{image.height})")
+            self._logger.debug(f"Running OCR on image ({image.width}x{image.height})")
             ocr_start = time.perf_counter()
             ocr_result = await self._run_ocr(image)
-            ocr_time = (time.perf_counter() - ocr_start) * 1000
+            ocr_time = time.perf_counter() - ocr_start
 
             if not ocr_result:
                 result.error = "OCR failed - no response from DeepSeek"
                 return result
 
-            self._logger.info(
+            self._logger.debug(
                 f"OCR completed: {len(ocr_result.get('bounding_boxes', []))} bboxes, "
                 f"{len(ocr_result.get('raw', ''))} chars raw text"
             )
@@ -160,7 +158,7 @@ class OnTheFlyStrategy(BaseRetrievalStrategy):
             # Extract cropped images (base64) for figure/image regions
             crops = ocr_result.get("crops", [])
 
-            self._logger.info(f"Extracted {len(regions)} regions with content, {len(crops)} crops")
+            self._logger.debug(f"Extracted {len(regions)} regions with content, {len(crops)} crops")
 
             if not regions:
                 result.error = f"No regions extracted from OCR (bboxes={len(ocr_result.get('bounding_boxes', []))})"
@@ -173,7 +171,7 @@ class OnTheFlyStrategy(BaseRetrievalStrategy):
                 query,
                 image,
             )
-            interp_time = (time.perf_counter() - interp_start) * 1000
+            interp_time = time.perf_counter() - interp_start
 
             similarity_maps = interp_result.get("similarity_maps", [])
             n_patches_x = interp_result.get("n_patches_x", 0)
@@ -200,9 +198,7 @@ class OnTheFlyStrategy(BaseRetrievalStrategy):
                 top_k=self.region_top_k if self.region_top_k > 0 else None,
                 aggregation=self.region_score_aggregation,
             )
-            result.region_filtering_time_ms = (
-                time.perf_counter() - filter_start
-            ) * 1000
+            result.region_filtering_time_s = time.perf_counter() - filter_start
 
             # Build context from filtered regions only - structured format
             context_parts = []
@@ -238,15 +234,15 @@ class OnTheFlyStrategy(BaseRetrievalStrategy):
             result.scores = [1.0]  # Perfect retrieval (oracle mode)
 
             # Log filtering stats
-            self._logger.info(
+            self._logger.debug(
                 f"Region filtering: {len(regions)} total -> {len(filtered_regions)} relevant, "
                 f"context={len(result.context_text)} chars, images={len(retrieved_images)}"
             )
 
             # Store timing info
             result.raw_response = {
-                "ocr_time_ms": ocr_time,
-                "interp_time_ms": interp_time,
+                "ocr_time_s": ocr_time,
+                "interp_time_s": interp_time,
                 "total_regions": len(regions),
                 "filtered_regions": len(filtered_regions),
                 "context_chars": len(result.context_text),
@@ -256,7 +252,7 @@ class OnTheFlyStrategy(BaseRetrievalStrategy):
             result.error = str(e)
             self._logger.error(f"On-the-fly processing failed: {e}", exc_info=True)
 
-        result.retrieval_time_ms = (time.perf_counter() - total_start) * 1000
+        result.retrieval_time_s = time.perf_counter() - total_start
         return result
 
     async def _run_ocr(self, image: Image.Image) -> Optional[Dict[str, Any]]:
@@ -404,7 +400,7 @@ class OnTheFlyStrategy(BaseRetrievalStrategy):
         **kwargs,
     ) -> bool:
         """Not needed for on-the-fly mode."""
-        self._logger.info("Indexing not required for on-the-fly strategy")
+        self._logger.debug("Indexing not required for on-the-fly strategy")
         return True
 
     async def cleanup(self) -> None:

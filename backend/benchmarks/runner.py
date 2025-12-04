@@ -29,8 +29,6 @@ from benchmarks.reports.generator import ReportGenerator
 from benchmarks.strategies.base import BaseRetrievalStrategy
 from benchmarks.strategies.on_the_fly import OnTheFlyStrategy
 
-logger = logging.getLogger(__name__)
-
 
 class BenchmarkRunner:
     """
@@ -238,9 +236,9 @@ class BenchmarkRunner:
                 return result
 
             # Record latency metrics
-            result.latency.retrieval_ms = retrieval_result.retrieval_time_ms
-            result.latency.embedding_ms = retrieval_result.embedding_time_ms
-            result.latency.region_filtering_ms = retrieval_result.region_filtering_time_ms
+            result.latency.retrieval_s = retrieval_result.retrieval_time_s
+            result.latency.embedding_s = retrieval_result.embedding_time_s
+            result.latency.region_filtering_s = retrieval_result.region_filtering_time_s
 
             # Step 2: Generate answer using RAG
             self._metrics_collector.start_timer("rag")
@@ -256,7 +254,7 @@ class BenchmarkRunner:
                 return result
 
             result.predicted_answer = rag_response.answer
-            result.latency.llm_inference_ms = rag_response.latency_ms
+            result.latency.llm_inference_s = rag_response.latency_s
 
             # Record token usage
             result.tokens = TokenMetrics(
@@ -280,10 +278,10 @@ class BenchmarkRunner:
             )
 
             # Calculate total latency
-            result.latency.total_ms = (
-                result.latency.retrieval_ms
-                + result.latency.llm_inference_ms
-                + result.latency.region_filtering_ms
+            result.latency.total_s = (
+                result.latency.retrieval_s
+                + result.latency.llm_inference_s
+                + result.latency.region_filtering_s
             )
 
             # Store context and regions for debugging
@@ -337,12 +335,12 @@ class BenchmarkRunner:
         try:
             # Use first image path
             image_path = sample.image_paths[0]
-            self._logger.info(f"Loading image from zip: {image_path}")
+            self._logger.debug(f"Loading image from zip: {image_path}")
 
             # Try to open from zip
             with zip_file.open(image_path) as img_file:
                 img = Image.open(BytesIO(img_file.read())).convert("RGB")
-                self._logger.info(f"Loaded image: {img.width}x{img.height}")
+                self._logger.debug(f"Loaded image: {img.width}x{img.height}")
                 return img
 
         except Exception as e:

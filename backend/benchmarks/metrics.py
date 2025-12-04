@@ -7,7 +7,6 @@ Tracks:
 - Tokens: Input/output token counts for LLM calls
 """
 
-import logging
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -15,18 +14,16 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 
-logger = logging.getLogger(__name__)
-
 
 @dataclass
 class LatencyMetrics:
-    """Latency measurements for a single sample."""
+    """Latency measurements for a single sample (in seconds)."""
 
-    retrieval_ms: float = 0.0  # Time to retrieve documents
-    llm_inference_ms: float = 0.0  # Time for LLM to generate answer
-    total_ms: float = 0.0  # Total end-to-end time
-    region_filtering_ms: float = 0.0  # Time for region relevance filtering
-    embedding_ms: float = 0.0  # Time for query embedding
+    retrieval_s: float = 0.0  # Time to retrieve documents
+    llm_inference_s: float = 0.0  # Time for LLM to generate answer
+    total_s: float = 0.0  # Total end-to-end time
+    region_filtering_s: float = 0.0  # Time for region relevance filtering
+    embedding_s: float = 0.0  # Time for query embedding
 
 
 @dataclass
@@ -80,10 +77,10 @@ class MetricsCollector:
         self._timers[name] = time.perf_counter()
 
     def stop_timer(self, name: str) -> float:
-        """Stop a named timer and return elapsed milliseconds."""
+        """Stop a named timer and return elapsed seconds."""
         if name not in self._timers:
             return 0.0
-        elapsed = (time.perf_counter() - self._timers[name]) * 1000
+        elapsed = time.perf_counter() - self._timers[name]
         del self._timers[name]
         return elapsed
 
@@ -108,10 +105,10 @@ class MetricsCollector:
 
         # Latency aggregates
         latencies = {
-            "retrieval_ms": [r.latency.retrieval_ms for r in successful],
-            "llm_inference_ms": [r.latency.llm_inference_ms for r in successful],
-            "total_ms": [r.latency.total_ms for r in successful],
-            "region_filtering_ms": [r.latency.region_filtering_ms for r in successful],
+            "retrieval_s": [r.latency.retrieval_s for r in successful],
+            "llm_inference_s": [r.latency.llm_inference_s for r in successful],
+            "total_s": [r.latency.total_s for r in successful],
+            "region_filtering_s": [r.latency.region_filtering_s for r in successful],
         }
 
         latency_stats = {}
@@ -179,7 +176,7 @@ class MetricsCollector:
 
                     # Latency improvement (lower is better)
                     if "latency" in baseline and "latency" in current:
-                        for metric in ["total_ms", "retrieval_ms", "llm_inference_ms"]:
+                        for metric in ["total_s", "retrieval_s", "llm_inference_s"]:
                             if (
                                 metric in baseline["latency"]
                                 and metric in current["latency"]

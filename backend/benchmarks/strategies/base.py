@@ -9,8 +9,6 @@ from typing import Any, Dict, List, Optional
 
 from PIL import Image
 
-logger = logging.getLogger(__name__)
-
 
 @dataclass
 class RetrievalResult:
@@ -27,10 +25,10 @@ class RetrievalResult:
     # Retrieval scores
     scores: List[float] = field(default_factory=list)
 
-    # Timing information
-    retrieval_time_ms: float = 0.0
-    embedding_time_ms: float = 0.0
-    region_filtering_time_ms: float = 0.0
+    # Timing information (in seconds)
+    retrieval_time_s: float = 0.0
+    embedding_time_s: float = 0.0
+    region_filtering_time_s: float = 0.0
 
     # Bounding boxes (for spatial grounding evaluation)
     retrieved_bboxes: List[List[int]] = field(default_factory=list)

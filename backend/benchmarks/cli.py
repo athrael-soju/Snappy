@@ -302,9 +302,9 @@ async def cmd_run(args: argparse.Namespace) -> int:
                 print(f"  F1: {metrics['correctness'].get('f1_score', 0):.4f}")
                 print(f"  LLM Judge: {metrics['correctness'].get('llm_judge_score', 0):.4f}")
             if "latency" in metrics:
-                total = metrics["latency"].get("total_ms", {})
+                total = metrics["latency"].get("total_s", {})
                 print(
-                    f"  Latency: {total.get('mean', 0):.1f}ms (p95: {total.get('p95', 0):.1f}ms)"
+                    f"  Latency: {total.get('mean', 0):.3f}s (p95: {total.get('p95', 0):.3f}s)"
                 )
             if "tokens" in metrics:
                 print(

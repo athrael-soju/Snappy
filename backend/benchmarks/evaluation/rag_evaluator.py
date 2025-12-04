@@ -21,8 +21,6 @@ from PIL import Image
 
 from benchmarks.config import LLMProvider
 
-logger = logging.getLogger(__name__)
-
 
 @dataclass
 class RAGResponse:
@@ -31,7 +29,7 @@ class RAGResponse:
     answer: str
     input_tokens: int
     output_tokens: int
-    latency_ms: float
+    latency_s: float
     raw_response: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
 
@@ -114,11 +112,11 @@ class RAGEvaluator:
                     answer="",
                     input_tokens=0,
                     output_tokens=0,
-                    latency_ms=0,
+                    latency_s=0,
                     error=f"Unknown provider: {self.provider}",
                 )
 
-            response.latency_ms = (time.perf_counter() - start_time) * 1000
+            response.latency_s = time.perf_counter() - start_time
             return response
 
         except Exception as e:
@@ -127,7 +125,7 @@ class RAGEvaluator:
                 answer="",
                 input_tokens=0,
                 output_tokens=0,
-                latency_ms=(time.perf_counter() - start_time) * 1000,
+                latency_s=time.perf_counter() - start_time,
                 error=str(e),
             )
 
@@ -144,7 +142,7 @@ class RAGEvaluator:
                 answer="",
                 input_tokens=0,
                 output_tokens=0,
-                latency_ms=0,
+                latency_s=0,
                 error="OpenAI API key not provided",
             )
 
@@ -155,13 +153,11 @@ class RAGEvaluator:
             # Log what we're sending to the LLM
             img_info = ""
             if images:
-                img_sizes = [f"{img.width}x{img.height}" for img in images]
-                img_info = f", images={len(images)} ({', '.join(img_sizes)})"
+                img_info = f", images={len(images)}"
             if image_urls:
                 img_info += f", image_urls={len(image_urls)}"
-            self._logger.info(
-                f"LLM input: query=\"{query}\"{img_info}\n"
-                f"Context ({len(context)} chars):\n{context}"
+            self._logger.debug(
+                f"LLM input: query=\"{query}\"{img_info}, context={len(context)} chars"
             )
 
             # Build input based on whether we have images
@@ -200,7 +196,7 @@ class RAGEvaluator:
             )
 
             answer = response.output_text or ""
-            self._logger.info(f"OpenAI response: {len(answer)} chars, output_tokens={response.usage.output_tokens if response.usage else 0}")
+            self._logger.debug(f"OpenAI response: {len(answer)} chars, output_tokens={response.usage.output_tokens if response.usage else 0}")
             if not answer and response.usage and response.usage.output_tokens > 0:
                 self._logger.warning(f"Empty output_text despite {response.usage.output_tokens} tokens. Raw: {response}")
 
@@ -208,7 +204,7 @@ class RAGEvaluator:
                 answer=answer,
                 input_tokens=response.usage.input_tokens if response.usage else 0,
                 output_tokens=response.usage.output_tokens if response.usage else 0,
-                latency_ms=0,  # Will be set by caller
+                latency_s=0,  # Will be set by caller
                 raw_response={"output": answer, "id": response.id},
             )
         except Exception as e:
@@ -216,7 +212,7 @@ class RAGEvaluator:
                 answer="",
                 input_tokens=0,
                 output_tokens=0,
-                latency_ms=0,
+                latency_s=0,
                 error=f"OpenAI API error: {str(e)}",
             )
 
@@ -233,7 +229,7 @@ class RAGEvaluator:
                 answer="",
                 input_tokens=0,
                 output_tokens=0,
-                latency_ms=0,
+                latency_s=0,
                 error="Anthropic API key not provided",
             )
 
@@ -282,7 +278,7 @@ class RAGEvaluator:
                 answer="",
                 input_tokens=0,
                 output_tokens=0,
-                latency_ms=0,
+                latency_s=0,
                 error=f"Anthropic API error: {response.text}",
             )
 
@@ -298,7 +294,7 @@ class RAGEvaluator:
             answer=answer,
             input_tokens=usage.get("input_tokens", 0),
             output_tokens=usage.get("output_tokens", 0),
-            latency_ms=0,
+            latency_s=0,
             raw_response=data,
         )
 
@@ -329,7 +325,7 @@ class RAGEvaluator:
                 answer="",
                 input_tokens=0,
                 output_tokens=0,
-                latency_ms=0,
+                latency_s=0,
                 error=f"Ollama API error: {response.text}",
             )
 
@@ -339,7 +335,7 @@ class RAGEvaluator:
             answer=data.get("response", ""),
             input_tokens=data.get("prompt_eval_count", 0),
             output_tokens=data.get("eval_count", 0),
-            latency_ms=0,
+            latency_s=0,
             raw_response=data,
         )
 
@@ -411,7 +407,7 @@ Answer:"""
                             answer="",
                             input_tokens=0,
                             output_tokens=0,
-                            latency_ms=0,
+                            latency_s=0,
                             error=str(result),
                         )
                     )
