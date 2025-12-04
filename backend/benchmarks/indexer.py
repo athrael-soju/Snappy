@@ -102,7 +102,9 @@ async def index_benchmark_dataset(
     # Get the images zip path
     cache_path = Path(cache_dir)
     zip_path = None
-    for snapshot_dir in (cache_path / f"datasets--{dataset_name.replace('/', '--')}" / "snapshots").glob("*"):
+    for snapshot_dir in (
+        cache_path / f"datasets--{dataset_name.replace('/', '--')}" / "snapshots"
+    ).glob("*"):
         potential_zip = snapshot_dir / "BBox_DocVQA_Bench_Images.zip"
         if potential_zip.exists():
             zip_path = potential_zip
@@ -135,7 +137,7 @@ async def index_benchmark_dataset(
     # Load images from zip and prepare for indexing
     documents_to_index = []
 
-    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+    with zipfile.ZipFile(zip_path, "r") as zip_ref:
         for doc_key, doc_info in docs.items():
             if max_docs and len(documents_to_index) >= max_docs:
                 break
@@ -156,13 +158,17 @@ async def index_benchmark_dataset(
                     continue
 
             if doc_pages:
-                documents_to_index.append({
-                    "doc_name": doc_name,
-                    "category": category,
-                    "pages": doc_pages,
-                })
+                documents_to_index.append(
+                    {
+                        "doc_name": doc_name,
+                        "category": category,
+                        "pages": doc_pages,
+                    }
+                )
 
-    logger.info(f"Prepared {len(documents_to_index)} documents for indexing with {sum(len(d['pages']) for d in documents_to_index)} total pages")
+    logger.info(
+        f"Prepared {len(documents_to_index)} documents for indexing with {sum(len(d['pages']) for d in documents_to_index)} total pages"
+    )
 
     # Clear existing data before indexing
     logger.info("Clearing existing data...")
@@ -170,11 +176,15 @@ async def index_benchmark_dataset(
     # Clear Qdrant collection
     logger.info(f"Deleting Qdrant collection '{collection_name}' if it exists...")
     try:
-        delete_response = requests.delete(f"{qdrant_url}/collections/{collection_name}", timeout=30)
+        delete_response = requests.delete(
+            f"{qdrant_url}/collections/{collection_name}", timeout=30
+        )
         if delete_response.status_code == 200:
             logger.info(f"Deleted existing collection '{collection_name}'")
         elif delete_response.status_code == 404:
-            logger.info(f"Collection '{collection_name}' does not exist, skipping deletion")
+            logger.info(
+                f"Collection '{collection_name}' does not exist, skipping deletion"
+            )
         else:
             delete_response.raise_for_status()
     except Exception as e:
@@ -199,15 +209,20 @@ async def index_benchmark_dataset(
 
     from PIL import Image
     from io import BytesIO
+
     sample_image = Image.open(BytesIO(sample_image_data))
 
     colpali_client = ColPaliClient(base_url=colpali_url, timeout=60)
-    sample_embedding_result = await asyncio.to_thread(colpali_client.embed_images, [sample_image])
+    sample_embedding_result = await asyncio.to_thread(
+        colpali_client.embed_images, [sample_image]
+    )
     sample_embedding = sample_embedding_result[0]["embedding"]
 
     vector_size = len(sample_embedding[0])  # Dimension of each vector
 
-    logger.info(f"Determined vector size: {vector_size} dims, {len(sample_embedding)} vectors per image (multivector)")
+    logger.info(
+        f"Determined vector size: {vector_size} dims, {len(sample_embedding)} vectors per image (multivector)"
+    )
 
     # Create the collection with multivector configuration (matching Snappy's setup)
     create_response = requests.put(
@@ -217,16 +232,16 @@ async def index_benchmark_dataset(
                 "original": {
                     "size": vector_size,
                     "distance": "Cosine",
-                    "multivector_config": {
-                        "comparator": "max_sim"
-                    }
+                    "multivector_config": {"comparator": "max_sim"},
                 }
             }
         },
         timeout=30,
     )
     create_response.raise_for_status()
-    logger.info(f"Collection '{collection_name}' created successfully with multivector config (size={vector_size})")
+    logger.info(
+        f"Collection '{collection_name}' created successfully with multivector config (size={vector_size})"
+    )
 
     # Index documents
     indexed_count = 0
@@ -299,14 +314,19 @@ async def _index_page(
     # Extract the original multi-vector embedding (no pooling!)
     embedding = embedding_result[0]["embedding"]
 
-    logger.debug(f"Embedding shape: {len(embedding)} vectors of {len(embedding[0])} dims each (multivector)")
+    logger.debug(
+        f"Embedding shape: {len(embedding)} vectors of {len(embedding[0])} dims each (multivector)"
+    )
 
     # 2. Store in Qdrant with named vector "original"
     logger.debug(f"Storing in Qdrant: {doc_name} page {page_num}")
 
     # Use a hash of doc_name and page_num as ID (Qdrant needs numeric IDs)
     import hashlib
-    point_id = int(hashlib.md5(f"{doc_name}_page_{page_num}".encode()).hexdigest()[:16], 16) % (2**63)
+
+    point_id = int(
+        hashlib.md5(f"{doc_name}_page_{page_num}".encode()).hexdigest()[:16], 16
+    ) % (2**63)
 
     qdrant_response = requests.put(
         f"{qdrant_url}/collections/{collection_name}/points",
@@ -321,7 +341,7 @@ async def _index_page(
                         "doc_name": doc_name,
                         "page_num": page_num,
                         "image_path": f"{doc_name}/page_{page_num}.png",
-                    }
+                    },
                 }
             ]
         },
@@ -363,7 +383,12 @@ async def _index_page(
             region = {
                 "id": f"{doc_name}#region-{i+1}",
                 "label": label,
-                "bbox": [bbox.get("x1"), bbox.get("y1"), bbox.get("x2"), bbox.get("y2")],
+                "bbox": [
+                    bbox.get("x1"),
+                    bbox.get("y1"),
+                    bbox.get("x2"),
+                    bbox.get("y2"),
+                ],
             }
 
             # Add content if available from raw text parsing
@@ -387,7 +412,7 @@ async def _index_page(
             "regions": regions,
             "extracted_at": datetime.now(timezone.utc).isoformat(),
             "storage_url": f"minio://{doc_name}/page_{page_num}.png",
-            "extracted_images": ocr_result.get("extracted_images", [])
+            "extracted_images": ocr_result.get("extracted_images", []),
         }
 
         duckdb_response = requests.post(

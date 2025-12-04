@@ -95,6 +95,7 @@ class BenchmarkRunner:
                     region_relevance_threshold=self.config.region_relevance_threshold,
                     region_top_k=self.config.region_top_k,
                     region_score_aggregation=self.config.region_score_aggregation,
+                    image_cache_dir=self.config.cache_dir,
                 )
                 await strategy.initialize()
                 self._strategies[strategy.name] = strategy

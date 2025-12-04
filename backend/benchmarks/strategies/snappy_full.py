@@ -8,7 +8,9 @@ as described in the research paper.
 import asyncio
 import logging
 import time
+import zipfile
 from io import BytesIO
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -45,6 +47,8 @@ class SnappyFullStrategy(BaseRetrievalStrategy):
         # Search settings
         use_mean_pooling: bool = False,
         prefetch_limit: int = 100,
+        # Image cache for local loading (benchmark dataset)
+        image_cache_dir: str = "./benchmark_cache",
         **kwargs,
     ):
         super().__init__(
@@ -61,12 +65,14 @@ class SnappyFullStrategy(BaseRetrievalStrategy):
         self.region_score_aggregation = region_score_aggregation
         self.use_mean_pooling = use_mean_pooling
         self.prefetch_limit = prefetch_limit
+        self.image_cache_dir = Path(image_cache_dir)
 
         # Clients (initialized lazily)
         self._colpali_client = None
         self._qdrant_client = None
         self._duckdb_client = None
         self._session = None
+        self._image_zip = None  # Cached zip file handle
 
     @property
     def name(self) -> str:
@@ -196,7 +202,8 @@ class SnappyFullStrategy(BaseRetrievalStrategy):
                             filtered_regions = await self._filter_regions(
                                 query=query,
                                 regions=regions,
-                                image_url=payload.get("image_url"),
+                                doc_name=filename,
+                                page_num=page_num,
                                 page_width=payload.get("page_width_px"),
                                 page_height=payload.get("page_height_px"),
                             )
@@ -303,11 +310,42 @@ class SnappyFullStrategy(BaseRetrievalStrategy):
 
         return []
 
+    def _load_image_from_cache(self, doc_name: str, page_num: int) -> Optional[Image.Image]:
+        """Load image from local dataset cache (zip file)."""
+        try:
+            # Find the images zip in the cache
+            if self._image_zip is None:
+                for snapshot_dir in (self.image_cache_dir / "datasets--Yuwh07--BBox_DocVQA_Bench" / "snapshots").glob("*"):
+                    zip_path = snapshot_dir / "BBox_DocVQA_Bench_Images.zip"
+                    if zip_path.exists():
+                        self._image_zip = zipfile.ZipFile(zip_path, 'r')
+                        break
+
+            if self._image_zip is None:
+                return None
+
+            # doc_name format is "category_docname" (e.g., "cs_2311.07631")
+            # Image path in zip is "category/docname/docname_pagenum.png"
+            parts = doc_name.split("_", 1)
+            if len(parts) == 2:
+                category, base_name = parts
+                image_path = f"{category}/{base_name}/{base_name}_{page_num}.png"
+            else:
+                image_path = f"{doc_name}/{doc_name}_{page_num}.png"
+
+            with self._image_zip.open(image_path) as img_file:
+                return Image.open(BytesIO(img_file.read())).convert("RGB")
+
+        except Exception as e:
+            self._logger.debug(f"Could not load image from cache: {e}")
+            return None
+
     async def _filter_regions(
         self,
         query: str,
         regions: List[Dict[str, Any]],
-        image_url: Optional[str],
+        doc_name: Optional[str],
+        page_num: Optional[int],
         page_width: Optional[int],
         page_height: Optional[int],
     ) -> List[Dict[str, Any]]:
@@ -316,18 +354,16 @@ class SnappyFullStrategy(BaseRetrievalStrategy):
 
         This implements the Patch-to-Region Relevance Propagation from the paper.
         """
-        if not regions or not image_url:
+        if not regions or not doc_name or page_num is None:
             return regions
 
         try:
-            # Fetch the image
-            img_response = await asyncio.to_thread(
-                self._session.get, image_url, timeout=10
+            # Load image from local dataset cache
+            image = await asyncio.to_thread(
+                self._load_image_from_cache, doc_name, page_num
             )
-            if img_response.status_code != 200:
+            if image is None:
                 return regions
-
-            image = Image.open(BytesIO(img_response.content))
 
             # Generate interpretability maps
             interp_result = await asyncio.to_thread(
@@ -400,4 +436,7 @@ class SnappyFullStrategy(BaseRetrievalStrategy):
         """Clean up resources."""
         if self._session:
             self._session.close()
+        if self._image_zip:
+            self._image_zip.close()
+            self._image_zip = None
         await super().cleanup()
