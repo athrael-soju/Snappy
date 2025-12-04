@@ -125,6 +125,9 @@ class BenchmarkRunner:
 
         self._correctness_evaluator = CorrectnessEvaluator(
             use_semantic_similarity=False,  # Skip for speed
+            use_llm_judge=True,  # Use LLM for semantic correctness
+            llm_model=self.config.llm_model,
+            llm_api_key=self.config.llm_api_key,
         )
 
         # Initialize collectors and reporters
@@ -291,8 +294,9 @@ class BenchmarkRunner:
                 total_tokens=rag_response.input_tokens + rag_response.output_tokens,
             )
 
-            # Step 3: Evaluate correctness
-            correctness_result = self._correctness_evaluator.evaluate(
+            # Step 3: Evaluate correctness (async for LLM judge support)
+            correctness_result = await self._correctness_evaluator.evaluate_async(
+                question=sample.query,
                 prediction=rag_response.answer,
                 ground_truth=sample.answer,
                 predicted_bboxes=retrieval_result.retrieved_bboxes,
@@ -304,6 +308,7 @@ class BenchmarkRunner:
                 f1_score=correctness_result.f1_score,
                 anls=correctness_result.anls,
                 semantic_similarity=correctness_result.semantic_similarity,
+                llm_judge_score=correctness_result.llm_judge_score,
             )
 
             # Calculate total latency

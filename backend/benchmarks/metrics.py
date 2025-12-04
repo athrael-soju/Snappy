@@ -61,6 +61,7 @@ class CorrectnessMetrics:
     f1_score: float = 0.0  # Token-level F1 score
     anls: float = 0.0  # Average Normalized Levenshtein Similarity
     semantic_similarity: float = 0.0  # Embedding-based similarity
+    llm_judge_score: float = 0.0  # LLM-based semantic correctness
 
 
 @dataclass
@@ -187,6 +188,9 @@ class MetricsCollector:
             "semantic_similarity": float(
                 np.mean([r.correctness.semantic_similarity for r in successful])
             ),
+            "llm_judge_score": float(
+                np.mean([r.correctness.llm_judge_score for r in successful])
+            ),
         }
 
         return {
@@ -232,7 +236,7 @@ class MetricsCollector:
 
                     # Correctness improvement (higher is better)
                     if "correctness" in baseline and "correctness" in current:
-                        for metric in ["exact_match", "f1_score", "anls"]:
+                        for metric in ["exact_match", "f1_score", "anls", "llm_judge_score"]:
                             baseline_val = baseline["correctness"].get(metric, 0)
                             current_val = current["correctness"].get(metric, 0)
                             if baseline_val > 0:

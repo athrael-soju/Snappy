@@ -232,12 +232,17 @@ class OnTheFlyStrategy(BaseRetrievalStrategy):
                             retrieved_images.append(crop_img)
 
             result.context_text = "\n".join(context_parts)
-            # Always include the original page image for visual context
-            # This ensures the LLM can see figures/charts even if OCR doesn't detect them
-            result.retrieved_images = [image] + retrieved_images
+            # Only include cropped images from relevant figure/image regions
+            result.retrieved_images = retrieved_images if retrieved_images else None
             result.retrieved_bboxes = retrieved_bboxes
             result.retrieved_pages = [1]  # Single page, ground truth
             result.scores = [1.0]  # Perfect retrieval (oracle mode)
+
+            # Log filtering stats
+            self._logger.info(
+                f"Region filtering: {len(regions)} total -> {len(filtered_regions)} relevant, "
+                f"context={len(result.context_text)} chars, images={len(retrieved_images)}"
+            )
 
             # Store timing info
             result.raw_response = {
@@ -245,6 +250,7 @@ class OnTheFlyStrategy(BaseRetrievalStrategy):
                 "interp_time_ms": interp_time,
                 "total_regions": len(regions),
                 "filtered_regions": len(filtered_regions),
+                "context_chars": len(result.context_text),
             }
 
         except Exception as e:

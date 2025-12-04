@@ -131,7 +131,7 @@ class ReportGenerator:
             lines.append("|--------|" + "|".join(["--------"] * len(strategies)) + "|")
 
             # Correctness metrics
-            for metric in ["exact_match", "f1_score", "anls"]:
+            for metric in ["f1_score", "anls", "llm_judge_score"]:
                 values = []
                 for s in strategies:
                     val = comparison[s].get("correctness", {}).get(metric, 0)
@@ -178,7 +178,8 @@ class ReportGenerator:
             if "correctness" in metrics:
                 lines.extend(["#### Correctness Metrics", ""])
                 for name, value in metrics["correctness"].items():
-                    lines.append(f"- **{name}:** {value:.4f}")
+                    if name not in ("exact_match", "semantic_similarity"):
+                        lines.append(f"- **{name}:** {value:.4f}")
                 lines.append("")
 
             # Latency details
@@ -224,9 +225,9 @@ class ReportGenerator:
                     "query": result.query,
                     "ground_truth": result.ground_truth,
                     "predicted_answer": result.predicted_answer,
-                    "exact_match": result.correctness.exact_match,
                     "f1_score": result.correctness.f1_score,
                     "anls": result.correctness.anls,
+                    "llm_judge_score": result.correctness.llm_judge_score,
                     "retrieval_ms": result.latency.retrieval_ms,
                     "llm_inference_ms": result.latency.llm_inference_ms,
                     "total_ms": result.latency.total_ms,
@@ -279,6 +280,7 @@ class ReportGenerator:
                 "f1_score": sample.correctness.f1_score,
                 "anls": sample.correctness.anls,
                 "semantic_similarity": sample.correctness.semantic_similarity,
+                "llm_judge_score": sample.correctness.llm_judge_score,
             },
             "error": sample.error,
             "retrieved_context": sample.retrieved_context,
@@ -327,6 +329,7 @@ class ReportGenerator:
             ("Exact Match", "correctness", "exact_match"),
             ("F1 Score", "correctness", "f1_score"),
             ("ANLS", "correctness", "anls"),
+            ("LLM Judge", "correctness", "llm_judge_score"),
             ("Latency (ms)", "latency", "total_ms"),
             ("Input Tokens", "tokens", "input_tokens"),
         ]
@@ -376,6 +379,7 @@ class ReportGenerator:
             ("Exact Match", "correctness", "exact_match"),
             ("F1 Score", "correctness", "f1_score"),
             ("ANLS", "correctness", "anls"),
+            ("LLM Judge", "correctness", "llm_judge_score"),
             ("Latency (ms)", "latency", "total_ms"),
             ("Input Tokens", "tokens", "input_tokens"),
             ("Output Tokens", "tokens", "output_tokens"),
