@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.1](https://github.com/athrael-soju/Snappy/compare/v0.4.0...v0.4.1) (2025-12-05)
+
+
+### Features
+
+* add DuckDB badge to README for analytics support ([89ccb7d](https://github.com/athrael-soju/Snappy/commit/89ccb7d97aa59784d900aa72f00ba02dedf619f7))
+* update README and documentation with patch-to-region relevance propagation details; add new logo images ([6a07e36](https://github.com/athrael-soju/Snappy/commit/6a07e3671e66aac8e1bc1b2eded3f1cd3c03e1f1))
+* update version to 0.4.0 across manifest and package files ([82a4451](https://github.com/athrael-soju/Snappy/commit/82a4451a84259cb2f9112b83ba0ef545a484c4d0))
+
 ## [0.3.8](https://github.com/athrael-soju/Snappy/compare/v0.3.7...v0.3.8) (2025-11-25)
 
 
