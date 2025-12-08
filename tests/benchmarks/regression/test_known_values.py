@@ -221,7 +221,8 @@ class TestKnownAggregationValues:
         Max = 0.8
         Mean = (0.4 + 0.6 + 0.2 + 0.8) / 4 = 0.5
         Sum = 0.4 + 0.6 + 0.2 + 0.8 = 2.0
-        IoU-weighted = 0.4*1 + 0.6*1 + 0.2*1 + 0.8*1 = 2.0 (all IoU=1)
+        IoU-weighted: Each patch has IoU=0.25 with full region
+        = (0.4 + 0.6 + 0.2 + 0.8) * 0.25 = 0.5
         """
         scores = np.array([[0.4, 0.6], [0.2, 0.8]], dtype=np.float32)
         region = Box(x1=0, y1=0, x2=1, y2=1)
@@ -234,7 +235,8 @@ class TestKnownAggregationValues:
         assert max_score == pytest.approx(0.8, abs=1e-6)
         assert mean_score == pytest.approx(0.5, abs=1e-6)
         assert sum_score == pytest.approx(2.0, abs=1e-6)
-        assert iou_score == pytest.approx(2.0, abs=1e-6)
+        # Each patch area = 0.25, region area = 1.0, IoU = 0.25 / 1.0 = 0.25
+        assert iou_score == pytest.approx(0.5, abs=1e-6)
 
     def test_iou_weighted_partial_overlap(self):
         """
@@ -422,15 +424,16 @@ class TestRegressionFixtures:
         """
         Test: IoU weights sum to expected value for full coverage
 
-        A region covering exactly 4 patches in 4x4 grid
-        should have total IoU weight = 4.0
+        A region covering exactly 4 patches in 4x4 grid.
+        Each patch has IoU = 0.25 with the region (patch area / union area).
+        Total IoU weight = 4 * 0.25 = 1.0
         """
         region = Box(x1=0, y1=0, x2=0.5, y2=0.5)
         weights = patches_to_region_iou_weights(region, 4, 4)
 
-        # Should cover exactly 4 patches with IoU = 1.0 each
+        # Each patch has IoU = 0.25, 4 patches covered
         total_weight = np.sum(weights)
-        assert total_weight == pytest.approx(4.0, abs=1e-10)
+        assert total_weight == pytest.approx(1.0, abs=1e-10)
 
         # Exactly 4 non-zero weights
         assert np.count_nonzero(weights) == 4

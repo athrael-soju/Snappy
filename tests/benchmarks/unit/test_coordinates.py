@@ -359,11 +359,15 @@ class TestGetOverlappingPatches:
         overlapping = get_overlapping_patches(region, n_patches_x=4, n_patches_y=4)
 
         assert len(overlapping) == 4
-        # Each patch should have IoU = 1.0 (full overlap)
+        # Each patch is fully contained in region, but IoU < 1.0 because region is larger
+        # Patch area = 0.0625, Region area = 0.25
+        # Intersection = patch = 0.0625
+        # Union = 0.0625 + 0.25 - 0.0625 = 0.25
+        # IoU = 0.0625 / 0.25 = 0.25
         for px, py, iou in overlapping:
             assert 0 <= px <= 1
             assert 0 <= py <= 1
-            assert iou == pytest.approx(1.0)
+            assert iou == pytest.approx(0.25)
 
     def test_partial_overlap(self):
         """Test region partially overlapping patches."""
@@ -402,23 +406,30 @@ class TestPatchesToRegionIouWeights:
         weights = patches_to_region_iou_weights(region, n_patches_x=4, n_patches_y=4)
 
         assert weights.shape == (4, 4)
-        # First 4 patches should have weight 1.0
-        assert weights[0, 0] == pytest.approx(1.0)
-        assert weights[0, 1] == pytest.approx(1.0)
-        assert weights[1, 0] == pytest.approx(1.0)
-        assert weights[1, 1] == pytest.approx(1.0)
-        # Total weight should be 4
-        assert np.sum(weights) == pytest.approx(4.0)
+        # Each patch has IoU = 0.25 with the region (see test_multi_patch_region)
+        assert weights[0, 0] == pytest.approx(0.25)
+        assert weights[0, 1] == pytest.approx(0.25)
+        assert weights[1, 0] == pytest.approx(0.25)
+        assert weights[1, 1] == pytest.approx(0.25)
+        # Total weight should be 4 * 0.25 = 1.0
+        assert np.sum(weights) == pytest.approx(1.0)
 
     def test_partial_coverage(self):
         """Test weights for partial patch coverage."""
-        # Region covering half of two patches horizontally
+        # Region covering 1.5 patches horizontally
+        # Region: (0, 0, 0.375, 0.25)
+        # Patch (0,0): (0, 0, 0.25, 0.25) - fully within region
+        # Patch (1,0): (0.25, 0, 0.5, 0.25) - half within region
         region = Box(x1=0.0, y1=0.0, x2=0.375, y2=0.25)
         weights = patches_to_region_iou_weights(region, n_patches_x=4, n_patches_y=4)
 
         assert weights.shape == (4, 4)
-        # Patch (0,0) fully covered: weight 1.0
-        assert weights[0, 0] == pytest.approx(1.0)
-        # Patch (1,0) half covered
-        assert weights[0, 1] > 0
-        assert weights[0, 1] < 1.0
+        # Patch (0,0) fully covered by region:
+        # Region area = 0.09375, Patch area = 0.0625
+        # Intersection = 0.0625, Union = 0.09375
+        # IoU = 0.0625 / 0.09375 = 2/3
+        assert weights[0, 0] == pytest.approx(2/3, rel=0.01)
+        # Patch (1,0) half covered:
+        # Intersection = 0.03125, Union = 0.125
+        # IoU = 0.25
+        assert weights[0, 1] == pytest.approx(0.25, rel=0.01)

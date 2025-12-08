@@ -193,9 +193,9 @@ class TestAggregatePatchScoresIouWeighted:
         region = Box(x1=0.0, y1=0.0, x2=0.5, y2=0.5)
         score = aggregate_patch_scores_iou_weighted(patch_scores, region, n_patches_x=4, n_patches_y=4)
 
-        # All 4 patches have IoU = 1.0
-        # Sum = 0.4 + 0.6 + 0.2 + 0.8 = 2.0
-        assert score == pytest.approx(2.0)
+        # Each patch has IoU = 0.25 with the region (region is 4x larger than each patch)
+        # IoU-weighted sum = (0.4 + 0.6 + 0.2 + 0.8) * 0.25 = 0.5
+        assert score == pytest.approx(0.5)
 
     def test_partial_overlap(self):
         """Test IoU-weighted with partial overlap."""
