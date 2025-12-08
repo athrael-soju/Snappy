@@ -35,7 +35,7 @@ from .config import BenchmarkConfig, create_ablation_configs, get_default_config
 from .evaluation import BBoxEvaluator, BenchmarkResults, StratifiedEvaluator
 from .loaders.bbox_docvqa import BBoxDocVQALoader, BBoxDocVQASample
 from .selection import RegionSelector
-from .utils.coordinates import NormalizedBox
+from .utils.coordinates import NormalizedBox, compute_iou
 from .visualization import BenchmarkVisualizer
 
 logger = logging.getLogger(__name__)
@@ -332,21 +332,39 @@ class BenchmarkRunner:
         # Extract prediction boxes
         predictions = [r.bbox for r in selection_result.selected_regions]
 
+        # Calculate matching statistics
+        iou_threshold = 0.25  # Use lower threshold to count partial matches
+        num_matching = 0
+        max_iou_per_pred = []
+        for pred in predictions:
+            max_iou = 0.0
+            for gt in gt_boxes:
+                iou = compute_iou(pred, gt)
+                max_iou = max(max_iou, iou)
+            max_iou_per_pred.append(max_iou)
+            if max_iou >= iou_threshold:
+                num_matching += 1
+
         # Store sample result
         self.sample_results.append({
             "sample_id": sample.sample_id,
             "question": sample.question,
             "answer": sample.answer,
-            "num_predictions": len(predictions),
+            "region_type": sample.region_type,
+            "num_ocr_regions": len(ocr_regions),
+            "num_selected": len(predictions),
+            "num_matching": num_matching,
             "num_ground_truth": len(gt_boxes),
+            "max_iou": max(max_iou_per_pred) if max_iou_per_pred else 0.0,
             "region_scores": [
                 {
                     "bbox": r.bbox,
                     "score": r.score,
                     "label": r.label,
+                    "iou": max_iou_per_pred[i] if i < len(max_iou_per_pred) else 0.0,
                     "content": r.content[:100] if r.content else "",
                 }
-                for r in selection_result.selected_regions
+                for i, r in enumerate(selection_result.selected_regions)
             ],
         })
 
@@ -642,6 +660,40 @@ class BenchmarkRunner:
         f.write("\nBaseline Comparison:\n")
         for name, results in self.results.get("baseline_results", {}).items():
             f.write(f"  {name}: Recall={results.get('mean_recall', 0):.4f}\n")
+
+        # Per-sample region statistics
+        f.write(f"\n{'='*60}\n")
+        f.write("Per-Sample Region Statistics:\n")
+        f.write(f"{'='*60}\n\n")
+
+        for sample in self.sample_results:
+            sample_id = sample.get("sample_id", "unknown")
+            region_type = sample.get("region_type", "unknown")
+            num_ocr = sample.get("num_ocr_regions", 0)
+            num_selected = sample.get("num_selected", 0)
+            num_matching = sample.get("num_matching", 0)
+            num_gt = sample.get("num_ground_truth", 0)
+            max_iou = sample.get("max_iou", 0.0)
+
+            match_status = "HIT" if num_matching > 0 else "MISS"
+            f.write(f"{sample_id} [{region_type}] - {match_status}\n")
+            f.write(f"  OCR Detected: {num_ocr} regions\n")
+            f.write(f"  Selected: {num_selected} regions\n")
+            f.write(f"  Matching (IoU>=0.25): {num_matching}/{num_selected}\n")
+            f.write(f"  Ground Truth: {num_gt} regions\n")
+            f.write(f"  Best IoU: {max_iou:.4f}\n")
+
+            # Show top selected regions with their IoU
+            region_scores = sample.get("region_scores", [])
+            if region_scores:
+                f.write("  Top Regions:\n")
+                for i, r in enumerate(region_scores[:3]):  # Show top 3
+                    iou = r.get("iou", 0.0)
+                    label = r.get("label", "?")
+                    score = r.get("score", 0.0)
+                    match_mark = "✓" if iou >= 0.25 else "✗"
+                    f.write(f"    {i+1}. [{label}] score={score:.3f} iou={iou:.3f} {match_mark}\n")
+            f.write("\n")
 
     def _print_summary(self) -> None:
         """Print summary to console."""

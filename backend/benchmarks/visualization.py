@@ -27,6 +27,8 @@ logger = logging.getLogger(__name__)
 # Color definitions (RGBA)
 COLORS = {
     "prediction": (0, 255, 0, 180),      # Green
+    "prediction_hit": (0, 200, 0, 200),  # Dark green for matching predictions
+    "prediction_miss": (255, 128, 0, 200),  # Orange for non-matching predictions
     "ground_truth": (255, 0, 0, 180),    # Red
     "overlap": (255, 255, 0, 200),       # Yellow
     "ocr_region": (0, 0, 255, 100),      # Blue (light)
@@ -132,17 +134,37 @@ class BenchmarkVisualizer:
                     line_width=3,
                 )
 
-        # Draw predictions (green)
+        # Draw predictions (green=hit, orange=miss)
         if predictions:
+            from .utils.coordinates import compute_iou
+
+            iou_threshold = 0.25  # Threshold for considering a match
             for pred in predictions:
+                # Calculate max IoU with any ground truth
+                max_iou = 0.0
+                if ground_truth:
+                    for gt in ground_truth:
+                        iou = compute_iou(pred.bbox, gt)
+                        max_iou = max(max_iou, iou)
+
+                # Choose color based on match status
+                is_hit = max_iou >= iou_threshold
+                color = COLORS["prediction_hit"] if is_hit else COLORS["prediction_miss"]
+
+                # Build label with score and match status
+                label = None
+                if self.show_scores:
+                    status = "HIT" if is_hit else "MISS"
+                    label = f"{pred.score:.2f} ({status} IoU={max_iou:.2f})"
+
                 self._draw_normalized_box(
                     draw,
                     pred.bbox,
                     width,
                     height,
-                    color=COLORS["prediction"],
-                    line_width=2,
-                    label=f"{pred.score:.3f}" if self.show_scores else None,
+                    color=color,
+                    line_width=3 if is_hit else 2,
+                    label=label,
                 )
 
         # Draw overlaps (yellow highlight)
@@ -364,15 +386,16 @@ class BenchmarkVisualizer:
         draw.text((10, 10), header_text, fill=(0, 0, 0, 255), font=font)
 
         # Draw legend
-        legend_x = width - 300
+        legend_x = width - 450
         legend_items = [
-            ("Prediction", COLORS["prediction"]),
+            ("HIT", COLORS["prediction_hit"]),
+            ("MISS", COLORS["prediction_miss"]),
             ("Ground Truth", COLORS["ground_truth"]),
             ("Overlap", COLORS["overlap"]),
         ]
 
         for i, (label, color) in enumerate(legend_items):
-            x = legend_x + i * 100
+            x = legend_x + i * 110
             draw.rectangle([x, 10, x + 15, 25], fill=color, outline=(0, 0, 0, 255))
             draw.text((x + 20, 10), label, fill=(0, 0, 0, 255), font=font)
 
