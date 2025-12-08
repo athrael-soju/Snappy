@@ -48,7 +48,13 @@ from .aggregation import AggregationMethod, PatchToRegionAggregator
 from .baselines import BaselineGenerator
 from .clients import BenchmarkColPaliClient, BenchmarkOcrClient
 from .config import BenchmarkConfig, create_ablation_configs, get_default_config
-from .evaluation import BBoxEvaluator, BenchmarkResults, StratifiedEvaluator
+from .evaluation import (
+    BBoxEvaluator,
+    BenchmarkResults,
+    StratifiedEvaluator,
+    compute_aggregate_iou,
+    compute_gt_coverage,
+)
 from .loaders.bbox_docvqa import BBoxDocVQALoader, BBoxDocVQASample
 from .selection import RegionSelector, SelectionMethod
 from .utils.coordinates import NormalizedBox, compute_iou
@@ -410,10 +416,16 @@ class BenchmarkRunner:
                     if max_iou >= iou_threshold:
                         num_matching += 1
 
+                # Compute aggregate metrics for this method combination
+                agg_iou = compute_aggregate_iou(method_predictions, gt_boxes)
+                gt_cov = compute_gt_coverage(method_predictions, gt_boxes)
+
                 results_by_agg_sel[agg_method][sel_method] = {
                     "num_selected": len(method_predictions),
                     "num_matching": num_matching,
                     "max_iou": max(max_iou_per_pred) if max_iou_per_pred else 0.0,
+                    "aggregate_iou": agg_iou,
+                    "gt_coverage": gt_cov,
                     "threshold_used": selection_result.threshold_used,
                     "region_scores": [
                         {
@@ -634,6 +646,8 @@ class BenchmarkRunner:
             "mean_recall": results.mean_recall,
             "mean_f1": results.mean_f1,
             "mean_hungarian_iou": results.mean_hungarian_iou,
+            "mean_aggregate_iou": results.mean_aggregate_iou,
+            "mean_gt_coverage": results.mean_gt_coverage,
             "mAP": results.mAP,
             "total_samples": results.total_samples,
         }
@@ -823,18 +837,19 @@ class BenchmarkRunner:
             # Detailed table for each aggregation method
             for agg_method, sel_results in agg_sel_results.items():
                 f.write(f"### {agg_method} Aggregation\n\n")
-                f.write("| Selection | Mean IoU | Precision | Recall | F1 | mAP | IoU@0.25 | IoU@0.5 |\n")
-                f.write("|-----------|----------|-----------|--------|-----|-----|----------|--------|\n")
+                f.write("| Selection | Mean IoU | Agg IoU | GT Cov | Precision | Recall | F1 | IoU@0.25 | IoU@0.5 |\n")
+                f.write("|-----------|----------|---------|--------|-----------|--------|-----|----------|--------|\n")
 
                 for sel_method, res in sel_results.items():
                     hit_rates = res.get("hit_rate_at_thresholds", {})
                     f.write(
                         f"| {sel_method} "
                         f"| {res.get('mean_iou', 0):.4f} "
+                        f"| {res.get('mean_aggregate_iou', 0):.4f} "
+                        f"| {res.get('mean_gt_coverage', 0):.4f} "
                         f"| {res.get('mean_precision', 0):.4f} "
                         f"| {res.get('mean_recall', 0):.4f} "
                         f"| {res.get('mean_f1', 0):.4f} "
-                        f"| {res.get('mAP', 0):.4f} "
                         f"| {hit_rates.get('0.25', hit_rates.get(0.25, 0)):.4f} "
                         f"| {hit_rates.get('0.5', hit_rates.get(0.5, 0)):.4f} |\n"
                     )
@@ -845,16 +860,17 @@ class BenchmarkRunner:
         baseline_results = self.results.get("baseline_results", {})
 
         if baseline_results:
-            f.write("| Baseline | Recall | Precision | F1 | mAP |\n")
-            f.write("|----------|--------|-----------|-----|-----|\n")
+            f.write("| Baseline | Agg IoU | GT Cov | Recall | Precision | F1 |\n")
+            f.write("|----------|---------|--------|--------|-----------|-----|\n")
 
             for name, res in baseline_results.items():
                 f.write(
                     f"| {name} "
+                    f"| {res.get('mean_aggregate_iou', 0):.4f} "
+                    f"| {res.get('mean_gt_coverage', 0):.4f} "
                     f"| {res.get('mean_recall', 0):.4f} "
                     f"| {res.get('mean_precision', 0):.4f} "
-                    f"| {res.get('mean_f1', 0):.4f} "
-                    f"| {res.get('mAP', 0):.4f} |\n"
+                    f"| {res.get('mean_f1', 0):.4f} |\n"
                 )
 
             f.write("\n")
@@ -877,7 +893,7 @@ class BenchmarkRunner:
             if agg_sel_results:
                 f.write("#### Aggregation × Selection Results\n\n")
 
-                # Compact grid showing best IoU for each combination
+                # Compact grid showing IoU hit and GT Coverage for each combination
                 sel_methods = self.config.selection.methods
                 header = "| Aggregation |"
                 for sel in sel_methods:
@@ -886,20 +902,21 @@ class BenchmarkRunner:
 
                 sep = "|-------------|"
                 for _ in sel_methods:
-                    sep += "--------|"
+                    sep += "------------|"
                 f.write(sep + "\n")
 
                 for agg_method, sel_results in agg_sel_results.items():
                     row = f"| {agg_method} |"
                     for sel_method in sel_methods:
                         result = sel_results.get(sel_method, {})
-                        max_iou = result.get("max_iou", 0.0)
+                        gt_cov = result.get("gt_coverage", 0.0)
                         num_matching = result.get("num_matching", 0)
+                        # Show both IoU hit status and GT coverage
                         icon = "✅" if num_matching > 0 else "❌"
-                        row += f" {icon} {max_iou:.2f} |"
+                        row += f" {icon} cov:{gt_cov:.0%} |"
                     f.write(row + "\n")
 
-                f.write("\n")
+                f.write("\n*Icon shows IoU@0.25 hit, cov shows GT Coverage*\n\n")
 
             # Show region details for default method
             region_scores = sample.get("region_scores", [])
@@ -962,6 +979,22 @@ class BenchmarkRunner:
                     hit_rates = res.get("hit_rate_at_thresholds", {})
                     iou_025 = hit_rates.get("0.25", hit_rates.get(0.25, 0))
                     row += f" {iou_025:>10.2%}"
+                print(row)
+
+            # GT Coverage grid (new aggregate metric)
+            print("\nAggregation × Selection (GT Coverage):")
+            header = f"  {'Aggregation':<14}"
+            for sel in sel_methods:
+                header += f" {sel:>10}"
+            print(header)
+            print("  " + "-" * (14 + 11 * len(sel_methods)))
+
+            for agg_method, sel_results in agg_sel_results.items():
+                row = f"  {agg_method:<14}"
+                for sel_method in sel_methods:
+                    res = sel_results.get(sel_method, {})
+                    gt_cov = res.get("mean_gt_coverage", 0)
+                    row += f" {gt_cov:>10.2%}"
                 print(row)
 
         # Per-method selection rate (% of OCR regions kept)

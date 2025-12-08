@@ -10,6 +10,8 @@ Metrics:
 - Precision@K: Fraction of top-K predictions matching GT
 - Recall@K: Fraction of GT boxes covered by top-K predictions
 - mAP: Mean average precision across IoU thresholds
+- Aggregate IoU: IoU of merged prediction mask vs merged GT mask
+- GT Coverage: Fraction of GT area covered by predictions (area-based recall)
 
 Matching strategies:
 - Any-match: Lenient - any prediction matching any GT
@@ -27,6 +29,117 @@ from .aggregation import RegionScore
 from .utils.coordinates import compute_iou, NormalizedBox
 
 logger = logging.getLogger(__name__)
+
+
+def compute_aggregate_iou(
+    predictions: List[NormalizedBox],
+    ground_truth: List[NormalizedBox],
+    grid_resolution: int = 100,
+) -> float:
+    """
+    Compute IoU between merged prediction mask and merged GT mask.
+
+    Uses a discrete grid to approximate the union of all boxes.
+    This handles the case where multiple small predictions collectively
+    cover a large ground truth region.
+
+    Args:
+        predictions: List of predicted bounding boxes (normalized [0,1])
+        ground_truth: List of ground truth bounding boxes (normalized [0,1])
+        grid_resolution: Resolution of the discrete grid (higher = more accurate)
+
+    Returns:
+        Aggregate IoU in [0, 1]
+    """
+    if not predictions or not ground_truth:
+        return 0.0
+
+    # Create discrete masks
+    pred_mask = np.zeros((grid_resolution, grid_resolution), dtype=bool)
+    gt_mask = np.zeros((grid_resolution, grid_resolution), dtype=bool)
+
+    # Fill prediction mask
+    for box in predictions:
+        x1, y1, x2, y2 = box
+        x1_idx = int(x1 * grid_resolution)
+        y1_idx = int(y1 * grid_resolution)
+        x2_idx = int(min(x2 * grid_resolution, grid_resolution))
+        y2_idx = int(min(y2 * grid_resolution, grid_resolution))
+        pred_mask[y1_idx:y2_idx, x1_idx:x2_idx] = True
+
+    # Fill ground truth mask
+    for box in ground_truth:
+        x1, y1, x2, y2 = box
+        x1_idx = int(x1 * grid_resolution)
+        y1_idx = int(y1 * grid_resolution)
+        x2_idx = int(min(x2 * grid_resolution, grid_resolution))
+        y2_idx = int(min(y2 * grid_resolution, grid_resolution))
+        gt_mask[y1_idx:y2_idx, x1_idx:x2_idx] = True
+
+    # Compute IoU
+    intersection = np.sum(pred_mask & gt_mask)
+    union = np.sum(pred_mask | gt_mask)
+
+    if union == 0:
+        return 0.0
+
+    return float(intersection / union)
+
+
+def compute_gt_coverage(
+    predictions: List[NormalizedBox],
+    ground_truth: List[NormalizedBox],
+    grid_resolution: int = 100,
+) -> float:
+    """
+    Compute fraction of ground truth area covered by predictions.
+
+    This is an area-based recall metric that handles the case where
+    multiple small predictions collectively cover a large GT region.
+
+    Args:
+        predictions: List of predicted bounding boxes (normalized [0,1])
+        ground_truth: List of ground truth bounding boxes (normalized [0,1])
+        grid_resolution: Resolution of the discrete grid (higher = more accurate)
+
+    Returns:
+        GT coverage in [0, 1] (1.0 = all GT area is covered by predictions)
+    """
+    if not ground_truth:
+        return 0.0
+    if not predictions:
+        return 0.0
+
+    # Create discrete masks
+    pred_mask = np.zeros((grid_resolution, grid_resolution), dtype=bool)
+    gt_mask = np.zeros((grid_resolution, grid_resolution), dtype=bool)
+
+    # Fill prediction mask
+    for box in predictions:
+        x1, y1, x2, y2 = box
+        x1_idx = int(x1 * grid_resolution)
+        y1_idx = int(y1 * grid_resolution)
+        x2_idx = int(min(x2 * grid_resolution, grid_resolution))
+        y2_idx = int(min(y2 * grid_resolution, grid_resolution))
+        pred_mask[y1_idx:y2_idx, x1_idx:x2_idx] = True
+
+    # Fill ground truth mask
+    for box in ground_truth:
+        x1, y1, x2, y2 = box
+        x1_idx = int(x1 * grid_resolution)
+        y1_idx = int(y1 * grid_resolution)
+        x2_idx = int(min(x2 * grid_resolution, grid_resolution))
+        y2_idx = int(min(y2 * grid_resolution, grid_resolution))
+        gt_mask[y1_idx:y2_idx, x1_idx:x2_idx] = True
+
+    # Compute coverage = intersection / GT area
+    intersection = np.sum(pred_mask & gt_mask)
+    gt_area = np.sum(gt_mask)
+
+    if gt_area == 0:
+        return 0.0
+
+    return float(intersection / gt_area)
 
 
 # Matching strategy types
@@ -55,6 +168,10 @@ class SampleEvaluation:
     hungarian_mean_iou: float = 0.0
     hungarian_matched: int = 0
 
+    # Aggregate metrics (for multi-region evaluation)
+    aggregate_iou: float = 0.0  # IoU of merged predictions vs merged GT
+    gt_coverage: float = 0.0   # Fraction of GT area covered by predictions
+
     # Raw data
     num_predictions: int = 0
     num_ground_truth: int = 0
@@ -82,6 +199,10 @@ class BenchmarkResults:
 
     # Hungarian matching
     mean_hungarian_iou: float = 0.0
+
+    # Aggregate metrics (for multi-region evaluation)
+    mean_aggregate_iou: float = 0.0  # Mean IoU of merged predictions vs merged GT
+    mean_gt_coverage: float = 0.0    # Mean fraction of GT area covered
 
     # mAP across thresholds
     mAP: float = 0.0
@@ -161,6 +282,10 @@ class BBoxEvaluator:
         hungarian_iou, matched = self._hungarian_matching(iou_matrix)
         result.hungarian_mean_iou = hungarian_iou
         result.hungarian_matched = matched
+
+        # Compute aggregate metrics (for multi-region evaluation)
+        result.aggregate_iou = compute_aggregate_iou(predictions, ground_truth)
+        result.gt_coverage = compute_gt_coverage(predictions, ground_truth)
 
         return result
 
@@ -401,6 +526,10 @@ class BBoxEvaluator:
         results.mean_hungarian_iou = sum(
             s.hungarian_mean_iou for s in results.samples
         ) / n
+
+        # Mean aggregate metrics (for multi-region evaluation)
+        results.mean_aggregate_iou = sum(s.aggregate_iou for s in results.samples) / n
+        results.mean_gt_coverage = sum(s.gt_coverage for s in results.samples) / n
 
         # Compute mAP (mean AP across IoU thresholds)
         results.mAP = sum(results.hit_rate_at_thresholds.values()) / len(
