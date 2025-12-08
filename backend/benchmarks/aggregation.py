@@ -9,6 +9,7 @@ Methods:
 - mean: Average of overlapping patches
 - sum: Sum of overlapping patches
 - iou_weighted: Unnormalized weighted sum (canonical method from paper)
+- iou_weighted_norm: IoU-weighted mean (normalized by total IoU to remove region size bias)
 """
 
 import logging
@@ -26,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 # Aggregation method types
-AggregationMethod = Literal["max", "mean", "sum", "iou_weighted"]
+AggregationMethod = Literal["max", "mean", "sum", "iou_weighted", "iou_weighted_norm"]
 
 
 @dataclass
@@ -229,8 +230,17 @@ class PatchToRegionAggregator:
         elif method == "sum":
             score = float(np.sum(patch_scores))
         elif method == "iou_weighted":
-            # Canonical method: unnormalized weighted sum
+            # Canonical method from paper: unnormalized weighted sum
+            # rel(q,r) = Σⱼ IoU(region, patch_j) · score_patch(j)
             score = float(np.sum(patch_scores * ious))
+        elif method == "iou_weighted_norm":
+            # Normalized variant: weighted mean to remove region size bias
+            # rel(q,r) = Σⱼ IoU(...) · score(j) / Σⱼ IoU(...)
+            total_iou = np.sum(ious)
+            if total_iou > 0:
+                score = float(np.sum(patch_scores * ious) / total_iou)
+            else:
+                score = 0.0
         else:
             raise ValueError(f"Unknown aggregation method: {method}")
 
@@ -310,7 +320,7 @@ class PatchToRegionAggregator:
         Returns:
             Dictionary mapping method name to list of RegionScore
         """
-        methods: List[AggregationMethod] = ["max", "mean", "sum", "iou_weighted"]
+        methods: List[AggregationMethod] = ["max", "mean", "sum", "iou_weighted", "iou_weighted_norm"]
         results = {}
 
         for method in methods:

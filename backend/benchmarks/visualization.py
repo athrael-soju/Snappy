@@ -10,7 +10,6 @@ Generates overlay images showing:
 - Overlap regions (yellow)
 """
 
-import io
 import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -20,6 +19,10 @@ from PIL import Image, ImageDraw, ImageFont
 
 from .aggregation import RegionScore
 from .utils.coordinates import NormalizedBox
+
+# Import shared visualization utilities from backend/utils
+from utils.colormaps import ColorScale, create_heatmap_rgba
+from utils.normalization import NormalizationStrategy, normalize_array
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +57,8 @@ class BenchmarkVisualizer:
         dpi: int = 150,
         show_scores: bool = True,
         show_labels: bool = True,
+        color_scale: ColorScale = ColorScale.YLORRD,
+        normalization: NormalizationStrategy = NormalizationStrategy.PERCENTILE,
     ):
         """
         Initialize the visualizer.
@@ -63,11 +68,15 @@ class BenchmarkVisualizer:
             dpi: Resolution for saved images
             show_scores: Whether to show relevance scores on boxes
             show_labels: Whether to show region labels
+            color_scale: ColorBrewer color scale for heatmaps (default: YlOrRd)
+            normalization: Normalization strategy for heatmap values (default: percentile)
         """
         self.output_dir = Path(output_dir) if output_dir else None
         self.dpi = dpi
         self.show_scores = show_scores
         self.show_labels = show_labels
+        self.color_scale = color_scale
+        self.normalization = normalization
 
         if self.output_dir:
             self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -81,18 +90,27 @@ class BenchmarkVisualizer:
         ground_truth: Optional[List[NormalizedBox]] = None,
         sample_id: str = "",
         query: str = "",
+        show_region_heatmap: bool = True,
+        all_region_scores: Optional[List[RegionScore]] = None,
     ) -> Image.Image:
         """
-        Create a comprehensive visualization for a single sample.
+        Create a clean visualization for a single sample.
+
+        Shows:
+        - Original document with subtle heatmap overlay
+        - Ground truth boxes (red outline)
+        - Predicted regions (green=HIT, orange=MISS)
 
         Args:
             image: Original document image
             heatmap: 2D array of patch-level similarity scores
-            ocr_regions: List of OCR region dictionaries
-            predictions: Predicted regions with scores
+            ocr_regions: List of OCR region dictionaries (unused)
+            predictions: Selected/predicted regions with scores
             ground_truth: Ground truth bounding boxes
             sample_id: Identifier for saving
             query: Query text to display
+            show_region_heatmap: Whether to show region-level heatmap
+            all_region_scores: All OCR regions with scores for heatmap coloring
 
         Returns:
             Visualization image
@@ -101,28 +119,16 @@ class BenchmarkVisualizer:
         vis_image = image.convert("RGBA")
         width, height = vis_image.size
 
-        # Create overlay for transparent elements
+        # Add subtle patch-level heatmap if available (shows model attention)
+        if heatmap is not None:
+            heatmap_overlay = self._create_heatmap_overlay(heatmap, width, height, alpha=60)
+            vis_image = Image.alpha_composite(vis_image, heatmap_overlay)
+
+        # Create overlay for boxes
         overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
         draw = ImageDraw.Draw(overlay)
 
-        # Draw heatmap if provided
-        if heatmap is not None:
-            heatmap_overlay = self._create_heatmap_overlay(heatmap, width, height)
-            vis_image = Image.alpha_composite(vis_image, heatmap_overlay)
-
-        # Draw OCR regions (light blue, thin border)
-        if ocr_regions:
-            for region in ocr_regions:
-                self._draw_region_box(
-                    draw,
-                    region.get("bbox", []),
-                    width,
-                    height,
-                    color=COLORS["ocr_region"],
-                    line_width=1,
-                )
-
-        # Draw ground truth (red, dashed-style)
+        # Draw ground truth boxes first (red outline, thicker)
         if ground_truth:
             for bbox in ground_truth:
                 self._draw_normalized_box(
@@ -131,10 +137,10 @@ class BenchmarkVisualizer:
                     width,
                     height,
                     color=COLORS["ground_truth"],
-                    line_width=3,
+                    line_width=4,
                 )
 
-        # Draw predictions (green=hit, orange=miss)
+        # Draw predictions (green=HIT, orange=MISS)
         if predictions:
             from .utils.coordinates import compute_iou
 
@@ -163,13 +169,9 @@ class BenchmarkVisualizer:
                     width,
                     height,
                     color=color,
-                    line_width=3 if is_hit else 2,
+                    line_width=3,
                     label=label,
                 )
-
-        # Draw overlaps (yellow highlight)
-        if predictions and ground_truth:
-            self._draw_overlaps(draw, predictions, ground_truth, width, height)
 
         # Composite overlay onto image
         vis_image = Image.alpha_composite(vis_image, overlay)
@@ -195,6 +197,9 @@ class BenchmarkVisualizer:
         """
         Create a heatmap overlay from patch scores.
 
+        Uses shared colormap and normalization utilities for professional
+        visualization consistent with the frontend.
+
         Args:
             heatmap: 2D array of scores
             width: Target width
@@ -204,36 +209,82 @@ class BenchmarkVisualizer:
         Returns:
             RGBA image overlay
         """
-        # Normalize heatmap to [0, 1]
-        heatmap_norm = heatmap.copy()
-        h_min, h_max = heatmap_norm.min(), heatmap_norm.max()
-        if h_max > h_min:
-            heatmap_norm = (heatmap_norm - h_min) / (h_max - h_min)
-        else:
-            heatmap_norm = np.zeros_like(heatmap_norm)
+        # Normalize heatmap using the configured strategy
+        heatmap_norm = normalize_array(heatmap, self.normalization)
 
-        # Create color map (blue → red)
-        h, w = heatmap.shape
-        rgb = np.zeros((h, w, 3), dtype=np.uint8)
+        # Apply colormap using shared utilities
+        rgba = create_heatmap_rgba(heatmap_norm, self.color_scale, alpha)
 
-        for i in range(h):
-            for j in range(w):
-                val = heatmap_norm[i, j]
-                # Interpolate between blue and red
-                r = int(val * 255)
-                b = int((1 - val) * 255)
-                rgb[i, j] = [r, 0, b]
+        # Create image and resize with smooth interpolation
+        heatmap_img = Image.fromarray(rgba, mode="RGBA")
+        heatmap_img = heatmap_img.resize((width, height), Image.BILINEAR)
 
-        # Create image and resize
-        heatmap_img = Image.fromarray(rgb, mode="RGB")
-        heatmap_img = heatmap_img.resize((width, height), Image.NEAREST)
+        return heatmap_img
 
-        # Add alpha channel
-        heatmap_rgba = heatmap_img.convert("RGBA")
-        alpha_channel = Image.new("L", (width, height), alpha)
-        heatmap_rgba.putalpha(alpha_channel)
+    def _create_region_heatmap_overlay(
+        self,
+        predictions: List[RegionScore],
+        width: int,
+        height: int,
+        alpha: int = 160,
+    ) -> Image.Image:
+        """
+        Create a region-level heatmap overlay from aggregated region scores.
 
-        return heatmap_rgba
+        Each OCR region is filled with a color based on its aggregated score.
+        This shows the actual differences between aggregation methods.
+
+        Uses shared colormap and normalization utilities for professional
+        visualization consistent with the frontend.
+
+        Args:
+            predictions: List of RegionScore objects with scores
+            width: Target width
+            height: Target height
+            alpha: Transparency (0-255)
+
+        Returns:
+            RGBA image overlay
+        """
+        # Create transparent overlay
+        overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(overlay)
+
+        if not predictions:
+            logger.warning("No predictions provided for region heatmap")
+            return overlay
+
+        # Normalize scores using the configured strategy
+        scores = np.array([p.score for p in predictions])
+        normalized_scores = normalize_array(scores, self.normalization)
+
+        logger.debug(
+            f"Region scores: min={scores.min():.4f}, max={scores.max():.4f}, "
+            f"normalized range=[{normalized_scores.min():.2f}, {normalized_scores.max():.2f}]"
+        )
+
+        # Import colormap utility for getting individual colors
+        from utils.colormaps import get_color
+
+        # Draw each region filled with its score color
+        for pred, norm_score in zip(predictions, normalized_scores):
+            # Get color from the configured color scale
+            r, g, b = get_color(float(norm_score), self.color_scale)
+
+            # Convert normalized bbox to pixel coordinates
+            x1, y1, x2, y2 = pred.bbox
+            px1 = int(x1 * width)
+            py1 = int(y1 * height)
+            px2 = int(x2 * width)
+            py2 = int(y2 * height)
+
+            # Fill region with score-based color and add border for visibility
+            draw.rectangle([px1, py1, px2, py2], fill=(r, g, b, alpha))
+            # Add darker border to make regions more distinct
+            border_color = (max(0, r - 50), max(0, g - 50), max(0, b - 50), min(255, alpha + 50))
+            draw.rectangle([px1, py1, px2, py2], outline=border_color, width=2)
+
+        return overlay
 
     def _draw_region_box(
         self,
@@ -363,7 +414,7 @@ class BenchmarkVisualizer:
         sample_id: str,
         query: str,
     ) -> Image.Image:
-        """Add a header bar with sample info."""
+        """Add a header bar with sample info and legend."""
         header_height = 40
         width, height = image.size
 
@@ -378,24 +429,23 @@ class BenchmarkVisualizer:
         except (OSError, IOError):
             font = ImageFont.load_default()
 
-        # Draw header text
-        header_text = f"ID: {sample_id}"
+        # Draw header text (query only, sample_id is in filename)
         if query:
-            header_text += f" | Query: {query[:50]}{'...' if len(query) > 50 else ''}"
+            # Truncate query to fit
+            max_query_len = 80
+            display_query = query[:max_query_len] + ("..." if len(query) > max_query_len else "")
+            draw.text((10, 10), f"Q: {display_query}", fill=(0, 0, 0, 255), font=font)
 
-        draw.text((10, 10), header_text, fill=(0, 0, 0, 255), font=font)
-
-        # Draw legend
-        legend_x = width - 450
+        # Draw compact legend on the right
         legend_items = [
             ("HIT", COLORS["prediction_hit"]),
             ("MISS", COLORS["prediction_miss"]),
-            ("Ground Truth", COLORS["ground_truth"]),
-            ("Overlap", COLORS["overlap"]),
+            ("GT", COLORS["ground_truth"]),
         ]
 
+        legend_x = width - 280
         for i, (label, color) in enumerate(legend_items):
-            x = legend_x + i * 110
+            x = legend_x + i * 90
             draw.rectangle([x, 10, x + 15, 25], fill=color, outline=(0, 0, 0, 255))
             draw.text((x + 20, 10), label, fill=(0, 0, 0, 255), font=font)
 
@@ -472,6 +522,8 @@ def save_debug_overlay(
     output_path: str,
     query: str = "",
     sample_id: str = "",
+    color_scale: ColorScale = ColorScale.YLORRD,
+    normalization: NormalizationStrategy = NormalizationStrategy.PERCENTILE,
 ) -> None:
     """
     Convenience function to save a debug overlay.
@@ -485,6 +537,8 @@ def save_debug_overlay(
         output_path: Path to save the visualization
         query: Query text
         sample_id: Sample identifier
+        color_scale: ColorBrewer color scale for heatmaps (default: YlOrRd)
+        normalization: Normalization strategy for heatmap values (default: percentile)
     """
     # Load image if needed
     if isinstance(image, str):
@@ -492,7 +546,10 @@ def save_debug_overlay(
     elif isinstance(image, np.ndarray):
         image = Image.fromarray(image)
 
-    visualizer = BenchmarkVisualizer()
+    visualizer = BenchmarkVisualizer(
+        color_scale=color_scale,
+        normalization=normalization,
+    )
     vis = visualizer.visualize_sample(
         image=image,
         heatmap=heatmap,

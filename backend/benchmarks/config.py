@@ -40,7 +40,7 @@ class AggregationConfig:
 
     # Aggregation methods to evaluate
     methods: List[str] = field(
-        default_factory=lambda: ["max", "mean", "sum", "iou_weighted"]
+        default_factory=lambda: ["max", "mean", "sum", "iou_weighted", "iou_weighted_norm"]
     )
 
     # Default method for single-method runs

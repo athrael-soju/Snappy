@@ -19,14 +19,21 @@ Usage:
 """
 
 import os
+import sys
 from pathlib import Path as _Path
 
-# Set HuggingFace cache to local .eval_cache directory (before importing HF libraries)
+# Ensure backend directory is in path for imports (before any other imports)
 _BENCHMARKS_DIR = _Path(__file__).parent
+_BACKEND_DIR = _BENCHMARKS_DIR.parent
+if str(_BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(_BACKEND_DIR))
+
+# Set HuggingFace cache to local .eval_cache directory (before importing HF libraries)
 _EVAL_CACHE_DIR = _BENCHMARKS_DIR / ".eval_cache"
 os.environ.setdefault("HF_HOME", str(_EVAL_CACHE_DIR))
 os.environ.setdefault("HUGGINGFACE_HUB_CACHE", str(_EVAL_CACHE_DIR))
 
+# ruff: noqa: E402  # Imports must be after sys.path setup
 import argparse
 import json
 import logging
@@ -704,6 +711,9 @@ class BenchmarkRunner:
                             ground_truth=gt_boxes,
                             sample_id=vis_sample_id,
                             query=f"[{agg_method}+{sel_method}] {sample.question}",
+                            # Pass all aggregated region scores for heatmap coloring
+                            # This shows the full score distribution per aggregation method
+                            all_region_scores=region_scores,
                         )
             except Exception as e:
                 logger.warning(f"Visualization failed for {sample.sample_id}: {e}")
@@ -717,6 +727,56 @@ class BenchmarkRunner:
         f.write(f"**Date:** {metadata.get('timestamp', 'N/A')}\n")
         f.write(f"**Total Samples:** {metadata.get('total_samples', 0)}\n")
         f.write(f"**Elapsed Time:** {metadata.get('elapsed_seconds', 0):.2f}s\n\n")
+
+        # Region Statistics Overview
+        f.write("## Region Statistics Overview\n\n")
+        total_ocr = sum(s.get("num_ocr_regions", 0) for s in self.sample_results)
+        total_gt = sum(s.get("num_ground_truth", 0) for s in self.sample_results)
+        avg_ocr = total_ocr / len(self.sample_results) if self.sample_results else 0
+        avg_gt = total_gt / len(self.sample_results) if self.sample_results else 0
+
+        f.write(f"| Metric | Total | Avg per Sample |\n")
+        f.write(f"|--------|-------|----------------|\n")
+        f.write(f"| OCR Regions Detected | {total_ocr} | {avg_ocr:.1f} |\n")
+        f.write(f"| Ground Truth Boxes | {total_gt} | {avg_gt:.1f} |\n\n")
+
+        # Per-method selectivity: what % of detected regions does each method select?
+        f.write("### Selection Rate (% of OCR regions selected)\n\n")
+        f.write("Shows what fraction of detected OCR regions each method keeps. Lower = more selective.\n\n")
+
+        sel_methods = self.config.selection.methods
+        agg_methods = self.config.aggregation.methods
+
+        # Build table header
+        header = "| Aggregation |"
+        for sel in sel_methods:
+            header += f" {sel} |"
+        f.write(header + "\n")
+
+        # Separator
+        sep = "|-------------|"
+        for _ in sel_methods:
+            sep += "----------|"
+        f.write(sep + "\n")
+
+        # Calculate selection rate for each combination
+        for agg_method in agg_methods:
+            row = f"| **{agg_method}** |"
+            for sel_method in sel_methods:
+                total_selected = 0
+                total_detected = 0
+                for sample in self.sample_results:
+                    agg_sel = sample.get("aggregation_selection_results", {})
+                    num_detected = sample.get("num_ocr_regions", 0)
+                    if agg_method in agg_sel and sel_method in agg_sel[agg_method]:
+                        result = agg_sel[agg_method][sel_method]
+                        total_selected += result.get("num_selected", 0)
+                        total_detected += num_detected
+                selection_rate = total_selected / total_detected if total_detected > 0 else 0
+                row += f" {selection_rate:.0%} |"
+            f.write(row + "\n")
+
+        f.write("\n")
 
         # Aggregation × Selection Method Comparison Table
         f.write("## Aggregation × Selection Method Comparison\n\n")
@@ -858,6 +918,17 @@ class BenchmarkRunner:
         print(f"Benchmark: {self.config.name}")
         print("=" * 60)
 
+        # Region Statistics
+        total_ocr = sum(s.get("num_ocr_regions", 0) for s in self.sample_results)
+        total_gt = sum(s.get("num_ground_truth", 0) for s in self.sample_results)
+        num_samples = len(self.sample_results) if self.sample_results else 1
+        avg_ocr = total_ocr / num_samples
+        avg_gt = total_gt / num_samples
+
+        print(f"\nRegion Statistics:")
+        print(f"  OCR Regions: {total_ocr} total, {avg_ocr:.1f} avg/sample")
+        print(f"  Ground Truth: {total_gt} total, {avg_gt:.1f} avg/sample")
+
         # Aggregation × Selection grid (IoU@0.25)
         agg_sel_results = self.results.get("aggregation_selection_results", {})
         if agg_sel_results:
@@ -879,6 +950,31 @@ class BenchmarkRunner:
                     hit_rates = res.get("hit_rate_at_thresholds", {})
                     iou_025 = hit_rates.get("0.25", hit_rates.get(0.25, 0))
                     row += f" {iou_025:>10.2%}"
+                print(row)
+
+        # Per-method selection rate (% of OCR regions kept)
+        if agg_sel_results and self.sample_results:
+            print("\nSelection Rate (% of OCR regions kept):")
+            header = f"  {'Aggregation':<14}"
+            for sel in sel_methods:
+                header += f" {sel:>10}"
+            print(header)
+            print("  " + "-" * (14 + 11 * len(sel_methods)))
+
+            for agg_method in self.config.aggregation.methods:
+                row = f"  {agg_method:<14}"
+                for sel_method in sel_methods:
+                    total_selected = 0
+                    total_detected = 0
+                    for sample in self.sample_results:
+                        agg_sel = sample.get("aggregation_selection_results", {})
+                        num_detected = sample.get("num_ocr_regions", 0)
+                        if agg_method in agg_sel and sel_method in agg_sel[agg_method]:
+                            result = agg_sel[agg_method][sel_method]
+                            total_selected += result.get("num_selected", 0)
+                            total_detected += num_detected
+                    selection_rate = total_selected / total_detected if total_detected > 0 else 0
+                    row += f" {selection_rate:>10.0%}"
                 print(row)
 
         print("\nBaseline Comparison:")
@@ -949,7 +1045,7 @@ def main():
         "--aggregation-method",
         type=str,
         default=None,
-        choices=["max", "mean", "sum", "iou_weighted"],
+        choices=["max", "mean", "sum", "iou_weighted", "iou_weighted_norm"],
         help="Patch-to-region aggregation method. Default: iou_weighted",
     )
     parser.add_argument(
@@ -957,6 +1053,11 @@ def main():
         type=int,
         default=None,
         help="Number of top regions to select for top_k method. Use 0 to select all regions. Default: 0",
+    )
+    parser.add_argument(
+        "--no-viz",
+        action="store_true",
+        help="Disable visualization generation for faster benchmark runs",
     )
 
     args = parser.parse_args()
@@ -1015,6 +1116,10 @@ def main():
             if args.top_k is not None:
                 config.selection.default_k = args.top_k
 
+            # Disable visualization if requested
+            if args.no_viz:
+                config.visualization.enabled = False
+
             runner = BenchmarkRunner(config)
             all_results[name] = runner.run()
 
@@ -1057,6 +1162,10 @@ def main():
         # Override top-k from CLI
         if args.top_k is not None:
             config.selection.default_k = args.top_k
+
+        # Disable visualization if requested
+        if args.no_viz:
+            config.visualization.enabled = False
 
         runner = BenchmarkRunner(config)
         runner.run()
