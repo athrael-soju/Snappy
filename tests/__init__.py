@@ -1,0 +1,1 @@
+"""Snappy test suite."""

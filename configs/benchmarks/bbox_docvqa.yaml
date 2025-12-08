@@ -1,0 +1,98 @@
+# BBox_DocVQA Benchmark Configuration
+# Dataset: Yuwh07/BBox_DocVQA_Bench (1,623 QA pairs, 80 docs)
+# Paper: arxiv.org/abs/2512.02660 - Spatially-Grounded Document Retrieval
+
+dataset:
+  path: "Yuwh07/BBox_DocVQA_Bench"
+  filter: "single_page"  # single_page | multi_page | all
+  cache_dir: null  # Optional: cache directory for dataset
+  max_samples: null  # Optional: limit samples for testing
+
+model:
+  patch_grid_x: 32  # Number of patches in x dimension
+  patch_grid_y: 32  # Number of patches in y dimension
+  embedding_dim: 128  # Embedding dimension
+
+ocr:
+  coord_range: 999  # DeepSeek-OCR coordinate normalization range (0-999)
+
+aggregation:
+  methods:
+    - max
+    - mean
+    - sum
+    - iou_weighted
+  default: iou_weighted  # Canonical method
+
+selection:
+  methods:
+    - top_k
+    - threshold
+    - percentile
+    - otsu
+    - elbow
+    - gap
+    - relative
+  default: top_k
+
+  # Method-specific parameters
+  top_k:
+    values: [1, 3, 5, 10]
+  threshold:
+    values: [0.1, 0.2, 0.3, 0.5]
+  percentile:
+    values: [90, 95, 99]
+  relative:
+    values: [0.3, 0.5, 0.7]  # Fraction of max score
+
+evaluation:
+  iou_thresholds: [0.25, 0.5, 0.75]
+
+  matching_strategies:
+    - any_match      # Lenient: any pred-GT pair exceeds threshold
+    - set_coverage   # Recommended: count GT boxes covered by any prediction
+    - hungarian      # Strict: optimal 1:1 bipartite matching
+  default_matching: set_coverage
+
+  metrics:
+    - iou_at_threshold  # Hit rates at IoU thresholds
+    - mean_iou          # Average overlap
+    - precision_at_k    # Top-K precision
+    - recall_at_k       # Top-K recall
+    - map               # Mean average precision
+
+stratification:
+  by_complexity:
+    - SPSBB  # Single-Page Single-Box (46%)
+    - SPMBB  # Single-Page Multi-Box (34%)
+    - MPMBB  # Multi-Page Multi-Box (20%)
+  by_region_type:
+    - text   # 61%
+    - image  # 25%
+    - table  # 14%
+  by_domain:
+    - cs
+    - econ
+    - eess
+    - math
+    - physics
+    - q-bio
+    - q-fin
+    - stat
+
+baselines:
+  enabled:
+    - random_ocr          # Random OCR region selection
+    - text_similarity     # BM25/cosine on OCR text
+    - uniform_patches     # All patch scores = 1
+
+success_criteria:
+  mean_iou: 0.40           # > 40% (beats Qwen2.5VL-72B baseline of 35.2%)
+  recall_5_iou_50: 0.60    # Recall@5 (IoU >= 0.5) > 60%
+  improvement_over_text: 0.10  # > 10% improvement over text baseline
+
+output:
+  results_dir: "results/bbox_docvqa"
+  save_predictions: true
+  save_visualizations: true
+  report_format: "json"  # json | csv | markdown
