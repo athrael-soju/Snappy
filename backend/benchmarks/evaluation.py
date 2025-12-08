@@ -171,6 +171,7 @@ class SampleEvaluation:
     # Aggregate metrics (for multi-region evaluation)
     aggregate_iou: float = 0.0  # IoU of merged predictions vs merged GT
     gt_coverage: float = 0.0   # Fraction of GT area covered by predictions
+    coverage_at_thresholds: Dict[float, bool] = field(default_factory=dict)  # Coverage >= threshold
 
     # Raw data
     num_predictions: int = 0
@@ -203,6 +204,7 @@ class BenchmarkResults:
     # Aggregate metrics (for multi-region evaluation)
     mean_aggregate_iou: float = 0.0  # Mean IoU of merged predictions vs merged GT
     mean_gt_coverage: float = 0.0    # Mean fraction of GT area covered
+    coverage_hit_rate_at_thresholds: Dict[float, float] = field(default_factory=dict)
 
     # mAP across thresholds
     mAP: float = 0.0
@@ -222,6 +224,7 @@ class BBoxEvaluator:
     def __init__(
         self,
         iou_thresholds: Optional[List[float]] = None,
+        coverage_thresholds: Optional[List[float]] = None,
         matching_strategies: Optional[List[MatchingStrategy]] = None,
     ):
         """
@@ -229,9 +232,11 @@ class BBoxEvaluator:
 
         Args:
             iou_thresholds: IoU thresholds for hit rate computation
+            coverage_thresholds: GT coverage thresholds for hit rate computation
             matching_strategies: Strategies to use for evaluation
         """
         self.iou_thresholds = iou_thresholds or [0.25, 0.5, 0.75]
+        self.coverage_thresholds = coverage_thresholds or [0.5, 0.7, 0.9]
         self.matching_strategies = matching_strategies or ["any", "coverage", "hungarian"]
 
     def evaluate_sample(
@@ -286,6 +291,10 @@ class BBoxEvaluator:
         # Compute aggregate metrics (for multi-region evaluation)
         result.aggregate_iou = compute_aggregate_iou(predictions, ground_truth)
         result.gt_coverage = compute_gt_coverage(predictions, ground_truth)
+
+        # Compute coverage hit rates at different thresholds
+        for thresh in self.coverage_thresholds:
+            result.coverage_at_thresholds[thresh] = result.gt_coverage >= thresh
 
         return result
 
@@ -531,6 +540,13 @@ class BBoxEvaluator:
         results.mean_aggregate_iou = sum(s.aggregate_iou for s in results.samples) / n
         results.mean_gt_coverage = sum(s.gt_coverage for s in results.samples) / n
 
+        # Coverage hit rates at thresholds
+        for thresh in self.coverage_thresholds:
+            hits = sum(
+                1 for s in results.samples if s.coverage_at_thresholds.get(thresh, False)
+            )
+            results.coverage_hit_rate_at_thresholds[thresh] = hits / n
+
         # Compute mAP (mean AP across IoU thresholds)
         results.mAP = sum(results.hit_rate_at_thresholds.values()) / len(
             self.iou_thresholds
@@ -538,6 +554,7 @@ class BBoxEvaluator:
 
         results.config = {
             "iou_thresholds": self.iou_thresholds,
+            "coverage_thresholds": self.coverage_thresholds,
             "matching_strategies": self.matching_strategies,
         }
 

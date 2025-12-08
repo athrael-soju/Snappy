@@ -588,38 +588,50 @@ class BenchmarkRunner:
                     predictions.append([])
                     continue
 
+                # Determine k for baselines (0 means all regions)
+                baseline_k = self.config.selection.default_k
+                if baseline_k == 0:
+                    baseline_k = len(ocr_regions)
+
                 if baseline_name == "random":
+                    # Random uses its own k config
+                    random_k = self.config.baselines.random_k
+                    if random_k == 0:
+                        random_k = len(ocr_regions)
                     result = self.baseline_generator.random_selection(
-                        ocr_regions, k=self.config.baselines.random_k
+                        ocr_regions, k=random_k
                     )
                 elif baseline_name == "bm25":
                     result = self.baseline_generator.text_similarity_bm25(
                         ocr_regions,
                         query=sample.question,
-                        k=self.config.selection.default_k,
+                        k=baseline_k,
                     )
                 elif baseline_name == "cosine":
                     result = self.baseline_generator.text_similarity_cosine(
                         ocr_regions,
                         query=sample.question,
-                        k=self.config.selection.default_k,
+                        k=baseline_k,
                     )
                 elif baseline_name == "uniform_patches":
                     result = self.baseline_generator.uniform_patches(ocr_regions)
-                    # Apply selection to uniform baseline
-                    result.region_scores = result.region_scores[
-                        : self.config.selection.default_k
-                    ]
+                    # Apply selection to uniform baseline (0 means all)
+                    if self.config.selection.default_k > 0:
+                        result.region_scores = result.region_scores[
+                            : self.config.selection.default_k
+                        ]
                 elif baseline_name == "center_bias":
                     result = self.baseline_generator.center_bias(ocr_regions)
-                    result.region_scores = result.region_scores[
-                        : self.config.selection.default_k
-                    ]
+                    if self.config.selection.default_k > 0:
+                        result.region_scores = result.region_scores[
+                            : self.config.selection.default_k
+                        ]
                 elif baseline_name == "top_left_bias":
                     result = self.baseline_generator.top_left_bias(ocr_regions)
-                    result.region_scores = result.region_scores[
-                        : self.config.selection.default_k
-                    ]
+                    if self.config.selection.default_k > 0:
+                        result.region_scores = result.region_scores[
+                            : self.config.selection.default_k
+                        ]
                 else:
                     continue
 
@@ -648,6 +660,7 @@ class BenchmarkRunner:
             "mean_hungarian_iou": results.mean_hungarian_iou,
             "mean_aggregate_iou": results.mean_aggregate_iou,
             "mean_gt_coverage": results.mean_gt_coverage,
+            "coverage_hit_rate_at_thresholds": results.coverage_hit_rate_at_thresholds,
             "mAP": results.mAP,
             "total_samples": results.total_samples,
         }
@@ -667,7 +680,7 @@ class BenchmarkRunner:
             logger.info(f"Saved summary to {summary_path}")
 
     def _generate_visualizations(self, samples: List[BBoxDocVQASample]) -> None:
-        """Generate debug visualizations for select samples, one per selection method."""
+        """Generate debug visualizations for select samples, organized by sample subfolder."""
         if not self.visualizer:
             return
 
@@ -692,9 +705,16 @@ class BenchmarkRunner:
         num_sel = len(self.config.selection.methods)
         logger.info(f"Generating {len(indices)} x {num_agg} x {num_sel} visualizations...")
 
+        # Base visualization directory
+        vis_base_dir = self.run_dir / self.config.visualization.output_dir
+
         for idx in indices:
             sample = samples[idx]
             try:
+                # Create subfolder for this sample
+                sample_vis_dir = vis_base_dir / sample.sample_id
+                sample_vis_dir.mkdir(parents=True, exist_ok=True)
+
                 image = sample.load_image(
                     images_dir=(
                         Path(self.config.dataset.images_dir)
@@ -726,21 +746,24 @@ class BenchmarkRunner:
                             relative_threshold=self.config.selection.default_relative_threshold,
                         )
 
-                        # Include method names in sample_id for unique filenames
-                        vis_sample_id = f"{sample.sample_id}_{agg_method}_{sel_method}"
-
-                        self.visualizer.visualize_sample(
+                        # Create visualization and save to sample subfolder
+                        vis_image = self.visualizer.visualize_sample(
                             image=image,
                             heatmap=heatmap if self.config.visualization.show_heatmap else None,
                             ocr_regions=ocr_regions,
                             predictions=selection_result.selected_regions,
                             ground_truth=gt_boxes,
-                            sample_id=vis_sample_id,
+                            sample_id="",  # Don't auto-save, we handle it below
                             query=f"[{agg_method}+{sel_method}] {sample.question}",
-                            # Pass all aggregated region scores for heatmap coloring
-                            # This shows the full score distribution per aggregation method
                             all_region_scores=region_scores,
                         )
+
+                        # Save with method-specific filename in sample subfolder
+                        output_path = sample_vis_dir / f"{agg_method}_{sel_method}.png"
+                        vis_image.convert("RGB").save(output_path, dpi=(self.visualizer.dpi, self.visualizer.dpi))
+
+                logger.debug(f"Saved {num_agg * num_sel} visualizations to {sample_vis_dir}")
+
             except Exception as e:
                 logger.warning(f"Visualization failed for {sample.sample_id}: {e}")
 
@@ -834,24 +857,59 @@ class BenchmarkRunner:
 
             f.write("\n*Values show IoU@0.25 hit rate*\n\n")
 
+            # Coverage Hit Rate Grid
+            f.write("### Coverage Hit Rate at Thresholds\n\n")
+            cov_thresholds = [0.5, 0.7, 0.9]
+
+            # Build header row with coverage thresholds
+            header = "| Aggregation |"
+            for thresh in cov_thresholds:
+                header += f" cov@{int(thresh*100)}% |"
+            f.write(header + "\n")
+
+            # Separator
+            sep = "|-------------|"
+            for _ in cov_thresholds:
+                sep += "---------|"
+            f.write(sep + "\n")
+
+            # Write rows for each aggregation method (using first selection method)
+            for agg_method, sel_results in agg_sel_results.items():
+                row = f"| **{agg_method}** |"
+                # Use first selection method for coverage summary
+                first_sel = list(sel_results.keys())[0] if sel_results else None
+                if first_sel:
+                    res = sel_results[first_sel]
+                    cov_rates = res.get("coverage_hit_rate_at_thresholds", {})
+                    for thresh in cov_thresholds:
+                        rate = cov_rates.get(str(thresh), cov_rates.get(thresh, 0))
+                        row += f" {rate:.0%} |"
+                else:
+                    for _ in cov_thresholds:
+                        row += " 0% |"
+                f.write(row + "\n")
+
+            f.write("\n*Shows percentage of samples with GT coverage >= threshold (using first selection method)*\n\n")
+
             # Detailed table for each aggregation method
             for agg_method, sel_results in agg_sel_results.items():
                 f.write(f"### {agg_method} Aggregation\n\n")
-                f.write("| Selection | Mean IoU | Agg IoU | GT Cov | Precision | Recall | F1 | IoU@0.25 | IoU@0.5 |\n")
-                f.write("|-----------|----------|---------|--------|-----------|--------|-----|----------|--------|\n")
+                f.write("| Selection | Mean IoU | Agg IoU | GT Cov | IoU@0.25 | IoU@0.5 | cov@50% | cov@70% | cov@90% |\n")
+                f.write("|-----------|----------|---------|--------|----------|---------|---------|---------|--------|\n")
 
                 for sel_method, res in sel_results.items():
                     hit_rates = res.get("hit_rate_at_thresholds", {})
+                    cov_rates = res.get("coverage_hit_rate_at_thresholds", {})
                     f.write(
                         f"| {sel_method} "
                         f"| {res.get('mean_iou', 0):.4f} "
                         f"| {res.get('mean_aggregate_iou', 0):.4f} "
                         f"| {res.get('mean_gt_coverage', 0):.4f} "
-                        f"| {res.get('mean_precision', 0):.4f} "
-                        f"| {res.get('mean_recall', 0):.4f} "
-                        f"| {res.get('mean_f1', 0):.4f} "
-                        f"| {hit_rates.get('0.25', hit_rates.get(0.25, 0)):.4f} "
-                        f"| {hit_rates.get('0.5', hit_rates.get(0.5, 0)):.4f} |\n"
+                        f"| {hit_rates.get('0.25', hit_rates.get(0.25, 0)):.2%} "
+                        f"| {hit_rates.get('0.5', hit_rates.get(0.5, 0)):.2%} "
+                        f"| {cov_rates.get('0.5', cov_rates.get(0.5, 0)):.0%} "
+                        f"| {cov_rates.get('0.7', cov_rates.get(0.7, 0)):.0%} "
+                        f"| {cov_rates.get('0.9', cov_rates.get(0.9, 0)):.0%} |\n"
                     )
                 f.write("\n")
 
@@ -997,6 +1055,27 @@ class BenchmarkRunner:
                     row += f" {gt_cov:>10.2%}"
                 print(row)
 
+            # Coverage hit rate at thresholds (cov@50%, cov@70%, cov@90%)
+            print("\nCoverage Hit Rate at Thresholds:")
+            cov_thresholds = [0.5, 0.7, 0.9]
+            header = f"  {'Aggregation':<14}"
+            for thresh in cov_thresholds:
+                header += f" cov@{int(thresh*100):02d}%"
+            print(header)
+            print("  " + "-" * (14 + 10 * len(cov_thresholds)))
+
+            for agg_method, sel_results in agg_sel_results.items():
+                row = f"  {agg_method:<14}"
+                # Use the first selection method for simplicity in console summary
+                # (full grid is in the markdown summary)
+                for sel_method in sel_methods[:1]:  # Just show default/first
+                    res = sel_results.get(sel_method, {})
+                    cov_rates = res.get("coverage_hit_rate_at_thresholds", {})
+                    for thresh in cov_thresholds:
+                        rate = cov_rates.get(str(thresh), cov_rates.get(thresh, 0))
+                        row += f" {rate:>8.0%}"
+                print(row)
+
         # Per-method selection rate (% of OCR regions kept)
         if agg_sel_results and self.sample_results:
             print("\nSelection Rate (% of OCR regions kept):")
@@ -1023,8 +1102,14 @@ class BenchmarkRunner:
                 print(row)
 
         print("\nBaseline Comparison:")
+        print(f"  {'Baseline':<16} {'IoU@0.25':>10} {'GT Cov':>10} {'Agg IoU':>10}")
+        print("  " + "-" * 48)
         for name, results in self.results.get("baseline_results", {}).items():
-            print(f"  {name}: Recall={results.get('mean_recall', 0):.4f}")
+            hit_rates = results.get("hit_rate_at_thresholds", {})
+            iou_025 = hit_rates.get("0.25", hit_rates.get(0.25, 0))
+            gt_cov = results.get("mean_gt_coverage", 0)
+            agg_iou = results.get("mean_aggregate_iou", 0)
+            print(f"  {name:<16} {iou_025:>10.2%} {gt_cov:>10.2%} {agg_iou:>10.4f}")
         print()
 
 
