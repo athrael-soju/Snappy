@@ -60,11 +60,11 @@ class SelectionConfig:
 
     # Selection methods to evaluate
     methods: List[str] = field(
-        default_factory=lambda: ["top_k", "otsu", "relative"]
+        default_factory=lambda: ["all", "top_k", "otsu", "relative"]
     )
 
     # Default method for single-method runs
-    default_method: str = "top_k"
+    default_method: str = "all"
 
     # Top-k parameters
     top_k_values: List[int] = field(default_factory=lambda: [1, 3, 5, 10])

@@ -683,16 +683,18 @@ class BenchmarkRunner:
             f.write(f"  Ground Truth: {num_gt} regions\n")
             f.write(f"  Best IoU: {max_iou:.4f}\n")
 
-            # Show top selected regions with their IoU
+            # Show all selected regions with their IoU and rank
             region_scores = sample.get("region_scores", [])
             if region_scores:
-                f.write("  Top Regions:\n")
-                for i, r in enumerate(region_scores[:3]):  # Show top 3
+                f.write("  All Regions (ranked by score):\n")
+                for i, r in enumerate(region_scores):
                     iou = r.get("iou", 0.0)
                     label = r.get("label", "?")
                     score = r.get("score", 0.0)
-                    match_mark = "✓" if iou >= 0.25 else "✗"
-                    f.write(f"    {i+1}. [{label}] score={score:.3f} iou={iou:.3f} {match_mark}\n")
+                    match_mark = "✓ HIT" if iou >= 0.25 else "✗"
+                    # Highlight matching regions
+                    prefix = ">>>" if iou >= 0.25 else "   "
+                    f.write(f"  {prefix} {i+1}. [{label}] score={score:.3f} iou={iou:.3f} {match_mark}\n")
             f.write("\n")
 
     def _print_summary(self) -> None:

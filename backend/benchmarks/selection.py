@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 # Selection method types
 SelectionMethod = Literal[
-    "top_k", "threshold", "percentile", "otsu", "elbow", "gap", "relative"
+    "top_k", "threshold", "percentile", "otsu", "elbow", "gap", "relative", "all"
 ]
 
 
@@ -105,6 +105,8 @@ class RegionSelector:
             return self._select_gap(region_scores)
         elif method == "relative":
             return self._select_relative(region_scores, relative_threshold)
+        elif method == "all":
+            return self._select_all(region_scores)
         else:
             raise ValueError(f"Unknown selection method: {method}")
 
@@ -120,6 +122,17 @@ class RegionSelector:
             method="top_k",
             threshold_used=threshold,
             params={"k": k},
+        )
+
+    def _select_all(
+        self, region_scores: List[RegionScore]
+    ) -> SelectionResult:
+        """Return all regions sorted by score (no filtering)."""
+        return SelectionResult(
+            selected_regions=region_scores,
+            method="all",
+            threshold_used=0.0,
+            params={"count": len(region_scores)},
         )
 
     def _select_threshold(
