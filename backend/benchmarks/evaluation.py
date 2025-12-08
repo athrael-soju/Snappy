@@ -437,14 +437,18 @@ class BBoxEvaluator:
 
         Returns:
             (mean_iou_of_matched, num_matched)
+
+        Raises:
+            ImportError: If scipy is not installed (required for Hungarian matching)
         """
         try:
             from scipy.optimize import linear_sum_assignment
         except ImportError:
-            logger.warning(
-                "scipy not available for Hungarian matching, using greedy"
+            raise ImportError(
+                "scipy is required for Hungarian matching. "
+                "Install with: pip install scipy\n"
+                "Or remove 'hungarian' from matching_strategies in config."
             )
-            return self._greedy_matching(iou_matrix)
 
         n_preds, n_gt = iou_matrix.shape
 

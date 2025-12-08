@@ -918,17 +918,21 @@ class BenchmarkRunner:
         baseline_results = self.results.get("baseline_results", {})
 
         if baseline_results:
-            f.write("| Baseline | Agg IoU | GT Cov | Recall | Precision | F1 |\n")
-            f.write("|----------|---------|--------|--------|-----------|-----|\n")
+            f.write("| Baseline | IoU@0.25 | GT Cov | Agg IoU | cov@50% | cov@70% | cov@90% |\n")
+            f.write("|----------|----------|--------|---------|---------|---------|--------|\n")
 
             for name, res in baseline_results.items():
+                hit_rates = res.get("hit_rate_at_thresholds", {})
+                cov_rates = res.get("coverage_hit_rate_at_thresholds", {})
+                iou_025 = hit_rates.get("0.25", hit_rates.get(0.25, 0))
                 f.write(
                     f"| {name} "
+                    f"| {iou_025:.2%} "
+                    f"| {res.get('mean_gt_coverage', 0):.2%} "
                     f"| {res.get('mean_aggregate_iou', 0):.4f} "
-                    f"| {res.get('mean_gt_coverage', 0):.4f} "
-                    f"| {res.get('mean_recall', 0):.4f} "
-                    f"| {res.get('mean_precision', 0):.4f} "
-                    f"| {res.get('mean_f1', 0):.4f} |\n"
+                    f"| {cov_rates.get('0.5', cov_rates.get(0.5, 0)):.0%} "
+                    f"| {cov_rates.get('0.7', cov_rates.get(0.7, 0)):.0%} "
+                    f"| {cov_rates.get('0.9', cov_rates.get(0.9, 0)):.0%} |\n"
                 )
 
             f.write("\n")

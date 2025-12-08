@@ -264,17 +264,20 @@ class PatchToRegionAggregator:
         Normalize bounding box to [0, 1] space.
 
         Handles multiple input formats:
-        - DeepSeek-OCR: 0-999 coordinates
-        - Pixel coordinates: absolute values
-        - Already normalized: 0-1 range
+        - DeepSeek-OCR: 0-999 coordinates (auto-detected when max <= 999 and no image dims)
+        - Pixel coordinates: absolute values (requires image_width and image_height)
+        - Already normalized: 0-1 range (auto-detected when max <= 1.0)
 
         Args:
             bbox: Bounding box [x1, y1, x2, y2]
-            image_width: Image width for pixel normalization
-            image_height: Image height for pixel normalization
+            image_width: Image width for pixel normalization (required if coords > 999)
+            image_height: Image height for pixel normalization (required if coords > 999)
 
         Returns:
             Normalized (x1, y1, x2, y2) tuple
+
+        Raises:
+            ValueError: If coordinate format cannot be determined unambiguously
         """
         x1, y1, x2, y2 = bbox[0], bbox[1], bbox[2], bbox[3]
 
@@ -288,7 +291,7 @@ class PatchToRegionAggregator:
             # DeepSeek-OCR format (0-999)
             return (x1 / 999.0, y1 / 999.0, x2 / 999.0, y2 / 999.0)
         elif image_width is not None and image_height is not None:
-            # Pixel coordinates
+            # Pixel coordinates - use provided dimensions
             return (
                 x1 / image_width,
                 y1 / image_height,
@@ -296,8 +299,12 @@ class PatchToRegionAggregator:
                 y2 / image_height,
             )
         else:
-            # Assume DeepSeek-OCR format
-            return (x1 / 999.0, y1 / 999.0, x2 / 999.0, y2 / 999.0)
+            # Coordinates > 999 but no image dimensions provided
+            raise ValueError(
+                f"Cannot normalize bbox {bbox}: coordinates exceed 999 (max={max_coord}) "
+                f"but image dimensions not provided. Either provide image_width/image_height "
+                f"for pixel coordinates, or ensure OCR returns 0-999 DeepSeek format."
+            )
 
     def compute_all_methods(
         self,
