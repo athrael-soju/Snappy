@@ -16,7 +16,7 @@ Methods:
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
 import numpy as np
 
@@ -360,65 +360,3 @@ class RegionSelector:
             threshold_used=float(threshold),
             params={"relative_threshold": relative_threshold, "max_score": max_score},
         )
-
-    def select_all_methods(
-        self,
-        region_scores: List[RegionScore],
-        k_values: Optional[List[int]] = None,
-        relative_thresholds: Optional[List[float]] = None,
-    ) -> Dict[str, SelectionResult]:
-        """
-        Apply all selection methods for ablation studies.
-
-        Args:
-            region_scores: List of RegionScore objects
-            k_values: List of k values to test for top_k
-            relative_thresholds: List of thresholds for relative method
-
-        Returns:
-            Dictionary mapping method name to SelectionResult
-        """
-        k_values = k_values or [1, 3, 5, 10]
-        relative_thresholds = relative_thresholds or [0.5, 0.7, 0.9]
-
-        results = {}
-
-        # Top-k with different k values
-        for k in k_values:
-            results[f"top_k_{k}"] = self.select(
-                region_scores, method="top_k", k=k
-            )
-
-        # Automatic methods
-        results["otsu"] = self.select(region_scores, method="otsu")
-        results["elbow"] = self.select(region_scores, method="elbow")
-        results["gap"] = self.select(region_scores, method="gap")
-
-        # Relative with different thresholds
-        for thresh in relative_thresholds:
-            results[f"relative_{thresh}"] = self.select(
-                region_scores, method="relative", relative_threshold=thresh
-            )
-
-        return results
-
-
-def select_relevant_regions(
-    region_scores: List[RegionScore],
-    method: str = "top_k",
-    **kwargs,
-) -> List[RegionScore]:
-    """
-    Convenience function to select relevant regions.
-
-    Args:
-        region_scores: List of RegionScore objects
-        method: Selection method
-        **kwargs: Method-specific parameters
-
-    Returns:
-        List of selected RegionScore objects
-    """
-    selector = RegionSelector(default_method=method)
-    result = selector.select(region_scores, method=method, **kwargs)
-    return result.selected_regions

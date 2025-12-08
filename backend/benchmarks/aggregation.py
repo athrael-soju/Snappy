@@ -19,8 +19,8 @@ from typing import Any, Dict, List, Literal, Optional, Tuple
 import numpy as np
 
 from .utils.coordinates import (
-    compute_patch_region_iou,
     get_overlapping_patches,
+    normalize_bbox,
 )
 
 logger = logging.getLogger(__name__)
@@ -186,8 +186,8 @@ class PatchToRegionAggregator:
         if not bbox or len(bbox) < 4:
             return None
 
-        # Normalize bbox to [0, 1] space
-        normalized_bbox = self._normalize_bbox(
+        # Normalize bbox to [0, 1] space using shared utility
+        normalized_bbox = normalize_bbox(
             bbox=bbox,
             image_width=image_width,
             image_height=image_height,
@@ -253,145 +253,3 @@ class PatchToRegionAggregator:
             patch_count=len(overlapping),
             raw_region=region,
         )
-
-    def _normalize_bbox(
-        self,
-        bbox: List[float],
-        image_width: Optional[int] = None,
-        image_height: Optional[int] = None,
-    ) -> Tuple[float, float, float, float]:
-        """
-        Normalize bounding box to [0, 1] space.
-
-        Handles multiple input formats:
-        - DeepSeek-OCR: 0-999 coordinates (auto-detected when max <= 999 and no image dims)
-        - Pixel coordinates: absolute values (requires image_width and image_height)
-        - Already normalized: 0-1 range (auto-detected when max <= 1.0)
-
-        Args:
-            bbox: Bounding box [x1, y1, x2, y2]
-            image_width: Image width for pixel normalization (required if coords > 999)
-            image_height: Image height for pixel normalization (required if coords > 999)
-
-        Returns:
-            Normalized (x1, y1, x2, y2) tuple
-
-        Raises:
-            ValueError: If coordinate format cannot be determined unambiguously
-        """
-        x1, y1, x2, y2 = bbox[0], bbox[1], bbox[2], bbox[3]
-
-        # Detect coordinate system
-        max_coord = max(x1, y1, x2, y2)
-
-        if max_coord <= 1.0:
-            # Already normalized
-            return (x1, y1, x2, y2)
-        elif max_coord <= 999 and image_width is None:
-            # DeepSeek-OCR format (0-999)
-            return (x1 / 999.0, y1 / 999.0, x2 / 999.0, y2 / 999.0)
-        elif image_width is not None and image_height is not None:
-            # Pixel coordinates - use provided dimensions
-            return (
-                x1 / image_width,
-                y1 / image_height,
-                x2 / image_width,
-                y2 / image_height,
-            )
-        else:
-            # Coordinates > 999 but no image dimensions provided
-            raise ValueError(
-                f"Cannot normalize bbox {bbox}: coordinates exceed 999 (max={max_coord}) "
-                f"but image dimensions not provided. Either provide image_width/image_height "
-                f"for pixel coordinates, or ensure OCR returns 0-999 DeepSeek format."
-            )
-
-    def compute_all_methods(
-        self,
-        heatmap: np.ndarray,
-        regions: List[Dict[str, Any]],
-        image_width: Optional[int] = None,
-        image_height: Optional[int] = None,
-    ) -> Dict[AggregationMethod, List[RegionScore]]:
-        """
-        Compute region scores using all aggregation methods.
-
-        Useful for ablation studies comparing different methods.
-
-        Args:
-            heatmap: 2D array of patch scores
-            regions: List of OCR region dictionaries
-            image_width: Original image width
-            image_height: Original image height
-
-        Returns:
-            Dictionary mapping method name to list of RegionScore
-        """
-        methods: List[AggregationMethod] = ["max", "mean", "sum", "iou_weighted", "iou_weighted_norm"]
-        results = {}
-
-        for method in methods:
-            results[method] = self.aggregate(
-                heatmap=heatmap,
-                regions=regions,
-                method=method,
-                image_width=image_width,
-                image_height=image_height,
-            )
-
-        return results
-
-
-def aggregate_patches_to_regions(
-    similarity_maps: List[Dict[str, Any]],
-    regions: List[Dict[str, Any]],
-    n_patches_x: int,
-    n_patches_y: int,
-    image_width: int,
-    image_height: int,
-    aggregation: str = "iou_weighted",
-    token_aggregation: str = "max",
-) -> List[RegionScore]:
-    """
-    Convenience function for aggregating patch scores to regions.
-
-    Compatible with the existing Snappy interpretability response format.
-
-    Args:
-        similarity_maps: List of per-token similarity maps from interpretability response
-        regions: List of OCR region dictionaries
-        n_patches_x: Number of patches in x dimension
-        n_patches_y: Number of patches in y dimension
-        image_width: Original image width
-        image_height: Original image height
-        aggregation: Patch-to-region aggregation method
-        token_aggregation: Token aggregation method
-
-    Returns:
-        List of RegionScore objects sorted by score descending
-    """
-    # Convert similarity maps to numpy arrays
-    token_maps = []
-    for sim_map in similarity_maps:
-        map_data = sim_map.get("similarity_map", [])
-        if map_data:
-            token_maps.append(np.array(map_data))
-
-    if not token_maps:
-        logger.warning("No valid similarity maps found")
-        return []
-
-    aggregator = PatchToRegionAggregator(
-        grid_x=n_patches_x,
-        grid_y=n_patches_y,
-        default_method=aggregation,
-    )
-
-    return aggregator.aggregate_multi_token(
-        similarity_maps=token_maps,
-        regions=regions,
-        method=aggregation,
-        token_aggregation=token_aggregation,
-        image_width=image_width,
-        image_height=image_height,
-    )

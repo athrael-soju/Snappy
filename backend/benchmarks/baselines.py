@@ -12,12 +12,12 @@ import math
 import random
 import re
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
 from .aggregation import RegionScore
-from .utils.coordinates import NormalizedBox
+from .utils.coordinates import normalize_bbox
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +89,7 @@ class BaselineGenerator:
         for region, score in zip(selected, scores):
             bbox = region.get("bbox", [0, 0, 0, 0])
             # Normalize bbox if needed
-            normalized_bbox = self._normalize_bbox(bbox, image_width, image_height)
+            normalized_bbox = normalize_bbox(bbox, image_width, image_height)
 
             region_scores.append(
                 RegionScore(
@@ -189,7 +189,7 @@ class BaselineGenerator:
                 score += idf * tf_component
 
             bbox = region.get("bbox", [0, 0, 0, 0])
-            normalized_bbox = self._normalize_bbox(bbox, image_width, image_height)
+            normalized_bbox = normalize_bbox(bbox, image_width, image_height)
 
             region_scores.append(
                 RegionScore(
@@ -280,7 +280,7 @@ class BaselineGenerator:
             similarity = self._cosine_similarity(query_vec, region_vec)
 
             bbox = region.get("bbox", [0, 0, 0, 0])
-            normalized_bbox = self._normalize_bbox(bbox, image_width, image_height)
+            normalized_bbox = normalize_bbox(bbox, image_width, image_height)
 
             region_scores.append(
                 RegionScore(
@@ -448,7 +448,7 @@ class BaselineGenerator:
         region_scores = []
         for region in regions:
             bbox = region.get("bbox", [0, 0, 0, 0])
-            normalized_bbox = self._normalize_bbox(bbox, image_width, image_height)
+            normalized_bbox = normalize_bbox(bbox, image_width, image_height)
 
             # Score inversely proportional to position
             x1, y1, x2, y2 = normalized_bbox
@@ -525,81 +525,3 @@ class BaselineGenerator:
             return 0.0
 
         return float(dot / (norm1 * norm2))
-
-    def _normalize_bbox(
-        self,
-        bbox: List[float],
-        image_width: Optional[int] = None,
-        image_height: Optional[int] = None,
-    ) -> Tuple[float, float, float, float]:
-        """
-        Normalize bbox to [0, 1] space.
-
-        Handles three formats:
-        - Already normalized: values in [0, 1]
-        - DeepSeek-OCR format: values in [0, 999]
-        - Pixel coordinates: requires image_width and image_height
-
-        Args:
-            bbox: Bounding box [x1, y1, x2, y2]
-            image_width: Image width for pixel coordinate normalization
-            image_height: Image height for pixel coordinate normalization
-
-        Returns:
-            Normalized (x1, y1, x2, y2) tuple
-
-        Raises:
-            ValueError: If coordinates exceed 999 and no image dimensions provided
-        """
-        if len(bbox) < 4:
-            return (0.0, 0.0, 0.0, 0.0)
-
-        x1, y1, x2, y2 = bbox[0], bbox[1], bbox[2], bbox[3]
-        max_coord = max(x1, y1, x2, y2)
-
-        if max_coord <= 1.0:
-            # Already normalized
-            return (x1, y1, x2, y2)
-        elif max_coord <= 999 and image_width is None:
-            # DeepSeek-OCR format (0-999)
-            return (x1 / 999.0, y1 / 999.0, x2 / 999.0, y2 / 999.0)
-        elif image_width is not None and image_height is not None:
-            # Pixel coordinates - use provided dimensions
-            return (
-                x1 / image_width,
-                y1 / image_height,
-                x2 / image_width,
-                y2 / image_height,
-            )
-        else:
-            raise ValueError(
-                f"Cannot normalize bbox {bbox}: coordinates exceed 999 (max={max_coord}) "
-                f"but image dimensions not provided. Provide image_width/image_height "
-                f"for pixel coordinates."
-            )
-
-    def run_all_baselines(
-        self,
-        regions: List[Dict[str, Any]],
-        query: str,
-        k: int = 5,
-    ) -> Dict[str, BaselineResult]:
-        """
-        Run all baseline methods.
-
-        Args:
-            regions: List of OCR region dictionaries
-            query: Query text
-            k: Number of regions to select
-
-        Returns:
-            Dictionary mapping method name to BaselineResult
-        """
-        return {
-            "random": self.random_selection(regions, k),
-            "bm25": self.text_similarity_bm25(regions, query, k),
-            "cosine": self.text_similarity_cosine(regions, query, k),
-            "uniform_patches": self.uniform_patches(regions),
-            "center_bias": self.center_bias(regions),
-            "top_left_bias": self.top_left_bias(regions),
-        }

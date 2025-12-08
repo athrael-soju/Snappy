@@ -7,13 +7,65 @@ This module handles the alignment of three coordinate systems:
 3. Ground truth (absolute pixels) → normalized [0,1]
 """
 
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 
 
 # Type alias for bounding boxes: (x1, y1, x2, y2) in normalized [0,1] space
 NormalizedBox = Tuple[float, float, float, float]
+
+
+def normalize_bbox(
+    bbox: List[float],
+    image_width: Optional[int] = None,
+    image_height: Optional[int] = None,
+) -> NormalizedBox:
+    """
+    Normalize bounding box to [0, 1] space.
+
+    Handles three input formats:
+    - Already normalized: values in [0, 1] - returned as-is
+    - DeepSeek-OCR format: values in [0, 999] - detected when max <= 999 and no image dims
+    - Pixel coordinates: requires image_width and image_height
+
+    Args:
+        bbox: Bounding box [x1, y1, x2, y2]
+        image_width: Image width for pixel coordinate normalization
+        image_height: Image height for pixel coordinate normalization
+
+    Returns:
+        Normalized (x1, y1, x2, y2) tuple in [0, 1] space
+
+    Raises:
+        ValueError: If bbox has fewer than 4 elements or coordinates cannot be normalized
+    """
+    if len(bbox) < 4:
+        raise ValueError(f"Bounding box must have at least 4 elements, got {len(bbox)}")
+
+    x1, y1, x2, y2 = bbox[0], bbox[1], bbox[2], bbox[3]
+    max_coord = max(x1, y1, x2, y2)
+
+    if max_coord <= 1.0:
+        # Already normalized
+        return (x1, y1, x2, y2)
+    elif max_coord <= 999 and image_width is None:
+        # DeepSeek-OCR format (0-999)
+        return (x1 / 999.0, y1 / 999.0, x2 / 999.0, y2 / 999.0)
+    elif image_width is not None and image_height is not None:
+        # Pixel coordinates - use provided dimensions
+        return (
+            x1 / image_width,
+            y1 / image_height,
+            x2 / image_width,
+            y2 / image_height,
+        )
+    else:
+        raise ValueError(
+            f"Cannot normalize bbox {bbox}: coordinates exceed 999 (max={max_coord}) "
+            f"but image dimensions not provided. Provide image_width/image_height "
+            f"for pixel coordinates."
+        )
 
 
 def normalize_patch_to_box(
