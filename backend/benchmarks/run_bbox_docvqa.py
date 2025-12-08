@@ -47,6 +47,7 @@ import numpy as np
 from .aggregation import AggregationMethod, PatchToRegionAggregator
 from .baselines import BaselineGenerator
 from .clients import BenchmarkColPaliClient, BenchmarkOcrClient
+from .local_models import LocalColPaliModel, LocalModelClient
 from .config import BenchmarkConfig, create_ablation_configs, get_default_config
 from .evaluation import (
     BBoxEvaluator,
@@ -75,6 +76,7 @@ class BenchmarkRunner:
         config: BenchmarkConfig,
         colpali_client: Optional[BenchmarkColPaliClient] = None,
         ocr_client: Optional[BenchmarkOcrClient] = None,
+        local_model_id: Optional[str] = None,
     ):
         """
         Initialize the benchmark runner.
@@ -83,14 +85,24 @@ class BenchmarkRunner:
             config: Benchmark configuration
             colpali_client: Optional ColPali client (created from config if not provided)
             ocr_client: Optional OCR client (created from config if not provided)
+            local_model_id: Optional local model ID to use instead of HTTP service
         """
         self.config = config
+        self.local_model_id = local_model_id
 
-        # Initialize service clients from config
-        self.colpali_client = colpali_client or BenchmarkColPaliClient(
-            base_url=config.colpali.url,
-            timeout=config.colpali.timeout,
-        )
+        # Initialize local model if specified (bypasses HTTP service)
+        self.local_model: Optional[LocalColPaliModel] = None
+        if local_model_id:
+            logger.info(f"Loading local model: {local_model_id}")
+            self.local_model = LocalColPaliModel(model_id=local_model_id)
+            self.colpali_client = LocalModelClient(self.local_model)
+        else:
+            # Initialize HTTP client from config
+            self.colpali_client = colpali_client or BenchmarkColPaliClient(
+                base_url=config.colpali.url,
+                timeout=config.colpali.timeout,
+            )
+
         self.ocr_client = ocr_client or BenchmarkOcrClient(
             base_url=config.ocr.url,
             timeout=config.ocr.timeout,
@@ -169,16 +181,26 @@ class BenchmarkRunner:
 
     def _check_services(self) -> None:
         """Check that required services are available."""
-        colpali_healthy = self.colpali_client.health_check()
-        ocr_healthy = self.ocr_client.health_check()
-
         errors = []
 
-        if not colpali_healthy:
-            errors.append(f"ColPali service at {self.config.colpali.url} is not responding")
+        # Check ColPali (local model or HTTP service)
+        if self.local_model_id:
+            # Local model - check if loaded
+            colpali_healthy = self.colpali_client.health_check()
+            if not colpali_healthy:
+                errors.append(f"Local model {self.local_model_id} failed to load")
+            else:
+                logger.info(f"Local model ready: {self.local_model_id}")
         else:
-            logger.info(f"ColPali service healthy at {self.config.colpali.url}")
+            # HTTP service
+            colpali_healthy = self.colpali_client.health_check()
+            if not colpali_healthy:
+                errors.append(f"ColPali service at {self.config.colpali.url} is not responding")
+            else:
+                logger.info(f"ColPali service healthy at {self.config.colpali.url}")
 
+        # Check OCR service
+        ocr_healthy = self.ocr_client.health_check()
         if not ocr_healthy:
             errors.append(f"OCR service at {self.config.ocr.url} is not responding")
         else:
@@ -1241,6 +1263,16 @@ def main():
         action="store_true",
         help="Disable visualization generation for faster benchmark runs",
     )
+    parser.add_argument(
+        "--local-model",
+        type=str,
+        default=None,
+        help=(
+            "Use a local ColPali-style model instead of HTTP service. "
+            "Specify HuggingFace model ID (e.g., 'TomoroAI/tomoro-colqwen3-embed-4b'). "
+            "Supports ColQwen3, ColModernVBert, and ColPali models."
+        ),
+    )
 
     args = parser.parse_args()
 
@@ -1251,7 +1283,7 @@ def main():
     )
 
     # All available selection methods
-    ALL_SELECTION_METHODS = ["top_k", "threshold", "percentile", "otsu", "elbow", "gap", "relative"]
+    ALL_SELECTION_METHODS = ["top_k", "threshold", "percentile", "otsu", "elbow", "gap", "relative", "confidence_gated"]
 
     # Process selection methods argument
     selection_methods = None
@@ -1292,6 +1324,9 @@ def main():
             # Override selection methods from CLI
             if selection_methods:
                 config.selection.methods = selection_methods
+                # Ensure default_method is in the methods list
+                if config.selection.default_method not in selection_methods:
+                    config.selection.default_method = selection_methods[0]
 
             # Override aggregation method from CLI
             if args.aggregation_method:
@@ -1305,7 +1340,7 @@ def main():
             if args.no_viz:
                 config.visualization.enabled = False
 
-            runner = BenchmarkRunner(config)
+            runner = BenchmarkRunner(config, local_model_id=args.local_model)
             all_results[name] = runner.run()
 
         # Save combined ablation results
@@ -1342,6 +1377,9 @@ def main():
         # Override selection methods from CLI
         if selection_methods:
             config.selection.methods = selection_methods
+            # Ensure default_method is in the methods list
+            if config.selection.default_method not in selection_methods:
+                config.selection.default_method = selection_methods[0]
 
         # Override aggregation method from CLI
         if args.aggregation_method:
@@ -1355,7 +1393,7 @@ def main():
         if args.no_viz:
             config.visualization.enabled = False
 
-        runner = BenchmarkRunner(config)
+        runner = BenchmarkRunner(config, local_model_id=args.local_model)
         runner.run()
 
 
