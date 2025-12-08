@@ -197,10 +197,22 @@ class BenchmarkRunner:
 
         # Load dataset
         self._loader = self._load_dataset()
-        samples = list(self._loader)
+        all_samples = list(self._loader)
 
-        if self.config.dataset.max_samples:
-            samples = samples[: self.config.dataset.max_samples]
+        # Filter samples by indices or max_samples
+        if self.config.dataset.sample_indices:
+            # Select specific samples by index
+            samples = []
+            for idx in self.config.dataset.sample_indices:
+                if 0 <= idx < len(all_samples):
+                    samples.append(all_samples[idx])
+                else:
+                    logger.warning(f"Sample index {idx} out of range (0-{len(all_samples)-1})")
+            logger.info(f"Selected {len(samples)} specific samples: {self.config.dataset.sample_indices}")
+        elif self.config.dataset.max_samples:
+            samples = all_samples[: self.config.dataset.max_samples]
+        else:
+            samples = all_samples
 
         logger.info(f"Loaded {len(samples)} samples")
 
@@ -1012,6 +1024,13 @@ def main():
         help="Maximum number of samples to process",
     )
     parser.add_argument(
+        "--sample-indices",
+        type=int,
+        nargs="+",
+        default=None,
+        help="Specific sample indices to run (e.g., --sample-indices 9 11 18)",
+    )
+    parser.add_argument(
         "--log-level",
         type=str,
         default="INFO",
@@ -1098,6 +1117,9 @@ def main():
             if args.max_samples:
                 config.dataset.max_samples = args.max_samples
 
+            if args.sample_indices:
+                config.dataset.sample_indices = args.sample_indices
+
             # Override service URLs from CLI
             if args.colpali_url:
                 config.colpali.url = args.colpali_url
@@ -1144,6 +1166,9 @@ def main():
 
         if args.max_samples:
             config.dataset.max_samples = args.max_samples
+
+        if args.sample_indices:
+            config.dataset.sample_indices = args.sample_indices
 
         # Override service URLs from CLI
         if args.colpali_url:

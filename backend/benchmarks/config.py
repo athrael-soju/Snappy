@@ -32,6 +32,7 @@ class DatasetConfig:
     # Sampling
     max_samples: Optional[int] = None
     sample_seed: Optional[int] = 42
+    sample_indices: Optional[List[int]] = None  # Specific sample indices to run
 
 
 @dataclass
