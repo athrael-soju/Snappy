@@ -213,3 +213,4 @@ deepseek-ocr/models/
 
 # Evals/Benchmarks
 .eval_cache/
+benchmarks/runs/

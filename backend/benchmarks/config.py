@@ -21,7 +21,7 @@ class DatasetConfig:
     hf_dataset: str = "Yuwh07/BBox_DocVQA_Bench"
     jsonl_path: Optional[str] = None
     images_dir: Optional[str] = None
-    split: str = "test"
+    split: str = "train"  # HuggingFace dataset only has train split
 
     # Filtering
     filter_single_page: bool = True
@@ -133,8 +133,8 @@ class VisualizationConfig:
     # Enable visualization generation
     enabled: bool = True
 
-    # Output directory (relative to working dir)
-    output_dir: str = "benchmark_visualizations"
+    # Output directory (relative to run folder)
+    output_dir: str = "visualizations"
 
     # Number of samples to visualize
     max_samples: int = 50
@@ -153,8 +153,11 @@ class VisualizationConfig:
 class OutputConfig:
     """Configuration for benchmark output."""
 
-    # Output directory
-    output_dir: str = "benchmark_results"
+    # Base directory for all benchmark runs (relative to benchmarks folder)
+    base_dir: str = "runs"
+
+    # Run-specific directory (set automatically with timestamp)
+    run_dir: str = ""
 
     # Output formats
     save_json: bool = True

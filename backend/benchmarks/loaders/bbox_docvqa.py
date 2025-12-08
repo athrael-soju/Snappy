@@ -15,15 +15,97 @@ Dataset structure (JSONL):
 - image: Image filename or path
 """
 
+import io
 import json
 import logging
+import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Literal, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Literal, Optional, Tuple, Union
 
 from PIL import Image
 
 logger = logging.getLogger(__name__)
+
+
+def _find_hf_cache_zip(dataset_name: str = "Yuwh07/BBox_DocVQA_Bench") -> Optional[Path]:
+    """
+    Find the HuggingFace cached images zip file.
+
+    Args:
+        dataset_name: HuggingFace dataset identifier
+
+    Returns:
+        Path to the zip file if found, None otherwise
+    """
+    try:
+        from huggingface_hub import hf_hub_download, try_to_load_from_cache
+    except ImportError:
+        return None
+
+    # Try to find in cache first
+    cached = try_to_load_from_cache(
+        repo_id=dataset_name,
+        filename="BBox_DocVQA_Bench_Images.zip",
+        repo_type="dataset",
+    )
+    if cached and Path(cached).exists():
+        return Path(cached)
+
+    # If not cached, download it
+    try:
+        downloaded = hf_hub_download(
+            repo_id=dataset_name,
+            filename="BBox_DocVQA_Bench_Images.zip",
+            repo_type="dataset",
+        )
+        return Path(downloaded)
+    except Exception as e:
+        logger.warning(f"Could not download images zip: {e}")
+        return None
+
+
+class ZipImageReader:
+    """Helper class to read images from a zip file."""
+
+    def __init__(self, zip_path: Path):
+        self.zip_path = zip_path
+        self._zip_file: Optional[zipfile.ZipFile] = None
+        self._namelist: Optional[set] = None
+
+    def _ensure_open(self):
+        if self._zip_file is None:
+            self._zip_file = zipfile.ZipFile(self.zip_path, "r")
+            self._namelist = set(self._zip_file.namelist())
+
+    def read_image(self, image_path: str) -> Image.Image:
+        """Read an image from the zip file."""
+        self._ensure_open()
+
+        # Try different path variations
+        paths_to_try = [
+            image_path,
+            image_path.lstrip("/"),
+            f"BBox_DocVQA_Bench_Images/{image_path}",
+        ]
+
+        for path in paths_to_try:
+            if path in self._namelist:
+                with self._zip_file.open(path) as f:
+                    return Image.open(io.BytesIO(f.read()))
+
+        raise FileNotFoundError(f"Image not found in zip: {image_path}")
+
+    def close(self):
+        if self._zip_file:
+            self._zip_file.close()
+            self._zip_file = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
 
 
 # Complexity categories
@@ -95,21 +177,37 @@ class BBoxDocVQASample:
             ))
         return normalized
 
-    def load_image(self, images_dir: Optional[Path] = None) -> Image.Image:
+    def load_image(
+        self,
+        images_dir: Optional[Path] = None,
+        zip_reader: Optional[ZipImageReader] = None,
+    ) -> Image.Image:
         """
         Load the sample image and set dimensions.
 
         Args:
             images_dir: Base directory for images (if paths are relative)
+            zip_reader: Optional ZipImageReader for reading from HuggingFace cache
 
         Returns:
             PIL Image object
         """
-        image_path = Path(self.image_path)
-        if images_dir and not image_path.is_absolute():
-            image_path = images_dir / image_path
+        img = None
 
-        img = Image.open(image_path)
+        # Try zip reader first if provided
+        if zip_reader is not None:
+            try:
+                img = zip_reader.read_image(self.image_path)
+            except FileNotFoundError:
+                pass  # Fall through to file-based loading
+
+        # Try file-based loading
+        if img is None:
+            image_path = Path(self.image_path)
+            if images_dir and not image_path.is_absolute():
+                image_path = images_dir / image_path
+            img = Image.open(image_path)
+
         self.image_width = img.width
         self.image_height = img.height
         return img
@@ -129,6 +227,7 @@ class BBoxDocVQALoader:
         jsonl_path: Optional[str] = None,
         images_dir: Optional[str] = None,
         hf_dataset: Optional[str] = "Yuwh07/BBox_DocVQA_Bench",
+        images_zip_path: Optional[str] = None,
     ):
         """
         Initialize the loader.
@@ -137,15 +236,40 @@ class BBoxDocVQALoader:
             jsonl_path: Path to local JSONL file (optional)
             images_dir: Directory containing images (optional)
             hf_dataset: HuggingFace dataset identifier (optional)
+            images_zip_path: Path to images zip file (optional, auto-detected from HF cache)
         """
         self.jsonl_path = Path(jsonl_path) if jsonl_path else None
         self.images_dir = Path(images_dir) if images_dir else None
         self.hf_dataset = hf_dataset
+        self.images_zip_path = Path(images_zip_path) if images_zip_path else None
 
         self._samples: List[BBoxDocVQASample] = []
         self._loaded = False
+        self._zip_reader: Optional[ZipImageReader] = None
 
-    def load(self, split: str = "test") -> "BBoxDocVQALoader":
+    @property
+    def zip_reader(self) -> Optional[ZipImageReader]:
+        """Get the zip reader for accessing images from HuggingFace cache."""
+        if self._zip_reader is None:
+            zip_path = self._get_images_zip_path()
+            if zip_path:
+                self._zip_reader = ZipImageReader(zip_path)
+                logger.info(f"Using images from zip: {zip_path}")
+        return self._zip_reader
+
+    def _get_images_zip_path(self) -> Optional[Path]:
+        """Get the path to the images zip file."""
+        # Use explicitly provided path first
+        if self.images_zip_path and self.images_zip_path.exists():
+            return self.images_zip_path
+
+        # Try to find in HuggingFace cache
+        if self.hf_dataset:
+            return _find_hf_cache_zip(self.hf_dataset)
+
+        return None
+
+    def load(self, split: str = "train") -> "BBoxDocVQALoader":
         """
         Load the dataset.
 
@@ -167,6 +291,18 @@ class BBoxDocVQALoader:
         self._loaded = True
         logger.info(f"Loaded {len(self._samples)} samples")
         return self
+
+    def close(self):
+        """Close any open resources."""
+        if self._zip_reader:
+            self._zip_reader.close()
+            self._zip_reader = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
 
     def _load_from_jsonl(self) -> None:
         """Load samples from local JSONL file."""
@@ -193,7 +329,13 @@ class BBoxDocVQALoader:
 
         logger.info(f"Loading from HuggingFace: {self.hf_dataset}")
 
-        dataset = load_dataset(self.hf_dataset, split=split)
+        # Explicitly load only the JSONL file to avoid the dataset loader
+        # trying to parse image files as JSON
+        dataset = load_dataset(
+            self.hf_dataset,
+            data_files="BBox_DocVQA_Bench.jsonl",
+            split=split,
+        )
 
         for idx, item in enumerate(dataset):
             sample = self._parse_sample(dict(item), idx)
@@ -214,21 +356,55 @@ class BBoxDocVQALoader:
             Parsed sample or None if invalid
         """
         try:
-            # Extract required fields
-            question = data.get("question", "")
+            # Extract required fields (handle both local and HuggingFace field names)
+            question = data.get("question") or data.get("query", "")
             answer = data.get("answer", "")
-            evidence_bbox = data.get("evidence_bbox", [])
+
+            # HuggingFace uses "bbox", local uses "evidence_bbox"
+            evidence_bbox = data.get("evidence_bbox") or data.get("bbox", [])
+            # Flatten nested bbox structure from HF: [[[x1,y1,x2,y2]]] -> [[x1,y1,x2,y2]]
+            if evidence_bbox and isinstance(evidence_bbox[0], list):
+                if evidence_bbox[0] and isinstance(evidence_bbox[0][0], list):
+                    evidence_bbox = [box for page_boxes in evidence_bbox for box in page_boxes]
+
             evidence_page = data.get("evidence_page", [])
-            image_path = data.get("image", data.get("image_path", ""))
+
+            # HuggingFace uses "image_paths" or "images", local uses "image"
+            image_path = (
+                data.get("image")
+                or data.get("image_path")
+                or (data.get("image_paths") or [""])[0]
+                or (data.get("images") or [""])[0]
+            )
 
             if not question or not evidence_bbox:
                 logger.debug(f"Skipping sample {idx}: missing required fields")
                 return None
 
             # Extract optional metadata
-            category = data.get("category")
-            region_type = data.get("region_type")
+            # HuggingFace "category" is actually the domain (cs, econ, math, etc.)
+            # Our "category" is complexity (SPSBB, SPMBB, MPMBB)
+            hf_category = data.get("category")
+            category = None
             domain = data.get("domain")
+
+            # If hf_category looks like a domain, use it as domain
+            if hf_category and hf_category.lower() in (
+                "cs", "econ", "eess", "math", "physics", "q-bio", "q-fin", "stat"
+            ):
+                domain = hf_category.lower()
+            elif hf_category and hf_category.upper() in ("SPSBB", "SPMBB", "MPMBB"):
+                category = hf_category.upper()
+
+            # HuggingFace uses "subimg_tpye" (typo), local uses "region_type"
+            region_type = data.get("region_type")
+            if not region_type:
+                subimg_type = data.get("subimg_tpye") or data.get("subimg_type")
+                if subimg_type and isinstance(subimg_type, list):
+                    # Flatten and get first type: [["text"]] -> "Text"
+                    flat = [t for page in subimg_type for t in (page if isinstance(page, list) else [page])]
+                    if flat:
+                        region_type = flat[0].capitalize() if flat[0] else None
 
             # Generate sample ID
             sample_id = data.get("id", f"sample_{idx:05d}")

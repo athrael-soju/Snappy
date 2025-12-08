@@ -21,18 +21,16 @@ Usage:
 import argparse
 import json
 import logging
-import sys
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
-from .aggregation import PatchToRegionAggregator, RegionScore
+from .aggregation import PatchToRegionAggregator
 from .baselines import BaselineGenerator
+from .clients import BenchmarkColPaliClient, BenchmarkOcrClient
 from .config import BenchmarkConfig, create_ablation_configs, get_default_config
 from .evaluation import BBoxEvaluator, BenchmarkResults, StratifiedEvaluator
 from .loaders.bbox_docvqa import BBoxDocVQALoader, BBoxDocVQASample
@@ -53,20 +51,34 @@ class BenchmarkRunner:
     def __init__(
         self,
         config: BenchmarkConfig,
-        colpali_client: Optional[Any] = None,
-        ocr_processor: Optional[Any] = None,
+        colpali_client: Optional[BenchmarkColPaliClient] = None,
+        ocr_client: Optional[BenchmarkOcrClient] = None,
     ):
         """
         Initialize the benchmark runner.
 
         Args:
             config: Benchmark configuration
-            colpali_client: Optional ColPali client (created if not provided)
-            ocr_processor: Optional OCR processor (created if not provided)
+            colpali_client: Optional ColPali client (created from config if not provided)
+            ocr_client: Optional OCR client (created from config if not provided)
         """
         self.config = config
-        self.colpali_client = colpali_client
-        self.ocr_processor = ocr_processor
+
+        # Initialize service clients from config
+        self.colpali_client = colpali_client or BenchmarkColPaliClient(
+            base_url=config.colpali.url,
+            timeout=config.colpali.timeout,
+        )
+        self.ocr_client = ocr_client or BenchmarkOcrClient(
+            base_url=config.ocr.url,
+            timeout=config.ocr.timeout,
+            mode=config.ocr.mode,
+            task=config.ocr.task,
+            include_grounding=config.ocr.include_grounding,
+        )
+
+        # Check service health
+        self._check_services()
 
         # Initialize components
         self.aggregator = PatchToRegionAggregator(
@@ -81,9 +93,13 @@ class BenchmarkRunner:
         )
         self.baseline_generator = BaselineGenerator(seed=config.baselines.random_seed)
 
+        # Setup run directory
+        self._setup_run_directory()
+
         if config.visualization.enabled:
+            vis_dir = self.run_dir / config.visualization.output_dir
             self.visualizer = BenchmarkVisualizer(
-                output_dir=config.visualization.output_dir,
+                output_dir=str(vis_dir),
                 dpi=config.visualization.dpi,
                 show_scores=config.visualization.show_scores,
             )
@@ -93,6 +109,56 @@ class BenchmarkRunner:
         # Results storage
         self.results: Dict[str, Any] = {}
         self.sample_results: List[Dict[str, Any]] = []
+
+        # Cache for OCR regions (reused by baselines and visualizations)
+        self._ocr_regions_cache: Dict[str, List[Dict[str, Any]]] = {}
+
+        # Cache for heatmaps (reused by visualizations)
+        self._heatmap_cache: Dict[str, np.ndarray] = {}
+
+        # Dataset loader (set during run)
+        self._loader: Optional[BBoxDocVQALoader] = None
+
+    def _setup_run_directory(self) -> None:
+        """Create a unique directory for this benchmark run."""
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # Get the benchmarks folder (where this script lives)
+        benchmarks_dir = Path(__file__).parent
+
+        # Create run directory: benchmarks/runs/{name}_{timestamp}/
+        base_dir = benchmarks_dir / self.config.output.base_dir
+        self.run_dir = base_dir / f"{self.config.name}_{timestamp}"
+        self.run_dir.mkdir(parents=True, exist_ok=True)
+
+        # Update config with the run directory
+        self.config.output.run_dir = str(self.run_dir)
+
+        logger.info(f"Run directory: {self.run_dir}")
+
+    def _check_services(self) -> None:
+        """Check that required services are available."""
+        colpali_healthy = self.colpali_client.health_check()
+        ocr_healthy = self.ocr_client.health_check()
+
+        errors = []
+
+        if not colpali_healthy:
+            errors.append(f"ColPali service at {self.config.colpali.url} is not responding")
+        else:
+            logger.info(f"ColPali service healthy at {self.config.colpali.url}")
+
+        if not ocr_healthy:
+            errors.append(f"OCR service at {self.config.ocr.url} is not responding")
+        else:
+            logger.info(f"OCR service healthy at {self.config.ocr.url}")
+
+        if errors:
+            raise RuntimeError(
+                "Required services unavailable:\n"
+                + "\n".join(f"  - {e}" for e in errors)
+                + "\n\nStart services with: docker-compose up colpali deepseek-ocr"
+            )
 
     def run(self) -> Dict[str, Any]:
         """
@@ -105,8 +171,8 @@ class BenchmarkRunner:
         logger.info(f"Starting benchmark: {self.config.name}")
 
         # Load dataset
-        loader = self._load_dataset()
-        samples = list(loader)
+        self._loader = self._load_dataset()
+        samples = list(self._loader)
 
         if self.config.dataset.max_samples:
             samples = samples[: self.config.dataset.max_samples]
@@ -228,26 +294,22 @@ class BenchmarkRunner:
             (predictions, ground_truth, metadata)
         """
         # Load image and get dimensions
-        try:
-            image = sample.load_image(
+        image = sample.load_image(
+            images_dir=(
                 Path(self.config.dataset.images_dir)
                 if self.config.dataset.images_dir
                 else None
-            )
-        except Exception as e:
-            logger.warning(f"Could not load image for {sample.sample_id}: {e}")
-            # Use placeholder dimensions
-            sample.image_width = 1000
-            sample.image_height = 1000
-            image = None
+            ),
+            zip_reader=self._loader.zip_reader if self._loader else None,
+        )
 
         # Get normalized ground truth
         gt_boxes = sample.get_normalized_bboxes()
 
-        # Get OCR regions (mock for now - in real use, fetch from OCR service)
+        # Get OCR regions from service
         ocr_regions = self._get_ocr_regions(sample, image)
 
-        # Get interpretability maps (mock for now - in real use, fetch from ColPali)
+        # Get interpretability maps from ColPali
         heatmap = self._get_interpretability_heatmap(sample, image)
 
         # Aggregate patches to regions
@@ -278,7 +340,12 @@ class BenchmarkRunner:
             "num_predictions": len(predictions),
             "num_ground_truth": len(gt_boxes),
             "region_scores": [
-                {"bbox": r.bbox, "score": r.score, "content": r.content[:100]}
+                {
+                    "bbox": r.bbox,
+                    "score": r.score,
+                    "label": r.label,
+                    "content": r.content[:100] if r.content else "",
+                }
                 for r in selection_result.selected_regions
             ],
         })
@@ -295,122 +362,99 @@ class BenchmarkRunner:
     def _get_ocr_regions(
         self,
         sample: BBoxDocVQASample,
-        image: Optional[Any],
+        image: Any,
     ) -> List[Dict[str, Any]]:
         """
         Get OCR regions for a sample.
 
-        In production, this would call the DeepSeek OCR service.
-        For offline benchmarking, regions may be pre-computed or mocked.
+        Uses the OCR service to extract text regions with bounding boxes.
+        Results are cached for reuse by baselines.
+
+        Args:
+            sample: The benchmark sample
+            image: PIL Image (required)
+
+        Returns:
+            List of region dictionaries with id, label, bbox, content
+
+        Raises:
+            RuntimeError: If OCR fails or returns no regions
         """
-        if self.ocr_processor and image:
-            # Use actual OCR processor
-            try:
-                from io import BytesIO
+        # Check cache first
+        if sample.sample_id in self._ocr_regions_cache:
+            return self._ocr_regions_cache[sample.sample_id]
 
-                buffer = BytesIO()
-                image.save(buffer, format="PNG")
-                image_bytes = buffer.getvalue()
+        ocr_result = self.ocr_client.process_image(image)
+        regions = self.ocr_client.extract_regions(ocr_result)
 
-                result = self.ocr_processor.process_single(
-                    image_bytes=image_bytes,
-                    filename=sample.sample_id,
-                )
-                return result.get("regions", [])
-            except Exception as e:
-                logger.warning(f"OCR failed for {sample.sample_id}: {e}")
+        if not regions:
+            # Provide detailed debug info
+            bbox_data = ocr_result.get("bounding_boxes", [])
+            raise RuntimeError(
+                f"OCR returned no regions for {sample.sample_id}. "
+                f"Response keys: {list(ocr_result.keys())}, "
+                f"bounding_boxes count: {len(bbox_data)}, "
+                f"bounding_boxes sample: {bbox_data[:2] if bbox_data else 'empty'}"
+            )
 
-        # Fallback: Generate mock regions based on ground truth
-        # (This is for testing without OCR service)
-        mock_regions = []
-        for idx, bbox in enumerate(sample.evidence_bbox):
-            x1, y1, x2, y2 = bbox
-            mock_regions.append({
-                "id": f"{sample.sample_id}#region-{idx}",
-                "label": "text",
-                "bbox": [x1, y1, x2, y2],  # Pixel coordinates
-                "content": f"Mock content for region {idx}",
-            })
+        logger.debug(f"OCR extracted {len(regions)} regions for {sample.sample_id}")
 
-        # Add some noise regions
-        np.random.seed(hash(sample.sample_id) % (2**32))
-        for idx in range(5):
-            x1 = np.random.randint(0, sample.image_width - 100)
-            y1 = np.random.randint(0, sample.image_height - 100)
-            x2 = x1 + np.random.randint(50, 200)
-            y2 = y1 + np.random.randint(20, 100)
-            mock_regions.append({
-                "id": f"{sample.sample_id}#noise-{idx}",
-                "label": "text",
-                "bbox": [x1, y1, x2, y2],
-                "content": f"Noise region {idx}",
-            })
-
-        return mock_regions
+        # Cache for reuse by baselines
+        self._ocr_regions_cache[sample.sample_id] = regions
+        return regions
 
     def _get_interpretability_heatmap(
         self,
         sample: BBoxDocVQASample,
-        image: Optional[Any],
+        image: Any,
     ) -> np.ndarray:
         """
         Get interpretability heatmap for a sample.
 
-        In production, this would call the ColPali interpretability endpoint.
-        For offline benchmarking, heatmaps may be pre-computed or mocked.
+        Uses ColPali service to generate per-token similarity maps.
+        Results are cached for reuse by visualizations.
+
+        Args:
+            sample: The benchmark sample
+            image: PIL Image (required)
+
+        Returns:
+            2D numpy array heatmap of shape (grid_y, grid_x)
+
+        Raises:
+            RuntimeError: If ColPali fails or returns no token maps
         """
-        grid_x = self.config.aggregation.grid_x
-        grid_y = self.config.aggregation.grid_y
+        # Check cache first
+        if sample.sample_id in self._heatmap_cache:
+            return self._heatmap_cache[sample.sample_id]
 
-        if self.colpali_client and image:
-            # Use actual ColPali client
-            try:
-                from io import BytesIO
+        response = self.colpali_client.generate_interpretability_maps(
+            query=sample.question,
+            image=image,
+        )
 
-                buffer = BytesIO()
-                image.save(buffer, format="PNG")
-                image_bytes = buffer.getvalue()
+        # Aggregate token maps (max over tokens)
+        token_maps = []
+        for sim_map in response.get("similarity_maps", []):
+            map_data = sim_map.get("similarity_map", [])
+            if map_data:
+                token_maps.append(np.array(map_data))
 
-                response = self.colpali_client.generate_interpretability_maps(
-                    query=sample.question,
-                    image_bytes=image_bytes,
-                )
-
-                # Aggregate token maps
-                token_maps = []
-                for sim_map in response.get("similarity_maps", []):
-                    map_data = sim_map.get("similarity_map", [])
-                    if map_data:
-                        token_maps.append(np.array(map_data))
-
-                if token_maps:
-                    stacked = np.stack(token_maps, axis=0)
-                    return np.max(stacked, axis=0)
-
-            except Exception as e:
-                logger.warning(f"Interpretability failed for {sample.sample_id}: {e}")
-
-        # Fallback: Generate mock heatmap with peaks at ground truth locations
-        heatmap = np.random.rand(grid_y, grid_x) * 0.3  # Background noise
-
-        for bbox in sample.evidence_bbox:
-            x1, y1, x2, y2 = bbox
-            # Convert to normalized coords then to patch coords
-            norm_x1 = x1 / sample.image_width
-            norm_y1 = y1 / sample.image_height
-            norm_x2 = x2 / sample.image_width
-            norm_y2 = y2 / sample.image_height
-
-            patch_x1 = int(norm_x1 * grid_x)
-            patch_y1 = int(norm_y1 * grid_y)
-            patch_x2 = min(grid_x, int(np.ceil(norm_x2 * grid_x)))
-            patch_y2 = min(grid_y, int(np.ceil(norm_y2 * grid_y)))
-
-            # Set high values in GT region
-            heatmap[patch_y1:patch_y2, patch_x1:patch_x2] = (
-                0.7 + np.random.rand(patch_y2 - patch_y1, patch_x2 - patch_x1) * 0.3
+        if not token_maps:
+            raise RuntimeError(
+                f"ColPali returned no token maps for {sample.sample_id}. "
+                f"Response keys: {list(response.keys())}"
             )
 
+        stacked = np.stack(token_maps, axis=0)
+        heatmap = np.max(stacked, axis=0)
+        logger.debug(
+            f"ColPali generated {len(token_maps)} token maps for {sample.sample_id}, "
+            f"heatmap shape: {heatmap.shape}"
+        )
+
+        # Cache for reuse by visualizations
+        self._heatmap_cache[sample.sample_id] = heatmap
         return heatmap
 
     def _run_baselines(
@@ -418,7 +462,7 @@ class BenchmarkRunner:
         samples: List[BBoxDocVQASample],
         ground_truth: List[List[NormalizedBox]],
     ) -> Dict[str, Any]:
-        """Run all enabled baselines and evaluate."""
+        """Run all enabled baselines and evaluate using cached OCR regions."""
         baseline_results = {}
 
         for baseline_name in self.config.baselines.enabled:
@@ -426,7 +470,12 @@ class BenchmarkRunner:
 
             predictions = []
             for sample in samples:
-                ocr_regions = self._get_ocr_regions(sample, None)
+                # Use cached OCR regions from main processing pass
+                ocr_regions = self._ocr_regions_cache.get(sample.sample_id, [])
+                if not ocr_regions:
+                    logger.warning(f"No cached OCR regions for {sample.sample_id}, skipping")
+                    predictions.append([])
+                    continue
 
                 if baseline_name == "random":
                     result = self.baseline_generator.random_selection(
@@ -492,19 +541,14 @@ class BenchmarkRunner:
 
     def _save_results(self) -> None:
         """Save benchmark results to files."""
-        output_dir = Path(self.config.output.output_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
         if self.config.output.save_json:
-            json_path = output_dir / f"{self.config.name}_{timestamp}.json"
+            json_path = self.run_dir / "results.json"
             with open(json_path, "w") as f:
                 json.dump(self.results, f, indent=2, default=str)
             logger.info(f"Saved results to {json_path}")
 
         if self.config.output.save_summary:
-            summary_path = output_dir / f"{self.config.name}_{timestamp}_summary.txt"
+            summary_path = self.run_dir / "summary.txt"
             with open(summary_path, "w") as f:
                 self._write_summary(f)
             logger.info(f"Saved summary to {summary_path}")
@@ -537,9 +581,12 @@ class BenchmarkRunner:
             sample = samples[idx]
             try:
                 image = sample.load_image(
-                    Path(self.config.dataset.images_dir)
-                    if self.config.dataset.images_dir
-                    else None
+                    images_dir=(
+                        Path(self.config.dataset.images_dir)
+                        if self.config.dataset.images_dir
+                        else None
+                    ),
+                    zip_reader=self._loader.zip_reader if self._loader else None,
                 )
 
                 heatmap = self._get_interpretability_heatmap(sample, image)
@@ -629,10 +676,10 @@ def main():
         help="Run all ablation studies",
     )
     parser.add_argument(
-        "--output-dir",
+        "--base-dir",
         type=str,
-        default="benchmark_results",
-        help="Output directory for results",
+        default=None,
+        help="Base directory for benchmark runs (default: benchmarks/runs)",
     )
     parser.add_argument(
         "--max-samples",
@@ -646,6 +693,18 @@ def main():
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
         help="Logging level",
+    )
+    parser.add_argument(
+        "--colpali-url",
+        type=str,
+        default=None,
+        help="ColPali service URL (default: http://localhost:7000)",
+    )
+    parser.add_argument(
+        "--ocr-url",
+        type=str,
+        default=None,
+        help="DeepSeek OCR service URL (default: http://localhost:8200)",
     )
 
     args = parser.parse_args()
@@ -663,16 +722,27 @@ def main():
 
         for name, config in configs.items():
             logger.info(f"Running ablation: {name}")
-            config.output.output_dir = f"{args.output_dir}/ablations/{name}"
+
+            if args.base_dir:
+                config.output.base_dir = args.base_dir
 
             if args.max_samples:
                 config.dataset.max_samples = args.max_samples
+
+            # Override service URLs from CLI
+            if args.colpali_url:
+                config.colpali.url = args.colpali_url
+            if args.ocr_url:
+                config.ocr.url = args.ocr_url
 
             runner = BenchmarkRunner(config)
             all_results[name] = runner.run()
 
         # Save combined ablation results
-        output_path = Path(args.output_dir) / "ablation_summary.json"
+        benchmarks_dir = Path(__file__).parent
+        base_dir = args.base_dir if args.base_dir else "runs"
+        output_path = benchmarks_dir / base_dir / "ablation_summary.json"
+        output_path.parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, "w") as f:
             json.dump(all_results, f, indent=2, default=str)
         logger.info(f"Saved ablation summary to {output_path}")
@@ -684,10 +754,17 @@ def main():
         else:
             config = get_default_config()
 
+        if args.base_dir:
+            config.output.base_dir = args.base_dir
+
         if args.max_samples:
             config.dataset.max_samples = args.max_samples
 
-        config.output.output_dir = args.output_dir
+        # Override service URLs from CLI
+        if args.colpali_url:
+            config.colpali.url = args.colpali_url
+        if args.ocr_url:
+            config.ocr.url = args.ocr_url
 
         runner = BenchmarkRunner(config)
         runner.run()
