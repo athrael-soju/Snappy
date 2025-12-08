@@ -576,17 +576,33 @@ class BenchmarkRunner:
         """Run all enabled baselines and evaluate using cached OCR regions."""
         baseline_results = {}
 
+        # Valid baseline names
+        valid_baselines = {"random", "bm25", "cosine", "uniform_patches", "center_bias", "top_left_bias"}
+
         for baseline_name in self.config.baselines.enabled:
+            # Validate baseline name
+            if baseline_name not in valid_baselines:
+                raise ValueError(
+                    f"Unknown baseline method: '{baseline_name}'. "
+                    f"Valid options: {sorted(valid_baselines)}"
+                )
+
             logger.info(f"Running baseline: {baseline_name}")
 
             predictions = []
+            skipped_samples = 0
             for sample in samples:
                 # Use cached OCR regions from main processing pass
                 ocr_regions = self._ocr_regions_cache.get(sample.sample_id, [])
                 if not ocr_regions:
-                    logger.warning(f"No cached OCR regions for {sample.sample_id}, skipping")
+                    logger.warning(f"No cached OCR regions for {sample.sample_id}, using empty predictions")
                     predictions.append([])
+                    skipped_samples += 1
                     continue
+
+                # Get image dimensions for bbox normalization
+                img_width = sample.image_width
+                img_height = sample.image_height
 
                 # Determine k for baselines (0 means all regions)
                 baseline_k = self.config.selection.default_k
@@ -599,43 +615,66 @@ class BenchmarkRunner:
                     if random_k == 0:
                         random_k = len(ocr_regions)
                     result = self.baseline_generator.random_selection(
-                        ocr_regions, k=random_k
+                        ocr_regions,
+                        k=random_k,
+                        image_width=img_width,
+                        image_height=img_height,
                     )
                 elif baseline_name == "bm25":
                     result = self.baseline_generator.text_similarity_bm25(
                         ocr_regions,
                         query=sample.question,
                         k=baseline_k,
+                        image_width=img_width,
+                        image_height=img_height,
                     )
                 elif baseline_name == "cosine":
                     result = self.baseline_generator.text_similarity_cosine(
                         ocr_regions,
                         query=sample.question,
                         k=baseline_k,
+                        image_width=img_width,
+                        image_height=img_height,
                     )
                 elif baseline_name == "uniform_patches":
-                    result = self.baseline_generator.uniform_patches(ocr_regions)
+                    result = self.baseline_generator.uniform_patches(
+                        ocr_regions,
+                        image_width=img_width,
+                        image_height=img_height,
+                    )
                     # Apply selection to uniform baseline (0 means all)
                     if self.config.selection.default_k > 0:
                         result.region_scores = result.region_scores[
                             : self.config.selection.default_k
                         ]
                 elif baseline_name == "center_bias":
-                    result = self.baseline_generator.center_bias(ocr_regions)
+                    result = self.baseline_generator.center_bias(
+                        ocr_regions,
+                        image_width=img_width,
+                        image_height=img_height,
+                    )
                     if self.config.selection.default_k > 0:
                         result.region_scores = result.region_scores[
                             : self.config.selection.default_k
                         ]
                 elif baseline_name == "top_left_bias":
-                    result = self.baseline_generator.top_left_bias(ocr_regions)
+                    result = self.baseline_generator.top_left_bias(
+                        ocr_regions,
+                        image_width=img_width,
+                        image_height=img_height,
+                    )
                     if self.config.selection.default_k > 0:
                         result.region_scores = result.region_scores[
                             : self.config.selection.default_k
                         ]
-                else:
-                    continue
 
                 predictions.append([r.bbox for r in result.region_scores])
+
+            # Log warning if samples were skipped
+            if skipped_samples > 0:
+                logger.warning(
+                    f"Baseline '{baseline_name}': {skipped_samples}/{len(samples)} samples had no OCR regions"
+                )
 
             # Evaluate baseline
             eval_results = self.evaluator.evaluate_batch(
@@ -644,7 +683,9 @@ class BenchmarkRunner:
                 [s.sample_id for s in samples],
             )
 
-            baseline_results[baseline_name] = self._benchmark_results_to_dict(eval_results)
+            result_dict = self._benchmark_results_to_dict(eval_results)
+            result_dict["skipped_samples"] = skipped_samples  # Track samples without OCR
+            baseline_results[baseline_name] = result_dict
 
         return baseline_results
 

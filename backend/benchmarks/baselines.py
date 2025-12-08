@@ -55,6 +55,8 @@ class BaselineGenerator:
         self,
         regions: List[Dict[str, Any]],
         k: int = 5,
+        image_width: Optional[int] = None,
+        image_height: Optional[int] = None,
     ) -> BaselineResult:
         """
         Select K random OCR regions.
@@ -62,6 +64,8 @@ class BaselineGenerator:
         Args:
             regions: List of OCR region dictionaries
             k: Number of regions to select
+            image_width: Image width for pixel coordinate normalization
+            image_height: Image height for pixel coordinate normalization
 
         Returns:
             BaselineResult with randomly selected regions
@@ -85,7 +89,7 @@ class BaselineGenerator:
         for region, score in zip(selected, scores):
             bbox = region.get("bbox", [0, 0, 0, 0])
             # Normalize bbox if needed
-            normalized_bbox = self._normalize_bbox(bbox)
+            normalized_bbox = self._normalize_bbox(bbox, image_width, image_height)
 
             region_scores.append(
                 RegionScore(
@@ -115,6 +119,8 @@ class BaselineGenerator:
         k: int = 5,
         k1: float = 1.5,
         b: float = 0.75,
+        image_width: Optional[int] = None,
+        image_height: Optional[int] = None,
     ) -> BaselineResult:
         """
         Rank regions by BM25 text similarity with query.
@@ -125,6 +131,8 @@ class BaselineGenerator:
             k: Number of top regions to return
             k1: BM25 term frequency saturation parameter
             b: BM25 length normalization parameter
+            image_width: Image width for pixel coordinate normalization
+            image_height: Image height for pixel coordinate normalization
 
         Returns:
             BaselineResult with text-similarity ranked regions
@@ -181,7 +189,7 @@ class BaselineGenerator:
                 score += idf * tf_component
 
             bbox = region.get("bbox", [0, 0, 0, 0])
-            normalized_bbox = self._normalize_bbox(bbox)
+            normalized_bbox = self._normalize_bbox(bbox, image_width, image_height)
 
             region_scores.append(
                 RegionScore(
@@ -210,6 +218,8 @@ class BaselineGenerator:
         regions: List[Dict[str, Any]],
         query: str,
         k: int = 5,
+        image_width: Optional[int] = None,
+        image_height: Optional[int] = None,
     ) -> BaselineResult:
         """
         Rank regions by cosine similarity with query (TF-IDF vectors).
@@ -218,6 +228,8 @@ class BaselineGenerator:
             regions: List of OCR region dictionaries
             query: Query text
             k: Number of top regions to return
+            image_width: Image width for pixel coordinate normalization
+            image_height: Image height for pixel coordinate normalization
 
         Returns:
             BaselineResult with cosine-similarity ranked regions
@@ -268,7 +280,7 @@ class BaselineGenerator:
             similarity = self._cosine_similarity(query_vec, region_vec)
 
             bbox = region.get("bbox", [0, 0, 0, 0])
-            normalized_bbox = self._normalize_bbox(bbox)
+            normalized_bbox = self._normalize_bbox(bbox, image_width, image_height)
 
             region_scores.append(
                 RegionScore(
@@ -297,6 +309,8 @@ class BaselineGenerator:
         regions: List[Dict[str, Any]],
         grid_x: int = 32,
         grid_y: int = 32,
+        image_width: Optional[int] = None,
+        image_height: Optional[int] = None,
     ) -> BaselineResult:
         """
         Score regions assuming all patches have equal relevance.
@@ -308,6 +322,8 @@ class BaselineGenerator:
             regions: List of OCR region dictionaries
             grid_x: Number of patches in x dimension
             grid_y: Number of patches in y dimension
+            image_width: Image width for pixel coordinate normalization
+            image_height: Image height for pixel coordinate normalization
 
         Returns:
             BaselineResult with uniformly-scored regions
@@ -335,6 +351,8 @@ class BaselineGenerator:
             heatmap=uniform_heatmap,
             regions=regions,
             method="iou_weighted",
+            image_width=image_width,
+            image_height=image_height,
         )
 
         return BaselineResult(
@@ -348,6 +366,8 @@ class BaselineGenerator:
         regions: List[Dict[str, Any]],
         grid_x: int = 32,
         grid_y: int = 32,
+        image_width: Optional[int] = None,
+        image_height: Optional[int] = None,
     ) -> BaselineResult:
         """
         Score regions using a center-biased prior.
@@ -358,6 +378,8 @@ class BaselineGenerator:
             regions: List of OCR region dictionaries
             grid_x: Number of patches in x dimension
             grid_y: Number of patches in y dimension
+            image_width: Image width for pixel coordinate normalization
+            image_height: Image height for pixel coordinate normalization
 
         Returns:
             BaselineResult with center-biased scores
@@ -387,6 +409,8 @@ class BaselineGenerator:
             heatmap=center_heatmap,
             regions=regions,
             method="iou_weighted",
+            image_width=image_width,
+            image_height=image_height,
         )
 
         return BaselineResult(
@@ -398,6 +422,8 @@ class BaselineGenerator:
     def top_left_bias(
         self,
         regions: List[Dict[str, Any]],
+        image_width: Optional[int] = None,
+        image_height: Optional[int] = None,
     ) -> BaselineResult:
         """
         Score regions based on reading order (top-left first).
@@ -406,6 +432,8 @@ class BaselineGenerator:
 
         Args:
             regions: List of OCR region dictionaries
+            image_width: Image width for pixel coordinate normalization
+            image_height: Image height for pixel coordinate normalization
 
         Returns:
             BaselineResult with position-based scores
@@ -420,7 +448,7 @@ class BaselineGenerator:
         region_scores = []
         for region in regions:
             bbox = region.get("bbox", [0, 0, 0, 0])
-            normalized_bbox = self._normalize_bbox(bbox)
+            normalized_bbox = self._normalize_bbox(bbox, image_width, image_height)
 
             # Score inversely proportional to position
             x1, y1, x2, y2 = normalized_bbox
@@ -501,8 +529,28 @@ class BaselineGenerator:
     def _normalize_bbox(
         self,
         bbox: List[float],
+        image_width: Optional[int] = None,
+        image_height: Optional[int] = None,
     ) -> Tuple[float, float, float, float]:
-        """Normalize bbox to [0, 1] space (assumes 0-999 DeepSeek format)."""
+        """
+        Normalize bbox to [0, 1] space.
+
+        Handles three formats:
+        - Already normalized: values in [0, 1]
+        - DeepSeek-OCR format: values in [0, 999]
+        - Pixel coordinates: requires image_width and image_height
+
+        Args:
+            bbox: Bounding box [x1, y1, x2, y2]
+            image_width: Image width for pixel coordinate normalization
+            image_height: Image height for pixel coordinate normalization
+
+        Returns:
+            Normalized (x1, y1, x2, y2) tuple
+
+        Raises:
+            ValueError: If coordinates exceed 999 and no image dimensions provided
+        """
         if len(bbox) < 4:
             return (0.0, 0.0, 0.0, 0.0)
 
@@ -510,12 +558,25 @@ class BaselineGenerator:
         max_coord = max(x1, y1, x2, y2)
 
         if max_coord <= 1.0:
+            # Already normalized
             return (x1, y1, x2, y2)
-        elif max_coord <= 999:
+        elif max_coord <= 999 and image_width is None:
+            # DeepSeek-OCR format (0-999)
             return (x1 / 999.0, y1 / 999.0, x2 / 999.0, y2 / 999.0)
+        elif image_width is not None and image_height is not None:
+            # Pixel coordinates - use provided dimensions
+            return (
+                x1 / image_width,
+                y1 / image_height,
+                x2 / image_width,
+                y2 / image_height,
+            )
         else:
-            # Assume large pixel values - normalize by max
-            return (x1 / max_coord, y1 / max_coord, x2 / max_coord, y2 / max_coord)
+            raise ValueError(
+                f"Cannot normalize bbox {bbox}: coordinates exceed 999 (max={max_coord}) "
+                f"but image dimensions not provided. Provide image_width/image_height "
+                f"for pixel coordinates."
+            )
 
     def run_all_baselines(
         self,
