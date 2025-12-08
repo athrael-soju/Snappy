@@ -212,5 +212,5 @@ deepseek-ocr/models/
 .claude/
 
 # Evals/Benchmarks
-.eval_cache/
+benchmarks/.eval_cache/
 benchmarks/runs/

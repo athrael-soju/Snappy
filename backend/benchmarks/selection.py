@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 # Selection method types
 SelectionMethod = Literal[
-    "top_k", "threshold", "percentile", "otsu", "elbow", "gap", "relative", "all"
+    "top_k", "threshold", "percentile", "otsu", "elbow", "gap", "relative"
 ]
 
 
@@ -72,7 +72,7 @@ class RegionSelector:
         Args:
             region_scores: List of RegionScore objects (assumed sorted desc)
             method: Selection method to use
-            k: Number of regions for top_k method
+            k: Number of regions for top_k method (use k=0 to select all)
             threshold: Absolute threshold for threshold method
             percentile: Percentile for percentile method (e.g., 90 = top 10%)
             relative_threshold: Fraction of max score for relative method
@@ -105,15 +105,24 @@ class RegionSelector:
             return self._select_gap(region_scores)
         elif method == "relative":
             return self._select_relative(region_scores, relative_threshold)
-        elif method == "all":
-            return self._select_all(region_scores)
         else:
             raise ValueError(f"Unknown selection method: {method}")
 
     def _select_top_k(
         self, region_scores: List[RegionScore], k: int
     ) -> SelectionResult:
-        """Select top k regions by score."""
+        """Select top k regions by score. Use k=0 to select all regions."""
+        if k <= 0:
+            # k=0 means select all regions (no limit)
+            selected = region_scores
+            threshold = selected[-1].score if selected else 0.0
+            return SelectionResult(
+                selected_regions=selected,
+                method="top_k",
+                threshold_used=threshold,
+                params={"k": 0, "count": len(selected)},
+            )
+
         selected = region_scores[:k]
         threshold = selected[-1].score if selected else 0.0
 
@@ -122,17 +131,6 @@ class RegionSelector:
             method="top_k",
             threshold_used=threshold,
             params={"k": k},
-        )
-
-    def _select_all(
-        self, region_scores: List[RegionScore]
-    ) -> SelectionResult:
-        """Return all regions sorted by score (no filtering)."""
-        return SelectionResult(
-            selected_regions=region_scores,
-            method="all",
-            threshold_used=0.0,
-            params={"count": len(region_scores)},
         )
 
     def _select_threshold(

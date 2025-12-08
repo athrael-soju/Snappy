@@ -18,23 +18,32 @@ Usage:
     python -m benchmarks.run_bbox_docvqa --ablation
 """
 
+import os
+from pathlib import Path as _Path
+
+# Set HuggingFace cache to local .eval_cache directory (before importing HF libraries)
+_BENCHMARKS_DIR = _Path(__file__).parent
+_EVAL_CACHE_DIR = _BENCHMARKS_DIR / ".eval_cache"
+os.environ.setdefault("HF_HOME", str(_EVAL_CACHE_DIR))
+os.environ.setdefault("HUGGINGFACE_HUB_CACHE", str(_EVAL_CACHE_DIR))
+
 import argparse
 import json
 import logging
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 import numpy as np
 
-from .aggregation import PatchToRegionAggregator
+from .aggregation import AggregationMethod, PatchToRegionAggregator
 from .baselines import BaselineGenerator
 from .clients import BenchmarkColPaliClient, BenchmarkOcrClient
 from .config import BenchmarkConfig, create_ablation_configs, get_default_config
 from .evaluation import BBoxEvaluator, BenchmarkResults, StratifiedEvaluator
 from .loaders.bbox_docvqa import BBoxDocVQALoader, BBoxDocVQASample
-from .selection import RegionSelector
+from .selection import RegionSelector, SelectionMethod
 from .utils.coordinates import NormalizedBox, compute_iou
 from .visualization import BenchmarkVisualizer
 
@@ -110,6 +119,15 @@ class BenchmarkRunner:
         self.results: Dict[str, Any] = {}
         self.sample_results: List[Dict[str, Any]] = []
 
+        # Store predictions per (aggregation_method, selection_method) for evaluation
+        # Structure: predictions[agg_method][sel_method] = List[List[NormalizedBox]]
+        self.predictions: Dict[str, Dict[str, List[List[NormalizedBox]]]] = {
+            agg_method: {
+                sel_method: [] for sel_method in config.selection.methods
+            }
+            for agg_method in config.aggregation.methods
+        }
+
         # Cache for OCR regions (reused by baselines and visualizations)
         self._ocr_regions_cache: Dict[str, List[Dict[str, Any]]] = {}
 
@@ -180,7 +198,6 @@ class BenchmarkRunner:
         logger.info(f"Loaded {len(samples)} samples")
 
         # Process samples
-        all_predictions: List[List[NormalizedBox]] = []
         all_ground_truth: List[List[NormalizedBox]] = []
         all_metadata: List[Dict[str, Any]] = []
 
@@ -189,31 +206,50 @@ class BenchmarkRunner:
                 logger.info(f"Processing sample {idx}/{len(samples)}")
 
             try:
-                predictions, gt_boxes, metadata = self._process_sample(sample)
-                all_predictions.append(predictions)
+                _predictions, gt_boxes, metadata = self._process_sample(sample)
                 all_ground_truth.append(gt_boxes)
                 all_metadata.append(metadata)
             except Exception as e:
                 logger.error(f"Error processing sample {sample.sample_id}: {e}")
-                all_predictions.append([])
+                # Add empty predictions for all method combinations on error
+                for agg_method in self.config.aggregation.methods:
+                    for sel_method in self.config.selection.methods:
+                        self.predictions[agg_method][sel_method].append([])
                 all_ground_truth.append([])
                 all_metadata.append({"sample_id": sample.sample_id, "error": str(e)})
 
-        # Evaluate main method
-        logger.info("Evaluating main method...")
+        # Evaluate all aggregation × selection method combinations
+        logger.info("Evaluating aggregation × selection methods...")
+        eval_results_grid: Dict[str, Dict[str, Dict[str, Any]]] = {}
+
+        for agg_method in self.config.aggregation.methods:
+            eval_results_grid[agg_method] = {}
+            for sel_method in self.config.selection.methods:
+                method_predictions = self.predictions[agg_method][sel_method]
+                eval_results = self.evaluator.evaluate_batch(
+                    method_predictions,
+                    all_ground_truth,
+                    [m.get("sample_id", "") for m in all_metadata],
+                )
+                eval_results_grid[agg_method][sel_method] = self._benchmark_results_to_dict(eval_results)
+
+        # Use default methods as "main" results for backwards compatibility
+        default_agg = self.config.aggregation.default_method
+        default_sel = self.config.selection.default_method
         main_results = self.evaluator.evaluate_batch(
-            all_predictions,
+            self.predictions[default_agg][default_sel],
             all_ground_truth,
             [m.get("sample_id", "") for m in all_metadata],
         )
 
-        # Evaluate stratified
+        # Evaluate stratified (using default methods)
         stratified_evaluator = StratifiedEvaluator(self.evaluator)
 
         stratified_results = {}
+        default_predictions = self.predictions[default_agg][default_sel]
         for stratify_by in ["category", "region_type", "domain"]:
             stratified_results[stratify_by] = stratified_evaluator.evaluate_stratified(
-                all_predictions,
+                default_predictions,
                 all_ground_truth,
                 all_metadata,
                 stratify_by=stratify_by,
@@ -234,6 +270,7 @@ class BenchmarkRunner:
                 "elapsed_seconds": elapsed_time,
             },
             "main_results": self._benchmark_results_to_dict(main_results),
+            "aggregation_selection_results": eval_results_grid,
             "stratified_results": {
                 key: {
                     stratum: self._benchmark_results_to_dict(res)
@@ -312,60 +349,85 @@ class BenchmarkRunner:
         # Get interpretability maps from ColPali
         heatmap = self._get_interpretability_heatmap(sample, image)
 
-        # Aggregate patches to regions
-        region_scores = self.aggregator.aggregate(
-            heatmap=heatmap,
-            regions=ocr_regions,
-            method=self.config.aggregation.default_method,
-            image_width=sample.image_width,
-            image_height=sample.image_height,
-        )
-
-        # Select relevant regions
-        selection_result = self.selector.select(
-            region_scores,
-            method=self.config.selection.default_method,
-            k=self.config.selection.default_k,
-            relative_threshold=self.config.selection.default_relative_threshold,
-        )
-
-        # Extract prediction boxes
-        predictions = [r.bbox for r in selection_result.selected_regions]
-
-        # Calculate matching statistics
+        # Evaluate all aggregation × selection method combinations
         iou_threshold = 0.25  # Use lower threshold to count partial matches
-        num_matching = 0
-        max_iou_per_pred = []
-        for pred in predictions:
-            max_iou = 0.0
-            for gt in gt_boxes:
-                iou = compute_iou(pred, gt)
-                max_iou = max(max_iou, iou)
-            max_iou_per_pred.append(max_iou)
-            if max_iou >= iou_threshold:
-                num_matching += 1
+        results_by_agg_sel: Dict[str, Dict[str, Any]] = {}
 
-        # Store sample result
+        for agg_method in self.config.aggregation.methods:
+            # Aggregate patches to regions using this aggregation method
+            region_scores = self.aggregator.aggregate(
+                heatmap=heatmap,
+                regions=ocr_regions,
+                method=cast(AggregationMethod, agg_method),
+                image_width=sample.image_width,
+                image_height=sample.image_height,
+            )
+
+            results_by_agg_sel[agg_method] = {}
+
+            for sel_method in self.config.selection.methods:
+                selection_result = self.selector.select(
+                    region_scores,
+                    method=cast(SelectionMethod, sel_method),
+                    k=self.config.selection.default_k,
+                    relative_threshold=self.config.selection.default_relative_threshold,
+                )
+
+                # Extract prediction boxes
+                method_predictions = [r.bbox for r in selection_result.selected_regions]
+
+                # Store predictions for batch evaluation
+                self.predictions[agg_method][sel_method].append(method_predictions)
+
+                # Calculate matching statistics
+                num_matching = 0
+                max_iou_per_pred = []
+                for pred in method_predictions:
+                    max_iou = 0.0
+                    for gt in gt_boxes:
+                        iou = compute_iou(pred, gt)
+                        max_iou = max(max_iou, iou)
+                    max_iou_per_pred.append(max_iou)
+                    if max_iou >= iou_threshold:
+                        num_matching += 1
+
+                results_by_agg_sel[agg_method][sel_method] = {
+                    "num_selected": len(method_predictions),
+                    "num_matching": num_matching,
+                    "max_iou": max(max_iou_per_pred) if max_iou_per_pred else 0.0,
+                    "threshold_used": selection_result.threshold_used,
+                    "region_scores": [
+                        {
+                            "bbox": r.bbox,
+                            "score": r.score,
+                            "label": r.label,
+                            "iou": max_iou_per_pred[i] if i < len(max_iou_per_pred) else 0.0,
+                            "content": r.content[:100] if r.content else "",
+                        }
+                        for i, r in enumerate(selection_result.selected_regions)
+                    ],
+                }
+
+        # Use default methods for backwards compatibility
+        default_agg = self.config.aggregation.default_method
+        default_sel = self.config.selection.default_method
+        default_result = results_by_agg_sel[default_agg][default_sel]
+        predictions = self.predictions[default_agg][default_sel][-1]
+
+        # Store sample result with all method results
         self.sample_results.append({
             "sample_id": sample.sample_id,
             "question": sample.question,
             "answer": sample.answer,
             "region_type": sample.region_type,
             "num_ocr_regions": len(ocr_regions),
-            "num_selected": len(predictions),
-            "num_matching": num_matching,
             "num_ground_truth": len(gt_boxes),
-            "max_iou": max(max_iou_per_pred) if max_iou_per_pred else 0.0,
-            "region_scores": [
-                {
-                    "bbox": r.bbox,
-                    "score": r.score,
-                    "label": r.label,
-                    "iou": max_iou_per_pred[i] if i < len(max_iou_per_pred) else 0.0,
-                    "content": r.content[:100] if r.content else "",
-                }
-                for i, r in enumerate(selection_result.selected_regions)
-            ],
+            "aggregation_selection_results": results_by_agg_sel,
+            # Keep default method stats at top level for backwards compatibility
+            "num_selected": default_result["num_selected"],
+            "num_matching": default_result["num_matching"],
+            "max_iou": default_result["max_iou"],
+            "region_scores": default_result["region_scores"],
         })
 
         metadata = {
@@ -566,13 +628,13 @@ class BenchmarkRunner:
             logger.info(f"Saved results to {json_path}")
 
         if self.config.output.save_summary:
-            summary_path = self.run_dir / "summary.txt"
-            with open(summary_path, "w") as f:
+            summary_path = self.run_dir / "summary.md"
+            with open(summary_path, "w", encoding="utf-8") as f:
                 self._write_summary(f)
             logger.info(f"Saved summary to {summary_path}")
 
     def _generate_visualizations(self, samples: List[BBoxDocVQASample]) -> None:
-        """Generate debug visualizations for select samples."""
+        """Generate debug visualizations for select samples, one per selection method."""
         if not self.visualizer:
             return
 
@@ -593,7 +655,9 @@ class BenchmarkRunner:
         else:
             indices = list(range(max_vis))
 
-        logger.info(f"Generating {len(indices)} visualizations...")
+        num_agg = len(self.config.aggregation.methods)
+        num_sel = len(self.config.selection.methods)
+        logger.info(f"Generating {len(indices)} x {num_agg} x {num_sel} visualizations...")
 
         for idx in indices:
             sample = samples[idx]
@@ -609,107 +673,217 @@ class BenchmarkRunner:
 
                 heatmap = self._get_interpretability_heatmap(sample, image)
                 ocr_regions = self._get_ocr_regions(sample, image)
-
-                region_scores = self.aggregator.aggregate(
-                    heatmap=heatmap,
-                    regions=ocr_regions,
-                    method=self.config.aggregation.default_method,
-                    image_width=sample.image_width,
-                    image_height=sample.image_height,
-                )
-
-                selection_result = self.selector.select(
-                    region_scores,
-                    method=self.config.selection.default_method,
-                    k=self.config.selection.default_k,
-                )
-
                 gt_boxes = sample.get_normalized_bboxes()
 
-                self.visualizer.visualize_sample(
-                    image=image,
-                    heatmap=heatmap if self.config.visualization.show_heatmap else None,
-                    ocr_regions=ocr_regions,
-                    predictions=selection_result.selected_regions,
-                    ground_truth=gt_boxes,
-                    sample_id=sample.sample_id,
-                    query=sample.question,
-                )
+                # Generate a visualization for each aggregation × selection combination
+                for agg_method in self.config.aggregation.methods:
+                    region_scores = self.aggregator.aggregate(
+                        heatmap=heatmap,
+                        regions=ocr_regions,
+                        method=cast(AggregationMethod, agg_method),
+                        image_width=sample.image_width,
+                        image_height=sample.image_height,
+                    )
+
+                    for sel_method in self.config.selection.methods:
+                        selection_result = self.selector.select(
+                            region_scores,
+                            method=cast(SelectionMethod, sel_method),
+                            k=self.config.selection.default_k,
+                            relative_threshold=self.config.selection.default_relative_threshold,
+                        )
+
+                        # Include method names in sample_id for unique filenames
+                        vis_sample_id = f"{sample.sample_id}_{agg_method}_{sel_method}"
+
+                        self.visualizer.visualize_sample(
+                            image=image,
+                            heatmap=heatmap if self.config.visualization.show_heatmap else None,
+                            ocr_regions=ocr_regions,
+                            predictions=selection_result.selected_regions,
+                            ground_truth=gt_boxes,
+                            sample_id=vis_sample_id,
+                            query=f"[{agg_method}+{sel_method}] {sample.question}",
+                        )
             except Exception as e:
                 logger.warning(f"Visualization failed for {sample.sample_id}: {e}")
 
     def _write_summary(self, f) -> None:
-        """Write human-readable summary."""
-        f.write(f"{'='*60}\n")
-        f.write(f"Benchmark: {self.config.name}\n")
-        f.write(f"{'='*60}\n\n")
+        """Write markdown-formatted summary with comparison tables."""
+        # Header
+        f.write(f"# Benchmark: {self.config.name}\n\n")
 
-        main = self.results.get("main_results", {})
-        f.write("Main Results:\n")
-        f.write(f"  Mean IoU: {main.get('mean_iou', 0):.4f}\n")
-        f.write(f"  Mean Max IoU: {main.get('mean_max_iou', 0):.4f}\n")
-        f.write(f"  Precision: {main.get('mean_precision', 0):.4f}\n")
-        f.write(f"  Recall: {main.get('mean_recall', 0):.4f}\n")
-        f.write(f"  F1: {main.get('mean_f1', 0):.4f}\n")
-        f.write(f"  mAP: {main.get('mAP', 0):.4f}\n\n")
+        metadata = self.results.get("metadata", {})
+        f.write(f"**Date:** {metadata.get('timestamp', 'N/A')}\n")
+        f.write(f"**Total Samples:** {metadata.get('total_samples', 0)}\n")
+        f.write(f"**Elapsed Time:** {metadata.get('elapsed_seconds', 0):.2f}s\n\n")
 
-        f.write("Hit Rates:\n")
-        for thresh, rate in main.get("hit_rate_at_thresholds", {}).items():
-            f.write(f"  IoU@{thresh}: {rate:.4f}\n")
+        # Aggregation × Selection Method Comparison Table
+        f.write("## Aggregation × Selection Method Comparison\n\n")
+        agg_sel_results = self.results.get("aggregation_selection_results", {})
 
-        f.write("\nBaseline Comparison:\n")
-        for name, results in self.results.get("baseline_results", {}).items():
-            f.write(f"  {name}: Recall={results.get('mean_recall', 0):.4f}\n")
+        if agg_sel_results:
+            # Build header row with selection methods
+            sel_methods = self.config.selection.methods
+            header = "| Aggregation |"
+            for sel in sel_methods:
+                header += f" {sel} |"
+            f.write(header + "\n")
 
-        # Per-sample region statistics
-        f.write(f"\n{'='*60}\n")
-        f.write("Per-Sample Region Statistics:\n")
-        f.write(f"{'='*60}\n\n")
+            # Separator
+            sep = "|-------------|"
+            for _ in sel_methods:
+                sep += "--------|"
+            f.write(sep + "\n")
+
+            # Write rows for each aggregation method (showing IoU@0.25)
+            for agg_method, sel_results in agg_sel_results.items():
+                row = f"| **{agg_method}** |"
+                for sel_method in sel_methods:
+                    res = sel_results.get(sel_method, {})
+                    hit_rates = res.get("hit_rate_at_thresholds", {})
+                    iou_025 = hit_rates.get("0.25", hit_rates.get(0.25, 0))
+                    row += f" {iou_025:.2%} |"
+                f.write(row + "\n")
+
+            f.write("\n*Values show IoU@0.25 hit rate*\n\n")
+
+            # Detailed table for each aggregation method
+            for agg_method, sel_results in agg_sel_results.items():
+                f.write(f"### {agg_method} Aggregation\n\n")
+                f.write("| Selection | Mean IoU | Precision | Recall | F1 | mAP | IoU@0.25 | IoU@0.5 |\n")
+                f.write("|-----------|----------|-----------|--------|-----|-----|----------|--------|\n")
+
+                for sel_method, res in sel_results.items():
+                    hit_rates = res.get("hit_rate_at_thresholds", {})
+                    f.write(
+                        f"| {sel_method} "
+                        f"| {res.get('mean_iou', 0):.4f} "
+                        f"| {res.get('mean_precision', 0):.4f} "
+                        f"| {res.get('mean_recall', 0):.4f} "
+                        f"| {res.get('mean_f1', 0):.4f} "
+                        f"| {res.get('mAP', 0):.4f} "
+                        f"| {hit_rates.get('0.25', hit_rates.get(0.25, 0)):.4f} "
+                        f"| {hit_rates.get('0.5', hit_rates.get(0.5, 0)):.4f} |\n"
+                    )
+                f.write("\n")
+
+        # Baseline Comparison
+        f.write("## Baseline Comparison\n\n")
+        baseline_results = self.results.get("baseline_results", {})
+
+        if baseline_results:
+            f.write("| Baseline | Recall | Precision | F1 | mAP |\n")
+            f.write("|----------|--------|-----------|-----|-----|\n")
+
+            for name, res in baseline_results.items():
+                f.write(
+                    f"| {name} "
+                    f"| {res.get('mean_recall', 0):.4f} "
+                    f"| {res.get('mean_precision', 0):.4f} "
+                    f"| {res.get('mean_f1', 0):.4f} "
+                    f"| {res.get('mAP', 0):.4f} |\n"
+                )
+
+            f.write("\n")
+
+        # Per-Sample Results
+        f.write("## Per-Sample Region Statistics\n\n")
 
         for sample in self.sample_results:
             sample_id = sample.get("sample_id", "unknown")
             region_type = sample.get("region_type", "unknown")
             num_ocr = sample.get("num_ocr_regions", 0)
-            num_selected = sample.get("num_selected", 0)
-            num_matching = sample.get("num_matching", 0)
             num_gt = sample.get("num_ground_truth", 0)
-            max_iou = sample.get("max_iou", 0.0)
 
-            match_status = "HIT" if num_matching > 0 else "MISS"
-            f.write(f"{sample_id} [{region_type}] - {match_status}\n")
-            f.write(f"  OCR Detected: {num_ocr} regions\n")
-            f.write(f"  Selected: {num_selected} regions\n")
-            f.write(f"  Matching (IoU>=0.25): {num_matching}/{num_selected}\n")
-            f.write(f"  Ground Truth: {num_gt} regions\n")
-            f.write(f"  Best IoU: {max_iou:.4f}\n")
+            f.write(f"### {sample_id} [{region_type}]\n\n")
+            f.write(f"- **OCR Detected:** {num_ocr} regions\n")
+            f.write(f"- **Ground Truth:** {num_gt} regions\n\n")
 
-            # Show all selected regions with their IoU and rank
+            # Per aggregation × selection results for this sample
+            agg_sel_results = sample.get("aggregation_selection_results", {})
+            if agg_sel_results:
+                f.write("#### Aggregation × Selection Results\n\n")
+
+                # Compact grid showing best IoU for each combination
+                sel_methods = self.config.selection.methods
+                header = "| Aggregation |"
+                for sel in sel_methods:
+                    header += f" {sel} |"
+                f.write(header + "\n")
+
+                sep = "|-------------|"
+                for _ in sel_methods:
+                    sep += "--------|"
+                f.write(sep + "\n")
+
+                for agg_method, sel_results in agg_sel_results.items():
+                    row = f"| {agg_method} |"
+                    for sel_method in sel_methods:
+                        result = sel_results.get(sel_method, {})
+                        max_iou = result.get("max_iou", 0.0)
+                        num_matching = result.get("num_matching", 0)
+                        icon = "✅" if num_matching > 0 else "❌"
+                        row += f" {icon} {max_iou:.2f} |"
+                    f.write(row + "\n")
+
+                f.write("\n")
+
+            # Show region details for default method
             region_scores = sample.get("region_scores", [])
             if region_scores:
-                f.write("  All Regions (ranked by score):\n")
+                default_agg = self.config.aggregation.default_method
+                default_sel = self.config.selection.default_method
+                f.write(f"#### Regions (default: {default_agg} + {default_sel})\n\n")
+                f.write("| Rank | Type | Score | IoU | Status |\n")
+                f.write("|------|------|-------|-----|--------|\n")
+
                 for i, r in enumerate(region_scores):
                     iou = r.get("iou", 0.0)
                     label = r.get("label", "?")
                     score = r.get("score", 0.0)
-                    match_mark = "✓ HIT" if iou >= 0.25 else "✗"
-                    # Highlight matching regions
-                    prefix = ">>>" if iou >= 0.25 else "   "
-                    f.write(f"  {prefix} {i+1}. [{label}] score={score:.3f} iou={iou:.3f} {match_mark}\n")
-            f.write("\n")
+                    is_hit = iou >= 0.25
+                    status = "✅ HIT" if is_hit else "❌"
+                    rank_marker = f"**{i+1}**" if is_hit else str(i + 1)
+
+                    f.write(f"| {rank_marker} | {label} | {score:.3f} | {iou:.3f} | {status} |\n")
+
+                f.write("\n")
+
+            f.write("---\n\n")
 
     def _print_summary(self) -> None:
         """Print summary to console."""
-        main = self.results.get("main_results", {})
         print("\n" + "=" * 60)
         print(f"Benchmark: {self.config.name}")
         print("=" * 60)
-        print(f"  Mean IoU: {main.get('mean_iou', 0):.4f}")
-        print(f"  Recall@0.5: {main.get('mean_recall', 0):.4f}")
-        print(f"  mAP: {main.get('mAP', 0):.4f}")
+
+        # Aggregation × Selection grid (IoU@0.25)
+        agg_sel_results = self.results.get("aggregation_selection_results", {})
+        if agg_sel_results:
+            sel_methods = self.config.selection.methods
+            print("\nAggregation × Selection (IoU@0.25):")
+
+            # Header
+            header = f"  {'Aggregation':<14}"
+            for sel in sel_methods:
+                header += f" {sel:>10}"
+            print(header)
+            print("  " + "-" * (14 + 11 * len(sel_methods)))
+
+            # Rows
+            for agg_method, sel_results in agg_sel_results.items():
+                row = f"  {agg_method:<14}"
+                for sel_method in sel_methods:
+                    res = sel_results.get(sel_method, {})
+                    hit_rates = res.get("hit_rate_at_thresholds", {})
+                    iou_025 = hit_rates.get("0.25", hit_rates.get(0.25, 0))
+                    row += f" {iou_025:>10.2%}"
+                print(row)
 
         print("\nBaseline Comparison:")
         for name, results in self.results.get("baseline_results", {}).items():
-            print(f"  {name}: {results.get('mean_recall', 0):.4f}")
+            print(f"  {name}: Recall={results.get('mean_recall', 0):.4f}")
         print()
 
 
@@ -760,6 +934,30 @@ def main():
         default=None,
         help="DeepSeek OCR service URL (default: http://localhost:8200)",
     )
+    parser.add_argument(
+        "--selection-methods",
+        type=str,
+        nargs="+",
+        default=None,
+        help=(
+            "Selection methods to evaluate. Use 'all' to include all available methods. "
+            "Available: top_k, threshold, percentile, otsu, elbow, gap, relative. "
+            "Example: --selection-methods top_k otsu relative"
+        ),
+    )
+    parser.add_argument(
+        "--aggregation-method",
+        type=str,
+        default=None,
+        choices=["max", "mean", "sum", "iou_weighted"],
+        help="Patch-to-region aggregation method. Default: iou_weighted",
+    )
+    parser.add_argument(
+        "--top-k",
+        type=int,
+        default=None,
+        help="Number of top regions to select for top_k method. Use 0 to select all regions. Default: 0",
+    )
 
     args = parser.parse_args()
 
@@ -768,6 +966,22 @@ def main():
         level=getattr(logging, args.log_level),
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
+
+    # All available selection methods
+    ALL_SELECTION_METHODS = ["top_k", "threshold", "percentile", "otsu", "elbow", "gap", "relative"]
+
+    # Process selection methods argument
+    selection_methods = None
+    if args.selection_methods:
+        if args.selection_methods == ["all"] or ("all" in args.selection_methods and len(args.selection_methods) == 1):
+            # "all" means include all available methods
+            selection_methods = ALL_SELECTION_METHODS
+        else:
+            # Validate provided methods
+            invalid_methods = [m for m in args.selection_methods if m not in ALL_SELECTION_METHODS]
+            if invalid_methods:
+                parser.error(f"Invalid selection methods: {invalid_methods}. Available: {ALL_SELECTION_METHODS}")
+            selection_methods = args.selection_methods
 
     if args.ablation:
         # Run all ablation studies
@@ -788,6 +1002,18 @@ def main():
                 config.colpali.url = args.colpali_url
             if args.ocr_url:
                 config.ocr.url = args.ocr_url
+
+            # Override selection methods from CLI
+            if selection_methods:
+                config.selection.methods = selection_methods
+
+            # Override aggregation method from CLI
+            if args.aggregation_method:
+                config.aggregation.default_method = args.aggregation_method
+
+            # Override top-k from CLI
+            if args.top_k is not None:
+                config.selection.default_k = args.top_k
 
             runner = BenchmarkRunner(config)
             all_results[name] = runner.run()
@@ -819,6 +1045,18 @@ def main():
             config.colpali.url = args.colpali_url
         if args.ocr_url:
             config.ocr.url = args.ocr_url
+
+        # Override selection methods from CLI
+        if selection_methods:
+            config.selection.methods = selection_methods
+
+        # Override aggregation method from CLI
+        if args.aggregation_method:
+            config.aggregation.default_method = args.aggregation_method
+
+        # Override top-k from CLI
+        if args.top_k is not None:
+            config.selection.default_k = args.top_k
 
         runner = BenchmarkRunner(config)
         runner.run()

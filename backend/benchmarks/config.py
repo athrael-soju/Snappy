@@ -60,15 +60,15 @@ class SelectionConfig:
 
     # Selection methods to evaluate
     methods: List[str] = field(
-        default_factory=lambda: ["all", "top_k", "otsu", "relative"]
+        default_factory=lambda: ["top_k", "threshold", "percentile", "otsu", "elbow", "gap", "relative"]
     )
 
     # Default method for single-method runs
-    default_method: str = "all"
+    default_method: str = "top_k"
 
-    # Top-k parameters
-    top_k_values: List[int] = field(default_factory=lambda: [1, 3, 5, 10])
-    default_k: int = 5
+    # Top-k parameters (use k=0 to select all regions)
+    top_k_values: List[int] = field(default_factory=lambda: [0, 1, 3, 5, 10])
+    default_k: int = 0  # 0 means select all regions
 
     # Relative threshold parameters
     relative_thresholds: List[float] = field(
