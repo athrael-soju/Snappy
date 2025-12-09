@@ -43,6 +43,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, cast
 
 import numpy as np
+import tiktoken
 
 from .aggregation import AggregationMethod, PatchToRegionAggregator
 from .baselines import BaselineGenerator
@@ -58,7 +59,8 @@ from .evaluation import (
 )
 from .loaders.bbox_docvqa import BBoxDocVQALoader, BBoxDocVQASample
 from .selection import RegionSelector, SelectionMethod
-from .utils.coordinates import NormalizedBox, compute_iou
+from .merging import MergingMethod
+from .utils.coordinates import NormalizedBox, compute_iou, normalize_bbox
 from .visualization import BenchmarkVisualizer
 
 logger = logging.getLogger(__name__)
@@ -77,6 +79,15 @@ class BenchmarkRunner:
         colpali_client: Optional[BenchmarkColPaliClient] = None,
         ocr_client: Optional[BenchmarkOcrClient] = None,
         local_model_id: Optional[str] = None,
+        merge_regions: bool = False,
+        merge_method: MergingMethod = "proximity",
+        merge_distance: float = 0.05,
+        merge_score_ratio: float = 0.0,
+        merge_max_area: float = 1.0,
+        merge_fallback_area: float = 0.0,
+        no_merge_for_text: bool = False,
+        no_merge_for_table: bool = False,
+        no_merge_for_image: bool = False,
     ):
         """
         Initialize the benchmark runner.
@@ -86,9 +97,27 @@ class BenchmarkRunner:
             colpali_client: Optional ColPali client (created from config if not provided)
             ocr_client: Optional OCR client (created from config if not provided)
             local_model_id: Optional local model ID to use instead of HTTP service
+            merge_regions: Whether to merge adjacent regions after selection
+            merge_method: Merging method to use
+            merge_distance: Distance threshold for proximity-based merging
+            merge_score_ratio: Only merge regions with min/max score ratio >= threshold
+            merge_max_area: Maximum area of merged region (0-1 normalized)
+            merge_fallback_area: If top merged region exceeds this area, return all originals
+            no_merge_for_text: Skip merging for Text-type samples (adaptive strategy)
+            no_merge_for_table: Skip merging for Table-type samples (adaptive strategy)
+            no_merge_for_image: Skip merging for Image-type samples (adaptive strategy)
         """
         self.config = config
         self.local_model_id = local_model_id
+        self.merge_regions = merge_regions
+        self.merge_method = merge_method
+        self.merge_distance = merge_distance
+        self.merge_score_ratio = merge_score_ratio
+        self.merge_max_area = merge_max_area
+        self.merge_fallback_area = merge_fallback_area
+        self.no_merge_for_text = no_merge_for_text
+        self.no_merge_for_table = no_merge_for_table
+        self.no_merge_for_image = no_merge_for_image
 
         # Initialize local model if specified (bypasses HTTP service)
         self.local_model: Optional[LocalColPaliModel] = None
@@ -147,9 +176,7 @@ class BenchmarkRunner:
         # Store predictions per (aggregation_method, selection_method) for evaluation
         # Structure: predictions[agg_method][sel_method] = List[List[NormalizedBox]]
         self.predictions: Dict[str, Dict[str, List[List[NormalizedBox]]]] = {
-            agg_method: {
-                sel_method: [] for sel_method in config.selection.methods
-            }
+            agg_method: {sel_method: [] for sel_method in config.selection.methods}
             for agg_method in config.aggregation.methods
         }
 
@@ -158,6 +185,9 @@ class BenchmarkRunner:
 
         # Cache for heatmaps (reused by visualizations)
         self._heatmap_cache: Dict[str, np.ndarray] = {}
+
+        # Tokenizer for counting tokens in region content
+        self._tokenizer = tiktoken.get_encoding("cl100k_base")  # GPT-4 encoding
 
         # Dataset loader (set during run)
         self._loader: Optional[BBoxDocVQALoader] = None
@@ -195,7 +225,9 @@ class BenchmarkRunner:
             # HTTP service
             colpali_healthy = self.colpali_client.health_check()
             if not colpali_healthy:
-                errors.append(f"ColPali service at {self.config.colpali.url} is not responding")
+                errors.append(
+                    f"ColPali service at {self.config.colpali.url} is not responding"
+                )
             else:
                 logger.info(f"ColPali service healthy at {self.config.colpali.url}")
 
@@ -235,8 +267,12 @@ class BenchmarkRunner:
                 if 0 <= idx < len(all_samples):
                     samples.append(all_samples[idx])
                 else:
-                    logger.warning(f"Sample index {idx} out of range (0-{len(all_samples)-1})")
-            logger.info(f"Selected {len(samples)} specific samples: {self.config.dataset.sample_indices}")
+                    logger.warning(
+                        f"Sample index {idx} out of range (0-{len(all_samples)-1})"
+                    )
+            logger.info(
+                f"Selected {len(samples)} specific samples: {self.config.dataset.sample_indices}"
+            )
         elif self.config.dataset.max_samples:
             samples = all_samples[: self.config.dataset.max_samples]
         else:
@@ -247,15 +283,34 @@ class BenchmarkRunner:
         # Process samples
         all_ground_truth: List[List[NormalizedBox]] = []
         all_metadata: List[Dict[str, Any]] = []
+        sample_start_time = time.time()
 
         for idx, sample in enumerate(samples):
-            if idx > 0 and idx % self.config.log_progress_every == 0:
-                logger.info(f"Processing sample {idx}/{len(samples)}")
+            sample_iter_start = time.time()
 
             try:
                 _predictions, gt_boxes, metadata = self._process_sample(sample)
                 all_ground_truth.append(gt_boxes)
                 all_metadata.append(metadata)
+
+                # Per-sample progress logging
+                elapsed = time.time() - sample_start_time
+                avg_per_sample = elapsed / (idx + 1)
+                remaining = avg_per_sample * (len(samples) - idx - 1)
+                eta_mins = remaining / 60
+                sample_time = time.time() - sample_iter_start
+                num_regions = metadata.get("num_ocr_regions", 0)
+
+                # Always log progress (use print for immediate visibility)
+                print(
+                    f"[{idx + 1}/{len(samples)}] {sample.sample_id} [{sample.region_type}] "
+                    f"- {num_regions} regions - {sample_time:.1f}s "
+                    f"(ETA: {eta_mins:.1f}m)"
+                )
+
+                # Save checkpoint after every sample
+                self._save_checkpoint(idx + 1, len(samples), elapsed)
+
             except Exception as e:
                 logger.error(f"Error processing sample {sample.sample_id}: {e}")
                 # Add empty predictions for all method combinations on error
@@ -278,7 +333,9 @@ class BenchmarkRunner:
                     all_ground_truth,
                     [m.get("sample_id", "") for m in all_metadata],
                 )
-                eval_results_grid[agg_method][sel_method] = self._benchmark_results_to_dict(eval_results)
+                eval_results_grid[agg_method][sel_method] = (
+                    self._benchmark_results_to_dict(eval_results)
+                )
 
         # Use default methods as "main" results for backwards compatibility
         default_agg = self.config.aggregation.default_method
@@ -413,11 +470,27 @@ class BenchmarkRunner:
             results_by_agg_sel[agg_method] = {}
 
             for sel_method in self.config.selection.methods:
+                # Adaptive merging: skip for certain region types if configured
+                should_merge = self.merge_regions
+                if self.no_merge_for_text and sample.region_type == "Text":
+                    should_merge = False
+                if self.no_merge_for_table and sample.region_type == "Table":
+                    should_merge = False
+                if self.no_merge_for_image and sample.region_type == "Image":
+                    should_merge = False
+
                 selection_result = self.selector.select(
                     region_scores,
                     method=cast(SelectionMethod, sel_method),
                     k=self.config.selection.default_k,
                     relative_threshold=self.config.selection.default_relative_threshold,
+                    # Merging options
+                    merge_regions=should_merge,
+                    merge_method=cast(MergingMethod, self.merge_method),
+                    merge_distance=self.merge_distance,
+                    merge_score_ratio=self.merge_score_ratio,
+                    merge_max_area=self.merge_max_area,
+                    merge_fallback_area=self.merge_fallback_area,
                 )
 
                 # Extract prediction boxes
@@ -442,6 +515,13 @@ class BenchmarkRunner:
                 agg_iou = compute_aggregate_iou(method_predictions, gt_boxes)
                 gt_cov = compute_gt_coverage(method_predictions, gt_boxes)
 
+                # Count tokens from full content BEFORE truncation (fix for accurate token counts)
+                img_w = sample.image_width or 0
+                img_h = sample.image_height or 0
+                selected_tokens = self._count_scored_region_tokens(
+                    selection_result.selected_regions, img_w, img_h
+                )
+
                 results_by_agg_sel[agg_method][sel_method] = {
                     "num_selected": len(method_predictions),
                     "num_matching": num_matching,
@@ -449,12 +529,17 @@ class BenchmarkRunner:
                     "aggregate_iou": agg_iou,
                     "gt_coverage": gt_cov,
                     "threshold_used": selection_result.threshold_used,
+                    "tokens_selected": selected_tokens,  # Full token count
                     "region_scores": [
                         {
                             "bbox": r.bbox,
                             "score": r.score,
                             "label": r.label,
-                            "iou": max_iou_per_pred[i] if i < len(max_iou_per_pred) else 0.0,
+                            "iou": (
+                                max_iou_per_pred[i]
+                                if i < len(max_iou_per_pred)
+                                else 0.0
+                            ),
                             "content": r.content[:100] if r.content else "",
                         }
                         for i, r in enumerate(selection_result.selected_regions)
@@ -467,27 +552,72 @@ class BenchmarkRunner:
         default_result = results_by_agg_sel[default_agg][default_sel]
         predictions = self.predictions[default_agg][default_sel][-1]
 
+        # Track if merging was applied for this sample (based on type-based exclusions)
+        merge_applied = self.merge_regions
+        if self.no_merge_for_text and sample.region_type == "Text":
+            merge_applied = False
+        if self.no_merge_for_table and sample.region_type == "Table":
+            merge_applied = False
+        if self.no_merge_for_image and sample.region_type == "Image":
+            merge_applied = False
+
+        # Get image dimensions (default to 0 if not available)
+        img_w = sample.image_width or 0
+        img_h = sample.image_height or 0
+
+        # Calculate full image tokens (baseline for comparison)
+        tokens_full_image = self._calc_image_tokens(img_w, img_h) if img_w > 0 and img_h > 0 else 0
+
+        # Count tokens in all OCR regions (text + image crop tokens)
+        tokens_all_regions = self._count_region_tokens(ocr_regions, img_w, img_h)
+
+        # Get pre-computed tokens from selected regions (computed from full content in loop)
+        tokens_selected = default_result["tokens_selected"]
+
+        # Calculate savings vs both baselines
+        tokens_saved_vs_ocr_pct = (
+            (1 - tokens_selected / tokens_all_regions) * 100
+            if tokens_all_regions > 0
+            else 0.0
+        )
+        tokens_saved_vs_image_pct = (
+            (1 - tokens_selected / tokens_full_image) * 100
+            if tokens_full_image > 0
+            else 0.0
+        )
+
         # Store sample result with all method results
-        self.sample_results.append({
-            "sample_id": sample.sample_id,
-            "question": sample.question,
-            "answer": sample.answer,
-            "region_type": sample.region_type,
-            "num_ocr_regions": len(ocr_regions),
-            "num_ground_truth": len(gt_boxes),
-            "aggregation_selection_results": results_by_agg_sel,
-            # Keep default method stats at top level for backwards compatibility
-            "num_selected": default_result["num_selected"],
-            "num_matching": default_result["num_matching"],
-            "max_iou": default_result["max_iou"],
-            "region_scores": default_result["region_scores"],
-        })
+        self.sample_results.append(
+            {
+                "sample_id": sample.sample_id,
+                "question": sample.question,
+                "answer": sample.answer,
+                "region_type": sample.region_type,
+                "num_ocr_regions": len(ocr_regions),
+                "num_ground_truth": len(gt_boxes),
+                "aggregation_selection_results": results_by_agg_sel,
+                # Keep default method stats at top level for backwards compatibility
+                "num_selected": default_result["num_selected"],
+                "num_matching": default_result["num_matching"],
+                "max_iou": default_result["max_iou"],
+                "region_scores": default_result["region_scores"],
+                # Token statistics
+                "tokens_full_image": tokens_full_image,
+                "tokens_all_regions": tokens_all_regions,
+                "tokens_selected": tokens_selected,
+                "tokens_saved_vs_ocr_pct": tokens_saved_vs_ocr_pct,
+                "tokens_saved_vs_image_pct": tokens_saved_vs_image_pct,
+                # Merging info
+                "merge_applied": merge_applied,
+            }
+        )
 
         metadata = {
             "sample_id": sample.sample_id,
             "category": sample.category,
             "region_type": sample.region_type,
             "domain": sample.domain,
+            "num_ocr_regions": len(ocr_regions),
         }
 
         return predictions, gt_boxes, metadata
@@ -599,7 +729,14 @@ class BenchmarkRunner:
         baseline_results = {}
 
         # Valid baseline names
-        valid_baselines = {"random", "bm25", "cosine", "uniform_patches", "center_bias", "top_left_bias"}
+        valid_baselines = {
+            "random",
+            "bm25",
+            "cosine",
+            "uniform_patches",
+            "center_bias",
+            "top_left_bias",
+        }
 
         for baseline_name in self.config.baselines.enabled:
             # Validate baseline name
@@ -617,7 +754,9 @@ class BenchmarkRunner:
                 # Use cached OCR regions from main processing pass
                 ocr_regions = self._ocr_regions_cache.get(sample.sample_id, [])
                 if not ocr_regions:
-                    logger.warning(f"No cached OCR regions for {sample.sample_id}, using empty predictions")
+                    logger.warning(
+                        f"No cached OCR regions for {sample.sample_id}, using empty predictions"
+                    )
                     predictions.append([])
                     skipped_samples += 1
                     continue
@@ -706,7 +845,9 @@ class BenchmarkRunner:
             )
 
             result_dict = self._benchmark_results_to_dict(eval_results)
-            result_dict["skipped_samples"] = skipped_samples  # Track samples without OCR
+            result_dict["skipped_samples"] = (
+                skipped_samples  # Track samples without OCR
+            )
             baseline_results[baseline_name] = result_dict
 
         return baseline_results
@@ -728,6 +869,98 @@ class BenchmarkRunner:
             "total_samples": results.total_samples,
         }
 
+    def _count_tokens(self, text: str) -> int:
+        """Count tokens in text using tiktoken."""
+        if not text:
+            return 0
+        return len(self._tokenizer.encode(text))
+
+    def _count_region_tokens(
+        self,
+        regions: List[Dict[str, Any]],
+        img_width: int = 0,
+        img_height: int = 0,
+    ) -> int:
+        """Count total tokens across all region contents.
+
+        For text regions: counts text tokens using tiktoken
+        For image regions: calculates vision tokens based on bbox dimensions
+        """
+        total = 0
+        for region in regions:
+            label = region.get("label", "").lower()
+            content = region.get("content", "")
+
+            if label == "image" and img_width > 0 and img_height > 0:
+                # Image region: calculate vision tokens based on bbox
+                # Note: bbox in ocr_regions may be pixel coords, normalize first
+                raw_bbox = region.get("bbox", [0, 0, 0, 0])
+                bbox = normalize_bbox(raw_bbox, img_width, img_height)
+                crop_w = int((bbox[2] - bbox[0]) * img_width)
+                crop_h = int((bbox[3] - bbox[1]) * img_height)
+                if crop_w > 0 and crop_h > 0:
+                    total += self._calc_image_tokens(crop_w, crop_h)
+            elif content:
+                # Text/table region: count text tokens
+                total += self._count_tokens(content)
+        return total
+
+    def _count_scored_region_tokens(
+        self,
+        scored_regions: List[Any],  # List of ScoredRegion objects
+        img_width: int = 0,
+        img_height: int = 0,
+    ) -> int:
+        """Count tokens from ScoredRegion objects (with full content).
+
+        For text regions: counts text tokens using tiktoken
+        For image regions: calculates vision tokens based on bbox dimensions
+        """
+        total = 0
+        for r in scored_regions:
+            label = (r.label or "").lower()
+            content = r.content or ""
+
+            if label == "image" and img_width > 0 and img_height > 0:
+                # Image region: calculate vision tokens based on bbox
+                bbox = r.bbox or [0, 0, 0, 0]
+                crop_w = int((bbox[2] - bbox[0]) * img_width)
+                crop_h = int((bbox[3] - bbox[1]) * img_height)
+                if crop_w > 0 and crop_h > 0:
+                    total += self._calc_image_tokens(crop_w, crop_h)
+            elif content:
+                # Text/table region: count text tokens
+                total += self._count_tokens(content)
+        return total
+
+    def _calc_image_tokens(self, width: int, height: int) -> int:
+        """Calculate Claude vision tokens for an image based on dimensions.
+
+        Uses Claude's vision token formula:
+        - Images are resized to fit within 1568x1568 while maintaining aspect ratio
+        - Then tiled into 512x512 tiles
+        - Each tile costs ~170 tokens
+        - Plus a base cost of 85 tokens
+        """
+        import math
+
+        # Max dimension for Claude vision
+        max_dim = 1568
+        tile_size = 512
+        tokens_per_tile = 170
+        base_tokens = 85
+
+        # Scale down if needed (maintain aspect ratio)
+        scale = min(1.0, max_dim / max(width, height))
+        scaled_w = int(width * scale)
+        scaled_h = int(height * scale)
+
+        # Calculate number of tiles
+        tiles_x = math.ceil(scaled_w / tile_size)
+        tiles_y = math.ceil(scaled_h / tile_size)
+
+        return base_tokens + (tiles_x * tiles_y * tokens_per_tile)
+
     def _save_results(self) -> None:
         """Save benchmark results to files."""
         if self.config.output.save_json:
@@ -741,6 +974,100 @@ class BenchmarkRunner:
             with open(summary_path, "w", encoding="utf-8") as f:
                 self._write_summary(f)
             logger.info(f"Saved summary to {summary_path}")
+
+    def _save_checkpoint(self, completed: int, total: int, elapsed: float) -> None:
+        """Save compact checkpoint with essential metrics during long runs."""
+        checkpoint_path = self.run_dir / "checkpoint.md"
+
+        # Compute running stats from sample_results
+        hits = 0
+        total_coverage = 0.0
+        total_tokens_full_image = 0
+        total_tokens_all = 0
+        total_tokens_selected = 0
+        for sample in self.sample_results:
+            agg_sel = sample.get("aggregation_selection_results", {})
+            default_agg = self.config.aggregation.default_method
+            default_sel = self.config.selection.default_method
+            if default_agg in agg_sel and default_sel in agg_sel[default_agg]:
+                result = agg_sel[default_agg][default_sel]
+                if result.get("num_matching", 0) > 0:
+                    hits += 1
+                total_coverage += result.get("gt_coverage", 0.0)
+            total_tokens_full_image += sample.get("tokens_full_image", 0)
+            total_tokens_all += sample.get("tokens_all_regions", 0)
+            total_tokens_selected += sample.get("tokens_selected", 0)
+
+        hit_rate = hits / completed * 100 if completed > 0 else 0
+        avg_coverage = total_coverage / completed * 100 if completed > 0 else 0
+        avg_tokens_full_image = total_tokens_full_image / completed if completed > 0 else 0
+        avg_tokens_all = total_tokens_all / completed if completed > 0 else 0
+        avg_tokens_selected = total_tokens_selected / completed if completed > 0 else 0
+        saved_vs_ocr_pct = (
+            (1 - total_tokens_selected / total_tokens_all) * 100
+            if total_tokens_all > 0
+            else 0.0
+        )
+        saved_vs_image_pct = (
+            (1 - total_tokens_selected / total_tokens_full_image) * 100
+            if total_tokens_full_image > 0
+            else 0.0
+        )
+
+        with open(checkpoint_path, "w", encoding="utf-8") as f:
+            f.write(f"# Checkpoint: {completed}/{total} samples\n\n")
+            f.write(
+                f"**Elapsed:** {elapsed/60:.1f}m | **ETA:** {(elapsed/completed)*(total-completed)/60:.1f}m\n\n"
+            )
+            f.write(
+                f"## Running Stats (default: {self.config.aggregation.default_method} + {self.config.selection.default_method})\n\n"
+            )
+            f.write(f"- **IoU@0.25 Hit Rate:** {hit_rate:.1f}% ({hits}/{completed})\n")
+            f.write(f"- **Avg GT Coverage:** {avg_coverage:.1f}%\n\n")
+            f.write("### Token Savings\n\n")
+            f.write("| Baseline | Total Tokens | Avg/Sample | vs Selected |\n")
+            f.write("|----------|--------------|------------|-------------|\n")
+            f.write(
+                f"| Full Image | {total_tokens_full_image:,} | {avg_tokens_full_image:.0f} | **{saved_vs_image_pct:.1f}% saved** |\n"
+            )
+            f.write(
+                f"| All OCR Regions | {total_tokens_all:,} | {avg_tokens_all:.0f} | {saved_vs_ocr_pct:.1f}% saved |\n"
+            )
+            f.write(
+                f"| **Selected Regions** | **{total_tokens_selected:,}** | **{avg_tokens_selected:.0f}** | - |\n\n"
+            )
+            f.write("## Recent Samples\n\n")
+            f.write(
+                "| Sample | Type | Mrg | Rgns | Sel | ImgTok | OcrTok | SelTok | vsOCR | vsImg | Hit | Cov |\n"
+            )
+            f.write(
+                "|--------|------|-----|------|-----|--------|--------|--------|-------|-------|-----|-----|\n"
+            )
+            # Show last 1000 samples
+            for sample in self.sample_results[-1000:]:
+                sid = sample.get("sample_id", "?")
+                rtype = sample.get("region_type", "?")
+                merged = "✓" if sample.get("merge_applied", False) else "-"
+                num_ocr = sample.get("num_ocr_regions", 0)
+                num_sel = sample.get("num_selected", 0)
+                tok_img = sample.get("tokens_full_image", 0)
+                tok_ocr = sample.get("tokens_all_regions", 0)
+                tok_sel = sample.get("tokens_selected", 0)
+                saved_vs_ocr = sample.get("tokens_saved_vs_ocr_pct", 0.0)
+                saved_vs_img = sample.get("tokens_saved_vs_image_pct", 0.0)
+                agg_sel = sample.get("aggregation_selection_results", {})
+                default_agg = self.config.aggregation.default_method
+                default_sel = self.config.selection.default_method
+                if default_agg in agg_sel and default_sel in agg_sel[default_agg]:
+                    result = agg_sel[default_agg][default_sel]
+                    hit = "✅" if result.get("num_matching", 0) > 0 else "❌"
+                    cov = result.get("gt_coverage", 0.0) * 100
+                else:
+                    hit = "?"
+                    cov = 0
+                f.write(
+                    f"| {sid} | {rtype} | {merged} | {num_ocr} | {num_sel} | {tok_img} | {tok_ocr} | {tok_sel} | {saved_vs_ocr:.0f}% | {saved_vs_img:.0f}% | {hit} | {cov:.0f}% |\n"
+                )
 
     def _generate_visualizations(self, samples: List[BBoxDocVQASample]) -> None:
         """Generate debug visualizations for select samples, organized by sample subfolder."""
@@ -766,7 +1093,9 @@ class BenchmarkRunner:
 
         num_agg = len(self.config.aggregation.methods)
         num_sel = len(self.config.selection.methods)
-        logger.info(f"Generating {len(indices)} x {num_agg} x {num_sel} visualizations...")
+        logger.info(
+            f"Generating {len(indices)} x {num_agg} x {num_sel} visualizations..."
+        )
 
         # Base visualization directory
         vis_base_dir = self.run_dir / self.config.visualization.output_dir
@@ -802,17 +1131,35 @@ class BenchmarkRunner:
                     )
 
                     for sel_method in self.config.selection.methods:
+                        # Adaptive merging: skip for certain region types if configured
+                        should_merge = self.merge_regions
+                        if self.no_merge_for_text and sample.region_type == "Text":
+                            should_merge = False
+                        if self.no_merge_for_table and sample.region_type == "Table":
+                            should_merge = False
+
                         selection_result = self.selector.select(
                             region_scores,
                             method=cast(SelectionMethod, sel_method),
                             k=self.config.selection.default_k,
                             relative_threshold=self.config.selection.default_relative_threshold,
+                            # Merging options
+                            merge_regions=should_merge,
+                            merge_method=cast(MergingMethod, self.merge_method),
+                            merge_distance=self.merge_distance,
+                            merge_score_ratio=self.merge_score_ratio,
+                            merge_max_area=self.merge_max_area,
+                            merge_fallback_area=self.merge_fallback_area,
                         )
 
                         # Create visualization and save to sample subfolder
                         vis_image = self.visualizer.visualize_sample(
                             image=image,
-                            heatmap=heatmap if self.config.visualization.show_heatmap else None,
+                            heatmap=(
+                                heatmap
+                                if self.config.visualization.show_heatmap
+                                else None
+                            ),
                             ocr_regions=ocr_regions,
                             predictions=selection_result.selected_regions,
                             ground_truth=gt_boxes,
@@ -823,9 +1170,13 @@ class BenchmarkRunner:
 
                         # Save with method-specific filename in sample subfolder
                         output_path = sample_vis_dir / f"{agg_method}_{sel_method}.png"
-                        vis_image.convert("RGB").save(output_path, dpi=(self.visualizer.dpi, self.visualizer.dpi))
+                        vis_image.convert("RGB").save(
+                            output_path, dpi=(self.visualizer.dpi, self.visualizer.dpi)
+                        )
 
-                logger.debug(f"Saved {num_agg * num_sel} visualizations to {sample_vis_dir}")
+                logger.debug(
+                    f"Saved {num_agg * num_sel} visualizations to {sample_vis_dir}"
+                )
 
             except Exception as e:
                 logger.warning(f"Visualization failed for {sample.sample_id}: {e}")
@@ -844,17 +1195,60 @@ class BenchmarkRunner:
         f.write("## Region Statistics Overview\n\n")
         total_ocr = sum(s.get("num_ocr_regions", 0) for s in self.sample_results)
         total_gt = sum(s.get("num_ground_truth", 0) for s in self.sample_results)
-        avg_ocr = total_ocr / len(self.sample_results) if self.sample_results else 0
-        avg_gt = total_gt / len(self.sample_results) if self.sample_results else 0
+        total_selected = sum(s.get("num_selected", 0) for s in self.sample_results)
+        n_samples = len(self.sample_results) if self.sample_results else 1
+        avg_ocr = total_ocr / n_samples
+        avg_gt = total_gt / n_samples
+        avg_selected = total_selected / n_samples
 
         f.write(f"| Metric | Total | Avg per Sample |\n")
         f.write(f"|--------|-------|----------------|\n")
         f.write(f"| OCR Regions Detected | {total_ocr} | {avg_ocr:.1f} |\n")
+        f.write(f"| Regions Selected | {total_selected} | {avg_selected:.1f} |\n")
         f.write(f"| Ground Truth Boxes | {total_gt} | {avg_gt:.1f} |\n\n")
+
+        # Token Savings section
+        f.write("### Token Savings (vs Full Image Baseline)\n\n")
+        total_tokens_full_image = sum(
+            s.get("tokens_full_image", 0) for s in self.sample_results
+        )
+        total_tokens_all = sum(
+            s.get("tokens_all_regions", 0) for s in self.sample_results
+        )
+        total_tokens_selected = sum(
+            s.get("tokens_selected", 0) for s in self.sample_results
+        )
+        avg_tokens_full_image = total_tokens_full_image / n_samples
+        avg_tokens_all = total_tokens_all / n_samples
+        avg_tokens_selected = total_tokens_selected / n_samples
+        saved_vs_ocr_pct = (
+            (1 - total_tokens_selected / total_tokens_all) * 100
+            if total_tokens_all > 0
+            else 0.0
+        )
+        saved_vs_image_pct = (
+            (1 - total_tokens_selected / total_tokens_full_image) * 100
+            if total_tokens_full_image > 0
+            else 0.0
+        )
+
+        f.write("| Baseline | Total Tokens | Avg/Sample | vs Selected |\n")
+        f.write("|----------|--------------|------------|-------------|\n")
+        f.write(
+            f"| Full Image (vision) | {total_tokens_full_image:,} | {avg_tokens_full_image:.0f} | **{saved_vs_image_pct:.1f}% saved** |\n"
+        )
+        f.write(
+            f"| All OCR Regions | {total_tokens_all:,} | {avg_tokens_all:.0f} | {saved_vs_ocr_pct:.1f}% saved |\n"
+        )
+        f.write(
+            f"| **Selected Regions** | **{total_tokens_selected:,}** | **{avg_tokens_selected:.0f}** | - |\n\n"
+        )
 
         # Per-method selectivity: what % of detected regions does each method select?
         f.write("### Selection Rate (% of OCR regions selected)\n\n")
-        f.write("Shows what fraction of detected OCR regions each method keeps. Lower = more selective.\n\n")
+        f.write(
+            "Shows what fraction of detected OCR regions each method keeps. Lower = more selective.\n\n"
+        )
 
         sel_methods = self.config.selection.methods
         agg_methods = self.config.aggregation.methods
@@ -884,7 +1278,9 @@ class BenchmarkRunner:
                         result = agg_sel[agg_method][sel_method]
                         total_selected += result.get("num_selected", 0)
                         total_detected += num_detected
-                selection_rate = total_selected / total_detected if total_detected > 0 else 0
+                selection_rate = (
+                    total_selected / total_detected if total_detected > 0 else 0
+                )
                 row += f" {selection_rate:.0%} |"
             f.write(row + "\n")
 
@@ -952,13 +1348,19 @@ class BenchmarkRunner:
                         row += " 0% |"
                 f.write(row + "\n")
 
-            f.write("\n*Shows percentage of samples with GT coverage >= threshold (using first selection method)*\n\n")
+            f.write(
+                "\n*Shows percentage of samples with GT coverage >= threshold (using first selection method)*\n\n"
+            )
 
             # Detailed table for each aggregation method
             for agg_method, sel_results in agg_sel_results.items():
                 f.write(f"### {agg_method} Aggregation\n\n")
-                f.write("| Selection | Mean IoU | Agg IoU | GT Cov | IoU@0.25 | IoU@0.5 | cov@50% | cov@70% | cov@90% |\n")
-                f.write("|-----------|----------|---------|--------|----------|---------|---------|---------|--------|\n")
+                f.write(
+                    "| Selection | Mean IoU | Agg IoU | GT Cov | IoU@0.25 | IoU@0.5 | cov@50% | cov@70% | cov@90% |\n"
+                )
+                f.write(
+                    "|-----------|----------|---------|--------|----------|---------|---------|---------|--------|\n"
+                )
 
                 for sel_method, res in sel_results.items():
                     hit_rates = res.get("hit_rate_at_thresholds", {})
@@ -981,8 +1383,12 @@ class BenchmarkRunner:
         baseline_results = self.results.get("baseline_results", {})
 
         if baseline_results:
-            f.write("| Baseline | IoU@0.25 | GT Cov | Agg IoU | cov@50% | cov@70% | cov@90% |\n")
-            f.write("|----------|----------|--------|---------|---------|---------|--------|\n")
+            f.write(
+                "| Baseline | IoU@0.25 | GT Cov | Agg IoU | cov@50% | cov@70% | cov@90% |\n"
+            )
+            f.write(
+                "|----------|----------|--------|---------|---------|---------|--------|\n"
+            )
 
             for name, res in baseline_results.items():
                 hit_rates = res.get("hit_rate_at_thresholds", {})
@@ -1009,8 +1415,12 @@ class BenchmarkRunner:
             num_ocr = sample.get("num_ocr_regions", 0)
             num_gt = sample.get("num_ground_truth", 0)
 
+            # Get number of selected regions from default method
+            num_selected = sample.get("num_selected", 0)
+
             f.write(f"### {sample_id} [{region_type}]\n\n")
             f.write(f"- **OCR Detected:** {num_ocr} regions\n")
+            f.write(f"- **Selected:** {num_selected} regions\n")
             f.write(f"- **Ground Truth:** {num_gt} regions\n\n")
 
             # Per aggregation × selection results for this sample
@@ -1043,24 +1453,42 @@ class BenchmarkRunner:
 
                 f.write("\n*Icon shows IoU@0.25 hit, cov shows GT Coverage*\n\n")
 
-            # Show region details for default method
+            # Show region details for default method (only hits, or message if no hits)
             region_scores = sample.get("region_scores", [])
             if region_scores:
                 default_agg = self.config.aggregation.default_method
                 default_sel = self.config.selection.default_method
+                total_regions = len(region_scores)
+
+                # Find hits (IoU >= 0.25)
+                hits = [
+                    (i, r)
+                    for i, r in enumerate(region_scores)
+                    if r.get("iou", 0.0) >= 0.25
+                ]
+
                 f.write(f"#### Regions (default: {default_agg} + {default_sel})\n\n")
-                f.write("| Rank | Type | Score | IoU | Status |\n")
-                f.write("|------|------|-------|-----|--------|\n")
 
-                for i, r in enumerate(region_scores):
-                    iou = r.get("iou", 0.0)
-                    label = r.get("label", "?")
-                    score = r.get("score", 0.0)
-                    is_hit = iou >= 0.25
-                    status = "✅ HIT" if is_hit else "❌"
-                    rank_marker = f"**{i+1}**" if is_hit else str(i + 1)
-
-                    f.write(f"| {rank_marker} | {label} | {score:.3f} | {iou:.3f} | {status} |\n")
+                if hits:
+                    f.write("| Rank | Type | Score | IoU | Status |\n")
+                    f.write("|------|------|-------|-----|--------|\n")
+                    for i, r in hits:
+                        iou = r.get("iou", 0.0)
+                        label = r.get("label", "?")
+                        score = r.get("score", 0.0)
+                        f.write(
+                            f"| **{i+1}** (of {total_regions}) | {label} | {score:.3f} | {iou:.3f} | ✅ HIT |\n"
+                        )
+                else:
+                    # No hits - show best IoU region as reference
+                    best_idx, best_r = max(
+                        enumerate(region_scores), key=lambda x: x[1].get("iou", 0.0)
+                    )
+                    best_iou = best_r.get("iou", 0.0)
+                    best_label = best_r.get("label", "?")
+                    f.write(
+                        f"**No hits** (best IoU: {best_iou:.3f} at rank {best_idx+1} of {total_regions}, type: {best_label})\n"
+                    )
 
                 f.write("\n")
 
@@ -1164,7 +1592,9 @@ class BenchmarkRunner:
                             result = agg_sel[agg_method][sel_method]
                             total_selected += result.get("num_selected", 0)
                             total_detected += num_detected
-                    selection_rate = total_selected / total_detected if total_detected > 0 else 0
+                    selection_rate = (
+                        total_selected / total_detected if total_detected > 0 else 0
+                    )
                     row += f" {selection_rate:>10.0%}"
                 print(row)
 
@@ -1246,11 +1676,22 @@ def main():
         ),
     )
     parser.add_argument(
+        "--aggregation-methods",
+        type=str,
+        nargs="+",
+        default=None,
+        help=(
+            "Aggregation methods to evaluate. Use 'all' to include all available methods. "
+            "Available: max, mean, sum, iou_weighted, iou_weighted_norm. "
+            "Example: --aggregation-methods iou_weighted max"
+        ),
+    )
+    parser.add_argument(
         "--aggregation-method",
         type=str,
         default=None,
         choices=["max", "mean", "sum", "iou_weighted", "iou_weighted_norm"],
-        help="Patch-to-region aggregation method. Default: iou_weighted",
+        help="Default patch-to-region aggregation method. Default: iou_weighted",
     )
     parser.add_argument(
         "--top-k",
@@ -1264,6 +1705,18 @@ def main():
         help="Disable visualization generation for faster benchmark runs",
     )
     parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=None,
+        help="Batch size for ColPali service requests. Higher values use more GPU memory but are faster. Default: 8",
+    )
+    parser.add_argument(
+        "--ocr-timeout",
+        type=int,
+        default=None,
+        help="Timeout in seconds for OCR service requests. Increase if processing complex documents. Default: 180",
+    )
+    parser.add_argument(
         "--local-model",
         type=str,
         default=None,
@@ -1271,6 +1724,98 @@ def main():
             "Use a local ColPali-style model instead of HTTP service. "
             "Specify HuggingFace model ID (e.g., 'TomoroAI/tomoro-colqwen3-embed-4b'). "
             "Supports ColQwen3, ColModernVBert, and ColPali models."
+        ),
+    )
+    # Region merging options
+    parser.add_argument(
+        "--merge-regions",
+        action="store_true",
+        help="Enable region merging to combine adjacent/overlapping regions after selection",
+    )
+    parser.add_argument(
+        "--merge-method",
+        type=str,
+        default="proximity",
+        choices=["proximity", "overlap", "connected", "none"],
+        help="Region merging method (default: proximity)",
+    )
+    parser.add_argument(
+        "--merge-distance",
+        type=float,
+        default=0.05,
+        help="Distance threshold for proximity-based merging in normalized [0,1] space (default: 0.05)",
+    )
+    parser.add_argument(
+        "--merge-score-ratio",
+        type=float,
+        default=0.0,
+        help=(
+            "Only merge regions if min(score)/max(score) >= threshold. "
+            "Use 0.0 to disable (merge all). Range: 0.0-1.0. "
+            "Example: 0.5 means regions must have scores within 2x of each other (default: 0.0)"
+        ),
+    )
+    parser.add_argument(
+        "--merge-max-area",
+        type=float,
+        default=1.0,
+        help=(
+            "Maximum area of merged region in normalized [0,1] space. "
+            "Use 1.0 for no limit. Example: 0.25 limits merged regions to 25%% of page area (default: 1.0)"
+        ),
+    )
+    parser.add_argument(
+        "--merge-fallback-area",
+        type=float,
+        default=0.0,
+        help=(
+            "If top merged region exceeds this area fraction, return all original regions instead. "
+            "Use 0.0 to disable. Example: 0.5 means if merged result covers >50%% of page, "
+            "fall back to original unmerged regions (default: 0.0)"
+        ),
+    )
+    parser.add_argument(
+        "--no-merge-for-text",
+        action="store_true",
+        help=(
+            "Disable region merging for 'Text' type samples. "
+            "Text samples often have narrow GT regions that don't align well with merged horizontal bands. "
+            "Use this to skip merging for Text while still merging Image samples."
+        ),
+    )
+    parser.add_argument(
+        "--no-merge-for-table",
+        action="store_true",
+        help=(
+            "Disable region merging for 'Table' type samples. "
+            "Table samples may have specific cell-based GT regions that don't align with merged regions."
+        ),
+    )
+    parser.add_argument(
+        "--no-merge-for-image",
+        action="store_true",
+        help=(
+            "Disable region merging for 'Image' type samples. "
+            "Image samples often have precise GT regions that get oversized when merged with surrounding text."
+        ),
+    )
+    parser.add_argument(
+        "--no-results-json",
+        action="store_true",
+        help=(
+            "Skip saving the detailed results.json file. "
+            "Useful for faster runs when only the summary.md is needed."
+        ),
+    )
+    parser.add_argument(
+        "--iou-thresholds",
+        type=float,
+        nargs="+",
+        default=None,
+        help=(
+            "IoU thresholds for hit rate computation. "
+            "Default: 0.25 0.5 0.75. "
+            "Example: --iou-thresholds 0.20 0.25 0.5 to add 0.20 threshold"
         ),
     )
 
@@ -1282,21 +1827,60 @@ def main():
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
-    # All available selection methods
-    ALL_SELECTION_METHODS = ["top_k", "threshold", "percentile", "otsu", "elbow", "gap", "relative", "confidence_gated"]
+    # All available methods
+    ALL_SELECTION_METHODS = [
+        "top_k",
+        "threshold",
+        "percentile",
+        "otsu",
+        "elbow",
+        "gap",
+        "relative",
+        "confidence_gated",
+    ]
+    ALL_AGGREGATION_METHODS = [
+        "max",
+        "mean",
+        "sum",
+        "iou_weighted",
+        "iou_weighted_norm",
+    ]
 
     # Process selection methods argument
     selection_methods = None
     if args.selection_methods:
-        if args.selection_methods == ["all"] or ("all" in args.selection_methods and len(args.selection_methods) == 1):
+        if args.selection_methods == ["all"] or (
+            "all" in args.selection_methods and len(args.selection_methods) == 1
+        ):
             # "all" means include all available methods
             selection_methods = ALL_SELECTION_METHODS
         else:
             # Validate provided methods
-            invalid_methods = [m for m in args.selection_methods if m not in ALL_SELECTION_METHODS]
+            invalid_methods = [
+                m for m in args.selection_methods if m not in ALL_SELECTION_METHODS
+            ]
             if invalid_methods:
-                parser.error(f"Invalid selection methods: {invalid_methods}. Available: {ALL_SELECTION_METHODS}")
+                parser.error(
+                    f"Invalid selection methods: {invalid_methods}. Available: {ALL_SELECTION_METHODS}"
+                )
             selection_methods = args.selection_methods
+
+    # Process aggregation methods argument
+    aggregation_methods = None
+    if args.aggregation_methods:
+        if args.aggregation_methods == ["all"] or (
+            "all" in args.aggregation_methods and len(args.aggregation_methods) == 1
+        ):
+            aggregation_methods = ALL_AGGREGATION_METHODS
+        else:
+            invalid_methods = [
+                m for m in args.aggregation_methods if m not in ALL_AGGREGATION_METHODS
+            ]
+            if invalid_methods:
+                parser.error(
+                    f"Invalid aggregation methods: {invalid_methods}. Available: {ALL_AGGREGATION_METHODS}"
+                )
+            aggregation_methods = args.aggregation_methods
 
     if args.ablation:
         # Run all ablation studies
@@ -1328,7 +1912,14 @@ def main():
                 if config.selection.default_method not in selection_methods:
                     config.selection.default_method = selection_methods[0]
 
-            # Override aggregation method from CLI
+            # Override aggregation methods from CLI
+            if aggregation_methods:
+                config.aggregation.methods = aggregation_methods
+                # Ensure default_method is in the methods list
+                if config.aggregation.default_method not in aggregation_methods:
+                    config.aggregation.default_method = aggregation_methods[0]
+
+            # Override default aggregation method from CLI
             if args.aggregation_method:
                 config.aggregation.default_method = args.aggregation_method
 
@@ -1340,7 +1931,27 @@ def main():
             if args.no_viz:
                 config.visualization.enabled = False
 
-            runner = BenchmarkRunner(config, local_model_id=args.local_model)
+            # Disable results.json if requested
+            if args.no_results_json:
+                config.output.save_json = False
+
+            # Override IoU thresholds from CLI
+            if args.iou_thresholds:
+                config.evaluation.iou_thresholds = sorted(args.iou_thresholds)
+
+            runner = BenchmarkRunner(
+                config,
+                local_model_id=args.local_model,
+                merge_regions=args.merge_regions,
+                merge_method=args.merge_method,
+                merge_distance=args.merge_distance,
+                merge_score_ratio=args.merge_score_ratio,
+                merge_max_area=args.merge_max_area,
+                merge_fallback_area=args.merge_fallback_area,
+                no_merge_for_text=args.no_merge_for_text,
+                no_merge_for_table=args.no_merge_for_table,
+                no_merge_for_image=args.no_merge_for_image,
+            )
             all_results[name] = runner.run()
 
         # Save combined ablation results
@@ -1381,7 +1992,14 @@ def main():
             if config.selection.default_method not in selection_methods:
                 config.selection.default_method = selection_methods[0]
 
-        # Override aggregation method from CLI
+        # Override aggregation methods from CLI
+        if aggregation_methods:
+            config.aggregation.methods = aggregation_methods
+            # Ensure default_method is in the methods list
+            if config.aggregation.default_method not in aggregation_methods:
+                config.aggregation.default_method = aggregation_methods[0]
+
+        # Override default aggregation method from CLI
         if args.aggregation_method:
             config.aggregation.default_method = args.aggregation_method
 
@@ -1389,11 +2007,39 @@ def main():
         if args.top_k is not None:
             config.selection.default_k = args.top_k
 
+        # Override batch size from CLI
+        if args.batch_size is not None:
+            config.colpali.batch_size = args.batch_size
+
+        # Override OCR timeout from CLI
+        if args.ocr_timeout is not None:
+            config.ocr.timeout = args.ocr_timeout
+
         # Disable visualization if requested
         if args.no_viz:
             config.visualization.enabled = False
 
-        runner = BenchmarkRunner(config, local_model_id=args.local_model)
+        # Disable results.json if requested
+        if args.no_results_json:
+            config.output.save_json = False
+
+        # Override IoU thresholds from CLI
+        if args.iou_thresholds:
+            config.evaluation.iou_thresholds = sorted(args.iou_thresholds)
+
+        runner = BenchmarkRunner(
+            config,
+            local_model_id=args.local_model,
+            merge_regions=args.merge_regions,
+            merge_method=args.merge_method,
+            merge_distance=args.merge_distance,
+            merge_score_ratio=args.merge_score_ratio,
+            merge_max_area=args.merge_max_area,
+            merge_fallback_area=args.merge_fallback_area,
+            no_merge_for_text=args.no_merge_for_text,
+            no_merge_for_table=args.no_merge_for_table,
+            no_merge_for_image=args.no_merge_for_image,
+        )
         runner.run()
 
 

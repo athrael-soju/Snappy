@@ -12,6 +12,10 @@ Methods:
 - elbow: Knee point in sorted score curve
 - gap: Largest gap between consecutive scores
 - relative: Regions ≥ fraction of max score
+- confidence_gated: Apply selection only when model is confident
+
+Post-processing:
+- Region merging: Combine adjacent/overlapping regions
 """
 
 import logging
@@ -21,6 +25,7 @@ from typing import Any, Dict, List, Literal, Optional, Tuple
 import numpy as np
 
 from .aggregation import RegionScore, compute_score_confidence
+from .merging import MergingMethod, MergingResult, RegionMerger, merge_and_convert
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +47,10 @@ class SelectionResult:
     params: Optional[Dict[str, Any]] = None
     confidence_metrics: Optional[Dict[str, float]] = None
     fallback_used: bool = False
+    # Merging metadata
+    merging_applied: bool = False
+    merging_method: Optional[str] = None
+    pre_merge_count: Optional[int] = None
 
 
 class RegionSelector:
@@ -71,6 +80,15 @@ class RegionSelector:
         confidence_threshold: float = 0.3,
         confidence_metric: str = "top1_gap",
         fallback_method: str = "otsu",
+        # Merging options
+        merge_regions: bool = False,
+        merge_method: MergingMethod = "proximity",
+        merge_distance: float = 0.05,
+        merge_overlap: float = 0.0,
+        merge_score_method: Literal["max", "mean", "sum"] = "max",
+        merge_score_ratio: float = 0.0,
+        merge_max_area: float = 1.0,
+        merge_fallback_area: float = 0.0,
     ) -> SelectionResult:
         """
         Select regions using the specified method.
@@ -85,6 +103,14 @@ class RegionSelector:
             confidence_threshold: Minimum confidence to apply selection (for confidence_gated)
             confidence_metric: Metric for confidence ("top1_gap", "coefficient_of_variation")
             fallback_method: Method to use when confident (for confidence_gated)
+            merge_regions: Whether to merge adjacent regions after selection
+            merge_method: Merging method ("proximity", "overlap", "connected")
+            merge_distance: Distance threshold for proximity-based merging
+            merge_overlap: IoU threshold for overlap-based merging
+            merge_score_method: How to combine scores of merged regions
+            merge_score_ratio: Only merge regions with min/max score ratio >= threshold (0=disabled)
+            merge_max_area: Maximum area of merged region (0-1 normalized, 1.0=no limit)
+            merge_fallback_area: If top merged region exceeds this area, return all original regions (0=disabled)
 
         Returns:
             SelectionResult with selected regions
@@ -101,21 +127,21 @@ class RegionSelector:
 
         # Dispatch to appropriate method
         if method == "top_k":
-            return self._select_top_k(region_scores, k)
+            result = self._select_top_k(region_scores, k)
         elif method == "threshold":
-            return self._select_threshold(region_scores, threshold)
+            result = self._select_threshold(region_scores, threshold)
         elif method == "percentile":
-            return self._select_percentile(region_scores, percentile)
+            result = self._select_percentile(region_scores, percentile)
         elif method == "otsu":
-            return self._select_otsu(region_scores)
+            result = self._select_otsu(region_scores)
         elif method == "elbow":
-            return self._select_elbow(region_scores)
+            result = self._select_elbow(region_scores)
         elif method == "gap":
-            return self._select_gap(region_scores)
+            result = self._select_gap(region_scores)
         elif method == "relative":
-            return self._select_relative(region_scores, relative_threshold)
+            result = self._select_relative(region_scores, relative_threshold)
         elif method == "confidence_gated":
-            return self._select_confidence_gated(
+            result = self._select_confidence_gated(
                 region_scores,
                 confidence_threshold=confidence_threshold,
                 confidence_metric=confidence_metric,
@@ -127,6 +153,26 @@ class RegionSelector:
             )
         else:
             raise ValueError(f"Unknown selection method: {method}")
+
+        # Apply merging if requested
+        if merge_regions and result.selected_regions:
+            pre_merge_count = len(result.selected_regions)
+            merged = merge_and_convert(
+                result.selected_regions,
+                method=merge_method,
+                distance_threshold=merge_distance,
+                overlap_threshold=merge_overlap,
+                score_method=merge_score_method,
+                score_ratio_threshold=merge_score_ratio,
+                max_area=merge_max_area,
+                fallback_area_threshold=merge_fallback_area,
+            )
+            result.selected_regions = merged
+            result.merging_applied = True
+            result.merging_method = merge_method
+            result.pre_merge_count = pre_merge_count
+
+        return result
 
     def _select_top_k(
         self, region_scores: List[RegionScore], k: int

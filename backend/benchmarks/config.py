@@ -41,7 +41,13 @@ class AggregationConfig:
 
     # Aggregation methods to evaluate
     methods: List[str] = field(
-        default_factory=lambda: ["max", "mean", "sum", "iou_weighted", "iou_weighted_norm"]
+        default_factory=lambda: [
+            "max",
+            "mean",
+            "sum",
+            "iou_weighted",
+            "iou_weighted_norm",
+        ]
     )
 
     # Default method for single-method runs
@@ -61,7 +67,15 @@ class SelectionConfig:
 
     # Selection methods to evaluate
     methods: List[str] = field(
-        default_factory=lambda: ["top_k", "threshold", "percentile", "otsu", "elbow", "gap", "relative"]
+        default_factory=lambda: [
+            "top_k",
+            "threshold",
+            "percentile",
+            "otsu",
+            "elbow",
+            "gap",
+            "relative",
+        ]
     )
 
     # Default method for single-method runs
@@ -78,9 +92,7 @@ class SelectionConfig:
     default_relative_threshold: float = 0.5
 
     # Percentile parameters
-    percentile_values: List[float] = field(
-        default_factory=lambda: [80.0, 90.0, 95.0]
-    )
+    percentile_values: List[float] = field(default_factory=lambda: [80.0, 90.0, 95.0])
 
 
 @dataclass
@@ -88,9 +100,7 @@ class EvaluationConfig:
     """Configuration for evaluation metrics."""
 
     # IoU thresholds for hit rate computation
-    iou_thresholds: List[float] = field(
-        default_factory=lambda: [0.25, 0.5, 0.75]
-    )
+    iou_thresholds: List[float] = field(default_factory=lambda: [0.25, 0.5, 0.75])
 
     # Matching strategies
     matching_strategies: List[str] = field(
@@ -199,7 +209,7 @@ class OCRConfig:
     include_grounding: bool = True
 
     # Timeouts
-    timeout: int = 60
+    timeout: int = 500
 
 
 @dataclass
@@ -261,7 +271,13 @@ class BenchmarkConfig:
             config.ocr = OCRConfig(**data["ocr"])
 
         # Update top-level fields
-        for field_name in ["name", "description", "num_workers", "log_level", "log_progress_every"]:
+        for field_name in [
+            "name",
+            "description",
+            "num_workers",
+            "log_level",
+            "log_progress_every",
+        ]:
             if field_name in data:
                 setattr(config, field_name, data[field_name])
 
