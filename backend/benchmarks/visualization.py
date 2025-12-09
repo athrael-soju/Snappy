@@ -58,7 +58,7 @@ class BenchmarkVisualizer:
         show_scores: bool = True,
         show_labels: bool = True,
         color_scale: ColorScale = ColorScale.YLORRD,
-        normalization: NormalizationStrategy = NormalizationStrategy.PERCENTILE,
+        normalization: NormalizationStrategy = NormalizationStrategy.MINMAX,
     ):
         """
         Initialize the visualizer.
@@ -69,7 +69,7 @@ class BenchmarkVisualizer:
             show_scores: Whether to show relevance scores on boxes
             show_labels: Whether to show region labels
             color_scale: ColorBrewer color scale for heatmaps (default: YlOrRd)
-            normalization: Normalization strategy for heatmap values (default: percentile)
+            normalization: Normalization strategy for heatmap values (default: minmax)
         """
         self.output_dir = Path(output_dir) if output_dir else None
         self.dpi = dpi
@@ -119,9 +119,9 @@ class BenchmarkVisualizer:
         vis_image = image.convert("RGBA")
         width, height = vis_image.size
 
-        # Add subtle patch-level heatmap if available (shows model attention)
+        # Add patch-level heatmap if available (shows model attention)
         if heatmap is not None:
-            heatmap_overlay = self._create_heatmap_overlay(heatmap, width, height, alpha=60)
+            heatmap_overlay = self._create_heatmap_overlay(heatmap, width, height, alpha=180)
             vis_image = Image.alpha_composite(vis_image, heatmap_overlay)
 
         # Create overlay for boxes
@@ -523,7 +523,7 @@ def save_debug_overlay(
     query: str = "",
     sample_id: str = "",
     color_scale: ColorScale = ColorScale.YLORRD,
-    normalization: NormalizationStrategy = NormalizationStrategy.PERCENTILE,
+    normalization: NormalizationStrategy = NormalizationStrategy.MINMAX,
 ) -> None:
     """
     Convenience function to save a debug overlay.
@@ -538,7 +538,7 @@ def save_debug_overlay(
         query: Query text
         sample_id: Sample identifier
         color_scale: ColorBrewer color scale for heatmaps (default: YlOrRd)
-        normalization: Normalization strategy for heatmap values (default: percentile)
+        normalization: Normalization strategy for heatmap values (default: minmax)
     """
     # Load image if needed
     if isinstance(image, str):

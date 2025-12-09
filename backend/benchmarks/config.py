@@ -91,6 +91,9 @@ class SelectionConfig:
     )
     default_relative_threshold: float = 0.5
 
+    # Absolute threshold parameters (for 'threshold' selection method)
+    default_threshold: float = 0.3
+
     # Percentile parameters
     percentile_values: List[float] = field(default_factory=lambda: [80.0, 90.0, 95.0])
 

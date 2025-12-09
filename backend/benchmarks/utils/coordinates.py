@@ -26,13 +26,13 @@ def normalize_bbox(
 
     Handles three input formats:
     - Already normalized: values in [0, 1] - returned as-is
-    - DeepSeek-OCR format: values in [0, 999] - detected when max <= 999 and no image dims
-    - Pixel coordinates: requires image_width and image_height
+    - DeepSeek-OCR format: values in (1, 999] - always detected by range
+    - Pixel coordinates: values > 999, requires image_width and image_height
 
     Args:
         bbox: Bounding box [x1, y1, x2, y2]
-        image_width: Image width for pixel coordinate normalization
-        image_height: Image height for pixel coordinate normalization
+        image_width: Image width for pixel coordinate normalization (only used when coords > 999)
+        image_height: Image height for pixel coordinate normalization (only used when coords > 999)
 
     Returns:
         Normalized (x1, y1, x2, y2) tuple in [0, 1] space
@@ -49,11 +49,11 @@ def normalize_bbox(
     if max_coord <= 1.0:
         # Already normalized
         return (x1, y1, x2, y2)
-    elif max_coord <= 999 and image_width is None:
-        # DeepSeek-OCR format (0-999)
+    elif max_coord <= 999:
+        # DeepSeek-OCR format (0-999) - always use 999 divisor regardless of image dims
         return (x1 / 999.0, y1 / 999.0, x2 / 999.0, y2 / 999.0)
     elif image_width is not None and image_height is not None:
-        # Pixel coordinates - use provided dimensions
+        # Pixel coordinates (> 999) - use provided dimensions
         return (
             x1 / image_width,
             y1 / image_height,

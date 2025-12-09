@@ -483,6 +483,7 @@ class BenchmarkRunner:
                     region_scores,
                     method=cast(SelectionMethod, sel_method),
                     k=self.config.selection.default_k,
+                    threshold=self.config.selection.default_threshold,
                     relative_threshold=self.config.selection.default_relative_threshold,
                     # Merging options
                     merge_regions=should_merge,
@@ -913,16 +914,21 @@ class BenchmarkRunner:
     ) -> int:
         """Count tokens from ScoredRegion objects (with full content).
 
-        For text regions: counts text tokens using tiktoken
-        For image regions: calculates vision tokens based on bbox dimensions
+        For text/table regions: counts text tokens using tiktoken
+        For image/merged regions: calculates vision tokens based on bbox dimensions
+            (Snappy sends cropped images for these regions)
         """
         total = 0
         for r in scored_regions:
             label = (r.label or "").lower()
             content = r.content or ""
 
-            if label == "image" and img_width > 0 and img_height > 0:
-                # Image region: calculate vision tokens based on bbox
+            if label in ("image", "merged") and img_width > 0 and img_height > 0:
+                # Image or merged region: calculate vision tokens based on bbox
+                # Snappy sends these as cropped images to Claude
+                # NOTE: If OCR provides image descriptions (e.g., alt text, captions, or
+                # VLM-generated descriptions), we could send text instead of image crops,
+                # potentially saving significant tokens (text tokens << vision tokens)
                 bbox = r.bbox or [0, 0, 0, 0]
                 crop_w = int((bbox[2] - bbox[0]) * img_width)
                 crop_h = int((bbox[3] - bbox[1]) * img_height)
@@ -1142,6 +1148,7 @@ class BenchmarkRunner:
                             region_scores,
                             method=cast(SelectionMethod, sel_method),
                             k=self.config.selection.default_k,
+                            threshold=self.config.selection.default_threshold,
                             relative_threshold=self.config.selection.default_relative_threshold,
                             # Merging options
                             merge_regions=should_merge,
@@ -1700,6 +1707,18 @@ def main():
         help="Number of top regions to select for top_k method. Use 0 to select all regions. Default: 0",
     )
     parser.add_argument(
+        "--threshold",
+        type=float,
+        default=None,
+        help="Absolute score threshold for 'threshold' selection method. Default: 0.3",
+    )
+    parser.add_argument(
+        "--relative-threshold",
+        type=float,
+        default=None,
+        help="Relative threshold (fraction of max score) for 'relative' selection method. Default: 0.5",
+    )
+    parser.add_argument(
         "--no-viz",
         action="store_true",
         help="Disable visualization generation for faster benchmark runs",
@@ -1927,6 +1946,14 @@ def main():
             if args.top_k is not None:
                 config.selection.default_k = args.top_k
 
+            # Override threshold from CLI
+            if args.threshold is not None:
+                config.selection.default_threshold = args.threshold
+
+            # Override relative threshold from CLI
+            if args.relative_threshold is not None:
+                config.selection.default_relative_threshold = args.relative_threshold
+
             # Disable visualization if requested
             if args.no_viz:
                 config.visualization.enabled = False
@@ -2006,6 +2033,14 @@ def main():
         # Override top-k from CLI
         if args.top_k is not None:
             config.selection.default_k = args.top_k
+
+        # Override threshold from CLI
+        if args.threshold is not None:
+            config.selection.default_threshold = args.threshold
+
+        # Override relative threshold from CLI
+        if args.relative_threshold is not None:
+            config.selection.default_relative_threshold = args.relative_threshold
 
         # Override batch size from CLI
         if args.batch_size is not None:
