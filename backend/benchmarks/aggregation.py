@@ -125,10 +125,19 @@ class PatchToRegionAggregator:
         """
         Aggregate multiple per-token similarity maps to region scores.
 
+        Uses the correct late-interaction order:
+        1. For each token: compute IoU-weighted region score
+        2. Aggregate across tokens (max/mean/sum)
+
+        This preserves the per-token independence that is key to late interaction,
+        rather than combining token maps first (which loses per-token granularity).
+
+        Formula: rel(Q, R) = AGG_tokens [ Σ_patches IoU(p, R) × sim(token, p) ]
+
         Args:
             similarity_maps: List of 2D arrays, one per query token
             regions: List of OCR region dictionaries
-            method: Patch-to-region aggregation method
+            method: Patch-to-region aggregation method (applied per-token)
             token_aggregation: How to combine scores across tokens
             image_width: Original image width
             image_height: Original image height
@@ -140,25 +149,99 @@ class PatchToRegionAggregator:
             logger.warning("No similarity maps provided")
             return []
 
-        # First, aggregate token maps to single heatmap
-        stacked = np.stack(similarity_maps, axis=0)
+        if not regions:
+            return []
 
-        if token_aggregation == "max":
-            heatmap = np.max(stacked, axis=0)
-        elif token_aggregation == "mean":
-            heatmap = np.mean(stacked, axis=0)
-        elif token_aggregation == "sum":
-            heatmap = np.sum(stacked, axis=0)
-        else:
-            raise ValueError(f"Unknown token aggregation: {token_aggregation}")
+        # Get grid dimensions from first similarity map
+        grid_y, grid_x = similarity_maps[0].shape
 
-        return self.aggregate(
-            heatmap=heatmap,
-            regions=regions,
-            method=method,
-            image_width=image_width,
-            image_height=image_height,
-        )
+        results = []
+        for region in regions:
+            bbox = region.get("bbox", [])
+            if not bbox or len(bbox) < 4:
+                continue
+
+            # Normalize bbox to [0, 1] space
+            normalized_bbox = normalize_bbox(
+                bbox=bbox,
+                image_width=image_width,
+                image_height=image_height,
+            )
+
+            # Get overlapping patches with their IoU values
+            overlapping = get_overlapping_patches(
+                region_box=normalized_bbox,
+                grid_x=grid_x,
+                grid_y=grid_y,
+                min_overlap=0.0,
+            )
+
+            if not overlapping:
+                # No overlapping patches - zero score
+                results.append(RegionScore(
+                    region_id=region.get("id", ""),
+                    score=0.0,
+                    bbox=normalized_bbox,
+                    content=region.get("content", ""),
+                    label=region.get("label", ""),
+                    patch_count=0,
+                    raw_region=region,
+                ))
+                continue
+
+            # Compute per-token region scores
+            token_scores = []
+            for token_map in similarity_maps:
+                # Extract patch scores and IoU values for this token
+                patch_scores = np.array([token_map[py, px] for px, py, _ in overlapping])
+                ious = np.array([iou for _, _, iou in overlapping])
+
+                # Apply aggregation method for this token's region score
+                if method == "max":
+                    token_score = float(np.max(patch_scores))
+                elif method == "mean":
+                    token_score = float(np.mean(patch_scores))
+                elif method == "sum":
+                    token_score = float(np.sum(patch_scores))
+                elif method == "iou_weighted":
+                    # Canonical: unnormalized IoU-weighted sum
+                    token_score = float(np.sum(patch_scores * ious))
+                elif method == "iou_weighted_norm":
+                    # Normalized variant
+                    total_iou = np.sum(ious)
+                    if total_iou > 0:
+                        token_score = float(np.sum(patch_scores * ious) / total_iou)
+                    else:
+                        token_score = 0.0
+                else:
+                    raise ValueError(f"Unknown aggregation method: {method}")
+
+                token_scores.append(token_score)
+
+            # Aggregate across tokens
+            if token_aggregation == "max":
+                final_score = float(np.max(token_scores))
+            elif token_aggregation == "mean":
+                final_score = float(np.mean(token_scores))
+            elif token_aggregation == "sum":
+                final_score = float(np.sum(token_scores))
+            else:
+                raise ValueError(f"Unknown token aggregation: {token_aggregation}")
+
+            results.append(RegionScore(
+                region_id=region.get("id", ""),
+                score=final_score,
+                bbox=normalized_bbox,
+                content=region.get("content", ""),
+                label=region.get("label", ""),
+                patch_count=len(overlapping),
+                raw_region=region,
+            ))
+
+        # Sort by score descending
+        results.sort(key=lambda x: x.score, reverse=True)
+
+        return results
 
     def _score_region(
         self,

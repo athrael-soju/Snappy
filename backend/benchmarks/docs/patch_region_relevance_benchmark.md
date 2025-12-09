@@ -28,10 +28,19 @@ When processing document images, Snappy extracts OCR regions and sends them to C
 
 ### Aggregation Methods
 
-How to convert patch-level similarity scores to region-level scores:
+How to convert patch-level similarity scores to region-level scores.
 
-| Method | Formula | Description |
-|--------|---------|-------------|
+**Late Interaction Order (Correct):**
+The aggregation follows the correct late-interaction order from ColPali/ColBERT:
+1. For each query token: compute patch-to-region score using the method below
+2. Aggregate across tokens (max/mean/sum)
+
+Formula: `rel(Q, R) = AGG_tokens [ method(token_map, region) ]`
+
+This preserves per-token independence, rather than combining token maps first.
+
+| Method | Formula (per token) | Description |
+|--------|---------------------|-------------|
 | `max` | max(patch_scores) | Highest-scoring patch in region |
 | `mean` | mean(patch_scores) | Average of all patches in region |
 | `sum` | sum(patch_scores) | Sum of all patches (favors larger regions) |
@@ -64,7 +73,36 @@ Combines nearby high-scoring regions into larger regions:
 
 ## Bugs Fixed During Testing
 
-### 1. Coordinate Normalization Bug (Critical)
+### 1. Multi-Token Aggregation Order (Critical - Late Interaction)
+
+**File:** `backend/benchmarks/aggregation.py`
+
+**Problem:** The original implementation combined token maps first (via max/mean across tokens), then computed IoU-weighted region scores. This violates the late-interaction paradigm from ColPali/ColBERT which requires per-token independence.
+
+**Before (incorrect order):**
+```python
+# Wrong: Combine tokens first, then compute region scores
+combined_heatmap = np.max(token_maps, axis=0)  # Lose per-token info
+region_score = iou_weighted(combined_heatmap, region)
+```
+
+**After (correct late-interaction order):**
+```python
+# Correct: Compute per-token region scores, then aggregate
+token_scores = []
+for token_map in similarity_maps:
+    # IoU-weighted score for THIS token
+    token_score = np.sum(patch_scores * ious)
+    token_scores.append(token_score)
+# THEN aggregate across tokens
+final_score = np.max(token_scores)  # or mean/sum
+```
+
+**Formula:** `rel(Q, R) = AGG_tokens [ Σ_patches IoU(p, R) × sim(token, p) ]`
+
+**Impact:** The correct order is more theoretically sound but requires threshold tuning. See "Aggregation Order Comparison" section for performance trade-offs.
+
+### 2. Coordinate Normalization Bug (Critical)
 
 **File:** `backend/benchmarks/utils/coordinates.py`
 
@@ -85,7 +123,7 @@ elif max_coord <= 999:
 
 **Impact:** Regions were mapping to completely wrong locations on the heatmap.
 
-### 2. Visualization Parameters
+### 3. Visualization Parameters
 
 **File:** `backend/benchmarks/visualization.py`
 
@@ -97,7 +135,7 @@ elif max_coord <= 999:
 - Changed `alpha=60` to `alpha=180`
 - Changed normalization from `PERCENTILE` to `MINMAX`
 
-### 3. Token Counting for Merged Regions
+### 4. Token Counting for Merged Regions
 
 **Files:** `backend/benchmarks/run_bbox_docvqa.py`, `backend/benchmarks/merging.py`
 
@@ -121,13 +159,14 @@ Token counting now iterates over source regions individually:
 
 This provides accurate token counts reflecting what Snappy actually sends (individual crops, not one union crop).
 
-### 4. Missing CLI Arguments
+### 5. Missing CLI Arguments
 
 **File:** `backend/benchmarks/run_bbox_docvqa.py`
 
 Added missing CLI arguments:
 - `--threshold` - Absolute score threshold for `threshold` selection method
 - `--relative-threshold` - Fraction of max score for `relative` selection method
+- `--token-aggregation` - How to aggregate per-token region scores (`max`, `mean`, `sum`)
 
 ## Critical Finding: Image Crop Token Overhead
 
@@ -172,7 +211,29 @@ For **Text/Table documents**, token savings are still significant because we're 
 
 ## Experimental Results
 
-### Best Configuration Results (20 samples)
+### Aggregation Order Comparison
+
+The benchmark was tested with two aggregation orders to understand the performance trade-offs:
+
+| Approach | Order | IoU@0.25 | GT Coverage | Selection Rate |
+|----------|-------|----------|-------------|----------------|
+| **Original (tokens-first)** | Combine tokens → IoU weight | 95% | 78.7% | 29% |
+| **Correct (late-interaction)** | IoU weight per-token → Combine | 85% | 84% | 81% |
+
+**Key Findings:**
+
+1. **Original approach (95% hit rate)**: Combines token maps first via max, then computes IoU-weighted region scores. More selective (29% regions kept) but violates late-interaction theory.
+
+2. **Correct late-interaction (85% hit rate)**: Computes IoU-weighted scores per token first, then aggregates across tokens. More permissive but theoretically sound.
+
+3. **Token Aggregation Impact** (with correct order):
+   - `max`: 85% hit rate @ threshold 0.3-0.4
+   - `mean`: 30% hit rate (too aggressive, loses coverage)
+   - `sum`: Not tested, expected to favor longer queries
+
+4. **Coverage vs Hit Rate Trade-off**: The correct order achieves better GT coverage (84% vs 78.7%) despite lower hit rate, suggesting it captures more of the relevant regions even when IoU threshold is missed.
+
+### Original Approach Results (20 samples)
 
 **Command:**
 ```bash
@@ -194,6 +255,38 @@ python -m benchmarks.run_bbox_docvqa \
 | GT Coverage | 78.7% |
 | Selection Rate | 29% |
 
+### Correct Late-Interaction Results (20 samples)
+
+**Command:**
+```bash
+python -m benchmarks.run_bbox_docvqa \
+    --aggregation-methods iou_weighted \
+    --selection-methods relative \
+    --relative-threshold 0.3 \
+    --token-aggregation max \
+    --merge-regions \
+    --merge-max-area 0.25 \
+    --no-merge-for-text \
+    --no-merge-for-table
+```
+
+**Results:**
+
+| Metric | Value |
+|--------|-------|
+| IoU@0.25 Hit Rate | **85%** (17/20) |
+| GT Coverage | 84% |
+| Selection Rate | 81% |
+
+**Threshold Sensitivity (correct order):**
+
+| Threshold | IoU@0.25 | Notes |
+|-----------|----------|-------|
+| 0.7 | 64% | Too aggressive |
+| 0.5 | 70% | Still too aggressive |
+| 0.4 | 85% | Good balance |
+| 0.3 | 85% | Same hit rate, slightly higher coverage |
+
 ### Performance by Region Type
 
 | Region Type | Merging | Selectivity | Notes |
@@ -206,12 +299,17 @@ python -m benchmarks.run_bbox_docvqa \
 
 | Method | IoU@0.25 | GT Coverage | Notes |
 |--------|----------|-------------|-------|
-| **Patch-based (ours)** | **95%** | **78.7%** | 29% selection rate |
+| **Patch-based (original)** | **95%** | 78.7% | 29% selection rate |
+| **Patch-based (correct)** | 85% | **84%** | 81% selection rate |
 | BM25 | 90% | 74.8% | 100% selection rate |
 | Cosine | 90% | 74.8% | 100% selection rate |
 | Random | 35% | 27.2% | Random selection |
 
 ## Recommended Configuration
+
+### Option A: Maximum Hit Rate (Original Order)
+
+Use when hit rate is critical and you need 95% accuracy:
 
 ```bash
 python -m benchmarks.run_bbox_docvqa \
@@ -224,13 +322,34 @@ python -m benchmarks.run_bbox_docvqa \
     --no-merge-for-table
 ```
 
+**Trade-off:** 95% hit rate, 78.7% coverage, 29% selection rate
+
+### Option B: Theoretically Correct (Late Interaction)
+
+Use when adhering to ColPali/ColBERT theory is important:
+
+```bash
+python -m benchmarks.run_bbox_docvqa \
+    --aggregation-methods iou_weighted \
+    --selection-methods relative \
+    --relative-threshold 0.3 \
+    --token-aggregation max \
+    --merge-regions \
+    --merge-max-area 0.25 \
+    --no-merge-for-text \
+    --no-merge-for-table
+```
+
+**Trade-off:** 85% hit rate, 84% coverage, 81% selection rate
+
 ### Parameter Justification
 
 | Parameter | Value | Rationale |
 |-----------|-------|-----------|
 | `aggregation` | iou_weighted | Best balance of accuracy and selectivity |
 | `selection` | relative | Adapts to score distribution |
-| `relative-threshold` | 0.7 | More selective while maintaining coverage |
+| `relative-threshold` | 0.7 (orig) / 0.3 (correct) | Tuned per aggregation order |
+| `token-aggregation` | max | Best for multi-token queries |
 | `merge-regions` | enabled | Combines fragmented high-attention areas |
 | `merge-max-area` | 0.25 | Prevents overly large regions |
 | `no-merge-for-text` | enabled | Text regions don't benefit from merging |
@@ -270,23 +389,44 @@ Cropping only saves tokens when:
 | `benchmarks/run_bbox_docvqa.py` | Added CLI args, fixed token counting with source region tracking |
 | `benchmarks/merging.py` | Store source_bboxes, source_labels, source_contents in raw_region |
 | `benchmarks/config.py` | Added `default_threshold` parameter |
+| `benchmarks/aggregation.py` | Fixed multi-token aggregation order to use correct late-interaction order (per-token first, then aggregate) |
 
 ## Limitations & Future Work
 
-1. **Image crop overhead** - Multiple crops cost more than full image. Consider:
+1. **Aggregation order trade-off** - Theoretical correctness (late-interaction) vs empirical performance (tokens-first)
+   - The "wrong" order achieves 10% higher hit rate
+   - Further research needed to understand why per-token independence hurts performance
+   - Possible explanation: max-across-tokens before IoU creates sharper region boundaries
+
+2. **Image crop overhead** - Multiple crops cost more than full image. Consider:
    - Sending full image with region annotations
    - VLM-generated descriptions instead of crops
 
-2. **Text/Table filtering** - Relative threshold doesn't filter well (uniform attention)
+3. **Text/Table filtering** - Relative threshold doesn't filter well (uniform attention)
    - Consider higher threshold or different method per region type
 
-3. **Token counting** - Capped at full image, but real savings require text extraction
+4. **Token counting** - Capped at full image, but real savings require text extraction
+
+5. **Token aggregation sensitivity** - `mean` performs poorly (30% hit rate), only `max` is viable
+   - Query length may affect optimal aggregation strategy
 
 ## Conclusion
 
 The patch-to-region relevance propagation approach successfully:
-- Achieves **95% hit rate** (higher than baselines)
-- Identifies relevant regions with **29% selection rate**
+- Achieves **85-95% hit rate** depending on aggregation order (higher than baselines)
+- Identifies relevant regions with **29-81% selection rate**
 - Works best for **Image regions** with distinct attention patterns
 
+### Aggregation Order Decision
+
+| If you prioritize... | Use... | Result |
+|----------------------|--------|--------|
+| Maximum hit rate | Original order (tokens-first) | 95% hit rate |
+| Theoretical correctness | Late-interaction order | 85% hit rate, better coverage |
+| Better GT coverage | Late-interaction order | 84% coverage vs 78.7% |
+
+The original "tokens-first" approach achieves higher hit rates but violates the late-interaction paradigm. The theoretically correct approach maintains per-token independence but requires lower thresholds and results in less selective filtering.
+
 **Key insight:** For image-heavy documents, token savings come from intelligent attention guidance rather than reducing image area. True token savings require text extraction (OCR descriptions) instead of image crops.
+
+**Recommendation:** Start with **Option A** (original order) for production use due to higher hit rate. Consider **Option B** (late-interaction) if theoretical alignment with ColPali is required or if GT coverage is more important than strict IoU@0.25 hits.

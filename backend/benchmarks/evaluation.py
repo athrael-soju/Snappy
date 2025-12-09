@@ -9,7 +9,8 @@ Metrics:
 - Mean IoU: Average IoU across predictions
 - Precision@K: Fraction of top-K predictions matching GT
 - Recall@K: Fraction of GT boxes covered by top-K predictions
-- mAP: Mean average precision across IoU thresholds
+- Mean Hit Rate: Average hit rate across IoU thresholds (not standard mAP)
+- mAP: Mean Average Precision (standard PASCAL VOC style with all-point interpolation)
 - Aggregate IoU: IoU of merged prediction mask vs merged GT mask
 - GT Coverage: Fraction of GT area covered by predictions (area-based recall)
 
@@ -142,6 +143,85 @@ def compute_gt_coverage(
     return float(intersection / gt_area)
 
 
+def compute_average_precision(
+    predictions: List[Tuple[NormalizedBox, float]],
+    ground_truth: List[NormalizedBox],
+    iou_threshold: float = 0.5,
+) -> float:
+    """
+    Compute Average Precision (AP) for a single sample at a given IoU threshold.
+
+    Uses PASCAL VOC style all-point interpolation: AP = sum of (R[n] - R[n-1]) * P_interp[n]
+    where P_interp[n] = max(P[n:]) (maximum precision at recall >= R[n]).
+
+    Args:
+        predictions: List of (bbox, confidence_score) tuples, will be sorted by score
+        ground_truth: List of ground truth bounding boxes
+        iou_threshold: IoU threshold for considering a match (default 0.5)
+
+    Returns:
+        Average Precision in [0, 1]
+    """
+    if not predictions or not ground_truth:
+        return 0.0
+
+    # Sort predictions by confidence score (descending)
+    sorted_preds = sorted(predictions, key=lambda x: x[1], reverse=True)
+
+    n_gt = len(ground_truth)
+    gt_matched = [False] * n_gt  # Track which GT boxes have been matched
+
+    tp = []  # True positives at each rank
+    fp = []  # False positives at each rank
+
+    for pred_box, _ in sorted_preds:
+        best_iou = 0.0
+        best_gt_idx = -1
+
+        # Find best matching unmatched GT box
+        for gt_idx, gt_box in enumerate(ground_truth):
+            if gt_matched[gt_idx]:
+                continue
+            iou = compute_iou(pred_box, gt_box)
+            if iou > best_iou:
+                best_iou = iou
+                best_gt_idx = gt_idx
+
+        # Check if this is a true positive
+        if best_iou >= iou_threshold and best_gt_idx >= 0:
+            tp.append(1)
+            fp.append(0)
+            gt_matched[best_gt_idx] = True
+        else:
+            tp.append(0)
+            fp.append(1)
+
+    # Compute cumulative TP and FP
+    tp_cumsum = np.cumsum(tp)
+    fp_cumsum = np.cumsum(fp)
+
+    # Compute precision and recall at each rank
+    precision = tp_cumsum / (tp_cumsum + fp_cumsum)
+    recall = tp_cumsum / n_gt
+
+    # Prepend (0, 1) point for AP calculation
+    precision = np.concatenate([[1.0], precision])
+    recall = np.concatenate([[0.0], recall])
+
+    # All-point interpolation: make precision monotonically decreasing
+    # P_interp[i] = max(P[i:])
+    for i in range(len(precision) - 2, -1, -1):
+        precision[i] = max(precision[i], precision[i + 1])
+
+    # Compute AP as area under P-R curve
+    # AP = sum of (R[i] - R[i-1]) * P[i]
+    ap = 0.0
+    for i in range(1, len(recall)):
+        ap += (recall[i] - recall[i - 1]) * precision[i]
+
+    return float(ap)
+
+
 # Matching strategy types
 MatchingStrategy = Literal["any", "coverage", "hungarian"]
 
@@ -172,6 +252,9 @@ class SampleEvaluation:
     aggregate_iou: float = 0.0  # IoU of merged predictions vs merged GT
     gt_coverage: float = 0.0   # Fraction of GT area covered by predictions
     coverage_at_thresholds: Dict[float, bool] = field(default_factory=dict)  # Coverage >= threshold
+
+    # Average Precision at each IoU threshold (requires confidence scores)
+    ap_at_thresholds: Dict[float, float] = field(default_factory=dict)
 
     # Raw data
     num_predictions: int = 0
@@ -206,8 +289,13 @@ class BenchmarkResults:
     mean_gt_coverage: float = 0.0    # Mean fraction of GT area covered
     coverage_hit_rate_at_thresholds: Dict[float, float] = field(default_factory=dict)
 
-    # mAP across thresholds
+    # Mean hit rate across IoU thresholds (not standard mAP - see docstring)
+    mean_hit_rate: float = 0.0
+
+    # Standard mAP (Mean Average Precision) - requires confidence scores
+    # Computed using PASCAL VOC all-point interpolation
     mAP: float = 0.0
+    ap_at_thresholds: Dict[float, float] = field(default_factory=dict)
 
     # Metadata
     total_samples: int = 0
@@ -307,16 +395,29 @@ class BBoxEvaluator:
         """
         Evaluate using RegionScore objects.
 
+        This method also computes Average Precision (AP) at each IoU threshold
+        since RegionScore objects include confidence scores for ranking.
+
         Args:
-            region_scores: List of RegionScore objects with bbox fields
+            region_scores: List of RegionScore objects with bbox and score fields
             ground_truth: List of ground truth bounding boxes
             sample_id: Sample identifier
 
         Returns:
-            SampleEvaluation with computed metrics
+            SampleEvaluation with computed metrics including AP
         """
         predictions = [r.bbox for r in region_scores]
-        return self.evaluate_sample(predictions, ground_truth, sample_id)
+        result = self.evaluate_sample(predictions, ground_truth, sample_id)
+
+        # Compute AP at each IoU threshold (requires scores for ranking)
+        if region_scores and ground_truth:
+            scored_predictions = [(r.bbox, r.score) for r in region_scores]
+            for thresh in self.iou_thresholds:
+                result.ap_at_thresholds[thresh] = compute_average_precision(
+                    scored_predictions, ground_truth, iou_threshold=thresh
+                )
+
+        return result
 
     def evaluate_batch(
         self,
@@ -352,6 +453,49 @@ class BBoxEvaluator:
             results.samples.append(sample_eval)
 
         # Aggregate metrics
+        self._aggregate_metrics(results)
+
+        return results
+
+    def evaluate_batch_from_region_scores(
+        self,
+        batch_region_scores: List[List[RegionScore]],
+        batch_ground_truth: List[List[NormalizedBox]],
+        sample_ids: Optional[List[str]] = None,
+    ) -> BenchmarkResults:
+        """
+        Evaluate a batch of samples using RegionScore objects.
+
+        This method computes standard mAP since RegionScore objects include
+        confidence scores for ranking predictions.
+
+        Args:
+            batch_region_scores: List of RegionScore lists per sample
+            batch_ground_truth: List of ground truth lists per sample
+            sample_ids: Optional sample identifiers
+
+        Returns:
+            BenchmarkResults with aggregated metrics including mAP
+        """
+        if len(batch_region_scores) != len(batch_ground_truth):
+            raise ValueError(
+                f"Prediction and ground truth batch sizes don't match: "
+                f"{len(batch_region_scores)} vs {len(batch_ground_truth)}"
+            )
+
+        if sample_ids is None:
+            sample_ids = [f"sample_{i}" for i in range(len(batch_region_scores))]
+
+        results = BenchmarkResults(total_samples=len(batch_region_scores))
+
+        # Evaluate each sample using region scores (includes AP computation)
+        for region_scores, gts, sid in zip(
+            batch_region_scores, batch_ground_truth, sample_ids
+        ):
+            sample_eval = self.evaluate_from_region_scores(region_scores, gts, sid)
+            results.samples.append(sample_eval)
+
+        # Aggregate metrics (including mAP)
         self._aggregate_metrics(results)
 
         return results
@@ -551,10 +695,27 @@ class BBoxEvaluator:
             )
             results.coverage_hit_rate_at_thresholds[thresh] = hits / n
 
-        # Compute mAP (mean AP across IoU thresholds)
-        results.mAP = sum(results.hit_rate_at_thresholds.values()) / len(
+        # Compute mean hit rate across IoU thresholds
+        # Note: This is NOT standard mAP (which requires P-R curve integration).
+        # This measures: "average fraction of samples with ≥1 correct prediction"
+        results.mean_hit_rate = sum(results.hit_rate_at_thresholds.values()) / len(
             self.iou_thresholds
         )
+
+        # Compute standard mAP if AP values are available (from evaluate_from_region_scores)
+        samples_with_ap = [s for s in results.samples if s.ap_at_thresholds]
+        if samples_with_ap:
+            # Compute mean AP at each threshold across samples
+            for thresh in self.iou_thresholds:
+                ap_values = [
+                    s.ap_at_thresholds.get(thresh, 0.0) for s in samples_with_ap
+                ]
+                results.ap_at_thresholds[thresh] = sum(ap_values) / len(ap_values)
+
+            # mAP is the mean of AP across all IoU thresholds
+            results.mAP = sum(results.ap_at_thresholds.values()) / len(
+                self.iou_thresholds
+            )
 
         results.config = {
             "iou_thresholds": self.iou_thresholds,
@@ -617,5 +778,48 @@ class StratifiedEvaluator:
         results = {}
         for stratum, (preds, gts, ids) in strata.items():
             results[stratum] = self.evaluator.evaluate_batch(preds, gts, ids)
+
+        return results
+
+    def evaluate_stratified_from_region_scores(
+        self,
+        region_scores: List[List[RegionScore]],
+        ground_truth: List[List[NormalizedBox]],
+        sample_metadata: List[Dict[str, Any]],
+        stratify_by: str = "category",
+    ) -> Dict[str, BenchmarkResults]:
+        """
+        Evaluate with stratification using RegionScore objects.
+
+        This method computes standard mAP since RegionScore objects include
+        confidence scores for ranking predictions.
+
+        Args:
+            region_scores: List of RegionScore lists per sample
+            ground_truth: List of ground truth lists per sample
+            sample_metadata: List of metadata dicts with stratification field
+            stratify_by: Metadata field to stratify by
+
+        Returns:
+            Dictionary mapping stratum values to BenchmarkResults (including mAP)
+        """
+        # Group samples by stratum
+        strata: Dict[str, Tuple[List, List, List]] = {}
+
+        for scores, gts, meta in zip(region_scores, ground_truth, sample_metadata):
+            stratum = meta.get(stratify_by, "unknown")
+            if stratum not in strata:
+                strata[stratum] = ([], [], [])
+
+            strata[stratum][0].append(scores)
+            strata[stratum][1].append(gts)
+            strata[stratum][2].append(meta.get("sample_id", ""))
+
+        # Evaluate each stratum
+        results = {}
+        for stratum, (scores, gts, ids) in strata.items():
+            results[stratum] = self.evaluator.evaluate_batch_from_region_scores(
+                scores, gts, ids
+            )
 
         return results

@@ -40,12 +40,12 @@ import logging
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, Dict, List, Literal, Optional, Tuple, cast
 
 import numpy as np
 import tiktoken
 
-from .aggregation import AggregationMethod, PatchToRegionAggregator
+from .aggregation import AggregationMethod, PatchToRegionAggregator, RegionScore
 from .baselines import BaselineGenerator
 from .clients import BenchmarkColPaliClient, BenchmarkOcrClient
 from .local_models import LocalColPaliModel, LocalModelClient
@@ -180,10 +180,20 @@ class BenchmarkRunner:
             for agg_method in config.aggregation.methods
         }
 
+        # Store full RegionScore objects for mAP computation (includes confidence scores)
+        # Structure: region_scores[agg_method][sel_method] = List[List[RegionScore]]
+        self.region_scores: Dict[str, Dict[str, List[List[RegionScore]]]] = {
+            agg_method: {sel_method: [] for sel_method in config.selection.methods}
+            for agg_method in config.aggregation.methods
+        }
+
         # Cache for OCR regions (reused by baselines and visualizations)
         self._ocr_regions_cache: Dict[str, List[Dict[str, Any]]] = {}
 
-        # Cache for heatmaps (reused by visualizations)
+        # Cache for raw token maps (used by aggregate_multi_token for correct late-interaction)
+        self._token_maps_cache: Dict[str, List[np.ndarray]] = {}
+
+        # Cache for aggregated heatmaps (used for visualizations only)
         self._heatmap_cache: Dict[str, np.ndarray] = {}
 
         # Tokenizer for counting tokens in region content
@@ -317,6 +327,7 @@ class BenchmarkRunner:
                 for agg_method in self.config.aggregation.methods:
                     for sel_method in self.config.selection.methods:
                         self.predictions[agg_method][sel_method].append([])
+                        self.region_scores[agg_method][sel_method].append([])
                 all_ground_truth.append([])
                 all_metadata.append({"sample_id": sample.sample_id, "error": str(e)})
 
@@ -327,9 +338,9 @@ class BenchmarkRunner:
         for agg_method in self.config.aggregation.methods:
             eval_results_grid[agg_method] = {}
             for sel_method in self.config.selection.methods:
-                method_predictions = self.predictions[agg_method][sel_method]
-                eval_results = self.evaluator.evaluate_batch(
-                    method_predictions,
+                method_region_scores = self.region_scores[agg_method][sel_method]
+                eval_results = self.evaluator.evaluate_batch_from_region_scores(
+                    method_region_scores,
                     all_ground_truth,
                     [m.get("sample_id", "") for m in all_metadata],
                 )
@@ -340,8 +351,8 @@ class BenchmarkRunner:
         # Use default methods as "main" results for backwards compatibility
         default_agg = self.config.aggregation.default_method
         default_sel = self.config.selection.default_method
-        main_results = self.evaluator.evaluate_batch(
-            self.predictions[default_agg][default_sel],
+        main_results = self.evaluator.evaluate_batch_from_region_scores(
+            self.region_scores[default_agg][default_sel],
             all_ground_truth,
             [m.get("sample_id", "") for m in all_metadata],
         )
@@ -350,10 +361,12 @@ class BenchmarkRunner:
         stratified_evaluator = StratifiedEvaluator(self.evaluator)
 
         stratified_results = {}
-        default_predictions = self.predictions[default_agg][default_sel]
+        default_region_scores = self.region_scores[default_agg][default_sel]
         for stratify_by in ["category", "region_type", "domain"]:
-            stratified_results[stratify_by] = stratified_evaluator.evaluate_stratified(
-                default_predictions,
+            stratified_results[
+                stratify_by
+            ] = stratified_evaluator.evaluate_stratified_from_region_scores(
+                default_region_scores,
                 all_ground_truth,
                 all_metadata,
                 stratify_by=stratify_by,
@@ -450,19 +463,25 @@ class BenchmarkRunner:
         # Get OCR regions from service
         ocr_regions = self._get_ocr_regions(sample, image)
 
-        # Get interpretability maps from ColPali
-        heatmap = self._get_interpretability_heatmap(sample, image)
+        # Get raw per-token similarity maps from ColPali
+        token_maps = self._get_token_maps(sample, image)
 
         # Evaluate all aggregation × selection method combinations
         iou_threshold = 0.25  # Use lower threshold to count partial matches
         results_by_agg_sel: Dict[str, Dict[str, Any]] = {}
 
         for agg_method in self.config.aggregation.methods:
-            # Aggregate patches to regions using this aggregation method
-            region_scores = self.aggregator.aggregate(
-                heatmap=heatmap,
+            # Aggregate patches to regions using correct late-interaction order:
+            # 1. For each token: compute IoU-weighted region score
+            # 2. Aggregate across tokens using configured token_aggregation
+            region_scores = self.aggregator.aggregate_multi_token(
+                similarity_maps=token_maps,
                 regions=ocr_regions,
                 method=cast(AggregationMethod, agg_method),
+                token_aggregation=cast(
+                    Literal["max", "mean", "sum"],
+                    self.config.aggregation.token_aggregation,
+                ),
                 image_width=sample.image_width,
                 image_height=sample.image_height,
             )
@@ -499,6 +518,10 @@ class BenchmarkRunner:
 
                 # Store predictions for batch evaluation
                 self.predictions[agg_method][sel_method].append(method_predictions)
+                # Store full RegionScore objects for mAP computation
+                self.region_scores[agg_method][sel_method].append(
+                    selection_result.selected_regions
+                )
 
                 # Calculate matching statistics
                 num_matching = 0
@@ -672,37 +695,37 @@ class BenchmarkRunner:
         self._ocr_regions_cache[sample.sample_id] = regions
         return regions
 
-    def _get_interpretability_heatmap(
+    def _get_token_maps(
         self,
         sample: BBoxDocVQASample,
         image: Any,
-    ) -> np.ndarray:
+    ) -> List[np.ndarray]:
         """
-        Get interpretability heatmap for a sample.
+        Get raw per-token similarity maps for a sample.
 
         Uses ColPali service to generate per-token similarity maps.
-        Results are cached for reuse by visualizations.
+        Results are cached for reuse.
 
         Args:
             sample: The benchmark sample
             image: PIL Image (required)
 
         Returns:
-            2D numpy array heatmap of shape (grid_y, grid_x)
+            List of 2D numpy arrays, one per query token
 
         Raises:
             RuntimeError: If ColPali fails or returns no token maps
         """
         # Check cache first
-        if sample.sample_id in self._heatmap_cache:
-            return self._heatmap_cache[sample.sample_id]
+        if sample.sample_id in self._token_maps_cache:
+            return self._token_maps_cache[sample.sample_id]
 
         response = self.colpali_client.generate_interpretability_maps(
             query=sample.question,
             image=image,
         )
 
-        # Aggregate token maps (max over tokens)
+        # Extract token maps
         token_maps = []
         for sim_map in response.get("similarity_maps", []):
             map_data = sim_map.get("similarity_map", [])
@@ -715,12 +738,43 @@ class BenchmarkRunner:
                 f"Response keys: {list(response.keys())}"
             )
 
-        stacked = np.stack(token_maps, axis=0)
-        heatmap = np.max(stacked, axis=0)
         logger.debug(
             f"ColPali generated {len(token_maps)} token maps for {sample.sample_id}, "
-            f"heatmap shape: {heatmap.shape}"
+            f"shape: {token_maps[0].shape}"
         )
+
+        # Cache for reuse
+        self._token_maps_cache[sample.sample_id] = token_maps
+        return token_maps
+
+    def _get_interpretability_heatmap(
+        self,
+        sample: BBoxDocVQASample,
+        image: Any,
+    ) -> np.ndarray:
+        """
+        Get aggregated interpretability heatmap for visualization.
+
+        This method is primarily for visualization purposes. For region scoring,
+        use _get_token_maps() with aggregate_multi_token() for correct late-interaction.
+
+        Args:
+            sample: The benchmark sample
+            image: PIL Image (required)
+
+        Returns:
+            2D numpy array heatmap of shape (grid_y, grid_x)
+        """
+        # Check cache first
+        if sample.sample_id in self._heatmap_cache:
+            return self._heatmap_cache[sample.sample_id]
+
+        # Get raw token maps (also caches them)
+        token_maps = self._get_token_maps(sample, image)
+
+        # Aggregate for visualization (max over tokens for display)
+        stacked = np.stack(token_maps, axis=0)
+        heatmap = np.max(stacked, axis=0)
 
         # Cache for reuse by visualizations
         self._heatmap_cache[sample.sample_id] = heatmap
@@ -754,7 +808,7 @@ class BenchmarkRunner:
 
             logger.info(f"Running baseline: {baseline_name}")
 
-            predictions = []
+            baseline_region_scores: List[List[RegionScore]] = []
             skipped_samples = 0
             for sample in samples:
                 # Use cached OCR regions from main processing pass
@@ -763,7 +817,7 @@ class BenchmarkRunner:
                     logger.warning(
                         f"No cached OCR regions for {sample.sample_id}, using empty predictions"
                     )
-                    predictions.append([])
+                    baseline_region_scores.append([])
                     skipped_samples += 1
                     continue
 
@@ -835,7 +889,7 @@ class BenchmarkRunner:
                             : self.config.selection.default_k
                         ]
 
-                predictions.append([r.bbox for r in result.region_scores])
+                baseline_region_scores.append(result.region_scores)
 
             # Log warning if samples were skipped
             if skipped_samples > 0:
@@ -843,9 +897,9 @@ class BenchmarkRunner:
                     f"Baseline '{baseline_name}': {skipped_samples}/{len(samples)} samples had no OCR regions"
                 )
 
-            # Evaluate baseline
-            eval_results = self.evaluator.evaluate_batch(
-                predictions,
+            # Evaluate baseline (using region scores for mAP computation)
+            eval_results = self.evaluator.evaluate_batch_from_region_scores(
+                baseline_region_scores,
                 ground_truth,
                 [s.sample_id for s in samples],
             )
@@ -871,7 +925,9 @@ class BenchmarkRunner:
             "mean_aggregate_iou": results.mean_aggregate_iou,
             "mean_gt_coverage": results.mean_gt_coverage,
             "coverage_hit_rate_at_thresholds": results.coverage_hit_rate_at_thresholds,
+            "mean_hit_rate": results.mean_hit_rate,
             "mAP": results.mAP,
+            "ap_at_thresholds": results.ap_at_thresholds,
             "total_samples": results.total_samples,
         }
 
@@ -1161,16 +1217,19 @@ class BenchmarkRunner:
             default_sel = self.config.selection.default_method
             f.write(f"*Using {default_agg} + {default_sel}*\n\n")
             f.write(
-                "| Sample | Type | Rgns | Sel | Hit | Cov |\n"
+                "| Sample | Type | Rgns | Sel | Hit | Cov | Tokens | Saved | Merged |\n"
             )
             f.write(
-                "|--------|------|------|-----|-----|-----|\n"
+                "|--------|------|------|-----|-----|-----|--------|-------|--------|\n"
             )
             # Show last 20 samples for compactness
             for sample in self.sample_results[-20:]:
                 sid = sample.get("sample_id", "?")
                 rtype = sample.get("region_type", "?")[0]  # First letter only
                 num_ocr = sample.get("num_ocr_regions", 0)
+                tokens_sel = sample.get("tokens_selected", 0)
+                tokens_saved_pct = sample.get("tokens_saved_vs_image_pct", 0.0)
+                merge_applied = "✓" if sample.get("merge_applied", False) else "-"
                 agg_sel = sample.get("aggregation_selection_results", {})
                 if default_agg in agg_sel and default_sel in agg_sel[default_agg]:
                     result = agg_sel[default_agg][default_sel]
@@ -1182,7 +1241,7 @@ class BenchmarkRunner:
                     hit = "?"
                     cov = 0
                 f.write(
-                    f"| {sid} | {rtype} | {num_ocr} | {num_sel} | {hit} | {cov:.0f}% |\n"
+                    f"| {sid} | {rtype} | {num_ocr} | {num_sel} | {hit} | {cov:.0f}% | {tokens_sel} | {tokens_saved_pct:.0f}% | {merge_applied} |\n"
                 )
 
     def _generate_visualizations(self, samples: List[BBoxDocVQASample]) -> None:
@@ -1232,16 +1291,24 @@ class BenchmarkRunner:
                     zip_reader=self._loader.zip_reader if self._loader else None,
                 )
 
+                # Get heatmap for visualization display
                 heatmap = self._get_interpretability_heatmap(sample, image)
+                # Get raw token maps for correct region scoring
+                token_maps = self._get_token_maps(sample, image)
                 ocr_regions = self._get_ocr_regions(sample, image)
                 gt_boxes = sample.get_normalized_bboxes()
 
                 # Generate a visualization for each aggregation × selection combination
                 for agg_method in self.config.aggregation.methods:
-                    region_scores = self.aggregator.aggregate(
-                        heatmap=heatmap,
+                    # Use aggregate_multi_token for correct late-interaction order
+                    region_scores = self.aggregator.aggregate_multi_token(
+                        similarity_maps=token_maps,
                         regions=ocr_regions,
                         method=cast(AggregationMethod, agg_method),
+                        token_aggregation=cast(
+                            Literal["max", "mean", "sum"],
+                            self.config.aggregation.token_aggregation,
+                        ),
                         image_width=sample.image_width,
                         image_height=sample.image_height,
                     )
@@ -1811,6 +1878,18 @@ def main():
         help="Default patch-to-region aggregation method. Default: iou_weighted",
     )
     parser.add_argument(
+        "--token-aggregation",
+        type=str,
+        default=None,
+        choices=["max", "mean", "sum"],
+        help=(
+            "How to aggregate scores across query tokens. "
+            "'max' = region matches if ANY token matches (less selective). "
+            "'mean' = region must match ALL tokens on average (more selective). "
+            "'sum' = cumulative token relevance. Default: max"
+        ),
+    )
+    parser.add_argument(
         "--top-k",
         type=int,
         default=None,
@@ -2052,6 +2131,10 @@ def main():
             if args.aggregation_method:
                 config.aggregation.default_method = args.aggregation_method
 
+            # Override token aggregation from CLI
+            if args.token_aggregation:
+                config.aggregation.token_aggregation = args.token_aggregation
+
             # Override top-k from CLI
             if args.top_k is not None:
                 config.selection.default_k = args.top_k
@@ -2139,6 +2222,10 @@ def main():
         # Override default aggregation method from CLI
         if args.aggregation_method:
             config.aggregation.default_method = args.aggregation_method
+
+        # Override token aggregation from CLI
+        if args.token_aggregation:
+            config.aggregation.token_aggregation = args.token_aggregation
 
         # Override top-k from CLI
         if args.top_k is not None:
