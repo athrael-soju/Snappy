@@ -573,7 +573,12 @@ class BenchmarkRunner:
         tokens_all_regions = self._count_region_tokens(ocr_regions, img_w, img_h)
 
         # Get pre-computed tokens from selected regions (computed from full content in loop)
-        tokens_selected = default_result["tokens_selected"]
+        tokens_selected_raw = default_result["tokens_selected"]
+
+        # Cap selected tokens at full image cost - if sending crops costs more than
+        # the full image, we'd just send the full image in practice
+        # This happens because each crop has its own base cost (85 tokens) and tile overhead
+        tokens_selected = min(tokens_selected_raw, tokens_full_image) if tokens_full_image > 0 else tokens_selected_raw
 
         # Calculate savings vs both baselines
         tokens_saved_vs_ocr_pct = (
@@ -915,28 +920,70 @@ class BenchmarkRunner:
         """Count tokens from ScoredRegion objects (with full content).
 
         For text/table regions: counts text tokens using tiktoken
-        For image/merged regions: calculates vision tokens based on bbox dimensions
-            (Snappy sends cropped images for these regions)
+        For image regions: calculates vision tokens based on bbox dimensions
+        For merged regions: calculates vision tokens for each source region individually
+            (Snappy sends individual cropped images, not one union crop)
+
+        NOTE: If OCR provides image descriptions (e.g., alt text, captions, or
+        VLM-generated descriptions), we could send text instead of image crops,
+        potentially saving significant tokens (text tokens << vision tokens).
         """
         total = 0
+        # Calculate full image tokens once for capping
+        full_image_tokens = self._calc_image_tokens(img_width, img_height) if img_width > 0 and img_height > 0 else 0
+
         for r in scored_regions:
             label = (r.label or "").lower()
             content = r.content or ""
+            raw_region = r.raw_region or {}
 
-            if label in ("image", "merged") and img_width > 0 and img_height > 0:
-                # Image or merged region: calculate vision tokens based on bbox
-                # Snappy sends these as cropped images to Claude
-                # NOTE: If OCR provides image descriptions (e.g., alt text, captions, or
-                # VLM-generated descriptions), we could send text instead of image crops,
-                # potentially saving significant tokens (text tokens << vision tokens)
+            if label == "merged":
+                # Merged region: calculate tokens for each source region individually
+                source_bboxes = raw_region.get("source_bboxes", [])
+                source_labels = raw_region.get("source_labels", [])
+                source_contents = raw_region.get("source_contents", [])
+
+                if source_bboxes:
+                    for i, bbox in enumerate(source_bboxes):
+                        src_label = source_labels[i].lower() if i < len(source_labels) else ""
+                        src_content = source_contents[i] if i < len(source_contents) else ""
+
+                        if src_label == "image" and img_width > 0 and img_height > 0:
+                            # Image source: vision tokens
+                            crop_w = int((bbox[2] - bbox[0]) * img_width)
+                            crop_h = int((bbox[3] - bbox[1]) * img_height)
+                            if crop_w > 0 and crop_h > 0:
+                                region_tokens = self._calc_image_tokens(crop_w, crop_h)
+                                total += min(region_tokens, full_image_tokens)
+                        elif src_content:
+                            # Text/table source: text tokens
+                            total += self._count_tokens(src_content)
+                else:
+                    # Fallback to union bbox if source_bboxes not available
+                    bbox = r.bbox or [0, 0, 0, 0]
+                    if img_width > 0 and img_height > 0:
+                        crop_w = int((bbox[2] - bbox[0]) * img_width)
+                        crop_h = int((bbox[3] - bbox[1]) * img_height)
+                        if crop_w > 0 and crop_h > 0:
+                            region_tokens = self._calc_image_tokens(crop_w, crop_h)
+                            total += min(region_tokens, full_image_tokens)
+            elif label == "image" and img_width > 0 and img_height > 0:
+                # Single image region: calculate vision tokens based on bbox
                 bbox = r.bbox or [0, 0, 0, 0]
                 crop_w = int((bbox[2] - bbox[0]) * img_width)
                 crop_h = int((bbox[3] - bbox[1]) * img_height)
                 if crop_w > 0 and crop_h > 0:
-                    total += self._calc_image_tokens(crop_w, crop_h)
+                    region_tokens = self._calc_image_tokens(crop_w, crop_h)
+                    total += min(region_tokens, full_image_tokens)
             elif content:
                 # Text/table region: count text tokens
                 total += self._count_tokens(content)
+
+        # Final cap: total selected tokens should never exceed full image
+        # If sending all crops costs more than full image, we'd just send full image
+        if full_image_tokens > 0:
+            total = min(total, full_image_tokens)
+
         return total
 
     def _calc_image_tokens(self, width: int, height: int) -> int:

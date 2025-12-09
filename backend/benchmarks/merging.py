@@ -124,7 +124,14 @@ class MergedRegion:
             content=self.content,
             label="merged",
             patch_count=sum(r.patch_count for r in self.source_regions),
-            raw_region={"merged_from": [r.region_id for r in self.source_regions]},
+            raw_region={
+                "merged_from": [r.region_id for r in self.source_regions],
+                # Store source bboxes and labels for accurate token calculation
+                # (we send individual crops, not one union crop)
+                "source_bboxes": [r.bbox for r in self.source_regions],
+                "source_labels": [r.label for r in self.source_regions],
+                "source_contents": [r.content for r in self.source_regions],
+            },
         )
 
 
