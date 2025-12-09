@@ -1032,27 +1032,43 @@ class BenchmarkRunner:
         """Save compact checkpoint with essential metrics during long runs."""
         checkpoint_path = self.run_dir / "checkpoint.md"
 
-        # Compute running stats from sample_results
-        hits = 0
-        total_coverage = 0.0
+        # Compute running stats for ALL aggregation × selection combinations
+        agg_methods = self.config.aggregation.methods
+        sel_methods = self.config.selection.methods
+
+        # Stats grid: [agg_method][sel_method] -> {hits, total_coverage}
+        stats_grid: Dict[str, Dict[str, Dict[str, float]]] = {
+            agg: {sel: {"hits": 0, "coverage": 0.0, "selected": 0, "detected": 0}
+                  for sel in sel_methods}
+            for agg in agg_methods
+        }
+
+        # Token stats (same across methods, computed once)
         total_tokens_full_image = 0
         total_tokens_all = 0
         total_tokens_selected = 0
+
         for sample in self.sample_results:
             agg_sel = sample.get("aggregation_selection_results", {})
-            default_agg = self.config.aggregation.default_method
-            default_sel = self.config.selection.default_method
-            if default_agg in agg_sel and default_sel in agg_sel[default_agg]:
-                result = agg_sel[default_agg][default_sel]
-                if result.get("num_matching", 0) > 0:
-                    hits += 1
-                total_coverage += result.get("gt_coverage", 0.0)
             total_tokens_full_image += sample.get("tokens_full_image", 0)
             total_tokens_all += sample.get("tokens_all_regions", 0)
             total_tokens_selected += sample.get("tokens_selected", 0)
+            num_detected = sample.get("num_ocr_regions", 0)
 
-        hit_rate = hits / completed * 100 if completed > 0 else 0
-        avg_coverage = total_coverage / completed * 100 if completed > 0 else 0
+            for agg_method in agg_methods:
+                if agg_method not in agg_sel:
+                    continue
+                for sel_method in sel_methods:
+                    if sel_method not in agg_sel[agg_method]:
+                        continue
+                    result = agg_sel[agg_method][sel_method]
+                    if result.get("num_matching", 0) > 0:
+                        stats_grid[agg_method][sel_method]["hits"] += 1
+                    stats_grid[agg_method][sel_method]["coverage"] += result.get("gt_coverage", 0.0)
+                    stats_grid[agg_method][sel_method]["selected"] += result.get("num_selected", 0)
+                    stats_grid[agg_method][sel_method]["detected"] += num_detected
+
+        # Token savings calculations
         avg_tokens_full_image = total_tokens_full_image / completed if completed > 0 else 0
         avg_tokens_all = total_tokens_all / completed if completed > 0 else 0
         avg_tokens_selected = total_tokens_selected / completed if completed > 0 else 0
@@ -1072,54 +1088,101 @@ class BenchmarkRunner:
             f.write(
                 f"**Elapsed:** {elapsed/60:.1f}m | **ETA:** {(elapsed/completed)*(total-completed)/60:.1f}m\n\n"
             )
-            f.write(
-                f"## Running Stats (default: {self.config.aggregation.default_method} + {self.config.selection.default_method})\n\n"
-            )
-            f.write(f"- **IoU@0.25 Hit Rate:** {hit_rate:.1f}% ({hits}/{completed})\n")
-            f.write(f"- **Avg GT Coverage:** {avg_coverage:.1f}%\n\n")
-            f.write("### Token Savings\n\n")
-            f.write("| Baseline | Total Tokens | Avg/Sample | vs Selected |\n")
-            f.write("|----------|--------------|------------|-------------|\n")
+
+            # IoU@0.25 Hit Rate Grid
+            f.write("## IoU@0.25 Hit Rate\n\n")
+            header = "| Aggregation |"
+            for sel in sel_methods:
+                header += f" {sel} |"
+            f.write(header + "\n")
+            f.write("|-------------|" + "--------|" * len(sel_methods) + "\n")
+
+            for agg_method in agg_methods:
+                row = f"| **{agg_method}** |"
+                for sel_method in sel_methods:
+                    hits = stats_grid[agg_method][sel_method]["hits"]
+                    hit_rate = hits / completed * 100 if completed > 0 else 0
+                    row += f" {hit_rate:.0f}% |"
+                f.write(row + "\n")
+            f.write("\n")
+
+            # GT Coverage Grid
+            f.write("## GT Coverage (avg)\n\n")
+            header = "| Aggregation |"
+            for sel in sel_methods:
+                header += f" {sel} |"
+            f.write(header + "\n")
+            f.write("|-------------|" + "--------|" * len(sel_methods) + "\n")
+
+            for agg_method in agg_methods:
+                row = f"| **{agg_method}** |"
+                for sel_method in sel_methods:
+                    coverage = stats_grid[agg_method][sel_method]["coverage"]
+                    avg_cov = coverage / completed * 100 if completed > 0 else 0
+                    row += f" {avg_cov:.0f}% |"
+                f.write(row + "\n")
+            f.write("\n")
+
+            # Selection Rate Grid
+            f.write("## Selection Rate (% regions kept)\n\n")
+            header = "| Aggregation |"
+            for sel in sel_methods:
+                header += f" {sel} |"
+            f.write(header + "\n")
+            f.write("|-------------|" + "--------|" * len(sel_methods) + "\n")
+
+            for agg_method in agg_methods:
+                row = f"| **{agg_method}** |"
+                for sel_method in sel_methods:
+                    selected = stats_grid[agg_method][sel_method]["selected"]
+                    detected = stats_grid[agg_method][sel_method]["detected"]
+                    sel_rate = selected / detected * 100 if detected > 0 else 0
+                    row += f" {sel_rate:.0f}% |"
+                f.write(row + "\n")
+            f.write("\n")
+
+            # Token Savings
+            f.write("## Token Savings\n\n")
+            f.write("| Baseline | Total | Avg/Sample | vs Selected |\n")
+            f.write("|----------|-------|------------|-------------|\n")
             f.write(
                 f"| Full Image | {total_tokens_full_image:,} | {avg_tokens_full_image:.0f} | **{saved_vs_image_pct:.1f}% saved** |\n"
             )
             f.write(
-                f"| All OCR Regions | {total_tokens_all:,} | {avg_tokens_all:.0f} | {saved_vs_ocr_pct:.1f}% saved |\n"
+                f"| All OCR | {total_tokens_all:,} | {avg_tokens_all:.0f} | {saved_vs_ocr_pct:.1f}% saved |\n"
             )
             f.write(
-                f"| **Selected Regions** | **{total_tokens_selected:,}** | **{avg_tokens_selected:.0f}** | - |\n\n"
+                f"| **Selected** | **{total_tokens_selected:,}** | **{avg_tokens_selected:.0f}** | - |\n\n"
             )
+
+            # Recent Samples (compact, last 20)
             f.write("## Recent Samples\n\n")
+            default_agg = self.config.aggregation.default_method
+            default_sel = self.config.selection.default_method
+            f.write(f"*Using {default_agg} + {default_sel}*\n\n")
             f.write(
-                "| Sample | Type | Mrg | Rgns | Sel | ImgTok | OcrTok | SelTok | vsOCR | vsImg | Hit | Cov |\n"
+                "| Sample | Type | Rgns | Sel | Hit | Cov |\n"
             )
             f.write(
-                "|--------|------|-----|------|-----|--------|--------|--------|-------|-------|-----|-----|\n"
+                "|--------|------|------|-----|-----|-----|\n"
             )
-            # Show last 1000 samples
-            for sample in self.sample_results[-1000:]:
+            # Show last 20 samples for compactness
+            for sample in self.sample_results[-20:]:
                 sid = sample.get("sample_id", "?")
-                rtype = sample.get("region_type", "?")
-                merged = "✓" if sample.get("merge_applied", False) else "-"
+                rtype = sample.get("region_type", "?")[0]  # First letter only
                 num_ocr = sample.get("num_ocr_regions", 0)
-                num_sel = sample.get("num_selected", 0)
-                tok_img = sample.get("tokens_full_image", 0)
-                tok_ocr = sample.get("tokens_all_regions", 0)
-                tok_sel = sample.get("tokens_selected", 0)
-                saved_vs_ocr = sample.get("tokens_saved_vs_ocr_pct", 0.0)
-                saved_vs_img = sample.get("tokens_saved_vs_image_pct", 0.0)
                 agg_sel = sample.get("aggregation_selection_results", {})
-                default_agg = self.config.aggregation.default_method
-                default_sel = self.config.selection.default_method
                 if default_agg in agg_sel and default_sel in agg_sel[default_agg]:
                     result = agg_sel[default_agg][default_sel]
+                    num_sel = result.get("num_selected", 0)
                     hit = "✅" if result.get("num_matching", 0) > 0 else "❌"
                     cov = result.get("gt_coverage", 0.0) * 100
                 else:
+                    num_sel = 0
                     hit = "?"
                     cov = 0
                 f.write(
-                    f"| {sid} | {rtype} | {merged} | {num_ocr} | {num_sel} | {tok_img} | {tok_ocr} | {tok_sel} | {saved_vs_ocr:.0f}% | {saved_vs_img:.0f}% | {hit} | {cov:.0f}% |\n"
+                    f"| {sid} | {rtype} | {num_ocr} | {num_sel} | {hit} | {cov:.0f}% |\n"
                 )
 
     def _generate_visualizations(self, samples: List[BBoxDocVQASample]) -> None:
