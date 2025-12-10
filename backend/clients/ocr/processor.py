@@ -344,7 +344,8 @@ class OcrProcessor:
                 continue
         return regions
 
-    def _extract_region_content(self, raw_text: str) -> Dict[str, List[str]]:
+    @staticmethod
+    def _extract_region_content(raw_text: str) -> Dict[str, List[str]]:
         """
         Extract content for each labeled region from raw OCR output.
 
