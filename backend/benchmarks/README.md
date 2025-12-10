@@ -5,7 +5,9 @@ Lightweight runner to sanity-check spatial grounding with ColPali patch scores a
 ## Prerequisites
 
 - DeepSeek OCR service running (defaults to `DEEPSEEK_OCR_URL` or `http://localhost:8200`)
-- ColPali service running (defaults from `config.COLPALI_URL`)
+- Embedding service:
+  - `colmodernvbert` (default): ColPali service at `http://localhost:7000` (or `http://colpali:7000` in Docker)
+  - `colqwen3-4b` or `colqwen3-8b`: Local Tomoro ColQwen model (no external service needed)
 - Dataset snapshot extracted under `benchmarks/.eval_cache/datasets--Yuwh07--BBox_DocVQA_Bench/snapshots/*/BBox_DocVQA_Bench.jsonl`
 
 ## Quick start
@@ -16,6 +18,18 @@ Run from the `backend/` directory:
 python benchmarks/run_bbox_docvqa.py --limit 10 --method adaptive
 ```
 
+## Environment variables
+
+Configure model and environment via environment variables (or `.env` file in `benchmarks/`):
+
+- `EMBEDDING_MODEL`: Embedding model to use (default: `colmodernvbert`)
+  - `colmodernvbert`: Remote ColPali service
+  - `colqwen3-4b`: Local 4B parameter ColQwen model
+  - `colqwen3-8b`: Local 8B parameter ColQwen model
+- `ENVIROMENT_TYPE`: Service URLs context (default: `docker`)
+  - `docker`: Use Docker service names (`http://colpali:7000`, `http://deepseek-ocr:8200`)
+  - `local`: Use localhost URLs (`http://localhost:7000`, `http://localhost:8200`)
+
 ## Flags
 
 **Dataset & filtering:**
@@ -25,11 +39,11 @@ python benchmarks/run_bbox_docvqa.py --limit 10 --method adaptive
 - `--filter-samples`: filter to specific sample IDs, 0-indexed (e.g., `--filter-samples 0 5 10`)
 
 **Scoring & thresholding:**
-- `--method`: `adaptive` (mean+std), `percentile`, `max`, or `none` (no threshold)
+- `--method`: `adaptive` (mean+std), `percentile`, `max`, or `none` (default: `none`)
 - `--percentile`: percentile value when using `percentile` method (default: 80)
 - `--top-k`: cap number of regions returned per page
-- `--aggregation`: token aggregation for heatmap: `max` (MaxSim), `mean`, or `sum` (default: max)
-- `--region-scoring`: `weighted_avg` (IoU-weighted) or `max` (default: weighted_avg)
+- `--aggregation`: token aggregation for heatmap: `max` (MaxSim), `mean`, or `sum` (default: `max`)
+- `--region-scoring`: `weighted_avg` (IoU-weighted) or `max` (default: `weighted_avg`)
 - `--min-overlap`: minimum IoU overlap with a patch to count toward region scoring (default: 0)
 - `--hit-iou`: IoU threshold for counting a prediction as a "hit" (default: 0.5)
 
@@ -46,8 +60,11 @@ python benchmarks/run_bbox_docvqa.py --limit 10 --method adaptive
 ## Output
 
 Results are written to `benchmarks/runs/bbox_docvqa_benchmark_<timestamp>/`:
-- `summary.json`: aggregate metrics and per-sample results
+- `summary.json`: full benchmark results including:
+  - `config`: all parameters used (embedding model, thresholds, etc.) for reproducibility
+  - `summary`: aggregate metrics (mean IoU, IoU@0.5)
+  - `detection_summary`: OCR region overlap with ground truth
+  - `token_summary`: token usage and savings statistics
+  - `sample_results`: per-sample detailed results
 - `progress.md`: live-updating markdown report with hit/miss tracking and token stats
 - `visualizations/`: per-sample overlay images (if `--visualize` enabled)
-
-The summary includes `detection_summary` (OCR region overlap with GT) and `token_summary` (selected vs full OCR vs full image tokens).

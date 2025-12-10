@@ -23,7 +23,17 @@ if str(ROOT_DIR) not in sys.path:
 import config
 from clients.colpali import ColPaliClient
 from clients.ocr.processor import OcrProcessor
-from benchmarks.metrics import Box, SampleMetrics, compute_iou, evaluate_boxes, summarize_samples
+from benchmarks.metrics import (
+    Box,
+    SampleMetrics,
+    compute_iou,
+    evaluate_boxes,
+    summarize_samples,
+)
+
+# Type alias for embedding clients (ColPaliClient or TomoroColQwenClient)
+# Both must implement generate_interpretability_maps(query, image) -> dict
+EmbeddingClient = Any
 
 logger = logging.getLogger(__name__)
 
@@ -254,9 +264,15 @@ def load_samples(
             empty_question_count,
         )
     if filter_sample_set:
-        logger.info("Filtered to %d sample(s) from %d sample ID(s)", len(samples), len(filter_sample_set))
+        logger.info(
+            "Filtered to %d sample(s) from %d sample ID(s)",
+            len(samples),
+            len(filter_sample_set),
+        )
     elif filter_doc_set:
-        logger.info("Filtered to %d sample(s) from %d doc(s)", len(samples), len(filter_doc_set))
+        logger.info(
+            "Filtered to %d sample(s) from %d doc(s)", len(samples), len(filter_doc_set)
+        )
 
     return samples
 
@@ -575,7 +591,9 @@ class BenchmarkConfig:
     dataset_root: Optional[Path] = None
     sample_limit: Optional[int] = 25
     filter_docs: Optional[List[str]] = None  # Filter to specific doc names
-    filter_samples: Optional[List[int]] = None  # Filter to specific sample IDs (0-indexed)
+    filter_samples: Optional[List[int]] = (
+        None  # Filter to specific sample IDs (0-indexed)
+    )
     threshold_method: str = "adaptive"
     percentile: float = 80.0
     top_k: Optional[int] = None
@@ -591,23 +609,51 @@ class BenchmarkConfig:
     visualize: bool = False
     visualize_limit: Optional[int] = 10
     visualize_heatmap: bool = True
+    # Embedding model: "colmodernvbert" (remote), "colqwen3-4b", or "colqwen3-8b" (local)
+    embedding_model: str = "colmodernvbert"
+    # Environment type: "local" or "docker" - affects service URLs
+    environment_type: str = "docker"
 
 
 class BBoxDocVQARunner:
-    """Benchmark runner for BBox-DocVQA using ColPali + DeepSeek OCR."""
+    """Benchmark runner for BBox-DocVQA using ColPali/Tomoro + DeepSeek OCR."""
 
     def __init__(
         self,
         bench_config: BenchmarkConfig,
         *,
-        colpali_client: Optional[ColPaliClient] = None,
+        embedding_client: Optional[EmbeddingClient] = None,
     ):
         self.config = bench_config
-        self.colpali = colpali_client or ColPaliClient()
+        is_docker = bench_config.environment_type == "docker"
+
+        # Initialize embedding client based on config or provided client
+        if embedding_client is not None:
+            self.embedding_client = embedding_client
+        elif bench_config.embedding_model in ("colqwen3-4b", "colqwen3-8b"):
+            from benchmarks.local_client import TomoroColQwenClient
+
+            self.embedding_client = TomoroColQwenClient(
+                model_variant=bench_config.embedding_model
+            )
+            logger.info(
+                "Using local %s model for embeddings", bench_config.embedding_model
+            )
+        else:
+            # colmodernvbert uses remote ColPali service
+            colpali_url = "http://colpali:7000" if is_docker else "http://localhost:7000"
+            self.embedding_client = ColPaliClient(base_url=colpali_url)
+            logger.info(
+                "Using ColPali service for embeddings (%s)",
+                bench_config.embedding_model,
+            )
+
+        # Configure DeepSeek OCR URL based on environment
+        default_deepseek = "http://deepseek-ocr:8200" if is_docker else "http://localhost:8200"
         self.deepseek_url = (
             bench_config.deepseek_url
             or getattr(config, "DEEPSEEK_OCR_URL", None)
-            or "http://localhost:8200"
+            or default_deepseek
         )
 
         self.deepseek_timeout = int(
@@ -648,7 +694,9 @@ class BBoxDocVQARunner:
         detection_metrics = evaluate_boxes(detection_boxes, sample.bboxes)
         ocr_boxes = detection_boxes
 
-        interp = self.colpali.generate_interpretability_maps(sample.question, image)
+        interp = self.embedding_client.generate_interpretability_maps(
+            sample.question, image
+        )
         similarity_maps = interp.get("similarity_maps", [])
         n_patches_x = int(interp.get("n_patches_x", 0))
         n_patches_y = int(interp.get("n_patches_y", 0))
@@ -700,7 +748,6 @@ class BBoxDocVQARunner:
     def _render_visualization(
         self,
         *,
-        idx: int,
         sample: BBoxDocVQASample,
         ocr_boxes: List[Box],
         pred_boxes: List[Box],
@@ -798,7 +845,7 @@ class BBoxDocVQARunner:
 
         vis_dir = run_dir / "visualizations"
         vis_dir.mkdir(parents=True, exist_ok=True)
-        image.save(vis_dir / f"sample_{idx:05d}.png")
+        image.save(vis_dir / f"sample_{sample.sample_id:05d}.png")
 
     def _write_progress_report(
         self,
@@ -818,10 +865,28 @@ class BBoxDocVQARunner:
         misses = len(successful_results) - hits
         success_ratio = hits / len(successful_results) if successful_results else 0.0
 
+        # Build filter description if applicable
+        filter_desc = "None"
+        if self.config.filter_samples:
+            filter_desc = f"Sample IDs: {self.config.filter_samples}"
+        elif self.config.filter_docs:
+            filter_desc = f"Docs: {self.config.filter_docs}"
+
         lines = [
             "# BBox-DocVQA Benchmark Progress",
             "",
             "## Configuration",
+            "",
+            "### Model & Environment",
+            "",
+            "| Setting | Value |",
+            "|---------|-------|",
+            f"| Embedding Model | `{self.config.embedding_model}` |",
+            f"| Environment | `{self.config.environment_type}` |",
+            f"| DeepSeek Mode | `{self.deepseek_mode}` |",
+            f"| DeepSeek Task | `{self.deepseek_task}` |",
+            "",
+            "### Scoring & Thresholding",
             "",
             "| Setting | Value |",
             "|---------|-------|",
@@ -832,6 +897,13 @@ class BBoxDocVQARunner:
             f"| Top-K | `{self.config.top_k or 'None'}` |",
             f"| Min Patch Overlap | `{self.config.min_patch_overlap}` |",
             f"| Hit IoU Threshold | `{hit_threshold}` |",
+            "",
+            "### Dataset",
+            "",
+            "| Setting | Value |",
+            "|---------|-------|",
+            f"| Sample Limit | `{self.config.sample_limit or 'None'}` |",
+            f"| Filter | `{filter_desc}` |",
             "",
             "## Progress",
             "",
@@ -866,14 +938,10 @@ class BBoxDocVQARunner:
                 tok_ocr = r.token_stats.tokens_all_ocr
                 tok_img = r.token_stats.tokens_full_image
                 save_ocr = (
-                    f"{(1 - tok_sel / tok_ocr) * 100:.0f}%"
-                    if tok_ocr > 0
-                    else "-"
+                    f"{(1 - tok_sel / tok_ocr) * 100:.0f}%" if tok_ocr > 0 else "-"
                 )
                 save_img = (
-                    f"{(1 - tok_sel / tok_img) * 100:.0f}%"
-                    if tok_img > 0
-                    else "-"
+                    f"{(1 - tok_sel / tok_img) * 100:.0f}%" if tok_img > 0 else "-"
                 )
             else:
                 tok_sel = tok_ocr = tok_img = 0
@@ -887,17 +955,25 @@ class BBoxDocVQARunner:
 
         # Add summary section (only for successful samples)
         if successful_results:
-            mean_iou = sum(r.metrics.mean_iou for r in successful_results) / len(successful_results)
+            mean_iou = sum(r.metrics.mean_iou for r in successful_results) / len(
+                successful_results
+            )
 
             # Token statistics (only from successful samples)
             total_tokens_selected = sum(
-                r.token_stats.tokens_selected for r in successful_results if r.token_stats
+                r.token_stats.tokens_selected
+                for r in successful_results
+                if r.token_stats
             )
             total_tokens_all_ocr = sum(
-                r.token_stats.tokens_all_ocr for r in successful_results if r.token_stats
+                r.token_stats.tokens_all_ocr
+                for r in successful_results
+                if r.token_stats
             )
             total_tokens_full_image = sum(
-                r.token_stats.tokens_full_image for r in successful_results if r.token_stats
+                r.token_stats.tokens_full_image
+                for r in successful_results
+                if r.token_stats
             )
             savings_vs_ocr = (
                 f"{(1 - total_tokens_selected / total_tokens_all_ocr) * 100:.1f}%"
@@ -921,13 +997,15 @@ class BBoxDocVQARunner:
             ]
             if failed_count > 0:
                 summary_lines.append(f"- **Failed:** {failed_count}")
-            summary_lines.extend([
-                "",
-                f"**Token Totals:** Selected {total_tokens_selected:,} | "
-                f"All OCR {total_tokens_all_ocr:,} | Full Image {total_tokens_full_image:,}",
-                "",
-                f"**Savings:** {savings_vs_ocr} vs All OCR | {savings_vs_image} vs Full Image",
-            ])
+            summary_lines.extend(
+                [
+                    "",
+                    f"**Token Totals:** Selected {total_tokens_selected:,} | "
+                    f"All OCR {total_tokens_all_ocr:,} | Full Image {total_tokens_full_image:,}",
+                    "",
+                    f"**Savings:** {savings_vs_ocr} vs All OCR | {savings_vs_image} vs Full Image",
+                ]
+            )
             lines.extend(summary_lines)
 
         lines.append("")
@@ -975,8 +1053,28 @@ class BBoxDocVQARunner:
             ),
         }
 
+        # Build config dict for reproducibility
+        config_dict = {
+            "embedding_model": self.config.embedding_model,
+            "environment_type": self.config.environment_type,
+            "deepseek_mode": self.deepseek_mode,
+            "deepseek_task": self.deepseek_task,
+            "deepseek_url": self.deepseek_url,
+            "threshold_method": self.config.threshold_method,
+            "token_aggregation": self.config.token_aggregation,
+            "region_scoring": self.config.region_scoring,
+            "percentile": self.config.percentile,
+            "top_k": self.config.top_k,
+            "min_patch_overlap": self.config.min_patch_overlap,
+            "hit_iou_threshold": self.config.hit_iou_threshold,
+            "sample_limit": self.config.sample_limit,
+            "filter_docs": self.config.filter_docs,
+            "filter_samples": self.config.filter_samples,
+        }
+
         summary_path = run_dir / "summary.json"
         summary_payload = {
+            "config": config_dict,
             "summary": summary,
             "detection_summary": detection_summary,
             "token_summary": token_summary,
@@ -1066,7 +1164,6 @@ class BBoxDocVQARunner:
                     or visualized < self.config.visualize_limit
                 ):
                     self._render_visualization(
-                        idx=idx,
                         sample=sample,
                         ocr_boxes=ocr_boxes,
                         pred_boxes=predicted_boxes,

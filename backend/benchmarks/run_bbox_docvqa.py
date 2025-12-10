@@ -2,8 +2,15 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import sys
 from pathlib import Path
+
+from dotenv import load_dotenv
+
+# Load .env from benchmarks directory
+BENCHMARKS_DIR = Path(__file__).resolve().parent
+load_dotenv(BENCHMARKS_DIR / ".env")
 
 # Ensure backend root is importable for config + clients
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -138,6 +145,10 @@ def main() -> None:
     # Treat --limit 0 as "no limit" (None)
     sample_limit = args.limit if args.limit and args.limit > 0 else None
 
+    # Get config from env (note: uses user's spelling "ENVIROMENT_TYPE")
+    embedding_model = os.getenv("EMBEDDING_MODEL", "colmodernvbert")
+    environment_type = os.getenv("ENVIROMENT_TYPE", "docker")
+
     bench_config = BenchmarkConfig(
         dataset_root=args.dataset_root,
         sample_limit=sample_limit,
@@ -157,6 +168,8 @@ def main() -> None:
         visualize=args.visualize,
         visualize_limit=args.visualize_limit,  # None = no limit, 0 = none, N = N visualizations
         visualize_heatmap=args.visualize_heatmap,
+        embedding_model=embedding_model,
+        environment_type=environment_type,
     )
 
     runner = BBoxDocVQARunner(bench_config)
