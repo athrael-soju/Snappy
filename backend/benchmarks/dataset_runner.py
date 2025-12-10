@@ -611,8 +611,6 @@ class BenchmarkConfig:
     visualize_heatmap: bool = True
     # Embedding model: "colmodernvbert" (remote), "colqwen3-4b", or "colqwen3-8b" (local)
     embedding_model: str = "colmodernvbert"
-    # Environment type: "local" or "docker" - affects service URLs
-    environment_type: str = "docker"
 
 
 class BBoxDocVQARunner:
@@ -625,7 +623,6 @@ class BBoxDocVQARunner:
         embedding_client: Optional[EmbeddingClient] = None,
     ):
         self.config = bench_config
-        is_docker = bench_config.environment_type == "docker"
 
         # Initialize embedding client based on config or provided client
         if embedding_client is not None:
@@ -640,16 +637,16 @@ class BBoxDocVQARunner:
                 "Using local %s model for embeddings", bench_config.embedding_model
             )
         else:
-            # colmodernvbert uses remote ColPali service
-            colpali_url = "http://colpali:7000" if is_docker else "http://localhost:7000"
+            # colmodernvbert uses remote ColPali service (always localhost from WSL)
+            colpali_url = "http://localhost:7000"
             self.embedding_client = ColPaliClient(base_url=colpali_url)
             logger.info(
                 "Using ColPali service for embeddings (%s)",
                 bench_config.embedding_model,
             )
 
-        # Configure DeepSeek OCR URL based on environment
-        default_deepseek = "http://deepseek-ocr:8200" if is_docker else "http://localhost:8200"
+        # Configure DeepSeek OCR URL (always localhost from WSL)
+        default_deepseek = "http://localhost:8200"
         self.deepseek_url = (
             bench_config.deepseek_url
             or getattr(config, "DEEPSEEK_OCR_URL", None)
@@ -882,7 +879,6 @@ class BBoxDocVQARunner:
             "| Setting | Value |",
             "|---------|-------|",
             f"| Embedding Model | `{self.config.embedding_model}` |",
-            f"| Environment | `{self.config.environment_type}` |",
             f"| DeepSeek Mode | `{self.deepseek_mode}` |",
             f"| DeepSeek Task | `{self.deepseek_task}` |",
             "",
@@ -1056,7 +1052,6 @@ class BBoxDocVQARunner:
         # Build config dict for reproducibility
         config_dict = {
             "embedding_model": self.config.embedding_model,
-            "environment_type": self.config.environment_type,
             "deepseek_mode": self.deepseek_mode,
             "deepseek_task": self.deepseek_task,
             "deepseek_url": self.deepseek_url,
