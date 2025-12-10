@@ -302,13 +302,18 @@ def _stack_patch_scores(
         arr = np.asarray(sim_map, dtype=np.float32)
         if arr.ndim != 2:
             raise ValueError(f"Similarity map must be 2D, got shape {arr.shape}")
-        # Normalize orientation: we want [patch_y, patch_x]
-        if arr.shape == (n_patches_x, n_patches_y):
-            arr = arr.T
-        elif arr.shape != (n_patches_y, n_patches_x):
+        # ColPali returns similarity maps in (n_patches_x, n_patches_y) format
+        # which is (width, height) - non-standard for numpy.
+        # We always transpose to get (n_patches_y, n_patches_x) = (height, width) = (row, col)
+        # This matches the colpali_engine visualization code which also transposes.
+        # Note: when n_patches_x == n_patches_y, both shapes look identical,
+        # but we still need to transpose the DATA (swap values at [i,j] with [j,i]).
+        arr = arr.T
+        # Validate shape after transpose
+        if arr.shape != (n_patches_y, n_patches_x):
             raise ValueError(
-                f"Unexpected similarity map shape {arr.shape}; expected "
-                f"({n_patches_y}, {n_patches_x}) or ({n_patches_x}, {n_patches_y})"
+                f"Similarity map shape {arr.shape} after transpose doesn't match "
+                f"expected ({n_patches_y}, {n_patches_x})"
             )
         token_maps.append(arr)
 
