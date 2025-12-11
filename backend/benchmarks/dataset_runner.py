@@ -302,18 +302,20 @@ def _stack_patch_scores(
         arr = np.asarray(sim_map, dtype=np.float32)
         if arr.ndim != 2:
             raise ValueError(f"Similarity map must be 2D, got shape {arr.shape}")
-        # ColPali returns similarity maps in (n_patches_x, n_patches_y) format
-        # which is (width, height) - non-standard for numpy.
-        # We always transpose to get (n_patches_y, n_patches_x) = (height, width) = (row, col)
-        # This matches the colpali_engine visualization code which also transposes.
-        # Note: when n_patches_x == n_patches_y, both shapes look identical,
-        # but we still need to transpose the DATA (swap values at [i,j] with [j,i]).
-        arr = arr.T
-        # Validate shape after transpose
-        if arr.shape != (n_patches_y, n_patches_x):
+        # Handle different similarity map formats:
+        # - ColPali API returns (n_patches_x, n_patches_y) format (width, height)
+        # - Local ColQwen3 returns (n_patches_y, n_patches_x) format (height, width)
+        # We need (n_patches_y, n_patches_x) = (height, width) for standard numpy indexing
+        if arr.shape == (n_patches_x, n_patches_y):
+            # Needs transpose (ColPali API format)
+            arr = arr.T
+        elif arr.shape == (n_patches_y, n_patches_x):
+            # Already in correct format (local model format)
+            pass
+        else:
             raise ValueError(
-                f"Similarity map shape {arr.shape} after transpose doesn't match "
-                f"expected ({n_patches_y}, {n_patches_x})"
+                f"Similarity map shape {arr.shape} doesn't match expected "
+                f"({n_patches_y}, {n_patches_x}) or ({n_patches_x}, {n_patches_y})"
             )
         token_maps.append(arr)
 
