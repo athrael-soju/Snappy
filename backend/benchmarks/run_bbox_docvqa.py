@@ -131,6 +131,14 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Max visualizations to render (default: no limit). Use 0 for no visualizations.",
     )
+    parser.add_argument(
+        "--max-workers",
+        type=int,
+        default=4,
+        help="Number of parallel workers for processing samples (default: 4). "
+        "Overlaps OCR and ColPali calls across samples for faster throughput. "
+        "Higher values may cause slowdown due to lock contention.",
+    )
     parser.set_defaults(visualize_heatmap=True)
     return parser.parse_args()
 
@@ -165,9 +173,10 @@ def main() -> None:
         deepseek_timeout=args.deepseek_timeout,
         output_dir=args.output_dir,
         visualize=args.visualize,
-        visualize_limit=args.visualize_limit,  # None = no limit, 0 = none, N = N visualizations
+        visualize_limit=args.visualize_limit,
         visualize_heatmap=args.visualize_heatmap,
         embedding_model=embedding_model,
+        max_workers=args.max_workers,
     )
 
     runner = BBoxDocVQARunner(bench_config)

@@ -119,14 +119,18 @@ async def ocr_endpoint(
         tmp_path = tmp.name
 
     try:
-        # Run OCR processing in thread pool to avoid blocking event loop
-        # This allows /restart endpoint to be processed immediately during cancellation
+        # Run OCR processing in thread pool to avoid blocking the async event loop
+        # This allows /health and /restart endpoints to respond during OCR processing
+        # Note: GPU inference is internally serialized, but multiple workers allow
+        # overlapping file I/O, image preprocessing, and HTTP handling with GPU work
         import asyncio
         from concurrent.futures import ThreadPoolExecutor
 
-        # Use a shared thread pool executor for CPU-bound OCR operations
-        if not hasattr(ocr_endpoint, '_executor'):
-            ocr_endpoint._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="ocr")
+        # Use a shared thread pool executor for OCR operations
+        if not hasattr(ocr_endpoint, "_executor"):
+            ocr_endpoint._executor = ThreadPoolExecutor(
+                max_workers=1, thread_name_prefix="ocr"
+            )
 
         if is_pdf:
             result = await asyncio.get_event_loop().run_in_executor(

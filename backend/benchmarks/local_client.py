@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import math
+import threading
 from typing import Any, Dict, List, Optional
 
 import numpy as np
@@ -74,6 +75,8 @@ class TomoroColQwenClient:
         self._model = None
         self._processor = None
         self._loaded = False
+        # Thread lock for GPU inference - ensures only one thread uses the model at a time
+        self._inference_lock = threading.Lock()
 
     def _ensure_loaded(self) -> None:
         """Lazily load the model and processor."""
@@ -207,6 +210,8 @@ class TomoroColQwenClient:
         This method provides the same interface as ColPaliClient.generate_interpretability_maps()
         but uses the local Tomoro model.
 
+        Thread-safe: Uses a lock to ensure only one inference runs at a time on the GPU.
+
         Args:
             query: The query text to interpret
             image: The document image to analyze
@@ -221,29 +226,29 @@ class TomoroColQwenClient:
             - image_width: Original image width
             - image_height: Original image height
         """
-        self._ensure_loaded()
+        # Acquire lock to ensure thread-safe GPU access
+        with self._inference_lock:
+            self._ensure_loaded()
 
-        # Encode query and image
-        query_embeddings = self._encode_query(query)  # (query_len, embed_dim)
-        image_result = self._encode_image(image)
-        image_embeddings = image_result["embeddings"]  # (n_patches, embed_dim)
-        n_patches_x = image_result["n_patches_x"]
-        n_patches_y = image_result["n_patches_y"]
-        n_patches_total = image_result["n_patches_total"]
+            # Encode query and image
+            query_embeddings = self._encode_query(query)  # (query_len, embed_dim)
+            image_result = self._encode_image(image)
+            image_embeddings = image_result["embeddings"]  # (n_patches, embed_dim)
+            n_patches_x = image_result["n_patches_x"]
+            n_patches_y = image_result["n_patches_y"]
 
-        # Normalize embeddings for cosine similarity
-        query_norm = torch.nn.functional.normalize(query_embeddings, p=2, dim=-1)
-        image_norm = torch.nn.functional.normalize(image_embeddings, p=2, dim=-1)
+            # Normalize embeddings for cosine similarity
+            query_norm = torch.nn.functional.normalize(query_embeddings, p=2, dim=-1)
+            image_norm = torch.nn.functional.normalize(image_embeddings, p=2, dim=-1)
 
-        # Compute similarity: (query_len, n_patches)
-        similarity = torch.matmul(query_norm, image_norm.T)
+            # Compute similarity: (query_len, n_patches)
+            similarity = torch.matmul(query_norm, image_norm.T)
 
-        # Convert to numpy and reshape into 2D maps
-        similarity_np = similarity.float().cpu().numpy()
+            # Convert to numpy and release GPU memory
+            similarity_np = similarity.float().cpu().numpy()
 
-        # Get query tokens for the response
-        # Use the processor's tokenizer to get token strings
-        tokens = self._get_query_tokens(query)
+            # Get query tokens for the response
+            tokens = self._get_query_tokens(query)
 
         # Build per-token similarity maps
         similarity_maps = []
