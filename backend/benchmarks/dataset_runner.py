@@ -607,7 +607,6 @@ class BenchmarkConfig:
     min_patch_overlap: float = 0.0
     token_aggregation: str = "max"  # "max" (MaxSim) or "mean"
     region_scoring: str = "weighted_avg"  # "weighted_avg" or "max"
-    hit_iou_threshold: float = 0.5  # IoU threshold for counting as a "hit"
     deepseek_url: Optional[str] = None
     deepseek_mode: Optional[str] = None
     deepseek_task: Optional[str] = None
@@ -864,10 +863,15 @@ class BBoxDocVQARunner:
         total_processed = len(results)
         successful_results = [r for r in results if not r.failed]
         failed_count = total_processed - len(successful_results)
-        hit_threshold = self.config.hit_iou_threshold
-        hits = sum(1 for r in successful_results if r.metrics.mean_iou >= hit_threshold)
-        misses = len(successful_results) - hits
-        success_ratio = hits / len(successful_results) if successful_results else 0.0
+        n_successful = len(successful_results)
+
+        # Compute hit rates for all 3 thresholds
+        hits_025 = sum(1 for r in successful_results if r.metrics.mean_iou >= 0.25)
+        hits_05 = sum(1 for r in successful_results if r.metrics.mean_iou >= 0.5)
+        hits_07 = sum(1 for r in successful_results if r.metrics.mean_iou >= 0.7)
+        rate_025 = hits_025 / n_successful if n_successful > 0 else 0.0
+        rate_05 = hits_05 / n_successful if n_successful > 0 else 0.0
+        rate_07 = hits_07 / n_successful if n_successful > 0 else 0.0
 
         # Build filter description if applicable
         filter_desc = "None"
@@ -875,6 +879,19 @@ class BBoxDocVQARunner:
             filter_desc = f"Sample IDs: {self.config.filter_samples}"
         elif self.config.filter_docs:
             filter_desc = f"Docs: {self.config.filter_docs}"
+
+        # Compute category breakdown
+        category_stats: Dict[str, Dict[str, Any]] = {}
+        for r in successful_results:
+            cat = r.sample.category or "unknown"
+            if cat not in category_stats:
+                category_stats[cat] = {
+                    "ious": [],
+                    "det_ious": [],
+                }
+            category_stats[cat]["ious"].append(r.metrics.mean_iou)
+            if r.detection_metrics:
+                category_stats[cat]["det_ious"].append(r.detection_metrics.mean_iou)
 
         lines = [
             "# BBox-DocVQA Benchmark Progress",
@@ -899,7 +916,6 @@ class BBoxDocVQARunner:
             f"| Percentile | `{self.config.percentile}` |",
             f"| Top-K | `{self.config.top_k or 'None'}` |",
             f"| Min Patch Overlap | `{self.config.min_patch_overlap}` |",
-            f"| Hit IoU Threshold | `{hit_threshold}` |",
             "",
             "### Dataset",
             "",
@@ -913,27 +929,95 @@ class BBoxDocVQARunner:
             f"**Processed:** {total_processed}/{total_samples}"
             + (f" ({failed_count} failed)" if failed_count > 0 else ""),
             "",
-            f"**Success Ratio (IoU ≥ {hit_threshold}):** {hits}/{len(successful_results)} ({success_ratio:.1%})",
+            f"**Hit Rates:** IoU@0.25: {hits_025}/{n_successful} ({rate_025:.1%}) | "
+            f"IoU@0.5: {hits_05}/{n_successful} ({rate_05:.1%}) | "
+            f"IoU@0.7: {hits_07}/{n_successful} ({rate_07:.1%})",
             "",
-            "## Results",
-            "",
-            "| ID | Document | Category | OCR'd | Sel | IoU | Tok Sel | Tok OCR | Tok Img | Save OCR | Save Img | Result |",
-            "|----|----------|----------|-------|-----|-----|---------|---------|---------|----------|----------|--------|",
         ]
 
+        # Add category breakdown section
+        if category_stats:
+            lines.extend([
+                "## Category Breakdown",
+                "",
+                "| Category | N | Mean IoU | IoU@0.25 | IoU@0.5 | IoU@0.7 | Det IoU | Det@0.5 |",
+                "|----------|---:|--------:|--------:|--------:|--------:|--------:|--------:|",
+            ])
+
+            all_ious: List[float] = []
+            all_det_ious: List[float] = []
+
+            for cat in sorted(category_stats.keys()):
+                ious = category_stats[cat]["ious"]
+                det_ious = category_stats[cat]["det_ious"]
+                all_ious.extend(ious)
+                all_det_ious.extend(det_ious)
+
+                n = len(ious)
+                mean_iou = sum(ious) / n if n > 0 else 0
+                iou_at_025 = sum(1 for x in ious if x >= 0.25) / n * 100 if n > 0 else 0
+                iou_at_05 = sum(1 for x in ious if x >= 0.5) / n * 100 if n > 0 else 0
+                iou_at_07 = sum(1 for x in ious if x >= 0.7) / n * 100 if n > 0 else 0
+                det_mean = sum(det_ious) / len(det_ious) if det_ious else 0
+                det_at_05 = sum(1 for x in det_ious if x >= 0.5) / len(det_ious) * 100 if det_ious else 0
+
+                lines.append(
+                    f"| {cat} | {n} | {mean_iou:.3f} | {iou_at_025:.1f}% | {iou_at_05:.1f}% | "
+                    f"{iou_at_07:.1f}% | {det_mean:.3f} | {det_at_05:.1f}% |"
+                )
+
+            # Add total row
+            if all_ious:
+                n_total = len(all_ious)
+                mean_total = sum(all_ious) / n_total
+                at_025_total = sum(1 for x in all_ious if x >= 0.25) / n_total * 100
+                at_05_total = sum(1 for x in all_ious if x >= 0.5) / n_total * 100
+                at_07_total = sum(1 for x in all_ious if x >= 0.7) / n_total * 100
+                det_mean_total = sum(all_det_ious) / len(all_det_ious) if all_det_ious else 0
+                det_at_05_total = sum(1 for x in all_det_ious if x >= 0.5) / len(all_det_ious) * 100 if all_det_ious else 0
+
+                lines.append(
+                    f"| **TOTAL** | **{n_total}** | **{mean_total:.3f}** | **{at_025_total:.1f}%** | "
+                    f"**{at_05_total:.1f}%** | **{at_07_total:.1f}%** | **{det_mean_total:.3f}** | **{det_at_05_total:.1f}%** |"
+                )
+
+            lines.append("")
+
+        lines.extend([
+            "## Results",
+            "",
+            "| ID | Document | Category | OCR'd | Sel | IoU | @0.25 | @0.5 | @0.7 | Tok Sel | Tok OCR | Tok Img | Save OCR | Save Img | Time (s) |",
+            "|----|----------|----------|-------|-----|-----|-------|------|------|---------|---------|---------|----------|----------|----------|",
+        ])
+
+        # Track totals
+        total_ocr_count = 0
+        total_selected_count = 0
+        total_tok_sel = 0
+        total_tok_ocr = 0
+        total_tok_img = 0
+        total_time_s = 0.0
+
         for r in results:
+            time_s = r.elapsed_ms / 1000.0
+            total_time_s += time_s
+
             if r.failed:
                 # Show failed samples with error indicator
                 lines.append(
                     f"| {r.sample.sample_id} | {r.sample.doc_name} | {r.sample.category} | "
-                    f"- | - | - | - | - | - | - | - | ⚠️ Failed |"
+                    f"- | - | - | - | - | - | - | - | - | - | - | {time_s:.1f} |"
                 )
                 continue
 
             ocr_count = len(r.ocr_boxes) if r.ocr_boxes else 0
             selected_count = len(r.predicted_boxes)
             iou = r.metrics.mean_iou
-            result = "✅ Hit" if iou >= hit_threshold else "❌ Miss"
+
+            # Hit/miss indicators for each threshold
+            hit_025 = "✅" if iou >= 0.25 else "❌"
+            hit_05 = "✅" if iou >= 0.5 else "❌"
+            hit_07 = "✅" if iou >= 0.7 else "❌"
 
             # Token stats
             if r.token_stats:
@@ -950,10 +1034,35 @@ class BBoxDocVQARunner:
                 tok_sel = tok_ocr = tok_img = 0
                 save_ocr = save_img = "-"
 
+            # Accumulate totals
+            total_ocr_count += ocr_count
+            total_selected_count += selected_count
+            total_tok_sel += tok_sel
+            total_tok_ocr += tok_ocr
+            total_tok_img += tok_img
+
             lines.append(
                 f"| {r.sample.sample_id} | {r.sample.doc_name} | {r.sample.category} | "
-                f"{ocr_count} | {selected_count} | {iou:.3f} | "
-                f"{tok_sel:,} | {tok_ocr:,} | {tok_img:,} | {save_ocr} | {save_img} | {result} |"
+                f"{ocr_count} | {selected_count} | {iou:.3f} | {hit_025} | {hit_05} | {hit_07} | "
+                f"{tok_sel:,} | {tok_ocr:,} | {tok_img:,} | {save_ocr} | {save_img} | {time_s:.1f} |"
+            )
+
+        # Add totals row
+        if successful_results:
+            total_save_ocr = (
+                f"{(1 - total_tok_sel / total_tok_ocr) * 100:.0f}%"
+                if total_tok_ocr > 0
+                else "-"
+            )
+            total_save_img = (
+                f"{(1 - total_tok_sel / total_tok_img) * 100:.0f}%"
+                if total_tok_img > 0
+                else "-"
+            )
+            lines.append(
+                f"| **Total** | | | **{total_ocr_count}** | **{total_selected_count}** | | | | | "
+                f"**{total_tok_sel:,}** | **{total_tok_ocr:,}** | **{total_tok_img:,}** | "
+                f"**{total_save_ocr}** | **{total_save_img}** | **{total_time_s:.1f}** |"
             )
 
         # Add summary section (only for successful samples)
@@ -989,14 +1098,18 @@ class BBoxDocVQARunner:
                 else "N/A"
             )
 
+            # Calculate average time per sample
+            avg_time_s = total_time_s / len(results) if results else 0
+
             summary_lines = [
                 "",
                 "## Summary",
                 "",
                 f"- **Mean IoU:** {mean_iou:.3f}",
-                f"- **Hits (IoU ≥ {hit_threshold}):** {hits}",
-                f"- **Misses:** {misses}",
-                f"- **Success Rate:** {success_ratio:.1%}",
+                f"- **IoU@0.25:** {hits_025}/{n_successful} ({rate_025:.1%})",
+                f"- **IoU@0.5:** {hits_05}/{n_successful} ({rate_05:.1%})",
+                f"- **IoU@0.7:** {hits_07}/{n_successful} ({rate_07:.1%})",
+                f"- **Total Time:** {total_time_s:.1f}s ({avg_time_s:.1f}s avg/sample)",
             ]
             if failed_count > 0:
                 summary_lines.append(f"- **Failed:** {failed_count}")
@@ -1040,6 +1153,10 @@ class BBoxDocVQARunner:
             r.token_stats.tokens_full_image for r in successful_results if r.token_stats
         )
 
+        # Aggregate timing (from all samples including failed)
+        total_elapsed_ms = sum(r.elapsed_ms for r in results)
+        avg_elapsed_ms = total_elapsed_ms / len(results) if results else 0
+
         token_summary = {
             "total_tokens_selected": total_tokens_selected,
             "total_tokens_all_ocr": total_tokens_all_ocr,
@@ -1054,6 +1171,8 @@ class BBoxDocVQARunner:
                 if total_tokens_full_image > 0
                 else "N/A"
             ),
+            "total_time_seconds": round(total_elapsed_ms / 1000, 1),
+            "avg_time_per_sample_seconds": round(avg_elapsed_ms / 1000, 1),
         }
 
         # Build config dict for reproducibility
@@ -1068,7 +1187,6 @@ class BBoxDocVQARunner:
             "percentile": self.config.percentile,
             "top_k": self.config.top_k,
             "min_patch_overlap": self.config.min_patch_overlap,
-            "hit_iou_threshold": self.config.hit_iou_threshold,
             "sample_limit": self.config.sample_limit,
             "filter_docs": self.config.filter_docs,
             "filter_samples": self.config.filter_samples,

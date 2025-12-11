@@ -85,12 +85,6 @@ def parse_args() -> argparse.Namespace:
         help="Token aggregation strategy for heatmap: max (MaxSim), mean, or sum (boosts overlapping areas).",
     )
     parser.add_argument(
-        "--hit-iou",
-        type=float,
-        default=0.5,
-        help="IoU threshold for counting a prediction as a 'hit' (default: 0.5).",
-    )
-    parser.add_argument(
         "--region-scoring",
         choices=["weighted_avg", "max"],
         default="weighted_avg",
@@ -159,7 +153,6 @@ def main() -> None:
         min_patch_overlap=args.min_overlap,
         token_aggregation=args.aggregation,
         region_scoring=args.region_scoring,
-        hit_iou_threshold=args.hit_iou,
         deepseek_url=args.deepseek_url,
         deepseek_mode=args.deepseek_mode,
         deepseek_task=args.deepseek_task,
