@@ -156,11 +156,12 @@ class EmbeddingProcessor:
             )  # [1, seq, dim]
 
             # Get number of patches for the image
+            # image.size is (width, height), pass as-is to match /patches endpoint
             spatial_merge_size = _get_spatial_merge_size()
             n_patches = model_service.processor.get_n_patches(
-                (image.size[1], image.size[0]),
+                (image.size[0], image.size[1]),
                 spatial_merge_size=spatial_merge_size,
-            )  # (height, width) -> (n_patches_x, n_patches_y)
+            )  # (width, height) -> (n_patches_x, n_patches_y)
 
             # Get image mask (use raw BatchFeature which has .input_ids attribute)
             image_mask = model_service.processor.get_image_mask(batch_images_raw)
