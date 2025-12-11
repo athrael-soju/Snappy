@@ -55,7 +55,7 @@ def get_image_executor() -> ThreadPoolExecutor:
 @router.get("/")
 async def root():
     """Root endpoint."""
-    return {"message": "ColModernVBert Embedding API", "version": settings.API_VERSION}
+    return {"message": "ColPali Embedding API", "version": settings.API_VERSION}
 
 
 @router.get("/health")

@@ -1,6 +1,6 @@
 # ColPali Embedding Service
 
-FastAPI service for ColModernVBert/ColPali embeddings. The Snappy backend calls it for query and image embeddings; you can also run it standalone for experiments.
+FastAPI service for ColPali-style embeddings using ColQwen3 models. The Snappy backend calls it for query and image embeddings; you can also run it standalone for experiments.
 
 ## Quick start (Docker)
 ```bash
@@ -21,7 +21,8 @@ uvicorn app.main:app --host 0.0.0.0 --port 7000 --reload
 ## Key settings
 | Variable | Purpose |
 | --- | --- |
-| `COLPALI_MODEL_ID` | HF model id (default `ModernVBERT/colmodernvbert-merged`). |
+| `COLPALI_MODEL_ID` | HF model id (default `TomoroAI/tomoro-colqwen3-embed-4b`). |
+| `MAX_NUM_VISUAL_TOKENS` | Max visual tokens for processor (default `1280`). |
 | `CPU_THREADS` | Torch thread count when on CPU. |
 | `HUGGINGFACE_HUB_CACHE` / `HF_HOME` | Cache location for model downloads. |
 
@@ -33,7 +34,7 @@ Hardware is auto-detected in order: CUDA -> MPS -> CPU.
 - `POST /embed/queries` - text to embeddings
 - `POST /embed/images` - images to multivector embeddings
 
-The `/patches` endpoint is used by the backend to calculate image token boundaries for mean pooling. The `colmodernvbert` model fully supports this functionality.
+The `/patches` endpoint is used by the backend to calculate image token boundaries for mean pooling.
 
 Example:
 ```bash

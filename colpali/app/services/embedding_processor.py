@@ -26,10 +26,14 @@ class EmbeddingProcessor:
         """
         device = model_service.model.device
         with torch.no_grad():
-            batch_query = model_service.processor.process_queries(queries).to(device)
-            query_embeddings = cast(
-                torch.Tensor, model_service.model(**batch_query)
-            )  # [batch, seq, dim]
+            batch_query = model_service.processor.process_texts(texts=queries)
+            batch_query = {
+                k: v.to(device) if isinstance(v, torch.Tensor) else v
+                for k, v in batch_query.items()
+            }
+            output = model_service.model(**batch_query)
+            # Model returns output with .embeddings property
+            query_embeddings = cast(torch.Tensor, output.embeddings)  # [batch, seq, dim]
             # Unbind into per-sample tensors on CPU
             return list(torch.unbind(query_embeddings.to("cpu")))
 
@@ -47,12 +51,16 @@ class EmbeddingProcessor:
         device = model_service.model.device
         with torch.no_grad():
             # Tokenize / encode images
-            batch_images = model_service.processor.process_images(images).to(device)
+            batch_images = model_service.processor.process_images(images=images)
+            batch_images = {
+                k: v.to(device) if isinstance(v, torch.Tensor) else v
+                for k, v in batch_images.items()
+            }
 
             # Forward pass
-            image_embeddings = cast(
-                torch.Tensor, model_service.model(**batch_images)
-            )  # [batch, seq, dim]
+            output = model_service.model(**batch_images)
+            # Model returns output with .embeddings property
+            image_embeddings = cast(torch.Tensor, output.embeddings)  # [batch, seq, dim]
             image_embeddings = image_embeddings.to("cpu")
 
             # Expect token ids to be present, so we can find image-token spans
@@ -114,15 +122,25 @@ class EmbeddingProcessor:
 
         with torch.no_grad():
             # Process query and image
-            batch_query = model_service.processor.process_queries([query]).to(device)
-            batch_images = model_service.processor.process_images([image]).to(device)
+            batch_query = model_service.processor.process_texts(texts=[query])
+            batch_query = {
+                k: v.to(device) if isinstance(v, torch.Tensor) else v
+                for k, v in batch_query.items()
+            }
+            batch_images = model_service.processor.process_images(images=[image])
+            batch_images = {
+                k: v.to(device) if isinstance(v, torch.Tensor) else v
+                for k, v in batch_images.items()
+            }
 
             # Generate embeddings
+            query_output = model_service.model(**batch_query)
             query_embeddings = cast(
-                torch.Tensor, model_service.model(**batch_query)
+                torch.Tensor, query_output.embeddings
             )  # [1, seq, dim]
+            image_output = model_service.model(**batch_images)
             image_embeddings = cast(
-                torch.Tensor, model_service.model(**batch_images)
+                torch.Tensor, image_output.embeddings
             )  # [1, seq, dim]
 
             # Get number of patches for the image
@@ -130,28 +148,31 @@ class EmbeddingProcessor:
                 (image.size[1], image.size[0])
             )  # (height, width) -> (n_patches_x, n_patches_y)
 
-            # Get local image mask (excludes global patch tokens for spatial correspondence)
-            image_mask = model_service.processor.get_local_image_mask(
+            # Get image mask (identifies image tokens for spatial correspondence)
+            image_mask = model_service.processor.get_image_mask(
                 cast(Any, batch_images)
             )
 
-            # Generate similarity maps using processor's interpretability method
-            similarity_maps_batch = (
-                model_service.processor.get_similarity_maps_from_embeddings(
-                    image_embeddings=image_embeddings,
-                    query_embeddings=query_embeddings,
-                    n_patches=n_patches,
-                    image_mask=image_mask,
-                )
-            )  # [1, query_length, n_patches_x, n_patches_y]
+            # Compute similarity maps manually
+            # Extract image patch embeddings using mask
+            mask = image_mask[0]  # [seq]
+            image_patch_embeddings = image_embeddings[0][mask]  # [n_patches, dim]
 
-            # Get the similarity map for our input (unbatch)
-            similarity_maps = similarity_maps_batch[0]  # [query_length, n_patches_x, n_patches_y]
+            # Normalize embeddings for cosine similarity
+            query_norm = torch.nn.functional.normalize(query_embeddings[0], dim=-1)
+            image_norm = torch.nn.functional.normalize(image_patch_embeddings, dim=-1)
+
+            # Compute similarity: [query_seq, n_patches]
+            similarities = torch.matmul(query_norm, image_norm.T)
+
+            # Reshape to [query_seq, n_patches_x, n_patches_y]
+            n_patches_x, n_patches_y = n_patches
+            similarity_maps = similarities.view(-1, n_patches_x, n_patches_y)
 
             # Extract query tokens (filtering out special tokens)
-            input_ids = batch_query.input_ids[0].tolist()
+            input_ids = batch_query["input_ids"][0].tolist()
             query_tokens = model_service.processor.tokenizer.convert_ids_to_tokens(
-                batch_query.input_ids[0]
+                batch_query["input_ids"][0]
             )
             special_token_ids = set(
                 model_service.processor.tokenizer.all_special_ids or []

@@ -36,7 +36,7 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     app = FastAPI(
-        title="ColModernVBert Embedding API",
+        title="ColPali Embedding API",
         description="API for generating embeddings from images and queries",
         lifespan=lifespan,
     )

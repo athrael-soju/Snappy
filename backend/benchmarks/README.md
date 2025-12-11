@@ -6,7 +6,7 @@ Lightweight runner to sanity-check spatial grounding with ColPali patch scores a
 
 - DeepSeek OCR service running (defaults to `DEEPSEEK_OCR_URL` or `http://localhost:8200`)
 - Embedding service:
-  - `colmodernvbert` (default): ColPali service at `http://localhost:7000`
+  - `colpali` (default): ColPali service at `http://localhost:7000`
   - `colqwen3-4b` or `colqwen3-8b`: Local Tomoro ColQwen model (no external service needed)
 - Dataset snapshot extracted under `benchmarks/.eval_cache/datasets--Yuwh07--BBox_DocVQA_Bench/snapshots/*/BBox_DocVQA_Bench.jsonl`
 
@@ -22,8 +22,8 @@ python benchmarks/run_bbox_docvqa.py --limit 10 --method adaptive
 
 Configure model and environment via environment variables (or `.env` file in `benchmarks/`):
 
-- `EMBEDDING_MODEL`: Embedding model to use (default: `colmodernvbert`)
-  - `colmodernvbert`: Remote ColPali service
+- `EMBEDDING_MODEL`: Embedding model to use (default: `colpali`)
+  - `colpali`: Remote ColPali service
   - `colqwen3-4b`: Local 4B parameter ColQwen model
   - `colqwen3-8b`: Local 8B parameter ColQwen model
 

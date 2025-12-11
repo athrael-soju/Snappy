@@ -1,10 +1,10 @@
 """Model loading and management service."""
 
 import logging
-from typing import Any, Tuple, Union, cast
+from typing import Any, cast
 
 import torch
-from colpali_engine.models import ColModernVBert, ColModernVBertProcessor
+from transformers import AutoModel, AutoProcessor
 from transformers.utils.import_utils import is_flash_attn_2_available
 
 from app.core.config import settings
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class ModelService:
-    """Service for managing the ColModernVBert model and processor."""
+    """Service for managing the ColQwen3 model and processor."""
 
     def __init__(self):
         """Initialize the model service."""
@@ -22,36 +22,33 @@ class ModelService:
         self.image_token_id: int = 0
 
     def load_model(self):
-        """Load the ColModernVBert model and processor."""
+        """Load the ColQwen3 model and processor."""
         logger.info(f"Loading model: {settings.MODEL_ID}")
         logger.info(f"Device: {settings.device}")
         logger.info(f"Torch dtype: {settings.TORCH_DTYPE}")
 
+        # Load processor first (needed for max_num_visual_tokens)
+        self.processor = cast(
+            Any,
+            AutoProcessor.from_pretrained(
+                settings.MODEL_ID,
+                trust_remote_code=True,
+                max_num_visual_tokens=settings.MAX_NUM_VISUAL_TOKENS,
+            ),
+        )
+
         # Load model
+        attn_impl = "flash_attention_2" if is_flash_attn_2_available() else None
         self.model = cast(
             Any,
-            ColModernVBert.from_pretrained(
+            AutoModel.from_pretrained(
                 settings.MODEL_ID,
                 torch_dtype=settings.TORCH_DTYPE,
                 device_map=settings.device,
-                attn_implementation=(
-                    "flash_attention_2" if is_flash_attn_2_available() else None
-                ),
+                attn_implementation=attn_impl,
                 trust_remote_code=True,
             ).eval(),
         )
-
-        # Load processor
-        _processor_loaded: Union[
-            ColModernVBertProcessor, Tuple[ColModernVBertProcessor, dict[str, Any]]
-        ] = ColModernVBertProcessor.from_pretrained(
-            settings.MODEL_ID, trust_remote_code=True
-        )
-
-        if isinstance(_processor_loaded, tuple):
-            self.processor = cast(Any, _processor_loaded[0])
-        else:
-            self.processor = cast(Any, _processor_loaded)
 
         # Resolve image token ID
         self.image_token_id = self._resolve_image_token_id()
@@ -62,6 +59,7 @@ class ModelService:
             f"Flash Attention 2: {'enabled' if is_flash_attn_2_available() else 'disabled'}"
         )
         logger.info(f"Image token ID: {self.image_token_id}")
+        logger.info(f"Max visual tokens: {settings.MAX_NUM_VISUAL_TOKENS}")
 
         # Log CPU threading configuration if applicable
         if settings.device == "cpu":
