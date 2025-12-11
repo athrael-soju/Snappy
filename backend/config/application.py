@@ -118,7 +118,7 @@ def _getattr_impl(name: str) -> Any:
     if name in globals():
         value = globals()[name]
         # Only return if it's a constant (not a function or class)
-        if not callable(value) and not name.startswith('_'):
+        if not callable(value) and not name.startswith("_"):
             return value
 
     if name in _CONFIG_DEFAULTS:
@@ -179,7 +179,7 @@ IMAGE_FORMAT = "JPEG"  # Best compression/quality balance
 IMAGE_QUALITY = 75  # Good quality/size balance
 
 # Hard-coded DeepSeek OCR settings (auto-sized or optimized defaults)
-DEEPSEEK_OCR_API_TIMEOUT = 180  # 3 minutes - balances speed and reliability
+DEEPSEEK_OCR_API_TIMEOUT = 600  # 10 minutes - long operations
 DEEPSEEK_OCR_POOL_SIZE = 20  # Sufficient for retry handling
 DEEPSEEK_OCR_LOCATE_TEXT = ""  # Empty by default
 DEEPSEEK_OCR_CUSTOM_PROMPT = ""  # Empty by default

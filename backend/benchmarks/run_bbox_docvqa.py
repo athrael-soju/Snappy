@@ -109,6 +109,12 @@ def parse_args() -> argparse.Namespace:
         help="DeepSeek OCR task (e.g., markdown, plain_ocr, locate).",
     )
     parser.add_argument(
+        "--deepseek-timeout",
+        type=int,
+        default=None,
+        help="DeepSeek OCR timeout in seconds (default: 180 from config, use 600 for complex documents).",
+    )
+    parser.add_argument(
         "--output-dir",
         type=Path,
         default=Path("benchmarks") / "runs",
@@ -156,6 +162,7 @@ def main() -> None:
         deepseek_url=args.deepseek_url,
         deepseek_mode=args.deepseek_mode,
         deepseek_task=args.deepseek_task,
+        deepseek_timeout=args.deepseek_timeout,
         output_dir=args.output_dir,
         visualize=args.visualize,
         visualize_limit=args.visualize_limit,  # None = no limit, 0 = none, N = N visualizations
