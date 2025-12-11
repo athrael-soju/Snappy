@@ -94,7 +94,7 @@ class ModelService:
             "dtype": str(self.model.dtype),
             "flash_attn": is_flash_attn_2_available(),
             "spatial_merge_size": spatial_merge_size,
-            "dim": getattr(self.model, "dim", None),
+            "dim": self.model.config.embed_dim,
             "image_token_id": self.image_token_id,
             "image_seq_len": image_seq_len,
         }
