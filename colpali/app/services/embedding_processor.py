@@ -1,7 +1,7 @@
 """Embedding generation processor service."""
 
 import logging
-from typing import Any, List, cast
+from typing import Any, List, Optional, cast
 
 import torch
 from PIL import Image
@@ -10,6 +10,18 @@ from app.models.schemas import ImageEmbeddingItem, InterpretabilityResponse, Tok
 from app.services.model_service import model_service
 
 logger = logging.getLogger(__name__)
+
+
+def _get_spatial_merge_size() -> Optional[int]:
+    """Get spatial_merge_size from model or its config."""
+    value = getattr(model_service.model, "spatial_merge_size", None)
+    if value is None:
+        vision_config = getattr(
+            getattr(model_service.model, "config", None), "vision_config", None
+        )
+        if vision_config is not None:
+            value = getattr(vision_config, "spatial_merge_size", None)
+    return value
 
 
 class EmbeddingProcessor:
@@ -121,16 +133,16 @@ class EmbeddingProcessor:
         device = model_service.model.device
 
         with torch.no_grad():
-            # Process query and image
-            batch_query = model_service.processor.process_texts(texts=[query])
+            # Process query and image (keep original BatchFeature for get_image_mask)
+            batch_query_raw = model_service.processor.process_texts(texts=[query])
             batch_query = {
                 k: v.to(device) if isinstance(v, torch.Tensor) else v
-                for k, v in batch_query.items()
+                for k, v in batch_query_raw.items()
             }
-            batch_images = model_service.processor.process_images(images=[image])
+            batch_images_raw = model_service.processor.process_images(images=[image])
             batch_images = {
                 k: v.to(device) if isinstance(v, torch.Tensor) else v
-                for k, v in batch_images.items()
+                for k, v in batch_images_raw.items()
             }
 
             # Generate embeddings
@@ -144,14 +156,14 @@ class EmbeddingProcessor:
             )  # [1, seq, dim]
 
             # Get number of patches for the image
+            spatial_merge_size = _get_spatial_merge_size()
             n_patches = model_service.processor.get_n_patches(
-                (image.size[1], image.size[0])
+                (image.size[1], image.size[0]),
+                spatial_merge_size=spatial_merge_size,
             )  # (height, width) -> (n_patches_x, n_patches_y)
 
-            # Get image mask (identifies image tokens for spatial correspondence)
-            image_mask = model_service.processor.get_image_mask(
-                cast(Any, batch_images)
-            )
+            # Get image mask (use raw BatchFeature which has .input_ids attribute)
+            image_mask = model_service.processor.get_image_mask(batch_images_raw)
 
             # Compute similarity maps manually
             # Extract image patch embeddings using mask
@@ -170,9 +182,9 @@ class EmbeddingProcessor:
             similarity_maps = similarities.view(-1, n_patches_x, n_patches_y)
 
             # Extract query tokens (filtering out special tokens)
-            input_ids = batch_query["input_ids"][0].tolist()
+            input_ids = batch_query_raw["input_ids"][0].tolist()
             query_tokens = model_service.processor.tokenizer.convert_ids_to_tokens(
-                batch_query["input_ids"][0]
+                batch_query_raw["input_ids"][0]
             )
             special_token_ids = set(
                 model_service.processor.tokenizer.all_special_ids or []

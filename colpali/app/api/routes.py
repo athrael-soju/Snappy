@@ -128,7 +128,16 @@ async def get_n_patches(
 
                 value: Any = None
                 if name in {"patch_size", "spatial_merge_size"}:
+                    # Check model attribute, then config.vision_config
                     value = getattr(model_service.model, "spatial_merge_size", None)
+                    if value is None:
+                        vision_config = getattr(
+                            getattr(model_service.model, "config", None),
+                            "vision_config",
+                            None,
+                        )
+                        if vision_config is not None:
+                            value = getattr(vision_config, "spatial_merge_size", None)
                 elif hasattr(model_service.processor, name):
                     value = getattr(model_service.processor, name)
                 elif hasattr(model_service.model, name):

@@ -81,6 +81,10 @@ class ModelService:
     def get_model_info(self) -> dict[str, Any]:
         """Get information about the loaded model."""
         spatial_merge_size = getattr(self.model, "spatial_merge_size", None)
+        if spatial_merge_size is None:
+            vision_config = getattr(getattr(self.model, "config", None), "vision_config", None)
+            if vision_config is not None:
+                spatial_merge_size = getattr(vision_config, "spatial_merge_size", None)
         image_seq_len = getattr(self.processor, "image_seq_len", None)
 
         return {
