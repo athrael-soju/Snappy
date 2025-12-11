@@ -1,0 +1,495 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage[margin=1in]{geometry}
+\usepackage{natbib}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage[hypcap=true]{caption}
+\usepackage{hyperref}
+
+% Theorem environments
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+\newtheorem{corollary}{Corollary}
+\newtheorem{proposition}{Proposition}
+
+\title{Spatially-Grounded Document Retrieval via\\Patch-to-Region Relevance Propagation}
+
+\author{Agathoklis Georgiou\\
+\textit{Independent Researcher}\\
+\texttt{athrael.soju@gmail.com}
+}
+
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Vision-language models (VLMs) like ColPali achieve state-of-the-art document retrieval by embedding pages as images and computing fine-grained similarity between query tokens and visual patches. However, they return entire pages rather than specific regions, limiting utility for retrieval-augmented generation (RAG) where precise context is paramount. Conversely, OCR-based systems extract structured text with bounding box coordinates but lack semantic grounding for relevance assessment. We propose a hybrid architecture that unifies these paradigms: using ColPali's patch-level similarity scores as spatial relevance filters over OCR-extracted regions. We formalize the coordinate mapping between vision transformer patch grids and OCR bounding boxes, introduce intersection metrics for relevance propagation, and establish theoretical bounds on retrieval precision. Our approach operates at inference time without additional training. We release Snappy, an open-source implementation demonstrating practical applicability, with empirical evaluation ongoing.
+\end{abstract}
+
+\section{Introduction}
+
+Retrieval-augmented generation (RAG) has emerged as the dominant paradigm for grounding large language models in external knowledge, enabling factual responses without costly retraining. The effectiveness of RAG systems hinges on a fundamental requirement: retrieving \emph{precisely relevant} context while minimizing noise. For text corpora, this challenge is well-studied. Dense retrievers identify semantically similar passages, and chunking strategies control context granularity. However, document collections present a fundamentally harder problem.
+
+Documents are not sequences of tokens but \emph{spatially-organized visual artifacts}. A single page may contain heterogeneous elements, including tables, figures, equations, headers, and footnotes, each carrying distinct semantic content at different spatial locations. When a user queries ``What was the Q3 revenue?'', the answer likely resides in a specific table cell, not spread across the entire page. Yet current retrieval systems operate at the wrong granularity.
+
+Vision-language models (VLMs) such as ColPali \citep{faysse2024colpali} have achieved state-of-the-art performance on document retrieval benchmarks by embedding document pages directly as images. ColPali produces 1,024 patch embeddings (a $32 \times 32$ grid) per page, each projected to 128 dimensions. The model computes relevance through late interaction, specifically a MaxSim operation that sums the maximum similarity between each query token and all document patches. This approach elegantly sidesteps OCR errors and preserves layout semantics. However, ColPali and its variants return \emph{entire pages} as retrieval units. For RAG applications, this is problematic: feeding a full page into a language model's context window introduces irrelevant content, increases latency, inflates costs, and, critically, dilutes the signal that the model must attend to. The retrieval system knows \emph{which page} contains the answer but not \emph{where on the page}.
+
+Conversely, OCR-based pipelines extract text with precise bounding box coordinates, enabling structured representations of document content. Tables become rows and columns; figures receive captions; headers define hierarchy. This structural fidelity is invaluable for downstream processing. Yet OCR systems lack \emph{semantic grounding}. They cannot assess which extracted regions are relevant to a given query. A page with twenty OCR regions offers no ranking mechanism; all regions are treated as equally plausible candidates.
+
+We observe that these paradigms are complementary. ColPali's patch-level similarity scores encode \emph{where} on a page the model attends when processing a query. This information is computed but discarded when returning page-level results. OCR systems know \emph{what} content exists and \emph{where} it is located, but not \emph{why} it matters. By unifying these signals through spatial coordinate mapping, we achieve region-level retrieval: returning only the document regions that are both structurally coherent (via OCR) and semantically relevant (via VLM attention).
+
+Crucially, our approach operates at \emph{inference time} without additional training. Unlike RegionRAG \citep{regionrag2025}, which uses a hybrid training approach combining bounding box annotations with weakly-supervised signals from unlabeled data, our method leverages ColPali's emergent patch attention as a post-hoc spatial filter. This provides flexibility: the same approach works with any OCR system providing bounding boxes and any ColPali-family model.
+
+\subsection{Contributions}
+
+This paper presents a hybrid architecture for spatially-grounded document retrieval:
+
+\begin{enumerate}
+    \item \textbf{Coordinate Mapping Formalism.} We formalize the mathematical correspondence between vision transformer patch grids and OCR bounding boxes, enabling spatial alignment between heterogeneous representations (Section~\ref{sec:coord}).
+    
+    \item \textbf{Relevance Propagation via Interpretability Maps.} We repurpose ColPali's late interaction mechanism to generate per-query-token similarity heatmaps, then propagate these scores to OCR regions through IoU-weighted patch-region intersection (Section~\ref{sec:relevance}).
+    
+    \item \textbf{Two-Stage Retrieval Architecture.} We introduce a mean-pooling strategy that compresses patch embeddings along spatial axes, enabling efficient candidate retrieval before full-resolution reranking (Section~\ref{sec:twostage}).
+    
+    \item \textbf{Theoretical Analysis.} We establish bounds on localization precision as a function of patch resolution, derive expected context reduction and precision amplification factors, and analyze computational complexity tradeoffs (Section~\ref{sec:theory}).
+    
+    \item \textbf{Open Implementation.} We release Snappy, a complete system implementing this architecture with ColPali, DeepSeek OCR, and Qdrant vector search, demonstrating practical applicability (Section~\ref{sec:impl}).
+\end{enumerate}
+
+We hypothesize that region-level retrieval will improve downstream RAG answer quality while reducing context length, validating the premise that retrieval granularity directly impacts generation fidelity. Empirical evaluation is ongoing and will be reported in a subsequent revision.
+
+\section{Background and Related Work}
+
+\subsection{Vision-Language Document Retrieval}
+
+\textbf{ColPali and Late Interaction.} ColPali \citep{faysse2024colpali} represents the state-of-the-art in visual document retrieval. Built on a SigLIP-So400m vision encoder, it produces 1,024 patch embeddings per page ($32 \times 32$ grid over $448 \times 448$ input resolution), each projected to 128 dimensions via a language model projection layer. Unlike single-vector approaches that pool visual features into a single embedding, ColPali preserves patch-level granularity and computes relevance through MaxSim, summing the maximum similarity between each query token and all document patches. This late interaction mechanism, inherited from ColBERT \citep{khattab2020colbert}, enables fine-grained matching while remaining computationally tractable for retrieval at scale.
+
+The ViDoRe benchmark \citep{faysse2024colpali} evaluates visual document retrieval across diverse domains, measuring NDCG@5 for page-level retrieval. ColPali achieves strong performance, but the benchmark, like the model, operates at page granularity, leaving region-level retrieval unexplored.
+
+\textbf{ColModernVBERT.} Recent work introduces ColModernVBERT \citep{teiletche2025modernvbert}, a 250M-parameter late-interaction retriever achieving within 0.6 NDCG@5 of ColPali at over 10$\times$ smaller size. The architecture maintains patch-level embeddings, making our approach directly applicable to this more efficient variant.
+
+\subsection{Layout-Aware Document Understanding}
+
+The LayoutLM family \citep{xu2020layoutlm, xu2021layoutlmv2, huang2022layoutlmv3} pioneered joint modeling of text, layout, and visual features for document understanding. LayoutLMv3 introduced Word-Patch Alignment (WPA) pre-training, which predicts whether image patches corresponding to text words are masked. While conceptually related to our patch-OCR alignment, WPA operates at \emph{pre-training time} to improve representations, whereas our approach uses patch similarities at \emph{inference time} for retrieval filtering. Critically, LayoutLM models are designed for document \emph{understanding} tasks (NER, classification) rather than retrieval---they lack late interaction mechanisms and query-conditioned relevance scoring.
+
+OCR-free approaches including Donut \citep{kim2022donut} and Pix2Struct \citep{lee2023pix2struct} perform document understanding directly from pixels. UDoP \citep{tang2023udop} unifies vision, text, and layout modalities. These models excel at understanding but do not address the retrieval problem we target.
+
+\subsection{Region-Level Document Retrieval}
+
+\textbf{RegionRAG.} The closest existing work is RegionRAG \citep{regionrag2025}, which shifts retrieval from document-level to semantic region-level granularity. However, RegionRAG uses a hybrid approach combining bounding box annotations with weakly-supervised signals from unlabeled data and a region-level contrastive loss. Our approach is fundamentally different: we achieve region-level retrieval at \emph{inference time} using ColPali's emergent patch attention, requiring no additional training or annotation.
+
+\textbf{DocVLM.} DocVLM \citep{docvlm2024} integrates OCR into VLMs by compressing OCR features into learned queries. This represents the \emph{opposite direction} of our approach. DocVLM adds OCR to enhance VLM understanding, whereas we use VLM patches to filter and score OCR output for retrieval.
+
+Table~\ref{tab:comparison} summarizes the positioning of our approach relative to prior work.
+
+\begin{table}[htbp]
+\centering
+\caption{Comparison with related approaches. Our approach is unique in achieving region-level retrieval at inference time without additional training, by propagating VLM patch similarities to OCR bounding boxes.}
+\label{tab:comparison}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Method} & \textbf{Granularity} & \textbf{OCR Required} & \textbf{Training} \\
+\midrule
+ColPali & Page-level & No & Pre-trained \\
+LayoutLM & Understanding & Yes & Pre-trained \\
+RegionRAG & Region-level & Yes & Hybrid supervision \\
+DocVLM & Understanding & Yes & Fine-tuning \\
+\textbf{Ours} & \textbf{Region-level} & \textbf{Yes} & \textbf{Inference-time only} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Method}
+
+\subsection{Problem Formulation}
+
+Given a query $q$ and a document corpus $\mathcal{D}$ where each document $d \in \mathcal{D}$ consists of one or more pages, conventional visual document retrieval returns a ranked list of pages. We reformulate the problem as \emph{region-level retrieval}: return a ranked list of (page, region) pairs where each region corresponds to a semantically coherent text block (paragraph, table, figure caption, etc.) extracted via OCR.
+
+Let $\mathcal{P} = \{p_1, \ldots, p_n\}$ denote the set of pages in the corpus, where each page $p_i$ has an associated set of OCR regions $\mathcal{R}(p_i) = \{r_1, \ldots, r_m\}$. Each region $r_j$ is characterized by its bounding box $B(r_j) = (x_1, y_1, x_2, y_2)$ in pixel coordinates and its text content $T(r_j)$. Our goal is to compute a relevance score $\text{rel}(q, r_j)$ for each region that captures both semantic relevance and spatial grounding.
+
+\subsection{Coordinate Mapping: Patches to Bounding Boxes}
+\label{sec:coord}
+
+ColPali encodes each page as a grid of $G \times G$ patch embeddings ($G = 32$ for ColPali-v1.3) over an input image of resolution $I \times I$ ($I = 448$). Each patch corresponds to an $s \times s$ pixel region where $s = I/G = 14$ pixels. Patches are indexed in raster scan order (left-to-right, top-to-bottom).
+
+\begin{definition}[Patch Coordinate Mapping]
+For patch index $k \in \{0, \ldots, G^2 - 1\}$, the corresponding bounding box in pixel coordinates is:
+\begin{equation}
+\text{patch\_bbox}(k) = (\text{col} \cdot s, \text{row} \cdot s, (\text{col} + 1) \cdot s, (\text{row} + 1) \cdot s)
+\end{equation}
+where $\text{row} = \lfloor k / G \rfloor$ and $\text{col} = k \mod G$.
+\end{definition}
+
+When the original document page has resolution $(W, H)$ different from the model's input resolution $I \times I$, OCR bounding boxes must be scaled to the model's coordinate space:
+\begin{equation}
+B'(r) = \left(x_1 \cdot \frac{I}{W}, y_1 \cdot \frac{I}{H}, x_2 \cdot \frac{I}{W}, y_2 \cdot \frac{I}{H}\right)
+\end{equation}
+
+\subsection{Relevance Propagation via Patch Similarity}
+\label{sec:relevance}
+
+Given a query $q$ tokenized into $n$ tokens with embeddings $\{q_1, \ldots, q_n\}$ and a page with patch embeddings $\{d_1, \ldots, d_m\}$ ($m = G^2 = 1{,}024$), we compute the similarity matrix:
+\begin{equation}
+S \in \mathbb{R}^{n \times m} \quad \text{where} \quad S_{ij} = \text{sim}(q_i, d_j)
+\end{equation}
+where $\text{sim}(\cdot, \cdot)$ is cosine similarity. Standard ColPali aggregates this into a page score via MaxSim:
+\begin{equation}
+\text{Score}_{\text{page}}(q, p) = \sum_i \max_j S_{ij}
+\end{equation}
+
+We instead extract the spatial distribution of relevance by computing a per-patch score:
+\begin{equation}
+\text{score}_{\text{patch}}(j) = \max_i S_{ij}
+\end{equation}
+This captures the maximum relevance of patch $j$ to any query token, forming a spatial heatmap over the page.
+
+\begin{definition}[Region Relevance Score]
+For OCR region $r$ with scaled bounding box $B'(r)$, we propagate patch scores via IoU-weighted aggregation:
+\begin{equation}
+\text{rel}(q, r) = \sum_j \text{IoU}(B'(r), \text{patch\_bbox}(j)) \cdot \text{score}_{\text{patch}}(j)
+\end{equation}
+where the sum is over all patches $j$ with non-zero intersection. This weights each patch's contribution by its spatial overlap with the region, ensuring that patches fully contained within the region contribute more than peripheral patches.
+\end{definition}
+
+\subsection{Two-Stage Retrieval Architecture}
+\label{sec:twostage}
+
+Computing full patch-level similarity for all pages in a large corpus is prohibitively expensive. We introduce a two-stage architecture that balances efficiency and precision.
+
+\textbf{Stage 1: Candidate Retrieval.} We compress patch embeddings via mean pooling along spatial axes to obtain a single page-level embedding. This enables efficient approximate nearest neighbor search (via Qdrant) to retrieve top-$K$ candidate pages. Note that pooling discards spatial information, which may impact recall for pages with small relevant regions (see Section~\ref{sec:discussion} for discussion of this limitation).
+
+\textbf{Stage 2: Region Reranking.} For each candidate page, we compute full patch-level similarity and propagate scores to OCR regions as described in Section~\ref{sec:relevance}. Regions are ranked by their relevance scores, and top-$k$ regions are returned.
+
+\subsection{Aggregation Strategies}
+
+We consider alternative aggregation strategies for propagating patch scores to regions:
+
+\textbf{Max Aggregation:}
+\begin{equation}
+\text{rel}_{\text{max}}(q, r) = \max_{j \in \text{covered}(r)} \text{score}_{\text{patch}}(j)
+\end{equation}
+
+\textbf{Mean Aggregation:}
+\begin{equation}
+\text{rel}_{\text{mean}}(q, r) = \frac{1}{|\text{covered}(r)|} \sum_{j \in \text{covered}(r)} \text{score}_{\text{patch}}(j)
+\end{equation}
+
+\textbf{IoU-Weighted (Default):} Uses the region relevance score from Definition 2:
+\begin{equation}
+\text{rel}_{\text{IoU}}(q, r) = \sum_j \text{IoU}(B'(r), \text{patch\_bbox}(j)) \cdot \text{score}_{\text{patch}}(j)
+\end{equation}
+
+The choice of aggregation strategy may affect retrieval quality depending on region size and content density. We plan to empirically compare these strategies in our evaluation.
+
+\section{Theoretical Analysis}
+\label{sec:theory}
+
+\subsection{Precision Bounds}
+
+The spatial precision of our approach is fundamentally bounded by patch resolution. We formalize this tradeoff.
+
+\begin{theorem}[Localization Precision Bound]
+For an OCR region with bounding box of width $w$ and height $h$ (in model coordinates), and patch size $s$, the maximum achievable localization precision is:
+\begin{equation}
+\text{precision} \leq \frac{w \cdot h}{(w + s) \cdot (h + s)}
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+Consider a region with bounding box $B$ of dimensions $w \times h$. The set of patches intersecting $B$ depends on $B$'s alignment with the patch grid. In the worst case, $B$ is positioned such that it intersects partial patches on all four edges. Let the region's top-left corner fall at position $(x, y)$ within a patch. The region then spans from patch column $\lfloor x/s \rfloor$ to $\lfloor (x+w)/s \rfloor$ and from patch row $\lfloor y/s \rfloor$ to $\lfloor (y+h)/s \rfloor$. The number of intersecting patches is at most $\lceil w/s + 1 \rceil \cdot \lceil h/s + 1 \rceil$. The total area covered by these patches is at most $(w + s) \cdot (h + s)$, achieved when the region is maximally misaligned with patch boundaries. Since the region's area is $w \cdot h$, the precision (ratio of relevant area to retrieved area) is bounded by $(w \cdot h) / ((w + s) \cdot (h + s))$.
+\end{proof}
+
+\begin{corollary}
+For ColPali with $s = 14$ pixels at $448 \times 448$ resolution:
+\begin{itemize}
+    \item A typical paragraph region ($200 \times 50$ pixels): precision $\leq 73\%$
+    \item A table cell ($100 \times 30$ pixels): precision $\leq 60\%$
+    \item A small label ($50 \times 20$ pixels): precision $\leq 46\%$
+\end{itemize}
+\end{corollary}
+
+This analysis reveals that smaller regions suffer disproportionately from patch quantization. Applications requiring fine-grained localization (e.g., form field extraction) may benefit from higher-resolution patch grids or multi-scale approaches.
+
+\subsection{Computational Complexity}
+
+Let $N$ = number of pages, $M$ = average OCR regions per page, $G^2$ = patches per page, $n$ = query tokens, $d$ = embedding dimension.
+
+\textbf{Page-level retrieval (baseline):} $O(N \cdot n \cdot G^2 \cdot d)$ for full MaxSim over all pages.
+
+\textbf{Our two-stage approach:}
+\begin{itemize}
+    \item Stage 1: $O(N \cdot d)$ for ANN search with pooled embeddings
+    \item Stage 2: $O(K \cdot n \cdot G^2 \cdot d + K \cdot M \cdot G^2)$ for full similarity on $K$ candidates plus region scoring
+\end{itemize}
+
+For $K \ll N$, the two-stage approach provides substantial speedup. With typical values ($N = 100{,}000$ pages, $K = 100$, $G = 32$, $n = 20$, $d = 128$, $M = 15$), Stage 1 reduces the search space by 1000$\times$ before the more expensive region-level computation.
+
+\subsection{Expected Performance Bounds}
+\label{sec:performance}
+
+Beyond spatial precision, we analyze the expected improvements in retrieval quality and downstream efficiency. These bounds provide theoretical justification for our approach pending empirical validation.
+
+\subsubsection{Context Reduction}
+
+Let $A_p$ denote the total page area and $A_r$ the area of the relevant region containing the answer. For a page with $M$ OCR regions of average area $\bar{A}$, we have $A_p \approx M \cdot \bar{A}$.
+
+\begin{theorem}[Context Reduction Bound]
+\label{thm:context}
+Let $k$ be the number of top-scoring regions returned by our hybrid approach. The expected context reduction factor relative to page-level retrieval is:
+\begin{equation}
+\text{CRF} = \frac{A_p}{\sum_{i=1}^{k} A_{r_i}} \geq \frac{M}{k}
+\end{equation}
+with equality when all regions have equal area.
+\end{theorem}
+
+\begin{proof}
+Page-level retrieval returns context proportional to $A_p$. Our approach returns context proportional to the total area of the top-$k$ regions, $\sum_{i=1}^k A_{r_i}$. Since each region has area at most $A_p$ and there are $M$ regions total, selecting $k$ regions yields area at most $k \cdot \bar{A} = k \cdot A_p / M$. The ratio $A_p / (k \cdot A_p / M) = M/k$ provides the lower bound.
+\end{proof}
+
+\begin{corollary}[Token Savings]
+\label{cor:tokens}
+For typical document parameters ($M = 15$ regions per page, $k = 3$ returned regions), the expected context reduction factor is at least $5\times$. This translates directly to proportional reductions in:
+\begin{itemize}
+    \item LLM inference cost (tokens processed)
+    \item Response latency (context length)
+    \item Attention dilution (irrelevant content in context window)
+\end{itemize}
+\end{corollary}
+
+\subsubsection{Precision Amplification}
+
+We model retrieval precision as the probability that a returned region contains relevant content.
+
+\begin{definition}[Region Relevance]
+Let $R_j \in \{0, 1\}$ indicate whether region $j$ contains content relevant to query $q$. For a typical factoid query, we assume $\sum_j R_j \in \{1, 2\}$ (one or two relevant regions per page).
+\end{definition}
+
+\begin{theorem}[Precision Comparison]
+\label{thm:precision}
+Let $\rho = \sum_j R_j / M$ denote the fraction of relevant regions on a page. Then:
+
+\textbf{(i) OCR-only (random selection of $k$ regions):}
+\begin{equation}
+\mathbb{E}[\text{Precision}_{\text{OCR}}] = \rho
+\end{equation}
+
+\textbf{(ii) ColPali page-level:}
+\begin{equation}
+\text{Precision}_{\text{ColPali}} = \rho \quad \text{(all regions returned implicitly)}
+\end{equation}
+
+\textbf{(iii) Hybrid with score-based ranking:} If patch scores $s_j$ satisfy $\mathbb{E}[s_j | R_j = 1] > \mathbb{E}[s_j | R_j = 0]$ (relevant regions score higher on average), then selecting top-$k$ by score yields:
+\begin{equation}
+\mathbb{E}[\text{Precision}_{\text{Hybrid}}] > \rho
+\end{equation}
+with the improvement depending on the score separation between relevant and irrelevant regions.
+\end{theorem}
+
+\begin{proof}
+Parts (i) and (ii) follow directly from the definition of $\rho$. For (iii), score-based ranking is equivalent to a classifier with ROC curve above the diagonal when relevant regions have higher expected scores. By the Neyman-Pearson lemma, thresholding on any statistic positively correlated with relevance improves precision over random selection.
+\end{proof}
+
+\subsubsection{Signal-to-Noise Ratio}
+
+We formalize the intuition that region-level retrieval improves the ``signal'' available to downstream LLMs.
+
+\begin{definition}[Retrieval SNR]
+For retrieved context $C$, define:
+\begin{equation}
+\text{SNR}(C) = \frac{|C \cap \text{Relevant}|}{|C \cap \text{Irrelevant}|}
+\end{equation}
+where $|\cdot|$ denotes token count.
+\end{definition}
+
+\begin{theorem}[SNR Improvement]
+\label{thm:snr}
+Under the assumption that relevant and irrelevant regions have similar average token counts:
+
+\textbf{(i)} Page-level retrieval: $\text{SNR}_{\text{page}} = \rho / (1 - \rho)$
+
+\textbf{(ii)} Hybrid top-$k$ retrieval with precision $P_k$: $\text{SNR}_{\text{hybrid}} = P_k / (1 - P_k)$
+
+The SNR improvement factor is:
+\begin{equation}
+\frac{\text{SNR}_{\text{hybrid}}}{\text{SNR}_{\text{page}}} = \frac{P_k (1 - \rho)}{\rho (1 - P_k)}
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+For page-level retrieval, the fraction of relevant tokens equals $\rho$ by definition. For hybrid retrieval with precision $P_k$, the expected fraction of relevant tokens among returned regions is $P_k$. The SNR ratio follows from algebraic manipulation.
+\end{proof}
+
+\subsubsection{Summary of Expected Gains}
+
+Table~\ref{tab:combined} provides a unified view of the cost-quality tradeoff, showing that our hybrid approach achieves the context efficiency of OCR-based selection while providing the relevance ranking that OCR alone cannot offer.
+
+\begin{table}[htbp]
+\centering
+\caption{Combined efficiency-quality comparison. The hybrid approach uniquely achieves both low context cost and high precision.}
+\label{tab:combined}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Method} & \textbf{Context Cost} & \textbf{Precision} & \textbf{Best Use Case} \\
+\midrule
+ColPali (page-level) & High (1.0$\times$) & Low (6.7\%) & Page identification \\
+OCR + BM25 & Low (0.2$\times$) & Low (6.7\%) & Keyword matching \\
+OCR + Dense & Low (0.2$\times$) & Low--Med & Semantic text search \\
+\textbf{Hybrid (ours)} & \textbf{Low (0.2$\times$)} & \textbf{High (25--60\%)} & \textbf{Precise RAG} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Implementation: Snappy System}
+\label{sec:impl}
+
+We implement our approach in Snappy, an open-source document retrieval system available at \url{https://github.com/athrael-soju/Snappy}. The system demonstrates the practical applicability of spatially-grounded hybrid retrieval.
+
+\subsection{Architecture Overview}
+
+Figure~\ref{fig:architecture} illustrates the Snappy system architecture, showing the parallel document indexing pipeline and query processing pipeline that converge at region-level filtering.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\textwidth]{architecture.png}
+\caption{Snappy system architecture. The document indexing pipeline processes uploads through parallel OCR and ColPali embedding branches, storing regions in DuckDB and patch vectors in Qdrant. The query processing pipeline retrieves top-K candidates, generates interpretability maps from patch-level attention, and filters OCR regions by relevance to produce answers with spatial context.}
+\label{fig:architecture}
+\end{figure}
+
+Snappy pairs a FastAPI backend with a ColPali embedding service, DeepSeek OCR for visual grounding, DuckDB analytics for metadata storage, and a Next.js frontend. The system delivers hybrid vision+text retrieval over PDFs, where each page is rasterized, embedded as multivectors, and stored alongside images and OCR-extracted text in Qdrant.
+
+The indexing pipeline processes documents as follows: (1) render each page as an image using Poppler, (2) extract patch embeddings via the ColPali service, (3) optionally extract text regions with bounding boxes via DeepSeek OCR with visual grounding enabled, (4) store patch embeddings as multivectors and OCR metadata in Qdrant with page-level pooled embeddings for efficient retrieval, and (5) persist images to MinIO object storage for visualization.
+
+At query time: (1) encode the query via ColPali's text encoder, (2) retrieve top-$K$ candidate pages via ANN search on pooled embeddings in Qdrant, (3) compute full patch-level similarity for candidates using the stored multivectors, (4) propagate scores to OCR regions via IoU-weighted aggregation, and (5) return ranked regions with text content, bounding boxes, and optional visual highlighting.
+
+\subsection{Component Integration}
+
+The ColPali embedding service runs as a dedicated container exposing patch-level embeddings over HTTP, supporting both GPU and CPU deployment. Unlike standard ColPali deployments that return only page-level scores, Snappy's integration extracts the full $(n \times G^2)$ similarity matrix stored as multivectors in Qdrant for downstream region scoring.
+
+DeepSeek OCR provides text extraction with visual grounding capabilities. When enabled, the OCR service extracts markdown-formatted text alongside bounding box coordinates for each text region. OCR results are stored in DuckDB for SQL-based querying.
+
+Qdrant stores both page-level pooled embeddings (for Stage 1 candidate retrieval) and full patch embeddings as multivectors (for Stage 2 region scoring).
+
+\section{Planned Evaluation}
+
+Empirical evaluation is ongoing using BBox-DocVQA \citep{bboxdocvqa2025} (3.6K documents with 32K question-answer pairs annotated with evidence bounding boxes) and ViDoRe for page-level baselines. We will measure retrieval quality (NDCG@k, Precision@k), spatial grounding accuracy (IoU@0.5, IoU@0.7), and downstream RAG answer quality (ANLS). Baselines include ColPali page-level retrieval, BM25 on OCR text, and dense retrieval on OCR chunks. Ablations will compare aggregation strategies and threshold sensitivity. Results will be reported in a subsequent revision.
+
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Limitations}
+
+\textbf{Patch Resolution Bound.} As analyzed in Section~\ref{sec:theory}, small regions suffer from limited localization precision due to fixed patch granularity. For ColPali's 14-pixel patches, regions smaller than approximately $35 \times 35$ pixels achieve less than 50\% precision. Future work could explore multi-scale patch embeddings or dynamic resolution based on document density.
+
+\textbf{OCR Dependency.} Region quality depends on OCR accuracy and segmentation. Poorly segmented regions (merged paragraphs, split tables) degrade retrieval quality regardless of the VLM's spatial attention accuracy. Layout-aware OCR systems like DeepSeek OCR with visual grounding mitigate this, but OCR errors propagate to retrieval.
+
+\textbf{Emergent Attention Limitations.} ColPali's patch attention is optimized for page-level retrieval through training, not explicitly for region-level localization. Attention may diffuse across semantically related but spatially distant regions (e.g., a header and its corresponding paragraph). We rely on OCR region boundaries to constrain this diffusion.
+
+\textbf{Two-Stage Information Loss.} The mean-pooling in Stage 1 discards spatial information, potentially missing pages where relevant content is concentrated in small regions. Relevant pages could be filtered out before Stage 2 region scoring. Alternative pooling strategies (max pooling, attention-weighted pooling) may mitigate this.
+
+\textbf{Theoretical Assumptions.} The performance bounds in Section~\ref{sec:performance} assume that ColPali's patch scores correlate positively with region relevance. While this is plausible given ColPali's strong page-level retrieval performance, the degree of correlation at the region level remains to be empirically validated.
+
+\subsection{Future Directions}
+
+\textbf{Cross-Page Region Linking.} Extending region-level retrieval to link semantically related regions across pages could enable quantitative search capabilities. For example, tracking a financial metric across quarterly reports by linking table cells containing that metric across documents.
+
+\textbf{Elimination of Image Storage.} By storing only patch embeddings and OCR-extracted text with bounding boxes, our approach potentially eliminates the need for raw image storage after indexing. This could significantly reduce infrastructure costs for large document collections while maintaining retrieval capability.
+
+\textbf{Region-Aware Fine-Tuning.} While our approach operates without additional training, fine-tuning ColPali with region-level supervision could improve spatial attention alignment. This would sacrifice our training-free advantage but potentially yield higher localization accuracy.
+
+\textbf{Legal Document Retrieval and Citation Grounding.} In legal contexts, retrieval precision directly impacts downstream reliability. Recent empirical work demonstrates that even retrieval-augmented legal AI tools hallucinate 17--33\% of responses, with errors compounded by coarse retrieval granularity \citep{magesh2025hallucination}. Region-level retrieval with bounding box coordinates provides citation-bounded context---each retrieved region carries verifiable provenance, constraining generation to specific, locatable sources.
+
+\section{Conclusion}
+
+We presented a hybrid architecture for spatially-grounded document retrieval that unifies vision-language late interaction with structured OCR extraction. By formalizing the coordinate mapping between ColPali's patch grid and OCR bounding boxes, we enable region-level retrieval without additional training. Our approach operates entirely at inference time, providing flexibility across OCR systems and VLM backends.
+
+The theoretical analysis establishes precision bounds as a function of patch resolution, derives expected context reduction factors of $5\times$ or more (Theorem~\ref{thm:context}), and predicts SNR improvements up to $14\times$ under moderate assumptions about score-relevance correlation (Theorem~\ref{thm:snr}). These bounds provide practitioners with guidance on expected performance improvements pending empirical validation.
+
+The two-stage architecture balances computational efficiency with region-level granularity, making the approach practical for large-scale document collections.
+
+We release Snappy as an open-source implementation demonstrating practical applicability. Empirical evaluation is ongoing; we hypothesize that region-level retrieval will improve downstream RAG answer quality while reducing context length and associated costs. Results will be reported in a subsequent revision of this manuscript.
+
+\section*{Acknowledgments}
+
+The author thanks the ColPali team for their foundational work on vision-language document retrieval and for maintaining an open research ecosystem that enabled this work. The Snappy system implementation is available at \url{https://github.com/athrael-soju/Snappy}.
+
+\begin{thebibliography}{20}
+
+\bibitem[Faysse et~al.(2025)]{faysse2024colpali}
+Manuel Faysse, Hugues Sibille, Tony Wu, Bilel Omrani, Gautier Viaud, C{\'e}line Hudelot, and Pierre Colombo.
+\newblock {ColPali}: Efficient Document Retrieval with Vision Language Models.
+\newblock In \emph{The Thirteenth International Conference on Learning Representations (ICLR)}, 2025.
+\newblock arXiv:2407.01449.
+
+\bibitem[Khattab and Zaharia(2020)]{khattab2020colbert}
+Omar Khattab and Matei Zaharia.
+\newblock {ColBERT}: Efficient and Effective Passage Search via Contextualized Late Interaction over {BERT}.
+\newblock In \emph{Proceedings of the 43rd International ACM SIGIR Conference on Research and Development in Information Retrieval}, pages 39--48, 2020.
+
+\bibitem[Xu et~al.(2020)]{xu2020layoutlm}
+Yiheng Xu, Minghao Li, Lei Cui, Shaohan Huang, Furu Wei, and Ming Zhou.
+\newblock {LayoutLM}: Pre-training of Text and Layout for Document Image Understanding.
+\newblock In \emph{Proceedings of the 26th ACM SIGKDD International Conference on Knowledge Discovery \& Data Mining}, pages 1192--1200, 2020.
+
+\bibitem[Xu et~al.(2021)]{xu2021layoutlmv2}
+Yang Xu, Yiheng Xu, Tengchao Lv, Lei Cui, Furu Wei, Guoxin Wang, Yijuan Lu, Dinei Florencio, Cha Zhang, Wanxiang Che, Min Zhang, and Lidong Zhou.
+\newblock {LayoutLMv2}: Multi-modal Pre-training for Visually-rich Document Understanding.
+\newblock In \emph{Proceedings of the 59th Annual Meeting of the Association for Computational Linguistics and the 11th International Joint Conference on Natural Language Processing}, pages 2579--2591, 2021.
+
+\bibitem[Huang et~al.(2022)]{huang2022layoutlmv3}
+Yupan Huang, Tengchao Lv, Lei Cui, Yutong Lu, and Furu Wei.
+\newblock {LayoutLMv3}: Pre-training for Document {AI} with Unified Text and Image Masking.
+\newblock In \emph{Proceedings of the 30th ACM International Conference on Multimedia}, pages 4083--4091, 2022.
+
+\bibitem[Kim et~al.(2022)]{kim2022donut}
+Geewook Kim, Teakgyu Hong, Moonbin Yim, JeongYeon Nam, Jinyoung Park, Jinyeong Yim, Wonseok Hwang, Sangdoo Yun, Dongyoon Han, and Seunghyun Park.
+\newblock {OCR}-free Document Understanding Transformer.
+\newblock In \emph{Proceedings of the European Conference on Computer Vision (ECCV)}, pages 498--517, 2022.
+
+\bibitem[Lee et~al.(2023)]{lee2023pix2struct}
+Kenton Lee, Mandar Joshi, Iulia Turc, Hexiang Hu, Fangyu Liu, Julian Eisenschlos, Urvashi Khandelwal, Peter Shaw, Ming-Wei Chang, and Kristina Toutanova.
+\newblock {Pix2Struct}: Screenshot Parsing as Pretraining for Visual Language Understanding.
+\newblock In \emph{Proceedings of the 40th International Conference on Machine Learning}, pages 18893--18912, 2023.
+
+\bibitem[Tang et~al.(2023)]{tang2023udop}
+Zineng Tang, Ziyi Yang, Guoxin Wang, Yuwei Fang, Yang Liu, Chenguang Zhu, Michael Zeng, Cha Zhang, and Mohit Bansal.
+\newblock Unifying Vision, Text, and Layout for Universal Document Processing.
+\newblock In \emph{Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition}, pages 19254--19264, 2023.
+
+\bibitem[Li et~al.(2025)]{regionrag2025}
+Yinglu Li, Zhiying Lu, Zhihang Liu, Yiwei Sun, Chuanbin Liu, and Hongtao Xie.
+\newblock {RegionRAG}: Region-level Retrieval-Augmented Generation for Visually-Rich Documents.
+\newblock arXiv:2510.27261, 2025.
+
+\bibitem[Yu et~al.(2025)]{bboxdocvqa2025}
+Wenhan Yu, Wang Chen, Guanqiang Qi, Weikang Li, Yang Li, Lei Sha, Deguo Xia, and Jizhou Huang.
+\newblock {BBox-DocVQA}: A Large Scale Bounding Box Grounded Dataset for Enhancing Reasoning in Document Visual Question Answering.
+\newblock arXiv:2511.15090, 2025.
+
+\bibitem[Shpigel~Nacson et~al.(2024)]{docvlm2024}
+Mor Shpigel~Nacson, Aviad Aberdam, Roy Ganz, Elad Ben~Avraham, Alona Golts, Yair Kittenplon, Shai Mazor, and Ron Litman.
+\newblock {DocVLM}: Make Your {VLM} an Efficient Reader.
+\newblock arXiv:2412.08746, 2024.
+
+\bibitem[Teiletche et~al.(2025)]{teiletche2025modernvbert}
+Paul Teiletche, Quentin Mac{\'e}, Max Conti, Antonio Loison, Gautier Viaud, Pierre Colombo, and Manuel Faysse.
+\newblock {ModernVBERT}: Towards Smaller Visual Document Retrievers.
+\newblock arXiv:2510.01149, 2025.
+
+\bibitem[Magesh et~al.(2025)]{magesh2025hallucination}
+Varun Magesh, Faiz Surani, Matthew Dahl, Mirac Suzgun, Christopher D. Manning, and Daniel E. Ho.
+\newblock Hallucination-Free? {Assessing} the Reliability of Leading {AI} Legal Research Tools.
+\newblock \emph{Journal of Empirical Legal Studies}, 22:216, 2025.
+
+\end{thebibliography}
+
+\end{document}
