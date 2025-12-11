@@ -1,5 +1,6 @@
 # torch, torchvision, and flash-attn (GPU-only) are installed during the Dockerfile.gpu build
 transformers
+accelerate
 fastapi
 uvicorn
 Pillow
