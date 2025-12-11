@@ -176,10 +176,10 @@ class EmbeddingProcessor:
 
         expected_local_patches = x_patches * y_patches
 
-        # For Idefics3-style models: patch_len = local patches + global patch
+        # For models with global patch: patch_len = local patches + global patch
         # The global patch is the last image_seq_len tokens (typically 64)
         # We need to exclude it from pooling
-        IMAGE_SEQ_LEN = 64  # Standard for Idefics3/ColModernVBert
+        IMAGE_SEQ_LEN = 64  # Standard global patch size for vision models
 
         if patch_len > expected_local_patches:
             # Model includes a global patch - exclude it from pooling

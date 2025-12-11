@@ -98,7 +98,7 @@ Runtime updates via `/config/*` API take effect immediately but don't persist ac
 | `QDRANT_MEAN_POOLING_ENABLED` | `false` | Enable two-stage retrieval with mean pooling for improved accuracy |
 | `QDRANT_PREFETCH_LIMIT` | `200` | Number of candidates to prefetch when mean pooling is enabled |
 
-**Note:** Binary quantization and disk storage are automatically enabled for optimal performance. Mean pooling is configurable and requires the ColPali model to support the `/patches` endpoint (enabled in `colmodernvbert`).
+**Note:** Binary quantization and disk storage are automatically enabled for optimal performance. Mean pooling is configurable and requires the ColPali model to support the `/patches` endpoint.
 
 ---
 

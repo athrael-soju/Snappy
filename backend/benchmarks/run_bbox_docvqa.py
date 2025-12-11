@@ -154,7 +154,7 @@ def main() -> None:
     sample_limit = args.limit if args.limit and args.limit > 0 else None
 
     # Get embedding model from env
-    embedding_model = os.getenv("EMBEDDING_MODEL", "colmodernvbert")
+    embedding_model = os.getenv("EMBEDDING_MODEL", "colpali")
 
     bench_config = BenchmarkConfig(
         dataset_root=args.dataset_root,

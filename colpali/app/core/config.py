@@ -12,9 +12,12 @@ class Settings:
     def __init__(self):
         # Model configuration
         self.MODEL_ID: str = os.getenv(
-            "COLPALI_MODEL_ID", "ModernVBERT/colmodernvbert-merged"
+            "COLPALI_MODEL_ID", "TomoroAI/tomoro-colqwen3-embed-4b"
         )
-        self.API_VERSION: str = os.getenv("COLPALI_API_VERSION", "0.0.2")
+        self.API_VERSION: str = os.getenv("COLPALI_API_VERSION", "0.0.3")
+        self.MAX_NUM_VISUAL_TOKENS: int = int(
+            os.getenv("MAX_NUM_VISUAL_TOKENS", "1280")
+        )
 
         # CPU parallelism configuration
         self.CPU_THREADS: int = int(os.getenv("CPU_THREADS", "4"))

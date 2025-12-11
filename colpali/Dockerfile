@@ -1,5 +1,5 @@
-# Unified Dockerfile for ColPali - Auto-detects and uses GPU/MPS/CPU
-# Automatically installs the appropriate PyTorch version based on available hardware
+# Dockerfile for ColPali - Installs CUDA-enabled PyTorch
+# Runtime auto-detects GPU/MPS/CPU via torch.cuda.is_available()
 
 FROM python:3.12-slim
 
@@ -28,25 +28,14 @@ ENV CC=/usr/bin/gcc \
 # Copy requirements first for better caching
 COPY requirements.txt ./
 
-# Install PyTorch with automatic device detection
-# This script installs CUDA version if nvidia-smi exists, otherwise CPU version
+# Install CUDA-enabled PyTorch (works on CPU too, GPU used at runtime if available)
 RUN pip install --no-cache-dir --upgrade pip && \
-    if command -v nvidia-smi > /dev/null 2>&1; then \
-        echo "=== GPU detected, installing CUDA-enabled PyTorch ==="; \
-        pip install --no-cache-dir \
-            torch==2.7.0 \
-            torchvision==0.22.0 \
-            --index-url https://download.pytorch.org/whl/cu128; \
-        pip install --no-cache-dir \
-            https://github.com/loscrossos/lib_flashattention/releases/download/v2.7.4.post1_crossos00/flash_attn-2.7.4.post1+cu129torch2.7.0-cp312-cp312-linux_x86_64.whl; \
-        echo "=== FlashAttention installed for GPU acceleration ==="; \
-    else \
-        echo "=== No GPU detected, installing CPU-only PyTorch ==="; \
-        pip install --no-cache-dir \
-            torch \
-            torchvision \
-            --index-url https://download.pytorch.org/whl/cpu; \
-    fi && \
+    pip install --no-cache-dir \
+        torch==2.7.0 \
+        torchvision==0.22.0 \
+        --index-url https://download.pytorch.org/whl/cu128 && \
+    pip install --no-cache-dir \
+        https://github.com/loscrossos/lib_flashattention/releases/download/v2.7.4.post1_crossos00/flash_attn-2.7.4.post1+cu129torch2.7.0-cp312-cp312-linux_x86_64.whl && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copy application code

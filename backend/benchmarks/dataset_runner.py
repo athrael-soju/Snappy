@@ -617,8 +617,8 @@ class BenchmarkConfig:
     visualize: bool = False
     visualize_limit: Optional[int] = 10
     visualize_heatmap: bool = True
-    # Embedding model: "colmodernvbert" (remote), "colqwen3-4b", or "colqwen3-8b" (local)
-    embedding_model: str = "colmodernvbert"
+    # Embedding model: "colpali" (remote service), "colqwen3-4b", or "colqwen3-8b" (local)
+    embedding_model: str = "colpali"
     # Parallel processing: number of concurrent samples (overlaps OCR with ColPali)
     # Optimal is typically 3-4 given DeepSeek OCR and ColQwen serialization constraints
     max_workers: int = 4
@@ -648,7 +648,7 @@ class BBoxDocVQARunner:
                 "Using local %s model for embeddings", bench_config.embedding_model
             )
         else:
-            # colmodernvbert uses remote ColPali service (always localhost from WSL)
+            # colpali uses remote ColPali service (always localhost from WSL)
             colpali_url = "http://localhost:7000"
             self.embedding_client = ColPaliClient(base_url=colpali_url)
             logger.info(

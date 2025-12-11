@@ -70,7 +70,7 @@ This approach provides substantial speedup (1000× search space reduction with K
 **See**: [Late Interaction Documentation](late_interaction.md)
 
 ### 4. Inference-Time Operation
-Unlike RegionRAG (which requires hybrid training with bounding box annotations) or LayoutLM (which operates at pre-training time), Snappy achieves region-level retrieval purely at inference time using ColPali's emergent patch attention. This provides flexibility: the same approach works with any OCR system providing bounding boxes and any ColPali-family model (including the 10× smaller ColModernVBERT).
+Unlike RegionRAG (which requires hybrid training with bounding box annotations) or LayoutLM (which operates at pre-training time), Snappy achieves region-level retrieval purely at inference time using ColPali's emergent patch attention. This provides flexibility: the same approach works with any OCR system providing bounding boxes and any ColPali-family model (e.g., ColQwen3).
 
 **See**: [Analysis: Vision vs Text RAG](analysis.md)
 
