@@ -362,23 +362,15 @@ Figure~\ref{fig:architecture} illustrates the Snappy system architecture, showin
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.75\textwidth]{architecture.png}
-\caption{Snappy system architecture. The document indexing pipeline processes uploads through parallel OCR and ColPali embedding branches, storing regions in DuckDB and patch vectors in Qdrant. The query processing pipeline retrieves top-K candidates, generates interpretability maps from patch-level attention, and filters OCR regions by relevance to produce answers with spatial context.}
+\caption{Snappy system architecture. The indexing pipeline processes documents through parallel OCR and embedding branches. The query pipeline retrieves candidates via ANN search, computes patch-level similarities, and filters OCR regions by relevance.}
 \label{fig:architecture}
 \end{figure}
 
-Snappy pairs a FastAPI backend with a ColPali embedding service, DeepSeek OCR for visual grounding, DuckDB analytics for metadata storage, and a Next.js frontend. The system delivers hybrid vision+text retrieval over PDFs, where each page is rasterized, embedded as multivectors, and stored alongside images and OCR-extracted text in Qdrant.
+Snappy implements a two-stage retrieval pipeline over PDFs. Each page is rendered as an image, embedded via ColPali to produce patch-level multivectors, and optionally processed by layout-aware OCR to extract text regions with bounding boxes. Both patch embeddings and OCR metadata are stored in a vector database for retrieval.
 
-The indexing pipeline processes documents as follows: (1) render each page as an image using Poppler, (2) extract patch embeddings via the ColPali service, (3) optionally extract text regions with bounding boxes via DeepSeek OCR with visual grounding enabled, (4) store patch embeddings as multivectors and OCR metadata in Qdrant with page-level pooled embeddings for efficient retrieval, and (5) persist images to MinIO object storage for visualization.
+At query time, the system: (1) encodes the query via ColPali's text encoder, (2) retrieves top-$K$ candidate pages via ANN search on pooled embeddings, (3) computes full patch-level similarity for candidates, (4) propagates scores to OCR regions via IoU-weighted aggregation, and (5) returns ranked regions with text content and bounding boxes.
 
-At query time: (1) encode the query via ColPali's text encoder, (2) retrieve top-$K$ candidate pages via ANN search on pooled embeddings in Qdrant, (3) compute full patch-level similarity for candidates using the stored multivectors, (4) propagate scores to OCR regions via IoU-weighted aggregation, and (5) return ranked regions with text content, bounding boxes, and optional visual highlighting.
-
-\subsection{Component Integration}
-
-The ColPali embedding service runs as a dedicated container exposing patch-level embeddings over HTTP, supporting both GPU and CPU deployment. Unlike standard ColPali deployments that return only page-level scores, Snappy's integration extracts the full $(n \times G^2)$ similarity matrix stored as multivectors in Qdrant for downstream region scoring.
-
-DeepSeek OCR provides text extraction with visual grounding capabilities. When enabled, the OCR service extracts markdown-formatted text alongside bounding box coordinates for each text region. OCR results are stored in DuckDB for SQL-based querying.
-
-Qdrant stores both page-level pooled embeddings (for Stage 1 candidate retrieval) and full patch embeddings as multivectors (for Stage 2 region scoring).
+Unlike standard ColPali deployments that return only page-level scores, Snappy extracts the full $(n \times G^2)$ similarity matrix for downstream region scoring. The vector database stores both page-level pooled embeddings (Stage 1) and full patch multivectors (Stage 2).
 
 \section{Empirical Evaluation}
 \label{sec:eval}
@@ -610,7 +602,7 @@ Applications should consider document characteristics when selecting models: Col
 
 \textbf{Patch Resolution Bound.} As analyzed in Section~\ref{sec:theory}, small regions suffer from limited localization precision due to fixed patch granularity. For ColPali's 14-pixel patches, regions smaller than approximately $35 \times 35$ pixels achieve less than 50\% precision. Future work could explore multi-scale patch embeddings or dynamic resolution based on document density.
 
-\textbf{OCR Dependency.} Region quality depends on OCR accuracy and segmentation. Poorly segmented regions (merged paragraphs, split tables) degrade retrieval quality regardless of the retrieval model's spatial attention accuracy. Layout-aware OCR systems like DeepSeek OCR with visual grounding mitigate this, but OCR errors propagate to retrieval. Note that OCR segmentation quality affects region boundaries but is orthogonal to our relevance scoring mechanism; our contribution is patch-to-region propagation, not OCR quality.
+\textbf{OCR Dependency.} Region quality depends on OCR accuracy and segmentation. Poorly segmented regions (merged paragraphs, split tables) degrade retrieval quality regardless of the retrieval model's spatial attention accuracy. Layout-aware OCR systems with visual grounding mitigate this, but OCR errors propagate to retrieval. Note that OCR segmentation quality affects region boundaries but is orthogonal to our relevance scoring mechanism; our contribution is patch-to-region propagation, not OCR quality.
 
 \textbf{Emergent Attention Limitations.} ColPali's patch attention is optimized for page-level retrieval through training, not explicitly for region-level localization. Attention may diffuse across semantically related but spatially distant regions (e.g., a header and its corresponding paragraph). We rely on OCR region boundaries to constrain this diffusion.
 
