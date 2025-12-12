@@ -388,7 +388,7 @@ We evaluate our approach on BBox-DocVQA, measuring spatial grounding accuracy an
 
 \textbf{Dataset.} BBox-DocVQA \citep{bboxdocvqa2025} provides question-answer pairs across documents from arXiv categories including computer science (cs), economics (econ), electrical engineering (eess), mathematics (math), physics, quantitative biology (q-bio), quantitative finance (q-fin), and statistics (stat). Each QA pair includes ground-truth bounding boxes marking the evidence region containing the answer. We evaluate on 1,619 samples across eight categories (1,623 total samples minus 4 that consistently failed during OCR processing and are excluded from all reported metrics).
 
-\textbf{Models.} We evaluate two ColPali-family models: ColQwen3-4B (4B parameters), representing state-of-the-art accuracy, and ColModernVBERT (250M parameters), representing the efficiency frontier. Full results are reported for ColQwen3-4B; ColModernVBERT evaluation is ongoing with preliminary results included.
+\textbf{Models.} We evaluate two ColPali-family models: ColQwen3-4B (4B parameters), representing state-of-the-art accuracy, and ColModernVBERT (250M parameters), representing the efficiency frontier.
 
 \textbf{Configuration.} We use DeepSeek OCR with visual grounding in markdown mode. For region scoring, we apply 50th-percentile thresholding with max token aggregation and max region scoring.
 
@@ -409,42 +409,34 @@ Table~\ref{tab:main_results} presents localization accuracy.
 
 \begin{table}[htbp]
 \centering
-\caption{Spatial grounding accuracy on BBox-DocVQA. Hit rates indicate the fraction of samples achieving IoU at or above the specified threshold. ColModernVBERT results are preliminary (n=19, evaluation ongoing).}
+\caption{Spatial grounding accuracy on BBox-DocVQA. Hit rates indicate the fraction of samples achieving IoU at or above the specified threshold.}
 \label{tab:main_results}
 \begin{tabular}{lccccc}
 \toprule
 \textbf{Model} & \textbf{N} & \textbf{Mean IoU} & \textbf{IoU@0.25} & \textbf{IoU@0.5} & \textbf{IoU@0.7} \\
 \midrule
 ColQwen3-4B (P50) & 1619 & 0.569 & 84.4\% & 59.7\% & 35.8\% \\
-ColModernVBERT (P50)$^\dagger$ & 19 & 0.373 & 57.9\% & 31.6\% & 15.8\% \\
+ColModernVBERT (P50) & 1619 & 0.480 & 72.2\% & 45.5\% & 27.9\% \\
 \bottomrule
-\multicolumn{6}{l}{\footnotesize $^\dagger$Preliminary results; full evaluation in progress.}
 \end{tabular}
 \end{table}
 
-The results demonstrate that ColPali's patch attention effectively localizes relevant regions without additional training. With ColQwen3-4B, over 84\% of retrieved regions have meaningful overlap (IoU $\geq$ 0.25) with ground-truth evidence boxes, and 59.7\% achieve substantial overlap (IoU $\geq$ 0.5). Preliminary results with ColModernVBERT (250M parameters, 16$\times$ smaller than ColQwen3-4B) show lower localization accuracy but higher token efficiency (40\% savings vs OCR, 69\% vs full image), suggesting a quality-efficiency tradeoff; full evaluation is ongoing.
+The results demonstrate that ColPali's patch attention effectively localizes relevant regions without additional training. With ColQwen3-4B, over 84\% of retrieved regions have meaningful overlap (IoU $\geq$ 0.25) with ground-truth evidence boxes, and 59.7\% achieve substantial overlap (IoU $\geq$ 0.5). ColModernVBERT (250M parameters, 16$\times$ smaller than ColQwen3-4B) achieves lower localization accuracy (45.5\% at IoU@0.5) but higher token efficiency (38\% savings vs OCR, 58\% vs full image), demonstrating a quality-efficiency tradeoff that may suit different deployment scenarios.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.85\textwidth]{figures/category_performance.png}
-\caption{Localization accuracy by document category. Mean IoU varies substantially, with computer science and electrical engineering achieving highest accuracy while mathematics shows lowest performance due to dense equations and small regions.}
-\label{fig:category}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.7\textwidth]{figures/token_savings.png}
-\caption{Token usage comparison. Our hybrid approach reduces context tokens by 29\% vs.\ full OCR and 52\% vs.\ full image tokens.}
-\label{fig:tokens}
+\includegraphics[width=0.7\textwidth]{figures/iou_thresholds_comparison.png}
+\caption{Hit rate comparison across IoU thresholds. ColQwen3-4B consistently outperforms ColModernVBERT, with the gap widening at stricter thresholds.}
+\label{fig:iou_thresholds}
 \end{figure}
 
 \subsection{Category Analysis}
 
-Figure~\ref{fig:category} and Table~\ref{tab:category_results} present performance variation across document categories.
+Table~\ref{tab:category_results} and Table~\ref{tab:category_results_vbert} present performance variation across document categories for both models.
 
 \begin{table}[htbp]
 \centering
-\caption{Performance by document category. Mathematics and economics documents show notably lower accuracy, likely due to denser tabular content and smaller region sizes where patch quantization effects are more pronounced.}
+\caption{ColQwen3-4B performance by document category. Mathematics and economics documents show notably lower accuracy, likely due to denser tabular content and smaller region sizes where patch quantization effects are more pronounced.}
 \label{tab:category_results}
 \begin{tabular}{lrcccc}
 \toprule
@@ -464,11 +456,33 @@ math & 188 & 0.382 & 60.1\% & 28.7\% & 11.7\% \\
 \end{tabular}
 \end{table}
 
-Computer science and electrical engineering documents achieve substantially higher localization accuracy (Mean IoU $\geq$ 0.65) than economics (0.513) and mathematics (0.382) documents, with physics (0.579) and quantitative biology (0.616) falling in between. This performance gap likely reflects differences in layout complexity: economics papers frequently contain dense tables with many small cells, while mathematics papers feature equations and formulas that may span multiple regions. These smaller regions suffer disproportionately from patch quantization effects, consistent with the theoretical precision bounds in Section~\ref{sec:theory}.
+\begin{table}[htbp]
+\centering
+\caption{ColModernVBERT performance by document category. The smaller model shows consistent performance degradation across all categories, with the largest gaps in computer science and electrical engineering where ColQwen3-4B excels.}
+\label{tab:category_results_vbert}
+\begin{tabular}{lrcccc}
+\toprule
+\textbf{Category} & \textbf{N} & \textbf{Mean IoU} & \textbf{IoU@0.25} & \textbf{IoU@0.5} & \textbf{IoU@0.7} \\
+\midrule
+q-bio & 176 & 0.575 & 84.1\% & 59.1\% & 39.2\% \\
+cs & 216 & 0.527 & 74.1\% & 49.5\% & 38.0\% \\
+physics & 213 & 0.521 & 80.3\% & 53.5\% & 28.6\% \\
+stat & 200 & 0.510 & 78.0\% & 50.0\% & 30.5\% \\
+q-fin & 216 & 0.459 & 72.7\% & 45.8\% & 24.5\% \\
+eess & 196 & 0.451 & 69.9\% & 42.9\% & 27.0\% \\
+econ & 214 & 0.427 & 61.2\% & 36.0\% & 25.7\% \\
+math & 188 & 0.370 & 58.0\% & 27.1\% & 10.1\% \\
+\midrule
+\textbf{Overall} & \textbf{1619} & \textbf{0.480} & \textbf{72.2\%} & \textbf{45.5\%} & \textbf{27.9\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Computer science and electrical engineering documents achieve substantially higher localization accuracy with ColQwen3-4B (Mean IoU $\geq$ 0.65) than economics (0.513) and mathematics (0.382) documents, with physics (0.579) and quantitative biology (0.616) falling in between. ColModernVBERT shows a similar pattern but with uniformly lower scores; notably, quantitative biology achieves the highest accuracy (0.575) for the smaller model, while computer science drops from 0.697 to 0.527. This performance gap likely reflects differences in layout complexity: economics papers frequently contain dense tables with many small cells, while mathematics papers feature equations and formulas that may span multiple regions. These smaller regions suffer disproportionately from patch quantization effects, consistent with the theoretical precision bounds in Section~\ref{sec:theory}.
 
 \subsection{Token Efficiency}
 
-Figure~\ref{fig:tokens} visualizes the token savings achieved by our approach. We measure context tokens that would be passed to a downstream LLM. For full image retrieval, we estimate tokens using Claude's approximation: images are resized to fit within $1568 \times 1568$ pixels while maintaining aspect ratio, then token count is computed as $\lfloor (w \times h) / 750 \rfloor$. For OCR-based methods, we tokenize extracted text using tiktoken's \texttt{cl100k\_base} encoding (GPT-4 tokenizer, used as approximation). Token counts are summed across all 1,619 evaluation samples. Table~\ref{tab:token_savings} presents token savings under different retrieval strategies.
+Figure~\ref{fig:tokens} visualizes the token savings achieved by our approach across methods. We measure context tokens that would be passed to a downstream LLM. For full image retrieval, we estimate tokens using Claude's approximation: images are resized to fit within $1568 \times 1568$ pixels while maintaining aspect ratio, then token count is computed as $\lfloor (w \times h) / 750 \rfloor$. For OCR-based methods, we tokenize extracted text using tiktoken's \texttt{cl100k\_base} encoding (GPT-4 tokenizer, used as approximation). Token counts are summed across all 1,619 evaluation samples. Table~\ref{tab:token_savings} presents token savings under different retrieval strategies.
 
 \begin{table}[htbp]
 \centering
@@ -480,12 +494,27 @@ Figure~\ref{fig:tokens} visualizes the token savings achieved by our approach. W
 \midrule
 Full Image (baseline) & 4,003,039 & -- & -- \\
 All OCR Regions & 2,678,723 & -- & 33.1\% \\
-\textbf{Hybrid (P50, filtered)} & \textbf{1,908,329} & \textbf{28.8\%} & \textbf{52.3\%} \\
+\textbf{ColQwen3-4B (P50)} & \textbf{1,908,329} & \textbf{28.8\%} & \textbf{52.3\%} \\
+ColModernVBERT (P50) & 1,661,684 & 38.0\% & 58.5\% \\
 \bottomrule
 \end{tabular}
 \end{table}
 
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\textwidth]{figures/token_comparison.png}
+\caption{Token usage comparison across methods. Both hybrid approaches achieve substantial reductions compared to full image (4.00M) and all OCR (2.68M) baselines, with ColModernVBERT offering the greatest efficiency at 1.66M tokens.}
+\label{fig:tokens}
+\end{figure}
+
 The hybrid approach with percentile-50 filtering reduces context tokens by 29\% compared to returning all OCR regions and by 52\% compared to full-page image tokens. These savings directly translate to reduced LLM inference costs, lower latency, and decreased attention dilution in downstream RAG applications.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.65\textwidth]{figures/radar_comparison.png}
+\caption{Multi-dimensional comparison of ColQwen3-4B and ColModernVBERT. The larger model dominates on accuracy metrics (IoU thresholds), while the smaller model offers marginally better token savings. Mean IoU is scaled to percentage for visual consistency.}
+\label{fig:radar}
+\end{figure}
 
 \section{Discussion}
 \label{sec:discussion}
@@ -512,7 +541,7 @@ The hybrid approach with percentile-50 filtering reduces context tokens by 29\% 
 
 \textbf{Legal Document Retrieval and Citation Grounding.} In legal contexts, retrieval precision directly impacts downstream reliability. Recent empirical work demonstrates that even retrieval-augmented legal AI tools hallucinate 17--33\% of responses, with errors compounded by coarse retrieval granularity \citep{magesh2025hallucination}. Region-level retrieval with bounding box coordinates provides citation-bounded context: each retrieved region carries verifiable provenance, constraining generation to specific, locatable sources.
 
-\textbf{Model-Agnostic Scaling Toward Enterprise Viability.} Because our approach operates at inference time by composing outputs from independent late-interaction and OCR components, it automatically benefits from advances in either domain. Critically, the quality of region-level retrieval depends directly on the \emph{spatial precision of patch-level similarity distributions}---how tightly the model's attention concentrates on semantically relevant page regions. Our preliminary comparison between ColQwen3-4B and ColModernVBERT suggests this relationship: the larger model's more refined patch attention yields substantially higher localization accuracy (59.7\% vs 31.6\% at IoU@0.5). As late-interaction visual retrievers continue to develop more discriminative spatial attention through improved pre-training objectives and higher-resolution patch grids, our approach will inherit these gains without architectural modification. This positions the framework for enterprise deployment: organizations can upgrade their underlying retrieval model as the field advances, progressively improving retrieval precision while maintaining the same inference-time integration with existing OCR infrastructure.
+\textbf{Model-Agnostic Scaling Toward Enterprise Viability.} Because our approach operates at inference time by composing outputs from independent late-interaction and OCR components, it automatically benefits from advances in either domain. Critically, the quality of region-level retrieval depends directly on the \emph{spatial precision of patch-level similarity distributions}---how tightly the model's attention concentrates on semantically relevant page regions. Our comparison between ColQwen3-4B and ColModernVBERT demonstrates this relationship: the larger model's more refined patch attention yields substantially higher localization accuracy (59.7\% vs 45.5\% at IoU@0.5), while the smaller model offers greater token efficiency (58\% vs 52\% savings vs full image). As late-interaction visual retrievers continue to develop more discriminative spatial attention through improved pre-training objectives and higher-resolution patch grids, our approach will inherit these gains without architectural modification. This positions the framework for enterprise deployment: organizations can choose models along the accuracy-efficiency frontier based on their requirements, and upgrade their underlying retrieval model as the field advances.
 
 \section{Conclusion}
 
