@@ -77,7 +77,7 @@ Empirical evaluation on BBox-DocVQA validates that region-level retrieval achiev
 
 The ViDoRe benchmark \citep{faysse2024colpali} evaluates visual document retrieval across diverse domains, measuring NDCG@5 for page-level retrieval. ColPali achieves strong performance, but the benchmark, like the model, operates at page granularity, leaving region-level retrieval unexplored.
 
-\textbf{ColModernVBERT.} Recent work introduces ColModernVBERT \citep{teiletche2025modernvbert}, a 250M-parameter late-interaction retriever achieving within 0.6 NDCG@5 of ColPali at over 10$\times$ smaller size. The architecture maintains patch-level embeddings, making our approach directly applicable to this more efficient variant.
+\textbf{ColPali-Family Models.} The ColPali architecture has spawned a family of late-interaction visual retrievers sharing the core patch-embedding approach. ColQwen3-4B combines the ColPali framework with a Qwen3-based language model, achieving state-of-the-art performance on ViDoRe while maintaining the patch-level embeddings essential to our approach. At the efficiency frontier, ColModernVBERT \citep{teiletche2025modernvbert} is a 250M-parameter variant achieving within 0.6 NDCG@5 of ColPali with 10$\times$ fewer parameters. Our approach applies to any model in this family, as all preserve the patch-level similarity structure we exploit for region-level retrieval. We evaluate both ColQwen3-4B and ColModernVBERT to demonstrate this generality.
 
 \subsection{Layout-Aware Document Understanding}
 
@@ -116,7 +116,7 @@ DocVLM & Understanding & Yes & Fine-tuning \\
 
 Given a query $q$ and a document corpus $\mathcal{D}$ where each document $d \in \mathcal{D}$ consists of one or more pages, conventional visual document retrieval returns a ranked list of pages. We reformulate the problem as \emph{region-level retrieval}: return a ranked list of (page, region) pairs where each region corresponds to a semantically coherent text block (paragraph, table, figure caption, etc.) extracted via OCR.
 
-Let $\mathcal{P} = \{p_1, \ldots, p_n\}$ denote the set of pages in the corpus, where each page $p_i$ has an associated set of OCR regions $\mathcal{R}(p_i) = \{r_1, \ldots, r_m\}$. Each region $r_j$ is characterized by its bounding box $B(r_j) = (x_1, y_1, x_2, y_2)$ in pixel coordinates and its text content $T(r_j)$. Our goal is to compute a relevance score $\text{rel}(q, r_j)$ for each region that captures both semantic relevance and spatial grounding.
+Let $\mathcal{P} = \{p_1, \ldots, p_N\}$ denote the set of $N$ pages in the corpus, where each page $p_i$ has an associated set of OCR regions $\mathcal{R}(p_i) = \{r_1, \ldots, r_m\}$. Each region $r_j$ is characterized by its bounding box $B(r_j) = (x_1, y_1, x_2, y_2)$ in pixel coordinates and its text content $T(r_j)$. Our goal is to compute a relevance score $\text{rel}(q, r_j)$ for each region that captures both semantic relevance and spatial grounding.
 
 \subsection{Coordinate Mapping: Patches to Bounding Boxes}
 \label{sec:coord}
@@ -167,7 +167,7 @@ where the sum is over all patches $j$ with non-zero intersection. This weights e
 
 Computing full patch-level similarity for all pages in a large corpus is prohibitively expensive. We introduce a two-stage architecture that balances efficiency and precision.
 
-\textbf{Stage 1: Candidate Retrieval.} We compress patch embeddings via mean pooling along spatial axes to obtain a single page-level embedding. This enables efficient approximate nearest neighbor search (via Qdrant) to retrieve top-$K$ candidate pages. Note that pooling discards spatial information, which may impact recall for pages with small relevant regions (see Section~\ref{sec:discussion} for discussion of this limitation).
+\textbf{Stage 1: Candidate Retrieval.} We compress patch embeddings via mean pooling along spatial axes to obtain a single page-level embedding. This enables efficient approximate nearest neighbor search (via Qdrant) to retrieve top-$K$ candidate pages. Note that pooling discards spatial information, which may impact recall for pages with small relevant regions (see Section~\ref{sec:discussion}).
 
 \textbf{Stage 2: Region Reranking.} For each candidate page, we compute full patch-level similarity and propagate scores to OCR regions as described in Section~\ref{sec:relevance}. Regions are ranked by their relevance scores, and top-$k$ regions are returned.
 
@@ -388,9 +388,9 @@ We evaluate our approach on BBox-DocVQA, measuring spatial grounding accuracy an
 
 \textbf{Dataset.} BBox-DocVQA \citep{bboxdocvqa2025} provides question-answer pairs across documents from arXiv categories including computer science (cs), economics (econ), electrical engineering (eess), mathematics (math), physics, quantitative biology (q-bio), quantitative finance (q-fin), and statistics (stat). Each QA pair includes ground-truth bounding boxes marking the evidence region containing the answer. We evaluate on 1,619 samples across eight categories (1,623 total samples minus 4 that consistently failed during OCR processing and are excluded from all reported metrics).
 
-\textbf{Model.} We evaluate ColQwen3-4B, a state-of-the-art 4B parameter model from the ColPali family.
+\textbf{Models.} We evaluate two ColPali-family models: ColQwen3-4B (4B parameters), representing state-of-the-art accuracy, and ColModernVBERT (250M parameters), representing the efficiency frontier. Full results are reported for ColQwen3-4B; ColModernVBERT evaluation is ongoing with preliminary results included.
 
-\textbf{Configuration.} We use DeepSeek OCR with visual grounding in markdown mode. For region scoring, we apply percentile-based thresholding at percentile 50 with max token aggregation and max region scoring.
+\textbf{Configuration.} We use DeepSeek OCR with visual grounding in markdown mode. For region scoring, we apply 50th-percentile thresholding with max token aggregation and max region scoring.
 
 \textbf{Metrics.} For predicted region $B_p$ and ground-truth bounding box $B_g$, we compute:
 \begin{equation}
@@ -468,7 +468,7 @@ Computer science and electrical engineering documents achieve substantially high
 
 \subsection{Token Efficiency}
 
-Figure~\ref{fig:tokens} visualizes the token savings achieved by our approach. We measure context tokens that would be passed to a downstream LLM. For full image retrieval, we estimate tokens using Claude's approximation: images are resized to fit within $1568 \times 1568$ pixels while maintaining aspect ratio, then token count is computed as $\lfloor (w \times h) / 750 \rfloor$. For OCR-based methods, we tokenize extracted text using tiktoken's \texttt{cl100k\_base} encoding (GPT-4/Claude compatible). Token counts are summed across all 1,619 evaluation samples. Table~\ref{tab:token_savings} presents token savings under different retrieval strategies.
+Figure~\ref{fig:tokens} visualizes the token savings achieved by our approach. We measure context tokens that would be passed to a downstream LLM. For full image retrieval, we estimate tokens using Claude's approximation: images are resized to fit within $1568 \times 1568$ pixels while maintaining aspect ratio, then token count is computed as $\lfloor (w \times h) / 750 \rfloor$. For OCR-based methods, we tokenize extracted text using tiktoken's \texttt{cl100k\_base} encoding (GPT-4 tokenizer, used as approximation). Token counts are summed across all 1,619 evaluation samples. Table~\ref{tab:token_savings} presents token savings under different retrieval strategies.
 
 \begin{table}[htbp]
 \centering
@@ -520,7 +520,7 @@ We presented a hybrid architecture for spatially-grounded document retrieval tha
 
 Empirical evaluation on BBox-DocVQA validates our approach. Using ColQwen3-4B with percentile-50 thresholding, we achieve 59.7\% hit rate at IoU@0.5, demonstrating that ColPali's patch attention effectively localizes relevant regions without additional training. Token savings of 52\% compared to full-page retrieval confirm the practical efficiency gains predicted by our theoretical analysis (Theorem~\ref{thm:context}).
 
-Category analysis across eight arXiv domains reveals systematic performance variation: computer science and electrical engineering documents achieve higher localization accuracy (Mean IoU $\geq$ 0.65) than economics (0.51) and mathematics (0.38) documents, with physics and quantitative biology falling in between. This gap aligns with our theoretical precision bounds: smaller regions in dense tables and equations suffer disproportionately from patch quantization effects.
+Category analysis across eight arXiv domains reveals systematic performance variation: computer science and electrical engineering documents achieve higher localization accuracy (Mean IoU $\geq$ 0.65) than economics (0.51) and mathematics (0.38) documents, with physics (0.58) and quantitative biology (0.62) falling in between. This gap aligns with our theoretical precision bounds: smaller regions in dense tables and equations suffer disproportionately from patch quantization effects.
 
 The two-stage architecture balances computational efficiency with region-level granularity, making the approach practical for large-scale document collections. We release Snappy as an open-source implementation at \url{https://github.com/athrael-soju/Snappy}, demonstrating practical applicability for retrieval-augmented generation with reduced context windows and improved precision.
 

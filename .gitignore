@@ -210,3 +210,9 @@ __marimo__/
 qdrant_storage/
 deepseek-ocr/models/
 .claude/
+
+# LaTeX auxiliary files
+paper/paper.aux
+paper/paper.fls
+paper/paper.fdb_latexmk
+paper/paper.out
