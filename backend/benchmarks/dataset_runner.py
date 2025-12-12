@@ -4,9 +4,7 @@ import json
 import logging
 import sys
 import textwrap
-import threading
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -619,9 +617,6 @@ class BenchmarkConfig:
     visualize_heatmap: bool = True
     # Embedding model: "colmodernvbert" (remote), "colqwen3-4b", or "colqwen3-8b" (local)
     embedding_model: str = "colmodernvbert"
-    # Parallel processing: number of concurrent samples (overlaps OCR with ColPali)
-    # Optimal is typically 3-4 given DeepSeek OCR and ColQwen serialization constraints
-    max_workers: int = 4
 
 
 class BBoxDocVQARunner:
@@ -860,7 +855,6 @@ class BBoxDocVQARunner:
         run_dir: Path,
         results: List[SampleResult],
         total_samples: int,
-        wall_clock_elapsed: Optional[float] = None,
     ) -> None:
         """Write/update the markdown progress report."""
         report_path = run_dir / "progress.md"
@@ -1005,8 +999,8 @@ class BBoxDocVQARunner:
             [
                 "## Results",
                 "",
-                "| ID | Document | Category | OCR'd | Sel | IoU | @0.25 | @0.5 | @0.7 | Tok Sel | Tok OCR | Tok Img | Save OCR | Save Img | Time (s) |",
-                "|----|----------|----------|-------|-----|-----|-------|------|------|---------|---------|---------|----------|----------|----------|",
+                "| ID | Document | Category | OCR'd | Sel | IoU | @0.25 | @0.5 | @0.7 | Tok Sel | Tok OCR | Tok Img | Save OCR | Save Img |",
+                "|----|----------|----------|-------|-----|-----|-------|------|------|---------|---------|---------|----------|----------|",
             ]
         )
 
@@ -1016,17 +1010,13 @@ class BBoxDocVQARunner:
         total_tok_sel = 0
         total_tok_ocr = 0
         total_tok_img = 0
-        total_time_s = 0.0
 
         for r in results:
-            time_s = r.elapsed_ms / 1000.0
-            total_time_s += time_s
-
             if r.failed:
                 # Show failed samples with error indicator
                 lines.append(
                     f"| {r.sample.sample_id} | {r.sample.doc_name} | {r.sample.category} | "
-                    f"- | - | - | - | - | - | - | - | - | - | - | {time_s:.1f} |"
+                    f"- | - | - | - | - | - | - | - | - | - | - |"
                 )
                 continue
 
@@ -1064,7 +1054,7 @@ class BBoxDocVQARunner:
             lines.append(
                 f"| {r.sample.sample_id} | {r.sample.doc_name} | {r.sample.category} | "
                 f"{ocr_count} | {selected_count} | {iou:.3f} | {hit_025} | {hit_05} | {hit_07} | "
-                f"{tok_sel:,} | {tok_ocr:,} | {tok_img:,} | {save_ocr} | {save_img} | {time_s:.1f} |"
+                f"{tok_sel:,} | {tok_ocr:,} | {tok_img:,} | {save_ocr} | {save_img} |"
             )
 
         # Add totals row
@@ -1082,7 +1072,7 @@ class BBoxDocVQARunner:
             lines.append(
                 f"| **Total** | | | **{total_ocr_count}** | **{total_selected_count}** | | | | | "
                 f"**{total_tok_sel:,}** | **{total_tok_ocr:,}** | **{total_tok_img:,}** | "
-                f"**{total_save_ocr}** | **{total_save_img}** | **{total_time_s:.1f}** |"
+                f"**{total_save_ocr}** | **{total_save_img}** |"
             )
 
         # Add summary section (only for successful samples)
@@ -1118,22 +1108,6 @@ class BBoxDocVQARunner:
                 else "N/A"
             )
 
-            # Calculate average time per sample
-            avg_time_s = total_time_s / len(results) if results else 0
-
-            # Wall clock time (actual elapsed) vs cumulative processing time
-            if wall_clock_elapsed is not None:
-                time_line = (
-                    f"- **Wall Clock Time:** {wall_clock_elapsed:.1f}s | "
-                    f"**Cumulative Processing:** {total_time_s:.1f}s ({avg_time_s:.1f}s avg/sample)"
-                )
-                speedup = (
-                    total_time_s / wall_clock_elapsed if wall_clock_elapsed > 0 else 1.0
-                )
-                time_line += f" | **Speedup:** {speedup:.2f}x"
-            else:
-                time_line = f"- **Total Time:** {total_time_s:.1f}s ({avg_time_s:.1f}s avg/sample)"
-
             summary_lines = [
                 "",
                 "## Summary",
@@ -1142,7 +1116,6 @@ class BBoxDocVQARunner:
                 f"- **IoU@0.25:** {hits_025}/{n_successful} ({rate_025:.1%})",
                 f"- **IoU@0.5:** {hits_05}/{n_successful} ({rate_05:.1%})",
                 f"- **IoU@0.7:** {hits_07}/{n_successful} ({rate_07:.1%})",
-                time_line,
             ]
             if failed_count > 0:
                 summary_lines.append(f"- **Failed:** {failed_count}")
@@ -1186,10 +1159,6 @@ class BBoxDocVQARunner:
             r.token_stats.tokens_full_image for r in successful_results if r.token_stats
         )
 
-        # Aggregate timing (from all samples including failed)
-        total_elapsed_ms = sum(r.elapsed_ms for r in results)
-        avg_elapsed_ms = total_elapsed_ms / len(results) if results else 0
-
         token_summary = {
             "total_tokens_selected": total_tokens_selected,
             "total_tokens_all_ocr": total_tokens_all_ocr,
@@ -1204,8 +1173,6 @@ class BBoxDocVQARunner:
                 if total_tokens_full_image > 0
                 else "N/A"
             ),
-            "total_time_seconds": round(total_elapsed_ms / 1000, 1),
-            "avg_time_per_sample_seconds": round(avg_elapsed_ms / 1000, 1),
         }
 
         # Build config dict for reproducibility
@@ -1248,7 +1215,6 @@ class BBoxDocVQARunner:
                     "detection_iou_at_0_5": (
                         r.detection_metrics.iou_at_0_5 if r.detection_metrics else None
                     ),
-                    "elapsed_ms": r.elapsed_ms,
                     "tokens_selected": (
                         r.token_stats.tokens_selected if r.token_stats else None
                     ),
@@ -1337,83 +1303,38 @@ class BBoxDocVQARunner:
         )
         run_dir.mkdir(parents=True, exist_ok=True)
 
-        # Determine number of workers (at least 1, at most len(samples))
-        max_workers = max(1, min(self.config.max_workers, len(samples)))
+        logger.info("Starting benchmark with %d samples", len(samples))
 
-        logger.info(
-            "Starting benchmark with %d samples using %d parallel workers",
-            len(samples),
-            max_workers,
-        )
-
-        # Track wall clock time for accurate total time reporting
-        wall_clock_start = time.perf_counter()
-
-        # Thread-safe state for progress tracking
-        # Pre-allocate results list to maintain sample order (index 0 = sample 1, etc.)
-        results_lock = threading.Lock()
-        results: List[Optional[SampleResult]] = [None] * len(samples)
-        completed_count = 0
+        results: List[SampleResult] = []
         visualized = 0
 
-        def on_result_complete(result: SampleResult, sample_idx: int) -> None:
-            """Callback when a sample completes - updates progress (thread-safe)."""
-            nonlocal completed_count, visualized
-            with results_lock:
-                # Store result at correct index (sample_idx is 1-based, list is 0-based)
-                results[sample_idx - 1] = result
-                completed_count += 1
+        for idx, sample in enumerate(samples, start=1):
+            result = self._process_single_sample(sample, idx, len(samples))
+            results.append(result)
 
-                # Handle visualization (thread-safe counter)
-                if (
-                    not result.failed
-                    and self.config.visualize
-                    and (
-                        self.config.visualize_limit is None
-                        or visualized < self.config.visualize_limit
-                    )
-                ):
-                    self._render_visualization(
-                        sample=result.sample,
-                        ocr_boxes=result.ocr_boxes,
-                        pred_boxes=result.predicted_boxes,
-                        run_dir=run_dir,
-                        patch_scores=result.patch_scores,
-                    )
-                    visualized += 1
-
-                # Get completed results in order for progress reporting
-                completed_results = [r for r in results if r is not None]
-
-                # Calculate wall clock elapsed time
-                wall_clock_elapsed = time.perf_counter() - wall_clock_start
-
-                # Update progress report and summary after each sample
-                self._write_progress_report(
-                    run_dir, completed_results, len(samples), wall_clock_elapsed
+            # Handle visualization
+            if (
+                not result.failed
+                and self.config.visualize
+                and (
+                    self.config.visualize_limit is None
+                    or visualized < self.config.visualize_limit
                 )
-                self._write_summary_json(run_dir, completed_results)
+            ):
+                self._render_visualization(
+                    sample=result.sample,
+                    ocr_boxes=result.ocr_boxes,
+                    pred_boxes=result.predicted_boxes,
+                    run_dir=run_dir,
+                    patch_scores=result.patch_scores,
+                )
+                visualized += 1
 
-        # Process samples in parallel using ThreadPoolExecutor
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Submit all tasks (idx is 1-based for logging consistency)
-            future_to_idx = {
-                executor.submit(
-                    self._process_single_sample, sample, idx, len(samples)
-                ): idx
-                for idx, sample in enumerate(samples, start=1)
-            }
+            # Update progress report and summary after each sample
+            self._write_progress_report(run_dir, results, len(samples))
+            self._write_summary_json(run_dir, results)
 
-            # Process results as they complete
-            for future in as_completed(future_to_idx):
-                sample_idx = future_to_idx[future]
-                result = (
-                    future.result()
-                )  # Exceptions already caught in _process_single_sample
-                on_result_complete(result, sample_idx)
-
-        # Get final ordered results (filter out any None values, though there shouldn't be any)
-        final_results: List[SampleResult] = [r for r in results if r is not None]
+        final_results = results
 
         # Final summary write (already written incrementally, but ensure final state)
         summary_path = self._write_summary_json(run_dir, final_results)
