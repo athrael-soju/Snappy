@@ -303,7 +303,7 @@ Parts (i) and (ii) follow directly from the definition of $\rho$. For (iii), sco
 
 \subsubsection{Signal-to-Noise Ratio}
 
-We formalize the intuition that region-level retrieval improves the ``signal'' available to downstream LLMs.
+We model the expected improvement in context quality from region-level retrieval. This analysis provides theoretical motivation; empirical validation of downstream LLM answer quality is outside our scope.
 
 \begin{definition}[Retrieval SNR]
 For retrieved context $C$, define:
@@ -510,7 +510,7 @@ ColModernVBERT (P50) & 1,661,684 & 38.0\% & 58.5\% \\
 \label{fig:tokens}
 \end{figure}
 
-The hybrid approach with percentile-50 filtering reduces context tokens by 29\% compared to returning all OCR regions and by 52\% compared to full-page image tokens. These savings directly translate to reduced LLM inference costs, lower latency, and decreased attention dilution in downstream RAG applications.
+The hybrid approach with percentile-50 filtering reduces context tokens by 29\% compared to returning all OCR regions and by 52\% compared to full-page image tokens. These savings directly reduce LLM inference costs and context window usage.
 
 \begin{figure}[H]
 \centering
