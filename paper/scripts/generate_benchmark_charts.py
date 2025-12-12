@@ -302,11 +302,11 @@ def plot_iou_by_category_box(results: dict, output_name: str = "iou_by_category_
     """Box plot showing IoU distribution by category for each model."""
     fig, ax = plt.subplots(figsize=(14, 6))
 
-    # Sort categories by mean IoU of first model (descending)
-    first_model = list(results.values())[0]
+    # Sort categories by mean IoU of ColQwen3-4B (descending) to match Table 4
+    sort_model = results.get("colqwen3-4b", list(results.values())[0])
     sorted_cats = sorted(
         CATEGORY_ORDER,
-        key=lambda c: first_model["categories"].get(c, {}).get("mean_iou", 0),
+        key=lambda c: sort_model["categories"].get(c, {}).get("mean_iou", 0),
         reverse=True,
     )
 
