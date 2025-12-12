@@ -61,7 +61,7 @@ This paper presents a hybrid architecture for spatially-grounded document retrie
     
     \item \textbf{Relevance Propagation via Interpretability Maps.} We repurpose ColPali's late interaction mechanism to generate per-query-token similarity heatmaps, then propagate these scores to OCR regions through IoU-weighted patch-region intersection (Section~\ref{sec:relevance}).
     
-    \item \textbf{Two-Stage Retrieval Architecture.} We introduce a mean-pooling strategy that compresses patch embeddings along spatial axes, enabling efficient candidate retrieval before full-resolution reranking (Section~\ref{sec:twostage}).
+    \item \textbf{Two-Stage Retrieval Architecture.} We introduce a two-stage architecture that enables efficient candidate retrieval before full-resolution region-level reranking (Section~\ref{sec:twostage}).
     
     \item \textbf{Theoretical Analysis.} We establish bounds on localization precision as a function of patch resolution, derive expected context reduction and precision amplification factors, and analyze computational complexity tradeoffs (Section~\ref{sec:theory}).
     
@@ -170,7 +170,7 @@ where the sum is over all patches $j$ with non-zero intersection. This weights e
 
 Computing full patch-level similarity for all pages in a large corpus is prohibitively expensive. We introduce a two-stage architecture that balances efficiency and precision.
 
-\textbf{Stage 1: Candidate Retrieval.} We compress patch embeddings via mean pooling along spatial axes to obtain a single page-level embedding. This enables efficient approximate nearest neighbor search (via Qdrant) to retrieve top-$K$ candidate pages. Note that pooling discards spatial information, which may impact recall for pages with small relevant regions (see Section~\ref{sec:discussion}).
+\textbf{Stage 1: Candidate Retrieval.} We compress patch embeddings to obtain page-level representations for efficient approximate nearest neighbor search, retrieving top-$K$ candidate pages. This stage uses standard dense retrieval techniques; our contribution focuses on Stage 2.
 
 \textbf{Stage 2: Region Reranking.} For each candidate page, we compute full patch-level similarity and propagate scores to OCR regions as described in Section~\ref{sec:relevance}. Regions are ranked by their relevance scores, and top-$k$ regions are returned.
 
@@ -614,8 +614,6 @@ Applications should consider document characteristics when selecting models: Col
 
 \textbf{Emergent Attention Limitations.} ColPali's patch attention is optimized for page-level retrieval through training, not explicitly for region-level localization. Attention may diffuse across semantically related but spatially distant regions (e.g., a header and its corresponding paragraph). We rely on OCR region boundaries to constrain this diffusion.
 
-\textbf{Two-Stage Information Loss.} The mean-pooling in Stage 1 discards spatial information, potentially missing pages where relevant content is concentrated in small regions. Relevant pages could be filtered out before Stage 2 region scoring. Alternative pooling strategies (max pooling, attention-weighted pooling) may mitigate this.
-
 \textbf{Category-Specific Performance.} Empirical evaluation reveals substantial performance variation across document types. Mathematics documents achieve only 28.7\% hit rate at IoU@0.5 compared to 78.1\% for electrical engineering documents. This gap likely reflects multiple factors: training data composition favoring certain document types, difficulty parsing equations and dense mathematical notation, and potential patch quantization effects for small regions. Applications targeting specific document types should consider this variation when setting performance expectations.
 
 \textbf{Within-Document Variance.} Variance decomposition reveals that 72\% of IoU variance is \emph{within-document} (same document, different questions) versus 28\% between documents. This suggests that question-specific semantic factors---rather than inherent document difficulty---dominate localization performance. A document may yield high IoU for one question and low IoU for another, depending on how well the query aligns with the model's learned attention patterns. This finding implies that per-category performance statistics represent averages over highly variable per-question outcomes.
@@ -629,10 +627,6 @@ Applications should consider document characteristics when selecting models: Col
 \textbf{Region-Aware Fine-Tuning.} While our approach operates without additional training, fine-tuning ColPali with region-level supervision could improve spatial attention alignment. This would sacrifice our training-free advantage but potentially yield higher localization accuracy.
 
 \textbf{Legal Document Retrieval and Citation Grounding.} In legal contexts, retrieval precision directly impacts downstream reliability. Recent empirical work demonstrates that even retrieval-augmented legal AI tools hallucinate 17--33\% of responses, with errors compounded by coarse retrieval granularity \citep{magesh2025hallucination}. Region-level retrieval with bounding box coordinates provides citation-bounded context: each retrieved region carries verifiable provenance, constraining generation to specific, locatable sources.
-
-\textbf{Model-Agnostic Scaling Toward Enterprise Viability.} Because our approach operates at inference time by composing outputs from independent late-interaction and OCR components, it automatically benefits from advances in either domain. Critically, the quality of region-level retrieval depends directly on the \emph{spatial precision of patch-level similarity distributions}: how tightly the model's attention concentrates on semantically relevant page regions. Our comparison between ColQwen3-4B and ColModernVBERT demonstrates this relationship: the larger model's more refined patch attention yields substantially higher localization accuracy (59.7\% vs 45.5\% at IoU@0.5), while the smaller model offers greater token efficiency (58\% vs 52\% savings vs full image). As late-interaction visual retrievers continue to develop more discriminative spatial attention through improved pre-training objectives and higher-resolution patch grids, our approach will inherit these gains without architectural modification. This positions the framework for enterprise deployment: organizations can choose models along the accuracy-efficiency frontier based on their requirements, and upgrade their underlying retrieval model as the field advances.
-
-\textbf{Deployment Readiness by Document Type.} The category analysis (Section~\ref{sec:model_analysis}) provides actionable guidance for enterprise deployment. For model-sensitive document types (technical documentation, scientific papers with figures, mixed prose and table content), current models achieve 60--78\% localization accuracy at IoU@0.5, suitable for production RAG systems where retrieved regions provide substantial context reduction with acceptable precision. For uniformly challenging document types (mathematics-heavy content, dense financial tables), both models achieve similar, lower accuracy; organizations can either accept current performance or wait for improved models with better coverage of these document types. This distinction enables principled deployment decisions: the approach is enterprise-ready for the majority of document types, with well-characterized limitations for the remainder.
 
 \section{Conclusion}
 
