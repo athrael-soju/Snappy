@@ -383,7 +383,7 @@ We evaluate our approach on BBox-DocVQA, measuring spatial grounding accuracy an
 
 \textbf{Dataset.} BBox-DocVQA \citep{bboxdocvqa2025} provides question-answer pairs across documents from arXiv categories including computer science (cs), economics (econ), electrical engineering (eess), mathematics (math), physics, quantitative biology (q-bio), quantitative finance (q-fin), and statistics (stat). Each QA pair includes ground-truth bounding boxes marking the evidence region containing the answer. We evaluate on 1,619 samples across eight categories (1,623 total samples minus 4 that consistently failed during OCR processing and are excluded from all reported metrics).
 
-\textbf{Models.} We evaluate two ColPali-family models: ColQwen3-4B (4B parameters), representing state-of-the-art accuracy, and ColModernVBERT (250M parameters), representing the efficiency frontier.
+\textbf{Models.} We evaluate three ColPali-family models: ColQwen3-8B (8B parameters) and ColQwen3-4B (4B parameters), representing state-of-the-art accuracy at different scales, and ColModernVBERT (250M parameters), representing the efficiency frontier.
 
 \textbf{Configuration.} We use DeepSeek OCR with visual grounding in markdown mode. For region scoring, we apply 50th-percentile thresholding with max token aggregation and max region scoring.
 
@@ -410,6 +410,7 @@ Table~\ref{tab:main_results} presents localization accuracy.
 \toprule
 \textbf{Model} & \textbf{N} & \textbf{Mean IoU} & \textbf{IoU@0.25} & \textbf{IoU@0.5} & \textbf{IoU@0.7} \\
 \midrule
+ColQwen3-8B (P50) & 1619 & 0.569 & 83.9\% & 59.8\% & 36.1\% \\
 ColQwen3-4B (P50) & 1619 & 0.569 & 84.4\% & 59.7\% & 35.8\% \\
 ColModernVBERT (P50) & 1619 & 0.480 & 72.2\% & 45.5\% & 27.9\% \\
 \bottomrule
@@ -421,13 +422,35 @@ ColPali's patch attention localizes relevant regions without additional training
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.7\textwidth]{figures/iou_thresholds_comparison.png}
-\caption{Hit rate comparison across IoU thresholds. ColQwen3-4B consistently outperforms ColModernVBERT, with the gap widening at stricter thresholds.}
+\caption{Hit rate comparison across IoU thresholds. ColQwen3-8B and ColQwen3-4B achieve nearly identical performance, while both consistently outperform ColModernVBERT, with the gap widening at stricter thresholds.}
 \label{fig:iou_thresholds}
 \end{figure}
 
 \subsection{Category Analysis}
 
-Table~\ref{tab:category_results} and Table~\ref{tab:category_results_vbert} present performance variation across document categories for both models.
+Tables~\ref{tab:category_results_8b},~\ref{tab:category_results}, and~\ref{tab:category_results_vbert} present performance variation across document categories for all three models.
+
+\begin{table}[htbp]
+\centering
+\caption{ColQwen3-8B performance by document category. The 8B model achieves similar overall accuracy to the 4B variant, with minor variations across categories.}
+\label{tab:category_results_8b}
+\begin{tabular}{lrcccc}
+\toprule
+\textbf{Category} & \textbf{N} & \textbf{Mean IoU} & \textbf{IoU@0.25} & \textbf{IoU@0.5} & \textbf{IoU@0.7} \\
+\midrule
+cs & 216 & 0.689 & 92.6\% & 74.5\% & 57.4\% \\
+eess & 196 & 0.660 & 96.4\% & 79.1\% & 44.9\% \\
+q-bio & 176 & 0.616 & 90.3\% & 66.5\% & 42.6\% \\
+physics & 213 & 0.590 & 88.3\% & 65.7\% & 33.8\% \\
+stat & 200 & 0.559 & 86.0\% & 57.0\% & 34.0\% \\
+q-fin & 216 & 0.545 & 86.6\% & 60.2\% & 29.2\% \\
+econ & 214 & 0.509 & 72.0\% & 46.3\% & 33.6\% \\
+math & 188 & 0.378 & 58.5\% & 27.7\% & 12.2\% \\
+\midrule
+\textbf{Overall} & \textbf{1619} & \textbf{0.569} & \textbf{83.9\%} & \textbf{59.8\%} & \textbf{36.1\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \begin{table}[htbp]
 \centering
@@ -489,6 +512,7 @@ Figure~\ref{fig:tokens} visualizes the token savings achieved by our approach ac
 \midrule
 Full Image (baseline) & 4,003,039 & -- & -- \\
 All OCR Regions & 2,678,723 & -- & 33.1\% \\
+ColQwen3-8B (P50) & 1,974,263 & 26.3\% & 50.7\% \\
 \textbf{ColQwen3-4B (P50)} & \textbf{1,908,329} & \textbf{28.8\%} & \textbf{52.3\%} \\
 ColModernVBERT (P50) & 1,661,684 & 38.0\% & 58.5\% \\
 \bottomrule
@@ -498,7 +522,7 @@ ColModernVBERT (P50) & 1,661,684 & 38.0\% & 58.5\% \\
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.75\textwidth]{figures/token_comparison.png}
-\caption{Token usage comparison across methods. Both hybrid approaches achieve substantial reductions compared to full image (4.00M) and all OCR (2.68M) baselines, with ColModernVBERT offering the greatest efficiency at 1.66M tokens.}
+\caption{Token usage comparison across methods. All hybrid approaches achieve substantial reductions compared to full image (4.00M) and all OCR (2.68M) baselines, with ColModernVBERT offering the greatest efficiency at 1.66M tokens. ColQwen3-8B (1.97M) and ColQwen3-4B (1.91M) achieve similar token savings.}
 \label{fig:tokens}
 \end{figure}
 
@@ -507,7 +531,7 @@ The hybrid approach with percentile-50 filtering reduces context tokens by 29\% 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.65\textwidth]{figures/radar_comparison.png}
-\caption{Multi-dimensional comparison of ColQwen3-4B and ColModernVBERT. The larger model dominates on accuracy metrics (IoU thresholds), while the smaller model offers marginally better token savings. Mean IoU is scaled to percentage for visual consistency.}
+\caption{Multi-dimensional comparison of ColQwen3-8B, ColQwen3-4B, and ColModernVBERT. ColQwen3-8B and ColQwen3-4B achieve nearly identical accuracy metrics, while ColModernVBERT offers the best token savings. Mean IoU is scaled to percentage for visual consistency.}
 \label{fig:radar}
 \end{figure}
 
@@ -536,7 +560,7 @@ The tradeoff is monotonic and predictable: [describe observed pattern]. We use P
 \subsection{Model Architecture and Training Data Effects}
 \label{sec:model_analysis}
 
-The substantial performance gap between ColQwen3-4B and ColModernVBERT (14.2 percentage points at IoU@0.5) invites analysis of how model architecture and training data affect patch-to-region relevance propagation.
+The substantial performance gap between ColQwen3-4B and ColModernVBERT (14.2 percentage points at IoU@0.5) invites analysis of how model architecture and training data affect patch-to-region relevance propagation. Notably, ColQwen3-8B achieves nearly identical performance to ColQwen3-4B (59.8\% vs 59.7\% at IoU@0.5), suggesting diminishing returns from parameter scaling within the same architecture family.
 
 \textbf{Architectural Differences.} The models differ fundamentally in attention mechanism and vision encoder design. ColQwen3-4B uses a causal decoder architecture with Qwen3-VL's $\sim$675M parameter vision encoder \citep{qwen2025qwen3}, which employs \emph{DeepStack} multi-level feature fusion, injecting visual tokens from multiple intermediate ViT layers into corresponding decoder layers to preserve fine-grained details. The encoder uses Interleaved M-RoPE (Multimodal Rotary Position Embedding) that uniformly interleaves temporal, horizontal, and vertical positional components, providing balanced frequency allocation for 2D spatial layouts. ColModernVBERT instead combines a 150M-parameter ModernBERT \citep{warner2024modernbert} text encoder with SigLIP2-base-16b \citep{tschannen2025siglip2} ($\sim$100M parameters), using \emph{bidirectional attention} throughout. SigLIP2's vision encoder benefits from captioning-based pretraining, self-distillation, and masked prediction, producing denser feature representations optimized for localization.
 
@@ -552,11 +576,13 @@ The substantial performance gap between ColQwen3-4B and ColModernVBERT (14.2 per
 
 The 700$\times$ pre-training scale difference provides ColQwen3-4B with inherently stronger document parsing and text-in-image understanding before retrieval-specific fine-tuning. However, ColModernVBERT's inclusion of text-only pairs during contrastive training provides cross-modal transfer benefits (+1.7 nDCG@5), demonstrating that the model learns text-image alignment even from pure text supervision.
 
-\textbf{Category-Specific Performance Gaps.} Table~\ref{tab:model_gap} reveals that the performance gap between models varies systematically across document categories.
+\textbf{Scaling Within Architecture Family.} The near-identical performance of ColQwen3-8B and ColQwen3-4B (Mean IoU 0.569 for both; 59.8\% vs 59.7\% at IoU@0.5) reveals that doubling parameters within the same architecture provides negligible localization gains. This suggests that ColQwen3's localization accuracy is bounded by factors other than model capacity---likely patch resolution and attention pattern characteristics rather than representational capacity. The practical implication is clear: ColQwen3-4B offers the same localization quality at lower computational cost.
+
+\textbf{Category-Specific Performance Gaps.} Table~\ref{tab:model_gap} reveals that the performance gap between ColQwen3-4B and ColModernVBERT varies systematically across document categories.
 
 \begin{table}[htbp]
 \centering
-\caption{Performance gap analysis between ColQwen3-4B and ColModernVBERT by category. The gap narrows substantially for mathematics documents, suggesting both models approach fundamental precision limits for small-region localization.}
+\caption{Performance gap analysis between ColQwen3-4B and ColModernVBERT by category. ColQwen3-8B results (not shown) are within 0.01 Mean IoU of ColQwen3-4B across all categories. The gap narrows substantially for mathematics documents, suggesting both model families approach fundamental precision limits for small-region localization.}
 \label{tab:model_gap}
 \begin{tabular}{lcccc}
 \toprule
@@ -579,7 +605,7 @@ math & 0.382 & 0.370 & $-$0.012 & $-$1.6 pp \\
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.85\textwidth]{figures/iou_by_category_box.png}
-\caption{IoU distribution by document category. Box plots show median, quartiles, and outliers. Categories ordered by mean IoU (highest to lowest). Mathematics documents show consistently low performance with tight variance, while computer science achieves both higher mean and greater spread.}
+\caption{IoU distribution by document category for ColQwen3-8B, ColQwen3-4B, and ColModernVBERT. Box plots show median, quartiles, and outliers. Categories ordered by mean IoU (highest to lowest). Mathematics documents show consistently low performance across all models, while computer science achieves both higher mean and greater spread.}
 \label{fig:category_box}
 \end{figure}
 
@@ -587,13 +613,14 @@ The \emph{smallest} performance gap occurs in mathematics documents ($\Delta = 0
 
 Conversely, the \emph{largest} gaps appear in computer science ($\Delta = 0.170$) and electrical engineering ($\Delta = 0.205$) documents, where ColQwen3-4B's superior attention discrimination yields substantial improvements. These categories feature larger, well-separated regions (figures, code blocks, prose paragraphs) where model capacity translates directly to localization accuracy.
 
-\textbf{Implications for Model Selection.} This analysis suggests two empirically distinct regimes:
+\textbf{Implications for Model Selection.} This analysis suggests three empirically distinct regimes:
 \begin{enumerate}
-    \item \textbf{Model-sensitive documents}: For documents with large, well-separated regions (CS, EESS, Q-Bio), larger models provide substantial accuracy gains.
-    \item \textbf{Uniformly challenging documents}: For mathematics and dense tabular content, both models underperform similarly, suggesting challenges beyond model capacity alone.
+    \item \textbf{Architecture-sensitive documents}: For documents with large, well-separated regions (CS, EESS, Q-Bio), ColQwen3 models substantially outperform ColModernVBERT.
+    \item \textbf{Scale-insensitive within architecture}: ColQwen3-8B and ColQwen3-4B achieve nearly identical performance, indicating that doubling parameters within the same architecture yields negligible localization gains.
+    \item \textbf{Uniformly challenging documents}: For mathematics and dense tabular content, all models converge to similar (lower) performance, suggesting fundamental precision limits.
 \end{enumerate}
 
-Applications should consider document characteristics when selecting models: ColModernVBERT's 16$\times$ parameter efficiency may be acceptable for mathematics-heavy corpora where both models achieve similar accuracy, while ColQwen3-4B's accuracy advantage justifies its cost for technical documentation with varied layouts.
+Applications should consider document characteristics when selecting models: ColModernVBERT's 16$\times$ parameter efficiency may be acceptable for mathematics-heavy corpora where all models achieve similar accuracy, while ColQwen3-4B offers the best accuracy-efficiency tradeoff for technical documentation with varied layouts. ColQwen3-8B provides no localization benefit over ColQwen3-4B despite doubled parameters.
 
 \section{Discussion}
 \label{sec:discussion}
@@ -624,11 +651,11 @@ Applications should consider document characteristics when selecting models: Col
 
 We presented a hybrid architecture for spatially-grounded document retrieval that unifies late-interaction retrieval with structured OCR extraction. By formalizing the coordinate mapping between ColPali's patch grid and OCR bounding boxes, we enable region-level retrieval without additional training. Our approach operates entirely at inference time, providing flexibility across OCR systems and late-interaction retrieval backends.
 
-On BBox-DocVQA with ColQwen3-4B, we achieve 59.7\% hit rate at IoU@0.5 and 52\% token savings compared to full-page retrieval, consistent with the efficiency gains predicted by Theorem~\ref{thm:context}.
+On BBox-DocVQA, we evaluate three ColPali-family models. ColQwen3-8B and ColQwen3-4B achieve nearly identical localization accuracy (59.8\% and 59.7\% hit rate at IoU@0.5, respectively), while ColModernVBERT achieves 45.5\%. All models provide substantial token savings compared to full-page retrieval (51--58\%), consistent with the efficiency gains predicted by Theorem~\ref{thm:context}.
 
-Category analysis across eight arXiv domains reveals systematic performance variation: computer science and electrical engineering documents achieve higher localization accuracy (Mean IoU $\geq$ 0.65) than economics (0.51) and mathematics (0.38) documents, with physics (0.58) and quantitative biology (0.62) falling in between.
+Category analysis across eight arXiv domains reveals systematic performance variation: computer science and electrical engineering documents achieve higher localization accuracy (Mean IoU $\geq$ 0.65) than economics (0.51) and mathematics (0.38) documents, with physics (0.58--0.59) and quantitative biology (0.62) falling in between.
 
-Analysis of model architecture and training data effects reveals two empirically distinct regimes. For model-sensitive document types (computer science, electrical engineering), ColQwen3-4B's 16$\times$ larger capacity yields substantial improvements over ColModernVBERT (up to 35 percentage points at IoU@0.5). For uniformly challenging document types (mathematics), both models converge to similar performance ($\Delta = 1.6$ pp), suggesting challenges that affect both models similarly. This finding has practical implications: smaller, efficient models may suffice for document types where both models achieve comparable accuracy.
+Analysis of model architecture and scaling effects reveals three empirically distinct regimes. First, ColQwen3-8B and ColQwen3-4B achieve nearly identical performance, indicating that parameter scaling within the same architecture provides negligible localization gains. Second, for architecture-sensitive document types (computer science, electrical engineering), ColQwen3 models substantially outperform ColModernVBERT (up to 35 percentage points at IoU@0.5). Third, for uniformly challenging document types (mathematics), all models converge to similar performance, suggesting fundamental precision limits. This finding has practical implications: ColQwen3-4B offers the best accuracy-efficiency tradeoff, while ColQwen3-8B provides no localization benefit despite doubled parameters.
 
 The two-stage architecture balances computational efficiency with region-level granularity, making the approach practical for large-scale document collections. We release Snappy as an open-source implementation at \url{https://github.com/athrael-soju/Snappy}, demonstrating practical applicability for retrieval-augmented generation with reduced context windows and improved precision.
 

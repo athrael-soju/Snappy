@@ -3,7 +3,7 @@ Generate comparative benchmark charts for the paper.
 Extensible for adding new models (e.g., ColQwen3-8B).
 """
 
-import json
+import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
@@ -15,6 +15,11 @@ FIGURES_DIR.mkdir(exist_ok=True)
 
 # Model configurations - add new models here
 MODELS = {
+    "colqwen3-8b": {
+        "label": "ColQwen3-8B",
+        "color": "#9b59b6",
+        "marker": "^",
+    },
     "colqwen3-4b": {
         "label": "ColQwen3-4B",
         "color": "#2ecc71",
@@ -25,12 +30,6 @@ MODELS = {
         "color": "#3498db",
         "marker": "s",
     },
-    # Add ColQwen3-8B when ready:
-    # "colqwen3-8b": {
-    #     "label": "ColQwen3-8B",
-    #     "color": "#9b59b6",
-    #     "marker": "^",
-    # },
 }
 
 # Category display order (by ColQwen3-4B performance)
@@ -95,7 +94,7 @@ def parse_progress_file(model_dir: Path) -> dict:
     # Parse per-category results from table rows
     from collections import defaultdict
 
-    categories = defaultdict(lambda: {"n": 0, "iou_sum": 0, "hit25": 0, "hit50": 0, "hit70": 0})
+    categories = defaultdict(lambda: {"n": 0, "iou_sum": 0, "hit25": 0, "hit50": 0, "hit70": 0, "iou_values": []})
 
     for line in content.split("\n"):
         if line.startswith("|") and not line.startswith("| #") and not line.startswith("| **"):
@@ -106,6 +105,7 @@ def parse_progress_file(model_dir: Path) -> dict:
                     iou = float(parts[6])
                     categories[cat]["n"] += 1
                     categories[cat]["iou_sum"] += iou
+                    categories[cat]["iou_values"].append(iou)
                     if iou >= 0.25:
                         categories[cat]["hit25"] += 1
                     if iou >= 0.5:
@@ -123,6 +123,7 @@ def parse_progress_file(model_dir: Path) -> dict:
                 "iou_25": 100 * data["hit25"] / data["n"],
                 "iou_50": 100 * data["hit50"] / data["n"],
                 "iou_70": 100 * data["hit70"] / data["n"],
+                "iou_values": data["iou_values"],
             }
 
     return results
@@ -206,7 +207,7 @@ def plot_accuracy_efficiency_tradeoff(results: dict, output_name: str = "accurac
     ax.set_xlabel("Token Savings vs Full Image (%)", fontsize=12)
     ax.set_ylabel("Hit Rate @ IoU 0.5 (%)", fontsize=12)
     ax.set_xlim(45, 65)
-    ax.set_ylim(40, 65)
+    ax.set_ylim(40, 70)
     ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
@@ -297,6 +298,79 @@ def plot_token_comparison(results: dict, output_name: str = "token_comparison.pn
     print(f"Saved {output_name}")
 
 
+def plot_iou_by_category_box(results: dict, output_name: str = "iou_by_category_box.png"):
+    """Box plot showing IoU distribution by category for each model."""
+    fig, ax = plt.subplots(figsize=(14, 6))
+
+    # Sort categories by mean IoU of first model (descending)
+    first_model = list(results.values())[0]
+    sorted_cats = sorted(
+        CATEGORY_ORDER,
+        key=lambda c: first_model["categories"].get(c, {}).get("mean_iou", 0),
+        reverse=True,
+    )
+
+    n_models = len(results)
+    n_cats = len(sorted_cats)
+    positions = []
+    colors_list = []
+    data = []
+    labels = []
+
+    # Build data for box plots
+    width = 0.25
+    for i, cat in enumerate(sorted_cats):
+        for j, (model_id, model_data) in enumerate(results.items()):
+            cat_data = model_data["categories"].get(cat, {})
+            iou_values = cat_data.get("iou_values", [])
+            if iou_values:
+                pos = i * (n_models + 1) * width + j * width
+                positions.append(pos)
+                data.append(iou_values)
+                colors_list.append(model_data["color"])
+                labels.append(model_data["label"])
+
+    # Create box plots
+    bp = ax.boxplot(
+        data,
+        positions=positions,
+        widths=width * 0.8,
+        patch_artist=True,
+        showfliers=True,
+        flierprops=dict(marker="o", markersize=3, alpha=0.5),
+    )
+
+    # Color the boxes
+    for patch, color in zip(bp["boxes"], colors_list):
+        patch.set_facecolor(color)
+        patch.set_alpha(0.7)
+
+    # Set x-axis
+    tick_positions = [
+        i * (n_models + 1) * width + (n_models - 1) * width / 2 for i in range(n_cats)
+    ]
+    ax.set_xticks(tick_positions)
+    ax.set_xticklabels([CATEGORY_LABELS[c] for c in sorted_cats])
+
+    # Legend
+    legend_handles = [
+        mpatches.Rectangle((0, 0), 1, 1, facecolor=model_data["color"], alpha=0.7)
+        for model_data in results.values()
+    ]
+    legend_labels = [data["label"] for data in results.values()]
+    ax.legend(legend_handles, legend_labels, loc="upper right")
+
+    ax.set_xlabel("Document Category", fontsize=12)
+    ax.set_ylabel("IoU", fontsize=12)
+    ax.set_ylim(0, 1)
+    ax.grid(axis="y", alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig(FIGURES_DIR / output_name, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"Saved {output_name}")
+
+
 def plot_radar_comparison(results: dict, output_name: str = "radar_comparison.png"):
     """Radar/spider chart comparing models across multiple dimensions."""
     categories = ["Mean IoU", "IoU@0.25", "IoU@0.5", "IoU@0.7", "Token Savings"]
@@ -343,12 +417,10 @@ def main():
     print(f"\nGenerating charts for {len(results)} models...")
 
     # Generate all charts
-    plot_category_comparison(results, "mean_iou", "category_comparison_iou.png")
-    plot_category_comparison(results, "iou_50", "category_comparison_hit50.png")
     plot_iou_thresholds_comparison(results, "iou_thresholds_comparison.png")
     plot_token_comparison(results, "token_comparison.png")
-    plot_accuracy_efficiency_tradeoff(results, "accuracy_efficiency_tradeoff.png")
     plot_radar_comparison(results, "radar_comparison.png")
+    plot_iou_by_category_box(results, "iou_by_category_box.png")
 
     print("\nDone! Charts saved to:", FIGURES_DIR)
 
