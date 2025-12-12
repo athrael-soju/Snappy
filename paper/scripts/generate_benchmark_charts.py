@@ -13,22 +13,22 @@ BENCHMARKS_DIR = Path(__file__).parent.parent / "benchmarks"
 FIGURES_DIR = Path(__file__).parent.parent / "figures"
 FIGURES_DIR.mkdir(exist_ok=True)
 
-# Model configurations - add new models here
+# Model configurations - ordered by size (ascending)
 MODELS = {
-    "colqwen3-8b": {
-        "label": "ColQwen3-8B",
-        "color": "#9b59b6",
-        "marker": "^",
+    "colmodernvbert-0.5b": {
+        "label": "ColModernVBERT",
+        "color": "#3498db",
+        "marker": "s",
     },
     "colqwen3-4b": {
         "label": "ColQwen3-4B",
         "color": "#2ecc71",
         "marker": "o",
     },
-    "colmodernvbert-0.5b": {
-        "label": "ColModernVBERT",
-        "color": "#3498db",
-        "marker": "s",
+    "colqwen3-8b": {
+        "label": "ColQwen3-8B",
+        "color": "#9b59b6",
+        "marker": "^",
     },
 }
 

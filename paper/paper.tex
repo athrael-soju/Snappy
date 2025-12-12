@@ -410,14 +410,14 @@ Table~\ref{tab:main_results} presents localization accuracy.
 \toprule
 \textbf{Model} & \textbf{N} & \textbf{Mean IoU} & \textbf{IoU@0.25} & \textbf{IoU@0.5} & \textbf{IoU@0.7} \\
 \midrule
-ColQwen3-8B (P50) & 1619 & 0.569 & 83.9\% & 59.8\% & 36.1\% \\
-ColQwen3-4B (P50) & 1619 & 0.569 & 84.4\% & 59.7\% & 35.8\% \\
 ColModernVBERT (P50) & 1619 & 0.480 & 72.2\% & 45.5\% & 27.9\% \\
+ColQwen3-4B (P50) & 1619 & 0.569 & 84.4\% & 59.7\% & 35.8\% \\
+ColQwen3-8B (P50) & 1619 & 0.569 & 83.9\% & 59.8\% & 36.1\% \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-ColPali's patch attention localizes relevant regions without additional training. With ColQwen3-4B, 84\% of retrieved regions overlap ground-truth evidence boxes at IoU $\geq$ 0.25, and 59.7\% at IoU $\geq$ 0.5. ColModernVBERT (250M parameters, 16$\times$ smaller than ColQwen3-4B) achieves lower localization accuracy (45.5\% at IoU@0.5) but higher token efficiency (38\% savings vs OCR, 58\% vs full image), demonstrating a quality-efficiency tradeoff that may suit different deployment scenarios.
+ColPali's patch attention localizes relevant regions without additional training. ColModernVBERT (250M parameters) achieves 45.5\% hit rate at IoU@0.5 with the highest token efficiency (38\% savings vs OCR, 58\% vs full image). Scaling to ColQwen3-4B improves localization substantially (59.7\% at IoU@0.5), but further scaling to ColQwen3-8B yields negligible gains (59.8\%), demonstrating diminishing returns from parameter scaling within the same architecture.
 
 \begin{figure}[H]
 \centering
@@ -428,26 +428,26 @@ ColPali's patch attention localizes relevant regions without additional training
 
 \subsection{Category Analysis}
 
-Tables~\ref{tab:category_results_8b},~\ref{tab:category_results}, and~\ref{tab:category_results_vbert} present performance variation across document categories for all three models.
+Tables~\ref{tab:category_results_vbert},~\ref{tab:category_results}, and~\ref{tab:category_results_8b} present performance variation across document categories for all three models, ordered by model size.
 
 \begin{table}[htbp]
 \centering
-\caption{ColQwen3-8B performance by document category. The 8B model achieves similar overall accuracy to the 4B variant, with minor variations across categories.}
-\label{tab:category_results_8b}
+\caption{ColModernVBERT performance by document category. The smallest model (250M parameters) shows consistent performance degradation across all categories compared to ColQwen3 variants, with the largest gaps in computer science and electrical engineering.}
+\label{tab:category_results_vbert}
 \begin{tabular}{lrcccc}
 \toprule
 \textbf{Category} & \textbf{N} & \textbf{Mean IoU} & \textbf{IoU@0.25} & \textbf{IoU@0.5} & \textbf{IoU@0.7} \\
 \midrule
-cs & 216 & 0.689 & 92.6\% & 74.5\% & 57.4\% \\
-eess & 196 & 0.660 & 96.4\% & 79.1\% & 44.9\% \\
-q-bio & 176 & 0.616 & 90.3\% & 66.5\% & 42.6\% \\
-physics & 213 & 0.590 & 88.3\% & 65.7\% & 33.8\% \\
-stat & 200 & 0.559 & 86.0\% & 57.0\% & 34.0\% \\
-q-fin & 216 & 0.545 & 86.6\% & 60.2\% & 29.2\% \\
-econ & 214 & 0.509 & 72.0\% & 46.3\% & 33.6\% \\
-math & 188 & 0.378 & 58.5\% & 27.7\% & 12.2\% \\
+q-bio & 176 & 0.575 & 84.1\% & 59.1\% & 39.2\% \\
+cs & 216 & 0.527 & 74.1\% & 49.5\% & 38.0\% \\
+physics & 213 & 0.521 & 80.3\% & 53.5\% & 28.6\% \\
+stat & 200 & 0.510 & 78.0\% & 50.0\% & 30.5\% \\
+q-fin & 216 & 0.459 & 72.7\% & 45.8\% & 24.5\% \\
+eess & 196 & 0.451 & 69.9\% & 42.9\% & 27.0\% \\
+econ & 214 & 0.427 & 61.2\% & 36.0\% & 25.7\% \\
+math & 188 & 0.370 & 58.0\% & 27.1\% & 10.1\% \\
 \midrule
-\textbf{Overall} & \textbf{1619} & \textbf{0.569} & \textbf{83.9\%} & \textbf{59.8\%} & \textbf{36.1\%} \\
+\textbf{Overall} & \textbf{1619} & \textbf{0.480} & \textbf{72.2\%} & \textbf{45.5\%} & \textbf{27.9\%} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -476,22 +476,22 @@ math & 188 & 0.382 & 60.1\% & 28.7\% & 11.7\% \\
 
 \begin{table}[htbp]
 \centering
-\caption{ColModernVBERT performance by document category. The smaller model shows consistent performance degradation across all categories, with the largest gaps in computer science and electrical engineering where ColQwen3-4B excels.}
-\label{tab:category_results_vbert}
+\caption{ColQwen3-8B performance by document category. The 8B model achieves nearly identical overall accuracy to the 4B variant, confirming that parameter scaling within the same architecture provides negligible localization gains.}
+\label{tab:category_results_8b}
 \begin{tabular}{lrcccc}
 \toprule
 \textbf{Category} & \textbf{N} & \textbf{Mean IoU} & \textbf{IoU@0.25} & \textbf{IoU@0.5} & \textbf{IoU@0.7} \\
 \midrule
-q-bio & 176 & 0.575 & 84.1\% & 59.1\% & 39.2\% \\
-cs & 216 & 0.527 & 74.1\% & 49.5\% & 38.0\% \\
-physics & 213 & 0.521 & 80.3\% & 53.5\% & 28.6\% \\
-stat & 200 & 0.510 & 78.0\% & 50.0\% & 30.5\% \\
-q-fin & 216 & 0.459 & 72.7\% & 45.8\% & 24.5\% \\
-eess & 196 & 0.451 & 69.9\% & 42.9\% & 27.0\% \\
-econ & 214 & 0.427 & 61.2\% & 36.0\% & 25.7\% \\
-math & 188 & 0.370 & 58.0\% & 27.1\% & 10.1\% \\
+cs & 216 & 0.689 & 92.6\% & 74.5\% & 57.4\% \\
+eess & 196 & 0.660 & 96.4\% & 79.1\% & 44.9\% \\
+q-bio & 176 & 0.616 & 90.3\% & 66.5\% & 42.6\% \\
+physics & 213 & 0.590 & 88.3\% & 65.7\% & 33.8\% \\
+stat & 200 & 0.559 & 86.0\% & 57.0\% & 34.0\% \\
+q-fin & 216 & 0.545 & 86.6\% & 60.2\% & 29.2\% \\
+econ & 214 & 0.509 & 72.0\% & 46.3\% & 33.6\% \\
+math & 188 & 0.378 & 58.5\% & 27.7\% & 12.2\% \\
 \midrule
-\textbf{Overall} & \textbf{1619} & \textbf{0.480} & \textbf{72.2\%} & \textbf{45.5\%} & \textbf{27.9\%} \\
+\textbf{Overall} & \textbf{1619} & \textbf{0.569} & \textbf{83.9\%} & \textbf{59.8\%} & \textbf{36.1\%} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -512,9 +512,9 @@ Figure~\ref{fig:tokens} visualizes the token savings achieved by our approach ac
 \midrule
 Full Image (baseline) & 4,003,039 & -- & -- \\
 All OCR Regions & 2,678,723 & -- & 33.1\% \\
-ColQwen3-8B (P50) & 1,974,263 & 26.3\% & 50.7\% \\
-\textbf{ColQwen3-4B (P50)} & \textbf{1,908,329} & \textbf{28.8\%} & \textbf{52.3\%} \\
 ColModernVBERT (P50) & 1,661,684 & 38.0\% & 58.5\% \\
+\textbf{ColQwen3-4B (P50)} & \textbf{1,908,329} & \textbf{28.8\%} & \textbf{52.3\%} \\
+ColQwen3-8B (P50) & 1,974,263 & 26.3\% & 50.7\% \\
 \bottomrule
 \end{tabular}
 \end{table}
