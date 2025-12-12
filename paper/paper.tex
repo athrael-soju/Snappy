@@ -356,11 +356,11 @@ ColQwen3-8B (P50) & 1619 & 0.569 & 83.9\% & 59.8\% & 36.1\% \\
 \end{tabular}
 \end{table}
 
-ColPali's patch attention localizes relevant regions without additional training. ColModernVBERT (250M parameters) achieves 45.5\% hit rate at IoU@0.5 with the highest token efficiency (38\% savings vs OCR, 58\% vs full image). Scaling to ColQwen3-4B improves localization substantially (59.7\% at IoU@0.5), but further scaling to ColQwen3-8B yields negligible gains (59.8\%), demonstrating diminishing returns from parameter scaling within the same architecture.
+ColPali's patch attention localizes relevant regions without additional training. ColModernVBERT (250M parameters) achieves 45.5\% hit rate at IoU@0.5 with the highest token efficiency (38\% savings vs OCR, 58\% vs full image). Scaling to ColQwen3-4B improves localization substantially (59.7\% at IoU@0.5), but further scaling to ColQwen3-8B yields negligible gains (59.8\%), demonstrating diminishing returns from parameter scaling within the same architecture. Figure~\ref{fig:iou_thresholds} visualizes this comparison across IoU thresholds.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=1\textwidth]{figures/iou_thresholds_comparison.png}
+\includegraphics[width=0.8\textwidth]{figures/iou_thresholds_comparison.png}
 \caption{Hit rate comparison across IoU thresholds. ColQwen3-8B and ColQwen3-4B achieve nearly identical performance, while both consistently outperform ColModernVBERT, with the gap widening at stricter thresholds.}
 \label{fig:iou_thresholds}
 \end{figure}
@@ -460,16 +460,16 @@ ColQwen3-8B (P50) & 1,974,263 & 26.3\% & 50.7\% \\
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=1\textwidth]{figures/token_comparison.png}
+\includegraphics[width=0.8\textwidth]{figures/token_comparison.png}
 \caption{Token usage comparison across methods. All hybrid approaches achieve substantial reductions compared to full image (4.00M) and all OCR (2.68M) baselines, with ColModernVBERT offering the greatest efficiency at 1.66M tokens. ColQwen3-8B (1.97M) and ColQwen3-4B (1.91M) achieve similar token savings.}
 \label{fig:tokens}
 \end{figure}
 
-The hybrid approach with percentile-50 filtering reduces context tokens by 29\% compared to returning all OCR regions and by 52\% compared to full-page image tokens. These savings directly reduce LLM inference costs and context window usage.
+The hybrid approach with percentile-50 filtering reduces context tokens by 29\% compared to returning all OCR regions and by 52\% compared to full-page image tokens. These savings directly reduce LLM inference costs and context window usage. Figure~\ref{fig:radar} summarizes the accuracy-efficiency tradeoff across all three models.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=1\textwidth]{figures/radar_comparison.png}
+\includegraphics[width=0.6\textwidth]{figures/radar_comparison.png}
 \caption{Multi-dimensional comparison of ColQwen3-8B, ColQwen3-4B, and ColModernVBERT. ColQwen3-8B and ColQwen3-4B achieve nearly identical accuracy metrics, while ColModernVBERT offers the best token savings. Mean IoU is scaled to percentage for visual consistency.}
 \label{fig:radar}
 \end{figure}
@@ -540,6 +540,8 @@ math & 0.382 & 0.370 & $-$0.012 & $-$1.6 pp \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+Figure~\ref{fig:category_box} visualizes the IoU distribution across categories for all three models.
 
 \begin{figure}[htbp]
 \centering
