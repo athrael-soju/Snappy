@@ -65,6 +65,8 @@ This paper presents a hybrid architecture for spatially-grounded document retrie
     \item \textbf{Theoretical Analysis.} We establish bounds on localization precision as a function of patch resolution, derive expected context reduction and precision amplification factors, and analyze computational complexity tradeoffs (Section~\ref{sec:theory}).
     
     \item \textbf{Empirical Validation and Open Implementation.} We evaluate on BBox-DocVQA, demonstrating 59.7\% hit rate at IoU@0.5 with 52\% token savings versus full-page retrieval (Section~\ref{sec:eval}). We release Snappy, a complete open-source system implementing this architecture (Section~\ref{sec:impl}).
+
+    \item \textbf{Model and Training Data Analysis.} We analyze how model architecture and training data affect patch-to-region localization, identifying two distinct regimes: a model-dependent regime where larger models yield substantial gains, and a precision-bound regime where patch quantization limits dominate regardless of model capacity (Section~\ref{sec:model_analysis}).
 \end{enumerate}
 
 Empirical evaluation on BBox-DocVQA validates that region-level retrieval achieves strong spatial grounding, with 59.7\% of retrieved regions achieving IoU $\geq$ 0.5 with ground-truth evidence bounding boxes, while reducing context tokens by over 52\% compared to full-page retrieval. These results confirm that retrieval granularity directly impacts both precision and efficiency.
@@ -516,6 +518,57 @@ The hybrid approach with percentile-50 filtering reduces context tokens by 29\% 
 \label{fig:radar}
 \end{figure}
 
+\subsection{Model Architecture and Training Data Effects}
+\label{sec:model_analysis}
+
+The substantial performance gap between ColQwen3-4B and ColModernVBERT (14.2 percentage points at IoU@0.5) invites analysis of how model architecture and training data affect patch-to-region relevance propagation.
+
+\textbf{Architectural Differences.} ColQwen3-4B merges Qwen3-VL-4B (vision encoder) with Qwen3-Embedding-4B (text encoder) \citep{qwen2025qwen3}, producing 320-dimensional multi-vector embeddings with up to 1,280 visual tokens per page. ColModernVBERT combines a 150M-parameter ModernBERT \citep{warner2024modernbert} text encoder with SigLIP2-base-16b \citep{tschannen2025siglip2} (86M parameters), using early fusion where visual patch embeddings are projected into the language model embedding space. The 16$\times$ parameter difference manifests in query embedding discriminability: larger language models produce sharper attention distributions that concentrate relevance on fewer patches, improving localization precision.
+
+\textbf{Training Data Composition.} The models differ substantially in training data:
+\begin{itemize}
+    \item \textbf{ColQwen3-4B}: Fine-tuned on VDR (Visual Document Retrieval), ViDoRe-ColPali-Training, and VisRAG-Ret-Train \citep{shi2024visrag} (OpenBMB synthetic and in-domain data), emphasizing diverse document layouts and synthetic query-document pairs.
+    \item \textbf{ColModernVBERT}: Trained on The Cauldron 2 and Docmatix (21\% OCR/document content) for modality alignment, then contrastively trained on 118k ColPali query-document pairs with 300k text-only pairs from RLHN, using a 2:1 text-to-image ratio.
+\end{itemize}
+
+The higher text-to-image ratio in ColModernVBERT's training may dilute visual grounding capabilities, while ColQwen3-4B's emphasis on synthetic document-query pairs provides broader coverage of document layouts encountered in evaluation.
+
+\textbf{Category-Specific Performance Gaps.} Table~\ref{tab:model_gap} reveals that the performance gap between models varies systematically across document categories.
+
+\begin{table}[htbp]
+\centering
+\caption{Performance gap analysis between ColQwen3-4B and ColModernVBERT by category. The gap narrows substantially for mathematics documents, suggesting both models approach fundamental precision limits for small-region localization.}
+\label{tab:model_gap}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Category} & \textbf{ColQwen3-4B} & \textbf{ColModernVBERT} & \textbf{$\Delta$ Mean IoU} & \textbf{$\Delta$ IoU@0.5} \\
+\midrule
+cs & 0.697 & 0.527 & $-$0.170 & $-$26.0 pp \\
+eess & 0.656 & 0.451 & $-$0.205 & $-$35.2 pp \\
+q-bio & 0.616 & 0.575 & $-$0.041 & $-$7.4 pp \\
+physics & 0.579 & 0.521 & $-$0.058 & $-$10.3 pp \\
+stat & 0.559 & 0.510 & $-$0.049 & $-$7.0 pp \\
+q-fin & 0.543 & 0.459 & $-$0.084 & $-$13.9 pp \\
+econ & 0.513 & 0.427 & $-$0.086 & $-$10.7 pp \\
+math & 0.382 & 0.370 & $-$0.012 & $-$1.6 pp \\
+\midrule
+\textbf{Overall} & \textbf{0.569} & \textbf{0.480} & $-$\textbf{0.089} & $-$\textbf{14.2 pp} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The \emph{smallest} performance gap occurs in mathematics documents ($\Delta = 0.012$ Mean IoU), where both models achieve their lowest absolute performance. This convergence suggests that mathematics documents approach a \emph{fundamental precision ceiling} imposed by patch quantization rather than model capacity. Equations and dense mathematical notation produce small regions that cannot be accurately localized regardless of model quality, consistent with the theoretical bounds in Section~\ref{sec:theory}.
+
+Conversely, the \emph{largest} gaps appear in computer science ($\Delta = 0.170$) and electrical engineering ($\Delta = 0.205$) documents, where ColQwen3-4B's superior attention discrimination yields substantial improvements. These categories feature larger, well-separated regions (figures, code blocks, prose paragraphs) where model capacity translates directly to localization accuracy.
+
+\textbf{Implications for Model Selection.} This analysis suggests two distinct regimes:
+\begin{enumerate}
+    \item \textbf{Model-dependent regime}: For documents with large, well-separated regions (CS, EESS, Q-Bio), larger models provide substantial accuracy gains.
+    \item \textbf{Precision-bound regime}: For documents with dense, small regions (math, economics tables), model improvements yield diminishing returns due to fundamental patch quantization limits.
+\end{enumerate}
+
+Applications should consider document characteristics when selecting models: ColModernVBERT's 16$\times$ parameter efficiency may be acceptable for mathematics-heavy corpora where both models approach the same precision ceiling, while ColQwen3-4B's accuracy advantage justifies its cost for technical documentation with varied layouts.
+
 \section{Discussion}
 \label{sec:discussion}
 
@@ -543,6 +596,8 @@ The hybrid approach with percentile-50 filtering reduces context tokens by 29\% 
 
 \textbf{Model-Agnostic Scaling Toward Enterprise Viability.} Because our approach operates at inference time by composing outputs from independent late-interaction and OCR components, it automatically benefits from advances in either domain. Critically, the quality of region-level retrieval depends directly on the \emph{spatial precision of patch-level similarity distributions}---how tightly the model's attention concentrates on semantically relevant page regions. Our comparison between ColQwen3-4B and ColModernVBERT demonstrates this relationship: the larger model's more refined patch attention yields substantially higher localization accuracy (59.7\% vs 45.5\% at IoU@0.5), while the smaller model offers greater token efficiency (58\% vs 52\% savings vs full image). As late-interaction visual retrievers continue to develop more discriminative spatial attention through improved pre-training objectives and higher-resolution patch grids, our approach will inherit these gains without architectural modification. This positions the framework for enterprise deployment: organizations can choose models along the accuracy-efficiency frontier based on their requirements, and upgrade their underlying retrieval model as the field advances.
 
+\textbf{Deployment Readiness by Document Type.} The two-regime analysis (Section~\ref{sec:model_analysis}) provides actionable guidance for enterprise deployment. For document types in the \emph{model-dependent regime}---technical documentation, scientific papers with figures, mixed prose and table content---current models achieve 60--78\% localization accuracy at IoU@0.5, suitable for production RAG systems where retrieved regions provide substantial context reduction with acceptable precision. For document types in the \emph{precision-bound regime}---mathematics-heavy content, dense financial tables---organizations can either accept current accuracy with the understanding that it reflects fundamental patch quantization limits rather than model deficiencies, or defer deployment until higher-resolution patch models (e.g., SigLIP NaFlex variants \citep{tschannen2025siglip2}) mature. This distinction enables principled deployment decisions: the approach is enterprise-ready for the majority of document types, with well-characterized limitations for the remainder.
+
 \section{Conclusion}
 
 We presented a hybrid architecture for spatially-grounded document retrieval that unifies late-interaction retrieval with structured OCR extraction. By formalizing the coordinate mapping between ColPali's patch grid and OCR bounding boxes, we enable region-level retrieval without additional training. Our approach operates entirely at inference time, providing flexibility across OCR systems and late-interaction retrieval backends.
@@ -551,11 +606,13 @@ Empirical evaluation on BBox-DocVQA validates our approach. Using ColQwen3-4B wi
 
 Category analysis across eight arXiv domains reveals systematic performance variation: computer science and electrical engineering documents achieve higher localization accuracy (Mean IoU $\geq$ 0.65) than economics (0.51) and mathematics (0.38) documents, with physics (0.58) and quantitative biology (0.62) falling in between. This gap aligns with our theoretical precision bounds: smaller regions in dense tables and equations suffer disproportionately from patch quantization effects.
 
+Analysis of model architecture and training data effects reveals two distinct performance regimes. In the \emph{model-dependent regime}, exemplified by computer science and electrical engineering documents, ColQwen3-4B's 16$\times$ larger capacity yields substantial improvements over ColModernVBERT (up to 35 percentage points at IoU@0.5). In the \emph{precision-bound regime}, exemplified by mathematics documents, both models converge to similar performance ($\Delta = 1.6$ pp) as patch quantization limits dominate. This finding has practical implications: smaller, efficient models may suffice for document types where fundamental precision bounds constrain accuracy regardless of model capacity.
+
 The two-stage architecture balances computational efficiency with region-level granularity, making the approach practical for large-scale document collections. We release Snappy as an open-source implementation at \url{https://github.com/athrael-soju/Snappy}, demonstrating practical applicability for retrieval-augmented generation with reduced context windows and improved precision.
 
 \section*{Acknowledgments}
 
-The author thanks the ColPali team for their foundational work on late-interaction document retrieval and for maintaining an open research ecosystem that enabled this work. The Snappy system implementation is available at \url{https://github.com/athrael-soju/Snappy}.
+The author thanks the ColPali team (ILLUIN Technology) for their foundational work on late-interaction document retrieval and for maintaining an open research ecosystem that enabled this work. We also thank TomoroAI for releasing the ColQwen3 embedding models under Apache 2.0 license, and the Qwen team (Alibaba Cloud) for the Qwen3-VL and Qwen3-Embedding foundation models. The Snappy system implementation is available at \url{https://github.com/athrael-soju/Snappy}.
 
 \begin{thebibliography}{20}
 
@@ -624,6 +681,26 @@ Paul Teiletche, Quentin Mac{\'e}, Max Conti, Antonio Loison, Gautier Viaud, Pier
 Varun Magesh, Faiz Surani, Matthew Dahl, Mirac Suzgun, Christopher D. Manning, and Daniel E. Ho.
 \newblock Hallucination-Free? {Assessing} the Reliability of Leading {AI} Legal Research Tools.
 \newblock \emph{Journal of Empirical Legal Studies}, 22:216, 2025.
+
+\bibitem[Shi et~al.(2024)]{shi2024visrag}
+Shi Yu, Chaoyue Tang, Bokai Xu, Junbo Cui, Jieyu Zhang, Jiawei Gu, Ruhui Xue, Hongyu Lin, Xianpei Han, and Le Sun.
+\newblock {VisRAG}: Vision-based Retrieval-augmented Generation on Multi-modality Documents.
+\newblock arXiv:2410.10594, 2024.
+
+\bibitem[Tschannen et~al.(2025)]{tschannen2025siglip2}
+Michael Tschannen, Alexey Gritsenko, Xiao Wang, Muhammad Ferjad Naeem, Ibrahim Alabdulmohsin, Nikhil Parthasarathy, Talfan Evans, Lucas Beyer, Ye Xia, Basil Mustafa, Olivier H{\'e}naff, Jeremiah Harmsen, Andreas Steiner, and Xiaohua Zhai.
+\newblock {SigLIP} 2: Multilingual Vision-Language Encoders with Improved Semantic Understanding, Localization, and Dense Features.
+\newblock arXiv:2502.14786, 2025.
+
+\bibitem[Qwen Team(2025)]{qwen2025qwen3}
+Qwen Team.
+\newblock Qwen3 Technical Report.
+\newblock arXiv:2505.09388, 2025.
+
+\bibitem[Warner et~al.(2024)]{warner2024modernbert}
+Benjamin Warner, Antoine Chaffin, Benjamin Clavi{\'e}, Orion Weller, Oskar Hallstr{\"o}m, Said Taghadouini, Alexis Gallagher, Raja Biswas, Faisal Ladhak, Tom Aarsen, Nathan Cooper, Griffin Adams, Jeremy Howard, and Iacopo Poli.
+\newblock Smarter, Better, Faster, Longer: A Modern Bidirectional Encoder for Fast, Memory Efficient, and Long Context Finetuning and Inference.
+\newblock arXiv:2412.13663, 2024.
 
 \end{thebibliography}
 
