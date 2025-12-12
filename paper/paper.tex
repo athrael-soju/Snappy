@@ -268,70 +268,9 @@ For typical document parameters ($M = 15$ regions per page, $k = 3$ returned reg
 \end{itemize}
 \end{corollary}
 
-\subsubsection{Precision Amplification}
+\subsubsection{Precision and Signal-to-Noise Improvement}
 
-We model retrieval precision as the probability that a returned region contains relevant content.
-
-\begin{definition}[Region Relevance]
-Let $R_j \in \{0, 1\}$ indicate whether region $j$ contains content relevant to query $q$. For a typical factoid query, we assume $\sum_j R_j \in \{1, 2\}$ (one or two relevant regions per page).
-\end{definition}
-
-\begin{theorem}[Precision Comparison]
-\label{thm:precision}
-Let $\rho = \sum_j R_j / M$ denote the fraction of relevant regions on a page. Then:
-
-\textbf{(i) OCR-only (random selection of $k$ regions):}
-\begin{equation}
-\mathbb{E}[\text{Precision}_{\text{OCR}}] = \rho
-\end{equation}
-
-\textbf{(ii) ColPali page-level:}
-\begin{equation}
-\text{Precision}_{\text{ColPali}} = \rho \quad \text{(all regions returned implicitly)}
-\end{equation}
-
-\textbf{(iii) Hybrid with score-based ranking:} If patch scores $s_j$ satisfy $\mathbb{E}[s_j | R_j = 1] > \mathbb{E}[s_j | R_j = 0]$ (relevant regions score higher on average), then selecting top-$k$ by score yields:
-\begin{equation}
-\mathbb{E}[\text{Precision}_{\text{Hybrid}}] > \rho
-\end{equation}
-with the improvement depending on the score separation between relevant and irrelevant regions.
-\end{theorem}
-
-\begin{proof}
-Parts (i) and (ii) follow directly from the definition of $\rho$. For (iii), score-based ranking is equivalent to a classifier with ROC curve above the diagonal when relevant regions have higher expected scores. By the Neyman-Pearson lemma, thresholding on any statistic positively correlated with relevance improves precision over random selection.
-\end{proof}
-
-\subsubsection{Signal-to-Noise Ratio}
-
-We model the expected improvement in context quality from region-level retrieval. This analysis provides theoretical motivation; empirical validation of downstream LLM answer quality is outside our scope.
-
-\begin{definition}[Retrieval SNR]
-For retrieved context $C$, define:
-\begin{equation}
-\text{SNR}(C) = \frac{|C \cap \text{Relevant}|}{|C \cap \text{Irrelevant}|}
-\end{equation}
-where $|\cdot|$ denotes token count.
-\end{definition}
-
-\begin{theorem}[SNR Improvement]
-\label{thm:snr}
-Under the assumption that relevant and irrelevant regions have similar average token counts:
-
-\textbf{(i)} Page-level retrieval: $\text{SNR}_{\text{page}} = \rho / (1 - \rho)$
-
-\textbf{(ii)} Hybrid top-$k$ retrieval with precision $P_k$: $\text{SNR}_{\text{hybrid}} = P_k / (1 - P_k)$
-
-The SNR improvement factor is:
-\begin{equation}
-\frac{\text{SNR}_{\text{hybrid}}}{\text{SNR}_{\text{page}}} = \frac{P_k (1 - \rho)}{\rho (1 - P_k)}
-\end{equation}
-\end{theorem}
-
-\begin{proof}
-For page-level retrieval, the fraction of relevant tokens equals $\rho$ by definition. For hybrid retrieval with precision $P_k$, the expected fraction of relevant tokens among returned regions is $P_k$. The SNR ratio follows from algebraic manipulation.
-\end{proof}
-
-\subsubsection{Summary of Expected Gains}
+Score-based region ranking improves retrieval precision over random selection whenever patch scores correlate positively with relevance---an assumption validated empirically in Section~\ref{sec:eval}. This precision improvement directly translates to better signal-to-noise ratio in retrieved context: selecting fewer, higher-relevance regions reduces the irrelevant content that downstream LLMs must process.
 
 Table~\ref{tab:combined} provides a unified view of the cost-quality tradeoff, showing that our hybrid approach achieves the context efficiency of OCR-based selection while providing the relevance ranking that OCR alone cannot offer.
 
@@ -361,7 +300,7 @@ Figure~\ref{fig:architecture} illustrates the Snappy system architecture, showin
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.75\textwidth]{architecture.png}
+\includegraphics[width=1\textwidth]{architecture.png}
 \caption{Snappy system architecture. The indexing pipeline processes documents through parallel OCR and embedding branches. The query pipeline retrieves candidates via ANN search, computes patch-level similarities, and filters OCR regions by relevance.}
 \label{fig:architecture}
 \end{figure}
@@ -421,7 +360,7 @@ ColPali's patch attention localizes relevant regions without additional training
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.7\textwidth]{figures/iou_thresholds_comparison.png}
+\includegraphics[width=1\textwidth]{figures/iou_thresholds_comparison.png}
 \caption{Hit rate comparison across IoU thresholds. ColQwen3-8B and ColQwen3-4B achieve nearly identical performance, while both consistently outperform ColModernVBERT, with the gap widening at stricter thresholds.}
 \label{fig:iou_thresholds}
 \end{figure}
@@ -521,7 +460,7 @@ ColQwen3-8B (P50) & 1,974,263 & 26.3\% & 50.7\% \\
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.75\textwidth]{figures/token_comparison.png}
+\includegraphics[width=1\textwidth]{figures/token_comparison.png}
 \caption{Token usage comparison across methods. All hybrid approaches achieve substantial reductions compared to full image (4.00M) and all OCR (2.68M) baselines, with ColModernVBERT offering the greatest efficiency at 1.66M tokens. ColQwen3-8B (1.97M) and ColQwen3-4B (1.91M) achieve similar token savings.}
 \label{fig:tokens}
 \end{figure}
@@ -530,7 +469,7 @@ The hybrid approach with percentile-50 filtering reduces context tokens by 29\% 
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.65\textwidth]{figures/radar_comparison.png}
+\includegraphics[width=1\textwidth]{figures/radar_comparison.png}
 \caption{Multi-dimensional comparison of ColQwen3-8B, ColQwen3-4B, and ColModernVBERT. ColQwen3-8B and ColQwen3-4B achieve nearly identical accuracy metrics, while ColModernVBERT offers the best token savings. Mean IoU is scaled to percentage for visual consistency.}
 \label{fig:radar}
 \end{figure}
@@ -604,7 +543,7 @@ math & 0.382 & 0.370 & $-$0.012 & $-$1.6 pp \\
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.85\textwidth]{figures/iou_by_category_box.png}
+\includegraphics[width=1\textwidth]{figures/iou_by_category_box.png}
 \caption{IoU distribution by document category for ColQwen3-8B, ColQwen3-4B, and ColModernVBERT. Box plots show median, quartiles, and outliers. Categories ordered by mean IoU (highest to lowest). Mathematics documents show consistently low performance across all models, while computer science achieves both higher mean and greater spread.}
 \label{fig:category_box}
 \end{figure}
