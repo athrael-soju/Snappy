@@ -385,7 +385,7 @@ Qdrant stores both page-level pooled embeddings (for Stage 1 candidate retrieval
 
 We evaluate our approach on BBox-DocVQA, measuring spatial grounding accuracy and token efficiency. Our experiments address three questions: (1) How accurately does patch-to-region relevance propagation localize relevant content? (2) How does performance vary across document categories? (3) What token savings does the approach achieve?
 
-\textbf{Evaluation Scope.} Our evaluation targets the core contribution: \emph{region-level localization within a page}. Given a page containing the answer, can our approach identify the specific region? This complements page-level retrieval benchmarks like ViDoRe \citep{faysse2024colpali}, which measure whether the correct page is retrieved. We use IoU-based spatial grounding metrics to directly measure localization accuracy against ground-truth evidence bounding boxes.
+\textbf{Evaluation Scope.} Our evaluation targets the core contribution: \emph{region-level localization within a page}. Given a page containing the answer, can our approach identify the specific region? This complements page-level retrieval benchmarks like ViDoRe \citep{faysse2024colpali}, which measure whether the correct page is retrieved. We use IoU-based spatial grounding metrics to directly measure localization accuracy against ground-truth evidence bounding boxes. We evaluate within-page localization (Stage 2); page-level retrieval accuracy (Stage 1) is measured by existing ViDoRe benchmarks and is outside our scope.
 
 \subsection{Experimental Setup}
 
@@ -584,17 +584,24 @@ math & 0.382 & 0.370 & $-$0.012 & $-$1.6 pp \\
 \end{tabular}
 \end{table}
 
-The \emph{smallest} performance gap occurs in mathematics documents ($\Delta = 0.012$ Mean IoU), where both models achieve their lowest absolute performance. This convergence suggests that mathematics documents approach a \emph{fundamental precision ceiling} imposed by patch quantization rather than model capacity. Equations and dense mathematical notation produce small regions that cannot be accurately localized regardless of model quality, consistent with the theoretical bounds in Section~\ref{sec:theory}.
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/iou_by_category_box.png}
+\caption{IoU distribution by document category. Box plots show median, quartiles, and outliers. Categories ordered by mean IoU (highest to lowest). Mathematics documents show consistently low performance with tight variance, while computer science achieves both higher mean and greater spread.}
+\label{fig:category_box}
+\end{figure}
+
+The \emph{smallest} performance gap occurs in mathematics documents ($\Delta = 0.012$ Mean IoU), where both models achieve their lowest absolute performance. This convergence suggests that mathematics documents present challenges that affect both models similarly---whether due to training data composition, difficulty parsing equations and dense notation, or other factors. The precise cause remains an open question for future work.
 
 Conversely, the \emph{largest} gaps appear in computer science ($\Delta = 0.170$) and electrical engineering ($\Delta = 0.205$) documents, where ColQwen3-4B's superior attention discrimination yields substantial improvements. These categories feature larger, well-separated regions (figures, code blocks, prose paragraphs) where model capacity translates directly to localization accuracy.
 
-\textbf{Implications for Model Selection.} This analysis suggests two distinct regimes:
+\textbf{Implications for Model Selection.} This analysis suggests two empirically distinct regimes:
 \begin{enumerate}
-    \item \textbf{Model-dependent regime}: For documents with large, well-separated regions (CS, EESS, Q-Bio), larger models provide substantial accuracy gains.
-    \item \textbf{Precision-bound regime}: For documents with dense, small regions (math, economics tables), model improvements yield diminishing returns due to fundamental patch quantization limits.
+    \item \textbf{Model-sensitive documents}: For documents with large, well-separated regions (CS, EESS, Q-Bio), larger models provide substantial accuracy gains.
+    \item \textbf{Uniformly challenging documents}: For mathematics and dense tabular content, both models underperform similarly, suggesting challenges beyond model capacity alone.
 \end{enumerate}
 
-Applications should consider document characteristics when selecting models: ColModernVBERT's 16$\times$ parameter efficiency may be acceptable for mathematics-heavy corpora where both models approach the same precision ceiling, while ColQwen3-4B's accuracy advantage justifies its cost for technical documentation with varied layouts.
+Applications should consider document characteristics when selecting models: ColModernVBERT's 16$\times$ parameter efficiency may be acceptable for mathematics-heavy corpora where both models achieve similar accuracy, while ColQwen3-4B's accuracy advantage justifies its cost for technical documentation with varied layouts.
 
 \section{Discussion}
 \label{sec:discussion}
@@ -603,13 +610,15 @@ Applications should consider document characteristics when selecting models: Col
 
 \textbf{Patch Resolution Bound.} As analyzed in Section~\ref{sec:theory}, small regions suffer from limited localization precision due to fixed patch granularity. For ColPali's 14-pixel patches, regions smaller than approximately $35 \times 35$ pixels achieve less than 50\% precision. Future work could explore multi-scale patch embeddings or dynamic resolution based on document density.
 
-\textbf{OCR Dependency.} Region quality depends on OCR accuracy and segmentation. Poorly segmented regions (merged paragraphs, split tables) degrade retrieval quality regardless of the retrieval model's spatial attention accuracy. Layout-aware OCR systems like DeepSeek OCR with visual grounding mitigate this, but OCR errors propagate to retrieval.
+\textbf{OCR Dependency.} Region quality depends on OCR accuracy and segmentation. Poorly segmented regions (merged paragraphs, split tables) degrade retrieval quality regardless of the retrieval model's spatial attention accuracy. Layout-aware OCR systems like DeepSeek OCR with visual grounding mitigate this, but OCR errors propagate to retrieval. Note that OCR segmentation quality affects region boundaries but is orthogonal to our relevance scoring mechanism; our contribution is patch-to-region propagation, not OCR quality.
 
 \textbf{Emergent Attention Limitations.} ColPali's patch attention is optimized for page-level retrieval through training, not explicitly for region-level localization. Attention may diffuse across semantically related but spatially distant regions (e.g., a header and its corresponding paragraph). We rely on OCR region boundaries to constrain this diffusion.
 
 \textbf{Two-Stage Information Loss.} The mean-pooling in Stage 1 discards spatial information, potentially missing pages where relevant content is concentrated in small regions. Relevant pages could be filtered out before Stage 2 region scoring. Alternative pooling strategies (max pooling, attention-weighted pooling) may mitigate this.
 
-\textbf{Category-Specific Performance.} Empirical evaluation reveals substantial performance variation across document types. Mathematics documents achieve only 28.7\% hit rate at IoU@0.5 compared to 78.1\% for electrical engineering documents. This gap reflects the patch quantization effects predicted by our theoretical analysis: mathematics papers contain equations and dense notation where relevant content spans small regions that are poorly aligned with the fixed patch grid. Applications targeting specific document types should consider this variation when setting performance expectations.
+\textbf{Category-Specific Performance.} Empirical evaluation reveals substantial performance variation across document types. Mathematics documents achieve only 28.7\% hit rate at IoU@0.5 compared to 78.1\% for electrical engineering documents. This gap likely reflects multiple factors: training data composition favoring certain document types, difficulty parsing equations and dense mathematical notation, and potential patch quantization effects for small regions. Applications targeting specific document types should consider this variation when setting performance expectations.
+
+\textbf{Within-Document Variance.} Variance decomposition reveals that 72\% of IoU variance is \emph{within-document} (same document, different questions) versus 28\% between documents. This suggests that question-specific semantic factors---rather than inherent document difficulty---dominate localization performance. A document may yield high IoU for one question and low IoU for another, depending on how well the query aligns with the model's learned attention patterns. This finding implies that per-category performance statistics represent averages over highly variable per-question outcomes.
 
 \subsection{Future Directions}
 
@@ -623,7 +632,7 @@ Applications should consider document characteristics when selecting models: Col
 
 \textbf{Model-Agnostic Scaling Toward Enterprise Viability.} Because our approach operates at inference time by composing outputs from independent late-interaction and OCR components, it automatically benefits from advances in either domain. Critically, the quality of region-level retrieval depends directly on the \emph{spatial precision of patch-level similarity distributions}: how tightly the model's attention concentrates on semantically relevant page regions. Our comparison between ColQwen3-4B and ColModernVBERT demonstrates this relationship: the larger model's more refined patch attention yields substantially higher localization accuracy (59.7\% vs 45.5\% at IoU@0.5), while the smaller model offers greater token efficiency (58\% vs 52\% savings vs full image). As late-interaction visual retrievers continue to develop more discriminative spatial attention through improved pre-training objectives and higher-resolution patch grids, our approach will inherit these gains without architectural modification. This positions the framework for enterprise deployment: organizations can choose models along the accuracy-efficiency frontier based on their requirements, and upgrade their underlying retrieval model as the field advances.
 
-\textbf{Deployment Readiness by Document Type.} The two-regime analysis (Section~\ref{sec:model_analysis}) provides actionable guidance for enterprise deployment. For document types in the \emph{model-dependent regime} (technical documentation, scientific papers with figures, mixed prose and table content), current models achieve 60--78\% localization accuracy at IoU@0.5, suitable for production RAG systems where retrieved regions provide substantial context reduction with acceptable precision. For document types in the \emph{precision-bound regime} (mathematics-heavy content, dense financial tables), organizations can either accept current accuracy with the understanding that it reflects fundamental patch quantization limits rather than model deficiencies, or defer deployment until higher-resolution patch models (e.g., SigLIP NaFlex variants \citep{tschannen2025siglip2}) mature. This distinction enables principled deployment decisions: the approach is enterprise-ready for the majority of document types, with well-characterized limitations for the remainder.
+\textbf{Deployment Readiness by Document Type.} The category analysis (Section~\ref{sec:model_analysis}) provides actionable guidance for enterprise deployment. For model-sensitive document types (technical documentation, scientific papers with figures, mixed prose and table content), current models achieve 60--78\% localization accuracy at IoU@0.5, suitable for production RAG systems where retrieved regions provide substantial context reduction with acceptable precision. For uniformly challenging document types (mathematics-heavy content, dense financial tables), both models achieve similar, lower accuracy; organizations can either accept current performance or wait for improved models with better coverage of these document types. This distinction enables principled deployment decisions: the approach is enterprise-ready for the majority of document types, with well-characterized limitations for the remainder.
 
 \section{Conclusion}
 
@@ -631,9 +640,9 @@ We presented a hybrid architecture for spatially-grounded document retrieval tha
 
 On BBox-DocVQA with ColQwen3-4B, we achieve 59.7\% hit rate at IoU@0.5 and 52\% token savings compared to full-page retrieval, consistent with the efficiency gains predicted by Theorem~\ref{thm:context}.
 
-Category analysis across eight arXiv domains reveals systematic performance variation: computer science and electrical engineering documents achieve higher localization accuracy (Mean IoU $\geq$ 0.65) than economics (0.51) and mathematics (0.38) documents, with physics (0.58) and quantitative biology (0.62) falling in between. This gap aligns with our theoretical precision bounds: smaller regions in dense tables and equations suffer disproportionately from patch quantization effects.
+Category analysis across eight arXiv domains reveals systematic performance variation: computer science and electrical engineering documents achieve higher localization accuracy (Mean IoU $\geq$ 0.65) than economics (0.51) and mathematics (0.38) documents, with physics (0.58) and quantitative biology (0.62) falling in between.
 
-Analysis of model architecture and training data effects reveals two distinct performance regimes. In the \emph{model-dependent regime}, exemplified by computer science and electrical engineering documents, ColQwen3-4B's 16$\times$ larger capacity yields substantial improvements over ColModernVBERT (up to 35 percentage points at IoU@0.5). In the \emph{precision-bound regime}, exemplified by mathematics documents, both models converge to similar performance ($\Delta = 1.6$ pp) as patch quantization limits dominate. This finding has practical implications: smaller, efficient models may suffice for document types where fundamental precision bounds constrain accuracy regardless of model capacity.
+Analysis of model architecture and training data effects reveals two empirically distinct regimes. For model-sensitive document types (computer science, electrical engineering), ColQwen3-4B's 16$\times$ larger capacity yields substantial improvements over ColModernVBERT (up to 35 percentage points at IoU@0.5). For uniformly challenging document types (mathematics), both models converge to similar performance ($\Delta = 1.6$ pp), suggesting challenges that affect both models similarly. This finding has practical implications: smaller, efficient models may suffice for document types where both models achieve comparable accuracy.
 
 The two-stage architecture balances computational efficiency with region-level granularity, making the approach practical for large-scale document collections. We release Snappy as an open-source implementation at \url{https://github.com/athrael-soju/Snappy}, demonstrating practical applicability for retrieval-augmented generation with reduced context windows and improved precision.
 
