@@ -34,7 +34,7 @@
 \maketitle
 
 \begin{abstract}
-Vision-language models (VLMs) like ColPali achieve state-of-the-art document retrieval by embedding pages as images and computing fine-grained similarity between query tokens and visual patches. However, they return entire pages rather than specific regions, limiting utility for retrieval-augmented generation (RAG) where precise context is paramount. Conversely, OCR-based systems extract structured text with bounding box coordinates but lack semantic grounding for relevance assessment. We propose a hybrid architecture that unifies these paradigms: using ColPali's patch-level similarity scores as spatial relevance filters over OCR-extracted regions. We formalize the coordinate mapping between vision transformer patch grids and OCR bounding boxes, introduce intersection metrics for relevance propagation, and establish theoretical bounds on retrieval precision. We evaluate on BBox-DocVQA with ground-truth bounding boxes. Using ColQwen3-4B with percentile-50 thresholding, our approach achieves \textbf{85.8\% hit rate at IoU@0.25}, \textbf{62.3\% at IoU@0.5}, and \textbf{41.9\% at IoU@0.7}, with mean IoU of \textbf{0.597}. Our approach reduces context tokens by \textbf{30\%} compared to returning all OCR regions and by \textbf{54\%} compared to full-page image tokens. Our approach operates at inference time without additional training. We release Snappy, an open-source implementation at \url{https://github.com/athrael-soju/Snappy}.
+Late-interaction multimodal retrieval models like ColPali achieve state-of-the-art document retrieval by embedding pages as images and computing fine-grained similarity between query tokens and visual patches. However, they return entire pages rather than specific regions, limiting utility for retrieval-augmented generation (RAG) where precise context is paramount. Conversely, OCR-based systems extract structured text with bounding box coordinates but lack semantic grounding for relevance assessment. We propose a hybrid architecture that unifies these paradigms: using ColPali's patch-level similarity scores as spatial relevance filters over OCR-extracted regions. We formalize the coordinate mapping between vision transformer patch grids and OCR bounding boxes, introduce intersection metrics for relevance propagation, and establish theoretical bounds on retrieval precision. We evaluate on BBox-DocVQA with ground-truth bounding boxes. Using ColQwen3-4B with percentile-50 thresholding, our approach achieves \textbf{84.4\% hit rate at IoU@0.25}, \textbf{59.7\% at IoU@0.5}, and \textbf{35.8\% at IoU@0.7}, with mean IoU of \textbf{0.569}. Our approach reduces context tokens by \textbf{29\%} compared to returning all OCR regions and by \textbf{52\%} compared to full-page image tokens. Our approach operates at inference time without additional training. We release Snappy, an open-source implementation at \url{https://github.com/athrael-soju/Snappy}.
 \end{abstract}
 
 \section{Introduction}
@@ -43,11 +43,11 @@ Retrieval-augmented generation (RAG) has emerged as the dominant paradigm for gr
 
 Documents are not sequences of tokens but \emph{spatially-organized visual artifacts}. A single page may contain heterogeneous elements, including tables, figures, equations, headers, and footnotes, each carrying distinct semantic content at different spatial locations. When a user queries ``What was the Q3 revenue?'', the answer likely resides in a specific table cell, not spread across the entire page. Yet current retrieval systems operate at the wrong granularity.
 
-Vision-language models (VLMs) such as ColPali \citep{faysse2024colpali} have achieved state-of-the-art performance on document retrieval benchmarks by embedding document pages directly as images. ColPali produces 1,024 patch embeddings (a $32 \times 32$ grid) per page, each projected to 128 dimensions. The model computes relevance through late interaction, specifically a MaxSim operation that sums the maximum similarity between each query token and all document patches. This approach elegantly sidesteps OCR errors and preserves layout semantics. However, ColPali and its variants return \emph{entire pages} as retrieval units. For RAG applications, this is problematic: feeding a full page into a language model's context window introduces irrelevant content, increases latency, inflates costs, and, critically, dilutes the signal that the model must attend to. The retrieval system knows \emph{which page} contains the answer but not \emph{where on the page}.
+Late-interaction retrievers such as ColPali \citep{faysse2024colpali} have achieved state-of-the-art performance on document retrieval benchmarks by embedding document pages directly as images. ColPali produces 1,024 patch embeddings (a $32 \times 32$ grid) per page, each projected to 128 dimensions. The model computes relevance through late interaction, specifically a MaxSim operation that sums the maximum similarity between each query token and all document patches. This approach elegantly sidesteps OCR errors and preserves layout semantics. However, ColPali and its variants return \emph{entire pages} as retrieval units. For RAG applications, this is problematic: feeding a full page into a language model's context window introduces irrelevant content, increases latency, inflates costs, and, critically, dilutes the signal that the model must attend to. The retrieval system knows \emph{which page} contains the answer but not \emph{where on the page}.
 
 Conversely, OCR-based pipelines extract text with precise bounding box coordinates, enabling structured representations of document content. Tables become rows and columns; figures receive captions; headers define hierarchy. This structural fidelity is invaluable for downstream processing. Yet OCR systems lack \emph{semantic grounding}. They cannot assess which extracted regions are relevant to a given query. A page with twenty OCR regions offers no ranking mechanism; all regions are treated as equally plausible candidates.
 
-We observe that these paradigms are complementary. ColPali's patch-level similarity scores encode \emph{where} on a page the model attends when processing a query. This information is computed but discarded when returning page-level results. OCR systems know \emph{what} content exists and \emph{where} it is located, but not \emph{why} it matters. By unifying these signals through spatial coordinate mapping, we achieve region-level retrieval: returning only the document regions that are both structurally coherent (via OCR) and semantically relevant (via VLM attention).
+We observe that these paradigms are complementary. ColPali's patch-level similarity scores encode \emph{where} on a page the model attends when processing a query. This information is computed but discarded when returning page-level results. OCR systems know \emph{what} content exists and \emph{where} it is located, but not \emph{why} it matters. By unifying these signals through spatial coordinate mapping, we achieve region-level retrieval: returning only the document regions that are both structurally coherent (via OCR) and semantically relevant (via late-interaction attention).
 
 Crucially, our approach operates at \emph{inference time} without additional training. Unlike RegionRAG \citep{regionrag2025}, which uses a hybrid training approach combining bounding box annotations with weakly-supervised signals from unlabeled data, our method leverages ColPali's emergent patch attention as a post-hoc spatial filter. This provides flexibility: the same approach works with any OCR system providing bounding boxes and any ColPali-family model.
 
@@ -64,14 +64,14 @@ This paper presents a hybrid architecture for spatially-grounded document retrie
     
     \item \textbf{Theoretical Analysis.} We establish bounds on localization precision as a function of patch resolution, derive expected context reduction and precision amplification factors, and analyze computational complexity tradeoffs (Section~\ref{sec:theory}).
     
-    \item \textbf{Empirical Validation and Open Implementation.} We evaluate on BBox-DocVQA, demonstrating 62.3\% hit rate at IoU@0.5 with 54\% token savings versus full-page retrieval (Section~\ref{sec:eval}). We release Snappy, a complete open-source system implementing this architecture (Section~\ref{sec:impl}).
+    \item \textbf{Empirical Validation and Open Implementation.} We evaluate on BBox-DocVQA, demonstrating 59.7\% hit rate at IoU@0.5 with 52\% token savings versus full-page retrieval (Section~\ref{sec:eval}). We release Snappy, a complete open-source system implementing this architecture (Section~\ref{sec:impl}).
 \end{enumerate}
 
-Empirical evaluation on BBox-DocVQA validates that region-level retrieval achieves strong spatial grounding, with 62.3\% of retrieved regions achieving IoU $\geq$ 0.5 with ground-truth evidence bounding boxes, while reducing context tokens by over 54\% compared to full-page retrieval. These results confirm that retrieval granularity directly impacts both precision and efficiency.
+Empirical evaluation on BBox-DocVQA validates that region-level retrieval achieves strong spatial grounding, with 59.7\% of retrieved regions achieving IoU $\geq$ 0.5 with ground-truth evidence bounding boxes, while reducing context tokens by over 52\% compared to full-page retrieval. These results confirm that retrieval granularity directly impacts both precision and efficiency.
 
 \section{Background and Related Work}
 
-\subsection{Vision-Language Document Retrieval}
+\subsection{Late-Interaction Multimodal Retrieval}
 
 \textbf{ColPali and Late Interaction.} ColPali \citep{faysse2024colpali} represents the state-of-the-art in visual document retrieval. Built on a SigLIP-So400m vision encoder, it produces 1,024 patch embeddings per page ($32 \times 32$ grid over $448 \times 448$ input resolution), each projected to 128 dimensions via a language model projection layer. Unlike single-vector approaches that pool visual features into a single embedding, ColPali preserves patch-level granularity and computes relevance through MaxSim, summing the maximum similarity between each query token and all document patches. This late interaction mechanism, inherited from ColBERT \citep{khattab2020colbert}, enables fine-grained matching while remaining computationally tractable for retrieval at scale.
 
@@ -89,13 +89,13 @@ OCR-free approaches including Donut \citep{kim2022donut} and Pix2Struct \citep{l
 
 \textbf{RegionRAG.} The closest existing work is RegionRAG \citep{regionrag2025}, which shifts retrieval from document-level to semantic region-level granularity. However, RegionRAG uses a hybrid approach combining bounding box annotations with weakly-supervised signals from unlabeled data and a region-level contrastive loss. Our approach is fundamentally different: we achieve region-level retrieval at \emph{inference time} using ColPali's emergent patch attention, requiring no additional training or annotation.
 
-\textbf{DocVLM.} DocVLM \citep{docvlm2024} integrates OCR into VLMs by compressing OCR features into learned queries. This represents the \emph{opposite direction} of our approach. DocVLM adds OCR to enhance VLM understanding, whereas we use VLM patches to filter and score OCR output for retrieval.
+\textbf{DocVLM.} DocVLM \citep{docvlm2024} integrates OCR into vision-language models by compressing OCR features into learned queries. This represents the \emph{opposite direction} of our approach. DocVLM adds OCR to enhance VLM understanding, whereas we use late-interaction patch embeddings to filter and score OCR output for retrieval.
 
 Table~\ref{tab:comparison} summarizes the positioning of our approach relative to prior work.
 
 \begin{table}[htbp]
 \centering
-\caption{Comparison with related approaches. Our approach is unique in achieving region-level retrieval at inference time without additional training, by propagating VLM patch similarities to OCR bounding boxes.}
+\caption{Comparison with related approaches. Our approach is unique in achieving region-level retrieval at inference time without additional training, by propagating late-interaction patch similarities to OCR bounding boxes.}
 \label{tab:comparison}
 \begin{tabular}{lccc}
 \toprule
@@ -342,7 +342,7 @@ Table~\ref{tab:combined} provides a unified view of the cost-quality tradeoff, s
 \midrule
 ColPali (page-level) & High (1.0$\times$) & N/A (no grounding) & Page identification \\
 OCR + Random & Low (0.2$\times$) & $\sim$6.7\% (1/15 regions) & Baseline \\
-\textbf{Hybrid (ours)} & \textbf{Low (0.2$\times$)} & \textbf{62.3\%} & \textbf{Precise RAG} \\
+\textbf{Hybrid (ours)} & \textbf{Low (0.2$\times$)} & \textbf{59.7\%} & \textbf{Precise RAG} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -350,7 +350,7 @@ OCR + Random & Low (0.2$\times$) & $\sim$6.7\% (1/15 regions) & Baseline \\
 \section{Implementation: Snappy System}
 \label{sec:impl}
 
-We implement our approach in Snappy, an open-source document retrieval system available at \url{https://github.com/athrael-soju/Snappy}. The system demonstrates the practical applicability of spatially-grounded hybrid retrieval.
+We implement our approach in Snappy, an open-source document retrieval system available at \url{https://github.com/athrael-soju/Snappy}.
 
 \subsection{Architecture Overview}
 
@@ -386,7 +386,7 @@ We evaluate our approach on BBox-DocVQA, measuring spatial grounding accuracy an
 
 \subsection{Experimental Setup}
 
-\textbf{Dataset.} BBox-DocVQA \citep{bboxdocvqa2025} provides question-answer pairs across documents from arXiv categories including computer science (cs), economics (econ), electrical engineering (eess), mathematics (math), physics, quantitative biology (q-bio), quantitative finance (q-fin), and statistics (stat). Each QA pair includes ground-truth bounding boxes marking the evidence region containing the answer. We evaluate on 1,240 samples across eight categories.
+\textbf{Dataset.} BBox-DocVQA \citep{bboxdocvqa2025} provides question-answer pairs across documents from arXiv categories including computer science (cs), economics (econ), electrical engineering (eess), mathematics (math), physics, quantitative biology (q-bio), quantitative finance (q-fin), and statistics (stat). Each QA pair includes ground-truth bounding boxes marking the evidence region containing the answer. We evaluate on 1,619 samples across eight categories (1,623 total samples minus 4 that consistently failed during OCR processing and are excluded from all reported metrics).
 
 \textbf{Model.} We evaluate ColQwen3-4B, a state-of-the-art 4B parameter model from the ColPali family.
 
@@ -409,18 +409,20 @@ Table~\ref{tab:main_results} presents localization accuracy.
 
 \begin{table}[htbp]
 \centering
-\caption{Spatial grounding accuracy on BBox-DocVQA (n=1240). Hit rates indicate the fraction of samples achieving IoU at or above the specified threshold.}
+\caption{Spatial grounding accuracy on BBox-DocVQA. Hit rates indicate the fraction of samples achieving IoU at or above the specified threshold. ColModernVBERT results are preliminary (n=19, evaluation ongoing).}
 \label{tab:main_results}
-\begin{tabular}{lcccc}
+\begin{tabular}{lccccc}
 \toprule
-\textbf{Model} & \textbf{Mean IoU} & \textbf{IoU@0.25} & \textbf{IoU@0.5} & \textbf{IoU@0.7} \\
+\textbf{Model} & \textbf{N} & \textbf{Mean IoU} & \textbf{IoU@0.25} & \textbf{IoU@0.5} & \textbf{IoU@0.7} \\
 \midrule
-ColQwen3-4B (P50) & 0.597 & 85.8\% & 62.3\% & 41.9\% \\
+ColQwen3-4B (P50) & 1619 & 0.569 & 84.4\% & 59.7\% & 35.8\% \\
+ColModernVBERT (P50)$^\dagger$ & 19 & 0.373 & 57.9\% & 31.6\% & 15.8\% \\
 \bottomrule
+\multicolumn{6}{l}{\footnotesize $^\dagger$Preliminary results; full evaluation in progress.}
 \end{tabular}
 \end{table}
 
-The results demonstrate that ColPali's patch attention effectively localizes relevant regions without additional training. Over 85\% of retrieved regions have meaningful overlap (IoU $\geq$ 0.25) with ground-truth evidence boxes, and 62.3\% achieve substantial overlap (IoU $\geq$ 0.5).
+The results demonstrate that ColPali's patch attention effectively localizes relevant regions without additional training. With ColQwen3-4B, over 84\% of retrieved regions have meaningful overlap (IoU $\geq$ 0.25) with ground-truth evidence boxes, and 59.7\% achieve substantial overlap (IoU $\geq$ 0.5). Preliminary results with ColModernVBERT (250M parameters, 16$\times$ smaller than ColQwen3-4B) show lower localization accuracy but higher token efficiency (40\% savings vs OCR, 69\% vs full image), suggesting a quality-efficiency tradeoff; full evaluation is ongoing.
 
 \begin{figure}[H]
 \centering
@@ -432,7 +434,7 @@ The results demonstrate that ColPali's patch attention effectively localizes rel
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.7\textwidth]{figures/token_savings.png}
-\caption{Token usage comparison. Our hybrid approach reduces context tokens by 30\% vs.\ full OCR and 54\% vs.\ full image tokens.}
+\caption{Token usage comparison. Our hybrid approach reduces context tokens by 29\% vs.\ full OCR and 52\% vs.\ full image tokens.}
 \label{fig:tokens}
 \end{figure}
 
@@ -448,25 +450,25 @@ Figure~\ref{fig:category} and Table~\ref{tab:category_results} present performan
 \toprule
 \textbf{Category} & \textbf{N} & \textbf{Mean IoU} & \textbf{IoU@0.25} & \textbf{IoU@0.5} & \textbf{IoU@0.7} \\
 \midrule
-cs & 176 & 0.723 & 94.9\% & 75.6\% & 65.3\% \\
-eess & 156 & 0.709 & 96.8\% & 86.5\% & 58.3\% \\
-q-bio & 137 & 0.641 & 91.2\% & 67.9\% & 46.0\% \\
-physics & 173 & 0.611 & 88.4\% & 66.5\% & 39.9\% \\
-stat & 101 & 0.588 & 89.1\% & 60.4\% & 39.6\% \\
-q-fin & 176 & 0.556 & 86.4\% & 61.4\% & 32.4\% \\
-econ & 174 & 0.539 & 77.6\% & 48.3\% & 36.8\% \\
-math & 148 & 0.395 & 62.2\% & 29.7\% & 13.5\% \\
+cs & 216 & 0.697 & 94.9\% & 75.5\% & 56.9\% \\
+eess & 196 & 0.656 & 94.4\% & 78.1\% & 46.9\% \\
+q-bio & 176 & 0.616 & 89.8\% & 66.5\% & 42.6\% \\
+physics & 213 & 0.579 & 86.9\% & 63.8\% & 34.3\% \\
+stat & 200 & 0.559 & 86.5\% & 57.0\% & 31.5\% \\
+q-fin & 216 & 0.543 & 86.1\% & 59.7\% & 29.2\% \\
+econ & 214 & 0.513 & 75.2\% & 46.7\% & 31.8\% \\
+math & 188 & 0.382 & 60.1\% & 28.7\% & 11.7\% \\
 \midrule
-\textbf{Overall} & \textbf{1240} & \textbf{0.597} & \textbf{85.8\%} & \textbf{62.3\%} & \textbf{41.9\%} \\
+\textbf{Overall} & \textbf{1619} & \textbf{0.569} & \textbf{84.4\%} & \textbf{59.7\%} & \textbf{35.8\%} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Computer science and electrical engineering documents achieve substantially higher localization accuracy (Mean IoU $>$ 0.7) than economics (0.539) and mathematics (0.395) documents, with physics (0.611) and quantitative biology (0.641) falling in between. This performance gap likely reflects differences in layout complexity: economics papers frequently contain dense tables with many small cells, while mathematics papers feature equations and formulas that may span multiple regions. These smaller regions suffer disproportionately from patch quantization effects, consistent with the theoretical precision bounds in Section~\ref{sec:theory}.
+Computer science and electrical engineering documents achieve substantially higher localization accuracy (Mean IoU $\geq$ 0.65) than economics (0.513) and mathematics (0.382) documents, with physics (0.579) and quantitative biology (0.616) falling in between. This performance gap likely reflects differences in layout complexity: economics papers frequently contain dense tables with many small cells, while mathematics papers feature equations and formulas that may span multiple regions. These smaller regions suffer disproportionately from patch quantization effects, consistent with the theoretical precision bounds in Section~\ref{sec:theory}.
 
 \subsection{Token Efficiency}
 
-Figure~\ref{fig:tokens} visualizes the token savings achieved by our approach. We measure context tokens that would be passed to a downstream LLM. For full image retrieval, we estimate tokens using Claude's approximation: images are resized to fit within $1568 \times 1568$ pixels while maintaining aspect ratio, then token count is computed as $\lfloor (w \times h) / 750 \rfloor$. For OCR-based methods, we tokenize extracted text using tiktoken's \texttt{cl100k\_base} encoding (GPT-4/Claude compatible). Token counts are summed across all 1,240 evaluation samples. Table~\ref{tab:token_savings} presents token savings under different retrieval strategies.
+Figure~\ref{fig:tokens} visualizes the token savings achieved by our approach. We measure context tokens that would be passed to a downstream LLM. For full image retrieval, we estimate tokens using Claude's approximation: images are resized to fit within $1568 \times 1568$ pixels while maintaining aspect ratio, then token count is computed as $\lfloor (w \times h) / 750 \rfloor$. For OCR-based methods, we tokenize extracted text using tiktoken's \texttt{cl100k\_base} encoding (GPT-4/Claude compatible). Token counts are summed across all 1,619 evaluation samples. Table~\ref{tab:token_savings} presents token savings under different retrieval strategies.
 
 \begin{table}[htbp]
 \centering
@@ -476,14 +478,14 @@ Figure~\ref{fig:tokens} visualizes the token savings achieved by our approach. W
 \toprule
 \textbf{Method} & \textbf{Total Tokens} & \textbf{vs All OCR} & \textbf{vs Full Image} \\
 \midrule
-Full Image (baseline) & 3,068,485 & -- & -- \\
-All OCR Regions & 2,006,575 & -- & 34.6\% \\
-\textbf{Hybrid (P50, filtered)} & \textbf{1,411,708} & \textbf{29.6\%} & \textbf{54.0\%} \\
+Full Image (baseline) & 4,003,039 & -- & -- \\
+All OCR Regions & 2,678,723 & -- & 33.1\% \\
+\textbf{Hybrid (P50, filtered)} & \textbf{1,908,329} & \textbf{28.8\%} & \textbf{52.3\%} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The hybrid approach with percentile-50 filtering reduces context tokens by 30\% compared to returning all OCR regions and by 54\% compared to full-page image tokens. These savings directly translate to reduced LLM inference costs, lower latency, and decreased attention dilution in downstream RAG applications.
+The hybrid approach with percentile-50 filtering reduces context tokens by 29\% compared to returning all OCR regions and by 52\% compared to full-page image tokens. These savings directly translate to reduced LLM inference costs, lower latency, and decreased attention dilution in downstream RAG applications.
 
 \section{Discussion}
 \label{sec:discussion}
@@ -492,13 +494,13 @@ The hybrid approach with percentile-50 filtering reduces context tokens by 30\% 
 
 \textbf{Patch Resolution Bound.} As analyzed in Section~\ref{sec:theory}, small regions suffer from limited localization precision due to fixed patch granularity. For ColPali's 14-pixel patches, regions smaller than approximately $35 \times 35$ pixels achieve less than 50\% precision. Future work could explore multi-scale patch embeddings or dynamic resolution based on document density.
 
-\textbf{OCR Dependency.} Region quality depends on OCR accuracy and segmentation. Poorly segmented regions (merged paragraphs, split tables) degrade retrieval quality regardless of the VLM's spatial attention accuracy. Layout-aware OCR systems like DeepSeek OCR with visual grounding mitigate this, but OCR errors propagate to retrieval.
+\textbf{OCR Dependency.} Region quality depends on OCR accuracy and segmentation. Poorly segmented regions (merged paragraphs, split tables) degrade retrieval quality regardless of the retrieval model's spatial attention accuracy. Layout-aware OCR systems like DeepSeek OCR with visual grounding mitigate this, but OCR errors propagate to retrieval.
 
 \textbf{Emergent Attention Limitations.} ColPali's patch attention is optimized for page-level retrieval through training, not explicitly for region-level localization. Attention may diffuse across semantically related but spatially distant regions (e.g., a header and its corresponding paragraph). We rely on OCR region boundaries to constrain this diffusion.
 
 \textbf{Two-Stage Information Loss.} The mean-pooling in Stage 1 discards spatial information, potentially missing pages where relevant content is concentrated in small regions. Relevant pages could be filtered out before Stage 2 region scoring. Alternative pooling strategies (max pooling, attention-weighted pooling) may mitigate this.
 
-\textbf{Category-Specific Performance.} Empirical evaluation reveals substantial performance variation across document types. Mathematics documents achieve only 29.7\% hit rate at IoU@0.5 compared to 86.5\% for electrical engineering documents. This gap reflects the patch quantization effects predicted by our theoretical analysis: mathematics papers contain equations and dense notation where relevant content spans small regions that are poorly aligned with the fixed patch grid. Applications targeting specific document types should consider this variation when setting performance expectations.
+\textbf{Category-Specific Performance.} Empirical evaluation reveals substantial performance variation across document types. Mathematics documents achieve only 28.7\% hit rate at IoU@0.5 compared to 78.1\% for electrical engineering documents. This gap reflects the patch quantization effects predicted by our theoretical analysis: mathematics papers contain equations and dense notation where relevant content spans small regions that are poorly aligned with the fixed patch grid. Applications targeting specific document types should consider this variation when setting performance expectations.
 
 \subsection{Future Directions}
 
@@ -510,21 +512,21 @@ The hybrid approach with percentile-50 filtering reduces context tokens by 30\% 
 
 \textbf{Legal Document Retrieval and Citation Grounding.} In legal contexts, retrieval precision directly impacts downstream reliability. Recent empirical work demonstrates that even retrieval-augmented legal AI tools hallucinate 17--33\% of responses, with errors compounded by coarse retrieval granularity \citep{magesh2025hallucination}. Region-level retrieval with bounding box coordinates provides citation-bounded context: each retrieved region carries verifiable provenance, constraining generation to specific, locatable sources.
 
-\textbf{Model-Agnostic Scaling.} Because our approach operates at inference time by composing outputs from independent late-interaction and OCR components, it automatically benefits from advances in either domain. More capable vision-language models with finer patch resolution or improved attention alignment will yield better spatial relevance signals, while more accurate OCR systems will produce higher-quality region boundaries, both translating directly to improved retrieval precision and token efficiency without architectural changes.
+\textbf{Model-Agnostic Scaling Toward Enterprise Viability.} Because our approach operates at inference time by composing outputs from independent late-interaction and OCR components, it automatically benefits from advances in either domain. Critically, the quality of region-level retrieval depends directly on the \emph{spatial precision of patch-level similarity distributions}---how tightly the model's attention concentrates on semantically relevant page regions. Our preliminary comparison between ColQwen3-4B and ColModernVBERT suggests this relationship: the larger model's more refined patch attention yields substantially higher localization accuracy (59.7\% vs 31.6\% at IoU@0.5). As late-interaction visual retrievers continue to develop more discriminative spatial attention through improved pre-training objectives and higher-resolution patch grids, our approach will inherit these gains without architectural modification. This positions the framework for enterprise deployment: organizations can upgrade their underlying retrieval model as the field advances, progressively improving retrieval precision while maintaining the same inference-time integration with existing OCR infrastructure.
 
 \section{Conclusion}
 
-We presented a hybrid architecture for spatially-grounded document retrieval that unifies vision-language late interaction with structured OCR extraction. By formalizing the coordinate mapping between ColPali's patch grid and OCR bounding boxes, we enable region-level retrieval without additional training. Our approach operates entirely at inference time, providing flexibility across OCR systems and VLM backends.
+We presented a hybrid architecture for spatially-grounded document retrieval that unifies late-interaction retrieval with structured OCR extraction. By formalizing the coordinate mapping between ColPali's patch grid and OCR bounding boxes, we enable region-level retrieval without additional training. Our approach operates entirely at inference time, providing flexibility across OCR systems and late-interaction retrieval backends.
 
-Empirical evaluation on BBox-DocVQA validates our approach. Using ColQwen3-4B with percentile-50 thresholding, we achieve 62.3\% hit rate at IoU@0.5, demonstrating that ColPali's patch attention effectively localizes relevant regions without additional training. Token savings of 54\% compared to full-page retrieval confirm the practical efficiency gains predicted by our theoretical analysis (Theorem~\ref{thm:context}).
+Empirical evaluation on BBox-DocVQA validates our approach. Using ColQwen3-4B with percentile-50 thresholding, we achieve 59.7\% hit rate at IoU@0.5, demonstrating that ColPali's patch attention effectively localizes relevant regions without additional training. Token savings of 52\% compared to full-page retrieval confirm the practical efficiency gains predicted by our theoretical analysis (Theorem~\ref{thm:context}).
 
-Category analysis across eight arXiv domains reveals systematic performance variation: computer science and electrical engineering documents achieve higher localization accuracy (Mean IoU $>$ 0.7) than economics (0.54) and mathematics (0.40) documents, with physics and quantitative biology falling in between. This gap aligns with our theoretical precision bounds: smaller regions in dense tables and equations suffer disproportionately from patch quantization effects.
+Category analysis across eight arXiv domains reveals systematic performance variation: computer science and electrical engineering documents achieve higher localization accuracy (Mean IoU $\geq$ 0.65) than economics (0.51) and mathematics (0.38) documents, with physics and quantitative biology falling in between. This gap aligns with our theoretical precision bounds: smaller regions in dense tables and equations suffer disproportionately from patch quantization effects.
 
 The two-stage architecture balances computational efficiency with region-level granularity, making the approach practical for large-scale document collections. We release Snappy as an open-source implementation at \url{https://github.com/athrael-soju/Snappy}, demonstrating practical applicability for retrieval-augmented generation with reduced context windows and improved precision.
 
 \section*{Acknowledgments}
 
-The author thanks the ColPali team for their foundational work on vision-language document retrieval and for maintaining an open research ecosystem that enabled this work. The Snappy system implementation is available at \url{https://github.com/athrael-soju/Snappy}.
+The author thanks the ColPali team for their foundational work on late-interaction document retrieval and for maintaining an open research ecosystem that enabled this work. The Snappy system implementation is available at \url{https://github.com/athrael-soju/Snappy}.
 
 \begin{thebibliography}{20}
 
