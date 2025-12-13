@@ -81,7 +81,7 @@ On BBox-DocVQA, 59.7\% of retrieved regions achieve IoU $\geq$ 0.5 with ground-t
 
 The ViDoRe benchmark \citep{faysse2025colpali} evaluates visual document retrieval across diverse domains, measuring NDCG@5 for page-level retrieval. ColPali achieves strong performance, but the benchmark, like the model, operates at page granularity; region-level retrieval remains unexplored.
 
-\textbf{ColPali-Family Models.} The ColPali architecture has spawned a family of late-interaction visual retrievers sharing the core patch-embedding approach. ColQwen3-4B \citep{huang2025colqwen3} combines the ColPali framework with a Qwen3-based language model, achieving state-of-the-art performance on ViDoRe while maintaining the patch-level embeddings essential to our approach. At the efficiency frontier, ColModernVBERT \citep{teiletche2025modernvbert} is a 250M-parameter variant achieving performance within 0.6 NDCG@5 points of ColPali with 10$\times$ fewer parameters. Our approach applies to any model in this family, as all preserve the patch-level similarity structure we exploit for region-level retrieval. We evaluate both ColQwen3-4B and ColModernVBERT to demonstrate this generality and explore the accuracy-efficiency tradeoff.
+\textbf{ColPali-Family Models.} The ColPali architecture has spawned a family of late-interaction visual retrievers sharing the core patch-embedding approach. ColQwen3-4B \citep{huang2025colqwen3} combines the ColPali framework with a Qwen3-based language model, achieving state-of-the-art performance on ViDoRe while maintaining the patch-level embeddings essential to our approach. At the efficiency frontier, ColModernVBERT \citep{teiletche2025modernvbert} is a 250M-parameter variant achieving performance within 0.6 points of ColPali on NDCG@5 with 10$\times$ fewer parameters. Our approach applies to any model in this family, as all preserve the patch-level similarity structure we exploit for region-level retrieval. We evaluate both ColQwen3-4B and ColModernVBERT to demonstrate this generality and explore the accuracy-efficiency tradeoff.
 
 \subsection{Layout-Aware Document Understanding}
 
@@ -282,14 +282,14 @@ Score-based region ranking improves retrieval precision over random selection wh
 
 \begin{table}[htbp]
 \centering
-\caption{Combined efficiency-quality comparison. The hybrid approach uniquely achieves both low context cost and high precision. Precision values for our approach are empirically measured (IoU@0.5 on BBox-DocVQA).}
+\caption{Combined efficiency-quality comparison. The hybrid approach uniquely achieves both low context cost and high precision. Precision values for our approach are empirically measured (IoU@0.5 on BBox-DocVQA). $^*$$M \approx 15$ average regions per page.}
 \label{tab:combined}
 \begin{tabular}{lccc}
 \toprule
 \textbf{Method} & \textbf{Context Cost} & \textbf{Precision (IoU@0.5)} & \textbf{Best Use Case} \\
 \midrule
 ColPali (page-level) & High (1.0$\times$) & N/A (returns pages) & Page identification \\
-OCR + Random & Low (0.2$\times$) & $\sim$6.7\% (1/15 regions) & Baseline \\
+OCR + Random & Low (0.2$\times$) & $\sim$6.7\% (1/$M$ regions)$^*$ & Baseline \\
 \textbf{Hybrid (ours)} & \textbf{Low (0.2$\times$)} & \textbf{59.7\%} & \textbf{Precise RAG} \\
 \bottomrule
 \end{tabular}
@@ -330,7 +330,7 @@ We evaluate our approach on BBox-DocVQA, measuring spatial grounding accuracy an
 
 \textbf{Models.} We evaluate three ColPali-family models: ColQwen3-8B (8B parameters) and ColQwen3-4B (4B parameters) representing state-of-the-art accuracy at different scales, and ColModernVBERT (250M parameters) representing the efficiency frontier.
 
-\textbf{Configuration.} We use DeepSeek-OCR with visual grounding in markdown mode, selected for its layout-aware region segmentation that groups semantically coherent blocks (paragraphs, table cells, captions) rather than individual words or lines. For region scoring, we apply 50th-percentile thresholding with max token aggregation and max region scoring. The P50 threshold represents a principled midpoint validated by our ablation study (\Cref{sec:ablation}): P25 thresholds are unnecessarily inclusive (all regions selected), while P75 thresholds require careful tuning of minimum patch overlap to avoid accuracy degradation.
+\textbf{Configuration.} We use DeepSeek-OCR with visual grounding in markdown mode, selected for its layout-aware region segmentation that groups semantically coherent blocks (paragraphs, table cells, captions) rather than individual words or lines. For region scoring, we apply 50th-percentile thresholding (denoted P50) with max token aggregation and max region scoring. The P50 threshold represents a principled midpoint validated by our ablation study (\Cref{sec:ablation}): 25th-percentile thresholds (P25) are unnecessarily inclusive (all regions selected), while 75th-percentile thresholds (P75) require careful tuning of minimum patch overlap to avoid accuracy degradation.
 
 \textbf{Metrics.} For predicted region $B_p$ and ground-truth bounding box $B_g$, we compute:
 \begin{equation}
@@ -471,7 +471,7 @@ ColQwen3-8B (P50) & 1,974,263 & 26.3\% & 50.7\% \\
 \label{fig:tokens}
 \end{figure}
 
-The hybrid approach with P50 filtering reduces context tokens by 28.8\% compared to returning all OCR regions and by 52.3\% compared to full-page image tokens. These savings directly reduce LLM inference costs and context window usage.
+The hybrid approach with P50 filtering reduces context tokens by 28.8\% compared to returning all OCR regions and by 52.3\% compared to full-page image tokens. These savings directly reduce LLM inference costs and context window usage, consistent with the theoretical bounds in \Cref{cor:tokens}.
 
 \Cref{fig:radar} summarizes the accuracy-efficiency tradeoff across all three models.
 
@@ -487,13 +487,13 @@ The hybrid approach with P50 filtering reduces context tokens by 28.8\% compared
 
 The substantial performance gap between ColQwen3-4B and ColModernVBERT (14.2 percentage points at IoU@0.5) invites analysis of how model architecture and training data affect patch-to-region relevance propagation. Notably, ColQwen3-8B achieves nearly identical performance to ColQwen3-4B (59.8\% vs 59.7\% at IoU@0.5), suggesting diminishing returns from parameter scaling within the same architecture family.
 
-\textbf{Architectural Differences.} The models differ in attention mechanism and vision encoder design. ColQwen3-4B uses Qwen3-VL's $\sim$675M parameter vision encoder \citep{qwen2025qwen3} with causal attention, while ColModernVBERT combines ModernBERT \citep{warner2024modernbert} with SigLIP2 \citep{tschannen2025siglip2} using bidirectional attention. For \emph{page-level} retrieval, bidirectional attention provides advantages (+10.6 nDCG@5 in controlled experiments), explaining ColModernVBERT's strong ViDoRe performance despite 10$\times$ fewer parameters.
+\textbf{Architectural Differences.} The models differ in attention mechanism and vision encoder design. ColQwen3-4B uses Qwen3-VL's $\sim$675M parameter vision encoder \citep{qwen2025qwen3, wang2024qwen2vl} with causal attention, while ColModernVBERT combines ModernBERT \citep{warner2024modernbert} with SigLIP2 \citep{tschannen2025siglip2} using bidirectional attention. For \emph{page-level} retrieval, bidirectional attention provides advantages (+10.6 nDCG@5 in controlled experiments), explaining ColModernVBERT's strong ViDoRe performance despite 10$\times$ fewer parameters.
 
 \textbf{Attention Sharpness and Localization.} For \emph{region-level} localization, however, attention \emph{sharpness} matters more than global context. Localization accuracy depends on how tightly the model's attention concentrates on query-relevant patches. ColQwen3-4B's larger capacity produces sharper attention distributions, while its multi-scale features and explicit 2D spatial encoding help attention patterns respect spatial boundaries. These factors explain the 14.2 percentage point IoU@0.5 gap.
 
 \textbf{Training Data Composition.} The models differ substantially in both pre-training scale and fine-tuning data:
 \begin{itemize}
-    \item \textbf{ColQwen3-4B}: Built on Qwen3-VL pre-trained on $\sim$1.4 trillion multimodal tokens including extensive OCR data, document formats, and VQA datasets. Fine-tuned on VDR (Visual Document Retrieval), ViDoRe-ColPali-Training, and VisRAG-Ret-Train \citep{shi2024visrag}, with 63\% academic datasets (DocVQA, InfoVQA, TAT-DQA) and 37\% synthetic query-document pairs.
+    \item \textbf{ColQwen3-4B}: Built on Qwen3-VL pre-trained on $\sim$1.4 trillion multimodal tokens \citep{qwen2025qwen3, wang2024qwen2vl} including extensive OCR data, document formats, and VQA datasets. Fine-tuned on VDR (Visual Document Retrieval), ViDoRe-ColPali-Training, and VisRAG-Ret-Train \citep{shi2024visrag}, with 63\% academic datasets (DocVQA, InfoVQA, TAT-DQA) and 37\% synthetic query-document pairs.
     \item \textbf{ColModernVBERT}: Pre-trained on $\sim$2 billion text tokens with modality alignment on The Cauldron 2 and Docmatix (21\% OCR/document content), then contrastively trained on 118k document-query pairs with 300k text-only pairs using a 2:1 text-to-image ratio.
 \end{itemize}
 
@@ -574,7 +574,7 @@ Selection error & 73 & 15.0\% & OCR found target; wrong region selected \\
 
 \textbf{Partial Overlap in Failures.} Even among samples that fail at IoU@0.5, 48\% achieve IoU $\geq$ 0.25, indicating substantial partial overlap. The mean IoU of failed samples is 0.250, suggesting that failures often represent near-misses rather than complete mislocalization. This has practical implications: for applications tolerant of approximate localization, the effective accuracy is higher than the IoU@0.5 metric suggests.
 
-\textbf{Implications.} This error analysis suggests two directions for improvement: (1) better OCR segmentation to raise the ceiling, potentially through region merging or multi-scale segmentation, and (2) improved attention sharpness for the 15\% of cases where selection fails despite adequate OCR coverage.
+\textbf{Implications.} This error analysis suggests two directions for improvement: (1) better OCR segmentation to raise the ceiling, potentially through region merging or multi-scale segmentation, and (2) improved attention sharpness for the 15\% of cases where selection fails despite adequate OCR coverage. We discuss these limitations and future directions further in \Cref{sec:discussion}.
 
 \subsection{Qualitative Examples}
 
@@ -683,7 +683,7 @@ The two-stage architecture balances computational efficiency with region-level g
 
 The author thanks the ColPali team (ILLUIN Technology) for their foundational work on late-interaction document retrieval and for maintaining an open research ecosystem that enabled this work. We also thank TomoroAI for releasing the ColQwen3 embedding models under Apache 2.0 license, and the Qwen team (Alibaba Cloud) for the Qwen3-VL and Qwen3-Embedding foundation models. The Snappy system implementation is available at \url{https://github.com/athrael-soju/Snappy}.
 
-\begin{thebibliography}{21}
+\begin{thebibliography}{22}
 
 \bibitem[Faysse et~al.(2025)]{faysse2025colpali}
 Manuel Faysse, Hugues Sibille, Tony Wu, Bilel Omrani, Gautier Viaud, C{\'e}line Hudelot, and Pierre Colombo.
@@ -775,6 +775,11 @@ Michael Tschannen, Alexey Gritsenko, Xiao Wang, Muhammad Ferjad Naeem, Ibrahim A
 Qwen Team.
 \newblock Qwen3 Technical Report.
 \newblock arXiv:2505.09388, 2025.
+
+\bibitem[Wang et~al.(2024)]{wang2024qwen2vl}
+Peng Wang, Shuai Bai, Sinan Tan, Shijie Wang, Zhihao Fan, Jinze Bai, Keqin Chen, Xuejing Liu, Jialin Wang, Wenbin Ge, Yang Fan, Kai Dang, Mengfei Du, Xuancheng Ren, Rui Men, Dayiheng Liu, Chang Zhou, Jingren Zhou, and Junyang Lin.
+\newblock {Qwen2-VL}: Enhancing Vision-Language Model's Perception of the World at Any Resolution.
+\newblock arXiv:2409.12191, 2024.
 
 \bibitem[Huang and Tan(2025)]{huang2025colqwen3}
 Xin Huang and Kye Min Tan.
