@@ -36,7 +36,7 @@
 \maketitle
 
 \begin{abstract}
-Late-interaction multimodal retrieval models like ColPali achieve state-of-the-art document retrieval by embedding pages as images and computing fine-grained similarity between query tokens and visual patches. However, they return entire pages rather than specific regions, limiting utility for retrieval-augmented generation (RAG) where precise context is paramount. Conversely, OCR-based systems extract structured text with bounding box coordinates but lack semantic grounding for relevance assessment. We propose a hybrid architecture that unifies these paradigms: using ColPali's patch-level similarity scores as spatial relevance filters over OCR-extracted regions. We formalize the coordinate mapping between vision transformer patch grids and OCR bounding boxes, introduce intersection metrics for relevance propagation, and establish theoretical bounds on area efficiency. We evaluate on BBox-DocVQA with ground-truth bounding boxes. For within-page localization (given correct page retrieval), ColQwen3-4B with percentile-50 thresholding achieves \textbf{59.7\% hit rate at IoU@0.5} (84.4\% at IoU@0.25, 35.8\% at IoU@0.7), with mean IoU of \textbf{0.569}---compared to $\sim$6.7\% for random region selection. Our approach reduces context tokens by \textbf{29\%} compared to returning all OCR regions and by \textbf{52\%} compared to full-page image tokens. Our approach operates at inference time without additional training. We release Snappy, an open-source implementation at \url{https://github.com/athrael-soju/Snappy}.
+Late-interaction multimodal retrieval models like ColPali achieve state-of-the-art document retrieval by embedding pages as images and computing fine-grained similarity between query tokens and visual patches. However, they return entire pages rather than specific regions, limiting utility for retrieval-augmented generation (RAG) where precise context is paramount. Conversely, OCR-based systems extract structured text with bounding box coordinates but lack semantic grounding for relevance assessment. We propose a hybrid architecture that unifies these paradigms: using ColPali's patch-level similarity scores as spatial relevance filters over OCR-extracted regions. We formalize the coordinate mapping between vision transformer patch grids and OCR bounding boxes, introduce intersection metrics for relevance propagation, and establish theoretical bounds on area efficiency. We evaluate on BBox-DocVQA with ground-truth bounding boxes. For within-page localization (given correct page retrieval), ColQwen3-4B with percentile-50 thresholding achieves \textbf{59.7\% hit rate at IoU@0.5} (84.4\% at IoU@0.25, 35.8\% at IoU@0.7), with mean IoU of \textbf{0.569}---compared to $\sim$6.7\% for random region selection. Our approach reduces context tokens by \textbf{28.8\%} compared to returning all OCR regions and by \textbf{52.3\%} compared to full-page image tokens. Our approach operates at inference time without additional training. We release Snappy, an open-source implementation at \url{https://github.com/athrael-soju/Snappy}.
 \end{abstract}
 
 \section{Introduction}
@@ -66,12 +66,12 @@ This paper presents a hybrid architecture for spatially-grounded document retrie
     
     \item \textbf{Theoretical Analysis.} We establish bounds on area efficiency as a function of patch resolution, derive expected context reduction factors, and analyze computational complexity tradeoffs (\Cref{sec:theory}).
     
-    \item \textbf{Empirical Validation and Open Implementation.} We evaluate on BBox-DocVQA, demonstrating 59.7\% hit rate at IoU@0.5 with 52\% token savings versus full-page retrieval (\Cref{sec:eval}). We release Snappy, a complete open-source system implementing this architecture (\Cref{sec:impl}).
+    \item \textbf{Empirical Validation and Open Implementation.} We evaluate on BBox-DocVQA, demonstrating 59.7\% hit rate at IoU@0.5 with 52.3\% token savings versus full-page retrieval (\Cref{sec:eval}). We release Snappy, a complete open-source system implementing this architecture (\Cref{sec:impl}).
 
     \item \textbf{Model and Training Data Analysis.} We analyze how model architecture and training data affect patch-to-region localization, identifying two distinct regimes: a model-dependent regime where larger models yield substantial gains, and a precision-bound regime where patch quantization limits dominate regardless of model capacity (\Cref{sec:model_analysis}).
 \end{enumerate}
 
-On BBox-DocVQA, 59.7\% of retrieved regions achieve IoU $\geq$ 0.5 with ground-truth evidence bounding boxes, while reducing context tokens by 52\% compared to full-page retrieval.
+On BBox-DocVQA, 59.7\% of retrieved regions achieve IoU $\geq$ 0.5 with ground-truth evidence bounding boxes, while reducing context tokens by 52.3\% compared to full-page retrieval.
 
 \section{Background and Related Work}
 
@@ -91,7 +91,7 @@ OCR-free approaches including Donut \citep{kim2022donut} and Pix2Struct \citep{l
 
 \subsection{Region-Level Document Retrieval}
 
-\textbf{RegionRAG.} The closest existing work is RegionRAG \citep{li2025regionrag}, which shifts retrieval from document-level to semantic region-level granularity. RegionRAG clusters salient patches via BFS to produce visual region crops, requiring hybrid supervision (bounding box annotations plus pseudo-labels from unlabeled data) and a dual-objective contrastive loss. Our approach differs in three respects: (1) we operate at \emph{inference time} without additional training, (2) we output text with spatial coordinates rather than image crops, enabling direct use by text-only LLMs, and (3) OCR-derived regions align with semantic document structure (paragraphs, tables, captions) rather than visual patch connectivity. As of December 2025, RegionRAG has no public implementation or model weights available; We therefore compare against the ColPali-family baselines that both approaches share, which represents a limitation of the current comparison landscape rather than a methodological choice.
+\textbf{RegionRAG.} The closest existing work is RegionRAG \citep{li2025regionrag}, which shifts retrieval from document-level to semantic region-level granularity. RegionRAG clusters salient patches via BFS to produce visual region crops, requiring hybrid supervision (bounding box annotations plus pseudo-labels from unlabeled data) and a dual-objective contrastive loss. Our approach differs in three respects: (1) we operate at \emph{inference time} without additional training, (2) we output text with spatial coordinates rather than image crops, enabling direct use by text-only LLMs, and (3) OCR-derived regions align with semantic document structure (paragraphs, tables, captions) rather than visual patch connectivity. As of December 2025, RegionRAG has no public implementation or model weights available; we therefore compare against the ColPali-family baselines that both approaches share, which represents a limitation of the current comparison landscape rather than a methodological choice.
 
 \textbf{DocVLM.} DocVLM \citep{shpigel2024docvlm} integrates OCR into vision-language models by compressing OCR features into learned queries. This represents the \emph{opposite direction} of our approach. DocVLM adds OCR to enhance VLM understanding, whereas we use late-interaction patch embeddings to filter and score OCR output for retrieval.
 
@@ -328,7 +328,7 @@ We evaluate our approach on BBox-DocVQA, measuring spatial grounding accuracy an
 
 \textbf{Dataset.} BBox-DocVQA \citep{yu2025bboxdocvqa} provides question-answer pairs across documents from arXiv categories including computer science (cs), economics (econ), electrical engineering (eess), mathematics (math), physics, quantitative biology (q-bio), quantitative finance (q-fin), and statistics (stat). Each QA pair includes ground-truth bounding boxes marking the evidence region containing the answer. We evaluate on 1,619 samples across eight categories (1,623 total samples minus 4 that consistently failed during OCR processing and are excluded from all reported metrics).
 
-\textbf{Models.} We evaluate three ColPali-family models: ColQwen3-8B (8B parameters) and ColQwen3-4B (4B parameters), representing state-of-the-art accuracy at different scales, and ColModernVBERT (250M parameters), representing the efficiency frontier.
+\textbf{Models.} We evaluate three ColPali-family models: ColQwen3-8B (8B parameters) and ColQwen3-4B (4B parameters) representing state-of-the-art accuracy at different scales, and ColModernVBERT (250M parameters) representing the efficiency frontier.
 
 \textbf{Configuration.} We use DeepSeek-OCR with visual grounding in markdown mode, selected for its layout-aware region segmentation that groups semantically coherent blocks (paragraphs, table cells, captions) rather than individual words or lines. For region scoring, we apply 50th-percentile thresholding with max token aggregation and max region scoring. The P50 threshold represents a principled midpoint: lower thresholds (P25) risk including too many low-relevance regions, while higher thresholds (P75) may exclude relevant content. Systematic threshold sensitivity analysis across P25, P50, and P75 is deferred to future work.
 
@@ -362,7 +362,7 @@ ColQwen3-8B (P50) & 1619 & 0.569 & 83.9\% & 59.8\% & 36.1\% \\
 \end{tabular}
 \end{table}
 
-ColPali's patch attention localizes relevant regions without additional training. ColModernVBERT (250M parameters) achieves 45.5\% hit rate at IoU@0.5 with the highest token efficiency (38\% savings vs OCR, 58\% vs full image). Scaling to ColQwen3-4B improves localization substantially (59.7\% at IoU@0.5), but further scaling to ColQwen3-8B yields negligible gains (59.8\%), demonstrating diminishing returns from parameter scaling within the same architecture. \Cref{fig:iou_thresholds} visualizes this comparison across IoU thresholds.
+ColPali's patch attention localizes relevant regions without additional training. ColModernVBERT (250M parameters) achieves 45.5\% hit rate at IoU@0.5 with the highest token efficiency (38.0\% savings vs OCR, 58.5\% vs full image). Scaling to ColQwen3-4B improves localization substantially (59.7\% at IoU@0.5), but further scaling to ColQwen3-8B yields negligible gains (59.8\%), demonstrating diminishing returns from parameter scaling within the same architecture. \Cref{fig:iou_thresholds} visualizes this comparison across IoU thresholds.
 
 \begin{figure}[H]
 \centering
@@ -471,7 +471,7 @@ ColQwen3-8B (P50) & 1,974,263 & 26.3\% & 50.7\% \\
 \label{fig:tokens}
 \end{figure}
 
-The hybrid approach with percentile-50 filtering reduces context tokens by 29\% compared to returning all OCR regions and by 52\% compared to full-page image tokens. These savings directly reduce LLM inference costs and context window usage.
+The hybrid approach with percentile-50 filtering reduces context tokens by 28.8\% compared to returning all OCR regions and by 52.3\% compared to full-page image tokens. These savings directly reduce LLM inference costs and context window usage.
 
 \Cref{fig:radar} summarizes the accuracy-efficiency tradeoff across all three models.
 
@@ -550,7 +550,7 @@ Applications should consider document characteristics when selecting models: Col
 \subsection{Error Analysis}
 \label{sec:error_analysis}
 
-To understand localization failures, we analyze both sample-level and GT-box-level metrics. At the sample level, 30.1\% of samples (487/1,619) achieve zero GT box hits at IoU@0.5. At the GT-box level, 40.3\% of individual ground-truth boxes are missed (the complement of the 59.7\% sample-level hit rate in \Cref{tab:main_results}). We focus on the 487 sample-level failures, categorizing them by root cause. \Cref{tab:error_analysis} decomposes these failures into two modes: (1) \emph{OCR ceiling failures}, where OCR segmentation did not produce any region with IoU $\geq$ 0.5 to the ground truth, and (2) \emph{selection failures}, where OCR successfully segmented the target region but our relevance propagation selected a different region.
+To understand localization failures, we analyze the 40.3\% of samples (652/1,619) where the top-ranked region fails to achieve IoU $\geq$ 0.5 with the ground-truth bounding box (the complement of the 59.7\% hit rate in \Cref{tab:main_results}). Among these failures, we identify 487 samples where \emph{no} selected region achieves adequate overlap, which we analyze by root cause. \Cref{tab:error_analysis} decomposes these failures into two modes: (1) \emph{OCR ceiling failures}, where OCR segmentation did not produce any region with IoU $\geq$ 0.5 to the ground truth, and (2) \emph{selection failures}, where OCR successfully segmented the target region but our relevance propagation selected a different region.
 
 \begin{table}[htbp]
 \centering
@@ -632,9 +632,9 @@ These visualizations illustrate the core mechanism: ColPali's emergent patch att
 
 We presented a hybrid architecture for spatially-grounded document retrieval that unifies late-interaction retrieval with structured OCR extraction. By formalizing the coordinate mapping between ColPali's patch grid and OCR bounding boxes, we enable region-level retrieval without additional training. Our approach operates entirely at inference time, providing flexibility across OCR systems and late-interaction retrieval backends.
 
-On BBox-DocVQA, we evaluate three ColPali-family models. ColQwen3-8B and ColQwen3-4B achieve nearly identical localization accuracy (59.8\% and 59.7\% hit rate at IoU@0.5, respectively), while ColModernVBERT achieves 45.5\%. All models provide substantial token savings compared to full-page retrieval (51--58\%), consistent with the efficiency gains predicted by \Cref{thm:context}.
+On BBox-DocVQA, we evaluate three ColPali-family models. ColQwen3-8B and ColQwen3-4B achieve nearly identical localization accuracy (59.8\% and 59.7\% hit rate at IoU@0.5, respectively), while ColModernVBERT achieves 45.5\%. All models provide substantial token savings compared to full-page retrieval (50.7--58.5\%), consistent with the efficiency gains predicted by \Cref{thm:context}.
 
-Category analysis across eight arXiv domains reveals systematic performance variation: computer science and electrical engineering documents achieve higher localization accuracy (Mean IoU $\geq$ 0.65) than economics (0.51) and mathematics (0.38) documents, with physics (0.58--0.59) and quantitative biology (0.62) falling in between.
+Category analysis across eight arXiv domains reveals systematic performance variation: computer science and electrical engineering documents achieve higher localization accuracy (Mean IoU $\geq$ 0.65) than economics (0.513) and mathematics (0.382) documents, with physics (0.579--0.590) and quantitative biology (0.616) falling in between.
 
 Analysis of model architecture and scaling effects reveals three empirically distinct regimes. First, ColQwen3-8B and ColQwen3-4B achieve nearly identical performance, indicating that parameter scaling within the same architecture provides negligible localization gains. Second, for architecture-sensitive document types (computer science, electrical engineering), ColQwen3 models substantially outperform ColModernVBERT (up to 35 percentage points at IoU@0.5). Third, for uniformly challenging document types (mathematics), all models converge to similar performance, suggesting fundamental precision limits. This finding has practical implications: ColQwen3-4B offers the best accuracy-efficiency tradeoff, while ColQwen3-8B provides no localization benefit despite doubled parameters.
 
