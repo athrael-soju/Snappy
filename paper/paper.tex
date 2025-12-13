@@ -64,7 +64,7 @@ This paper presents a hybrid architecture for spatially-grounded document retrie
     
     \item \textbf{Two-Stage Retrieval Architecture.} We introduce a two-stage architecture that enables efficient candidate retrieval before full-resolution region-level reranking (\Cref{sec:twostage}).
     
-    \item \textbf{Theoretical Analysis.} We establish bounds on localization precision as a function of patch resolution, derive expected context reduction and precision amplification factors, and analyze computational complexity tradeoffs (\Cref{sec:theory}).
+    \item \textbf{Theoretical Analysis.} We establish bounds on area efficiency as a function of patch resolution, derive expected context reduction factors, and analyze computational complexity tradeoffs (\Cref{sec:theory}).
     
     \item \textbf{Empirical Validation and Open Implementation.} We evaluate on BBox-DocVQA, demonstrating 59.7\% hit rate at IoU@0.5 with 52\% token savings versus full-page retrieval (\Cref{sec:eval}). We release Snappy, a complete open-source system implementing this architecture (\Cref{sec:impl}).
 
@@ -550,7 +550,7 @@ Applications should consider document characteristics when selecting models: Col
 \subsection{Error Analysis}
 \label{sec:error_analysis}
 
-To understand localization failures, we analyze both sample-level and GT-box-level metrics. At the sample level, 30.1\% of samples (487/1,619) achieve zero GT box hits at IoU@0.5. At the GT-box level, 41.2\% of individual ground-truth boxes are missed (the complement of the 58.8\% IoU@0.5 metric in \Cref{tab:main_results}). We focus on the 487 sample-level failures, categorizing them by root cause. \Cref{tab:error_analysis} decomposes these failures into two modes: (1) \emph{OCR ceiling failures}, where OCR segmentation did not produce any region with IoU $\geq$ 0.5 to the ground truth, and (2) \emph{selection failures}, where OCR successfully segmented the target region but our relevance propagation selected a different region.
+To understand localization failures, we analyze both sample-level and GT-box-level metrics. At the sample level, 30.1\% of samples (487/1,619) achieve zero GT box hits at IoU@0.5. At the GT-box level, 40.3\% of individual ground-truth boxes are missed (the complement of the 59.7\% sample-level hit rate in \Cref{tab:main_results}). We focus on the 487 sample-level failures, categorizing them by root cause. \Cref{tab:error_analysis} decomposes these failures into two modes: (1) \emph{OCR ceiling failures}, where OCR segmentation did not produce any region with IoU $\geq$ 0.5 to the ground truth, and (2) \emph{selection failures}, where OCR successfully segmented the target region but our relevance propagation selected a different region.
 
 \begin{table}[htbp]
 \centering
@@ -608,7 +608,7 @@ These visualizations illustrate the core mechanism: ColPali's emergent patch att
 
 \subsection{Limitations}
 
-\textbf{Patch Resolution Bound.} As analyzed in \Cref{sec:theory}, small regions suffer from limited localization precision due to fixed patch granularity. For ColPali's 14-pixel patches, regions smaller than approximately $35 \times 35$ pixels achieve less than 50\% precision. Future work could explore multi-scale patch embeddings or dynamic resolution based on document density.
+\textbf{Patch Resolution Bound.} As analyzed in \Cref{sec:theory}, small regions suffer from limited area efficiency due to fixed patch granularity. For ColPali's 14-pixel patches, regions smaller than approximately $35 \times 35$ pixels achieve less than 50\% area efficiency. Future work could explore multi-scale patch embeddings or dynamic resolution based on document density.
 
 \textbf{OCR Dependency.} Region quality depends on OCR accuracy and segmentation. Poorly segmented regions (merged paragraphs, split tables) degrade retrieval quality regardless of the retrieval model's spatial attention accuracy. Layout-aware OCR systems with visual grounding mitigate this, but OCR errors propagate to retrieval. Note that OCR segmentation quality affects region boundaries but is orthogonal to our relevance scoring mechanism; our contribution is patch-to-region propagation, not OCR quality.
 
@@ -644,7 +644,7 @@ The two-stage architecture balances computational efficiency with region-level g
 
 The author thanks the ColPali team (ILLUIN Technology) for their foundational work on late-interaction document retrieval and for maintaining an open research ecosystem that enabled this work. We also thank TomoroAI for releasing the ColQwen3 embedding models under Apache 2.0 license, and the Qwen team (Alibaba Cloud) for the Qwen3-VL and Qwen3-Embedding foundation models. The Snappy system implementation is available at \url{https://github.com/athrael-soju/Snappy}.
 
-\begin{thebibliography}{20}
+\begin{thebibliography}{21}
 
 \bibitem[Faysse et~al.(2025)]{faysse2025colpali}
 Manuel Faysse, Hugues Sibille, Tony Wu, Bilel Omrani, Gautier Viaud, C{\'e}line Hudelot, and Pierre Colombo.
