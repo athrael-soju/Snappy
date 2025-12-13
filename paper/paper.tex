@@ -550,7 +550,7 @@ Applications should consider document characteristics when selecting models: Col
 \subsection{Error Analysis}
 \label{sec:error_analysis}
 
-To understand the 40\% failure rate at IoU@0.5, we categorize failures by root cause. \Cref{tab:error_analysis} decomposes failures into two modes: (1) \emph{OCR ceiling failures}, where OCR segmentation did not produce any region with IoU $\geq$ 0.5 to the ground truth, and (2) \emph{selection failures}, where OCR successfully segmented the target region but our relevance propagation selected a different region.
+To understand localization failures, we analyze both sample-level and GT-box-level metrics. At the sample level, 30.1\% of samples (487/1,619) achieve zero GT box hits at IoU@0.5. At the GT-box level, 41.2\% of individual ground-truth boxes are missed (the complement of the 58.8\% IoU@0.5 metric in \Cref{tab:main_results}). We focus on the 487 sample-level failures, categorizing them by root cause. \Cref{tab:error_analysis} decomposes these failures into two modes: (1) \emph{OCR ceiling failures}, where OCR segmentation did not produce any region with IoU $\geq$ 0.5 to the ground truth, and (2) \emph{selection failures}, where OCR successfully segmented the target region but our relevance propagation selected a different region.
 
 \begin{table}[htbp]
 \centering

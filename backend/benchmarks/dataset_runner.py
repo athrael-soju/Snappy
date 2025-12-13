@@ -1143,11 +1143,6 @@ class BBoxDocVQARunner:
         successful_results = [r for r in results if not r.failed]
         failed_count = len(results) - len(successful_results)
 
-        summary = summarize_samples(res.metrics for res in successful_results)
-        detection_summary = summarize_samples(
-            res.detection_metrics for res in successful_results if res.detection_metrics
-        )
-
         # Aggregate token statistics (only from successful samples)
         total_tokens_selected = sum(
             r.token_stats.tokens_selected for r in successful_results if r.token_stats
@@ -1175,28 +1170,8 @@ class BBoxDocVQARunner:
             ),
         }
 
-        # Build config dict for reproducibility
-        config_dict = {
-            "embedding_model": self.config.embedding_model,
-            "deepseek_mode": self.deepseek_mode,
-            "deepseek_task": self.deepseek_task,
-            "deepseek_url": self.deepseek_url,
-            "threshold_method": self.config.threshold_method,
-            "token_aggregation": self.config.token_aggregation,
-            "region_scoring": self.config.region_scoring,
-            "percentile": self.config.percentile,
-            "top_k": self.config.top_k,
-            "min_patch_overlap": self.config.min_patch_overlap,
-            "sample_limit": self.config.sample_limit,
-            "filter_docs": self.config.filter_docs,
-            "filter_samples": self.config.filter_samples,
-        }
-
         summary_path = run_dir / "summary.json"
         summary_payload = {
-            "config": config_dict,
-            "summary": summary,
-            "detection_summary": detection_summary,
             "token_summary": token_summary,
             "failed_count": failed_count,
             "sample_results": [
@@ -1207,14 +1182,6 @@ class BBoxDocVQARunner:
                     "category": r.sample.category,
                     "gt_bboxes": r.sample.bboxes,
                     "pred_bboxes": r.predicted_boxes,
-                    "mean_iou": r.metrics.mean_iou,
-                    "iou_at_0_5": r.metrics.iou_at_0_5,
-                    "detection_mean_iou": (
-                        r.detection_metrics.mean_iou if r.detection_metrics else None
-                    ),
-                    "detection_iou_at_0_5": (
-                        r.detection_metrics.iou_at_0_5 if r.detection_metrics else None
-                    ),
                     "tokens_selected": (
                         r.token_stats.tokens_selected if r.token_stats else None
                     ),
