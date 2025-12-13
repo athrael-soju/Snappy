@@ -547,6 +547,62 @@ Conversely, the \emph{largest} gaps appear in computer science ($\Delta = 0.170$
 
 Applications should consider document characteristics when selecting models: ColModernVBERT's 16$\times$ parameter efficiency may be acceptable for mathematics-heavy corpora where all models achieve similar accuracy, while ColQwen3-4B offers the best accuracy-efficiency tradeoff for technical documentation with varied layouts. ColQwen3-8B provides no localization benefit over ColQwen3-4B despite doubled parameters.
 
+\subsection{Error Analysis}
+\label{sec:error_analysis}
+
+To understand the 40\% failure rate at IoU@0.5, we categorize failures by root cause. \Cref{tab:error_analysis} decomposes failures into two modes: (1) \emph{OCR ceiling failures}, where OCR segmentation did not produce any region with IoU $\geq$ 0.5 to the ground truth, and (2) \emph{selection failures}, where OCR successfully segmented the target region but our relevance propagation selected a different region.
+
+\begin{table}[htbp]
+\centering
+\caption{Error analysis for ColQwen3-4B failures at IoU@0.5. The dominant failure mode (85\%) is OCR segmentation ceiling---our approach cannot select regions that do not exist. Only 15\% of failures are attributable to the relevance propagation mechanism.}
+\label{tab:error_analysis}
+\begin{tabular}{lrrl}
+\toprule
+\textbf{Failure Mode} & \textbf{Count} & \textbf{\% of Failures} & \textbf{Description} \\
+\midrule
+OCR ceiling & 414 & 85.0\% & No OCR region overlaps GT sufficiently \\
+Selection error & 73 & 15.0\% & OCR found target; wrong region selected \\
+\midrule
+\textbf{Total failures} & \textbf{487} & \textbf{100\%} & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{OCR Ceiling Dominates.} The majority of failures (85\%) occur because the OCR system did not segment a region that adequately overlaps the ground-truth bounding box. This represents a fundamental ceiling: our relevance propagation cannot select regions that do not exist. This finding validates our architectural choice---the patch-to-region propagation mechanism works well when given appropriate candidates.
+
+\textbf{Selection Failures by Category.} Among the 73 selection failures (where OCR found the target but we selected incorrectly), the distribution varies by category: q-bio (9.7\% selection error rate), physics and eess (6.1\%), versus cs (2.3\%) and econ (0.9\%). Categories with higher selection error rates may feature more semantically ambiguous layouts where multiple regions could plausibly contain the answer.
+
+\textbf{Partial Overlap in Failures.} Even among samples that fail at IoU@0.5, 48\% achieve IoU $\geq$ 0.25, indicating substantial partial overlap. The mean IoU of failed samples is 0.250, suggesting that failures often represent near-misses rather than complete mislocalization. This has practical implications: for applications tolerant of approximate localization, the effective accuracy is higher than the IoU@0.5 metric suggests.
+
+\textbf{Implications.} This error analysis suggests two directions for improvement: (1) better OCR segmentation to raise the ceiling, potentially through region merging or multi-scale segmentation, and (2) improved attention sharpness for the 15\% of cases where selection fails despite adequate OCR coverage.
+
+\subsection{Qualitative Examples}
+
+\Cref{fig:heatmaps} illustrates our patch-to-region relevance propagation on two representative samples. The heatmap overlay (red intensity) shows ColQwen3-4B's per-patch similarity scores, revealing where the model attends when processing the query. Ground-truth bounding boxes (green), OCR-detected regions (blue), and our predicted regions (magenta) demonstrate the spatial alignment between patch attention and region selection.
+
+\begin{figure}[htbp]
+\centering
+\begin{subfigure}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{heatmaps/heatmap_1.png}
+    \caption{Query asks which letter receives two arrows in a figure. Patch attention concentrates on the diagram region; predicted box (magenta) substantially overlaps ground truth (green).}
+    \label{fig:heatmap_success}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{heatmaps/heatmap_2.png}
+    \caption{Query asks about table cells with Roman numerals. Attention focuses on the table structure; multiple OCR regions (blue) are scored, with the table region selected.}
+    \label{fig:heatmap_table}
+\end{subfigure}
+\caption{Patch attention heatmaps with region overlays. Red intensity indicates patch-level similarity scores from ColQwen3-4B. Green: ground-truth bounding box. Blue: OCR-detected regions. Magenta: predicted (selected) regions. The heatmaps demonstrate that patch attention spatially concentrates on query-relevant content, enabling accurate region selection when OCR segmentation aligns with semantic boundaries.}
+\label{fig:heatmaps}
+\end{figure}
+
+The left example (\Cref{fig:heatmap_success}) shows a successful localization where the query references a specific figure. Patch attention strongly activates over the diagram containing the answer, and our IoU-weighted aggregation correctly selects the corresponding OCR region. The right example (\Cref{fig:heatmap_table}) demonstrates table localization, where attention distributes across the table structure and our approach selects the relevant table region despite multiple OCR candidates on the page.
+
+These visualizations illustrate the core mechanism: ColPali's emergent patch attention, trained only for page-level retrieval, provides sufficient spatial signal to discriminate between OCR regions when propagated through our IoU-weighted scoring.
+
 \section{Discussion}
 \label{sec:discussion}
 
