@@ -36,7 +36,7 @@
 \maketitle
 
 \begin{abstract}
-Late-interaction multimodal retrieval models like ColPali achieve state-of-the-art document retrieval by embedding pages as images and computing fine-grained similarity between query tokens and visual patches. However, they return entire pages rather than specific regions, limiting utility for retrieval-augmented generation (RAG) where precise context is paramount. Conversely, OCR-based systems extract structured text with bounding box coordinates but lack semantic grounding for relevance assessment. We propose a hybrid architecture that unifies these paradigms: using ColPali's patch-level similarity scores as spatial relevance filters over OCR-extracted regions. We formalize the coordinate mapping between vision transformer patch grids and OCR bounding boxes, introduce intersection metrics for relevance propagation, and establish theoretical bounds on area efficiency. We evaluate on BBox-DocVQA with ground-truth bounding boxes. For within-page localization (given correct page retrieval), ColQwen3-4B with percentile-50 thresholding achieves \textbf{59.7\% hit rate at IoU@0.5} (84.4\% at IoU@0.25, 35.8\% at IoU@0.7), with mean IoU of \textbf{0.569}---compared to $\sim$6.7\% for random region selection. Our approach reduces context tokens by \textbf{28.8\%} compared to returning all OCR regions and by \textbf{52.3\%} compared to full-page image tokens. Our approach operates at inference time without additional training. We release Snappy, an open-source implementation at \url{https://github.com/athrael-soju/Snappy}.
+Late-interaction multimodal retrieval models like ColPali achieve state-of-the-art document retrieval by embedding pages as images and computing fine-grained similarity between query tokens and visual patches. However, they return entire pages rather than specific regions, limiting utility for retrieval-augmented generation (RAG) where precise context is paramount. Conversely, OCR-based systems extract structured text with bounding box coordinates but lack semantic grounding for relevance assessment. We propose a hybrid architecture that unifies these paradigms: using ColPali's patch-level similarity scores as spatial relevance filters over OCR-extracted regions. We formalize the coordinate mapping between vision transformer patch grids and OCR bounding boxes, introduce intersection metrics for relevance propagation, and establish theoretical bounds on area efficiency. We evaluate on BBox-DocVQA with ground-truth bounding boxes. For within-page localization (given correct page retrieval), ColQwen3-4B with percentile-50 thresholding achieves \textbf{59.7\% hit rate at IoU@0.5} (84.4\% at IoU@0.25, 35.8\% at IoU@0.7), with mean IoU of \textbf{0.569}, compared to $\sim$6.7\% for random region selection. Our approach reduces context tokens by \textbf{28.8\%} compared to returning all OCR regions and by \textbf{52.3\%} compared to full-page image tokens. Our approach operates at inference time without additional training. We release Snappy, an open-source implementation at \url{https://github.com/athrael-soju/Snappy}.
 \end{abstract}
 
 \section{Introduction}
@@ -276,7 +276,7 @@ For typical document parameters ($M = 15$ regions per page, $k = 3$ returned reg
 
 \subsubsection{Precision and Signal-to-Noise Improvement}
 
-Score-based region ranking improves retrieval precision over random selection whenever patch scores correlate positively with relevance---an assumption validated empirically in \Cref{sec:eval}. This precision improvement directly translates to better signal-to-noise ratio in retrieved context: selecting fewer, higher-relevance regions reduces the irrelevant content that downstream LLMs must process.
+Score-based region ranking improves retrieval precision over random selection whenever patch scores correlate positively with relevance, an assumption validated empirically in \Cref{sec:eval}. This precision improvement directly translates to better signal-to-noise ratio in retrieved context: selecting fewer, higher-relevance regions reduces the irrelevant content that downstream LLMs must process.
 
 \Cref{tab:combined} provides a unified view of the cost-quality tradeoff, showing that our hybrid approach achieves the context efficiency of OCR-based selection while providing the relevance ranking that OCR alone cannot offer.
 
@@ -288,7 +288,7 @@ Score-based region ranking improves retrieval precision over random selection wh
 \toprule
 \textbf{Method} & \textbf{Context Cost} & \textbf{Precision (IoU@0.5)} & \textbf{Best Use Case} \\
 \midrule
-ColPali (page-level) & High (1.0$\times$) & --- (returns pages) & Page identification \\
+ColPali (page-level) & High (1.0$\times$) & N/A (returns pages) & Page identification \\
 OCR + Random & Low (0.2$\times$) & $\sim$6.7\% (1/15 regions) & Baseline \\
 \textbf{Hybrid (ours)} & \textbf{Low (0.2$\times$)} & \textbf{59.7\%} & \textbf{Precise RAG} \\
 \bottomrule
@@ -499,7 +499,7 @@ The substantial performance gap between ColQwen3-4B and ColModernVBERT (14.2 per
 
 The 700$\times$ pre-training scale difference provides ColQwen3-4B with inherently stronger document parsing and text-in-image understanding before retrieval-specific fine-tuning. However, ColModernVBERT's inclusion of text-only pairs during contrastive training provides cross-modal transfer benefits (+1.7 nDCG@5), demonstrating that the model learns text-image alignment even from pure text supervision.
 
-\textbf{Scaling Within Architecture Family.} The near-identical performance of ColQwen3-8B and ColQwen3-4B (Mean IoU 0.569 for both; 59.8\% vs 59.7\% at IoU@0.5) reveals that doubling parameters within the same architecture provides negligible localization gains. This suggests that ColQwen3's localization accuracy is bounded by factors other than model capacity---likely patch resolution and attention pattern characteristics rather than representational capacity. The practical implication is clear: ColQwen3-4B offers the same localization quality at lower computational cost.
+\textbf{Scaling Within Architecture Family.} The near-identical performance of ColQwen3-8B and ColQwen3-4B (Mean IoU 0.569 for both; 59.8\% vs 59.7\% at IoU@0.5) reveals that doubling parameters within the same architecture provides negligible localization gains. This suggests that ColQwen3's localization accuracy is bounded by factors other than model capacity, likely patch resolution and attention pattern characteristics rather than representational capacity. The practical implication is clear: ColQwen3-4B offers the same localization quality at lower computational cost.
 
 \textbf{Category-Specific Performance Gaps.} \Cref{tab:model_gap} reveals that the performance gap between ColQwen3-4B and ColModernVBERT varies systematically across document categories.
 
@@ -534,7 +534,7 @@ math & 0.382 & 0.370 & $-$0.012 & $-$1.6 pp \\
 \label{fig:category_box}
 \end{figure}
 
-The \emph{smallest} performance gap occurs in mathematics documents ($\Delta = 0.012$ Mean IoU), where both models achieve their lowest absolute performance. This convergence suggests that mathematics documents present challenges that affect both models similarly---whether due to training data composition, difficulty parsing equations and dense notation, or other factors. The precise cause remains an open question for future work.
+The \emph{smallest} performance gap occurs in mathematics documents ($\Delta = 0.012$ Mean IoU), where both models achieve their lowest absolute performance. This convergence suggests that mathematics documents present challenges that affect both models similarly, whether due to training data composition, difficulty parsing equations and dense notation, or other factors. The precise cause remains an open question for future work.
 
 Conversely, the \emph{largest} gaps appear in computer science ($\Delta = 0.170$) and electrical engineering ($\Delta = 0.205$) documents, where ColQwen3-4B's superior attention discrimination yields substantial improvements. These categories feature larger, well-separated regions (figures, code blocks, prose paragraphs) where model capacity translates directly to localization accuracy.
 
@@ -554,7 +554,7 @@ To understand localization failures, we analyze the 40.3\% of samples (652/1,619
 
 \begin{table}[htbp]
 \centering
-\caption{Error analysis for ColQwen3-4B failures at IoU@0.5. The dominant failure mode (85\%) is OCR segmentation ceiling---our approach cannot select regions that do not exist. Only 15\% of failures are attributable to the relevance propagation mechanism.}
+\caption{Error analysis for ColQwen3-4B failures at IoU@0.5. The dominant failure mode (85\%) is OCR segmentation ceiling: our approach cannot select regions that do not exist. Only 15\% of failures are attributable to the relevance propagation mechanism.}
 \label{tab:error_analysis}
 \begin{tabular}{lrrl}
 \toprule
@@ -568,7 +568,7 @@ Selection error & 73 & 15.0\% & OCR found target; wrong region selected \\
 \end{tabular}
 \end{table}
 
-\textbf{OCR Ceiling Dominates.} The majority of failures (85\%) occur because the OCR system did not segment a region that adequately overlaps the ground-truth bounding box. This represents a fundamental ceiling: our relevance propagation cannot select regions that do not exist. This finding validates our architectural choice---the patch-to-region propagation mechanism works well when given appropriate candidates.
+\textbf{OCR Ceiling Dominates.} The majority of failures (85\%) occur because the OCR system did not segment a region that adequately overlaps the ground-truth bounding box. This represents a fundamental ceiling: our relevance propagation cannot select regions that do not exist. This finding validates our architectural choice: the patch-to-region propagation mechanism works well when given appropriate candidates.
 
 \textbf{Selection Failures by Category.} Among the 73 selection failures (where OCR found the target but we selected incorrectly), the distribution varies by category: q-bio (9.7\% selection error rate), physics and eess (6.1\%), versus cs (2.3\%) and econ (0.9\%). Categories with higher selection error rates may feature more semantically ambiguous layouts where multiple regions could plausibly contain the answer.
 
@@ -616,7 +616,7 @@ These visualizations illustrate the core mechanism: ColPali's emergent patch att
 
 \textbf{Category-Specific Performance.} Empirical evaluation reveals substantial performance variation across document types. Mathematics documents achieve only 28.7\% hit rate at IoU@0.5 compared to 78.1\% for electrical engineering documents. This gap likely reflects multiple factors: training data composition favoring certain document types, difficulty parsing equations and dense mathematical notation, and potential patch quantization effects for small regions. Applications targeting specific document types should consider this variation when setting performance expectations.
 
-\textbf{Within-Document Variance.} Variance decomposition reveals that 72\% of IoU variance is \emph{within-document} (same document, different questions) versus 28\% between documents. This suggests that question-specific semantic factors---rather than inherent document difficulty---dominate localization performance. A document may yield high IoU for one question and low IoU for another, depending on how well the query aligns with the model's learned attention patterns. This finding implies that per-category performance statistics represent averages over highly variable per-question outcomes.
+\textbf{Within-Document Variance.} Variance decomposition reveals that 72\% of IoU variance is \emph{within-document} (same document, different questions) versus 28\% between documents. This suggests that question-specific semantic factors, rather than inherent document difficulty, dominate localization performance. A document may yield high IoU for one question and low IoU for another, depending on how well the query aligns with the model's learned attention patterns. This finding implies that per-category performance statistics represent averages over highly variable per-question outcomes.
 
 \subsection{Future Directions}
 
