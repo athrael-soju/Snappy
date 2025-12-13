@@ -14,6 +14,7 @@
 \usepackage[hypcap=true]{caption}
 \usepackage{subcaption}
 \usepackage{hyperref}
+\usepackage[capitalise,noabbrev]{cleveref}
 
 % Theorem environments
 \newtheorem{theorem}{Theorem}
@@ -57,17 +58,17 @@ Crucially, our approach operates at \emph{inference time} without additional tra
 This paper presents a hybrid architecture for spatially-grounded document retrieval:
 
 \begin{enumerate}
-    \item \textbf{Coordinate Mapping Formalism.} We formalize the mathematical correspondence between vision transformer patch grids and OCR bounding boxes, enabling spatial alignment between heterogeneous representations (Section~\ref{sec:coord}).
+    \item \textbf{Coordinate Mapping Formalism.} We formalize the mathematical correspondence between vision transformer patch grids and OCR bounding boxes, enabling spatial alignment between heterogeneous representations (\Cref{sec:coord}).
     
-    \item \textbf{Relevance Propagation via Interpretability Maps.} We repurpose ColPali's late interaction mechanism to generate per-query-token similarity heatmaps, then propagate these scores to OCR regions through IoU-weighted patch-region intersection (Section~\ref{sec:relevance}).
+    \item \textbf{Relevance Propagation via Interpretability Maps.} We repurpose ColPali's late interaction mechanism to generate per-query-token similarity heatmaps, then propagate these scores to OCR regions through IoU-weighted patch-region intersection (\Cref{sec:relevance}).
     
-    \item \textbf{Two-Stage Retrieval Architecture.} We introduce a two-stage architecture that enables efficient candidate retrieval before full-resolution region-level reranking (Section~\ref{sec:twostage}).
+    \item \textbf{Two-Stage Retrieval Architecture.} We introduce a two-stage architecture that enables efficient candidate retrieval before full-resolution region-level reranking (\Cref{sec:twostage}).
     
-    \item \textbf{Theoretical Analysis.} We establish bounds on localization precision as a function of patch resolution, derive expected context reduction and precision amplification factors, and analyze computational complexity tradeoffs (Section~\ref{sec:theory}).
+    \item \textbf{Theoretical Analysis.} We establish bounds on localization precision as a function of patch resolution, derive expected context reduction and precision amplification factors, and analyze computational complexity tradeoffs (\Cref{sec:theory}).
     
-    \item \textbf{Empirical Validation and Open Implementation.} We evaluate on BBox-DocVQA, demonstrating 59.7\% hit rate at IoU@0.5 with 52\% token savings versus full-page retrieval (Section~\ref{sec:eval}). We release Snappy, a complete open-source system implementing this architecture (Section~\ref{sec:impl}).
+    \item \textbf{Empirical Validation and Open Implementation.} We evaluate on BBox-DocVQA, demonstrating 59.7\% hit rate at IoU@0.5 with 52\% token savings versus full-page retrieval (\Cref{sec:eval}). We release Snappy, a complete open-source system implementing this architecture (\Cref{sec:impl}).
 
-    \item \textbf{Model and Training Data Analysis.} We analyze how model architecture and training data affect patch-to-region localization, identifying two distinct regimes: a model-dependent regime where larger models yield substantial gains, and a precision-bound regime where patch quantization limits dominate regardless of model capacity (Section~\ref{sec:model_analysis}).
+    \item \textbf{Model and Training Data Analysis.} We analyze how model architecture and training data affect patch-to-region localization, identifying two distinct regimes: a model-dependent regime where larger models yield substantial gains, and a precision-bound regime where patch quantization limits dominate regardless of model capacity (\Cref{sec:model_analysis}).
 \end{enumerate}
 
 On BBox-DocVQA, 59.7\% of retrieved regions achieve IoU $\geq$ 0.5 with ground-truth evidence bounding boxes, while reducing context tokens by 52\% compared to full-page retrieval.
@@ -94,7 +95,7 @@ OCR-free approaches including Donut \citep{kim2022donut} and Pix2Struct \citep{l
 
 \textbf{DocVLM.} DocVLM \citep{docvlm2024} integrates OCR into vision-language models by compressing OCR features into learned queries. This represents the \emph{opposite direction} of our approach. DocVLM adds OCR to enhance VLM understanding, whereas we use late-interaction patch embeddings to filter and score OCR output for retrieval.
 
-Table~\ref{tab:comparison} summarizes the positioning of our approach relative to prior work.
+\Cref{tab:comparison} summarizes the positioning of our approach relative to prior work.
 
 \begin{table}[htbp]
 \centering
@@ -172,7 +173,7 @@ Computing full patch-level similarity for all pages in a large corpus is prohibi
 
 \textbf{Stage 1: Candidate Retrieval.} We compress patch embeddings to obtain page-level representations for efficient approximate nearest neighbor search, retrieving top-$K$ candidate pages. This stage uses standard dense retrieval techniques; our contribution focuses on Stage 2.
 
-\textbf{Stage 2: Region Reranking.} For each candidate page, we compute full patch-level similarity and propagate scores to OCR regions as described in Section~\ref{sec:relevance}. Regions are ranked by their relevance scores, and top-$k$ regions are returned.
+\textbf{Stage 2: Region Reranking.} For each candidate page, we compute full patch-level similarity and propagate scores to OCR regions as described in \Cref{sec:relevance}. Regions are ranked by their relevance scores, and top-$k$ regions are returned.
 
 \subsection{Aggregation Strategies}
 
@@ -270,9 +271,9 @@ For typical document parameters ($M = 15$ regions per page, $k = 3$ returned reg
 
 \subsubsection{Precision and Signal-to-Noise Improvement}
 
-Score-based region ranking improves retrieval precision over random selection whenever patch scores correlate positively with relevance---an assumption validated empirically in Section~\ref{sec:eval}. This precision improvement directly translates to better signal-to-noise ratio in retrieved context: selecting fewer, higher-relevance regions reduces the irrelevant content that downstream LLMs must process.
+Score-based region ranking improves retrieval precision over random selection whenever patch scores correlate positively with relevance---an assumption validated empirically in \Cref{sec:eval}. This precision improvement directly translates to better signal-to-noise ratio in retrieved context: selecting fewer, higher-relevance regions reduces the irrelevant content that downstream LLMs must process.
 
-Table~\ref{tab:combined} provides a unified view of the cost-quality tradeoff, showing that our hybrid approach achieves the context efficiency of OCR-based selection while providing the relevance ranking that OCR alone cannot offer.
+\Cref{tab:combined} provides a unified view of the cost-quality tradeoff, showing that our hybrid approach achieves the context efficiency of OCR-based selection while providing the relevance ranking that OCR alone cannot offer.
 
 \begin{table}[htbp]
 \centering
@@ -296,7 +297,7 @@ We implement our approach in Snappy, an open-source document retrieval system av
 
 \subsection{Architecture Overview}
 
-Figure~\ref{fig:architecture} illustrates the Snappy system architecture, showing the parallel document indexing pipeline and query processing pipeline that converge at region-level filtering.
+\Cref{fig:architecture} illustrates the Snappy system architecture, showing the parallel document indexing pipeline and query processing pipeline that converge at region-level filtering.
 
 \begin{figure}[H]
 \centering
@@ -339,7 +340,7 @@ We report:
 
 \subsection{Main Results}
 
-Table~\ref{tab:main_results} presents localization accuracy.
+\Cref{tab:main_results} presents localization accuracy.
 
 \begin{table}[htbp]
 \centering
@@ -356,7 +357,7 @@ ColQwen3-8B (P50) & 1619 & 0.569 & 83.9\% & 59.8\% & 36.1\% \\
 \end{tabular}
 \end{table}
 
-ColPali's patch attention localizes relevant regions without additional training. ColModernVBERT (250M parameters) achieves 45.5\% hit rate at IoU@0.5 with the highest token efficiency (38\% savings vs OCR, 58\% vs full image). Scaling to ColQwen3-4B improves localization substantially (59.7\% at IoU@0.5), but further scaling to ColQwen3-8B yields negligible gains (59.8\%), demonstrating diminishing returns from parameter scaling within the same architecture. Figure~\ref{fig:iou_thresholds} visualizes this comparison across IoU thresholds.
+ColPali's patch attention localizes relevant regions without additional training. ColModernVBERT (250M parameters) achieves 45.5\% hit rate at IoU@0.5 with the highest token efficiency (38\% savings vs OCR, 58\% vs full image). Scaling to ColQwen3-4B improves localization substantially (59.7\% at IoU@0.5), but further scaling to ColQwen3-8B yields negligible gains (59.8\%), demonstrating diminishing returns from parameter scaling within the same architecture. \Cref{fig:iou_thresholds} visualizes this comparison across IoU thresholds.
 
 \begin{figure}[H]
 \centering
@@ -367,7 +368,7 @@ ColPali's patch attention localizes relevant regions without additional training
 
 \subsection{Category Analysis}
 
-Tables~\ref{tab:category_results_vbert},~\ref{tab:category_results}, and~\ref{tab:category_results_8b} present performance variation across document categories for all three models, ordered by model size.
+\Cref{tab:category_results_vbert,tab:category_results,tab:category_results_8b} present performance variation across document categories for all three models, ordered by model size.
 
 \begin{table}[htbp]
 \centering
@@ -435,11 +436,11 @@ math & 188 & 0.378 & 58.5\% & 27.7\% & 12.2\% \\
 \end{tabular}
 \end{table}
 
-Computer science and electrical engineering documents achieve substantially higher localization accuracy with ColQwen3-4B (Mean IoU $\geq$ 0.65) than economics (0.513) and mathematics (0.382) documents, with physics (0.579) and quantitative biology (0.616) falling in between. ColModernVBERT shows a similar pattern but with uniformly lower scores; notably, quantitative biology achieves the highest accuracy (0.575) for the smaller model, while computer science drops from 0.697 to 0.527. This performance gap likely reflects differences in layout complexity: economics papers frequently contain dense tables with many small cells, while mathematics papers feature equations and formulas that may span multiple regions. These smaller regions suffer disproportionately from patch quantization effects, consistent with the theoretical precision bounds in Section~\ref{sec:theory}.
+Computer science and electrical engineering documents achieve substantially higher localization accuracy with ColQwen3-4B (Mean IoU $\geq$ 0.65) than economics (0.513) and mathematics (0.382) documents, with physics (0.579) and quantitative biology (0.616) falling in between. ColModernVBERT shows a similar pattern but with uniformly lower scores; notably, quantitative biology achieves the highest accuracy (0.575) for the smaller model, while computer science drops from 0.697 to 0.527. This performance gap likely reflects differences in layout complexity: economics papers frequently contain dense tables with many small cells, while mathematics papers feature equations and formulas that may span multiple regions. These smaller regions suffer disproportionately from patch quantization effects, consistent with the theoretical precision bounds in \Cref{sec:theory}.
 
 \subsection{Token Efficiency}
 
-Figure~\ref{fig:tokens} visualizes the token savings achieved by our approach across methods. We measure context tokens that would be passed to a downstream LLM. For full image retrieval, we estimate tokens using Claude's approximation: images are resized to fit within $1568 \times 1568$ pixels while maintaining aspect ratio, then token count is computed as $\lfloor (w \times h) / 750 \rfloor$. For OCR-based methods, we tokenize extracted text using tiktoken's \texttt{cl100k\_base} encoding (GPT-4 tokenizer, used as approximation). Token counts are summed across all 1,619 evaluation samples. Table~\ref{tab:token_savings} presents token savings under different retrieval strategies.
+\Cref{fig:tokens} visualizes the token savings achieved by our approach across methods. We measure context tokens that would be passed to a downstream LLM. For full image retrieval, we estimate tokens using Claude's approximation: images are resized to fit within $1568 \times 1568$ pixels while maintaining aspect ratio, then token count is computed as $\lfloor (w \times h) / 750 \rfloor$. For OCR-based methods, we tokenize extracted text using tiktoken's \texttt{cl100k\_base} encoding (GPT-4 tokenizer, used as approximation). Token counts are summed across all 1,619 evaluation samples. \Cref{tab:token_savings} presents token savings under different retrieval strategies.
 
 \begin{table}[htbp]
 \centering
@@ -465,7 +466,9 @@ ColQwen3-8B (P50) & 1,974,263 & 26.3\% & 50.7\% \\
 \label{fig:tokens}
 \end{figure}
 
-The hybrid approach with percentile-50 filtering reduces context tokens by 29\% compared to returning all OCR regions and by 52\% compared to full-page image tokens. These savings directly reduce LLM inference costs and context window usage. Figure~\ref{fig:radar} summarizes the accuracy-efficiency tradeoff across all three models.
+The hybrid approach with percentile-50 filtering reduces context tokens by 29\% compared to returning all OCR regions and by 52\% compared to full-page image tokens. These savings directly reduce LLM inference costs and context window usage.
+
+\Cref{fig:radar} summarizes the accuracy-efficiency tradeoff across all three models.
 
 \begin{figure}[H]
 \centering
@@ -473,28 +476,6 @@ The hybrid approach with percentile-50 filtering reduces context tokens by 29\% 
 \caption{Multi-dimensional comparison of ColQwen3-8B, ColQwen3-4B, and ColModernVBERT. ColQwen3-8B and ColQwen3-4B achieve nearly identical accuracy metrics, while ColModernVBERT offers the best token savings. Mean IoU is scaled to percentage for visual consistency.}
 \label{fig:radar}
 \end{figure}
-
-\subsection{Threshold Selection}
-\label{sec:threshold}
-
-The percentile threshold controls the precision-efficiency tradeoff: lower thresholds retain more regions (higher recall), while higher thresholds improve token savings at the cost of potentially filtering relevant content. Table~\ref{tab:threshold_sensitivity} characterizes this tradeoff on a stratified subset (N=405, 25\% of dataset).
-
-\begin{table}[htbp]
-\centering
-\caption{Threshold selection guide for ColQwen3-4B. Applications can tune the threshold based on whether they prioritize localization accuracy or token efficiency.}
-\label{tab:threshold_sensitivity}
-\begin{tabular}{lccc}
-\toprule
-\textbf{Threshold} & \textbf{IoU@0.5} & \textbf{Token Savings} & \textbf{Regions/Page} \\
-\midrule
-P25 & XX.X\% & XX.X\% & X.X \\
-P50 & XX.X\% & XX.X\% & X.X \\
-P75 & XX.X\% & XX.X\% & X.X \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The tradeoff is monotonic and predictable: [describe observed pattern]. We use P50 throughout this paper as a balanced default, but practitioners should select based on application requirements. High-stakes domains (legal, medical) may prefer P25 to maximize recall; cost-sensitive deployments may prefer P75 for greater token savings.
 
 \subsection{Model Architecture and Training Data Effects}
 \label{sec:model_analysis}
@@ -505,7 +486,7 @@ The substantial performance gap between ColQwen3-4B and ColModernVBERT (14.2 per
 
 \textbf{Attention Mechanism Impact.} The bidirectional versus causal attention distinction substantially affects late interaction quality. Bidirectional attention allows each token embedding to incorporate full context from both directions, producing richer representations for fine-grained MaxSim matching. In controlled experiments, bidirectional encoders demonstrate a +10.6 nDCG@5 advantage over causal decoders at equivalent parameter counts for retrieval tasks. This explains ColModernVBERT's ability to achieve within 0.6 nDCG@5 of models 10$\times$ larger on \emph{page-level} retrieval benchmarks.
 
-\textbf{Patch Attention and Localization.} For \emph{region-level} localization, however, attention \emph{sharpness} matters more than global context. Our relevance propagation mechanism (Section~\ref{sec:relevance}) computes per-patch scores via $\text{score}_{\text{patch}}(j) = \max_i S_{ij}$, then aggregates these to OCR regions. Localization accuracy depends on how tightly the model's attention concentrates on semantically relevant patches versus diffusing across the page. ColQwen3-4B's larger capacity produces sharper attention distributions that better discriminate relevant from irrelevant patches, while DeepStack's multi-scale features preserve both coarse layout structure and fine-grained text details in the patch embeddings. M-RoPE's explicit 2D spatial encoding further helps attention patterns respect spatial boundaries. These factors compound to explain the 14.2 percentage point IoU@0.5 gap: ColQwen3-4B's attention more precisely targets content regions, yielding higher overlap with ground-truth bounding boxes.
+\textbf{Patch Attention and Localization.} For \emph{region-level} localization, however, attention \emph{sharpness} matters more than global context. Our relevance propagation mechanism (\Cref{sec:relevance}) computes per-patch scores via $\text{score}_{\text{patch}}(j) = \max_i S_{ij}$, then aggregates these to OCR regions. Localization accuracy depends on how tightly the model's attention concentrates on semantically relevant patches versus diffusing across the page. ColQwen3-4B's larger capacity produces sharper attention distributions that better discriminate relevant from irrelevant patches, while DeepStack's multi-scale features preserve both coarse layout structure and fine-grained text details in the patch embeddings. M-RoPE's explicit 2D spatial encoding further helps attention patterns respect spatial boundaries. These factors compound to explain the 14.2 percentage point IoU@0.5 gap: ColQwen3-4B's attention more precisely targets content regions, yielding higher overlap with ground-truth bounding boxes.
 
 \textbf{Training Data Composition.} The models differ substantially in both pre-training scale and fine-tuning data:
 \begin{itemize}
@@ -517,7 +498,7 @@ The 700$\times$ pre-training scale difference provides ColQwen3-4B with inherent
 
 \textbf{Scaling Within Architecture Family.} The near-identical performance of ColQwen3-8B and ColQwen3-4B (Mean IoU 0.569 for both; 59.8\% vs 59.7\% at IoU@0.5) reveals that doubling parameters within the same architecture provides negligible localization gains. This suggests that ColQwen3's localization accuracy is bounded by factors other than model capacity---likely patch resolution and attention pattern characteristics rather than representational capacity. The practical implication is clear: ColQwen3-4B offers the same localization quality at lower computational cost.
 
-\textbf{Category-Specific Performance Gaps.} Table~\ref{tab:model_gap} reveals that the performance gap between ColQwen3-4B and ColModernVBERT varies systematically across document categories.
+\textbf{Category-Specific Performance Gaps.} \Cref{tab:model_gap} reveals that the performance gap between ColQwen3-4B and ColModernVBERT varies systematically across document categories.
 
 \begin{table}[htbp]
 \centering
@@ -541,7 +522,7 @@ math & 0.382 & 0.370 & $-$0.012 & $-$1.6 pp \\
 \end{tabular}
 \end{table}
 
-Figure~\ref{fig:category_box} visualizes the IoU distribution across categories for all three models.
+\Cref{fig:category_box} visualizes the IoU distribution across categories for all three models.
 
 \begin{figure}[htbp]
 \centering
@@ -568,7 +549,7 @@ Applications should consider document characteristics when selecting models: Col
 
 \subsection{Limitations}
 
-\textbf{Patch Resolution Bound.} As analyzed in Section~\ref{sec:theory}, small regions suffer from limited localization precision due to fixed patch granularity. For ColPali's 14-pixel patches, regions smaller than approximately $35 \times 35$ pixels achieve less than 50\% precision. Future work could explore multi-scale patch embeddings or dynamic resolution based on document density.
+\textbf{Patch Resolution Bound.} As analyzed in \Cref{sec:theory}, small regions suffer from limited localization precision due to fixed patch granularity. For ColPali's 14-pixel patches, regions smaller than approximately $35 \times 35$ pixels achieve less than 50\% precision. Future work could explore multi-scale patch embeddings or dynamic resolution based on document density.
 
 \textbf{OCR Dependency.} Region quality depends on OCR accuracy and segmentation. Poorly segmented regions (merged paragraphs, split tables) degrade retrieval quality regardless of the retrieval model's spatial attention accuracy. Layout-aware OCR systems with visual grounding mitigate this, but OCR errors propagate to retrieval. Note that OCR segmentation quality affects region boundaries but is orthogonal to our relevance scoring mechanism; our contribution is patch-to-region propagation, not OCR quality.
 
@@ -592,7 +573,7 @@ Applications should consider document characteristics when selecting models: Col
 
 We presented a hybrid architecture for spatially-grounded document retrieval that unifies late-interaction retrieval with structured OCR extraction. By formalizing the coordinate mapping between ColPali's patch grid and OCR bounding boxes, we enable region-level retrieval without additional training. Our approach operates entirely at inference time, providing flexibility across OCR systems and late-interaction retrieval backends.
 
-On BBox-DocVQA, we evaluate three ColPali-family models. ColQwen3-8B and ColQwen3-4B achieve nearly identical localization accuracy (59.8\% and 59.7\% hit rate at IoU@0.5, respectively), while ColModernVBERT achieves 45.5\%. All models provide substantial token savings compared to full-page retrieval (51--58\%), consistent with the efficiency gains predicted by Theorem~\ref{thm:context}.
+On BBox-DocVQA, we evaluate three ColPali-family models. ColQwen3-8B and ColQwen3-4B achieve nearly identical localization accuracy (59.8\% and 59.7\% hit rate at IoU@0.5, respectively), while ColModernVBERT achieves 45.5\%. All models provide substantial token savings compared to full-page retrieval (51--58\%), consistent with the efficiency gains predicted by \Cref{thm:context}.
 
 Category analysis across eight arXiv domains reveals systematic performance variation: computer science and electrical engineering documents achieve higher localization accuracy (Mean IoU $\geq$ 0.65) than economics (0.51) and mathematics (0.38) documents, with physics (0.58--0.59) and quantitative biology (0.62) falling in between.
 
