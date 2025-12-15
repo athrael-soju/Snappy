@@ -1,5 +1,57 @@
 # Changelog
 
+## [0.4.1](https://github.com/athrael-soju/Snappy/compare/v0.4.0...v0.4.1) (2025-12-15)
+
+
+### Features
+
+* add deepseek timeout argument to command line interface and update default timeout in configuration ([792db2e](https://github.com/athrael-soju/Snappy/commit/792db2ed389f285e6222992b9f914bdc42e96ca4))
+* add DuckDB badge to README for analytics support ([89ccb7d](https://github.com/athrael-soju/Snappy/commit/89ccb7d97aa59784d900aa72f00ba02dedf619f7))
+* add initial paper.tex and README.json files for document retrieval project ([f9ab6c3](https://github.com/athrael-soju/Snappy/commit/f9ab6c3f8783bae8d2380b96ff9e282aede232b3))
+* add max_workers argument for parallel processing in benchmark and OCR endpoints ([6ff5678](https://github.com/athrael-soju/Snappy/commit/6ff567823f596a8bfd8979564ef3f266ca529655))
+* add performance evaluation figures and token savings analysis to paper.tex ([0365dfc](https://github.com/athrael-soju/Snappy/commit/0365dfc505c6b126bb95ee693692590979b064c4))
+* add script to generate comparative benchmark charts for the paper ([db78acd](https://github.com/athrael-soju/Snappy/commit/db78acde4ac4814a0dc76771559ef6f16aa5c667))
+* add support for local Tomoro ColQwen embedding models and environment configuration ([2bd70be](https://github.com/athrael-soju/Snappy/commit/2bd70be464e321d405f8489e1cf837012d41b378))
+* update figures in paper; replace category performance chart and add new token comparison and radar charts ([4d0acba](https://github.com/athrael-soju/Snappy/commit/4d0acba5fa350fc7e58c2cf592a90ac4b425ac40))
+* update paper.tex for clarity and precision; refine model descriptions and improve token efficiency analysis ([9c2b32e](https://github.com/athrael-soju/Snappy/commit/9c2b32ec5703536fbda67f1ef746deb05d5df5f2))
+* update performance metrics and token savings in paper.tex; add new figures for category performance and token savings ([ac0e2cf](https://github.com/athrael-soju/Snappy/commit/ac0e2cf2618df54daf03e00ca72113f470271176))
+* update README and documentation with patch-to-region relevance propagation details; add new logo images ([6a07e36](https://github.com/athrael-soju/Snappy/commit/6a07e3671e66aac8e1bc1b2eded3f1cd3c03e1f1))
+* update version to 0.4.0 across manifest and package files ([82a4451](https://github.com/athrael-soju/Snappy/commit/82a4451a84259cb2f9112b83ba0ef545a484c4d0))
+
+
+### Bug Fixes
+
+* add error analysis and qualitative examples sections to paper.tex; include heatmap visualizations for improved clarity on model performance ([80e2829](https://github.com/athrael-soju/Snappy/commit/80e282970548081d81f627b0e6a677c8efecf93f))
+* correct formatting of numbers and improve clarity in paper sections ([4eef3b1](https://github.com/athrael-soju/Snappy/commit/4eef3b11935d014e457e321a8b04f7ad26a7022c))
+* correct similarity map orientation handling in _stack_patch_scores function ([d40c134](https://github.com/athrael-soju/Snappy/commit/d40c1346b723c3b9a6c19e162ed922226f37ee43))
+* enhance clarity in paper.tex; refine descriptions of ColPali and its family models ([516ffac](https://github.com/athrael-soju/Snappy/commit/516ffac55f2030bdb15cf43750c7d2c7e5174b14))
+* enhance clarity in paper.tex; refine RegionRAG comparison and highlight differences in approach ([a2a747d](https://github.com/athrael-soju/Snappy/commit/a2a747d13c609bec5a42882c55b3370b4b0f73ae))
+* enhance clarity in paper.tex; refine Snappy system architecture description and improve query processing details ([4eecf62](https://github.com/athrael-soju/Snappy/commit/4eecf620d70396c945535c7741ff3a5793198288))
+* enhance clarity in paper.tex; refine two-stage retrieval architecture description and remove redundant information ([2bcb4df](https://github.com/athrael-soju/Snappy/commit/2bcb4dfffe8c5c26f86fdfc0705b0f2366410223))
+* enhance paper.tex by adding visualizations for IoU thresholds, token usage, and category IoU distribution; adjust figure widths for improved clarity ([a70afdb](https://github.com/athrael-soju/Snappy/commit/a70afdba7537c29d6ffc367b04e3078d8abc40fb))
+* enhance similarity map handling in _stack_patch_scores function for ColPali and ColQwen formats ([d521423](https://github.com/athrael-soju/Snappy/commit/d5214236179e165ac3fb2f3b693fea0aeb8ee522))
+* improve clarity and conciseness in paper.tex; refine model evaluation results and add threshold selection section ([584c133](https://github.com/athrael-soju/Snappy/commit/584c133eaa4f201a0c867ad4a85112afaf303102))
+* improve clarity and precision in paper content and formatting ([f18dc8a](https://github.com/athrael-soju/Snappy/commit/f18dc8acfefa4d5981d2d5d745834b8dea448d98))
+* improve clarity in paper.tex; refine signal-to-noise ratio discussion and context token savings explanation ([c7f9fb3](https://github.com/athrael-soju/Snappy/commit/c7f9fb3122950d1eca2b8073953887814882c077))
+* update abstract and results sections for clarity; refine terminology to emphasize area efficiency metrics ([c44c1ad](https://github.com/athrael-soju/Snappy/commit/c44c1adc69d943f692e0c4ee9af408893389d88c))
+* update author name in paper title and author section ([8a7ed94](https://github.com/athrael-soju/Snappy/commit/8a7ed949fd3b4a122f4384d5ff58ce2d5603d6b0))
+* update eess metrics in paper.tex to correct IoU values for improved accuracy ([5dac0fd](https://github.com/athrael-soju/Snappy/commit/5dac0fdd15a5935aac8602640e92e5d41cfe946a))
+* update IoU box plot sorting to prioritize ColQwen3-4B for consistency with Table 4; replace outdated figure ([865a7d6](https://github.com/athrael-soju/Snappy/commit/865a7d6c09e35232f24f8c74bb9c6d88d9cfbbf2))
+* update Next.js and related dependencies to version 16.0.7 ([d48e49b](https://github.com/athrael-soju/Snappy/commit/d48e49b79580ddfc908bc0c1099f7a37d0466572))
+* update paper.tex and benchmark scripts for clarity and accuracy; reorder model configurations ([31e97ea](https://github.com/athrael-soju/Snappy/commit/31e97eab27c3e3f6e8a8afa5e010aa37ea945011))
+* update paper.tex to clarify the abstract and improve the description of the hybrid architecture; enhance details on evaluation metrics and model configurations ([9614883](https://github.com/athrael-soju/Snappy/commit/96148835edf56febae7b9ab6e1ee0b706340340d))
+* update paper.tex to enhance clarity and improve precision and signal-to-noise ratio sections; adjust figure widths for better presentation ([934637a](https://github.com/athrael-soju/Snappy/commit/934637abc0362292b6fd8b4e8cea4d73d41cca74))
+* update paper.tex to improve section references and enhance clarity; add cleveref package for better cross-referencing ([2c5388b](https://github.com/athrael-soju/Snappy/commit/2c5388bbd86f4924b1f27ab09c78eacfd5bd9a6d))
+* update references and improve clarity in paper.tex; enhance descriptions of ColPali-family models and architectural differences ([a2e3987](https://github.com/athrael-soju/Snappy/commit/a2e39878a2c51ce175badf85a95af9cb81e81071))
+* update section references and improve clarity in paper.pdf; refine model evaluation results and threshold selection discussion ([8bb859b](https://github.com/athrael-soju/Snappy/commit/8bb859bc295bff1f9fde4f5c0bc728f305bdb085))
+* update theoretical analysis and error analysis sections for clarity; adjust area efficiency metrics and refine localization failure categorization ([d0cd843](https://github.com/athrael-soju/Snappy/commit/d0cd8431f027b1ab837ac328d6639a7981a567b4))
+
+
+### Code Refactoring
+
+* remove environment type configuration and related comments ([3aa6620](https://github.com/athrael-soju/Snappy/commit/3aa66208cae0ec56c1b9b811ec8d2df34febe4ff))
+* remove hit IoU threshold argument from command line interface and related configurations ([91c6fae](https://github.com/athrael-soju/Snappy/commit/91c6fae2592da9af063d07705a87bbe520eba193))
+
 ## [0.3.8](https://github.com/athrael-soju/Snappy/compare/v0.3.7...v0.3.8) (2025-11-25)
 
 
