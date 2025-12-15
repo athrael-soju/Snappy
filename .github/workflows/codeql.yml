@@ -17,7 +17,7 @@ on:
   pull_request:
     branches: [ "main" ]
   schedule:
-    - cron: '28 16 * * 6'
+    - cron: '40 17 * * 5'
 
 jobs:
   analyze:
@@ -43,6 +43,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
+        - language: actions
+          build-mode: none
         - language: javascript-typescript
           build-mode: none
         - language: python
@@ -67,7 +69,7 @@ jobs:
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
+      uses: github/codeql-action/init@v4
       with:
         languages: ${{ matrix.language }}
         build-mode: ${{ matrix.build-mode }}
@@ -84,7 +86,8 @@ jobs:
     # to build your code.
     # ℹ️ Command-line programs to run using the OS shell.
     # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
-    - if: matrix.build-mode == 'manual'
+    - name: Run manual build steps
+      if: matrix.build-mode == 'manual'
       shell: bash
       run: |
         echo 'If you are using a "manual" build mode for one or more of the' \
@@ -95,6 +98,6 @@ jobs:
         exit 1
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
+      uses: github/codeql-action/analyze@v4
       with:
         category: "/language:${{matrix.language}}"
