@@ -16,7 +16,7 @@ from urllib3.util.retry import Retry
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
     from clients.duckdb import DuckDBClient
-    from clients.minio import MinioClient
+    from clients.local_storage import LocalStorageClient
 
 from .processor import OcrProcessor
 
@@ -28,7 +28,7 @@ class OcrClient:
 
     def __init__(
         self,
-        minio_service: Optional["MinioClient"] = None,
+        minio_service: Optional["LocalStorageClient"] = None,
         duckdb_service: Optional["DuckDBClient"] = None,
         base_url: Optional[str] = None,
         timeout: Optional[int] = None,
@@ -42,7 +42,7 @@ class OcrClient:
         """Initialize OCR service with all subcomponents.
 
         Args:
-            minio_service: MinIO service for image storage
+            minio_service: Storage service for image storage
             duckdb_service: DuckDB service for analytics storage
             base_url: DeepSeek OCR service URL
             timeout: Request timeout in seconds

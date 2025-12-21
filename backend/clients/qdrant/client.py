@@ -11,7 +11,7 @@ from .search import SearchManager
 
 if TYPE_CHECKING:
     from clients.colpali import ColPaliClient
-    from clients.minio import MinioClient
+    from clients.local_storage import LocalStorageClient
 
 logger = logging.getLogger(__name__)
 
@@ -22,19 +22,19 @@ class QdrantClient:
     def __init__(
         self,
         api_client: Optional["ColPaliClient"] = None,
-        minio_service: Optional["MinioClient"] = None,
+        minio_service: Optional["LocalStorageClient"] = None,
         ocr_service=None,
     ):
         """Initialize Qdrant service with all subcomponents.
 
         Args:
             api_client: ColPali client for embeddings
-            minio_service: MinIO service for image storage
+            minio_service: Storage service for image storage
             ocr_service: Optional OCR service for parallel processing
         """
         try:
             if minio_service is None:
-                raise ValueError("MinIO service is required for QdrantClient")
+                raise ValueError("Storage service is required for QdrantClient")
 
             # Initialize dependencies
             self.api_client = api_client

@@ -13,7 +13,7 @@ async function fetchOcrData(result: SearchItem): Promise<any> {
         return ocrData;
     }
 
-    // MinIO mode: fetch from json_url
+    // Storage mode: fetch from json_url
     if (result.json_url) {
         // Check cache first
         if (ocrDataCache.has(result.json_url)) {
@@ -73,10 +73,10 @@ async function inlineLocalImages(markdown: string): Promise<string> {
         const cacheKey = `${alt}::${url}`;
         if (!cache.has(cacheKey)) {
             let resolvedUrl = url;
-            if (process.env.PUBLIC_MINIO_URL_SET === "true") {
+            if (process.env.PUBLIC_STORAGE_URL_SET === "true") {
                 resolvedUrl = resolvedUrl
-                    .replace("localhost", "minio")
-                    .replace("127.0.0.1", "minio");
+                    .replace("localhost", "backend")
+                    .replace("127.0.0.1", "backend");
             }
 
             const createMarkdownImage = (data: DataUrl) =>
@@ -141,8 +141,8 @@ export async function buildImageContent(results: SearchItem[], query: string): P
                 }
 
                 const isLocal = imageUrl.includes("localhost") || imageUrl.includes("127.0.0.1");
-                if (process.env.PUBLIC_MINIO_URL_SET === "true") {
-                    imageUrl = imageUrl.replace("localhost", "minio") || imageUrl.replace("127.0.0.1", "minio");
+                if (process.env.PUBLIC_STORAGE_URL_SET === "true") {
+                    imageUrl = imageUrl.replace("localhost", "backend") || imageUrl.replace("127.0.0.1", "backend");
                 }
 
                 if (isLocal) {
@@ -268,10 +268,10 @@ export async function buildRegionImagesContent(results: SearchItem[], query: str
         const isLocal = imageUrl.includes("localhost") || imageUrl.includes("127.0.0.1");
         let resolvedUrl = imageUrl;
 
-        if (process.env.PUBLIC_MINIO_URL_SET === "true" && isLocal) {
+        if (process.env.PUBLIC_STORAGE_URL_SET === "true" && isLocal) {
             resolvedUrl = resolvedUrl
-                .replace("localhost", "minio")
-                .replace("127.0.0.1", "minio");
+                .replace("localhost", "backend")
+                .replace("127.0.0.1", "backend");
         }
 
         if (isLocal) {

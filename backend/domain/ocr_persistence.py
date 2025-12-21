@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
     from clients.duckdb import DuckDBClient
-    from clients.minio import MinioClient
+    from clients.local_storage import LocalStorageClient
     from clients.ocr.processor import OcrProcessor
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ class OcrStorageHandler:
 
     def __init__(
         self,
-        minio_service: "MinioClient",
+        minio_service: "LocalStorageClient",
         processor: Optional["OcrProcessor"] = None,
         duckdb_service: Optional["DuckDBClient"] = None,
     ):
@@ -37,7 +37,7 @@ class OcrStorageHandler:
         Initialize storage handler.
 
         Args:
-            minio_service: MinIO service for uploads
+            minio_service: Storage service for uploads
             processor: OCR processor (optional, for image extraction)
             duckdb_service: DuckDB service (optional, for analytics storage)
         """

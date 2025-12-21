@@ -6,12 +6,12 @@ from api.dependencies import (
     duckdb_init_error,
     get_colpali_client,
     get_duckdb_service,
-    get_minio_service,
+    get_storage_service,
     get_ocr_service,
     get_qdrant_service,
-    minio_init_error,
     ocr_init_error,
     qdrant_init_error,
+    storage_init_error,
 )
 from fastapi import APIRouter
 
@@ -35,20 +35,20 @@ async def root():
 
 @router.get("/health")
 async def health():
-    colpali_ok, minio_ok, qdrant_ok, duckdb_ok, ocr_ok = await asyncio.gather(
+    colpali_ok, storage_ok, qdrant_ok, duckdb_ok, ocr_ok = await asyncio.gather(
         asyncio.to_thread(_check_colpali),
-        asyncio.to_thread(_check_minio),
+        asyncio.to_thread(_check_storage),
         asyncio.to_thread(_check_qdrant),
         asyncio.to_thread(_check_duckdb),
         asyncio.to_thread(_check_ocr),
     )
 
     # Core services must be healthy; OCR is optional
-    core_ok = colpali_ok and minio_ok and qdrant_ok and duckdb_ok
+    core_ok = colpali_ok and storage_ok and qdrant_ok and duckdb_ok
     response: dict[str, object] = {
         "status": "ok" if core_ok else "degraded",
         "colpali": colpali_ok,
-        "minio": minio_ok,
+        "storage": storage_ok,
         "qdrant": qdrant_ok,
         "duckdb": duckdb_ok,
         "ocr": ocr_ok,
@@ -61,9 +61,9 @@ async def health():
     qdrant_err = qdrant_init_error.get()
     if qdrant_err:
         response["qdrant_init_error"] = qdrant_err
-    minio_err = minio_init_error.get()
-    if minio_err:
-        response["minio_init_error"] = minio_err
+    storage_err = storage_init_error.get()
+    if storage_err:
+        response["storage_init_error"] = storage_err
     duckdb_err = duckdb_init_error.get()
     if duckdb_err:
         response["duckdb_init_error"] = duckdb_err
@@ -91,9 +91,9 @@ def _check_colpali() -> bool:
         return False
 
 
-def _check_minio() -> bool:
+def _check_storage() -> bool:
     try:
-        svc = get_minio_service()
+        svc = get_storage_service()
         return bool(svc and svc.health_check())
     except Exception:
         return False

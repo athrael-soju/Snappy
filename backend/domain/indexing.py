@@ -281,8 +281,8 @@ def run_indexing_job(
             point_factory=PointFactory(),
             qdrant_service=qdrant_svc.service,
             collection_name=qdrant_svc.collection_name,
-            minio_base_url=config.MINIO_PUBLIC_URL,
-            minio_bucket=config.MINIO_BUCKET_NAME,
+            minio_base_url=config.LOCAL_STORAGE_PUBLIC_URL,
+            minio_bucket=config.LOCAL_STORAGE_BUCKET_NAME,
             batch_size=int(config.BATCH_SIZE),
             max_in_flight_batches=int(config.PIPELINE_MAX_IN_FLIGHT_BATCHES),
         )

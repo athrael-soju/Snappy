@@ -43,8 +43,8 @@ def _get_auto_bucket_name() -> str:
     return _slugify_bucket_name(base)
 
 
-def _get_auto_minio_workers() -> int:
-    """Auto-calculate MinIO workers with safety checks."""
+def _get_auto_storage_workers() -> int:
+    """Auto-calculate storage workers with safety checks."""
     try:
         cpu = os.cpu_count() or 4
         if cpu <= 4:
@@ -68,11 +68,11 @@ def _get_auto_minio_workers() -> int:
         workers = base + max(0, concurrency - 1) * 2
         return max(4, min(32, workers))
     except Exception as e:
-        logger.error(f"Error calculating MINIO_WORKERS: {e}, using default")
+        logger.error(f"Error calculating STORAGE_WORKERS: {e}, using default")
         return 4
 
 
-def _get_auto_minio_retries(workers: int) -> int:
+def _get_auto_storage_retries(workers: int) -> int:
     if workers >= 24:
         return 5
     if workers >= 16:
@@ -107,11 +107,11 @@ def __getattr__(name: str) -> Any:
 def _getattr_impl(name: str) -> Any:
     """Implementation of dynamic attribute lookup."""
     # Handle auto-sized values that were removed from schema
-    if name == "MINIO_WORKERS":
-        return _get_auto_minio_workers()
-    if name == "MINIO_RETRIES":
-        workers = __getattr__("MINIO_WORKERS")
-        return _get_auto_minio_retries(workers)
+    if name == "STORAGE_WORKERS":
+        return _get_auto_storage_workers()
+    if name == "STORAGE_RETRIES":
+        workers = __getattr__("STORAGE_WORKERS")
+        return _get_auto_storage_retries(workers)
 
     # Handle hard-coded constants
     # Check module-level constants defined below
@@ -137,9 +137,7 @@ def _getattr_impl(name: str) -> Any:
             return [o.strip() for o in raw.split(",") if o.strip()]
         else:  # str
             value = _runtime.get(name, str(default))
-            if name == "MINIO_PUBLIC_URL" and not value:
-                return __getattr__("MINIO_URL")
-            if name == "MINIO_BUCKET_NAME" and not value.strip():
+            if name == "LOCAL_STORAGE_BUCKET_NAME" and not value.strip():
                 return _get_auto_bucket_name()
             return value
 
@@ -173,8 +171,8 @@ def get_pipeline_max_concurrency() -> int:
 QDRANT_ON_DISK = True  # Store vectors on disk (memory optimization)
 QDRANT_ON_DISK_PAYLOAD = True  # Store payload on disk
 
-# Hard-coded MinIO settings (auto-sized or optimized defaults)
-MINIO_FAIL_FAST = False  # Resilient by default
+# Hard-coded storage settings (auto-sized or optimized defaults)
+STORAGE_FAIL_FAST = False  # Resilient by default
 IMAGE_FORMAT = "JPEG"  # Best compression/quality balance
 IMAGE_QUALITY = 75  # Good quality/size balance
 

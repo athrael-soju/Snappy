@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Optional
 
-from api.dependencies import duckdb_init_error, minio_init_error, qdrant_init_error
+from api.dependencies import duckdb_init_error, qdrant_init_error, storage_init_error
 
 try:  # pragma: no cover - tooling support
     import config  # type: ignore
@@ -11,7 +11,7 @@ except ModuleNotFoundError:  # pragma: no cover
 
 if TYPE_CHECKING:  # pragma: no cover
     from clients.duckdb import DuckDBClient
-    from clients.minio import MinioClient
+    from clients.local_storage import LocalStorageClient
     from clients.qdrant import QdrantClient
 
 
@@ -23,7 +23,7 @@ def collection_name() -> str:
 
 
 def bucket_name() -> str:
-    return str(getattr(config, "MINIO_BUCKET_NAME", "documents"))
+    return str(getattr(config, "LOCAL_STORAGE_BUCKET_NAME", "documents"))
 
 
 def collect_collection_status(svc: Optional["QdrantClient"]) -> dict:
@@ -35,7 +35,7 @@ def collect_collection_status(svc: Optional["QdrantClient"]) -> dict:
         "unique_files": 0,
         "error": None,
         "embedded": embedded,
-        "image_store_mode": "minio",
+        "image_store_mode": "local",
         "size_mb": 0.0,
     }
     if not svc:
@@ -70,7 +70,7 @@ def collect_collection_status(svc: Optional["QdrantClient"]) -> dict:
     return status
 
 
-def collect_bucket_status(msvc: Optional["MinioClient"]) -> dict:
+def collect_bucket_status(msvc: Optional["LocalStorageClient"]) -> dict:
     status = {
         "name": bucket_name(),
         "exists": False,
@@ -81,7 +81,7 @@ def collect_bucket_status(msvc: Optional["MinioClient"]) -> dict:
         "error": None,
     }
     if not msvc:
-        status["error"] = minio_init_error.get() or "Service unavailable"
+        status["error"] = storage_init_error.get() or "Service unavailable"
         return status
     try:
         bucket_exists = msvc.service.bucket_exists(bucket_name())
@@ -183,7 +183,7 @@ def get_vector_total_dim(collection_info: Any) -> int:
 
 def clear_all_sync(
     svc: Optional["QdrantClient"],
-    msvc: Optional["MinioClient"],
+    msvc: Optional["LocalStorageClient"],
     dsvc: Optional["DuckDBClient"],
 ) -> dict:
     results = {
@@ -215,7 +215,7 @@ def clear_all_sync(
             try:
                 msvc.clear_images()
                 results["bucket"]["status"] = "success"
-                results["bucket"]["message"] = "Cleared MinIO objects"
+                results["bucket"]["message"] = "Cleared storage objects"
             except Exception as exc:
                 results["bucket"]["status"] = "error"
                 results["bucket"]["message"] = str(exc)
@@ -225,7 +225,7 @@ def clear_all_sync(
     else:
         results["bucket"]["status"] = "error"
         results["bucket"]["message"] = (
-            minio_init_error.get() or "MinIO service unavailable"
+            storage_init_error.get() or "Storage service unavailable"
         )
 
     if not getattr(config, "DUCKDB_ENABLED", False):
@@ -252,7 +252,7 @@ def clear_all_sync(
 
 def initialize_sync(
     svc: Optional["QdrantClient"],
-    msvc: Optional["MinioClient"],
+    msvc: Optional["LocalStorageClient"],
     dsvc: Optional["DuckDBClient"],
 ) -> dict:
     results = {
@@ -287,7 +287,7 @@ def initialize_sync(
             results["bucket"]["message"] = str(exc)
     else:
         results["bucket"]["status"] = "error"
-        results["bucket"]["message"] = minio_init_error.get() or "Service unavailable"
+        results["bucket"]["message"] = storage_init_error.get() or "Service unavailable"
     if not getattr(config, "DUCKDB_ENABLED", False):
         results["duckdb"]["status"] = "skipped"
         results["duckdb"]["message"] = "DuckDB disabled via configuration"
@@ -311,7 +311,7 @@ def initialize_sync(
 
 def delete_sync(
     svc: Optional["QdrantClient"],
-    msvc: Optional["MinioClient"],
+    msvc: Optional["LocalStorageClient"],
     dsvc: Optional["DuckDBClient"],
 ) -> dict:
     results = {
@@ -340,25 +340,10 @@ def delete_sync(
         )
     if msvc:
         try:
-            bucket_exists = msvc.service.bucket_exists(bucket_name())
-            if bucket_exists:
-                objects = msvc.list_object_names(recursive=True)
-                if objects:
-                    from minio.deleteobjects import DeleteObject
-
-                    delete_objects = [DeleteObject(name) for name in objects]
-                    errors = list(
-                        msvc.service.remove_objects(
-                            bucket_name(),
-                            delete_objects,
-                        )
-                    )
-                    if errors:
-                        results["bucket"]["status"] = "error"
-                        results["bucket"][
-                            "message"
-                        ] = f"Failed to delete some objects: {len(errors)} errors"
-                        return {"status": "error", "results": results}
+            bucket_exists_flag = msvc.service.bucket_exists(bucket_name())
+            if bucket_exists_flag:
+                # Clear all objects then remove the bucket directory
+                msvc.clear_images()
                 msvc.service.remove_bucket(bucket_name())
                 results["bucket"]["status"] = "success"
                 results["bucket"][
@@ -372,7 +357,7 @@ def delete_sync(
             results["bucket"]["message"] = str(exc)
     else:
         results["bucket"]["status"] = "error"
-        results["bucket"]["message"] = minio_init_error.get() or "Service unavailable"
+        results["bucket"]["message"] = storage_init_error.get() or "Service unavailable"
     if not getattr(config, "DUCKDB_ENABLED", False):
         results["duckdb"]["status"] = "skipped"
         results["duckdb"]["message"] = "DuckDB disabled via configuration"
@@ -413,7 +398,7 @@ def collection_exists(svc: "QdrantClient") -> bool:
         return "not found" not in str(exc).lower()
 
 
-def bucket_exists(msvc: "MinioClient") -> bool:
+def bucket_exists(msvc: "LocalStorageClient") -> bool:
     try:
         return bool(msvc.service.bucket_exists(bucket_name()))
     except Exception:

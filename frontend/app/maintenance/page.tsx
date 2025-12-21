@@ -39,7 +39,7 @@ const CORE_OPERATIONS = [
   {
     id: "initialize",
     title: "Initialize Storage",
-    description: "Prepare the Qdrant collection, MinIO bucket, and DuckDB store for data storage.",
+    description: "Prepare the Qdrant collection, storage bucket, and DuckDB store for data storage.",
     icon: Play,
     gradient: "from-chart-1 to-chart-2"
   },
@@ -53,7 +53,7 @@ const CORE_OPERATIONS = [
   {
     id: "reset",
     title: "Reset All Data",
-    description: "Remove every stored document, embedding, and image from Qdrant, MinIO, and DuckDB.",
+    description: "Remove every stored document, embedding, and image from Qdrant, local storage, and DuckDB.",
     icon: ShieldAlert,
     gradient: "from-destructive to-destructive/80"
   }
@@ -271,7 +271,7 @@ export default function MaintenancePage() {
                       <div className="flex size-icon-xl shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-chart-4 to-chart-3 shadow-lg sm:size-icon-2xl">
                         <HardDrive className="size-icon-xs text-primary-foreground sm:size-icon-md" />
                       </div>
-                      <h3 className="min-w-0 flex-1 truncate text-body-sm sm:text-body font-bold">MinIO Bucket</h3>
+                      <h3 className="min-w-0 flex-1 truncate text-body-sm sm:text-body font-bold">Local Storage</h3>
                     </div>
 
                     {statusLoading ? (

@@ -9,7 +9,7 @@ interface UseSystemManagementOptions {
 
 const SERVICE_LABELS: Record<string, string> = {
   collection: "Qdrant",
-  bucket: "MinIO",
+  bucket: "Storage",
   duckdb: "DuckDB",
 };
 
@@ -67,7 +67,7 @@ export function useSystemManagement({ onSuccess }: UseSystemManagementOptions = 
 
       if (status === "success") {
         toast.success("Initialization Complete", {
-          description: summary ?? "Qdrant collection, MinIO bucket and DuckDB Database are ready",
+          description: summary ?? "Qdrant collection, storage bucket and DuckDB database are ready",
         });
       } else if (status === "partial") {
         toast.warning("Partial Initialization", {
@@ -111,7 +111,7 @@ export function useSystemManagement({ onSuccess }: UseSystemManagementOptions = 
 
       if (status === "success") {
         toast.success("Deletion Complete", {
-          description: summary ?? "Qdrant collection and MinIO bucket removed",
+          description: summary ?? "Qdrant collection and storage bucket removed",
         });
       } else if (status === "partial") {
         toast.warning("Partial Deletion", {

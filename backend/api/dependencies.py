@@ -8,7 +8,7 @@ from typing import Optional
 import config
 from clients.colpali import ColPaliClient
 from clients.duckdb import DuckDBClient
-from clients.minio import MinioClient
+from clients.local_storage import LocalStorageClient
 from clients.ocr import OcrClient
 from clients.qdrant import QdrantClient
 
@@ -41,7 +41,7 @@ class ServiceInitError:
 # Thread-safe error tracking
 colpali_init_error = ServiceInitError()
 qdrant_init_error = ServiceInitError()
-minio_init_error = ServiceInitError()
+storage_init_error = ServiceInitError()
 ocr_init_error = ServiceInitError()
 duckdb_init_error = ServiceInitError()
 
@@ -80,11 +80,11 @@ def _get_ocr_service_cached() -> OcrClient:
     if not config.DEEPSEEK_OCR_ENABLED:
         raise RuntimeError("DeepSeek OCR service is disabled in configuration")
 
-    minio_service = get_minio_service()
+    storage_service = get_storage_service()
     duckdb_service = get_duckdb_service() if config.DUCKDB_ENABLED else None
 
     return OcrClient(
-        minio_service=minio_service,
+        minio_service=storage_service,
         duckdb_service=duckdb_service,
     )
 
@@ -133,26 +133,32 @@ def get_duckdb_service() -> Optional[DuckDBClient]:
 
 
 @lru_cache(maxsize=1)
-def _get_minio_service_cached() -> MinioClient:
-    return MinioClient()
+def _get_storage_service_cached() -> LocalStorageClient:
+    return LocalStorageClient()
 
 
-def get_minio_service() -> MinioClient:
-    """Return the cached MinIO service, capturing initialization errors."""
+def get_storage_service() -> LocalStorageClient:
+    """Return the cached storage service, capturing initialization errors."""
     try:
-        service = _get_minio_service_cached()
-        minio_init_error.clear()
+        service = _get_storage_service_cached()
+        storage_init_error.clear()
         return service
     except Exception as exc:  # pragma: no cover - defensive guard
-        logger.error("Failed to initialize MinIO service: %s", exc)
-        minio_init_error.set(str(exc))
-        _get_minio_service_cached.cache_clear()
+        logger.error("Failed to initialize storage service: %s", exc)
+        storage_init_error.set(str(exc))
+        _get_storage_service_cached.cache_clear()
         raise
+
+
+# Alias for backward compatibility during transition
+def get_minio_service() -> LocalStorageClient:
+    """Alias for get_storage_service (backward compatibility)."""
+    return get_storage_service()
 
 
 @lru_cache(maxsize=1)
 def _get_qdrant_service_cached() -> QdrantClient:
-    minio_service = get_minio_service()
+    storage_service = get_storage_service()
 
     ocr_service = None
     if config.DEEPSEEK_OCR_ENABLED:
@@ -162,7 +168,7 @@ def _get_qdrant_service_cached() -> QdrantClient:
 
     return QdrantClient(
         api_client=get_colpali_client(),
-        minio_service=minio_service,
+        minio_service=storage_service,
         ocr_service=ocr_service,
     )
 
@@ -200,13 +206,13 @@ def invalidate_services():
     # Clear error states
     colpali_init_error.clear()
     qdrant_init_error.clear()
-    minio_init_error.clear()
+    storage_init_error.clear()
     ocr_init_error.clear()
     duckdb_init_error.clear()
 
     # Clear caches
     _get_qdrant_service_cached.cache_clear()
-    _get_minio_service_cached.cache_clear()
+    _get_storage_service_cached.cache_clear()
     _get_colpali_client_cached.cache_clear()
     _get_ocr_service_cached.cache_clear()
     _get_duckdb_service_cached.cache_clear()

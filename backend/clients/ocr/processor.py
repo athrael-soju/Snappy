@@ -15,7 +15,7 @@ from utils.timing import log_execution_time
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
     from domain.pipeline.image_processor import ImageProcessor
-    from clients.minio import MinioClient
+    from clients.local_storage import LocalStorageClient
 
     from .client import OcrClient
     from domain.ocr_persistence import OcrStorageHandler
@@ -138,7 +138,7 @@ class OcrProcessor:
         self,
         filename: str,
         page_numbers: List[int],
-        minio_service: "MinioClient",
+        minio_service: "LocalStorageClient",
         storage_handler: "OcrStorageHandler",
         *,
         mode: Optional[str] = None,
@@ -214,7 +214,7 @@ class OcrProcessor:
         document_id: str,
         filename: str,
         page_number: int,
-        minio_service: "MinioClient",
+        minio_service: "LocalStorageClient",
         storage_handler: "OcrStorageHandler",
         mode: Optional[str],
         task: Optional[str],
@@ -253,7 +253,7 @@ class OcrProcessor:
         }
 
     def _fetch_page_image(
-        self, minio_service: "MinioClient", document_id: str, page_number: int
+        self, minio_service: "LocalStorageClient", document_id: str, page_number: int
     ) -> bytes:
         """Fetch page image bytes from MinIO.
 
@@ -395,7 +395,7 @@ class OcrProcessor:
         crops: List[str],
         document_id: str,
         page_number: int,
-        minio_service: "MinioClient",
+        minio_service: "LocalStorageClient",
     ) -> List[str]:
         """
         Process base64-encoded extracted images and upload to MinIO.

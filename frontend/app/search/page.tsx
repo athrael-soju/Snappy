@@ -65,7 +65,7 @@ const SEARCH_HELPER_CARDS: SearchHelperCard[] = [
   {
     id: "status",
     title: "Monitor system health",
-    description: "Confirm Qdrant and MinIO are ready before large queries or new ingestion sessions.",
+    description: "Confirm Qdrant and storage are ready before large queries or new ingestion sessions.",
     icon: Compass,
     gradient: "from-chart-2 to-primary",
     href: "/maintenance",

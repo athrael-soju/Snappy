@@ -53,7 +53,7 @@ export interface SystemStatus {
     unique_files: number;
     error: string | null;
     embedded?: boolean;
-    image_store_mode?: "inline" | "minio" | string;
+    image_store_mode?: "inline" | "local" | string;
     size_mb?: number;
   };
   bucket: {
