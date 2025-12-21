@@ -1,11 +1,16 @@
 import io
 import logging
-from pathlib import Path
 from typing import Any, Optional
 
-import config
 from api.dependencies import get_colpali_client
 from clients.colpali import ColPaliClient
+from clients.local_storage_utils import (
+    FileNotFoundInStorageError,
+    InvalidBucketError,
+    PathTraversalError,
+    parse_files_url,
+    resolve_storage_path,
+)
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from PIL import Image
 
@@ -19,49 +24,29 @@ MAX_FILE_SIZE = 10 * 1024 * 1024
 
 def _load_image_from_url(image_url: str) -> bytes:
     """
-    Load image bytes from a URL, supporting local file:// URLs and /files/ paths.
+    Load image bytes from a URL, supporting /files/ URLs for local storage.
+
+    Args:
+        image_url: URL containing /files/{bucket}/{path}
+
+    Returns:
+        Image bytes
+
+    Raises:
+        ValueError: If URL format is unsupported
+        FileNotFoundError: If file doesn't exist
     """
-    # Handle /files/ URLs by reading directly from local storage
-    if "/files/" in image_url:
-        # Extract path after /files/{bucket}/
-        try:
-            # URL format: http://host:port/files/{bucket}/{path}
-            parts = image_url.split("/files/")
-            if len(parts) < 2:
-                raise ValueError("Invalid /files/ URL format")
+    if "/files/" not in image_url:
+        raise ValueError(f"Unsupported URL format: {image_url}")
 
-            file_path_part = parts[1]  # e.g., "documents/doc-id/page/image.jpg"
-            path_components = file_path_part.split("/", 1)
-
-            if len(path_components) < 2:
-                raise ValueError("Missing path in /files/ URL")
-
-            bucket = path_components[0]
-            relative_path = path_components[1]
-
-            # Validate bucket matches configured bucket
-            if bucket != config.LOCAL_STORAGE_BUCKET_NAME:
-                raise ValueError(f"Invalid bucket: {bucket}")
-
-            # Construct full file path
-            storage_base = Path(config.LOCAL_STORAGE_PATH)
-            file_path = storage_base / bucket / relative_path
-            resolved_path = file_path.resolve()
-
-            # Security: ensure path stays within storage directory
-            if not str(resolved_path).startswith(str(storage_base.resolve())):
-                raise ValueError("Path traversal detected")
-
-            if not resolved_path.exists():
-                raise FileNotFoundError(f"File not found: {resolved_path}")
-
-            return resolved_path.read_bytes()
-
-        except Exception as e:
-            logger.error(f"Failed to load image from /files/ URL: {e}")
-            raise
-
-    raise ValueError(f"Unsupported URL format: {image_url}")
+    try:
+        bucket, relative_path = parse_files_url(image_url)
+        resolved_path = resolve_storage_path(bucket, relative_path)
+        return resolved_path.read_bytes()
+    except (InvalidBucketError, PathTraversalError) as e:
+        raise ValueError(str(e))
+    except FileNotFoundInStorageError:
+        raise FileNotFoundError(f"File not found: {image_url}")
 
 
 @router.post("/interpretability")
