@@ -62,15 +62,21 @@ export async function createStreamingResponse(params: CreateResponseBaseParams &
 
     // Log messages being sent to OpenAI
     const messageSummary = Array.isArray(input) ? input.map((msg) => {
-        const contentItems = msg.content.map((c) => {
-            if (c.type === 'input_text') {
-                return `text(${c.text.length} chars)`;
-            } else if (c.type === 'input_image') {
-                return c.image_url.startsWith('data:') ? 'image(base64)' : 'image(url)';
-            }
-            return c.type;
-        });
-        return `${msg.role}: [${contentItems.join(', ')}]`;
+        // Handle messages with array content
+        if (Array.isArray(msg.content)) {
+            const contentItems = msg.content.map((c) => {
+                if (c.type === 'input_text') {
+                    return `text(${c.text.length} chars)`;
+                } else if (c.type === 'input_image') {
+                    return c.image_url.startsWith('data:') ? 'image(base64)' : 'image(url)';
+                }
+                return c.type;
+            });
+            return `${msg.role}: [${contentItems.join(', ')}]`;
+        }
+        // Handle OpenAI response output items (e.g., function_call, text) that don't have content array
+        const itemType = (msg as unknown as { type?: string }).type || 'unknown';
+        return `output: ${itemType}`;
     }).join(' | ') : '';
 
     logger.info(`[OpenAI] ${messageSummary}`);

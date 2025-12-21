@@ -61,7 +61,8 @@ export async function runChatService(options: NormalizedChatRequest): Promise<Ch
         }
 
         // Combine user query text with search results into a single user message
-        // Remove the initial user message and replace with combined content
+        // Keep system message, replace user message, preserve any tool call outputs (items beyond index 1)
+        const toolOutputs = input.slice(2); // Preserve items after system + user (e.g., function_call outputs)
         input = [
             input[0], // Keep system message
             {
@@ -70,7 +71,8 @@ export async function runChatService(options: NormalizedChatRequest): Promise<Ch
                     { type: "input_text", text: options.message },
                     ...searchContent
                 ]
-            }
+            },
+            ...toolOutputs // Restore any tool call outputs
         ];
 
         kbItems = results;
@@ -148,14 +150,12 @@ export async function runChatService(options: NormalizedChatRequest): Promise<Ch
             };
         }
 
+        // For Responses API, function_call_output is a top-level input item, not nested in content
         input.push({
-            role: "user",
-            content: [{
-                type: "function_call_output",
-                call_id: functionCall.call_id,
-                output: JSON.stringify(searchResult),
-            }],
-        });
+            type: "function_call_output",
+            call_id: functionCall.call_id,
+            output: JSON.stringify(searchResult),
+        } as unknown as Message);
     }
 
     const stream = await createStreamingResponse({

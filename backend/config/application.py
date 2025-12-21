@@ -12,11 +12,13 @@ import re
 import threading
 from typing import Any
 
-from .schema import get_config_defaults
 from dotenv import load_dotenv
-from .runtime import get_runtime_config
 
+# Load .env BEFORE importing runtime config, so env vars are available
 load_dotenv()
+
+from .schema import get_config_defaults
+from .runtime import get_runtime_config
 
 # Initialize runtime config with environment variables
 _runtime = get_runtime_config()
