@@ -107,10 +107,6 @@ class OCRStage:
             try:
                 from qdrant_client import models
 
-                logger.info(
-                    f"Attempting to update Qdrant for page_id={page_id}, document_id={document_id}"
-                )
-
                 # Find points for this page
                 scroll_filter = models.Filter(
                     must=[
@@ -134,8 +130,6 @@ class OCRStage:
                     with_vectors=False,
                 )
 
-                logger.info(f"Found {len(points)} points to update for page {page_id}")
-
                 # Update each point with full OCR data
                 if points:
                     point_ids = [point.id for point in points]
@@ -150,34 +144,22 @@ class OCRStage:
                         }
                     }
 
-                    logger.info(
-                        f"Updating Qdrant with OCR data - ocr_url={storage_result['ocr_url']}, "
-                        f"text_length={len(ocr_result.get('text', ''))}, "
-                        f"regions_count={len(ocr_result.get('regions', []))}"
-                    )
-
                     self.qdrant_service.set_payload(
                         collection_name=self.collection_name,
                         payload=ocr_payload,
                         points=point_ids,
                     )
-                    logger.info(
-                        f"Successfully updated {len(point_ids)} points with OCR data for page {page_id}"
+                    logger.debug(
+                        f"Updated {len(point_ids)} points with OCR data for page {page_id}"
                     )
                 else:
                     logger.warning(
-                        f"No Qdrant points found for page_id={page_id}, document_id={document_id} - OCR data not added to vector store"
+                        f"No Qdrant points found for page_id={page_id}, document_id={document_id}"
                     )
             except Exception as e:
-                logger.error(
-                    f"Failed to update Qdrant with OCR data for page {page_id}: {e}",
-                    exc_info=True,
+                logger.warning(
+                    f"Failed to update Qdrant with OCR data for page {page_id}: {e}"
                 )
-        else:
-            logger.warning(
-                f"Qdrant service not available - qdrant_service={bool(self.qdrant_service)}, "
-                f"collection_name={self.collection_name}"
-            )
 
         return {
             "ocr_url": storage_result["ocr_url"],
