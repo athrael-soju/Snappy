@@ -64,7 +64,7 @@ async def clear_qdrant():
         raise HTTPException(status_code=500, detail=str(exc))
 
 
-@router.post("/clear/minio")
+@router.post("/clear/storage")
 async def clear_storage():
     logger.warning(
         "DESTRUCTIVE: Clearing local storage",

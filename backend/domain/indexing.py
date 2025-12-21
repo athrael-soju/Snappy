@@ -268,7 +268,7 @@ def run_indexing_job(
             default_quality=config.IMAGE_QUALITY,
         )
         image_store = ImageStorageHandler(
-            minio_service=qdrant_svc.minio_service,
+            storage_service=qdrant_svc.storage_service,
             image_processor=image_processor,
         )
 
@@ -281,8 +281,8 @@ def run_indexing_job(
             point_factory=PointFactory(),
             qdrant_service=qdrant_svc.service,
             collection_name=qdrant_svc.collection_name,
-            minio_base_url=config.LOCAL_STORAGE_PUBLIC_URL,
-            minio_bucket=config.LOCAL_STORAGE_BUCKET_NAME,
+            storage_base_url=config.LOCAL_STORAGE_PUBLIC_URL,
+            storage_bucket=config.LOCAL_STORAGE_BUCKET_NAME,
             batch_size=int(config.BATCH_SIZE),
             max_in_flight_batches=int(config.PIPELINE_MAX_IN_FLIGHT_BATCHES),
         )

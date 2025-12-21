@@ -22,23 +22,23 @@ class QdrantClient:
     def __init__(
         self,
         api_client: Optional["ColPaliClient"] = None,
-        minio_service: Optional["LocalStorageClient"] = None,
+        storage_service: Optional["LocalStorageClient"] = None,
         ocr_service=None,
     ):
         """Initialize Qdrant service with all subcomponents.
 
         Args:
             api_client: ColPali client for embeddings
-            minio_service: Storage service for image storage
+            storage_service: Storage service for image storage
             ocr_service: Optional OCR service for parallel processing
         """
         try:
-            if minio_service is None:
+            if storage_service is None:
                 raise ValueError("Storage service is required for QdrantClient")
 
             # Initialize dependencies
             self.api_client = api_client
-            self.minio_service = minio_service
+            self.storage_service = storage_service
             self.ocr_service = ocr_service
 
             # Initialize subcomponents
@@ -84,7 +84,7 @@ class QdrantClient:
         """Search and return metadata with image URLs.
 
         Returns search results with payload metadata including image_url.
-        Images are NOT fetched from MinIO to optimize latency - the frontend
+        Images are NOT fetched from storage to optimize latency - the frontend
         uses URLs directly for display and chat.
 
         payload_filter: optional dict of equality filters, e.g.
@@ -102,13 +102,13 @@ class QdrantClient:
 
     # Image retrieval
     def get_image_from_url(self, image_url: str) -> Image.Image:
-        """Fetch a PIL Image from MinIO by URL.
+        """Fetch a PIL Image from storage by URL.
 
         Use this when you need the actual image object (e.g., for server-side processing).
         The main search flow returns URLs to avoid unnecessary downloads.
         """
         if not image_url:
             raise Exception("No image reference provided")
-        if not self.minio_service:
-            raise Exception("MinIO service not available")
-        return self.minio_service.get_image(image_url)
+        if not self.storage_service:
+            raise Exception("Storage service not available")
+        return self.storage_service.get_image(image_url)

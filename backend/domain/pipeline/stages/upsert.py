@@ -24,38 +24,38 @@ class UpsertStage:
         point_factory,
         qdrant_service,
         collection_name: str,
-        minio_base_url: str,
-        minio_bucket: str,
+        storage_base_url: str,
+        storage_bucket: str,
         completion_tracker=None,
     ):
         self.point_factory = point_factory
         self.qdrant_service = qdrant_service
         self.collection_name = collection_name
-        self.minio_base_url = minio_base_url
-        self.minio_bucket = minio_bucket
+        self.storage_base_url = storage_base_url
+        self.storage_bucket = storage_bucket
         self.completion_tracker = completion_tracker
 
     def _generate_image_url(self, document_id: str, page_number: int, page_id: str) -> str:
-        """Generate MinIO image URL from metadata.
+        """Generate storage image URL from metadata.
 
-        Pattern: {minio_base_url}/{bucket}/{doc_id}/{page_num}/image/{page_id}.{ext}
+        Pattern: {storage_base_url}/{bucket}/{doc_id}/{page_num}/image/{page_id}.{ext}
         """
         fmt = config.IMAGE_FORMAT.lower()
         ext = "jpg" if fmt == "jpeg" else fmt
         object_name = f"{document_id}/{page_number}/image/{page_id}.{ext}"
 
-        base = self.minio_base_url.rstrip("/")
-        bucket_suffix = f"/{self.minio_bucket}" if self.minio_bucket else ""
+        base = self.storage_base_url.rstrip("/")
+        bucket_suffix = f"/{self.storage_bucket}" if self.storage_bucket else ""
         return f"{base}{bucket_suffix}/{object_name}"
 
     def _generate_ocr_url(self, document_id: str, page_number: int) -> str:
-        """Generate MinIO OCR JSON URL from metadata.
+        """Generate storage OCR JSON URL from metadata.
 
-        Pattern: {minio_base_url}/{bucket}/{doc_id}/{page_num}/ocr.json
+        Pattern: {storage_base_url}/{bucket}/{doc_id}/{page_num}/ocr.json
         """
         object_name = f"{document_id}/{page_number}/ocr.json"
-        base = self.minio_base_url.rstrip("/")
-        bucket_suffix = f"/{self.minio_bucket}" if self.minio_bucket else ""
+        base = self.storage_base_url.rstrip("/")
+        bucket_suffix = f"/{self.storage_bucket}" if self.storage_bucket else ""
         return f"{base}{bucket_suffix}/{object_name}"
 
     @log_stage_timing("Upsert")
@@ -83,7 +83,7 @@ class UpsertStage:
             {
                 "image_url": url,
                 "image_inline": False,
-                "image_storage": "minio",
+                "image_storage": "local",
                 "page_id": image_id,
             }
             for url, image_id in zip(image_urls, embedded_batch.image_ids)

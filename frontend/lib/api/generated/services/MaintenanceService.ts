@@ -22,10 +22,10 @@ export class MaintenanceService {
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static clearStorageClearMinioPost(): CancelablePromise<any> {
+    public static clearStorageClearStoragePost(): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/clear/minio',
+            url: '/clear/storage',
         });
     }
     /**

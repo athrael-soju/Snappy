@@ -29,7 +29,7 @@ class OcrStorageHandler:
 
     def __init__(
         self,
-        minio_service: "LocalStorageClient",
+        storage_service: "LocalStorageClient",
         processor: Optional["OcrProcessor"] = None,
         duckdb_service: Optional["DuckDBClient"] = None,
     ):
@@ -37,11 +37,11 @@ class OcrStorageHandler:
         Initialize storage handler.
 
         Args:
-            minio_service: Storage service for uploads
+            storage_service: Storage service for uploads
             processor: OCR processor (optional, for image extraction)
             duckdb_service: DuckDB service (optional, for analytics storage)
         """
-        self._minio = minio_service
+        self._storage = storage_service
         self._processor = processor
         self._duckdb = duckdb_service
 
@@ -83,7 +83,7 @@ class OcrStorageHandler:
                     crops=crops,
                     document_id=document_id,
                     page_number=page_number,
-                    minio_service=self._minio,
+                    storage_service=self._storage,
                 )
 
                 # Replace base64 image data with MinIO URLs in markdown/text
@@ -116,7 +116,7 @@ class OcrStorageHandler:
                     extracted_images_urls
                 ):
                     region["image_url"] = extracted_images_urls[image_idx]
-                    region["image_storage"] = "minio"
+                    region["image_storage"] = "local"
                     region["image_inline"] = False
 
                 # Store individual region JSON file in ocr_regions/ subfolder
@@ -130,7 +130,7 @@ class OcrStorageHandler:
                 }
 
                 try:
-                    region_url = self._minio.store_json(
+                    region_url = self._storage.store_json(
                         payload=region_payload,
                         document_id=document_id,
                         page_number=page_number,
@@ -159,7 +159,7 @@ class OcrStorageHandler:
         ocr_uuid = str(uuid.uuid4())
         json_filename = f"ocr/{ocr_uuid}.json"
         object_name = f"{document_id}/{page_number}/{json_filename}"
-        storage_url = self._minio._get_image_url(object_name)
+        storage_url = self._storage._get_image_url(object_name)
 
         # Build storage payload
         payload = {
@@ -198,11 +198,11 @@ class OcrStorageHandler:
         # Add extracted images metadata if any
         if extracted_images_urls:
             payload["extracted_images"] = [
-                {"url": url, "storage": "minio"} for url in extracted_images_urls
+                {"url": url, "storage": "local"} for url in extracted_images_urls
             ]
 
         # Store full OCR JSON to MinIO with UUID name
-        url = self._minio.store_json(
+        url = self._storage.store_json(
             payload=payload,
             document_id=document_id,
             page_number=page_number,

@@ -120,8 +120,8 @@ class StreamingPipeline:
         point_factory,
         qdrant_service,
         collection_name: str,
-        minio_base_url: str,
-        minio_bucket: str,
+        storage_base_url: str,
+        storage_bucket: str,
         batch_size: int = 4,
         max_in_flight_batches: int = 1,
     ):
@@ -135,8 +135,8 @@ class StreamingPipeline:
             point_factory: Factory for creating Qdrant points
             qdrant_service: Qdrant client for vector storage
             collection_name: Target Qdrant collection
-            minio_base_url: MinIO base URL for generating dynamic URLs
-            minio_bucket: MinIO bucket name
+            storage_base_url: Storage base URL for generating dynamic URLs
+            storage_bucket: Storage bucket name
             batch_size: Number of pages per batch
             max_in_flight_batches: Maximum batches processing simultaneously
         """
@@ -157,8 +157,8 @@ class StreamingPipeline:
         self.point_factory = point_factory
         self.qdrant_service = qdrant_service
         self.collection_name = collection_name
-        self.minio_base_url = minio_base_url
-        self.minio_bucket = minio_bucket
+        self.storage_base_url = storage_base_url
+        self.storage_bucket = storage_bucket
 
         # Create bounded queues for backpressure control
         self.embedding_input_queue = queue.Queue(maxsize=self.max_queue_size)
@@ -206,8 +206,8 @@ class StreamingPipeline:
             self.point_factory,
             self.qdrant_service,
             self.collection_name,
-            self.minio_base_url,
-            self.minio_bucket,
+            self.storage_base_url,
+            self.storage_bucket,
             completion_tracker=self.completion_tracker,
         )
 

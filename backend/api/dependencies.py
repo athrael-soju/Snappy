@@ -84,7 +84,7 @@ def _get_ocr_service_cached() -> OcrClient:
     duckdb_service = get_duckdb_service() if config.DUCKDB_ENABLED else None
 
     return OcrClient(
-        minio_service=storage_service,
+        storage_service=storage_service,
         duckdb_service=duckdb_service,
     )
 
@@ -150,10 +150,6 @@ def get_storage_service() -> LocalStorageClient:
         raise
 
 
-# Alias for backward compatibility during transition
-def get_minio_service() -> LocalStorageClient:
-    """Alias for get_storage_service (backward compatibility)."""
-    return get_storage_service()
 
 
 @lru_cache(maxsize=1)
@@ -168,7 +164,7 @@ def _get_qdrant_service_cached() -> QdrantClient:
 
     return QdrantClient(
         api_client=get_colpali_client(),
-        minio_service=storage_service,
+        storage_service=storage_service,
         ocr_service=ocr_service,
     )
 

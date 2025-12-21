@@ -10,19 +10,19 @@ logger = logging.getLogger(__name__)
 
 
 class ImageStorageHandler:
-    """Handles persistence of image batches in MinIO.
+    """Handles persistence of image batches in storage.
 
     Follows dependency injection principle - all dependencies must be provided.
     """
 
-    def __init__(self, minio_service, image_processor: ImageProcessor):
+    def __init__(self, storage_service, image_processor: ImageProcessor):
         """Initialize image storage handler.
 
         Args:
-            minio_service: MinIO service for object storage
+            storage_service: Storage service for object storage
             image_processor: Image processor for format conversion (required)
         """
-        self._minio_service = minio_service
+        self._storage_service = storage_service
         self._image_processor = image_processor
 
     def store(
@@ -33,7 +33,7 @@ class ImageStorageHandler:
         image_ids: List[str],
     ) -> Tuple[List[str], List[Dict[str, object]], List[ProcessedImage]]:
         """
-        Store images in MinIO using hierarchical structure.
+        Store images in storage using hierarchical structure.
 
         Parameters
         ----------
@@ -52,9 +52,9 @@ class ImageStorageHandler:
             image_ids, image_records, and processed_images for reuse
         """
 
-        if self._minio_service is None:
+        if self._storage_service is None:
             raise Exception(
-                "MinIO service is not configured; it is required for image storage."
+                "Storage service is not configured; it is required for image storage."
             )
 
         # Extract required fields from metadata - will raise KeyError if missing
@@ -75,9 +75,9 @@ class ImageStorageHandler:
         processed_images = self._image_processor.process_batch(image_batch)
 
         try:
-            # Store pre-processed images in MinIO with batch-size parallelism
+            # Store pre-processed images in storage with batch-size parallelism
             # Batch size controls parallelism across all stages
-            image_url_map = self._minio_service.store_processed_images_batch(
+            image_url_map = self._storage_service.store_processed_images_batch(
                 processed_images,
                 image_ids=image_ids,
                 document_ids=document_ids,
@@ -86,7 +86,7 @@ class ImageStorageHandler:
             )
         except Exception as exc:
             raise Exception(
-                f"Error storing images in MinIO for batch starting at {batch_start}: {exc}"
+                f"Error storing images in storage for batch starting at {batch_start}: {exc}"
             ) from exc
 
         records: List[Dict[str, object]] = []
@@ -104,7 +104,7 @@ class ImageStorageHandler:
                 {
                     "image_url": image_url,
                     "image_inline": False,
-                    "image_storage": "minio",
+                    "image_storage": "local",
                     "page_id": image_id,
                 }
             )

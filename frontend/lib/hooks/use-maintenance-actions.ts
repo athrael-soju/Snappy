@@ -73,7 +73,7 @@ export function useMaintenanceActions({ onSuccess }: UseMaintenanceActionsOption
 
   const actionHandlers: Record<ActionType, () => Promise<unknown>> = {
     q: () => MaintenanceService.clearQdrantClearQdrantPost(),
-    m: () => MaintenanceService.clearMinioClearMinioPost(),
+    m: () => MaintenanceService.clearStorageClearStoragePost(),
     all: () => MaintenanceService.clearAllClearAllPost(),
   };
 

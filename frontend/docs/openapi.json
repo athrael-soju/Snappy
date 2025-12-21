@@ -280,13 +280,13 @@
         }
       }
     },
-    "/clear/minio": {
+    "/clear/storage": {
       "post": {
         "tags": [
           "maintenance"
         ],
         "summary": "Clear Storage",
-        "operationId": "clear_storage_clear_minio_post",
+        "operationId": "clear_storage_clear_storage_post",
         "responses": {
           "200": {
             "description": "Successful Response",
