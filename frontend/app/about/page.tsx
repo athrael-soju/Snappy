@@ -35,7 +35,7 @@ const highlights = [
   {
     title: "Batteries-included pipeline",
     description:
-      "FastAPI orchestration, Qdrant storage, and MinIO image serving are pre-wired with Docker Compose.",
+      "FastAPI orchestration, Qdrant storage, and local file serving are pre-wired with Docker Compose.",
     icon: Workflow,
   },
   {
@@ -66,7 +66,7 @@ const stack = [
     icon: Database,
   },
   {
-    title: "MinIO object storage",
+    title: "Local file storage",
     description:
       "Keeps page imagery in sync with vector IDs so chat and search can surface visual citations instantly.",
     icon: Layers,
@@ -82,7 +82,7 @@ const lifecycle = [
   {
     label: "Index",
     detail:
-      "The backend pipelines page renders through ColPali, uploads imagery to MinIO, and persists embeddings to Qdrant.",
+      "The backend pipelines page renders through ColPali, stores imagery locally, and persists embeddings to Qdrant.",
   },
   {
     label: "Retrieve",
@@ -128,7 +128,7 @@ export default function AboutPage() {
                   is your launchpad for multimodal retrieval
                 </>
               }
-              description="This template stitches together FastAPI, Next.js, ColPali, Qdrant, and MinIO so you can stand up a production-ready vision retrieval stack without rebuilding the plumbing. Upload documents, search visually, and chat with grounded citations out of the box."
+              description="This template stitches together FastAPI, Next.js, ColPali, and Qdrant so you can stand up a production-ready vision retrieval stack without rebuilding the plumbing. Upload documents, search visually, and chat with grounded citations out of the box."
               descriptionClassName="text-body-sm sm:text-body leading-relaxed text-muted-foreground max-w-3xl"
               actionsClassName="gap-4 flex-wrap justify-center"
               actions={

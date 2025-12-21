@@ -18,14 +18,14 @@ export class MaintenanceService {
         });
     }
     /**
-     * Clear Minio
+     * Clear Storage
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static clearMinioClearMinioPost(): CancelablePromise<any> {
+    public static clearStorageClearStoragePost(): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/clear/minio',
+            url: '/clear/storage',
         });
     }
     /**

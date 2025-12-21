@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 
-from api.dependencies import get_duckdb_service, get_minio_service, get_qdrant_service
+from api.dependencies import get_duckdb_service, get_storage_service, get_qdrant_service
 from fastapi import APIRouter, HTTPException
 
 from domain.maintenance import (
@@ -19,7 +19,7 @@ async def get_status():
     """Get the status of collection and bucket including statistics."""
     try:
         svc = get_qdrant_service()
-        msvc = get_minio_service()
+        msvc = get_storage_service()
         dsvc = get_duckdb_service()
         collection_status, bucket_status = await asyncio.gather(
             asyncio.to_thread(collect_collection_status, svc),

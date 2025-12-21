@@ -44,7 +44,7 @@ const UPLOAD_HELPER_CARDS: UploadHelperCard[] = [
   {
     id: "maintenance",
     title: "Check System Health",
-    description: "Verify the Qdrant collection and MinIO bucket are ready before large uploads.",
+    description: "Verify the Qdrant collection and storage bucket are ready before large uploads.",
     icon: Wrench,
     gradient: "from-chart-2 to-chart-3",
     href: "/maintenance",
@@ -254,7 +254,7 @@ export default function UploadPage() {
 
             <Badge variant="outline" className="gap-1.5 px-3 py-1">
               <HardDrive className="size-icon-3xs" />
-              <span className="font-semibold">MinIO</span>
+              <span className="font-semibold">Storage</span>
               {systemStatus?.bucket?.exists ? (
                 <CheckCircle2 className="size-icon-3xs text-chart-2" />
               ) : (

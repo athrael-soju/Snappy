@@ -13,7 +13,7 @@ async function fetchOcrData(result: SearchItem): Promise<any> {
         return ocrData;
     }
 
-    // MinIO mode: fetch from json_url
+    // Storage mode: fetch from json_url
     if (result.json_url) {
         // Check cache first
         if (ocrDataCache.has(result.json_url)) {
@@ -73,10 +73,10 @@ async function inlineLocalImages(markdown: string): Promise<string> {
         const cacheKey = `${alt}::${url}`;
         if (!cache.has(cacheKey)) {
             let resolvedUrl = url;
-            if (process.env.PUBLIC_MINIO_URL_SET === "true") {
+            if (process.env.PUBLIC_STORAGE_URL_SET === "true") {
                 resolvedUrl = resolvedUrl
-                    .replace("localhost", "minio")
-                    .replace("127.0.0.1", "minio");
+                    .replace("localhost", "backend")
+                    .replace("127.0.0.1", "backend");
             }
 
             const createMarkdownImage = (data: DataUrl) =>
@@ -123,6 +123,8 @@ async function inlineLocalImages(markdown: string): Promise<string> {
 }
 
 export async function buildImageContent(results: SearchItem[], query: string): Promise<any[]> {
+    logger.info(`[buildImageContent] Processing ${results?.length ?? 0} results for query: "${query}"`);
+
     const labelsText = (results || [])
         .map((result, index) => `Image ${index + 1}: ${result.label || "Unknown"}`)
         .join("\n");
@@ -133,40 +135,46 @@ export async function buildImageContent(results: SearchItem[], query: string): P
     } as const;
 
     const items = await Promise.all(
-        (results || []).map(async (result) => {
+        (results || []).map(async (result, index) => {
             try {
                 let imageUrl = result.image_url;
                 if (!imageUrl) {
+                    logger.warn(`[buildImageContent] Result ${index} has no image_url`);
                     return null;
                 }
 
-                const isLocal = imageUrl.includes("localhost") || imageUrl.includes("127.0.0.1");
-                if (process.env.PUBLIC_MINIO_URL_SET === "true") {
-                    imageUrl = imageUrl.replace("localhost", "minio") || imageUrl.replace("127.0.0.1", "minio");
+                logger.debug(`[buildImageContent] Result ${index} image_url: ${imageUrl}`);
+
+                // Always fetch and convert to base64 - OpenAI can't access local/private URLs
+                let fetchUrl = imageUrl;
+                if (process.env.PUBLIC_STORAGE_URL_SET === "true") {
+                    fetchUrl = fetchUrl.replace("localhost", "backend").replace("127.0.0.1", "backend");
                 }
 
-                if (isLocal) {
-                    const imageResponse = await fetch(imageUrl);
-                    if (!imageResponse.ok) {
-                        return null;
-                    }
-
-                    const imageBuffer = await imageResponse.arrayBuffer();
-                    const base64 = Buffer.from(imageBuffer).toString("base64");
-                    const mimeType = imageResponse.headers.get("content-type") || "image/png";
-                    const dataUrl = `data:${mimeType};base64,${base64}`;
-
-                    return { type: "input_image", image_url: dataUrl } as const;
+                logger.debug(`[buildImageContent] Fetching image ${index} from: ${fetchUrl}`);
+                const imageResponse = await fetch(fetchUrl);
+                if (!imageResponse.ok) {
+                    logger.error(`[buildImageContent] Failed to fetch image ${index}: ${imageResponse.status} ${imageResponse.statusText}`);
+                    return null;
                 }
 
-                return { type: "input_image", image_url: imageUrl } as const;
-            } catch {
+                const imageBuffer = await imageResponse.arrayBuffer();
+                const base64 = Buffer.from(imageBuffer).toString("base64");
+                const mimeType = imageResponse.headers.get("content-type") || "image/png";
+                const dataUrl = `data:${mimeType};base64,${base64}`;
+
+                logger.debug(`[buildImageContent] Result ${index} converted to base64 (${base64.length} chars)`);
+                return { type: "input_image", image_url: dataUrl } as const;
+            } catch (error) {
+                logger.error(`[buildImageContent] Error processing result ${index}`, { error });
                 return null;
             }
         }),
     );
 
-    return [header, ...items.filter(Boolean)];
+    const validItems = items.filter(Boolean);
+    logger.info(`[buildImageContent] Returning ${validItems.length} valid image items`);
+    return [header, ...validItems];
 }
 
 export async function buildMarkdownContent(results: SearchItem[], query: string): Promise<any[]> {
@@ -268,10 +276,10 @@ export async function buildRegionImagesContent(results: SearchItem[], query: str
         const isLocal = imageUrl.includes("localhost") || imageUrl.includes("127.0.0.1");
         let resolvedUrl = imageUrl;
 
-        if (process.env.PUBLIC_MINIO_URL_SET === "true" && isLocal) {
+        if (process.env.PUBLIC_STORAGE_URL_SET === "true" && isLocal) {
             resolvedUrl = resolvedUrl
-                .replace("localhost", "minio")
-                .replace("127.0.0.1", "minio");
+                .replace("localhost", "backend")
+                .replace("127.0.0.1", "backend");
         }
 
         if (isLocal) {

@@ -18,27 +18,6 @@ services:
       timeout: 5s
       retries: 3
 
-  minio:
-    container_name: minio
-    image: minio/minio:latest
-    command: server /data --console-address ":9001"
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    environment:
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
-    volumes:
-      - minio_data:/data
-    networks:
-      - snappy-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
-
   colpali:
     container_name: colpali
     build:
@@ -148,20 +127,20 @@ services:
       - DEEPSEEK_OCR_URL=http://deepseek-ocr:8200
       - DUCKDB_URL=http://duckdb:8300
       - QDRANT_URL=http://qdrant:6333
-      - MINIO_URL=http://minio:9000
-      - MINIO_PUBLIC_URL=http://localhost:9000
+      # Local storage configuration
+      - LOCAL_STORAGE_PATH=/app/storage
+      - LOCAL_STORAGE_PUBLIC_URL=http://localhost:8000/files
       # Profile-specific feature flags (set by Makefile)
       - DEEPSEEK_OCR_ENABLED=${DEEPSEEK_OCR_ENABLED:-true}
       - DUCKDB_ENABLED=${DUCKDB_ENABLED:-true}
     volumes:
       - ./backend:/app
       - backend_cache:/root/.cache
+      - snappy_storage:/app/storage
     networks:
       - snappy-network
     depends_on:
       qdrant:
-        condition: service_healthy
-      minio:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
@@ -198,7 +177,7 @@ services:
 
 volumes:
   qdrant_data:
-  minio_data:
+  snappy_storage:
   hf_cache:
   duckdb_data:
   backend_cache:

@@ -9,7 +9,6 @@ __pycache__/
 .gitignore
 .gitattributes
 .qdrant/
-minio_data/
 qdrant_data/
 backend_data/
 data/

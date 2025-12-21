@@ -11,14 +11,14 @@ logger = logging.getLogger(__name__)
 
 
 class StorageStage:
-    """Stores images in MinIO independently of embedding."""
+    """Stores images in local storage independently of embedding."""
 
     def __init__(self, image_store):
         self.image_store = image_store
 
     @log_stage_timing("Storage")
     def process_batch(self, batch: PageBatch) -> None:
-        """Store images in MinIO."""
+        """Store images in local storage."""
         # Store images using shared image_ids from PageBatch
         # This ensures storage uses the same IDs as embedding and OCR
         self.image_store.store(
@@ -36,7 +36,7 @@ class StorageStage:
     ):
         """Consumer loop: take batches and store images.
 
-        Storage failures are critical - if MinIO is unavailable, the pipeline stops.
+        Storage failures are critical - if storage is unavailable, the pipeline stops.
 
         Args:
             input_queue: Queue to read batches from

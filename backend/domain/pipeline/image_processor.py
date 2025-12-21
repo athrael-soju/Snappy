@@ -1,7 +1,7 @@
 """Centralized image processing service.
 
 This module provides a single point for image format conversion and quality
-optimization, eliminating redundant conversions across MinIO and OCR services.
+optimization, eliminating redundant conversions across storage and OCR services.
 """
 
 import io
@@ -63,7 +63,7 @@ class ImageProcessor:
     Centralized image processing service.
 
     Handles format conversion and quality optimization for images before
-    they are passed to storage (MinIO) or OCR (DeepSeek) services.
+    they are passed to storage or OCR (DeepSeek) services.
 
     This eliminates redundant image conversions and ensures consistent
     processing across all services.
@@ -119,7 +119,7 @@ class ImageProcessor:
         Process a PIL image into the configured format with quality settings.
 
         This method performs the image conversion once, and the result can be
-        reused by multiple consumers (MinIO, OCR, etc.).
+        reused by multiple consumers (storage, OCR, etc.).
 
         Parameters
         ----------
@@ -141,8 +141,8 @@ class ImageProcessor:
         --------
         >>> processor = ImageProcessor(default_format="JPEG", default_quality=85)
         >>> processed = processor.process(pil_image)
-        >>> # Reuse for MinIO
-        >>> minio.store_from_bytes(processed.data, ...)
+        >>> # Reuse for storage
+        >>> storage.store_from_bytes(processed.data, ...)
         >>> # Reuse for OCR
         >>> ocr.run_ocr_bytes(processed.data, ...)
         """

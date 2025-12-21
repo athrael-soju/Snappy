@@ -181,7 +181,6 @@ def setup_logging(
     )
     logging.getLogger("uvicorn.error").setLevel(level)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
-    logging.getLogger("minio").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
 

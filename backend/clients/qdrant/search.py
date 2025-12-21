@@ -118,7 +118,7 @@ class SearchManager:
         """Search and return metadata with image URLs.
 
         Returns search results with payload metadata including image_url.
-        Images are NOT fetched from MinIO to optimize latency - the frontend
+        Images are NOT fetched from storage to optimize latency - the frontend
         uses URLs directly for display and chat.
 
         payload_filter: optional dict of equality filters, e.g.

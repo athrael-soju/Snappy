@@ -25,27 +25,6 @@ services:
       timeout: 5s
       retries: 3
 
-  minio:
-    container_name: minio-dev
-    image: minio/minio:latest
-    command: server /data --console-address ":9001"
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    environment:
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
-    volumes:
-      - minio_data:/data
-    networks:
-      - frontend-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
-
   backend:
     container_name: backend-dev
     build:
@@ -58,19 +37,19 @@ services:
       - ../backend/.env
     environment:
       - QDRANT_URL=http://qdrant:6333
-      - MINIO_URL=http://minio:9000
-      - MINIO_PUBLIC_URL=http://localhost:9000
+      # Local storage configuration
+      - LOCAL_STORAGE_PATH=/app/storage
+      - LOCAL_STORAGE_PUBLIC_URL=http://localhost:8000/files
       # Disable ML services for faster startup
       - DEEPSEEK_OCR_ENABLED=false
       - DUCKDB_ENABLED=false
     volumes:
       - backend_data:/home/user/app/data
+      - snappy_storage:/app/storage
     networks:
       - frontend-network
     depends_on:
       qdrant:
-        condition: service_healthy
-      minio:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
@@ -105,7 +84,7 @@ services:
 
 volumes:
   qdrant_data:
-  minio_data:
+  snappy_storage:
   backend_data:
 
 networks:

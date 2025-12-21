@@ -106,14 +106,12 @@ Environment:
 ```bash
 # ✅ Good - Use environment files (gitignored)
 OPENAI_API_KEY=sk-...
-MINIO_ROOT_PASSWORD=securepassword123
 
 # ❌ Bad - Hardcoded credentials
 OPENAI_API_KEY="sk-proj-1234567890"  # In committed code
 ```
 
 **Use strong, unique passwords:**
-- MinIO: At least 16 characters, mixed case, numbers, symbols
 - Qdrant: Use API keys in production
 - OpenAI: Rotate keys periodically
 
@@ -133,7 +131,7 @@ ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
 
 **Always use HTTPS in production:**
 - Use SSL certificates (Let's Encrypt, CloudFlare, etc.)
-- Set `MINIO_USE_SSL=true`
+- Use HTTPS in production
 - Configure Next.js behind a reverse proxy (nginx, Traefik)
 - Enable HSTS headers
 
@@ -199,16 +197,13 @@ yarn audit fix
 ```bash
 # .env.example - Commit this
 OPENAI_API_KEY=your_openai_key_here
-MINIO_ROOT_PASSWORD=your_minio_password
 
 # .env - Gitignored, contains real secrets
 OPENAI_API_KEY=sk-proj-actual-key-123
-MINIO_ROOT_PASSWORD=MyS3cur3P@ssw0rd!
 ```
 
 **Rotate secrets regularly:**
 - OpenAI API keys: Every 90 days
-- MinIO credentials: Every 180 days
 - Database passwords: Every 180 days
 
 #### Code Security
@@ -264,27 +259,15 @@ The frontend chat route requires `OPENAI_API_KEY` in the Next.js environment. Th
 // Implement user authentication and per-user API keys
 ```
 
-#### 2. MinIO Public Access
+#### 2. Local Storage Public Access
 
-**Issue:**  
-Page images are served from MinIO with public read access for simplicity.
+**Issue:**
+Page images are served from local storage with public read access for simplicity.
 
 **Mitigation:**
-- Images are stored in dedicated bucket
+- Images are stored in dedicated storage folder
 - No sensitive metadata in image URLs
-- Pre-signed URLs can be implemented if needed
-
-**Enhanced Security:**
-```python
-# backend/services/minio.py
-def get_presigned_url(self, object_name: str, expires: int = 3600):
-    """Generate temporary signed URL for private access."""
-    return self.client.presigned_get_object(
-        bucket_name=self.bucket_name,
-        object_name=object_name,
-        expires=timedelta(seconds=expires)
-    )
-```
+- Access control can be implemented at the web server level if needed
 
 #### 3. No Authentication/Authorization
 

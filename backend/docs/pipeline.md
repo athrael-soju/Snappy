@@ -38,7 +38,7 @@ from domain.pipeline.streaming_pipeline import StreamingPipeline
 
 # Create dependencies
 image_processor = ImageProcessor(default_format="JPEG", default_quality=85)
-image_store = ImageStorageHandler(minio_service=minio, image_processor=image_processor)
+image_store = ImageStorageHandler(storage_service=storage, image_processor=image_processor)
 
 # Create streaming pipeline with all dependencies injected
 pipeline = StreamingPipeline(
@@ -49,8 +49,8 @@ pipeline = StreamingPipeline(
     point_factory=point_factory,
     qdrant_service=qdrant,
     collection_name="documents",
-    minio_base_url="http://localhost:9000",
-    minio_bucket="documents",
+    storage_base_url="http://localhost:8000/files",
+    storage_bucket="documents",
     batch_size=4,
     max_queue_size=8,
 )
@@ -87,7 +87,7 @@ Generates vector embeddings:
 - Outputs to upsert queue
 
 #### `StorageStage`
-Stores page images in MinIO:
+Stores page images in local storage:
 - Runs in parallel with embedding
 - Uses hierarchical structure: `{doc_id}/{page_num}/image/{page_id}.{ext}`
 - Failures are critical - stops pipeline to prevent broken image URLs
@@ -95,7 +95,7 @@ Stores page images in MinIO:
 #### `OCRStage`
 Extracts text from page images:
 - Runs in parallel with embedding and storage
-- Stores OCR JSON in MinIO: `{doc_id}/{page_num}/ocr.json`
+- Stores OCR JSON in local storage: `{doc_id}/{page_num}/ocr.json`
 - Only runs if OCR is enabled
 - Failures are critical when enabled - stops pipeline
 
@@ -115,7 +115,7 @@ Creates final Qdrant points and upserts:
 # Storage and OCR stages run independently - no coordination
 class StorageStage:
     def process_batch(self, batch):
-        # Upload images to MinIO
+        # Upload images to local storage
         image_store.store(...)
         # That's it - no completion tracking needed
 
@@ -144,14 +144,14 @@ class UpsertStage:
 **Benefits**:
 - **No blocking**: All stages run at full speed independently
 - **No data caching**: Minimal memory footprint
-- **Dynamic URLs**: Pattern matches MinIO structure exactly
+- **Dynamic URLs**: Pattern matches storage structure exactly
 - **Immediate progress**: Progress updates as soon as embeddings are processed
 - **Fire-and-forget storage**: Storage and OCR don't block the critical path
 
 ### Shared Components
 
 #### `ImageStorageHandler`
-Manages image persistence in MinIO:
+Manages image persistence in local storage:
 - Format conversion and quality optimization
 - Hierarchical storage: `{doc_id}/{page_num}/image/{page_id}.{ext}`
 
@@ -171,7 +171,7 @@ from clients.qdrant.indexing import PointFactory
 
 # Create dependencies with proper injection
 image_processor = ImageProcessor(default_format="JPEG", default_quality=85)
-image_store = ImageStorageHandler(minio_service=minio, image_processor=image_processor)
+image_store = ImageStorageHandler(storage_service=storage, image_processor=image_processor)
 
 # Create generic indexer with injected dependencies
 indexer = DocumentIndexer(
@@ -287,14 +287,14 @@ graph TB
 
         subgraph "2b: Storage Stage Thread (Independent)"
             STOR_GET[Get PageBatch<br/>from storage_input_queue]
-            STOR_PROC[image_store.store<br/>Upload to MinIO]
+            STOR_PROC[image_store.store<br/>Upload to storage]
             STOR_DONE[Done - no coordination]
         end
 
         subgraph "2c: OCR Stage Thread (Independent)"
             OCR_GET[Get PageBatch<br/>from ocr_input_queue]
             OCR_PROC[Process OCR<br/>ThreadPool: 2 workers]
-            OCR_STOR[Store OCR results<br/>in MinIO]
+            OCR_STOR[Store OCR results<br/>in storage]
             OCR_DONE[Done - no coordination]
         end
     end
@@ -380,8 +380,8 @@ graph TB
 
 2. **Parallel Consumer Stages** (3 independent threads, each with dedicated queue)
    - **EmbeddingStage**: Reads from `embedding_input_queue`, generates embeddings → `embedding_queue` (failures stop pipeline)
-   - **StorageStage**: Reads from `storage_input_queue`, uploads to MinIO (failures stop pipeline)
-   - **OCRStage**: Reads from `ocr_input_queue`, processes OCR, stores results in MinIO (only runs if enabled, failures stop pipeline)
+   - **StorageStage**: Reads from `storage_input_queue`, uploads to local storage (failures stop pipeline)
+   - **OCRStage**: Reads from `ocr_input_queue`, processes OCR, stores results in local storage (only runs if enabled, failures stop pipeline)
 
 3. **UpsertStage (Final Consumer)**
    - Gets `EmbeddedBatch` from `embedding_queue` (only waits for embeddings)
@@ -412,7 +412,7 @@ from domain.pipeline import ImageProcessor, ImageStorageHandler
 
 # Create dependencies with proper injection (following SOLID principles)
 image_processor = ImageProcessor(default_format="JPEG", default_quality=85)
-image_store = ImageStorageHandler(minio_service=minio, image_processor=image_processor)
+image_store = ImageStorageHandler(storage_service=storage, image_processor=image_processor)
 
 # Create streaming pipeline with all dependencies injected
 pipeline = StreamingPipeline(
@@ -457,8 +457,8 @@ pipeline.stop()
 
 All stages run **independently in parallel** with dedicated queues:
 - **Embedding Stage**: Produces `EmbeddedBatch` → `embedding_queue`
-- **Storage Stage**: Uploads images to MinIO in parallel
-- **OCR Stage**: Processes and stores OCR results in MinIO in parallel (only if enabled)
+- **Storage Stage**: Uploads images to local storage in parallel
+- **OCR Stage**: Processes and stores OCR results in local storage in parallel (only if enabled)
 - **Upsert Stage**: Receives embeddings, generates URLs dynamically, upserts immediately
 
 This architecture allows each stage to proceed at full speed. All stages run concurrently, and failures in any stage stop the pipeline to ensure data consistency.

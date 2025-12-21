@@ -5,10 +5,10 @@ import logging
 
 from api.dependencies import (
     get_duckdb_service,
-    get_minio_service,
+    get_storage_service,
     get_qdrant_service,
-    minio_init_error,
     qdrant_init_error,
+    storage_init_error,
 )
 from fastapi import APIRouter, HTTPException
 from utils.timing import PerformanceTimer
@@ -64,28 +64,28 @@ async def clear_qdrant():
         raise HTTPException(status_code=500, detail=str(exc))
 
 
-@router.post("/clear/minio")
-async def clear_minio():
+@router.post("/clear/storage")
+async def clear_storage():
     logger.warning(
-        "DESTRUCTIVE: Clearing MinIO storage",
-        extra={"operation": "clear_minio", "service": "minio"},
+        "DESTRUCTIVE: Clearing local storage",
+        extra={"operation": "clear_storage", "service": "storage"},
     )
 
     try:
-        msvc = get_minio_service()
+        msvc = get_storage_service()
         if not msvc:
             raise HTTPException(
                 status_code=503,
-                detail=f"Service unavailable: {minio_init_error.get() or 'Dependency services are down'}",
+                detail=f"Service unavailable: {storage_init_error.get() or 'Dependency services are down'}",
             )
 
-        with PerformanceTimer("clear MinIO storage", log_on_exit=False) as timer:
+        with PerformanceTimer("clear local storage", log_on_exit=False) as timer:
             res = await asyncio.to_thread(msvc.clear_images)
 
         logger.warning(
-            "MinIO storage cleared",
+            "Local storage cleared",
             extra={
-                "operation": "clear_minio",
+                "operation": "clear_storage",
                 "deleted": res.get("deleted"),
                 "failed": res.get("failed"),
                 "duration_ms": timer.duration_ms,
@@ -101,9 +101,9 @@ async def clear_minio():
         raise
     except Exception as exc:
         logger.error(
-            "Failed to clear MinIO storage",
+            "Failed to clear local storage",
             exc_info=exc,
-            extra={"operation": "clear_minio"},
+            extra={"operation": "clear_storage"},
         )
         raise HTTPException(status_code=500, detail=str(exc))
 
@@ -111,13 +111,13 @@ async def clear_minio():
 @router.post("/clear/all")
 async def clear_all():
     logger.warning(
-        "DESTRUCTIVE: Clearing ALL data (Qdrant, MinIO, DuckDB)",
+        "DESTRUCTIVE: Clearing ALL data (Qdrant, storage, DuckDB)",
         extra={"operation": "clear_all"},
     )
 
     try:
         svc = get_qdrant_service()
-        msvc = get_minio_service()
+        msvc = get_storage_service()
         dsvc = get_duckdb_service()
 
         with PerformanceTimer("clear all data", log_on_exit=False) as timer:
@@ -149,7 +149,7 @@ async def initialize():
 
     try:
         svc = get_qdrant_service()
-        msvc = get_minio_service()
+        msvc = get_storage_service()
         dsvc = get_duckdb_service()
 
         with PerformanceTimer("initialize services", log_on_exit=False) as timer:
@@ -183,7 +183,7 @@ async def delete_collection_and_bucket():
 
     try:
         svc = get_qdrant_service()
-        msvc = get_minio_service()
+        msvc = get_storage_service()
         dsvc = get_duckdb_service()
 
         with PerformanceTimer("delete all", log_on_exit=False) as timer:

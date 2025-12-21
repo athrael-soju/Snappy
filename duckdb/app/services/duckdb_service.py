@@ -102,11 +102,11 @@ class DuckDBAnalyticsService:
         """Store a single OCR page and its columnar data.
 
         Stores:
-        - Core page metadata (filename, page_number, dimensions, MinIO URLs)
+        - Core page metadata (filename, page_number, dimensions, storage URLs)
         - Full text and markdown (for search/retrieval)
         - Structured regions with bounding boxes
 
-        Note: Full JSON payload already exists in MinIO at storage_url
+        Note: Full JSON payload already exists in storage at storage_url
         """
         conn = self.conn
 
@@ -420,7 +420,7 @@ class DuckDBAnalyticsService:
         - page_number: Same as pdf_page_index in Qdrant
 
         Returns:
-            Dict with page metadata, text, markdown, regions, and MinIO URLs
+            Dict with page metadata, text, markdown, regions, and storage URLs
         """
         row = self.conn.execute(
             """

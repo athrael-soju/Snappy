@@ -5,7 +5,6 @@ rich
 qdrant-client
 numpy
 python-dotenv
-minio
 requests
 fastapi
 uvicorn[standard]

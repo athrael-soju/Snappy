@@ -58,9 +58,9 @@ class DuckDBManager:
 
         Schema design principles:
         - documents: Core document metadata for deduplication
-        - pages: Page metadata with MinIO references (formerly ocr_pages)
+        - pages: Page metadata with storage references (formerly ocr_pages)
         - regions: Structured text regions with bounding boxes (formerly ocr_regions)
-        - Minimal duplication: Full data lives in MinIO, DB has queryable metadata
+        - Minimal duplication: Full data lives in storage, DB has queryable metadata
         - Retrieval: Query by (filename, page_number) matching Qdrant payload
         - Deduplication: Check documents table before indexing
         """

@@ -29,6 +29,7 @@ import {
 } from "@/components/interpretability-heatmap";
 import { type NormalizationStrategy } from "@/lib/utils/normalization";
 import { useInterpretability } from "@/hooks/use-interpretability";
+import { useMeanPoolingEnabled } from "@/hooks/use-mean-pooling-enabled";
 
 // Timing constants for image dimension updates
 const DIMENSION_UPDATE_DELAY_AFTER_DATA_LOAD = 50; // ms - delay after interpretability data loads
@@ -53,6 +54,7 @@ export default function ImageLightbox({
   const [showInterpretability, setShowInterpretability] = useState(false);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
   const imgRef = useRef<HTMLImageElement>(null);
+  const meanPoolingEnabled = useMeanPoolingEnabled();
 
   const {
     interpretabilityData,
@@ -67,6 +69,10 @@ export default function ImageLightbox({
     fetchInterpretability,
     reset,
   } = useInterpretability(query, src);
+
+  // Disable interpretability toggle when mean pooling is not enabled
+  // Allow toggling off even while loading
+  const isInterpretabilityDisabled = !meanPoolingEnabled;
 
   // Reset state when dialog opens/closes
   useEffect(() => {
@@ -154,12 +160,16 @@ export default function ImageLightbox({
                         id="interpretability-toggle"
                         checked={showInterpretability}
                         onCheckedChange={setShowInterpretability}
-                        disabled={loading}
+                        disabled={isInterpretabilityDisabled}
                       />
                     </div>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Show heat map overlay</p>
+                    <p>
+                      {!meanPoolingEnabled
+                        ? "Enable Mean Pooling in Configuration to use interpretability"
+                        : "Show heat map overlay"}
+                    </p>
                   </TooltipContent>
                 </Tooltip>
                 {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}

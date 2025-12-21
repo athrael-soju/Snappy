@@ -69,7 +69,7 @@ That's it! The system auto-configures parallelism, quantization, and pooling for
    - Auto-config mode: Always ON
 3. System auto-sizes:
    - Pipeline concurrency (based on CPU cores)
-   - MinIO workers (based on CPU + concurrency)
+   - Storage workers (based on CPU + concurrency)
    - Connection pools (based on workers)
 
 Runtime updates via `/config/*` API take effect immediately but don't persist across restarts; update `.env` for permanent changes.
@@ -91,7 +91,7 @@ Runtime updates via `/config/*` API take effect immediately but don't persist ac
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `QDRANT_COLLECTION_NAME` | `documents` | Collection name (also used for MinIO bucket) |
+| `QDRANT_COLLECTION_NAME` | `documents` | Collection name (also used for storage bucket) |
 | `QDRANT_EMBEDDED` | `false` | Use embedded Qdrant (single-machine only) |
 | `QDRANT_URL` | `http://localhost:6333` | Qdrant service URL |
 | `QDRANT_SEARCH_LIMIT` | `20` | Number of search results to return |
@@ -144,15 +144,13 @@ Runtime updates via `/config/*` API take effect immediately but don't persist ac
 
 ---
 
-### MinIO Object Storage
+### Local Storage
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `MINIO_URL` | `http://localhost:9000` | MinIO service URL |
-| `MINIO_PUBLIC_URL` | `http://localhost:9000` | Public URL for image links |
-| `MINIO_ACCESS_KEY` | `minioadmin` | ⚠️ Change in production! |
-| `MINIO_SECRET_KEY` | `minioadmin` | ⚠️ Change in production! |
-| `MINIO_PUBLIC_READ` | `true` | Allow public read access |
+| `LOCAL_STORAGE_PATH` | `/app/storage` | Directory for storing uploaded files |
+| `LOCAL_STORAGE_PUBLIC_URL` | `http://localhost:8000/files` | Public URL for file access |
+| `LOCAL_STORAGE_BUCKET_NAME` | `documents` | Bucket/folder name for documents |
 
 **Note:** Upload workers, retry attempts, image format (JPEG), and quality (75) are auto-configured.
 
@@ -163,7 +161,8 @@ Runtime updates via `/config/*` API take effect immediately but don't persist ac
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `NEXT_PUBLIC_API_BASE_URL` | `http://localhost:8000` | Backend API URL (for browser) |
-| `PUBLIC_MINIO_URL_SET` | `true` | Replace localhost with service name in Docker |
+
+**Note:** `PUBLIC_STORAGE_URL_SET` is automatically configured in Docker Compose to handle service name resolution for storage URLs.
 
 ---
 
@@ -236,8 +235,8 @@ Contact for enterprise licensing and advanced configuration options.
 **Problem:** CORS errors in browser
 - **Solution:** Update `ALLOWED_ORIGINS` with your frontend domain (don't use `*` in production)
 
-**Problem:** MinIO connection errors
-- **Solution:** Verify `MINIO_URL` is accessible from backend container (use service name in Docker)
+**Problem:** Storage access errors
+- **Solution:** Verify `LOCAL_STORAGE_PATH` is writable and accessible from the backend container
 
 ---
 
@@ -248,7 +247,7 @@ Contact for enterprise licensing and advanced configuration options.
 | Binary quantization | ✅ Automatic | Always ON (32x memory reduction) |
 | Disk storage | ✅ Automatic | Always ON (memory optimization) |
 | Pipeline concurrency | ✅ Automatic | Based on CPU cores + batch size |
-| MinIO workers | ✅ Automatic | Based on CPU cores + concurrency |
+| Storage workers | ✅ Automatic | Based on CPU cores + concurrency |
 | Connection pools | ✅ Automatic | Based on worker counts |
 | Image format/quality | ✅ Automatic | JPEG @ 75% (good balance) |
 | Mean pooling re-ranking | 🎛️ Manual | Two-stage retrieval (better accuracy, more compute) |

@@ -36,13 +36,6 @@ const techStack = [
     description: "In-process SQL OLAP database management system.",
   },
   {
-    name: "MinIO",
-    href: "https://min.io",
-    lightSrc: "/logos/MinIO.svg",
-    darkSrc: "/logos/MinIO.svg",
-    description: "High-performance object storage for document files.",
-  },
-  {
     name: "Illuin Tech - ColPali",
     href: "https://github.com/illuin-tech/colpali",
     lightSrc: "/logos/Illuin-Tech-Colpali.png",

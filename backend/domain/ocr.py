@@ -52,19 +52,19 @@ async def get_document_pages(
 
 
 def _fetch_page_image(ocr_service: OcrClient, document_id: str, page_number: int) -> bytes:
-    """Fetch page image bytes from MinIO."""
+    """Fetch page image bytes from local storage."""
     # List objects in the image/ subfolder for this page
     prefix = f"{document_id}/{page_number}/image/"
 
-    for obj in ocr_service.minio_service.service.list_objects(
-        bucket_name=ocr_service.minio_service.bucket_name,
+    for obj in ocr_service.storage_service.service.list_objects(
+        bucket_name=ocr_service.storage_service.bucket_name,
         prefix=prefix,
     ):
         object_name = getattr(obj, "object_name", "")
         if object_name:
             # Found the page image, fetch it
-            response = ocr_service.minio_service.service.get_object(
-                bucket_name=ocr_service.minio_service.bucket_name,
+            response = ocr_service.storage_service.service.get_object(
+                bucket_name=ocr_service.storage_service.bucket_name,
                 object_name=object_name,
             )
             return response.read()
@@ -106,7 +106,7 @@ def process_document_page(
 
     # Create storage handler
     storage = OcrStorageHandler(
-        minio_service=ocr_service.minio_service,
+        storage_service=ocr_service.storage_service,
         processor=ocr_service.processor,
         duckdb_service=getattr(ocr_service, "duckdb_service", None),
     )
@@ -141,7 +141,7 @@ def process_document_batch(
     """Process multiple pages from the same document in parallel."""
     # Create storage handler
     storage = OcrStorageHandler(
-        minio_service=ocr_service.minio_service,
+        storage_service=ocr_service.storage_service,
         processor=ocr_service.processor,
         duckdb_service=getattr(ocr_service, "duckdb_service", None),
     )
@@ -149,7 +149,7 @@ def process_document_batch(
     return ocr_service.processor.process_batch(
         filename=filename,
         page_numbers=page_numbers,
-        minio_service=ocr_service.minio_service,
+        storage_service=ocr_service.storage_service,
         storage_handler=storage,
         mode=mode,
         task=task,

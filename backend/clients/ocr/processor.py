@@ -15,7 +15,7 @@ from utils.timing import log_execution_time
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
     from domain.pipeline.image_processor import ImageProcessor
-    from clients.minio import MinioClient
+    from clients.local_storage import LocalStorageClient
 
     from .client import OcrClient
     from domain.ocr_persistence import OcrStorageHandler
@@ -138,7 +138,7 @@ class OcrProcessor:
         self,
         filename: str,
         page_numbers: List[int],
-        minio_service: "MinioClient",
+        storage_service: "LocalStorageClient",
         storage_handler: "OcrStorageHandler",
         *,
         mode: Optional[str] = None,
@@ -151,7 +151,7 @@ class OcrProcessor:
         Args:
             filename: Document filename
             page_numbers: List of page numbers to process
-            minio_service: MinIO service for fetching images
+            storage_service: Storage service for fetching images
             storage_handler: OCR storage handler
             mode: OCR processing mode
             task: OCR task type
@@ -183,7 +183,7 @@ class OcrProcessor:
                     self._process_page_with_storage,
                     filename,
                     page_num,
-                    minio_service,
+                    storage_service,
                     storage_handler,
                     mode,
                     task,
@@ -214,14 +214,14 @@ class OcrProcessor:
         document_id: str,
         filename: str,
         page_number: int,
-        minio_service: "MinioClient",
+        storage_service: "LocalStorageClient",
         storage_handler: "OcrStorageHandler",
         mode: Optional[str],
         task: Optional[str],
     ) -> Dict[str, Any]:
         """Process a single page and store results."""
         # Fetch image
-        image_bytes = self._fetch_page_image(minio_service, document_id, page_number)
+        image_bytes = self._fetch_page_image(storage_service, document_id, page_number)
 
         # Process with OCR
         ocr_result = self.process_single(
@@ -253,9 +253,9 @@ class OcrProcessor:
         }
 
     def _fetch_page_image(
-        self, minio_service: "MinioClient", document_id: str, page_number: int
+        self, storage_service: "LocalStorageClient", document_id: str, page_number: int
     ) -> bytes:
-        """Fetch page image bytes from MinIO.
+        """Fetch page image bytes from storage.
 
         Note: With UUID-based naming, we need to list objects in the image/ subfolder
         to find the page image since we don't have the image UUID readily available.
@@ -263,15 +263,15 @@ class OcrProcessor:
         # List objects in the image/ subfolder for this page
         prefix = f"{document_id}/{page_number}/image/"
 
-        for obj in minio_service.service.list_objects(
-            bucket_name=minio_service.bucket_name,
+        for obj in storage_service.service.list_objects(
+            bucket_name=storage_service.bucket_name,
             prefix=prefix,
         ):
             object_name = getattr(obj, "object_name", "")
             if object_name:
                 # Found the page image, fetch it
-                response = minio_service.service.get_object(
-                    bucket_name=minio_service.bucket_name,
+                response = storage_service.service.get_object(
+                    bucket_name=storage_service.bucket_name,
                     object_name=object_name,
                 )
                 return response.read()
@@ -395,19 +395,19 @@ class OcrProcessor:
         crops: List[str],
         document_id: str,
         page_number: int,
-        minio_service: "MinioClient",
+        storage_service: "LocalStorageClient",
     ) -> List[str]:
         """
-        Process base64-encoded extracted images and upload to MinIO.
+        Process base64-encoded extracted images and upload to storage.
 
         Args:
             crops: List of base64-encoded image strings from DeepSeek OCR
             document_id: Document UUID for storage hierarchy
             page_number: Page number for storage hierarchy
-            minio_service: MinIO service for uploads
+            storage_service: Storage service for uploads
 
         Returns:
-            List of MinIO URLs for uploaded images
+            List of storage URLs for uploaded images
         """
         if not crops:
             return []
@@ -428,10 +428,10 @@ class OcrProcessor:
                 region_uuid = str(uuid.uuid4())
                 object_name = f"{document_id}/{page_number}/ocr_regions/{region_uuid}.{ext}"
 
-                # Upload to MinIO
+                # Upload to storage
                 buf = processed.to_buffer()
-                minio_service.service.put_object(
-                    bucket_name=minio_service.bucket_name,
+                storage_service.service.put_object(
+                    bucket_name=storage_service.bucket_name,
                     object_name=object_name,
                     data=buf,
                     length=processed.size,
@@ -439,7 +439,7 @@ class OcrProcessor:
                 )
 
                 # Generate public URL
-                url = minio_service._get_image_url(object_name)
+                url = storage_service._get_image_url(object_name)
                 image_urls.append(url)
 
                 logger.debug(
@@ -458,14 +458,14 @@ class OcrProcessor:
     @staticmethod
     def replace_base64_with_urls(markdown: str, image_urls: List[str]) -> str:
         """
-        Replace base64-encoded image data URLs in markdown with MinIO URLs.
+        Replace base64-encoded image data URLs in markdown with storage URLs.
 
         Args:
             markdown: Markdown text with base64 image data URLs
-            image_urls: List of MinIO URLs to replace with
+            image_urls: List of storage URLs to replace with
 
         Returns:
-            Updated markdown with MinIO URLs
+            Updated markdown with storage URLs
         """
         if not image_urls:
             return markdown

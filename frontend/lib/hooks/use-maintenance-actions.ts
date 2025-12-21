@@ -15,13 +15,13 @@ interface UseMaintenanceActionsOptions {
 
 const SUCCESS_MESSAGES: Record<ActionType, string> = {
   q: "Qdrant collection reset",
-  m: "MinIO bucket reset",
+  m: "Storage bucket reset",
   all: "Reset All Data",
 };
 
 const SERVICE_LABELS: Record<string, string> = {
   collection: "Qdrant",
-  bucket: "MinIO",
+  bucket: "Storage",
   duckdb: "DuckDB",
 };
 
@@ -73,7 +73,7 @@ export function useMaintenanceActions({ onSuccess }: UseMaintenanceActionsOption
 
   const actionHandlers: Record<ActionType, () => Promise<unknown>> = {
     q: () => MaintenanceService.clearQdrantClearQdrantPost(),
-    m: () => MaintenanceService.clearMinioClearMinioPost(),
+    m: () => MaintenanceService.clearStorageClearStoragePost(),
     all: () => MaintenanceService.clearAllClearAllPost(),
   };
 
