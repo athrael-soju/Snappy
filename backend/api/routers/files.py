@@ -7,15 +7,13 @@ Serves files stored by LocalStorageClient via HTTP.
 import logging
 from pathlib import Path
 
-from config import LOCAL_STORAGE_BUCKET_NAME, LOCAL_STORAGE_PATH
+import config
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/files", tags=["files"])
-
-STORAGE_BASE = Path(LOCAL_STORAGE_PATH)
 
 # MIME type mapping
 CONTENT_TYPES = {
@@ -45,17 +43,21 @@ async def serve_file(bucket: str, path: str):
     - Resolves path and ensures it stays within storage directory
     - Returns appropriate content types
     """
+    # Get current config values (allows runtime updates)
+    storage_base = Path(config.LOCAL_STORAGE_PATH)
+    bucket_name = config.LOCAL_STORAGE_BUCKET_NAME
+
     # Validate bucket name
-    if bucket != LOCAL_STORAGE_BUCKET_NAME:
+    if bucket != bucket_name:
         raise HTTPException(status_code=404, detail="Bucket not found")
 
     # Construct file path
-    file_path = STORAGE_BASE / bucket / path
+    file_path = storage_base / bucket / path
 
     # Security: Ensure path doesn't escape storage directory via path traversal
     try:
         resolved_path = file_path.resolve()
-        storage_resolved = STORAGE_BASE.resolve()
+        storage_resolved = storage_base.resolve()
 
         if not str(resolved_path).startswith(str(storage_resolved)):
             logger.warning(f"Path traversal attempt detected: {path}")
@@ -82,5 +84,7 @@ async def serve_file(bucket: str, path: str):
         headers={
             # Cache for 1 year (immutable content-addressed files)
             "Cache-Control": "public, max-age=31536000, immutable",
+            # CORS header for cross-origin fetch requests (interpretability maps)
+            "Access-Control-Allow-Origin": "*",
         },
     )

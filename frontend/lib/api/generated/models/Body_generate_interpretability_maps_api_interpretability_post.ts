@@ -10,6 +10,10 @@ export type Body_generate_interpretability_maps_api_interpretability_post = {
     /**
      * Document image to analyze
      */
-    file: Blob;
+    file?: (Blob | null);
+    /**
+     * URL of the image to analyze
+     */
+    image_url?: (string | null);
 };
 

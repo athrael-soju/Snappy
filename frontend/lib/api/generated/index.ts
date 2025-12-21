@@ -25,6 +25,7 @@ export type { ValidationError } from './models/ValidationError';
 
 export { ConfigurationService } from './services/ConfigurationService';
 export { DuckdbService } from './services/DuckdbService';
+export { FilesService } from './services/FilesService';
 export { IndexingService } from './services/IndexingService';
 export { InterpretabilityService } from './services/InterpretabilityService';
 export { MaintenanceService } from './services/MaintenanceService';

@@ -285,8 +285,8 @@
         "tags": [
           "maintenance"
         ],
-        "summary": "Clear Minio",
-        "operationId": "clear_minio_clear_minio_post",
+        "summary": "Clear Storage",
+        "operationId": "clear_storage_clear_minio_post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1110,7 +1110,7 @@
           "interpretability"
         ],
         "summary": "Generate Interpretability Maps",
-        "description": "Generate interpretability maps showing query-document token correspondence.\n\nThis endpoint is separate from the search pipeline to avoid performance impact.\nIt shows which document regions contribute to similarity scores for each query token.\n\nArgs:\n    query: The query text to interpret\n    file: The document image to analyze\n    colpali_client: Injected ColPali client dependency\n\nReturns:\n    Dictionary containing:\n    - query: Original query text\n    - tokens: List of query tokens (filtered)\n    - similarity_maps: Per-token similarity maps\n    - n_patches_x: Number of patches in x dimension\n    - n_patches_y: Number of patches in y dimension\n    - image_width: Original image width\n    - image_height: Original image height",
+        "description": "Generate interpretability maps showing query-document token correspondence.\n\nThis endpoint is separate from the search pipeline to avoid performance impact.\nIt shows which document regions contribute to similarity scores for each query token.\n\nAccepts either:\n- file: An uploaded image file\n- image_url: A URL to the image (supports /files/ URLs for local storage)\n\nArgs:\n    query: The query text to interpret\n    file: The document image to analyze (optional if image_url provided)\n    image_url: URL of the image to analyze (optional if file provided)\n    colpali_client: Injected ColPali client dependency\n\nReturns:\n    Dictionary containing:\n    - query: Original query text\n    - tokens: List of query tokens (filtered)\n    - similarity_maps: Per-token similarity maps\n    - n_patches_x: Number of patches in x dimension\n    - n_patches_y: Number of patches in y dimension\n    - image_width: Original image width\n    - image_height: Original image height",
         "operationId": "generate_interpretability_maps_api_interpretability_post",
         "requestBody": {
           "content": {
@@ -1147,6 +1147,56 @@
           }
         }
       }
+    },
+    "/files/{bucket}/{path}": {
+      "get": {
+        "tags": [
+          "files"
+        ],
+        "summary": "Serve File",
+        "description": "Serve files from local storage.\n\nSecurity measures:\n- Validates bucket name matches configured bucket\n- Resolves path and ensures it stays within storage directory\n- Returns appropriate content types",
+        "operationId": "serve_file_files__bucket___path__get",
+        "parameters": [
+          {
+            "name": "bucket",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Bucket"
+            }
+          },
+          {
+            "name": "path",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Path"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1159,16 +1209,34 @@
             "description": "Query text to interpret"
           },
           "file": {
-            "type": "string",
-            "format": "binary",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "File",
             "description": "Document image to analyze"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url",
+            "description": "URL of the image to analyze"
           }
         },
         "type": "object",
         "required": [
-          "query",
-          "file"
+          "query"
         ],
         "title": "Body_generate_interpretability_maps_api_interpretability_post"
       },

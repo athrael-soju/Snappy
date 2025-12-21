@@ -14,9 +14,14 @@ export class InterpretabilityService {
      * This endpoint is separate from the search pipeline to avoid performance impact.
      * It shows which document regions contribute to similarity scores for each query token.
      *
+     * Accepts either:
+     * - file: An uploaded image file
+     * - image_url: A URL to the image (supports /files/ URLs for local storage)
+     *
      * Args:
      * query: The query text to interpret
-     * file: The document image to analyze
+     * file: The document image to analyze (optional if image_url provided)
+     * image_url: URL of the image to analyze (optional if file provided)
      * colpali_client: Injected ColPali client dependency
      *
      * Returns:

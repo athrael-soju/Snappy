@@ -206,6 +206,9 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
+# Storage
+storage/documents/
+
 # Qdrant
 qdrant_storage/
 deepseek-ocr/models/

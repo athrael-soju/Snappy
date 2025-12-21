@@ -1,5 +1,5 @@
-import { baseUrl } from './client';
 import type { InterpretabilityData } from '@/components/interpretability-heatmap';
+import { InterpretabilityService } from './generated';
 
 /**
  * Generate interpretability maps for a query-image pair
@@ -13,28 +13,11 @@ export async function generateInterpretabilityMaps(
   query: string,
   imageUrl: string
 ): Promise<InterpretabilityData> {
-  // Fetch the image as a blob
-  const imageResponse = await fetch(imageUrl);
-  if (!imageResponse.ok) {
-    throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
-  }
-  const imageBlob = await imageResponse.blob();
-
-  // Create form data
-  const formData = new FormData();
-  formData.append('query', query);
-  formData.append('file', imageBlob, 'image.png');
-
-  // Call the ColPali interpretability endpoint via backend proxy
-  const response = await fetch(`${baseUrl}/api/interpretability`, {
-    method: 'POST',
-    body: formData,
+  // Use the generated SDK - backend reads image directly from local storage
+  const result = await InterpretabilityService.generateInterpretabilityMapsApiInterpretabilityPost({
+    query,
+    image_url: imageUrl,
   });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Interpretability request failed: ${error}`);
-  }
-
-  return response.json();
+  return result as InterpretabilityData;
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { generateInterpretabilityMaps } from "@/lib/api/interpretability";
 import type { InterpretabilityData } from "@/components/interpretability-heatmap";
 import type { ColorScale } from "@/components/interpretability-heatmap";
@@ -10,6 +10,8 @@ const MAX_CACHE_SIZE = 20;
 export function useInterpretability(query?: string, src?: string) {
   // Persistent cache across dialog open/close cycles
   const cacheRef = useRef<Map<string, InterpretabilityData>>(new Map());
+  // Track if we've already attempted to fetch for this query/src combo
+  const fetchAttemptedRef = useRef<string | null>(null);
 
   const [interpretabilityData, setInterpretabilityData] =
     useState<InterpretabilityData | null>(null);
@@ -48,7 +50,7 @@ export function useInterpretability(query?: string, src?: string) {
     );
   }, [normalizationStrategy]);
 
-  const fetchInterpretability = async () => {
+  const fetchInterpretability = useCallback(async () => {
     if (!query || !src) {
       setError("Query and source are required");
       return;
@@ -57,10 +59,16 @@ export function useInterpretability(query?: string, src?: string) {
     // Create cache key from query and src
     const cacheKey = `${query}::${src}`;
 
+    // Prevent duplicate fetches for the same query/src
+    if (fetchAttemptedRef.current === cacheKey) {
+      return;
+    }
+
     // Check cache first
     const cachedData = cacheRef.current.get(cacheKey);
     if (cachedData) {
       setInterpretabilityData(cachedData);
+      fetchAttemptedRef.current = cacheKey;
       // Auto-select the first token to show the heatmap immediately
       if (cachedData.tokens && cachedData.tokens.length > 0) {
         setSelectedToken(0);
@@ -68,6 +76,8 @@ export function useInterpretability(query?: string, src?: string) {
       return;
     }
 
+    // Mark as attempted before fetching
+    fetchAttemptedRef.current = cacheKey;
     setLoading(true);
     setError(null);
 
@@ -96,15 +106,17 @@ export function useInterpretability(query?: string, src?: string) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [query, src]);
 
-  const reset = () => {
+  const reset = useCallback(() => {
     setInterpretabilityData(null);
     setSelectedToken(null);
     setError(null);
+    // Reset the fetch attempt tracker so we can retry on next open
+    fetchAttemptedRef.current = null;
     // Note: We intentionally do NOT clear the cache on reset
     // This allows reusing cached data when reopening the same image
-  };
+  }, []);
 
   const clearCache = () => {
     cacheRef.current.clear();
