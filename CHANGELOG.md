@@ -60,7 +60,7 @@
 * add streaming pipeline ([51960c6](https://github.com/athrael-soju/Snappy/commit/51960c696c9510073382b89360c1e17c5500a2a5))
 * add streaming pipeline for 6x faster ingestion ([aa00e8b](https://github.com/athrael-soju/Snappy/commit/aa00e8b3f63a224fa89cd329e96e95be87155a27))
 * Implement document indexing pipeline with file upload, validation, and comprehensive error handling. ([5d8be8d](https://github.com/athrael-soju/Snappy/commit/5d8be8d7684ba9905f219b6fee7f5e65aa7a9f6c))
-* Implement document search using Qdrant with optional OCR data enrichment from DuckDB or MinIO. ([3334eb3](https://github.com/athrael-soju/Snappy/commit/3334eb3ce7a6db9b80936bca861d6a146532062b))
+* Implement document search using Qdrant with optional OCR data enrichment from DuckDB. ([3334eb3](https://github.com/athrael-soju/Snappy/commit/3334eb3ce7a6db9b80936bca861d6a146532062b))
 
 
 ### Code Refactoring

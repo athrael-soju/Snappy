@@ -18,11 +18,11 @@ logger = logging.getLogger(__name__)
 
 class OcrStorageHandler:
     """
-    Handles persistence of OCR results to MinIO.
+    Handles persistence of OCR results to local storage.
 
     Responsibilities:
     - Format OCR results for storage
-    - Upload JSON payloads to MinIO
+    - Upload JSON payloads to local storage
     - Process and upload extracted images
     - Generate storage URLs
     """
@@ -54,7 +54,7 @@ class OcrStorageHandler:
         metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
-        Store OCR result to MinIO with UUID-based naming.
+        Store OCR result to local storage with UUID-based naming.
 
         Args:
             ocr_result: Processed OCR result from OcrProcessor
@@ -86,7 +86,7 @@ class OcrStorageHandler:
                     storage_service=self._storage,
                 )
 
-                # Replace base64 image data with MinIO URLs in markdown/text
+                # Replace base64 image data with storage URLs in markdown/text
                 if extracted_images_urls:
                     for field in ("markdown", "text"):
                         content = ocr_result.get(field, "")
@@ -201,7 +201,7 @@ class OcrStorageHandler:
                 {"url": url, "storage": "local"} for url in extracted_images_urls
             ]
 
-        # Store full OCR JSON to MinIO with UUID name
+        # Store full OCR JSON to local storage with UUID name
         url = self._storage.store_json(
             payload=payload,
             document_id=document_id,

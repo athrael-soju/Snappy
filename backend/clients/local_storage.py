@@ -1,8 +1,7 @@
 """
 Local filesystem storage client for storing and retrieving images and JSON files.
 
-This is a drop-in replacement for MinioClient that uses the local filesystem
-instead of S3-compatible object storage. Files are served via a FastAPI endpoint.
+Uses the local filesystem for object storage. Files are served via a FastAPI endpoint.
 """
 
 import io
@@ -44,7 +43,7 @@ logger = logging.getLogger(__name__)
 
 
 class _ObjectInfo:
-    """Mimics MinIO object info for compatibility with maintenance.py."""
+    """Object info for compatibility with maintenance.py."""
     def __init__(self, object_name: str, size: int):
         self.object_name = object_name
         self.size = size
@@ -52,7 +51,7 @@ class _ObjectInfo:
 
 class _ServiceShim:
     """
-    Compatibility shim that mimics MinIO service methods for maintenance.py.
+    Service shim providing storage methods for maintenance.py.
 
     maintenance.py directly accesses msvc.service.bucket_exists(), list_objects(), etc.
     This shim provides those methods using filesystem operations.
@@ -114,7 +113,7 @@ class _ServiceShim:
                 if file_path.exists():
                     file_path.unlink()
             except Exception as e:
-                # Yield error info similar to MinIO
+                # Yield error info for compatibility
                 class DeleteError:
                     def __init__(self, name: str, error: str):
                         self.object_name = name
@@ -137,7 +136,6 @@ class _ServiceShim:
 class LocalStorageClient:
     """Service for storing and retrieving files from local filesystem.
 
-    This is a drop-in replacement for MinioClient with identical interface.
     Files are stored on the local filesystem and served via a FastAPI endpoint.
     """
 

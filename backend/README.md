@@ -6,7 +6,7 @@ FastAPI service for PDF ingestion, vision-grounded search, optional OCR, runtime
 The backend follows a layered architecture to separate concerns:
 - **`api/`**: FastAPI routers and HTTP handling. Delegates all business logic to the Domain layer.
 - **`domain/`**: Core business logic, orchestration, and rules. Pure Python code, independent of HTTP frameworks.
-- **`clients/`**: Infrastructure adapters for external services (MinIO, Qdrant, DuckDB, OCR).
+- **`clients/`**: Infrastructure adapters for external services (Local Storage, Qdrant, DuckDB, OCR).
 - **`config/`**: Configuration schemas and loading logic.
 
 ## Quick start
@@ -21,7 +21,7 @@ uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 Prereqs: Python 3.11+ and Poppler (`pdftoppm`) on PATH.
 
 ## Docker
-- Backend only (Qdrant + MinIO): `cd backend && docker compose up -d --build`
+- Backend only (Qdrant): `cd backend && docker compose up -d --build`
 - Full stack (from repo root):
   - Minimal (ColPali only): `make up-minimal`
   - ML (adds DeepSeek OCR, needs NVIDIA GPU): `make up-ml`
@@ -35,7 +35,7 @@ Set in `.env`; see `docs/configuration.md` for the full list.
 - OCR: `DEEPSEEK_OCR_ENABLED`, `DEEPSEEK_OCR_URL`
 - DuckDB: `DUCKDB_ENABLED`
 - Qdrant: `QDRANT_URL`, `QDRANT_COLLECTION_NAME`
-- MinIO: `MINIO_URL`, `MINIO_PUBLIC_URL`, credentials
+- Local Storage: `LOCAL_STORAGE_PATH`, `LOCAL_STORAGE_PUBLIC_URL`
 
 ## API basics
 - Health: `GET /health`
@@ -49,7 +49,7 @@ Interactive docs: http://localhost:8000/docs
 
 ## Cancellation overview
 - Stops running indexing/OCR, optional service restarts.
-- Cleans Qdrant vectors, MinIO objects, DuckDB rows, temp files.
+- Cleans Qdrant vectors, stored files, DuckDB rows, temp files.
 - Reports progress over `/progress/stream/{job_id}`.
 Configure with `JOB_CANCELLATION_*` vars; see `backend/docs/configuration.md`.
 

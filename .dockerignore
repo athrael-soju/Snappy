@@ -15,6 +15,5 @@ node_modules/
 .data/
 data/
 .qdrant/
-minio_data/
 qdrant_data/
 backend_data/

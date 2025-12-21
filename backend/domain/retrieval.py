@@ -282,7 +282,7 @@ async def search_documents(
                                     },
                                 )
                     else:
-                        # DuckDB disabled: use MinIO json_url
+                        # DuckDB disabled: use storage json_url
                         json_url = payload.get("ocr_url") or payload.get("storage_url")
                         if json_url:
                             ocr_success_count += 1

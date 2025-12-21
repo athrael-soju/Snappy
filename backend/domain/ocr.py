@@ -52,7 +52,7 @@ async def get_document_pages(
 
 
 def _fetch_page_image(ocr_service: OcrClient, document_id: str, page_number: int) -> bytes:
-    """Fetch page image bytes from MinIO."""
+    """Fetch page image bytes from local storage."""
     # List objects in the image/ subfolder for this page
     prefix = f"{document_id}/{page_number}/image/"
 

@@ -19,7 +19,7 @@ SCHEMA: Dict[str, Any] = {
                 "depends_on": {"key": "DEEPSEEK_OCR_ENABLED", "value": True},
                 "description": "Store OCR results in DuckDB for analytics",
                 "help_text": "When enabled, OCR results are stored in DuckDB database "
-                "alongside MinIO storage. This enables SQL queries, "
+                "alongside local storage. This enables SQL queries, "
                 "full-text search, and analytics on OCR data. Dependent on "
                 "DeepSeek OCR being enabled. DuckDB storage failures won't "
                 "block the indexing pipeline.",
@@ -48,7 +48,7 @@ SCHEMA: Dict[str, Any] = {
                 "description": "Logical name for the DuckDB database",
                 "help_text": "Used to label and organize OCR analytics data within "
                 "DuckDB. Keep this in sync with your Qdrant "
-                "collection/minio bucket naming for clarity. Changing this "
+                "collection/storage bucket naming for clarity. Changing this "
                 "value typically requires reinitialising DuckDB storage.",
                 "key": "DUCKDB_DATABASE_NAME",
                 "label": "DuckDB Database Name",

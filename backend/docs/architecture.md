@@ -82,7 +82,7 @@ Unlike RegionRAG (which requires hybrid training with bounding box annotations) 
 - **ColPali service**: query and image embeddings (multivectors with pooled variants), interpretability map generation.
 - **DeepSeek OCR service (optional)**: text, markdown, and region extraction with bounding boxes.
 - **Qdrant**: vector store for image/page embeddings (multi-vector with pooling); payload carries metadata and optional OCR URLs.
-- **MinIO**: page images and OCR JSON storage with hierarchical paths.
+- **Local Storage**: page images and OCR JSON storage with hierarchical paths.
 - **DuckDB (optional)**: document metadata, OCR regions, and analytics; powers deduplication and inline OCR responses.
 - **Next.js frontend**: upload, search, chat, and interpretability visualization; streams responses via SSE.
 - **OpenAI**: generates chat answers using retrieved images, text, and tables.
@@ -101,7 +101,7 @@ The backend is organized into three distinct layers to ensure maintainability an
     - Independent of the HTTP framework (FastAPI).
 
 3.  **Infrastructure/Clients Layer (`backend/clients`)**:
-    - Handles communication with external services (MinIO, Qdrant, DuckDB, ColPali, OCR).
+    - Handles communication with external services (Local Storage, Qdrant, DuckDB, ColPali, OCR).
     - Implements specific protocols and error handling for each service.
     - Decoupled from domain types where possible.
 
@@ -109,12 +109,12 @@ The backend is organized into three distinct layers to ensure maintainability an
 1. Upload PDFs to `POST /index`; optional dedup check when DuckDB is enabled.
 2. Rasterizer produces page batches and fans out to embedding, storage, and optional OCR stages in parallel.
 3. Upsert stage waits for embeddings, generates URLs dynamically, writes vectors to Qdrant, and tracks progress.
-4. Images live in MinIO; OCR output goes to MinIO or DuckDB depending on configuration.
+4. Images live in local storage; OCR output goes to local storage or DuckDB depending on configuration.
 5. `/progress/stream/{job_id}` streams live status for the UI; failures stop the pipeline to keep data consistent.
 
 ## Search and chat path
 1. `GET /search` embeds the query with ColPali and retrieves top-k page IDs from Qdrant using late interaction (two-stage retrieval with prefetch + rerank when mean pooling is enabled).
-2. When DuckDB is enabled, regions/text for those pages come directly from DuckDB; otherwise the payload contains OCR URLs for the frontend to fetch from MinIO.
+2. When DuckDB is enabled, regions/text for those pages come directly from DuckDB; otherwise the payload contains OCR URLs for the frontend to fetch from local storage.
 3. If region-level retrieval is enabled (`ENABLE_REGION_LEVEL_RETRIEVAL=true`), OCR regions are filtered using interpretability maps to return only query-relevant regions.
 4. Chat (`/api/chat` on the frontend) streams an OpenAI response with citations, sending images and/or filtered text regions depending on OCR and region filtering settings.
 

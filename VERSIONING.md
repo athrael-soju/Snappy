@@ -57,7 +57,7 @@ All commits must follow the [Conventional Commits](https://www.conventionalcommi
 git commit -m "feat: add advanced search filters for better retrieval"
 
 # Patch version bump (0.1.0 → 0.1.1)
-git commit -m "fix: resolve MinIO connection timeout issue"
+git commit -m "fix: resolve storage connection timeout issue"
 
 # Major version bump (0.1.0 → 1.0.0)
 git commit -m "feat!: redesign search API with breaking changes

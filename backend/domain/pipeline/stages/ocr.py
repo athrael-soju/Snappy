@@ -20,7 +20,7 @@ class OCRStage:
     def __init__(self, ocr_service, image_processor):
         self.ocr_service = ocr_service
         self.image_processor = image_processor
-        # Track completion status (OCR data stored in MinIO, not cached here)
+        # Track completion status (OCR data stored in local storage, not cached here)
         self.completed_batches: set[str] = set()  # batch_key
         self._lock = threading.Lock()
 
@@ -89,7 +89,7 @@ class OCRStage:
             "page_width_px": processed_image.width,
             "page_height_px": processed_image.height,
             "image_url": processed_image.url if hasattr(processed_image, "url") else None,
-            "image_storage": "minio",
+            "image_storage": "local",
         }
 
         # Store OCR results - will raise on DuckDB failure

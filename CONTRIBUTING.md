@@ -142,11 +142,11 @@ docker compose --profile cpu up -d --build
 
 ### Infrastructure Services
 
-Start Qdrant and MinIO:
+Start Qdrant:
 
 ```bash
 # From project root
-docker compose up -d qdrant minio
+docker compose up -d qdrant
 ```
 
 Or run the entire stack:
@@ -486,7 +486,7 @@ git commit -m "feat: add advanced search filtering
 4. **Use descriptive title** following conventional commit format:
    ```
    feat: add visual similarity search
-   fix: resolve MinIO connection timeout
+   fix: resolve storage connection timeout
    ```
 
 ### PR Review Process
@@ -577,7 +577,6 @@ yarn test  # If tests are configured
    docker compose logs -f backend
    ```
 4. Check Qdrant UI: http://localhost:6333/dashboard
-5. Check MinIO console: http://localhost:9001
 
 ### Writing Tests
 
