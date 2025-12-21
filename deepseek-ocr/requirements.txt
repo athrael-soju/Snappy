@@ -1,5 +1,6 @@
 fastapi>=0.104.0
 uvicorn[standard]>=0.24.0
+torchvision
 python-multipart>=0.0.6
 transformers==4.46.3
 tokenizers==0.20.3

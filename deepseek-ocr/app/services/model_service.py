@@ -6,6 +6,7 @@ import os
 import shutil
 import sys
 import tempfile
+import warnings
 from io import StringIO
 from typing import Any, Dict, Optional
 
@@ -13,6 +14,12 @@ from app.core.config import settings
 from app.core.logging import logger
 from PIL import Image, ImageOps
 from transformers import AutoModel, AutoTokenizer
+
+# Suppress common transformer warnings
+warnings.filterwarnings("ignore", message=".*pad_token_id.*")
+warnings.filterwarnings("ignore", message=".*attention_mask.*")
+warnings.filterwarnings("ignore", message=".*do_sample.*")
+warnings.filterwarnings("ignore", message=".*position_ids.*")
 
 
 class ModelService:
@@ -37,16 +44,19 @@ class ModelService:
         logger.info(f"Device: {settings.DEVICE.upper()}")
         logger.info(f"Dtype: {settings.TORCH_DTYPE}")
 
-        # Check CUDA availability
+        # Check device availability
         import torch
 
         if torch.cuda.is_available():
             logger.info(f"CUDA Device: {torch.cuda.get_device_name(0)}")
             logger.info(f"CUDA Version: {torch.version.cuda}")
+        elif torch.backends.mps.is_available():
+            logger.info("MPS (Metal Performance Shaders): Available")
+            logger.info("Running on Apple Silicon")
 
         using_flash_attn = settings.DEVICE == "cuda"
         logger.info(
-            f"Flash Attention 2: {'ENABLED' if using_flash_attn else 'DISABLED (CPU mode)'}"
+            f"Flash Attention 2: {'ENABLED' if using_flash_attn else 'DISABLED (MPS/CPU mode)'}"
         )
         logger.info("=" * 60)
 
@@ -60,16 +70,24 @@ class ModelService:
                 "use_safetensors": True,
             }
 
-            # Only use flash attention on CUDA
+            # Device-specific configuration
             if settings.DEVICE == "cuda":
                 model_kwargs["_attn_implementation"] = "flash_attention_2"
+                model_kwargs["torch_dtype"] = settings.TORCH_DTYPE
+            elif settings.DEVICE == "mps":
+                # MPS requires eager attention implementation
+                model_kwargs["_attn_implementation"] = "eager"
                 model_kwargs["torch_dtype"] = settings.TORCH_DTYPE
 
             self.model = AutoModel.from_pretrained(settings.MODEL_NAME, **model_kwargs)
             self.model = self.model.eval()
 
+            # Move model to appropriate device
             if settings.DEVICE == "cuda":
                 self.model = self.model.cuda()
+            elif settings.DEVICE == "mps":
+                import torch
+                self.model = self.model.to(torch.device("mps")).to(settings.TORCH_DTYPE)
 
             self._initialized = True
             logger.info("✓ Model loaded successfully")
@@ -123,16 +141,26 @@ class ModelService:
             stdout = sys.stdout
             sys.stdout = StringIO()
 
+            # Prepare inference kwargs
+            import torch
+
+            infer_kwargs = {
+                "tokenizer": self.tokenizer,
+                "prompt": prompt,
+                "image_file": tmp.name,
+                "output_path": out_dir,
+                "base_size": base_size,
+                "image_size": image_size,
+                "crop_mode": crop_mode,
+            }
+
+            # Add device and dtype for MPS/CUDA
+            if settings.DEVICE in ["cuda", "mps"]:
+                infer_kwargs["device"] = torch.device(settings.DEVICE)
+                infer_kwargs["dtype"] = settings.TORCH_DTYPE
+
             # Run inference
-            self.model.infer(
-                tokenizer=self.tokenizer,
-                prompt=prompt,
-                image_file=tmp.name,
-                output_path=out_dir,
-                base_size=base_size,
-                image_size=image_size,
-                crop_mode=crop_mode,
-            )
+            self.model.infer(**infer_kwargs)
 
             # Filter output
             result = "\n".join(

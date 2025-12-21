@@ -17,9 +17,11 @@ logger = logging.getLogger(__name__)
 class OCRStage:
     """Processes OCR independently and stores results."""
 
-    def __init__(self, ocr_service, image_processor):
+    def __init__(self, ocr_service, image_processor, qdrant_service=None, collection_name=None):
         self.ocr_service = ocr_service
         self.image_processor = image_processor
+        self.qdrant_service = qdrant_service
+        self.collection_name = collection_name
         # Track completion status (OCR data stored in local storage, not cached here)
         self.completed_batches: set[str] = set()  # batch_key
         self._lock = threading.Lock()
@@ -99,6 +101,61 @@ class OCRStage:
             page_number=page_num,
             metadata=ocr_metadata,
         )
+
+        # Update Qdrant with the real OCR URL if qdrant_service is available
+        if self.qdrant_service and self.collection_name:
+            try:
+                from qdrant_client import models
+
+                # Find points for this page
+                scroll_filter = models.Filter(
+                    must=[
+                        models.FieldCondition(
+                            key="document_id",
+                            match=models.MatchValue(value=document_id),
+                        ),
+                        models.FieldCondition(
+                            key="page_id",
+                            match=models.MatchValue(value=page_id),
+                        ),
+                    ]
+                )
+
+                # Get the points to update
+                points, _ = self.qdrant_service.collection_manager.service.scroll(
+                    collection_name=self.collection_name,
+                    scroll_filter=scroll_filter,
+                    limit=100,  # Should only be a few points per page
+                    with_payload=False,
+                    with_vectors=False,
+                )
+
+                # Update each point with full OCR data
+                if points:
+                    point_ids = [point.id for point in points]
+
+                    # Build OCR payload with full content
+                    ocr_payload = {
+                        "ocr_url": storage_result["ocr_url"],
+                        "ocr": {
+                            "text": ocr_result.get("text", ""),
+                            "markdown": ocr_result.get("markdown", ""),
+                            "regions": storage_result.get("ocr_regions", []),
+                        }
+                    }
+
+                    self.qdrant_service.collection_manager.service.set_payload(
+                        collection_name=self.collection_name,
+                        payload=ocr_payload,
+                        points=point_ids,
+                    )
+                    logger.debug(
+                        f"Updated {len(point_ids)} points with OCR data for page {page_id}"
+                    )
+            except Exception as e:
+                logger.warning(
+                    f"Failed to update Qdrant with OCR URL for page {page_id}: {e}"
+                )
 
         return {
             "ocr_url": storage_result["ocr_url"],

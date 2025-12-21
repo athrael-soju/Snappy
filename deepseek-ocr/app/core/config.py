@@ -2,7 +2,7 @@
 Configuration management for DeepSeek OCR service.
 """
 
-from typing import Any, Dict
+from typing import Any, Dict, Literal
 
 import torch
 from decouple import config as env_config
@@ -17,10 +17,22 @@ class Settings:
 
     # Model Configuration
     MODEL_NAME: str = env_config("MODEL_NAME", default="deepseek-ai/DeepSeek-OCR")
-    DEVICE: str = env_config(
-        "DEVICE", default="cuda" if torch.cuda.is_available() else "cpu"
+
+    # Device detection with MPS support
+    _auto_device: Literal["cuda", "mps", "cpu"] = (
+        "cuda"
+        if torch.cuda.is_available()
+        else "mps"
+        if torch.backends.mps.is_available()
+        else "cpu"
     )
-    TORCH_DTYPE = torch.bfloat16 if DEVICE == "cuda" else torch.float32
+    DEVICE: str = env_config("DEVICE", default=_auto_device)
+
+    # Use float16 for MPS and CUDA, float32 for CPU
+    TORCH_DTYPE = (
+        torch.float16 if DEVICE in ["cuda", "mps"]
+        else torch.float32
+    )
 
     # CORS Configuration
     ALLOWED_ORIGINS: str = env_config("ALLOWED_ORIGINS", default="*")

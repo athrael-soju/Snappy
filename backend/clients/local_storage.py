@@ -132,6 +132,60 @@ class _ServiceShim:
             return []
         return [d.name for d in self._storage_path.iterdir() if d.is_dir()]
 
+    def put_object(
+        self,
+        bucket_name: str,
+        object_name: str,
+        data: Any,
+        length: Optional[int] = None,
+        content_type: Optional[str] = None
+    ) -> None:
+        """Write an object to the bucket."""
+        bucket_path = self._storage_path / bucket_name
+        file_path = bucket_path / object_name
+
+        # Create parent directories if they don't exist
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Write data
+        if hasattr(data, 'read'):
+            # File-like object
+            with open(file_path, 'wb') as f:
+                f.write(data.read())
+        else:
+            # Bytes or string
+            mode = 'wb' if isinstance(data, bytes) else 'w'
+            with open(file_path, mode) as f:
+                f.write(data)
+
+    def get_object(self, bucket_name: str, object_name: str) -> Any:
+        """Read an object from the bucket."""
+        bucket_path = self._storage_path / bucket_name
+        file_path = bucket_path / object_name
+
+        if not file_path.exists():
+            raise FileNotFoundError(f"Object not found: {object_name}")
+
+        # Return a file-like object
+        class FileWrapper:
+            def __init__(self, path: Path):
+                self._path = path
+                self._file = None
+
+            def read(self) -> bytes:
+                with open(self._path, 'rb') as f:
+                    return f.read()
+
+            def __enter__(self):
+                self._file = open(self._path, 'rb')
+                return self._file
+
+            def __exit__(self, *args):
+                if self._file:
+                    self._file.close()
+
+        return FileWrapper(file_path)
+
 
 class LocalStorageClient:
     """Service for storing and retrieving files from local filesystem.

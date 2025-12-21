@@ -3,6 +3,7 @@
 import logging
 import queue
 import threading
+from typing import Optional
 
 import config
 from ..streaming_types import EmbeddedBatch
@@ -48,15 +49,16 @@ class UpsertStage:
         bucket_suffix = f"/{self.storage_bucket}" if self.storage_bucket else ""
         return f"{base}{bucket_suffix}/{object_name}"
 
-    def _generate_ocr_url(self, document_id: str, page_number: int) -> str:
+    def _generate_ocr_url(self, document_id: str, page_number: int) -> Optional[str]:
         """Generate storage OCR JSON URL from metadata.
 
-        Pattern: {storage_base_url}/{bucket}/{doc_id}/{page_num}/ocr.json
+        Note: OCR files use UUID-based filenames (e.g., ocr/uuid.json), not fixed names.
+        The actual URL is set when OCR processing completes.
+
+        Returns None to indicate OCR URL is not yet available during indexing.
         """
-        object_name = f"{document_id}/{page_number}/ocr.json"
-        base = self.storage_base_url.rstrip("/")
-        bucket_suffix = f"/{self.storage_bucket}" if self.storage_bucket else ""
-        return f"{base}{bucket_suffix}/{object_name}"
+        # Return None - OCR URL will be set when processing completes
+        return None
 
     @log_stage_timing("Upsert")
     def process_batch(self, embedded_batch: EmbeddedBatch):
