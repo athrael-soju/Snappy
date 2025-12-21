@@ -7,7 +7,7 @@ type DataUrl = { mime: string; base64: string };
 const ocrDataCache = new Map<string, any>();
 
 async function fetchOcrData(result: SearchItem): Promise<any> {
-    // Check if OCR data is inline in payload (DuckDB mode)
+    // Check if OCR data is inline in payload
     const ocrData = result.payload?.ocr;
     if (ocrData) {
         return ocrData;

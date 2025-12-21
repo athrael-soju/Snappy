@@ -87,30 +87,6 @@ services:
               count: all
               capabilities: [gpu]
 
-  duckdb:
-    container_name: duckdb
-    build:
-      context: ./duckdb
-      dockerfile: Dockerfile
-    image: duckdb:latest
-    ports:
-      - "8300:8300"
-      - "4213:42130"
-    env_file:
-      - ./duckdb/.env
-    volumes:
-      - duckdb_data:/app/data
-    networks:
-      - snappy-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8300/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    profiles:
-      - full
-
   backend:
     container_name: backend
     build:
@@ -125,14 +101,12 @@ services:
       # Docker service names override localhost URLs
       - COLPALI_URL=http://colpali:7000
       - DEEPSEEK_OCR_URL=http://deepseek-ocr:8200
-      - DUCKDB_URL=http://duckdb:8300
       - QDRANT_URL=http://qdrant:6333
       # Local storage configuration
       - LOCAL_STORAGE_PATH=/app/storage
       - LOCAL_STORAGE_PUBLIC_URL=http://localhost:8000/files
       # Profile-specific feature flags (set by Makefile)
       - DEEPSEEK_OCR_ENABLED=${DEEPSEEK_OCR_ENABLED:-true}
-      - DUCKDB_ENABLED=${DUCKDB_ENABLED:-true}
     volumes:
       - ./backend:/app
       - backend_cache:/root/.cache
@@ -179,7 +153,6 @@ volumes:
   qdrant_data:
   snappy_storage:
   hf_cache:
-  duckdb_data:
   backend_cache:
 
 networks:

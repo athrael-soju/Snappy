@@ -65,17 +65,6 @@ export interface SystemStatus {
     size_mb?: number;
     error: string | null;
   };
-  duckdb?: {
-    name: string;
-    enabled: boolean;
-    available: boolean;
-    page_count: number;
-    region_count: number;
-    database_size_mb: number;
-    document_count?: number;
-    schema_active?: boolean;
-    error: string | null;
-  };
   lastChecked: number | null;
 }
 

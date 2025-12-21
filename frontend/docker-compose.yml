@@ -42,7 +42,6 @@ services:
       - LOCAL_STORAGE_PUBLIC_URL=http://localhost:8000/files
       # Disable ML services for faster startup
       - DEEPSEEK_OCR_ENABLED=false
-      - DUCKDB_ENABLED=false
     volumes:
       - backend_data:/home/user/app/data
       - snappy_storage:/app/storage

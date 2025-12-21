@@ -163,7 +163,6 @@ export function useConfigurationPanel() {
         values.QDRANT_USE_BINARY_QUANTIZATION === "True" ? "Binary Quantization" : null,
         values.QDRANT_MEAN_POOLING_ENABLED === "True" ? "Mean Pooling Re-ranking" : null,
         values.DEEPSEEK_OCR_ENABLED === "True" ? "DeepSeek OCR" : null,
-        values.DUCKDB_ENABLED === "True" ? "DuckDB Analytics" : null,
       ].filter(Boolean) as string[],
     }),
     [values, originalValues]

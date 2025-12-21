@@ -134,7 +134,7 @@ The backend is organized into three distinct layers to ensure maintainability an
 ## Where to dig deeper
 - [Late Interaction](late_interaction.md) - multi-vector retrieval, MaxSim scoring, and two-stage search.
 - [Spatial Grounding](spatial_grounding.md) - how spatial information flows from pixels to regions.
-- [OCR Storage](ocr_storage.md) - OCR data storage in Qdrant payloads and migration from DuckDB.
+- [OCR Storage](ocr_storage.md) - OCR data storage in Qdrant payloads.
 - [STREAMING_PIPELINE.md](../../STREAMING_PIPELINE.md) - how the streaming indexer overlaps stages.
 - [Analysis: Vision vs Text RAG](analysis.md) - when to use vision-only vs hybrid text modes.
 - [Configuration Reference](configuration.md) - complete configuration reference.

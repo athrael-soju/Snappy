@@ -180,13 +180,6 @@ Runtime updates via `/config/*` API take effect immediately but don't persist ac
 
 These features add complexity but provide additional capabilities for enterprise deployments:
 
-### DuckDB Analytics
-Disabled by default. Provides SQL-based analytics on OCR data.
-
-```bash
-DUCKDB_ENABLED=false  # Set to true to enable
-```
-
 ### Fine-Grained Control
 The simplified open-source version uses optimized defaults. Enterprise deployments can access:
 - Custom quantization parameters

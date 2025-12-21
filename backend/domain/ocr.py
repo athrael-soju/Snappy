@@ -108,7 +108,6 @@ def process_document_page(
     storage = OcrStorageHandler(
         storage_service=ocr_service.storage_service,
         processor=ocr_service.processor,
-        duckdb_service=getattr(ocr_service, "duckdb_service", None),
     )
 
     storage_url = storage.store_ocr_result(
@@ -143,7 +142,6 @@ def process_document_batch(
     storage = OcrStorageHandler(
         storage_service=ocr_service.storage_service,
         processor=ocr_service.processor,
-        duckdb_service=getattr(ocr_service, "duckdb_service", None),
     )
 
     return ocr_service.processor.process_batch(

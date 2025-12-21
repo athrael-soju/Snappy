@@ -29,13 +29,6 @@ const techStack = [
     description: "Lightning-fast Python backend for the API layer.",
   },
   {
-    name: "DuckDB",
-    href: "https://duckdb.org",
-    lightSrc: "/logos/DuckDB.svg",
-    darkSrc: "/logos/DuckDB.svg",
-    description: "In-process SQL OLAP database management system.",
-  },
-  {
     name: "Illuin Tech - ColPali",
     href: "https://github.com/illuin-tech/colpali",
     lightSrc: "/logos/Illuin-Tech-Colpali.png",

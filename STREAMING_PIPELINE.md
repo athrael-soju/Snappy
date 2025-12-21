@@ -11,7 +11,7 @@ Snappy indexes documents with a streaming pipeline so users see searchable resul
 1. Rasterize PDF pages into small batches.
 2. Each batch fans out in parallel: ColPali embeddings, image storage, optional DeepSeek OCR.
 3. Upsert waits only for embeddings, generates URLs on the fly, writes vectors to Qdrant, and updates progress.
-4. When DuckDB is enabled, document metadata and OCR regions are stored for deduplication and SQL analytics.
+4. When OCR is enabled, full OCR data (text, markdown, regions) is stored in Qdrant payloads alongside vectors.
 5. Progress is streamed via SSE (`/progress/stream/{job_id}`) so the UI can reflect status immediately.
 
 ## How it compares to the old batch mode

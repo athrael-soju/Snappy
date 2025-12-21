@@ -16,11 +16,9 @@ services:
       # Docker service names override localhost URLs
       - COLPALI_URL=http://colpali:7000
       - DEEPSEEK_OCR_URL=http://deepseek-ocr:8200
-      - DUCKDB_URL=http://duckdb:8300
       - QDRANT_URL=http://qdrant:6333
       # Profile-specific feature flags (set by Makefile)
       - DEEPSEEK_OCR_ENABLED=${DEEPSEEK_OCR_ENABLED:-true}
-      - DUCKDB_ENABLED=${DUCKDB_ENABLED:-true}
     volumes:
       - ../backend:/app
       - backend_cache:/root/.cache

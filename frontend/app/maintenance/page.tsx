@@ -39,21 +39,21 @@ const CORE_OPERATIONS = [
   {
     id: "initialize",
     title: "Initialize Storage",
-    description: "Prepare the Qdrant collection, storage bucket, and DuckDB store for data storage.",
+    description: "Prepare the Qdrant collection and storage bucket for data storage.",
     icon: Play,
     gradient: "from-chart-1 to-chart-2"
   },
   {
     id: "delete",
     title: "Delete Storage",
-    description: "Permanently remove the collection, bucket, and DuckDB database from the system.",
+    description: "Permanently remove the collection and bucket from the system.",
     icon: Trash2,
     gradient: "from-chart-4 to-chart-3"
   },
   {
     id: "reset",
     title: "Reset All Data",
-    description: "Remove every stored document, embedding, and image from Qdrant, local storage, and DuckDB.",
+    description: "Remove every stored document, embedding, and image from Qdrant and local storage.",
     icon: ShieldAlert,
     gradient: "from-destructive to-destructive/80"
   }
@@ -165,7 +165,7 @@ export default function MaintenancePage() {
                 <h2 className="text-lg font-bold">Storage Status</h2>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <motion.article
                   className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 touch-manipulation"
                   initial={{ opacity: 0, x: -20 }}
@@ -319,95 +319,6 @@ export default function MaintenancePage() {
                           <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-2 py-1.5 text-body-xs text-destructive">
                             <AlertCircle className="size-icon-3xs" />
                             {systemStatus.bucket.error}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-body-xs text-muted-foreground">No information available.</p>
-                    )}
-                  </div>
-                </motion.article>
-
-                <motion.article
-                  className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 touch-manipulation"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.35, duration: 0.3 }}
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-chart-1 to-chart-4 opacity-0 transition-opacity group-hover:opacity-5" />
-
-                  <div className="relative space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className="flex size-icon-xl shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-chart-1 to-chart-4 shadow-lg sm:size-icon-2xl">
-                        <Server className="size-icon-xs text-primary-foreground sm:size-icon-md" />
-                      </div>
-                      <h3 className="min-w-0 flex-1 truncate text-body-sm sm:text-body font-bold">DuckDB Database</h3>
-                    </div>
-
-                    {statusLoading ? (
-                      <div className="flex items-center gap-2 text-body-xs text-muted-foreground">
-                        <Loader2 className="size-icon-3xs animate-spin" />
-                        Loading...
-                      </div>
-                    ) : systemStatus?.duckdb ? (
-                      <div className="space-y-2">
-                        <div className="flex flex-wrap gap-2">
-                          <Badge variant="outline" className={badgeClasses.neutral}>
-                            {systemStatus.duckdb.name || "DuckDB"}
-                          </Badge>
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "gap-1",
-                              systemStatus.duckdb.enabled
-                                ? (systemStatus.duckdb.available ? badgeClasses.positive : badgeClasses.negative)
-                                : badgeClasses.neutral
-                            )}
-                          >
-                            {systemStatus.duckdb.enabled ? (
-                              systemStatus.duckdb.available ? (
-                                <>
-                                  <CheckCircle2 className="size-icon-3xs" />
-                                  Active
-                                </>
-                              ) : (
-                                <>
-                                  <AlertCircle className="size-icon-3xs" />
-                                  Inactive
-                                </>
-                              )
-                            ) : (
-                              <>
-                                <AlertCircle className="size-icon-3xs" />
-                                Disabled
-                              </>
-                            )}
-                          </Badge>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2 text-body-xs sm:grid-cols-3 lg:grid-cols-3">
-                          <div className="rounded-lg bg-muted/50 px-2 py-1.5">
-                            <p className="text-muted-foreground">Pages</p>
-                            <p className="font-semibold">{systemStatus.duckdb.page_count?.toLocaleString() ?? 0}</p>
-                          </div>
-                          <div className="rounded-lg bg-muted/50 px-2 py-1.5">
-                            <p className="text-muted-foreground">Regions</p>
-                            <p className="font-semibold">{systemStatus.duckdb.region_count?.toLocaleString() ?? 0}</p>
-                          </div>
-                          <div className="rounded-lg bg-muted/50 px-2 py-1.5">
-                            <p className="text-muted-foreground">Size (MB)</p>
-                            <p className="font-semibold">
-                              {systemStatus.duckdb.database_size_mb?.toLocaleString(undefined, { maximumFractionDigits: 2 }) ?? 0}
-                            </p>
-                          </div>
-                        </div>
-
-                        {systemStatus.duckdb.error && (
-                          <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-2 py-1.5 text-body-xs text-destructive">
-                            <AlertCircle className="size-icon-3xs" />
-                            {systemStatus.duckdb.error}
                           </div>
                         )}
                       </div>

@@ -25,7 +25,6 @@ export interface ChatRouteBody {
     reasoning?: unknown;
     summary?: unknown;
     ocrEnabled?: unknown;
-    duckdbEnabled?: unknown;
     ocrIncludeImages?: unknown;
 }
 
@@ -36,7 +35,6 @@ export interface NormalizedChatRequest {
     reasoningEffort: ReasoningEffort;
     summaryPreference?: SummaryPreference;
     ocrEnabled: boolean;
-    duckdbEnabled: boolean;
     ocrIncludeImages: boolean;
 }
 
@@ -66,7 +64,6 @@ export function normalizeChatRequest(
 
     // Parse config flags from client
     const ocrEnabled = typeof body.ocrEnabled === 'boolean' ? body.ocrEnabled : false;
-    const duckdbEnabled = typeof body.duckdbEnabled === 'boolean' ? body.duckdbEnabled : false;
     const ocrIncludeImages = typeof body.ocrIncludeImages === 'boolean' ? body.ocrIncludeImages : false;
 
     return {
@@ -78,7 +75,6 @@ export function normalizeChatRequest(
             reasoningEffort,
             summaryPreference,
             ocrEnabled,
-            duckdbEnabled,
             ocrIncludeImages,
         },
     };

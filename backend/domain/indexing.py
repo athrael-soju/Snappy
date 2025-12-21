@@ -49,59 +49,6 @@ class UploadFileProtocol(Protocol):
         ...
 
 
-def check_file_duplicate(
-    tmp_path: str, filename: str, duckdb_svc
-) -> tuple[str, str, bool, dict | None]:
-    """Check if a file is a duplicate.
-
-    Args:
-        tmp_path: Temporary file path
-        filename: Original filename
-        duckdb_svc: DuckDB service instance
-
-    Returns:
-        Tuple of (tmp_path, filename, is_duplicate, existing_doc)
-    """
-    try:
-        # Get PDF metadata
-        info = pdfinfo_from_path(tmp_path)
-        pages = int(info.get("Pages", 0))
-        size_bytes = os.path.getsize(tmp_path)
-
-        # Check for duplicates
-        existing_doc = duckdb_svc.check_document_exists(
-            filename=filename,
-            file_size_bytes=size_bytes,
-            total_pages=pages,
-        )
-
-        if existing_doc:
-            logger.info(
-                f"Skipping already indexed document: {filename} "
-                f"(first indexed: {existing_doc.get('first_indexed')})",
-                extra={"operation": "index"},
-            )
-            # Clean up temp file for duplicate
-            try:
-                os.unlink(tmp_path)
-            except Exception as cleanup_exc:
-                logger.warning(
-                    f"Failed to clean up duplicate temp file {tmp_path}: {cleanup_exc}",
-                    extra={"operation": "index"},
-                )
-            return (tmp_path, filename, True, existing_doc)
-
-        return (tmp_path, filename, False, None)
-
-    except Exception as exc:
-        logger.warning(
-            f"Failed to check duplicate for {filename}: {exc}",
-            extra={"operation": "index", "error_type": type(exc).__name__},
-        )
-        # If we can't get metadata, include the file anyway (fail-safe behavior)
-        return (tmp_path, filename, False, None)
-
-
 async def _persist_upload_to_disk(
     upload: UploadFileProtocol,
     chunk_size: int,

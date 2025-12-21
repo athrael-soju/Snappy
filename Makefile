@@ -1,9 +1,8 @@
 # Snappy - Docker Compose Management with Profiles
 #
 # Profiles:
-#   minimal - Base infrastructure + ColPali only (no DeepSeek OCR, no DuckDB)
-#   ml      - Base + ColPali + DeepSeek OCR (no DuckDB)
-#   full    - All services including DuckDB
+#   minimal - Base infrastructure + ColPali only (no DeepSeek OCR)
+#   ml      - Base + ColPali + DeepSeek OCR
 #
 # Usage:
 #   make up          - Start with full profile (all services)
@@ -26,9 +25,8 @@ help: ## Show this help message
 	@echo "Snappy Docker Compose Management"
 	@echo ""
 	@echo "Available profiles:"
-	@echo "  minimal - ColPali only (DEEPSEEK_OCR_ENABLED=false, DUCKDB_ENABLED=false)"
-	@echo "  ml      - ColPali + DeepSeek OCR (DUCKDB_ENABLED=false)"
-	@echo "  full    - All services (ColPali + DeepSeek OCR + DuckDB)"
+	@echo "  minimal - ColPali only (DEEPSEEK_OCR_ENABLED=false)"
+	@echo "  ml      - ColPali + DeepSeek OCR"
 	@echo ""
 	@echo "Commands:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -37,7 +35,7 @@ up: up-full ## Start all services (alias for up-full)
 
 up-minimal: ## Start minimal profile (ColPali only)
 	@echo "🚀 Starting minimal profile (ColPali only)..."
-	DEEPSEEK_OCR_ENABLED=false DUCKDB_ENABLED=false $(DOCKER_COMPOSE) --profile minimal up -d
+	DEEPSEEK_OCR_ENABLED=false $(DOCKER_COMPOSE) --profile minimal up -d
 	@echo "✅ Services started with minimal profile"
 	@echo "   - Base infrastructure (Qdrant)"
 	@echo "   - Application (Backend, Frontend)"
@@ -45,22 +43,16 @@ up-minimal: ## Start minimal profile (ColPali only)
 
 up-ml: ## Start ML profile (ColPali + DeepSeek OCR)
 	@echo "🚀 Starting ML profile (ColPali + DeepSeek OCR)..."
-	DEEPSEEK_OCR_ENABLED=true DUCKDB_ENABLED=false $(DOCKER_COMPOSE) --profile ml up -d
+	DEEPSEEK_OCR_ENABLED=true $(DOCKER_COMPOSE) --profile ml up -d
 	@echo "✅ Services started with ML profile"
 	@echo "   - Base infrastructure (Qdrant)"
 	@echo "   - Application (Backend, Frontend)"
 	@echo "   - ColPali (GPU/CPU auto-detect)"
 	@echo "   - DeepSeek OCR (GPU required)"
 
-up-full: ## Start full profile (all services)
-	@echo "🚀 Starting full profile (all services)..."
-	DEEPSEEK_OCR_ENABLED=true DUCKDB_ENABLED=true $(DOCKER_COMPOSE) --profile full up -d
-	@echo "✅ Services started with full profile"
-	@echo "   - Base infrastructure (Qdrant)"
-	@echo "   - Application (Backend, Frontend)"
-	@echo "   - ColPali (GPU/CPU auto-detect)"
-	@echo "   - DeepSeek OCR (GPU required)"
-	@echo "   - DuckDB"
+up-full: up-ml ## Start full profile (alias for ML profile)
+
+# Use up-ml instead
 
 down: ## Stop all services
 	@echo "🛑 Stopping all services..."
@@ -81,9 +73,6 @@ logs-colpali: ## View ColPali logs only
 
 logs-deepseek: ## View DeepSeek OCR logs only
 	$(DOCKER_COMPOSE) logs -f deepseek-ocr
-
-logs-duckdb: ## View DuckDB logs only
-	$(DOCKER_COMPOSE) logs -f duckdb
 
 clean: ## Stop services and remove volumes
 	@echo "🧹 Cleaning up (stopping services and removing volumes)..."
@@ -118,4 +107,4 @@ pull: ## Pull latest base images
 
 health: ## Check health of all services
 	@echo "🏥 Service health status:"
-	@docker ps --format "table {{.Names}}\t{{.Status}}" | grep -E "(CONTAINER|snappy|colpali|deepseek|duckdb|qdrant|backend|frontend)"
+	@docker ps --format "table {{.Names}}\t{{.Status}}" | grep -E "(CONTAINER|snappy|colpali|deepseek|qdrant|backend|frontend)"

@@ -94,7 +94,7 @@ class OCRStage:
             "image_storage": "local",
         }
 
-        # Store OCR results - will raise on DuckDB failure
+        # Store OCR results
         storage_result = self.ocr_service.storage.store_ocr_result(
             ocr_result=ocr_result,
             document_id=document_id,

@@ -183,29 +183,6 @@ This provides precise retrieval granularity while maintaining efficiency.
 
 **See**: [Spatial Grounding Documentation](spatial_grounding.md)
 
-## Migration from DuckDB
-
-If you have existing documents indexed with DuckDB:
-
-### Option 1: Re-upload Documents
-1. Delete old collection and bucket via `/delete` endpoint
-2. Re-upload all documents with OCR enabled
-3. OCR data will be stored in Qdrant payloads
-
-### Option 2: Gradual Migration
-1. Keep existing documents (they still work via `ocr_url` fallback)
-2. New documents will use Qdrant payloads
-3. Eventually re-index old documents
-
-### Removed Features
-- **Duplicate Detection**: Previously powered by DuckDB filename tracking
-  - Can be re-implemented using Qdrant scroll queries if needed
-- **Full-Text Search**: Previously powered by DuckDB SQL queries
-  - Vector search provides semantic retrieval instead
-  - Can be re-implemented using Qdrant payload filters if needed
-- **Analytics Queries**: Previously exposed via DuckDB API router
-  - Can be re-implemented using Qdrant aggregations if needed
-
 ## Configuration
 
 ### Enable OCR

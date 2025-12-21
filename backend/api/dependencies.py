@@ -160,14 +160,8 @@ def invalidate_services():
 
     # Close existing service instances before clearing caches to prevent resource leaks
     try:
-        # Close DuckDB service session
-        if _get_duckdb_service_cached.cache_info().currsize > 0:
-            try:
-                service = _get_duckdb_service_cached()
-                if hasattr(service, "close"):
-                    service.close()
-            except Exception as e:
-                logger.warning(f"Error closing DuckDB service during invalidation: {e}")
+        # No additional cleanup needed for current services
+        pass
     except Exception as e:
         logger.warning(f"Error accessing cached services for cleanup: {e}")
 
@@ -176,11 +170,9 @@ def invalidate_services():
     qdrant_init_error.clear()
     storage_init_error.clear()
     ocr_init_error.clear()
-    duckdb_init_error.clear()
 
     # Clear caches
     _get_qdrant_service_cached.cache_clear()
     _get_storage_service_cached.cache_clear()
     _get_colpali_client_cached.cache_clear()
     _get_ocr_service_cached.cache_clear()
-    _get_duckdb_service_cached.cache_clear()
