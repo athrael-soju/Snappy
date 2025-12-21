@@ -1,3 +1,10 @@
+"""
+Analytics utilities for DuckDB.
+
+DEPRECATED: This module is no longer used. DuckDB has been removed from the application.
+OCR data is now stored in Qdrant payloads. Analytics functionality can be re-implemented
+using Qdrant queries if needed.
+"""
 import logging
 from typing import List
 

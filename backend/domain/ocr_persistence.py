@@ -9,7 +9,6 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
-    from clients.duckdb import DuckDBClient
     from clients.local_storage import LocalStorageClient
     from clients.ocr.processor import OcrProcessor
 
@@ -31,7 +30,6 @@ class OcrStorageHandler:
         self,
         storage_service: "LocalStorageClient",
         processor: Optional["OcrProcessor"] = None,
-        duckdb_service: Optional["DuckDBClient"] = None,
     ):
         """
         Initialize storage handler.
@@ -39,11 +37,9 @@ class OcrStorageHandler:
         Args:
             storage_service: Storage service for uploads
             processor: OCR processor (optional, for image extraction)
-            duckdb_service: DuckDB service (optional, for analytics storage)
         """
         self._storage = storage_service
         self._processor = processor
-        self._duckdb = duckdb_service
 
     def store_ocr_result(
         self,
@@ -208,67 +204,6 @@ class OcrStorageHandler:
             page_number=page_number,
             json_filename=json_filename,
         )
-
-        # Store to DuckDB if enabled (non-blocking)
-        if self._duckdb and self._duckdb.is_enabled():
-            try:
-                success = self._duckdb.store_ocr_page(
-                    provider=payload.get("provider", "deepseek-ocr"),
-                    version=payload.get("version", "1.0"),
-                    filename=str(filename) if filename is not None else "",
-                    page_number=page_number,
-                    page_id=payload["page_id"],  # Required - Pydantic validates
-                    document_id=payload["document_id"],  # Required - Pydantic validates
-                    text=payload.get("text", ""),
-                    markdown=payload.get("markdown", ""),
-                    raw_text=payload.get("raw_text"),
-                    regions=payload.get("regions", []),
-                    extracted_at=payload.get("extracted_at", ""),
-                    storage_url=url,
-                    pdf_page_index=payload.get("pdf_page_index"),
-                    total_pages=payload.get("total_pages"),
-                    page_width_px=(
-                        payload.get("page_dimensions", {}).get("width_px")
-                        if metadata
-                        else None
-                    ),
-                    page_height_px=(
-                        payload.get("page_dimensions", {}).get("height_px")
-                        if metadata
-                        else None
-                    ),
-                    image_url=(
-                        payload.get("image", {}).get("url") if metadata else None
-                    ),
-                    image_storage=(
-                        payload.get("image", {}).get("storage") if metadata else None
-                    ),
-                    extracted_images=payload.get("extracted_images", []),
-                )
-                if not success:
-                    error_msg = (
-                        f"DuckDB storage returned False for {filename} page {page_number}. "
-                        "This indicates a critical storage failure."
-                    )
-                    logger.error(error_msg)
-                    raise RuntimeError(error_msg)
-            except KeyError as exc:
-                logger.error(
-                    f"Missing required field {exc} in payload for {filename} page {page_number}. "
-                    "This is a schema validation error - check that metadata includes all required fields.",
-                    exc_info=True
-                )
-                raise
-            except RuntimeError:
-                # Re-raise RuntimeError from success=False case
-                raise
-            except Exception as exc:
-                logger.error(
-                    f"Failed to store OCR result in DuckDB for {filename} page {page_number}: {exc}. "
-                    "This is a critical error that must be fixed.",
-                    exc_info=True
-                )
-                raise
 
         return {
             "ocr_url": url,

@@ -9,7 +9,7 @@ from typing import Dict, List, Optional, Protocol
 from uuid import uuid4
 
 import config
-from api.dependencies import get_duckdb_service, get_qdrant_service, qdrant_init_error
+from api.dependencies import get_qdrant_service, qdrant_init_error
 from api.progress import progress_manager
 from clients.qdrant.indexing.points import PointFactory
 from domain.errors import (
@@ -257,8 +257,6 @@ def run_indexing_job(
             error_msg = qdrant_init_error.get() or "Dependency services are down"
             raise RuntimeError(error_msg)
 
-        duckdb_svc = get_duckdb_service()
-
         # Create image storage handler for streaming pipeline
         from domain.pipeline.storage import ImageStorageHandler
         from domain.pipeline.image_processor import ImageProcessor
@@ -325,7 +323,6 @@ def run_indexing_job(
             progress_manager.set_total(job_id, total_pages_all)
 
         pages_processed = 0
-        document_metadata_list = []
 
         # Progress callback for streaming updates
         def progress_cb(current: int):
@@ -356,16 +353,6 @@ def run_indexing_job(
             document_id = str(uuid4())
             total_pages, file_size_bytes = doc_info.get(pdf_path, (0, 0))
 
-            # Store metadata in DuckDB before processing
-            if duckdb_svc and duckdb_svc.is_enabled() and total_pages > 0:
-                doc_metadata = {
-                    "document_id": document_id,
-                    "filename": filename,
-                    "file_size_bytes": file_size_bytes,
-                    "total_pages": total_pages,
-                }
-                document_metadata_list.append(doc_metadata)
-
             # Process PDF through streaming pipeline with consistent document_id
             try:
                 pages_in_doc = pipeline.process_pdf(
@@ -387,18 +374,6 @@ def run_indexing_job(
                     exc_info=True,
                 )
                 raise
-
-        # Store document metadata in DuckDB
-        if duckdb_svc and duckdb_svc.is_enabled() and document_metadata_list:
-            try:
-                result = duckdb_svc.store_documents_batch(document_metadata_list)
-                success_count = result.get("success_count", 0)
-                if success_count > 0:
-                    logger.debug(
-                        "Stored %d document metadata records in DuckDB", success_count
-                    )
-            except Exception as exc:
-                logger.warning(f"Failed to store document metadata in DuckDB: {exc}")
 
         # Wait for pipeline to finish processing all batches
         progress_manager.update(

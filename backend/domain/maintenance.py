@@ -1,8 +1,14 @@
+"""
+Maintenance utilities for Qdrant and local storage.
+
+NOTE: DuckDB-related functions in this file are deprecated and no longer used.
+DuckDB has been removed from the application - OCR data is now stored in Qdrant payloads.
+"""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Optional
 
-from api.dependencies import duckdb_init_error, qdrant_init_error, storage_init_error
+from api.dependencies import qdrant_init_error, storage_init_error
 
 try:  # pragma: no cover - tooling support
     import config  # type: ignore

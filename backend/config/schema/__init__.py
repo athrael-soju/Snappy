@@ -19,7 +19,6 @@ from .application import SCHEMA as APPLICATION_SCHEMA
 from .base import ConfigDefault, ConfigType, ConfigUIType, _infer_ui_type
 from .colpali import SCHEMA as COLPALI_SCHEMA
 from .deepseek_ocr import SCHEMA as DEEPSEEK_OCR_SCHEMA
-from .duckdb import SCHEMA as DUCKDB_SCHEMA
 from .local_storage import SCHEMA as LOCAL_STORAGE_SCHEMA
 from .processing import SCHEMA as PROCESSING_SCHEMA
 from .qdrant import SCHEMA as QDRANT_SCHEMA
@@ -36,7 +35,6 @@ CONFIG_SCHEMA: Dict[str, Dict[str, Any]] = {
     **DEEPSEEK_OCR_SCHEMA,
     **QDRANT_SCHEMA,
     **LOCAL_STORAGE_SCHEMA,
-    **DUCKDB_SCHEMA,
 }
 
 

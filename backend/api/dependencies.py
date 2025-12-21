@@ -7,7 +7,6 @@ from typing import Optional
 
 import config
 from clients.colpali import ColPaliClient
-from clients.duckdb import DuckDBClient
 from clients.local_storage import LocalStorageClient
 from clients.ocr import OcrClient
 from clients.qdrant import QdrantClient
@@ -43,7 +42,6 @@ colpali_init_error = ServiceInitError()
 qdrant_init_error = ServiceInitError()
 storage_init_error = ServiceInitError()
 ocr_init_error = ServiceInitError()
-duckdb_init_error = ServiceInitError()
 
 
 @lru_cache(maxsize=1)
@@ -81,11 +79,9 @@ def _get_ocr_service_cached() -> OcrClient:
         raise RuntimeError("DeepSeek OCR service is disabled in configuration")
 
     storage_service = get_storage_service()
-    duckdb_service = get_duckdb_service() if config.DUCKDB_ENABLED else None
 
     return OcrClient(
         storage_service=storage_service,
-        duckdb_service=duckdb_service,
     )
 
 
@@ -106,30 +102,6 @@ def get_ocr_service() -> Optional[OcrClient]:
         return None
 
 
-@lru_cache(maxsize=1)
-def _get_duckdb_service_cached() -> DuckDBClient:
-    """Create and cache DuckDBClient instance."""
-    if not config.DUCKDB_ENABLED:
-        raise RuntimeError("DuckDB service is disabled in configuration")
-
-    return DuckDBClient()
-
-
-def get_duckdb_service() -> Optional[DuckDBClient]:
-    """Return the cached DuckDB service if enabled."""
-    if not config.DUCKDB_ENABLED:
-        duckdb_init_error.set("DuckDB service disabled in configuration")
-        return None
-
-    try:
-        service = _get_duckdb_service_cached()
-        duckdb_init_error.clear()
-        return service
-    except Exception as exc:
-        logger.error("Failed to initialize DuckDB service: %s", exc)
-        duckdb_init_error.set(str(exc))
-        _get_duckdb_service_cached.cache_clear()
-        return None
 
 
 @lru_cache(maxsize=1)

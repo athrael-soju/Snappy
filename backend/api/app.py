@@ -2,7 +2,6 @@ import logging
 
 from api.routers import (
     config,
-    duckdb,
     files,
     indexing,
     interpretability,
@@ -66,7 +65,6 @@ def create_app() -> FastAPI:
     app.include_router(maintenance.router)
     app.include_router(config.router)
     app.include_router(ocr.router)
-    app.include_router(duckdb.router)
     app.include_router(interpretability.router)
     app.include_router(files.router)
 

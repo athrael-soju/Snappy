@@ -9,7 +9,7 @@ import os
 from typing import Dict, List
 
 import config
-from api.dependencies import get_duckdb_service, get_qdrant_service, qdrant_init_error
+from api.dependencies import get_qdrant_service, qdrant_init_error
 from api.progress import progress_manager
 from clients.qdrant.indexing.points import PointFactory
 from domain.pipeline.errors import CancellationError
