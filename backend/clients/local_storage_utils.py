@@ -67,7 +67,7 @@ def resolve_storage_path(bucket: str, relative_path: str) -> Path:
     storage_resolved = storage_base.resolve()
 
     # Security: ensure path stays within storage directory
-    if not str(resolved_path).startswith(str(storage_resolved)):
+    if not resolved_path.is_relative_to(storage_resolved):
         logger.warning(f"Path traversal attempt detected: {relative_path}")
         raise PathTraversalError("Path traversal detected")
 

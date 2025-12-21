@@ -161,7 +161,8 @@ Runtime updates via `/config/*` API take effect immediately but don't persist ac
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `NEXT_PUBLIC_API_BASE_URL` | `http://localhost:8000` | Backend API URL (for browser) |
-| `PUBLIC_STORAGE_URL_SET` | `true` | Replace localhost with service name in Docker |
+
+**Note:** `PUBLIC_STORAGE_URL_SET` is automatically configured in Docker Compose to handle service name resolution for storage URLs.
 
 ---
 

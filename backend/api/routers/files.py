@@ -69,7 +69,7 @@ async def serve_file(bucket: str, path: str):
         resolved_path,
         media_type=content_type,
         headers={
-            # Cache for 1 year (immutable content-addressed files)
-            "Cache-Control": "public, max-age=31536000, immutable",
+            # Cache for 24 hours; files may be re-uploaded with same path
+            "Cache-Control": "public, max-age=86400",
         },
     )

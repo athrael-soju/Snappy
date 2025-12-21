@@ -70,7 +70,7 @@ def collect_collection_status(svc: Optional["QdrantClient"]) -> dict:
     return status
 
 
-def collect_bucket_status(msvc: Optional["LocalStorageClient"]) -> dict:
+def collect_bucket_status(storage_svc: Optional["LocalStorageClient"]) -> dict:
     status = {
         "name": bucket_name(),
         "exists": False,
@@ -80,15 +80,15 @@ def collect_bucket_status(msvc: Optional["LocalStorageClient"]) -> dict:
         "size_mb": 0.0,
         "error": None,
     }
-    if not msvc:
+    if not storage_svc:
         status["error"] = storage_init_error.get() or "Service unavailable"
         return status
     try:
-        bucket_exists = msvc.service.bucket_exists(bucket_name())
+        bucket_exists = storage_svc.service.bucket_exists(bucket_name())
         status["exists"] = bucket_exists
         if bucket_exists:
             total_bytes = 0
-            for obj in msvc.service.list_objects(bucket_name(), recursive=True):
+            for obj in storage_svc.service.list_objects(bucket_name(), recursive=True):
                 status["object_count"] += 1
                 size = getattr(obj, "size", 0) or 0
                 total_bytes += size
@@ -183,7 +183,7 @@ def get_vector_total_dim(collection_info: Any) -> int:
 
 def clear_all_sync(
     svc: Optional["QdrantClient"],
-    msvc: Optional["LocalStorageClient"],
+    storage_svc: Optional["LocalStorageClient"],
     dsvc: Optional["DuckDBClient"],
 ) -> dict:
     results = {
@@ -210,10 +210,10 @@ def clear_all_sync(
             qdrant_init_error.get() or "Qdrant service unavailable"
         )
 
-    if msvc:
-        if bucket_exists(msvc):
+    if storage_svc:
+        if bucket_exists(storage_svc):
             try:
-                msvc.clear_images()
+                storage_svc.clear_images()
                 results["bucket"]["status"] = "success"
                 results["bucket"]["message"] = "Cleared storage objects"
             except Exception as exc:
@@ -252,7 +252,7 @@ def clear_all_sync(
 
 def initialize_sync(
     svc: Optional["QdrantClient"],
-    msvc: Optional["LocalStorageClient"],
+    storage_svc: Optional["LocalStorageClient"],
     dsvc: Optional["DuckDBClient"],
 ) -> dict:
     results = {
@@ -275,9 +275,9 @@ def initialize_sync(
         results["collection"]["message"] = (
             qdrant_init_error.get() or "Service unavailable"
         )
-    if msvc:
+    if storage_svc:
         try:
-            msvc._create_bucket_if_not_exists()
+            storage_svc._create_bucket_if_not_exists()
             results["bucket"]["status"] = "success"
             results["bucket"][
                 "message"
@@ -311,7 +311,7 @@ def initialize_sync(
 
 def delete_sync(
     svc: Optional["QdrantClient"],
-    msvc: Optional["LocalStorageClient"],
+    storage_svc: Optional["LocalStorageClient"],
     dsvc: Optional["DuckDBClient"],
 ) -> dict:
     results = {
@@ -338,13 +338,13 @@ def delete_sync(
         results["collection"]["message"] = (
             qdrant_init_error.get() or "Service unavailable"
         )
-    if msvc:
+    if storage_svc:
         try:
-            bucket_exists_flag = msvc.service.bucket_exists(bucket_name())
+            bucket_exists_flag = storage_svc.service.bucket_exists(bucket_name())
             if bucket_exists_flag:
                 # Clear all objects then remove the bucket directory
-                msvc.clear_images()
-                msvc.service.remove_bucket(bucket_name())
+                storage_svc.clear_images()
+                storage_svc.service.remove_bucket(bucket_name())
                 results["bucket"]["status"] = "success"
                 results["bucket"][
                     "message"
@@ -398,9 +398,9 @@ def collection_exists(svc: "QdrantClient") -> bool:
         return "not found" not in str(exc).lower()
 
 
-def bucket_exists(msvc: "LocalStorageClient") -> bool:
+def bucket_exists(storage_svc: "LocalStorageClient") -> bool:
     try:
-        return bool(msvc.service.bucket_exists(bucket_name()))
+        return bool(storage_svc.service.bucket_exists(bucket_name()))
     except Exception:
         return False
 

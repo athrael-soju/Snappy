@@ -94,6 +94,7 @@ If you prefer Compose directly: `docker compose --profile minimal|ml|full up -d`
 ## Troubleshooting
 - Progress stuck on upload/indexing: ensure Poppler is installed for PDF rasterization and check backend logs.
 - Missing images: confirm `LOCAL_STORAGE_PATH` is accessible and check allowed domains in `frontend/next.config.ts`.
+- Files lost after restart: ensure the `backend_storage` Docker volume is properly mounted (configured by default in `docker/app.yml`).
 - OCR not running: `DEEPSEEK_OCR_ENABLED=true`, GPU profile running, and `/ocr/health` reachable.
 - Config not sticking: `/config/update` is runtime-only; edit `.env` for persistence.
 

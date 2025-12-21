@@ -24,6 +24,7 @@ services:
     volumes:
       - ../backend:/app
       - backend_cache:/root/.cache
+      - backend_storage:/app/storage
     networks:
       - snappy-network
     depends_on:
@@ -52,6 +53,7 @@ services:
       - NEXT_PUBLIC_API_URL=http://localhost:8000
       - NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
       - API_BASE_URL_INTERNAL=http://backend:8000
+      - PUBLIC_STORAGE_URL_SET=true
     volumes:
       - ../frontend:/app
       - /app/node_modules
@@ -64,6 +66,7 @@ services:
 
 volumes:
   backend_cache:
+  backend_storage:
 
 networks:
   snappy-network:

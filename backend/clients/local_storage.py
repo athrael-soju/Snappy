@@ -53,7 +53,7 @@ class _ServiceShim:
     """
     Service shim providing storage methods for maintenance.py.
 
-    maintenance.py directly accesses msvc.service.bucket_exists(), list_objects(), etc.
+    maintenance.py directly accesses storage_svc.service.bucket_exists(), list_objects(), etc.
     This shim provides those methods using filesystem operations.
     """
 
@@ -174,7 +174,8 @@ class LocalStorageClient:
         if not bucket_path.exists():
             raise RuntimeError(
                 f"Storage directory '{bucket_path}' does not exist. "
-                "Use the Maintenance → Initialize action to create it."
+                "Use the Maintenance → Initialize action in the UI, "
+                "or ensure the storage volume is mounted correctly in Docker."
             )
 
     def _object_name_to_path(self, object_name: str) -> Path:
@@ -312,14 +313,24 @@ class LocalStorageClient:
                     file_path.parent.mkdir(parents=True, exist_ok=True)
 
                     # Write atomically using temp file
-                    with tempfile.NamedTemporaryFile(
-                        dir=file_path.parent, delete=False, suffix=f".{ext}"
-                    ) as tmp:
-                        tmp.write(buf.getvalue())
-                        temp_path = tmp.name
+                    temp_path = None
+                    try:
+                        with tempfile.NamedTemporaryFile(
+                            dir=file_path.parent, delete=False, suffix=f".{ext}"
+                        ) as tmp:
+                            tmp.write(buf.getvalue())
+                            temp_path = tmp.name
 
-                    # Atomic rename
-                    os.replace(temp_path, file_path)
+                        # Atomic rename
+                        os.replace(temp_path, file_path)
+                    except Exception:
+                        # Clean up temp file on failure
+                        if temp_path and os.path.exists(temp_path):
+                            try:
+                                os.unlink(temp_path)
+                            except Exception:
+                                pass
+                        raise
 
                     return img_id, self._get_image_url(object_name)
                 except Exception:
@@ -385,6 +396,7 @@ class LocalStorageClient:
         object_name = f"{document_id}/{page_number}/{json_filename}"
         file_path = self._object_name_to_path(object_name)
 
+        temp_path = None
         try:
             file_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -399,6 +411,12 @@ class LocalStorageClient:
 
             os.replace(temp_path, file_path)
         except Exception as e:
+            # Clean up temp file on failure
+            if temp_path and os.path.exists(temp_path):
+                try:
+                    os.unlink(temp_path)
+                except Exception:
+                    pass
             raise Exception(f"Failed to store JSON at {object_name}: {e}") from e
 
         return self._get_image_url(object_name)
@@ -488,8 +506,8 @@ class LocalStorageClient:
             for dirpath in sorted(path.rglob("*"), reverse=True):
                 if dirpath.is_dir() and not any(dirpath.iterdir()):
                     dirpath.rmdir()
-        except Exception:
-            pass  # Ignore cleanup errors
+        except Exception as e:
+            logger.debug(f"Empty directory cleanup error (non-fatal): {e}")
 
     def clear_images(self) -> dict:
         """Delete all stored content in the bucket."""
