@@ -2,10 +2,8 @@ from __future__ import annotations
 
 import logging
 import uuid
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List
 
-import config
 from api.dependencies import get_qdrant_service, qdrant_init_error
 from api.progress import progress_manager
 from domain.errors import (
@@ -15,7 +13,6 @@ from domain.errors import (
     UploadTimeoutError,
 )
 from domain.file_constraints import (
-    UploadConstraints,
     resolve_upload_constraints,
 )
 from domain.indexing import validate_and_persist_uploads
@@ -27,8 +24,6 @@ from .jobs import cleanup_temp_files, run_indexing_job
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="", tags=["indexing"])
-
-
 
 
 @router.post("/index")

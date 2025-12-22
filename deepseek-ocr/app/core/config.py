@@ -22,17 +22,12 @@ class Settings:
     _auto_device: Literal["cuda", "mps", "cpu"] = (
         "cuda"
         if torch.cuda.is_available()
-        else "mps"
-        if torch.backends.mps.is_available()
-        else "cpu"
+        else "mps" if torch.backends.mps.is_available() else "cpu"
     )
     DEVICE: str = env_config("DEVICE", default=_auto_device)
 
     # Use float16 for MPS and CUDA, float32 for CPU
-    TORCH_DTYPE = (
-        torch.float16 if DEVICE in ["cuda", "mps"]
-        else torch.float32
-    )
+    TORCH_DTYPE = torch.float16 if DEVICE in ["cuda", "mps"] else torch.float32
 
     # CORS Configuration
     ALLOWED_ORIGINS: str = env_config("ALLOWED_ORIGINS", default="*")

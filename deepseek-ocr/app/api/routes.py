@@ -42,8 +42,8 @@ async def restart_service():
     The container will automatically restart if configured with restart policy.
     This is useful for stopping any ongoing processing and resetting service state.
     """
-    import threading
     import os
+    import threading
 
     logger.info("Restart requested - initiating service shutdown")
 

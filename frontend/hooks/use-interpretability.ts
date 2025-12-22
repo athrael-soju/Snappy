@@ -118,10 +118,6 @@ export function useInterpretability(query?: string, src?: string) {
     // This allows reusing cached data when reopening the same image
   }, []);
 
-  const clearCache = () => {
-    cacheRef.current.clear();
-  };
-
   return {
     interpretabilityData,
     selectedToken,
@@ -134,6 +130,5 @@ export function useInterpretability(query?: string, src?: string) {
     error,
     fetchInterpretability,
     reset,
-    clearCache,
   };
 }

@@ -32,12 +32,10 @@ export async function runChatService(options: NormalizedChatRequest): Promise<Ch
             return;
         }
 
-        // Use OCR-based (markdown) content if OCR is enabled AND OCR data exists
-        // Check inline payload (markdown or regions) and json_url for backward compatibility
+        // Use OCR-based (markdown) content if OCR is enabled AND OCR data exists in inline payload
         const hasOcrData = results.some((result) =>
             result?.payload?.ocr?.markdown ||
-            result?.payload?.ocr?.regions?.length > 0 ||
-            result?.json_url
+            result?.payload?.ocr?.regions?.length > 0
         );
         const useOcrContent = ocrEnabled && hasOcrData;
 
@@ -142,10 +140,11 @@ export async function runChatService(options: NormalizedChatRequest): Promise<Ch
                 await attachSearchResults(results);
             }
         } catch (error) {
-            console.error('Search failed:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            logger.error('Search failed:', { error: errorMessage });
             searchResult = {
                 success: false,
-                error: error instanceof Error ? error.message : 'Unknown error occurred',
+                error: errorMessage,
                 query: options.message
             };
         }

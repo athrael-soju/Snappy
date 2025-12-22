@@ -7,7 +7,7 @@ FastAPI microservice for DeepSeek-OCR. **Requires an NVIDIA GPU with CUDA.**
 cd deepseek-ocr
 docker compose up -d --build
 ```
-Runs at `http://localhost:8200`. Included in `docker compose up -d` from the repo root.
+Runs at `http://localhost:8200`. Included in the default `docker compose up -d`.
 
 ## Local run
 ```bash

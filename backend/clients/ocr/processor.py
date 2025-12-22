@@ -14,11 +14,11 @@ from PIL import Image
 from utils.timing import log_execution_time
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
-    from domain.pipeline.image_processor import ImageProcessor
     from clients.local_storage import LocalStorageClient
+    from domain.ocr_persistence import OcrStorageHandler
+    from domain.pipeline.image_processor import ImageProcessor
 
     from .client import OcrClient
-    from domain.ocr_persistence import OcrStorageHandler
 
 logger = logging.getLogger(__name__)
 
@@ -234,8 +234,8 @@ class OcrProcessor:
         # Prepare metadata
         metadata = {"filename": filename}
 
-        # Store results
-        storage_url = storage_handler.store_ocr_result(
+        # store_ocr_result modifies ocr_result in-place with image URLs
+        storage_handler.store_ocr_result(
             ocr_result=ocr_result,
             document_id=document_id,
             page_number=page_number,
@@ -246,7 +246,6 @@ class OcrProcessor:
             "status": "success",
             "filename": filename,
             "page_number": page_number,
-            "storage_url": storage_url,
             "text_preview": ocr_result.get("text", "")[:200],
             "regions": len(ocr_result.get("regions", [])),
             "extracted_images": len(ocr_result.get("crops", [])),
@@ -426,7 +425,9 @@ class OcrProcessor:
                 # Storage structure: {doc_uuid}/{page_number}/ocr_regions/{uuid}.{ext}
                 ext = self._image_processor.get_extension()
                 region_uuid = str(uuid.uuid4())
-                object_name = f"{document_id}/{page_number}/ocr_regions/{region_uuid}.{ext}"
+                object_name = (
+                    f"{document_id}/{page_number}/ocr_regions/{region_uuid}.{ext}"
+                )
 
                 # Upload to storage
                 buf = processed.to_buffer()

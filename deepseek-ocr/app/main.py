@@ -26,17 +26,16 @@ async def lifespan(app: FastAPI):
 
     # Patch model files for compatibility (if needed)
     try:
-        from pathlib import Path
         import sys
+        from pathlib import Path
 
         patch_script = Path(__file__).parent.parent / "patch_model.py"
         if patch_script.exists():
             logger.info("Running model compatibility patcher...")
             import subprocess
+
             result = subprocess.run(
-                [sys.executable, str(patch_script)],
-                capture_output=True,
-                text=True
+                [sys.executable, str(patch_script)], capture_output=True, text=True
             )
             if result.returncode == 0:
                 logger.info("✓ Model patcher completed")

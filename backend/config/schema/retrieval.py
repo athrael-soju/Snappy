@@ -73,17 +73,18 @@ SCHEMA: Dict[str, Any] = {
                 "ui_indent_level": 1,
             },
             {
-                "default": "max",
-                "description": "How to aggregate relevance scores across query tokens",
-                "help_text": "Controls how similarity scores from different query tokens are combined: "
-                "'max' uses the highest score across all tokens (best for finding any match), "
-                "'mean' averages scores across tokens (balanced approach), "
-                "'sum' adds up all token scores (favors regions matching multiple tokens).",
+                "default": "iou_weighted",
+                "description": "How to aggregate patch scores for each region",
+                "help_text": "Controls how patch-level similarity scores are combined into region scores: "
+                "'iou_weighted' (recommended) uses IoU-weighted average as described in the paper - "
+                "patches are weighted by their spatial overlap with the region, making scores comparable across region sizes. "
+                "'max' uses the highest patch score in the region (simple but may favor small regions). "
+                "'mean' averages all patch scores in the region.",
                 "key": "REGION_SCORE_AGGREGATION",
                 "label": "Score Aggregation Method",
                 "type": "str",
                 "ui_type": "select",
-                "options": ["max", "mean", "sum"],
+                "options": ["iou_weighted", "max", "mean"],
                 "depends_on": {"key": "ENABLE_REGION_LEVEL_RETRIEVAL", "value": True},
                 "ui_indent_level": 1,
             },

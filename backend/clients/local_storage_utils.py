@@ -17,25 +17,17 @@ logger = logging.getLogger(__name__)
 class StoragePathError(Exception):
     """Base exception for storage path errors."""
 
-    pass
-
 
 class InvalidBucketError(StoragePathError):
     """Raised when bucket name doesn't match configured bucket."""
-
-    pass
 
 
 class PathTraversalError(StoragePathError):
     """Raised when path traversal is detected."""
 
-    pass
-
 
 class FileNotFoundInStorageError(StoragePathError):
     """Raised when file doesn't exist in storage."""
-
-    pass
 
 
 def resolve_storage_path(bucket: str, relative_path: str) -> Path:

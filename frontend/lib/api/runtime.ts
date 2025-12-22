@@ -43,16 +43,12 @@ export function parseSearchResults(data: unknown): SearchItem[] {
           typeof item.score === "number" || item.score === null || typeof item.score === "undefined"
             ? item.score ?? null
             : null,
-        json_url:
-          typeof item.json_url === "string" || item.json_url === null || typeof item.json_url === "undefined"
-            ? item.json_url ?? null
-            : null,
         payload,
       };
     });
   }
 
-  console.warn("Invalid search response payload", parsed.error);
+  logger.warn("Invalid search response payload", { error: parsed.error.message });
   return [];
 }
 

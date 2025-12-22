@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 import re
 import uuid
-from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
@@ -17,13 +16,11 @@ logger = logging.getLogger(__name__)
 
 class OcrStorageHandler:
     """
-    Handles persistence of OCR results to local storage.
+    Handles persistence of OCR extracted images to local storage.
 
-    Responsibilities:
-    - Format OCR results for storage
-    - Upload JSON payloads to local storage
-    - Process and upload extracted images
-    - Generate storage URLs
+    OCR text/markdown/regions are stored inline in Qdrant payloads.
+    This handler only stores extracted images (figures, diagrams, etc.)
+    and attaches their URLs to region data.
     """
 
     def __init__(
@@ -48,26 +45,24 @@ class OcrStorageHandler:
         page_number: int,
         *,
         metadata: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+    ) -> None:
         """
-        Store OCR result to local storage with UUID-based naming.
+        Process and store extracted images, updating regions with image URLs.
+
+        OCR text/markdown/regions are stored inline in Qdrant payloads.
+        This method only handles:
+        1. Uploading extracted images (figures, diagrams) to local storage
+        2. Updating region data with image URLs
+        3. Replacing base64 image data in markdown/text with storage URLs
+
+        The ocr_result dict is modified in-place to include image URLs.
 
         Args:
-            ocr_result: Processed OCR result from OcrProcessor
+            ocr_result: Processed OCR result from OcrProcessor (modified in-place)
             document_id: Document UUID for storage paths
             page_number: Page number
-            metadata: Optional additional metadata (should include 'filename' for display)
-
-        Returns:
-            Dictionary with ocr_url and ocr_regions array:
-            {
-                "ocr_url": "URL to full OCR JSON",
-                "ocr_regions": [{"label": "text", "url": "...", "id": "..."}, ...]
-            }
+            metadata: Optional additional metadata
         """
-        # Extract filename from metadata for logging/payload (not for paths)
-        filename = metadata.get("filename") if metadata else None
-
         # Process extracted images if processor is available
         extracted_images_urls: List[str] = []
         crops = ocr_result.get("crops", [])
@@ -98,117 +93,26 @@ class OcrStorageHandler:
                     exc_info=True,
                 )
 
-        # Generate UUIDs for regions and store individual region JSON files
-        ocr_regions_metadata: List[Dict[str, str]] = []
+        # Attach image URLs to regions (regions stored inline in Qdrant, not as separate files)
         if regions:
-            for idx, region in enumerate(regions):
+            for region in regions:
                 # Generate unique ID for this region
-                region_id = str(uuid.uuid4())
-                region["id"] = region_id
+                region["id"] = str(uuid.uuid4())
 
-                # Attach extracted image metadata if available
+                # Attach extracted image URL if available
                 image_idx = region.pop("image_index", None)
                 if isinstance(image_idx, int) and 0 <= image_idx < len(
                     extracted_images_urls
                 ):
                     region["image_url"] = extracted_images_urls[image_idx]
-                    region["image_storage"] = "local"
-                    region["image_inline"] = False
 
-                # Store individual region JSON file in ocr_regions/ subfolder
-                region_json_filename = f"ocr_regions/region_{region_id}.json"
-
-                region_payload = {
-                    "id": region_id,
-                    "label": region.get("label", "unknown"),
-                    "bbox": region.get("bbox", []),
-                    "content": region.get("content", ""),
-                }
-
-                try:
-                    region_url = self._storage.store_json(
-                        payload=region_payload,
-                        document_id=document_id,
-                        page_number=page_number,
-                        json_filename=region_json_filename,
-                    )
-
-                    # Build metadata for Qdrant payload
-                    ocr_regions_metadata.append(
-                        {
-                            "label": region.get("label", "unknown"),
-                            "url": region_url,
-                            "id": region_id,
-                        }
-                    )
-                except Exception as exc:
-                    logger.warning(f"Failed to store region {region_id} JSON: {exc}")
-
+        # Ensure figure links in markdown/text point to storage URLs
         figure_url_map = {idx + 1: url for idx, url in enumerate(extracted_images_urls)}
         if figure_url_map:
             for field in ("markdown", "text"):
                 ocr_result[field] = self._ensure_figure_links(
                     ocr_result.get(field, ""), figure_url_map
                 )
-
-        # Generate UUID for full OCR JSON file in ocr/ subfolder
-        ocr_uuid = str(uuid.uuid4())
-        json_filename = f"ocr/{ocr_uuid}.json"
-        object_name = f"{document_id}/{page_number}/{json_filename}"
-        storage_url = self._storage._get_image_url(object_name)
-
-        # Build storage payload
-        payload = {
-            "id": ocr_uuid,
-            "provider": "deepseek-ocr",
-            "version": "1.0",
-            "filename": filename,
-            "page_number": page_number,
-            "text": ocr_result.get("text", ""),
-            "markdown": ocr_result.get("markdown", ""),
-            "raw_text": ocr_result.get("raw_text", ""),
-            "regions": regions,
-            "extracted_at": datetime.now(timezone.utc).isoformat(),
-            "storage_url": storage_url,
-        }
-
-        # Add metadata if provided
-        if metadata:
-            payload.update(
-                {
-                    "document_id": metadata.get("document_id"),
-                    "page_id": metadata.get("page_id"),
-                    "pdf_page_index": metadata.get("pdf_page_index"),
-                    "total_pages": metadata.get("total_pages"),
-                    "page_dimensions": {
-                        "width_px": metadata.get("page_width_px"),
-                        "height_px": metadata.get("page_height_px"),
-                    },
-                    "image": {
-                        "url": metadata.get("image_url"),
-                        "storage": metadata.get("image_storage"),
-                    },
-                }
-            )
-
-        # Add extracted images metadata if any
-        if extracted_images_urls:
-            payload["extracted_images"] = [
-                {"url": url, "storage": "local"} for url in extracted_images_urls
-            ]
-
-        # Store full OCR JSON to local storage with UUID name
-        url = self._storage.store_json(
-            payload=payload,
-            document_id=document_id,
-            page_number=page_number,
-            json_filename=json_filename,
-        )
-
-        return {
-            "ocr_url": url,
-            "ocr_regions": ocr_regions_metadata,
-        }
 
     @staticmethod
     def _ensure_figure_links(content: str, figure_map: Dict[int, str]) -> str:

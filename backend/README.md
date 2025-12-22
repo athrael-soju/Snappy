@@ -13,7 +13,7 @@ The backend follows a layered architecture to separate concerns:
 ```bash
 cd backend
 python -m venv .venv
-. .venv/Scripts/activate  # or source .venv/bin/activate
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 cp .env.example .env
 uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
@@ -21,7 +21,7 @@ uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 Prereqs: Python 3.11+ and Poppler (`pdftoppm`) on PATH.
 
 ## Docker
-- Backend only: `cd backend && docker compose up -d --build`
+- Backend only (Qdrant): `cd backend && docker compose up -d --build`
 - Full stack (from repo root): `docker compose up -d`
 
 Use container hostnames inside Compose (`http://colpali:7000`, `http://deepseek-ocr:8200`). From host, use `localhost`.

@@ -171,7 +171,7 @@ Runtime updates via `/config/*` API take effect immediately but don't persist ac
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `OPENAI_API_KEY` | `your-api-key-here` | OpenAI API key |
-| `OPENAI_MODEL` | `gpt-4` | Model to use |
+| `OPENAI_MODEL` | `gpt-5-nano` | Model to use |
 | `OPENAI_TEMPERATURE` | `0.7` | Creativity (0.0-1.0) |
 
 ---

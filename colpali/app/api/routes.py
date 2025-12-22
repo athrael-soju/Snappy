@@ -8,9 +8,6 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, List, Optional
 
-from fastapi import APIRouter, Body, File, Form, HTTPException, UploadFile
-from PIL import Image
-
 from app.core.config import settings
 from app.models.schemas import (
     ImageEmbeddingBatchResponse,
@@ -20,11 +17,12 @@ from app.models.schemas import (
     PatchResult,
     QueryEmbeddingResponse,
     QueryRequest,
-    TokenSimilarityMap,
 )
 from app.services.embedding_processor import embedding_processor
 from app.services.model_service import model_service
 from app.utils.image_processing import load_image_from_bytes
+from fastapi import APIRouter, Body, File, Form, HTTPException, UploadFile
+from PIL import Image
 
 logger = logging.getLogger(__name__)
 
@@ -152,9 +150,7 @@ async def get_n_patches(
         for dim in request.dimensions:
             try:
                 image_size = (dim.width, dim.height)
-                n_patches_x, n_patches_y = get_n_patches_fn(
-                    image_size, **call_kwargs
-                )
+                n_patches_x, n_patches_y = get_n_patches_fn(image_size, **call_kwargs)
 
                 results.append(
                     PatchResult(
@@ -176,7 +172,7 @@ async def get_n_patches(
     except AttributeError:
         raise HTTPException(
             status_code=501,
-            detail="The current model does not support get_n_patches functionality"
+            detail="The current model does not support get_n_patches functionality",
         )
     except Exception as e:
         raise HTTPException(

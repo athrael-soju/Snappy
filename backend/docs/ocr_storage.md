@@ -213,7 +213,7 @@ Response includes:
 
 ### No OCR Data in Search Results
 - Check `DEEPSEEK_OCR_ENABLED=true` in backend/.env
-- Verify OCR service is running (`docker-compose --profile ml up`)
+- Verify OCR service is running (`docker compose up`)
 - Check `/status` endpoint shows OCR service healthy
 - Re-upload documents if indexed before enabling OCR
 

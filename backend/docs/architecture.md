@@ -1,6 +1,6 @@
 # Snappy Architecture
 
-> **Research Paper**: [Spatially-Grounded Document Retrieval via Patch-to-Region Relevance Propagation](https://arxiv.org/abs/2501.12345)
+> **Research Paper**: [Spatially-Grounded Document Retrieval via Patch-to-Region Relevance Propagation](https://arxiv.org/abs/2512.02660)
 
 Snappy implements **region-level document retrieval** through patch-to-region relevance propagation; a hybrid architecture that unifies vision-language models with OCR at inference time without additional training. The system uses ColPali's patch-level similarity scores as spatial relevance filters over OCR-extracted regions, achieving precise retrieval granularity while preserving the semantic understanding of vision-language models.
 
@@ -123,7 +123,7 @@ The backend is organized into three distinct layers to ensure maintainability an
 - Powers region-level filtering by computing relevance scores for OCR bounding boxes.
 
 ## Configuration and modes
-- Toggle OCR with `DEEPSEEK_OCR_ENABLED`; requires the ML profile (GPU).
+- Toggle OCR with `DEEPSEEK_OCR_ENABLED`; requires GPU.
 - Quantization and pooling options live in `.env` and `backend/config/schema`.
 - See `backend/docs/configuration.md` for full settings and defaults.
 

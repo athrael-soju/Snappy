@@ -3,11 +3,9 @@
 import logging
 from typing import Any, Tuple, Union, cast
 
-import torch
+from app.core.config import settings
 from colpali_engine.models import ColModernVBert, ColModernVBertProcessor
 from transformers.utils.import_utils import is_flash_attn_2_available
-
-from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 

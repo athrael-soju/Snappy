@@ -132,12 +132,8 @@ yarn dev
 # Navigate to ColPali directory
 cd colpali
 
-# Start with Docker (choose one profile)
-# GPU
-docker compose --profile gpu up -d --build
-
-# OR CPU
-docker compose --profile cpu up -d --build
+# Start with Docker
+docker compose up -d --build
 ```
 
 ### Infrastructure Services
