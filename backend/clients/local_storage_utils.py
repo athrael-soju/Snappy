@@ -8,6 +8,7 @@ the files router and interpretability endpoint.
 import logging
 from pathlib import Path
 from typing import Tuple
+import os
 
 import config
 
@@ -55,12 +56,16 @@ def resolve_storage_path(bucket: str, relative_path: str) -> Path:
 
     # Construct file path rooted in the configured bucket directory
     bucket_base = storage_base / bucket_name
-    file_path = bucket_base / relative_path
-    resolved_path = file_path.resolve()
     bucket_resolved = bucket_base.resolve()
 
+    file_path = bucket_resolved / relative_path
+    resolved_path = file_path.resolve()
+
     # Security: ensure path stays within the bucket directory
-    if not resolved_path.is_relative_to(bucket_resolved):
+    bucket_root = bucket_resolved.as_posix()
+    candidate = resolved_path.as_posix()
+    common = os.path.commonpath([bucket_root, candidate])
+    if common != bucket_root:
         logger.warning(f"Path traversal attempt detected: {relative_path}")
         raise PathTraversalError("Path traversal detected")
 
