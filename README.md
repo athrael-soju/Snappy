@@ -73,7 +73,7 @@ docker compose up -d
 
 <div align="center">
 
-![architecture](https://github.com/user-attachments/assets/856228fa-53e9-48d7-9452-0231cf3905a6)
+![architecture](https://github.com/user-attachments/assets/8a3b5531-0f6b-472b-962e-0ce3a9f36009)
 </div>
 
 ## Configuration
