@@ -123,7 +123,7 @@ The backend is organized into three distinct layers to ensure maintainability an
 - Powers region-level filtering by computing relevance scores for OCR bounding boxes.
 
 ## Configuration and modes
-- Toggle OCR with `DEEPSEEK_OCR_ENABLED`; requires the ML profile (GPU).
+- Toggle OCR with `DEEPSEEK_OCR_ENABLED`; requires GPU.
 - Quantization and pooling options live in `.env` and `backend/config/schema`.
 - See `backend/docs/configuration.md` for full settings and defaults.
 

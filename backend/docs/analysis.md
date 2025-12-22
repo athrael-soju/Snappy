@@ -18,7 +18,7 @@ The hybrid architecture achieves **region-level granularity** without sacrificin
 | Scans, forms, tables, diagrams, handwriting | Vision-only (ColPali + images) | Layout and visual cues matter more than OCR quality. |
 | Text-heavy PDFs with reliable print | Hybrid (ColPali + OCR text) | Adds searchable text and lower token costs while keeping visual grounding. |
 | Need bounding boxes or region images (figures/tables) | Hybrid with OCR regions enabled | Returns text and cropped regions for the LLM. |
-| Constrained hardware | Minimal profile (no OCR, quantization options) | Runs on CPU; fewer services. |
+| Constrained hardware | Disable OCR, enable quantization | Runs on CPU; fewer services. |
 
 ## Trade-offs and limits
 - Vision-first costs more compute than text-only RAG but handles layout-heavy documents better.

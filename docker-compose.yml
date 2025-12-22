@@ -41,10 +41,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
-    profiles:
-      - minimal
-      - ml
-      - full
     deploy:
       resources:
         reservations:
@@ -76,9 +72,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
-    profiles:
-      - ml
-      - full
     deploy:
       resources:
         reservations:
@@ -105,7 +98,7 @@ services:
       # Local storage configuration
       - LOCAL_STORAGE_PATH=/app/storage
       - LOCAL_STORAGE_PUBLIC_URL=http://localhost:8000/files
-      # Profile-specific feature flags (set by Makefile)
+      # Profile-specific feature flags
       - DEEPSEEK_OCR_ENABLED=${DEEPSEEK_OCR_ENABLED:-true}
     volumes:
       - ./backend:/app

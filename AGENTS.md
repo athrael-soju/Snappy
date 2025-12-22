@@ -39,7 +39,7 @@ Snappy is a **vision-grounded document retrieval system** (RAG) that processes P
 *   **Gen SDK**: `yarn gen:sdk` (after backend API changes).
 
 ### Docker
-*   **Full Stack**: `docker compose --profile gpu up -d` (or `--profile cpu`).
+*   **Full Stack**: `docker compose up -d`.
 *   **Services**: `colpali`, `deepseek-ocr`, `qdrant`.
 
 ## 📏 Coding Standards
