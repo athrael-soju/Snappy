@@ -53,13 +53,14 @@ def resolve_storage_path(bucket: str, relative_path: str) -> Path:
     if bucket != bucket_name:
         raise InvalidBucketError(f"Invalid bucket: {bucket}")
 
-    # Construct file path
-    file_path = storage_base / bucket / relative_path
+    # Construct file path rooted in the configured bucket directory
+    bucket_base = storage_base / bucket_name
+    file_path = bucket_base / relative_path
     resolved_path = file_path.resolve()
-    storage_resolved = storage_base.resolve()
+    bucket_resolved = bucket_base.resolve()
 
-    # Security: ensure path stays within storage directory
-    if not resolved_path.is_relative_to(storage_resolved):
+    # Security: ensure path stays within the bucket directory
+    if not resolved_path.is_relative_to(bucket_resolved):
         logger.warning(f"Path traversal attempt detected: {relative_path}")
         raise PathTraversalError("Path traversal detected")
 
