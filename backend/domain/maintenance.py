@@ -1,8 +1,12 @@
+"""
+Maintenance utilities for Qdrant and local storage.
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Optional
 
-from api.dependencies import duckdb_init_error, qdrant_init_error, storage_init_error
+from api.dependencies import qdrant_init_error, storage_init_error
 
 try:  # pragma: no cover - tooling support
     import config  # type: ignore
@@ -10,7 +14,6 @@ except ModuleNotFoundError:  # pragma: no cover
     from backend import config as config  # type: ignore
 
 if TYPE_CHECKING:  # pragma: no cover
-    from clients.duckdb import DuckDBClient
     from clients.local_storage import LocalStorageClient
     from clients.qdrant import QdrantClient
 
@@ -112,43 +115,6 @@ def collect_bucket_status(storage_svc: Optional["LocalStorageClient"]) -> dict:
     return status
 
 
-def collect_duckdb_status(dsvc: Optional["DuckDBClient"]) -> dict:
-    enabled = bool(getattr(config, "DUCKDB_ENABLED", False))
-    status = {
-        "name": getattr(config, "DUCKDB_DATABASE_NAME", "documents"),
-        "enabled": enabled,
-        "available": False,
-        "page_count": 0,
-        "region_count": 0,
-        "database_size_mb": 0.0,
-        "error": None,
-    }
-
-    if not enabled:
-        status["error"] = "Disabled via configuration"
-        return status
-
-    if not dsvc:
-        status["error"] = duckdb_init_error.get() or "Service unavailable"
-        return status
-
-    try:
-        stats = dsvc.get_stats() or {}
-        if not stats.get("schema_active", True):
-            status["error"] = INACTIVE_MESSAGE
-            return status
-
-        status["available"] = True
-        status["page_count"] = int(stats.get("total_pages", 0) or 0)
-        status["region_count"] = int(stats.get("total_regions", 0) or 0)
-        status["document_count"] = int(stats.get("total_documents", 0) or 0)
-        status["database_size_mb"] = float(stats.get("storage_size_mb", 0) or 0)
-    except Exception as exc:
-        status["error"] = str(exc)
-
-    return status
-
-
 def estimate_qdrant_size_mb(collection_info: Any) -> float:
     try:
         point_count = int(collection_info.points_count or 0)
@@ -184,12 +150,10 @@ def get_vector_total_dim(collection_info: Any) -> int:
 def clear_all_sync(
     svc: Optional["QdrantClient"],
     storage_svc: Optional["LocalStorageClient"],
-    dsvc: Optional["DuckDBClient"],
 ) -> dict:
     results = {
         "collection": {"status": "pending", "message": ""},
         "bucket": {"status": "pending", "message": ""},
-        "duckdb": {"status": "pending", "message": ""},
     }
 
     if svc:
@@ -228,37 +192,16 @@ def clear_all_sync(
             storage_init_error.get() or "Storage service unavailable"
         )
 
-    if not getattr(config, "DUCKDB_ENABLED", False):
-        results["duckdb"]["status"] = "skipped"
-        results["duckdb"]["message"] = "DuckDB disabled via configuration"
-    elif not dsvc:
-        results["duckdb"]["status"] = "error"
-        results["duckdb"]["message"] = duckdb_init_error.get() or "DuckDB unavailable"
-    else:
-        if duckdb_available(dsvc):
-            try:
-                dsvc.clear_storage()
-                results["duckdb"]["status"] = "success"
-                results["duckdb"]["message"] = "Cleared DuckDB tables"
-            except Exception as exc:
-                results["duckdb"]["status"] = "error"
-                results["duckdb"]["message"] = str(exc)
-        else:
-            results["duckdb"]["status"] = "skipped"
-            results["duckdb"]["message"] = "DuckDB missing; initialize first"
-
     return results
 
 
 def initialize_sync(
     svc: Optional["QdrantClient"],
     storage_svc: Optional["LocalStorageClient"],
-    dsvc: Optional["DuckDBClient"],
 ) -> dict:
     results = {
         "collection": {"status": "pending", "message": ""},
         "bucket": {"status": "pending", "message": ""},
-        "duckdb": {"status": "pending", "message": ""},
     }
     if svc:
         try:
@@ -288,22 +231,6 @@ def initialize_sync(
     else:
         results["bucket"]["status"] = "error"
         results["bucket"]["message"] = storage_init_error.get() or "Service unavailable"
-    if not getattr(config, "DUCKDB_ENABLED", False):
-        results["duckdb"]["status"] = "skipped"
-        results["duckdb"]["message"] = "DuckDB disabled via configuration"
-    elif not dsvc:
-        results["duckdb"]["status"] = "error"
-        results["duckdb"]["message"] = duckdb_init_error.get() or "Service unavailable"
-    else:
-        try:
-            res = dsvc.initialize_storage()
-            results["duckdb"]["status"] = "success" if res else "error"
-            results["duckdb"]["message"] = (
-                str(res.get("message") or "") if isinstance(res, dict) else ""
-            )
-        except Exception as exc:
-            results["duckdb"]["status"] = "error"
-            results["duckdb"]["message"] = str(exc)
 
     overall_status = summarize_status(results)
     return {"status": overall_status, "results": results}
@@ -312,12 +239,10 @@ def initialize_sync(
 def delete_sync(
     svc: Optional["QdrantClient"],
     storage_svc: Optional["LocalStorageClient"],
-    dsvc: Optional["DuckDBClient"],
 ) -> dict:
     results = {
         "collection": {"status": "pending", "message": ""},
         "bucket": {"status": "pending", "message": ""},
-        "duckdb": {"status": "pending", "message": ""},
     }
     if svc:
         try:
@@ -358,22 +283,6 @@ def delete_sync(
     else:
         results["bucket"]["status"] = "error"
         results["bucket"]["message"] = storage_init_error.get() or "Service unavailable"
-    if not getattr(config, "DUCKDB_ENABLED", False):
-        results["duckdb"]["status"] = "skipped"
-        results["duckdb"]["message"] = "DuckDB disabled via configuration"
-    elif not dsvc:
-        results["duckdb"]["status"] = "error"
-        results["duckdb"]["message"] = duckdb_init_error.get() or "Service unavailable"
-    else:
-        try:
-            res = dsvc.delete_storage()
-            results["duckdb"]["status"] = "success" if res else "error"
-            results["duckdb"]["message"] = (
-                str(res.get("message") or "") if isinstance(res, dict) else ""
-            )
-        except Exception as exc:
-            results["duckdb"]["status"] = "error"
-            results["duckdb"]["message"] = str(exc)
 
     overall_status = summarize_status(results)
     return {"status": overall_status, "results": results}
@@ -401,13 +310,5 @@ def collection_exists(svc: "QdrantClient") -> bool:
 def bucket_exists(storage_svc: "LocalStorageClient") -> bool:
     try:
         return bool(storage_svc.service.bucket_exists(bucket_name()))
-    except Exception:
-        return False
-
-
-def duckdb_available(dsvc: "DuckDBClient") -> bool:
-    try:
-        stats = dsvc.get_stats()
-        return bool(stats)
     except Exception:
         return False

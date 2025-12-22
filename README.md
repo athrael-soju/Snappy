@@ -21,7 +21,6 @@
 [![Python](https://img.shields.io/badge/Python_3.11+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript_5.0+-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Qdrant](https://img.shields.io/badge/Qdrant-DC244C?style=flat-square&logo=qdrant&logoColor=white)](https://qdrant.tech/)
-[![DuckDB](https://img.shields.io/badge/DuckDB-FFF000?style=flat-square&logo=duckdb&logoColor=black)](https://duckdb.org/)
 [![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)](https://docs.docker.com/compose/)
 
 </div>
@@ -53,7 +52,7 @@ https://github.com/user-attachments/assets/95b37778-8dc3-4633-b4b2-639fc5017470
 
 ## Quick start
 
-Prerequisites: Docker with Compose, Make (or use the equivalent `docker compose` commands below).
+Prerequisites: Docker with Compose.
 
 **1. Copy envs and set the essentials**
 ```bash
@@ -61,17 +60,14 @@ cp .env.example .env
 ```
 Set `OPENAI_API_KEY` (required for chat). Other defaults are ready for local use.
 
-**2. Choose a profile**
-- Minimal (ColPali only; works on CPU or GPU): `make up-minimal`
-- ML (adds DeepSeek OCR; needs NVIDIA GPU): `make up-ml`
-- Full (adds DuckDB analytics and deduplication): `make up-full`
-
-If you prefer Compose directly: `docker compose --profile minimal|ml|full up -d`.
+**2. Start services**
+```bash
+docker compose up -d
+```
 
 **3. Open the UI**
 - Frontend: http://localhost:3000
 - Backend: http://localhost:8000/docs (OpenAPI)
-- DuckDB UI (full profile): http://localhost:42130
 
 ## Architecture
 
@@ -84,8 +80,7 @@ If you prefer Compose directly: `docker compose --profile minimal|ml|full up -d`
 
 | Feature | When to enable | How |
 |---------|----------------|-----|
-| DeepSeek OCR | Need extracted text, markdown, or bounding boxes alongside visual retrieval; have an NVIDIA GPU. | Set `DEEPSEEK_OCR_ENABLED=true` and run `make up-ml` or profile `ml`. |
-| DuckDB analytics | Want deduplication, inline OCR results from the backend, or SQL over OCR regions. | Set `DUCKDB_ENABLED=true` and run `make up-full` or profile `full`. |
+| DeepSeek OCR | Need extracted text, markdown, or bounding boxes alongside visual retrieval; have an NVIDIA GPU. OCR data is stored in Qdrant payloads (~8-9 KB per page). | Set `DEEPSEEK_OCR_ENABLED=true` in `.env`. |
 | Mean pooling re-ranking | Improve search accuracy with two-stage retrieval (prefetch + re-rank). More accurate but requires more compute. | Set `QDRANT_MEAN_POOLING_ENABLED=true` in `.env`. Requires ColPali model with `/patches` support (enabled in `colmodernvbert`). |
 | Interpretability maps | Visualize which document regions contribute to query matches. Useful for understanding and debugging retrieval behavior. | Available in the lightbox after search. Upload a document image and query to see token-level similarity heatmaps at `/api/interpretability`. |
 | Region-level retrieval | Filter OCR regions by query relevance, reducing noise and improving precision. Uses interpretability maps to return only relevant regions. | Set `ENABLE_REGION_LEVEL_RETRIEVAL=true` in Configuration UI or `.env`. Adjust `REGION_RELEVANCE_THRESHOLD` (default 0.3) to control filtering sensitivity. |
@@ -94,8 +89,8 @@ If you prefer Compose directly: `docker compose --profile minimal|ml|full up -d`
 ## Troubleshooting
 - Progress stuck on upload/indexing: ensure Poppler is installed for PDF rasterization and check backend logs.
 - Missing images: confirm `LOCAL_STORAGE_PATH` is accessible and check allowed domains in `frontend/next.config.ts`.
-- Files lost after restart: ensure the `backend_storage` Docker volume is properly mounted (configured by default in `docker/app.yml`).
-- OCR not running: `DEEPSEEK_OCR_ENABLED=true`, GPU profile running, and `/ocr/health` reachable.
+- Files lost after restart: ensure the `snappy_storage` Docker volume is properly mounted (configured by default in `docker-compose.yml`).
+- OCR not running: ensure `DEEPSEEK_OCR_ENABLED=true` and `/ocr/health` reachable.
 - Config not sticking: `/config/update` is runtime-only; edit `.env` for persistence.
 
 ## Documentation

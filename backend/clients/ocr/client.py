@@ -6,7 +6,7 @@ import io
 import logging
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 import config
 import requests
@@ -15,7 +15,6 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 if TYPE_CHECKING:  # pragma: no cover - hints only
-    from clients.duckdb import DuckDBClient
     from clients.local_storage import LocalStorageClient
 
 from .processor import OcrProcessor
@@ -29,7 +28,6 @@ class OcrClient:
     def __init__(
         self,
         storage_service: Optional["LocalStorageClient"] = None,
-        duckdb_service: Optional["DuckDBClient"] = None,
         base_url: Optional[str] = None,
         timeout: Optional[int] = None,
         enabled: Optional[bool] = None,
@@ -43,7 +41,6 @@ class OcrClient:
 
         Args:
             storage_service: Storage service for image storage
-            duckdb_service: DuckDB service for analytics storage
             base_url: DeepSeek OCR service URL
             timeout: Request timeout in seconds
             enabled: Enable/disable OCR service
@@ -114,7 +111,6 @@ class OcrClient:
 
             # Initialize dependencies
             self.storage_service = storage_service
-            self.duckdb_service = duckdb_service
 
             # Initialize subcomponents
             from domain.pipeline.image_processor import ImageProcessor
@@ -135,7 +131,6 @@ class OcrClient:
             self.storage = OcrStorageHandler(
                 storage_service=self.storage_service,
                 processor=self.processor,
-                duckdb_service=self.duckdb_service,
             )
 
         except Exception as e:
@@ -271,8 +266,6 @@ class OcrClient:
         )
 
     # Public orchestration methods
-
-
 
     def health_check(self) -> bool:
         """Check if OCR service is healthy and accessible."""

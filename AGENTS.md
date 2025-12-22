@@ -9,13 +9,13 @@ This document provides high-level context, architectural summaries, and developm
 Snappy is a **vision-grounded document retrieval system** (RAG) that processes PDFs as images.
 *   **Core Idea**: Embed page images directly using ColPali (multivector) instead of relying solely on OCR text.
 *   **Hybrid Mode**: Optionally uses DeepSeek OCR for text extraction and bounding boxes, combining vision and text search.
-*   **Stack**: FastAPI (Backend), Next.js 16 (Frontend), Qdrant (Vector DB), Local Storage, DuckDB (Analytics).
+*   **Stack**: FastAPI (Backend), Next.js 16 (Frontend), Qdrant (Vector DB), Local Storage.
 
 ## 📂 Key Directories
 
 *   `backend/` - FastAPI application (Python 3.11+).
     *   `api/` - Routers and app entry point.
-    *   `clients/` - Integrations (Qdrant, Local Storage, ColPali, OCR, DuckDB).
+    *   `clients/` - Integrations (Qdrant, Local Storage, ColPali, OCR).
     *   `domain/` - Core logic (Pipeline, Batch Processing).
     *   `config/` - Schema-driven configuration.
 *   `frontend/` - Next.js application (TypeScript, React 19).
@@ -39,8 +39,8 @@ Snappy is a **vision-grounded document retrieval system** (RAG) that processes P
 *   **Gen SDK**: `yarn gen:sdk` (after backend API changes).
 
 ### Docker
-*   **Full Stack**: `docker compose --profile gpu up -d` (or `--profile cpu`).
-*   **Services**: `colpali`, `deepseek-ocr`, `qdrant`, `duckdb`.
+*   **Full Stack**: `docker compose up -d`.
+*   **Services**: `colpali`, `deepseek-ocr`, `qdrant`.
 
 ## 📏 Coding Standards
 

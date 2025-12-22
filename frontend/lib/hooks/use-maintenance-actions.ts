@@ -22,7 +22,6 @@ const SUCCESS_MESSAGES: Record<ActionType, string> = {
 const SERVICE_LABELS: Record<string, string> = {
   collection: "Qdrant",
   bucket: "Storage",
-  duckdb: "DuckDB",
 };
 
 interface ServiceResult {

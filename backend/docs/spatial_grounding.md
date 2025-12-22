@@ -1,6 +1,6 @@
 # Spatial Grounding in Snappy
 
-> **Research Paper**: [Spatially-Grounded Document Retrieval via Patch-to-Region Relevance Propagation](https://arxiv.org/abs/2501.12345) - Section 3.1 & 3.2
+> **Research Paper**: [Spatially-Grounded Document Retrieval via Patch-to-Region Relevance Propagation](https://arxiv.org/abs/2512.02660) - Section 3.1 & 3.2
 
 ## Overview
 

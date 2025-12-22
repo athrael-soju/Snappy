@@ -6,14 +6,14 @@ FastAPI service for PDF ingestion, vision-grounded search, optional OCR, runtime
 The backend follows a layered architecture to separate concerns:
 - **`api/`**: FastAPI routers and HTTP handling. Delegates all business logic to the Domain layer.
 - **`domain/`**: Core business logic, orchestration, and rules. Pure Python code, independent of HTTP frameworks.
-- **`clients/`**: Infrastructure adapters for external services (Local Storage, Qdrant, DuckDB, OCR).
+- **`clients/`**: Infrastructure adapters for external services (Local Storage, Qdrant, OCR).
 - **`config/`**: Configuration schemas and loading logic.
 
 ## Quick start
 ```bash
 cd backend
 python -m venv .venv
-. .venv/Scripts/activate  # or source .venv/bin/activate
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 cp .env.example .env
 uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
@@ -22,10 +22,7 @@ Prereqs: Python 3.11+ and Poppler (`pdftoppm`) on PATH.
 
 ## Docker
 - Backend only (Qdrant): `cd backend && docker compose up -d --build`
-- Full stack (from repo root):
-  - Minimal (ColPali only): `make up-minimal`
-  - ML (adds DeepSeek OCR, needs NVIDIA GPU): `make up-ml`
-  - Full (adds DuckDB): `make up-full`
+- Full stack (from repo root): `docker compose up -d`
 
 Use container hostnames inside Compose (`http://colpali:7000`, `http://deepseek-ocr:8200`). From host, use `localhost`.
 
@@ -33,7 +30,6 @@ Use container hostnames inside Compose (`http://colpali:7000`, `http://deepseek-
 Set in `.env`; see `docs/configuration.md` for the full list.
 - ColPali: `COLPALI_URL`, `COLPALI_API_TIMEOUT`
 - OCR: `DEEPSEEK_OCR_ENABLED`, `DEEPSEEK_OCR_URL`
-- DuckDB: `DUCKDB_ENABLED`
 - Qdrant: `QDRANT_URL`, `QDRANT_COLLECTION_NAME`
 - Local Storage: `LOCAL_STORAGE_PATH`, `LOCAL_STORAGE_PUBLIC_URL`
 
@@ -49,7 +45,7 @@ Interactive docs: http://localhost:8000/docs
 
 ## Cancellation overview
 - Stops running indexing/OCR, optional service restarts.
-- Cleans Qdrant vectors, stored files, DuckDB rows, temp files.
+- Cleans Qdrant vectors, stored files, temp files.
 - Reports progress over `/progress/stream/{job_id}`.
 Configure with `JOB_CANCELLATION_*` vars; see `backend/docs/configuration.md`.
 

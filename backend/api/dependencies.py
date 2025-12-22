@@ -7,7 +7,6 @@ from typing import Optional
 
 import config
 from clients.colpali import ColPaliClient
-from clients.duckdb import DuckDBClient
 from clients.local_storage import LocalStorageClient
 from clients.ocr import OcrClient
 from clients.qdrant import QdrantClient
@@ -43,7 +42,6 @@ colpali_init_error = ServiceInitError()
 qdrant_init_error = ServiceInitError()
 storage_init_error = ServiceInitError()
 ocr_init_error = ServiceInitError()
-duckdb_init_error = ServiceInitError()
 
 
 @lru_cache(maxsize=1)
@@ -81,11 +79,9 @@ def _get_ocr_service_cached() -> OcrClient:
         raise RuntimeError("DeepSeek OCR service is disabled in configuration")
 
     storage_service = get_storage_service()
-    duckdb_service = get_duckdb_service() if config.DUCKDB_ENABLED else None
 
     return OcrClient(
         storage_service=storage_service,
-        duckdb_service=duckdb_service,
     )
 
 
@@ -107,32 +103,6 @@ def get_ocr_service() -> Optional[OcrClient]:
 
 
 @lru_cache(maxsize=1)
-def _get_duckdb_service_cached() -> DuckDBClient:
-    """Create and cache DuckDBClient instance."""
-    if not config.DUCKDB_ENABLED:
-        raise RuntimeError("DuckDB service is disabled in configuration")
-
-    return DuckDBClient()
-
-
-def get_duckdb_service() -> Optional[DuckDBClient]:
-    """Return the cached DuckDB service if enabled."""
-    if not config.DUCKDB_ENABLED:
-        duckdb_init_error.set("DuckDB service disabled in configuration")
-        return None
-
-    try:
-        service = _get_duckdb_service_cached()
-        duckdb_init_error.clear()
-        return service
-    except Exception as exc:
-        logger.error("Failed to initialize DuckDB service: %s", exc)
-        duckdb_init_error.set(str(exc))
-        _get_duckdb_service_cached.cache_clear()
-        return None
-
-
-@lru_cache(maxsize=1)
 def _get_storage_service_cached() -> LocalStorageClient:
     return LocalStorageClient()
 
@@ -148,8 +118,6 @@ def get_storage_service() -> LocalStorageClient:
         storage_init_error.set(str(exc))
         _get_storage_service_cached.cache_clear()
         raise
-
-
 
 
 @lru_cache(maxsize=1)
@@ -182,33 +150,22 @@ def get_qdrant_service() -> Optional[QdrantClient]:
         return None
 
 
+_invalidation_lock = Lock()
+
+
 def invalidate_services():
     """Invalidate cached services so they are recreated on next access."""
     logger.debug("Invalidating cached services to apply new configuration")
 
-    # Close existing service instances before clearing caches to prevent resource leaks
-    try:
-        # Close DuckDB service session
-        if _get_duckdb_service_cached.cache_info().currsize > 0:
-            try:
-                service = _get_duckdb_service_cached()
-                if hasattr(service, "close"):
-                    service.close()
-            except Exception as e:
-                logger.warning(f"Error closing DuckDB service during invalidation: {e}")
-    except Exception as e:
-        logger.warning(f"Error accessing cached services for cleanup: {e}")
+    with _invalidation_lock:
+        # Clear error states
+        colpali_init_error.clear()
+        qdrant_init_error.clear()
+        storage_init_error.clear()
+        ocr_init_error.clear()
 
-    # Clear error states
-    colpali_init_error.clear()
-    qdrant_init_error.clear()
-    storage_init_error.clear()
-    ocr_init_error.clear()
-    duckdb_init_error.clear()
-
-    # Clear caches
-    _get_qdrant_service_cached.cache_clear()
-    _get_storage_service_cached.cache_clear()
-    _get_colpali_client_cached.cache_clear()
-    _get_ocr_service_cached.cache_clear()
-    _get_duckdb_service_cached.cache_clear()
+        # Clear caches
+        _get_qdrant_service_cached.cache_clear()
+        _get_storage_service_cached.cache_clear()
+        _get_colpali_client_cached.cache_clear()
+        _get_ocr_service_cached.cache_clear()

@@ -150,7 +150,12 @@ class StreamingPipeline:
         self.rasterizer = PDFRasterizer(batch_size=batch_size)
         self.embedding_stage = EmbeddingStage(embedding_processor)
         self.storage_stage = StorageStage(image_store)
-        self.ocr_stage = OCRStage(ocr_service, image_processor) if ocr_service else None
+        # Pass qdrant_service to OCR stage so it can update OCR URLs
+        self.ocr_stage = (
+            OCRStage(ocr_service, image_processor, qdrant_service, collection_name)
+            if ocr_service
+            else None
+        )
         self.upsert_stage = None  # Created in start() with progress callback
 
         # Store dependencies for upsert stage creation

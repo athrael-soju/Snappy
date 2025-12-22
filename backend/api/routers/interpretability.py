@@ -88,7 +88,8 @@ async def generate_interpretability_maps(
             # Validate file type
             if not file.content_type or not file.content_type.startswith("image/"):
                 raise HTTPException(
-                    status_code=400, detail=f"File must be an image, got {file.content_type}"
+                    status_code=400,
+                    detail=f"File must be an image, got {file.content_type}",
                 )
 
             # Read image with size limit
@@ -103,15 +104,14 @@ async def generate_interpretability_maps(
                 raise HTTPException(status_code=400, detail=str(e))
         else:
             raise HTTPException(
-                status_code=400,
-                detail="Either 'file' or 'image_url' must be provided"
+                status_code=400, detail="Either 'file' or 'image_url' must be provided"
             )
 
         # Validate file size
         if len(image_bytes) > MAX_FILE_SIZE:
             raise HTTPException(
                 status_code=413,
-                detail=f"File size ({len(image_bytes)} bytes) exceeds maximum allowed size ({MAX_FILE_SIZE} bytes / {MAX_FILE_SIZE // (1024 * 1024)} MB)"
+                detail=f"File size ({len(image_bytes)} bytes) exceeds maximum allowed size ({MAX_FILE_SIZE} bytes / {MAX_FILE_SIZE // (1024 * 1024)} MB)",
             )
         image = Image.open(io.BytesIO(image_bytes))
 
@@ -135,5 +135,6 @@ async def generate_interpretability_maps(
     except Exception as e:
         logger.error(f"Failed to generate interpretability maps: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Failed to generate interpretability maps: {str(e)}"
+            status_code=500,
+            detail=f"Failed to generate interpretability maps: {str(e)}",
         )

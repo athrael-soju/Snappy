@@ -3,13 +3,12 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request, status
-from fastapi.responses import JSONResponse
-
 from app.api.routes import router
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.services.model_service import model_service
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse
 
 # Setup logging first
 setup_logging()

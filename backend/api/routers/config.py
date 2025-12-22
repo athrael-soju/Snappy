@@ -5,8 +5,8 @@ from copy import deepcopy
 from typing import Any, Dict, List
 
 from api.dependencies import invalidate_services
-from config.schema import get_all_config_keys, get_api_schema
 from config.runtime import get_runtime_config
+from config.schema import get_all_config_keys, get_api_schema
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from utils.timing import PerformanceTimer

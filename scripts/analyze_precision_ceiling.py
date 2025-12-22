@@ -10,8 +10,9 @@ This script analyzes what factors predict localization success:
 
 import json
 import sys
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats
@@ -20,6 +21,7 @@ from scipy import stats
 @dataclass
 class RegionAnalysis:
     """Analysis results for a single sample."""
+
     sample_id: int
     doc_name: str
     category: str
@@ -81,7 +83,9 @@ def analyze_sample(sample: dict) -> RegionAnalysis | None:
     # Token statistics
     tokens_selected = sample.get("tokens_selected", 0)
     tokens_all_ocr = sample.get("tokens_all_ocr", 0)
-    token_savings_pct = (1 - tokens_selected / tokens_all_ocr) * 100 if tokens_all_ocr > 0 else 0.0
+    token_savings_pct = (
+        (1 - tokens_selected / tokens_all_ocr) * 100 if tokens_all_ocr > 0 else 0.0
+    )
 
     return RegionAnalysis(
         sample_id=sample["sample_id"],
@@ -195,10 +199,15 @@ def main():
         print(f"{name:<20}: r = {r:+.3f}, p = {p:.2e} {sig}")
 
     print("\n## By Category\n")
-    print(f"{'Category':<10} {'N':>5} {'Mean IoU':>9} {'Mean Area':>12} {'Mean W':>8} {'Mean H':>8} {'Aspect':>8}")
+    print(
+        f"{'Category':<10} {'N':>5} {'Mean IoU':>9} {'Mean Area':>12} {'Mean W':>8} {'Mean H':>8} {'Aspect':>8}"
+    )
     print("-" * 70)
 
-    for cat in sorted(categories.keys(), key=lambda c: -np.mean([r.achieved_iou for r in categories[c]])):
+    for cat in sorted(
+        categories.keys(),
+        key=lambda c: -np.mean([r.achieved_iou for r in categories[c]]),
+    ):
         cat_results = categories[cat]
         n = len(cat_results)
         iou_mean = np.mean([r.achieved_iou for r in cat_results])
@@ -207,7 +216,9 @@ def main():
         h_mean = np.mean([r.gt_height for r in cat_results])
         ar_mean = np.mean([r.aspect_ratio for r in cat_results])
 
-        print(f"{cat:<10} {n:>5} {iou_mean:>9.3f} {area_mean:>12.0f} {w_mean:>8.0f} {h_mean:>8.0f} {ar_mean:>8.2f}")
+        print(
+            f"{cat:<10} {n:>5} {iou_mean:>9.3f} {area_mean:>12.0f} {w_mean:>8.0f} {h_mean:>8.0f} {ar_mean:>8.2f}"
+        )
 
     # Size quartile analysis
     print("\n## Performance by Region Size Quartile\n")
@@ -220,16 +231,26 @@ def main():
         f"Q4 (> {quartiles[2]:.0f})",
     ]
 
-    for i, (label, subset) in enumerate([
-        (q_labels[0], [r for r in results if r.gt_area < quartiles[0]]),
-        (q_labels[1], [r for r in results if quartiles[0] <= r.gt_area < quartiles[1]]),
-        (q_labels[2], [r for r in results if quartiles[1] <= r.gt_area < quartiles[2]]),
-        (q_labels[3], [r for r in results if r.gt_area >= quartiles[2]]),
-    ]):
+    for i, (label, subset) in enumerate(
+        [
+            (q_labels[0], [r for r in results if r.gt_area < quartiles[0]]),
+            (
+                q_labels[1],
+                [r for r in results if quartiles[0] <= r.gt_area < quartiles[1]],
+            ),
+            (
+                q_labels[2],
+                [r for r in results if quartiles[1] <= r.gt_area < quartiles[2]],
+            ),
+            (q_labels[3], [r for r in results if r.gt_area >= quartiles[2]]),
+        ]
+    ):
         if subset:
             iou_mean = np.mean([r.achieved_iou for r in subset])
             iou_std = np.std([r.achieved_iou for r in subset])
-            print(f"{label:<25}: N={len(subset):>4}, Mean IoU = {iou_mean:.3f} +/- {iou_std:.3f}")
+            print(
+                f"{label:<25}: N={len(subset):>4}, Mean IoU = {iou_mean:.3f} +/- {iou_std:.3f}"
+            )
 
     # Within-document consistency analysis
     print("\n## Within-Document Consistency\n")
@@ -259,14 +280,16 @@ def main():
 
         within_doc_stds.append(doc_std)
         within_doc_ranges.append(doc_range)
-        doc_stats.append({
-            'doc': doc_name,
-            'n': len(doc_results),
-            'mean': doc_mean,
-            'std': doc_std,
-            'range': doc_range,
-            'cat': doc_cat,
-        })
+        doc_stats.append(
+            {
+                "doc": doc_name,
+                "n": len(doc_results),
+                "mean": doc_mean,
+                "std": doc_std,
+                "range": doc_range,
+                "cat": doc_cat,
+            }
+        )
 
     if within_doc_stds:
         print(f"Mean within-doc IoU std:   {np.mean(within_doc_stds):.3f}")
@@ -279,45 +302,64 @@ def main():
         between_var = overall_var - within_var if overall_var > within_var else 0
         print(f"\nVariance decomposition:")
         print(f"  Overall variance:  {overall_var:.4f}")
-        print(f"  Within-doc variance: {within_var:.4f} ({100*within_var/overall_var:.1f}%)")
-        print(f"  Between-doc variance: {between_var:.4f} ({100*between_var/overall_var:.1f}%)")
+        print(
+            f"  Within-doc variance: {within_var:.4f} ({100*within_var/overall_var:.1f}%)"
+        )
+        print(
+            f"  Between-doc variance: {between_var:.4f} ({100*between_var/overall_var:.1f}%)"
+        )
 
         # Show most consistent and inconsistent docs
-        doc_stats_sorted = sorted(doc_stats, key=lambda x: x['std'])
+        doc_stats_sorted = sorted(doc_stats, key=lambda x: x["std"])
         print("\n### Most Consistent Documents (lowest IoU variance)")
         for d in doc_stats_sorted[:5]:
-            print(f"  {d['doc']:<15} ({d['cat']:<8}): n={d['n']:>2}, mean={d['mean']:.3f}, std={d['std']:.3f}")
+            print(
+                f"  {d['doc']:<15} ({d['cat']:<8}): n={d['n']:>2}, mean={d['mean']:.3f}, std={d['std']:.3f}"
+            )
 
         print("\n### Most Inconsistent Documents (highest IoU variance)")
         for d in doc_stats_sorted[-5:]:
-            print(f"  {d['doc']:<15} ({d['cat']:<8}): n={d['n']:>2}, mean={d['mean']:.3f}, std={d['std']:.3f}")
+            print(
+                f"  {d['doc']:<15} ({d['cat']:<8}): n={d['n']:>2}, mean={d['mean']:.3f}, std={d['std']:.3f}"
+            )
 
     # Generate plots (only those used in paper.tex)
     output_dir = Path(__file__).parent.parent / "figures"
     output_dir.mkdir(exist_ok=True)
 
-    cat_colors = {'cs': 'C0', 'econ': 'C1', 'eess': 'C2', 'math': 'C3',
-                  'physics': 'C4', 'q-bio': 'C5', 'q-fin': 'C6', 'stat': 'C7'}
+    cat_colors = {
+        "cs": "C0",
+        "econ": "C1",
+        "eess": "C2",
+        "math": "C3",
+        "physics": "C4",
+        "q-bio": "C5",
+        "q-fin": "C6",
+        "stat": "C7",
+    }
 
     # Box plot by category (used in paper as Figure: iou_by_category_box.png)
     fig, ax = plt.subplots(figsize=(10, 5))
 
-    cat_order = sorted(categories.keys(), key=lambda c: -np.mean([r.achieved_iou for r in categories[c]]))
+    cat_order = sorted(
+        categories.keys(),
+        key=lambda c: -np.mean([r.achieved_iou for r in categories[c]]),
+    )
     positions = range(len(cat_order))
 
     ious_by_cat = [[r.achieved_iou for r in categories[cat]] for cat in cat_order]
     bp = ax.boxplot(ious_by_cat, positions=positions, widths=0.6, patch_artist=True)
 
     # Color boxes
-    for patch, cat in zip(bp['boxes'], cat_order):
-        patch.set_facecolor(cat_colors.get(cat, 'gray'))
+    for patch, cat in zip(bp["boxes"], cat_order):
+        patch.set_facecolor(cat_colors.get(cat, "gray"))
         patch.set_alpha(0.6)
 
     ax.set_xticks(positions)
     ax.set_xticklabels(cat_order)
-    ax.set_xlabel('Category')
-    ax.set_ylabel('Achieved IoU')
-    ax.set_title('Localization Accuracy by Document Category')
+    ax.set_xlabel("Category")
+    ax.set_ylabel("Achieved IoU")
+    ax.set_title("Localization Accuracy by Document Category")
     ax.set_ylim(0, 1)
 
     plt.tight_layout()
@@ -327,7 +369,9 @@ def main():
 
     # Save raw data
     output_data = {
-        "correlations": {k: {"r": float(v["r"]), "p": float(v["p"])} for k, v in correlations.items()},
+        "correlations": {
+            k: {"r": float(v["r"]), "p": float(v["p"])} for k, v in correlations.items()
+        },
         "by_category": {
             cat: {
                 "n": len(cat_results),
@@ -336,9 +380,15 @@ def main():
                 "mean_area": float(np.mean([r.gt_area for r in cat_results])),
                 "mean_width": float(np.mean([r.gt_width for r in cat_results])),
                 "mean_height": float(np.mean([r.gt_height for r in cat_results])),
-                "mean_aspect_ratio": float(np.mean([r.aspect_ratio for r in cat_results])),
-                "mean_num_pred_regions": float(np.mean([r.num_pred_regions for r in cat_results])),
-                "mean_token_savings_pct": float(np.mean([r.token_savings_pct for r in cat_results])),
+                "mean_aspect_ratio": float(
+                    np.mean([r.aspect_ratio for r in cat_results])
+                ),
+                "mean_num_pred_regions": float(
+                    np.mean([r.num_pred_regions for r in cat_results])
+                ),
+                "mean_token_savings_pct": float(
+                    np.mean([r.token_savings_pct for r in cat_results])
+                ),
                 "mean_area_ratio": float(np.mean([r.area_ratio for r in cat_results])),
             }
             for cat, cat_results in categories.items()
@@ -350,23 +400,31 @@ def main():
         },
         "within_document": {
             "num_multi_sample_docs": len(multi_sample_docs),
-            "mean_within_doc_std": float(np.mean(within_doc_stds)) if within_doc_stds else None,
-            "mean_within_doc_range": float(np.mean(within_doc_ranges)) if within_doc_ranges else None,
+            "mean_within_doc_std": (
+                float(np.mean(within_doc_stds)) if within_doc_stds else None
+            ),
+            "mean_within_doc_range": (
+                float(np.mean(within_doc_ranges)) if within_doc_ranges else None
+            ),
             "overall_std": float(np.std(ious)),
-            "variance_decomposition": {
-                "overall": float(overall_var) if within_doc_stds else None,
-                "within_doc": float(within_var) if within_doc_stds else None,
-                "between_doc": float(between_var) if within_doc_stds else None,
-            } if within_doc_stds else None,
+            "variance_decomposition": (
+                {
+                    "overall": float(overall_var) if within_doc_stds else None,
+                    "within_doc": float(within_var) if within_doc_stds else None,
+                    "between_doc": float(between_var) if within_doc_stds else None,
+                }
+                if within_doc_stds
+                else None
+            ),
         },
     }
 
     data_path = output_dir / "region_analysis_data.json"
-    with open(data_path, 'w') as f:
+    with open(data_path, "w") as f:
         json.dump(output_data, f, indent=2)
     print(f"Saved analysis data to {data_path}")
 
-    plt.close('all')
+    plt.close("all")
     print("\nDone!")
 
 

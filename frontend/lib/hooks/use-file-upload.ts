@@ -7,6 +7,7 @@ import { logger } from "@/lib/utils/logger";
 
 const MB_IN_BYTES = 1024 * 1024;
 const RUNTIME_CONFIG_EVENT = "runtimeConfigUpdated";
+const RUNTIME_CONFIG_SYNCED_EVENT = "runtimeConfigSynced";
 
 type UploadConstraints = {
   allowedTypes: string[];
@@ -164,10 +165,22 @@ export function useFileUpload() {
       const listener = () => {
         applyConstraints(loadConfigFromStorage());
       };
+      // Refetch from backend when config is synced on startup
+      const syncListener = async () => {
+        try {
+          const remoteValues = await ConfigurationService.getConfigValuesConfigValuesGet();
+          if (!active) return;
+          applyConstraints(remoteValues as Record<string, string>);
+        } catch (err) {
+          logger.warn('Failed to fetch runtime configuration values after sync', { error: err });
+        }
+      };
       window.addEventListener(RUNTIME_CONFIG_EVENT, listener);
+      window.addEventListener(RUNTIME_CONFIG_SYNCED_EVENT, syncListener);
       return () => {
         active = false;
         window.removeEventListener(RUNTIME_CONFIG_EVENT, listener);
+        window.removeEventListener(RUNTIME_CONFIG_SYNCED_EVENT, syncListener);
       };
     }
 

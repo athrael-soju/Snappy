@@ -17,10 +17,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: normalized.error }, { status: 400 });
     }
 
-    chatLogger.info('Chat request started', {
-      messageCount: normalized.value.message.length
-    });
-
     const { stream, kbItems } = await runChatService(normalized.value);
 
     return createSSEStream({

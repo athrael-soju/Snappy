@@ -24,19 +24,14 @@ export function useSystemStatus() {
 
   const collectionReady = !!systemStatus?.collection.exists;
   const bucketReady = !!systemStatus?.bucket.exists;
-  const duckdbReady = (() => {
-    if (!systemStatus?.duckdb) return true;
-    if (!systemStatus.duckdb.enabled) return true;
-    return !!systemStatus.duckdb.available;
-  })();
 
   const isReady = useMemo(() => {
-    return collectionReady && bucketReady && duckdbReady;
-  }, [collectionReady, bucketReady, duckdbReady]);
+    return collectionReady && bucketReady;
+  }, [collectionReady, bucketReady]);
 
   const canReset = useMemo(() => {
-    return collectionReady && bucketReady && duckdbReady;
-  }, [collectionReady, bucketReady, duckdbReady]);
+    return collectionReady && bucketReady;
+  }, [collectionReady, bucketReady]);
 
   const needsRefresh = useMemo(() => {
     if (!systemStatus?.lastChecked) return true;

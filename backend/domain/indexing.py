@@ -9,7 +9,7 @@ from typing import Dict, List, Optional, Protocol
 from uuid import uuid4
 
 import config
-from api.dependencies import get_duckdb_service, get_qdrant_service, qdrant_init_error
+from api.dependencies import get_qdrant_service, qdrant_init_error
 from api.progress import progress_manager
 from clients.qdrant.indexing.points import PointFactory
 from domain.errors import (
@@ -47,59 +47,6 @@ class UploadFileProtocol(Protocol):
     async def close(self) -> None:
         """Close the upload."""
         ...
-
-
-def check_file_duplicate(
-    tmp_path: str, filename: str, duckdb_svc
-) -> tuple[str, str, bool, dict | None]:
-    """Check if a file is a duplicate.
-
-    Args:
-        tmp_path: Temporary file path
-        filename: Original filename
-        duckdb_svc: DuckDB service instance
-
-    Returns:
-        Tuple of (tmp_path, filename, is_duplicate, existing_doc)
-    """
-    try:
-        # Get PDF metadata
-        info = pdfinfo_from_path(tmp_path)
-        pages = int(info.get("Pages", 0))
-        size_bytes = os.path.getsize(tmp_path)
-
-        # Check for duplicates
-        existing_doc = duckdb_svc.check_document_exists(
-            filename=filename,
-            file_size_bytes=size_bytes,
-            total_pages=pages,
-        )
-
-        if existing_doc:
-            logger.info(
-                f"Skipping already indexed document: {filename} "
-                f"(first indexed: {existing_doc.get('first_indexed')})",
-                extra={"operation": "index"},
-            )
-            # Clean up temp file for duplicate
-            try:
-                os.unlink(tmp_path)
-            except Exception as cleanup_exc:
-                logger.warning(
-                    f"Failed to clean up duplicate temp file {tmp_path}: {cleanup_exc}",
-                    extra={"operation": "index"},
-                )
-            return (tmp_path, filename, True, existing_doc)
-
-        return (tmp_path, filename, False, None)
-
-    except Exception as exc:
-        logger.warning(
-            f"Failed to check duplicate for {filename}: {exc}",
-            extra={"operation": "index", "error_type": type(exc).__name__},
-        )
-        # If we can't get metadata, include the file anyway (fail-safe behavior)
-        return (tmp_path, filename, False, None)
 
 
 async def _persist_upload_to_disk(
@@ -257,11 +204,9 @@ def run_indexing_job(
             error_msg = qdrant_init_error.get() or "Dependency services are down"
             raise RuntimeError(error_msg)
 
-        duckdb_svc = get_duckdb_service()
-
         # Create image storage handler for streaming pipeline
-        from domain.pipeline.storage import ImageStorageHandler
         from domain.pipeline.image_processor import ImageProcessor
+        from domain.pipeline.storage import ImageStorageHandler
 
         image_processor = ImageProcessor(
             default_format=config.IMAGE_FORMAT,
@@ -318,14 +263,15 @@ def run_indexing_job(
         from domain.pipeline.console import get_pipeline_console
 
         console = get_pipeline_console()
-        console.start_job(doc_filenames, total_pages_all, total_size_bytes / 1024 / 1024)
+        console.start_job(
+            doc_filenames, total_pages_all, total_size_bytes / 1024 / 1024
+        )
 
         # Update progress manager with total
         if progress_manager.get(job_id):
             progress_manager.set_total(job_id, total_pages_all)
 
         pages_processed = 0
-        document_metadata_list = []
 
         # Progress callback for streaming updates
         def progress_cb(current: int):
@@ -356,16 +302,6 @@ def run_indexing_job(
             document_id = str(uuid4())
             total_pages, file_size_bytes = doc_info.get(pdf_path, (0, 0))
 
-            # Store metadata in DuckDB before processing
-            if duckdb_svc and duckdb_svc.is_enabled() and total_pages > 0:
-                doc_metadata = {
-                    "document_id": document_id,
-                    "filename": filename,
-                    "file_size_bytes": file_size_bytes,
-                    "total_pages": total_pages,
-                }
-                document_metadata_list.append(doc_metadata)
-
             # Process PDF through streaming pipeline with consistent document_id
             try:
                 pages_in_doc = pipeline.process_pdf(
@@ -376,7 +312,9 @@ def run_indexing_job(
                 )
 
                 logger.debug(
-                    "Streaming ingestion complete for %s: %d pages", filename, pages_in_doc
+                    "Streaming ingestion complete for %s: %d pages",
+                    filename,
+                    pages_in_doc,
                 )
 
             except CancellationError:
@@ -387,18 +325,6 @@ def run_indexing_job(
                     exc_info=True,
                 )
                 raise
-
-        # Store document metadata in DuckDB
-        if duckdb_svc and duckdb_svc.is_enabled() and document_metadata_list:
-            try:
-                result = duckdb_svc.store_documents_batch(document_metadata_list)
-                success_count = result.get("success_count", 0)
-                if success_count > 0:
-                    logger.debug(
-                        "Stored %d document metadata records in DuckDB", success_count
-                    )
-            except Exception as exc:
-                logger.warning(f"Failed to store document metadata in DuckDB: {exc}")
 
         # Wait for pipeline to finish processing all batches
         progress_manager.update(

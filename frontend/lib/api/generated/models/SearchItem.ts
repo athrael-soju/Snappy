@@ -7,6 +7,5 @@ export type SearchItem = {
     label: (string | null);
     payload: Record<string, any>;
     score?: (number | null);
-    json_url?: (string | null);
 };
 

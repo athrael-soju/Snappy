@@ -4,21 +4,19 @@ import asyncio
 import logging
 
 from api.dependencies import (
-    get_duckdb_service,
-    get_storage_service,
     get_qdrant_service,
+    get_storage_service,
     qdrant_init_error,
     storage_init_error,
 )
-from fastapi import APIRouter, HTTPException
-from utils.timing import PerformanceTimer
-
 from domain.maintenance import (
     clear_all_sync,
     delete_sync,
     initialize_sync,
     summarize_status,
 )
+from fastapi import APIRouter, HTTPException
+from utils.timing import PerformanceTimer
 
 logger = logging.getLogger(__name__)
 
@@ -111,17 +109,16 @@ async def clear_storage():
 @router.post("/clear/all")
 async def clear_all():
     logger.warning(
-        "DESTRUCTIVE: Clearing ALL data (Qdrant, storage, DuckDB)",
+        "DESTRUCTIVE: Clearing ALL data (Qdrant, storage)",
         extra={"operation": "clear_all"},
     )
 
     try:
         svc = get_qdrant_service()
         msvc = get_storage_service()
-        dsvc = get_duckdb_service()
 
         with PerformanceTimer("clear all data", log_on_exit=False) as timer:
-            results = await asyncio.to_thread(clear_all_sync, svc, msvc, dsvc)
+            results = await asyncio.to_thread(clear_all_sync, svc, msvc)
 
         status = summarize_status(results)
 
@@ -150,10 +147,9 @@ async def initialize():
     try:
         svc = get_qdrant_service()
         msvc = get_storage_service()
-        dsvc = get_duckdb_service()
 
         with PerformanceTimer("initialize services", log_on_exit=False) as timer:
-            result = await asyncio.to_thread(initialize_sync, svc, msvc, dsvc)
+            result = await asyncio.to_thread(initialize_sync, svc, msvc)
 
         logger.info(
             "Services initialized",
@@ -184,10 +180,9 @@ async def delete_collection_and_bucket():
     try:
         svc = get_qdrant_service()
         msvc = get_storage_service()
-        dsvc = get_duckdb_service()
 
         with PerformanceTimer("delete all", log_on_exit=False) as timer:
-            result = await asyncio.to_thread(delete_sync, svc, msvc, dsvc)
+            result = await asyncio.to_thread(delete_sync, svc, msvc)
 
         logger.critical(
             "Collection and bucket deleted (PERMANENT)",

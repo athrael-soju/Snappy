@@ -5,11 +5,11 @@ from typing import List, Optional
 import config
 from api.dependencies import (
     get_colpali_client,
-    get_duckdb_service,
     get_qdrant_service,
     qdrant_init_error,
 )
 from api.models import SearchItem
+from clients.local_storage_utils import parse_files_url, resolve_storage_path
 from domain.errors import SearchError, ServiceUnavailableError
 from domain.region_relevance import filter_regions_by_relevance
 
@@ -65,16 +65,16 @@ async def _filter_regions_by_interpretability(
     if not image_url:
         raise SearchError("Image URL not found - required for region filtering")
 
-    # Fetch and load the image
-    from io import BytesIO
-
-    import requests
+    # Load image directly from filesystem (avoid HTTP self-call which causes timeouts)
     from PIL import Image
 
-    logger.debug(f"Fetching image from {image_url} for region filtering")
-    response = requests.get(image_url, timeout=10)
-    response.raise_for_status()
-    image = Image.open(BytesIO(response.content))
+    try:
+        bucket, relative_path = parse_files_url(image_url)
+        file_path = resolve_storage_path(bucket, relative_path)
+        logger.debug(f"Loading image from filesystem: {file_path}")
+        image = Image.open(file_path)
+    except Exception as e:
+        raise SearchError(f"Failed to load image from storage: {e}")
 
     # Generate interpretability maps
     logger.debug("Generating interpretability maps for region filtering")
@@ -131,7 +131,10 @@ async def search_documents(
     include_ocr: bool,
 ) -> List[SearchItem]:
     """
-    Search for documents using Qdrant and optionally enrich with OCR data from DuckDB.
+    Search for documents using Qdrant and optionally include OCR data from payloads.
+
+    OCR data (text, markdown, regions) is stored directly in Qdrant payloads,
+    eliminating the need for secondary database queries.
     """
     svc = get_qdrant_service()
     if not svc:
@@ -164,20 +167,6 @@ async def search_documents(
 
         results: List[SearchItem] = []
 
-        # Determine OCR data source based on DuckDB availability
-        use_duckdb = include_ocr and getattr(config, "DUCKDB_ENABLED", False)
-        duckdb_service = get_duckdb_service() if use_duckdb else None
-
-        if include_ocr:
-            logger.debug(
-                "OCR data requested",
-                extra={
-                    "operation": "search",
-                    "use_duckdb": use_duckdb,
-                    "duckdb_available": duckdb_service is not None,
-                },
-            )
-
         ocr_fetch_count = 0
         ocr_success_count = 0
 
@@ -185,107 +174,43 @@ async def search_documents(
             payload = it.get("payload", {})
             label = it["label"]
             image_url = payload.get("image_url")
-            json_url = None
 
             if include_ocr:
-                filename = payload.get("filename")
-                # Use pdf_page_index from Qdrant payload (matches page_number in DuckDB)
-                page_number = payload.get("pdf_page_index")
+                # OCR data is stored inline in Qdrant payload
+                ocr_data = payload.get("ocr")
 
-                if filename and page_number is not None:
+                if ocr_data:
                     ocr_fetch_count += 1
-                    if use_duckdb and duckdb_service:
-                        # Check if grounding (regions) is enabled
-                        include_grounding = getattr(config, "DEEPSEEK_OCR_INCLUDE_GROUNDING", True)
 
-                        if include_grounding:
-                            # Grounding enabled: fetch regions from DuckDB (optimized query)
-                            regions = await asyncio.to_thread(
-                                duckdb_service.get_page_regions, filename, page_number
+                    # Check if region-level retrieval is enabled
+                    enable_region_filtering = getattr(
+                        config, "ENABLE_REGION_LEVEL_RETRIEVAL", False
+                    )
+
+                    if enable_region_filtering and ocr_data.get("regions"):
+                        # Apply interpretability-based region filtering
+                        try:
+                            filtered_regions = (
+                                await _filter_regions_by_interpretability(
+                                    regions=ocr_data["regions"],
+                                    query=q,
+                                    image_url=image_url,
+                                    payload=payload,
+                                )
                             )
-
-                            if regions:
-                                # Check if region-level retrieval is enabled
-                                enable_region_filtering = getattr(
-                                    config, "ENABLE_REGION_LEVEL_RETRIEVAL", False
-                                )
-
-                                if enable_region_filtering:
-                                    # Apply interpretability-based region filtering
-                                    regions = await _filter_regions_by_interpretability(
-                                        regions=regions,
-                                        query=q,
-                                        image_url=image_url,
-                                        payload=payload,
-                                    )
-
-                                # Include regions data (image URLs are in image_url field)
-                                payload["ocr"] = {
-                                    "regions": regions,
-                                }
-                                ocr_success_count += 1
-                            else:
-                                # regions is None or empty - log warning
-                                logger.warning(
-                                    "OCR regions not found in DuckDB",
-                                    extra={
-                                        "operation": "search",
-                                        "document_filename": filename,
-                                        "page_number": page_number,
-                                    },
-                                )
-                        else:
-                            # Grounding disabled: fetch full page text/markdown
-                            page_data = await asyncio.to_thread(
-                                duckdb_service.get_page, filename, page_number
+                            # Update payload with filtered regions
+                            payload["ocr"] = {
+                                "text": ocr_data.get("text", ""),
+                                "markdown": ocr_data.get("markdown", ""),
+                                "regions": filtered_regions,
+                            }
+                        except Exception as e:
+                            logger.warning(
+                                f"Region filtering failed for page {payload.get('page_id')}: {e}"
                             )
-                            if page_data:
-                                # Check task type to determine which field to return
-                                task_type = getattr(config, "DEEPSEEK_OCR_TASK", "markdown")
+                            # Keep original OCR data if filtering fails
 
-                                # Map task types to output fields:
-                                # - "markdown" → markdown field
-                                # - "plain_ocr", "describe", "custom" → text field
-                                # - "locate" → requires grounding, shouldn't be used when grounding disabled
-                                if task_type == "markdown":
-                                    markdown_content = page_data.get("markdown", "")
-                                    if markdown_content:
-                                        payload["ocr"] = {
-                                            "markdown": markdown_content,
-                                        }
-                                        ocr_success_count += 1
-                                else:  # plain_ocr, describe, custom, locate
-                                    text_content = page_data.get("text", "")
-                                    if text_content:
-                                        payload["ocr"] = {
-                                            "text": text_content,
-                                        }
-                                        ocr_success_count += 1
-
-                                if not payload.get("ocr"):
-                                    logger.warning(
-                                        "OCR data exists but is empty",
-                                        extra={
-                                            "operation": "search",
-                                            "document_filename": filename,
-                                            "page_number": page_number,
-                                            "task_type": task_type,
-                                        },
-                                    )
-                            else:
-                                logger.warning(
-                                    "OCR page data not found in DuckDB",
-                                    extra={
-                                        "operation": "search",
-                                        "document_filename": filename,
-                                        "page_number": page_number,
-                                    },
-                                )
-                    else:
-                        # DuckDB disabled: use storage json_url
-                        json_url = payload.get("ocr_url") or payload.get("storage_url")
-                        if json_url:
-                            ocr_success_count += 1
+                    ocr_success_count += 1
 
             results.append(
                 SearchItem(
@@ -293,7 +218,6 @@ async def search_documents(
                     label=label,
                     payload=payload,
                     score=it.get("score"),
-                    json_url=json_url,
                 )
             )
 

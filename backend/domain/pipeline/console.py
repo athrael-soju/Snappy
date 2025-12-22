@@ -121,7 +121,9 @@ class PipelineConsole:
             else:
                 header.append(f"{len(filenames)} documents", style="cyan bold")
 
-            header.append(f" ({total_pages} pages, {total_size_mb:.1f} MB)", style="dim")
+            header.append(
+                f" ({total_pages} pages, {total_size_mb:.1f} MB)", style="dim"
+            )
 
             self.console.print()
             self.console.print(Panel(header, border_style="blue"))
@@ -154,7 +156,9 @@ class PipelineConsole:
                 header.append("⚡ ", style="yellow bold")
                 header.append("Processing ", style="bold")
                 header.append(filename, style="cyan bold")
-                header.append(f" ({total_pages} pages, {file_size_mb:.1f} MB)", style="dim")
+                header.append(
+                    f" ({total_pages} pages, {file_size_mb:.1f} MB)", style="dim"
+                )
 
                 self.console.print()
                 self.console.print(Panel(header, border_style="blue"))
@@ -255,7 +259,9 @@ class PipelineConsole:
 
             # Build status line
             status_icon = stage.status_icon
-            duration_style = "yellow bold" if stage.status == StageStatus.SLOW else "green"
+            duration_style = (
+                "yellow bold" if stage.status == StageStatus.SLOW else "green"
+            )
 
             line = Text()
             line.append("    ├── ", style="dim")
@@ -353,7 +359,11 @@ class PipelineConsole:
             summary.add_row("⏱️  Time", f"{total_time_s:.1f}s")
             summary.add_row(
                 "📊 Rate",
-                f"{total_pages / total_time_s:.1f} pages/sec" if total_time_s > 0 else "N/A",
+                (
+                    f"{total_pages / total_time_s:.1f} pages/sec"
+                    if total_time_s > 0
+                    else "N/A"
+                ),
             )
 
             self.console.print()

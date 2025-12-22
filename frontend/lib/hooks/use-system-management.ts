@@ -10,7 +10,6 @@ interface UseSystemManagementOptions {
 const SERVICE_LABELS: Record<string, string> = {
   collection: "Qdrant",
   bucket: "Storage",
-  duckdb: "DuckDB",
 };
 
 const summarizeResults = (result: any): string | undefined => {
@@ -67,7 +66,7 @@ export function useSystemManagement({ onSuccess }: UseSystemManagementOptions = 
 
       if (status === "success") {
         toast.success("Initialization Complete", {
-          description: summary ?? "Qdrant collection, storage bucket and DuckDB database are ready",
+          description: summary ?? "Qdrant collection and storage bucket are ready",
         });
       } else if (status === "partial") {
         toast.warning("Partial Initialization", {

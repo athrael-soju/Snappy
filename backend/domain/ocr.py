@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import logging
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
+import config
 from api.progress import progress_manager
-from qdrant_client import models
 from clients.ocr import OcrClient
 from clients.qdrant import QdrantClient
 from domain.ocr_persistence import OcrStorageHandler
-import config
-from typing import Any, Dict
+from qdrant_client import models
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +50,9 @@ async def get_document_pages(
         return []
 
 
-def _fetch_page_image(ocr_service: OcrClient, document_id: str, page_number: int) -> bytes:
+def _fetch_page_image(
+    ocr_service: OcrClient, document_id: str, page_number: int
+) -> bytes:
     """Fetch page image bytes from local storage."""
     # List objects in the image/ subfolder for this page
     prefix = f"{document_id}/{page_number}/image/"
@@ -108,10 +109,10 @@ def process_document_page(
     storage = OcrStorageHandler(
         storage_service=ocr_service.storage_service,
         processor=ocr_service.processor,
-        duckdb_service=getattr(ocr_service, "duckdb_service", None),
     )
 
-    storage_url = storage.store_ocr_result(
+    # store_ocr_result modifies ocr_result in-place with image URLs
+    storage.store_ocr_result(
         ocr_result=ocr_result,
         document_id=document_id,
         page_number=page_number,
@@ -122,7 +123,6 @@ def process_document_page(
         "status": "success",
         "filename": filename,
         "page_number": page_number,
-        "storage_url": storage_url,
         "text_preview": ocr_result.get("text", "")[:200],
         "regions": len(ocr_result.get("regions", [])),
         "extracted_images": len(ocr_result.get("crops", [])),
@@ -143,7 +143,6 @@ def process_document_batch(
     storage = OcrStorageHandler(
         storage_service=ocr_service.storage_service,
         processor=ocr_service.processor,
-        duckdb_service=getattr(ocr_service, "duckdb_service", None),
     )
 
     return ocr_service.processor.process_batch(
@@ -219,10 +218,10 @@ def process_document_background(
                 for idx, (page_num, result) in enumerate(zip(batch_pages, results)):
                     if result and result.get("status") == "success":
                         logger.info(
-                            "OCR processed page %s for %s: %s",
+                            "OCR processed page %s for %s: %d regions",
                             page_num,
                             filename,
-                            result.get("storage_url"),
+                            result.get("regions", 0),
                         )
                     elif result and result.get("status") == "error":
                         failed_pages.append(page_num)

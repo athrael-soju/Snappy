@@ -268,7 +268,11 @@ class TomoroColQwenClient:
 
             similarity_maps.append(
                 {
-                    "token": tokens[token_idx] if token_idx < len(tokens) else f"[{token_idx}]",
+                    "token": (
+                        tokens[token_idx]
+                        if token_idx < len(tokens)
+                        else f"[{token_idx}]"
+                    ),
                     "similarity_map": sim_map.tolist(),
                 }
             )

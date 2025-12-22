@@ -21,8 +21,6 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 import config
-from clients.colpali import ColPaliClient
-from clients.ocr.processor import OcrProcessor
 from benchmarks.metrics import (
     Box,
     SampleMetrics,
@@ -30,6 +28,8 @@ from benchmarks.metrics import (
     evaluate_boxes,
     summarize_samples,
 )
+from clients.colpali import ColPaliClient
+from clients.ocr.processor import OcrProcessor
 
 # Type alias for embedding clients (ColPaliClient or TomoroColQwenClient)
 # Both must implement generate_interpretability_maps(query, image) -> dict

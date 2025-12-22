@@ -1,6 +1,6 @@
 # Snappy Architecture
 
-> **Research Paper**: [Spatially-Grounded Document Retrieval via Patch-to-Region Relevance Propagation](https://arxiv.org/abs/2501.12345)
+> **Research Paper**: [Spatially-Grounded Document Retrieval via Patch-to-Region Relevance Propagation](https://arxiv.org/abs/2512.02660)
 
 Snappy implements **region-level document retrieval** through patch-to-region relevance propagation; a hybrid architecture that unifies vision-language models with OCR at inference time without additional training. The system uses ColPali's patch-level similarity scores as spatial relevance filters over OCR-extracted regions, achieving precise retrieval granularity while preserving the semantic understanding of vision-language models.
 
@@ -17,16 +17,16 @@ flowchart TB
     subgraph Indexing["📄 Document Indexing Pipeline"]
         U["User uploads document"] --> R["Rasterize to page images"]
         R --> E["ColPali embeds pages"] & O["OCR + region detection"]
-        E --> Qdrant[("Qdrant<br/>image/page vectors")]
-        O --> Duck[("DuckDB<br/>regions with text/tables/images")]
+        E --> Qdrant[("Qdrant<br/>vectors + OCR payloads")]
+        O --> Qdrant
+        O --> LS[("Local Storage<br/>page images + OCR JSON")]
     end
 
     subgraph Query["🔍 Query Processing Pipeline"]
         Q["User question"] --> QE["ColPali query embedding"]
         QE --> Qdrant
-        Qdrant --> K["Top-K image/page IDs"]
-        K --> Duck
-        Duck --> IM["Generate Interpretability Maps<br/>(patch-level attention)"]
+        Qdrant --> K["Top-K image/page IDs<br/>+ OCR data from payloads"]
+        K --> IM["Generate Interpretability Maps<br/>(patch-level attention)"]
         IM --> RF["Region-Level Filtering<br/>(score OCR regions by relevance)"]
         RF --> LLM["LLM over relevant regions<br/>(text + tables + images)"]
         LLM --> A["Answer with spatial context"]
@@ -39,7 +39,7 @@ flowchart TB
 
     class U,Q userNode
     class R,E,O,QE,IM,RF processNode
-    class Qdrant,Duck storageNode
+    class Qdrant,LS storageNode
     class K,LLM,A resultNode
 ```
 
@@ -81,9 +81,8 @@ Unlike RegionRAG (which requires hybrid training with bounding box annotations) 
 - **Streaming pipeline**: parallel stages for rasterize, embed, store images, optional OCR, and Qdrant upserts.
 - **ColPali service**: query and image embeddings (multivectors with pooled variants), interpretability map generation.
 - **DeepSeek OCR service (optional)**: text, markdown, and region extraction with bounding boxes.
-- **Qdrant**: vector store for image/page embeddings (multi-vector with pooling); payload carries metadata and optional OCR URLs.
-- **Local Storage**: page images and OCR JSON storage with hierarchical paths.
-- **DuckDB (optional)**: document metadata, OCR regions, and analytics; powers deduplication and inline OCR responses.
+- **Qdrant**: vector store for image/page embeddings (multi-vector with pooling); payload carries metadata, OCR data (text, markdown, regions), and image URLs.
+- **Local Storage**: page images and OCR JSON storage with hierarchical paths; OCR JSON serves as backup.
 - **Next.js frontend**: upload, search, chat, and interpretability visualization; streams responses via SSE.
 - **OpenAI**: generates chat answers using retrieved images, text, and tables.
 
@@ -101,20 +100,20 @@ The backend is organized into three distinct layers to ensure maintainability an
     - Independent of the HTTP framework (FastAPI).
 
 3.  **Infrastructure/Clients Layer (`backend/clients`)**:
-    - Handles communication with external services (Local Storage, Qdrant, DuckDB, ColPali, OCR).
+    - Handles communication with external services (Local Storage, Qdrant, ColPali, OCR).
     - Implements specific protocols and error handling for each service.
     - Decoupled from domain types where possible.
 
 ## Indexing path (streaming)
-1. Upload PDFs to `POST /index`; optional dedup check when DuckDB is enabled.
+1. Upload PDFs to `POST /index`.
 2. Rasterizer produces page batches and fans out to embedding, storage, and optional OCR stages in parallel.
 3. Upsert stage waits for embeddings, generates URLs dynamically, writes vectors to Qdrant, and tracks progress.
-4. Images live in local storage; OCR output goes to local storage or DuckDB depending on configuration.
+4. Images and OCR JSON live in local storage; full OCR data (text, markdown, regions) is stored in Qdrant payloads.
 5. `/progress/stream/{job_id}` streams live status for the UI; failures stop the pipeline to keep data consistent.
 
 ## Search and chat path
 1. `GET /search` embeds the query with ColPali and retrieves top-k page IDs from Qdrant using late interaction (two-stage retrieval with prefetch + rerank when mean pooling is enabled).
-2. When DuckDB is enabled, regions/text for those pages come directly from DuckDB; otherwise the payload contains OCR URLs for the frontend to fetch from local storage.
+2. OCR data (text, markdown, regions) is retrieved directly from Qdrant payloads alongside the search results.
 3. If region-level retrieval is enabled (`ENABLE_REGION_LEVEL_RETRIEVAL=true`), OCR regions are filtered using interpretability maps to return only query-relevant regions.
 4. Chat (`/api/chat` on the frontend) streams an OpenAI response with citations, sending images and/or filtered text regions depending on OCR and region filtering settings.
 
@@ -124,8 +123,7 @@ The backend is organized into three distinct layers to ensure maintainability an
 - Powers region-level filtering by computing relevance scores for OCR bounding boxes.
 
 ## Configuration and modes
-- Toggle OCR with `DEEPSEEK_OCR_ENABLED`; requires the ML profile (GPU).
-- Toggle DuckDB with `DUCKDB_ENABLED` for analytics, deduplication, and inline OCR.
+- Toggle OCR with `DEEPSEEK_OCR_ENABLED`; requires GPU.
 - Quantization and pooling options live in `.env` and `backend/config/schema`.
 - See `backend/docs/configuration.md` for full settings and defaults.
 
@@ -136,6 +134,7 @@ The backend is organized into three distinct layers to ensure maintainability an
 ## Where to dig deeper
 - [Late Interaction](late_interaction.md) - multi-vector retrieval, MaxSim scoring, and two-stage search.
 - [Spatial Grounding](spatial_grounding.md) - how spatial information flows from pixels to regions.
+- [OCR Storage](ocr_storage.md) - OCR data storage in Qdrant payloads.
 - [STREAMING_PIPELINE.md](../../STREAMING_PIPELINE.md) - how the streaming indexer overlaps stages.
 - [Analysis: Vision vs Text RAG](analysis.md) - when to use vision-only vs hybrid text modes.
 - [Configuration Reference](configuration.md) - complete configuration reference.

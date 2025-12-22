@@ -3,12 +3,10 @@ import asyncio
 from __version__ import __version__
 from api.dependencies import (
     colpali_init_error,
-    duckdb_init_error,
     get_colpali_client,
-    get_duckdb_service,
-    get_storage_service,
     get_ocr_service,
     get_qdrant_service,
+    get_storage_service,
     ocr_init_error,
     qdrant_init_error,
     storage_init_error,
@@ -35,22 +33,20 @@ async def root():
 
 @router.get("/health")
 async def health():
-    colpali_ok, storage_ok, qdrant_ok, duckdb_ok, ocr_ok = await asyncio.gather(
+    colpali_ok, storage_ok, qdrant_ok, ocr_ok = await asyncio.gather(
         asyncio.to_thread(_check_colpali),
         asyncio.to_thread(_check_storage),
         asyncio.to_thread(_check_qdrant),
-        asyncio.to_thread(_check_duckdb),
         asyncio.to_thread(_check_ocr),
     )
 
     # Core services must be healthy; OCR is optional
-    core_ok = colpali_ok and storage_ok and qdrant_ok and duckdb_ok
+    core_ok = colpali_ok and storage_ok and qdrant_ok
     response: dict[str, object] = {
         "status": "ok" if core_ok else "degraded",
         "colpali": colpali_ok,
         "storage": storage_ok,
         "qdrant": qdrant_ok,
-        "duckdb": duckdb_ok,
         "ocr": ocr_ok,
     }
 
@@ -64,9 +60,6 @@ async def health():
     storage_err = storage_init_error.get()
     if storage_err:
         response["storage_init_error"] = storage_err
-    duckdb_err = duckdb_init_error.get()
-    if duckdb_err:
-        response["duckdb_init_error"] = duckdb_err
     ocr_err = ocr_init_error.get()
     if ocr_err:
         response["ocr_init_error"] = ocr_err
@@ -114,15 +107,5 @@ def _check_ocr() -> bool:
         if service is None:
             return True
         return bool(service.health_check())
-    except Exception:
-        return False
-
-
-def _check_duckdb() -> bool:
-    try:
-        svc = get_duckdb_service()
-        if not svc:
-            return False
-        return svc.health_check()
     except Exception:
         return False

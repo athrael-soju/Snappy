@@ -24,6 +24,26 @@ async def lifespan(app: FastAPI):
     logger.info("╚" + "═" * 58 + "╝")
     logger.info("")
 
+    # Patch model files for compatibility (if needed)
+    try:
+        import sys
+        from pathlib import Path
+
+        patch_script = Path(__file__).parent.parent / "patch_model.py"
+        if patch_script.exists():
+            logger.info("Running model compatibility patcher...")
+            import subprocess
+
+            result = subprocess.run(
+                [sys.executable, str(patch_script)], capture_output=True, text=True
+            )
+            if result.returncode == 0:
+                logger.info("✓ Model patcher completed")
+            else:
+                logger.warning(f"Model patcher warning: {result.stderr}")
+    except Exception as e:
+        logger.warning(f"Could not run model patcher: {e}")
+
     # Load model on startup
     try:
         model_service.load_model()

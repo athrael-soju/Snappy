@@ -3,7 +3,6 @@ import type { Stream } from "openai/streaming";
 import { documentSearchTool } from "@/lib/api/functions/document_search";
 import type { ReasoningEffort } from "@/lib/chat/types";
 import type { Message, StreamEvent } from "@/lib/chat/openai-types";
-import { logger } from "@/lib/utils/logger";
 
 export const MODEL = process.env.OPENAI_MODEL || "gpt-5-nano";
 export const TEMPERATURE = parseFloat(process.env.OPENAI_TEMPERATURE || "1");
@@ -59,27 +58,6 @@ export async function createStreamingResponse(params: CreateResponseBaseParams &
     if (withTools) {
         payload.tools = [documentSearchTool];
     }
-
-    // Log messages being sent to OpenAI
-    const messageSummary = Array.isArray(input) ? input.map((msg) => {
-        // Handle messages with array content
-        if (Array.isArray(msg.content)) {
-            const contentItems = msg.content.map((c) => {
-                if (c.type === 'input_text') {
-                    return `text(${c.text.length} chars)`;
-                } else if (c.type === 'input_image') {
-                    return c.image_url.startsWith('data:') ? 'image(base64)' : 'image(url)';
-                }
-                return c.type;
-            });
-            return `${msg.role}: [${contentItems.join(', ')}]`;
-        }
-        // Handle OpenAI response output items (e.g., function_call, text) that don't have content array
-        const itemType = (msg as unknown as { type?: string }).type || 'unknown';
-        return `output: ${itemType}`;
-    }).join(' | ') : '';
-
-    logger.info(`[OpenAI] ${messageSummary}`);
 
     return client.responses.create(payload) as unknown as Promise<Stream<StreamEvent>>;
 }
