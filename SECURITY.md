@@ -21,9 +21,9 @@ We provide security updates for the following versions:
 
 | Version | Supported          | Status |
 | ------- | ------------------ | ------ |
-| 0.2.x   | :white_check_mark: | Current stable release |
-| 0.1.x   | :warning:          | Security fixes only |
-| < 0.1   | :x:                | No longer supported |
+| 0.4.x   | :white_check_mark: | Current stable release |
+| 0.3.x   | :warning:          | Security fixes only |
+| < 0.3   | :x:                | No longer supported |
 
 **Recommendation:** Always use the latest stable version to ensure you have the most recent security patches and improvements.
 

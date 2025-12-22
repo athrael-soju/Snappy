@@ -1,6 +1,6 @@
 # Snappy System Analysis - Vision vs Text RAG
 
-> **Research Paper**: [Spatially-Grounded Document Retrieval via Patch-to-Region Relevance Propagation](https://arxiv.org/abs/2501.12345) - Section 4
+> **Research Paper**: [Spatially-Grounded Document Retrieval via Patch-to-Region Relevance Propagation](https://arxiv.org/abs/2512.02660) - Section 4
 
 Snappy is vision-first: it embeds page images with ColPali multivectors so layout, figures, and handwriting stay searchable. OCR is an optional add-on that improves text grounding when you need it.
 
