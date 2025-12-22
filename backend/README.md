@@ -21,10 +21,8 @@ uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 Prereqs: Python 3.11+ and Poppler (`pdftoppm`) on PATH.
 
 ## Docker
-- Backend only (Qdrant): `cd backend && docker compose up -d --build`
-- Full stack (from repo root):
-  - Minimal (ColPali only): `make up-minimal`
-  - ML (adds DeepSeek OCR, needs NVIDIA GPU): `make up-ml`
+- Backend only: `cd backend && docker compose up -d --build`
+- Full stack (from repo root): `docker compose up -d`
 
 Use container hostnames inside Compose (`http://colpali:7000`, `http://deepseek-ocr:8200`). From host, use `localhost`.
 
