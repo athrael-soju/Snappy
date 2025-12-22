@@ -58,14 +58,19 @@ def resolve_storage_path(bucket: str, relative_path: str) -> Path:
     bucket_base = storage_base / bucket_name
     bucket_resolved = bucket_base.resolve()
 
-    file_path = bucket_resolved / relative_path
+    # Ensure the provided path is relative and cannot override the bucket root
+    relative_path_obj = Path(relative_path)
+    if relative_path_obj.is_absolute():
+        logger.warning(f"Absolute path not allowed in storage path: {relative_path}")
+        raise PathTraversalError("Absolute paths are not allowed")
+
+    file_path = bucket_resolved.joinpath(relative_path_obj)
     resolved_path = file_path.resolve()
 
     # Security: ensure path stays within the bucket directory
-    bucket_root = bucket_resolved.as_posix()
-    candidate = resolved_path.as_posix()
-    common = os.path.commonpath([bucket_root, candidate])
-    if common != bucket_root:
+    try:
+        resolved_path.relative_to(bucket_resolved)
+    except ValueError:
         logger.warning(f"Path traversal attempt detected: {relative_path}")
         raise PathTraversalError("Path traversal detected")
 
