@@ -3,6 +3,16 @@ Region relevance scoring based on interpretability maps.
 
 This module provides utilities to compute relevance scores for OCR regions
 based on ColPali interpretability maps, enabling query-focused region filtering.
+
+Implements the IoU-weighted aggregation method from the paper:
+"Spatially-Grounded Document Retrieval via Patch-to-Region Relevance Propagation"
+
+The region relevance score is computed as:
+    rel(q, r) = Σⱼ IoU(B'(r), patch_bbox(j)) · score_patch(j)
+                ─────────────────────────────────────────────
+                Σⱼ IoU(B'(r), patch_bbox(j))
+
+where score_patch(j) = maxᵢ S[i,j] (max similarity of patch j to any query token)
 """
 
 import logging
@@ -13,6 +23,39 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
+def _compute_iou(box1: Tuple[float, float, float, float], box2: Tuple[float, float, float, float]) -> float:
+    """
+    Compute Intersection over Union between two bounding boxes.
+
+    Args:
+        box1: (x1, y1, x2, y2) coordinates
+        box2: (x1, y1, x2, y2) coordinates
+
+    Returns:
+        IoU value between 0 and 1
+    """
+    # Compute intersection
+    x1 = max(box1[0], box2[0])
+    y1 = max(box1[1], box2[1])
+    x2 = min(box1[2], box2[2])
+    y2 = min(box1[3], box2[3])
+
+    if x2 <= x1 or y2 <= y1:
+        return 0.0
+
+    intersection = (x2 - x1) * (y2 - y1)
+
+    # Compute union
+    area1 = (box1[2] - box1[0]) * (box1[3] - box1[1])
+    area2 = (box2[2] - box2[0]) * (box2[3] - box2[1])
+    union = area1 + area2 - intersection
+
+    if union <= 0:
+        return 0.0
+
+    return intersection / union
+
+
 def compute_region_relevance_scores(
     regions: List[Dict[str, Any]],
     similarity_maps: List[Dict[str, Any]],
@@ -20,19 +63,27 @@ def compute_region_relevance_scores(
     n_patches_y: int,
     image_width: int,
     image_height: int,
-    aggregation: str = "max",
+    aggregation: str = "iou_weighted",
 ) -> List[Tuple[Dict[str, Any], float]]:
     """
     Compute relevance scores for OCR regions based on interpretability maps.
 
+    Implements the paper's IoU-weighted aggregation by default:
+        rel(q, r) = Σⱼ IoU(B'(r), patch_bbox(j)) · score_patch(j)
+                    ─────────────────────────────────────────────
+                    Σⱼ IoU(B'(r), patch_bbox(j))
+
     Args:
-        regions: List of OCR region dictionaries with 'bbox' field containing {x1, y1, x2, y2}
+        regions: List of OCR region dictionaries with 'bbox' field containing [x1, y1, x2, y2]
         similarity_maps: List of per-token similarity maps from interpretability response
         n_patches_x: Number of patches in x dimension
         n_patches_y: Number of patches in y dimension
         image_width: Original image width in pixels
         image_height: Original image height in pixels
-        aggregation: How to aggregate scores across query tokens ('max', 'mean', 'sum')
+        aggregation: How to aggregate patch scores for a region:
+            - 'iou_weighted': IoU-weighted average (paper's method, default)
+            - 'max': Maximum patch score in region
+            - 'mean': Simple average of patch scores
 
     Returns:
         List of tuples (region, relevance_score) sorted by score descending
@@ -48,13 +99,17 @@ def compute_region_relevance_scores(
         for sim_map in similarity_maps:
             map_data = sim_map.get("similarity_map", [])
             if map_data:
-                # Convert to numpy array
                 token_map = np.array(map_data)
                 token_maps.append(token_map)
 
         if not token_maps:
             logger.warning("No valid similarity maps found")
             return [(region, 0.0) for region in regions]
+
+        # Stack token maps and compute per-patch score: score_patch(j) = max_i S[i,j]
+        # This gives the maximum relevance of each patch to any query token
+        stacked_maps = np.stack(token_maps, axis=0)  # Shape: (n_tokens, n_patches_y, n_patches_x)
+        patch_scores = np.max(stacked_maps, axis=0)  # Shape: (n_patches_y, n_patches_x)
 
         # Compute patch dimensions in pixels
         patch_width = image_width / n_patches_x
@@ -70,46 +125,76 @@ def compute_region_relevance_scores(
 
             # Get region coordinates (in pixels)
             # bbox is stored as [x1, y1, x2, y2]
-            x1, y1, x2, y2 = bbox[0], bbox[1], bbox[2], bbox[3]
+            region_x1, region_y1, region_x2, region_y2 = bbox[0], bbox[1], bbox[2], bbox[3]
+            region_bbox = (region_x1, region_y1, region_x2, region_y2)
 
-            # Convert pixel coordinates to patch indices
-            patch_x1 = int(x1 / patch_width)
-            patch_y1 = int(y1 / patch_height)
-            patch_x2 = int(np.ceil(x2 / patch_width))
-            patch_y2 = int(np.ceil(y2 / patch_height))
+            # Find patches that could overlap with this region
+            patch_x1_idx = max(0, int(region_x1 / patch_width))
+            patch_y1_idx = max(0, int(region_y1 / patch_height))
+            patch_x2_idx = min(n_patches_x, int(np.ceil(region_x2 / patch_width)))
+            patch_y2_idx = min(n_patches_y, int(np.ceil(region_y2 / patch_height)))
 
-            # Clamp to valid patch range
-            patch_x1 = max(0, min(patch_x1, n_patches_x - 1))
-            patch_y1 = max(0, min(patch_y1, n_patches_y - 1))
-            patch_x2 = max(patch_x1 + 1, min(patch_x2, n_patches_x))
-            patch_y2 = max(patch_y1 + 1, min(patch_y2, n_patches_y))
+            if aggregation == "iou_weighted":
+                # Paper's method: IoU-weighted aggregation
+                # rel(q, r) = Σⱼ IoU(region, patch_j) · score_patch(j) / Σⱼ IoU(region, patch_j)
+                weighted_sum = 0.0
+                iou_sum = 0.0
 
-            # Extract region similarity values from each token's map
-            token_scores = []
-            for token_map in token_maps:
-                # Get the similarity values for patches overlapping this region
-                region_patch_values = token_map[patch_y1:patch_y2, patch_x1:patch_x2]
+                for py in range(patch_y1_idx, patch_y2_idx):
+                    for px in range(patch_x1_idx, patch_x2_idx):
+                        # Compute patch bounding box in pixels
+                        patch_bbox = (
+                            px * patch_width,
+                            py * patch_height,
+                            (px + 1) * patch_width,
+                            (py + 1) * patch_height,
+                        )
 
-                if region_patch_values.size > 0:
-                    # Use max similarity within the region for this token
-                    token_score = float(np.max(region_patch_values))
-                    token_scores.append(token_score)
+                        iou = _compute_iou(region_bbox, patch_bbox)
+                        if iou > 0:
+                            patch_score = float(patch_scores[py, px])
+                            weighted_sum += iou * patch_score
+                            iou_sum += iou
 
-            # Aggregate across query tokens
-            if token_scores:
-                if aggregation == "max":
-                    relevance_score = max(token_scores)
-                elif aggregation == "mean":
-                    relevance_score = float(np.mean(token_scores))
-                elif aggregation == "sum":
-                    relevance_score = sum(token_scores)
+                if iou_sum > 0:
+                    relevance_score = weighted_sum / iou_sum
                 else:
-                    logger.warning(
-                        f"Unknown aggregation method: {aggregation}, using max"
-                    )
-                    relevance_score = max(token_scores)
+                    relevance_score = 0.0
+
+            elif aggregation == "max":
+                # Max aggregation: rel_max(q, r) = max_{j in covered(r)} score_patch(j)
+                region_patch_values = patch_scores[patch_y1_idx:patch_y2_idx, patch_x1_idx:patch_x2_idx]
+                if region_patch_values.size > 0:
+                    relevance_score = float(np.max(region_patch_values))
+                else:
+                    relevance_score = 0.0
+
+            elif aggregation == "mean":
+                # Mean aggregation: rel_mean(q, r) = mean_{j in covered(r)} score_patch(j)
+                region_patch_values = patch_scores[patch_y1_idx:patch_y2_idx, patch_x1_idx:patch_x2_idx]
+                if region_patch_values.size > 0:
+                    relevance_score = float(np.mean(region_patch_values))
+                else:
+                    relevance_score = 0.0
+
             else:
-                relevance_score = 0.0
+                logger.warning(f"Unknown aggregation method: {aggregation}, using iou_weighted")
+                # Fall back to IoU-weighted
+                weighted_sum = 0.0
+                iou_sum = 0.0
+                for py in range(patch_y1_idx, patch_y2_idx):
+                    for px in range(patch_x1_idx, patch_x2_idx):
+                        patch_bbox = (
+                            px * patch_width,
+                            py * patch_height,
+                            (px + 1) * patch_width,
+                            (py + 1) * patch_height,
+                        )
+                        iou = _compute_iou(region_bbox, patch_bbox)
+                        if iou > 0:
+                            weighted_sum += iou * float(patch_scores[py, px])
+                            iou_sum += iou
+                relevance_score = weighted_sum / iou_sum if iou_sum > 0 else 0.0
 
             region_scores.append((region, relevance_score))
 
@@ -133,10 +218,12 @@ def filter_regions_by_relevance(
     image_height: int,
     threshold: float = 0.0,
     top_k: Optional[int] = None,
-    aggregation: str = "max",
+    aggregation: str = "iou_weighted",
 ) -> List[Dict[str, Any]]:
     """
     Filter and rank OCR regions based on interpretability map relevance.
+
+    Uses the paper's IoU-weighted aggregation by default.
 
     Args:
         regions: List of OCR region dictionaries
@@ -147,7 +234,7 @@ def filter_regions_by_relevance(
         image_height: Original image height in pixels
         threshold: Minimum relevance score (0.0-1.0) to include a region
         top_k: Maximum number of regions to return (None = all above threshold)
-        aggregation: How to aggregate scores across query tokens
+        aggregation: How to aggregate patch scores ('iou_weighted', 'max', 'mean')
 
     Returns:
         Filtered and ranked list of regions with relevance scores added
