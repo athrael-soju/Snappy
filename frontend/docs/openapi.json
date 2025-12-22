@@ -1230,17 +1230,6 @@
               }
             ],
             "title": "Score"
-          },
-          "json_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Json Url"
           }
         },
         "type": "object",

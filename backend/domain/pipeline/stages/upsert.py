@@ -3,8 +3,6 @@
 import logging
 import queue
 import threading
-from typing import Optional
-
 import config
 from ..streaming_types import EmbeddedBatch
 from ..utils import log_stage_timing
@@ -49,35 +47,20 @@ class UpsertStage:
         bucket_suffix = f"/{self.storage_bucket}" if self.storage_bucket else ""
         return f"{base}{bucket_suffix}/{object_name}"
 
-    def _generate_ocr_url(self, document_id: str, page_number: int) -> Optional[str]:
-        """Generate storage OCR JSON URL from metadata.
-
-        Note: OCR files use UUID-based filenames (e.g., ocr/uuid.json), not fixed names.
-        The actual URL is set when OCR processing completes.
-
-        Returns None to indicate OCR URL is not yet available during indexing.
-        """
-        # Return None - OCR URL will be set when processing completes
-        return None
-
     @log_stage_timing("Upsert")
     def process_batch(self, embedded_batch: EmbeddedBatch):
         """Build points from embeddings and upsert to Qdrant.
 
         Storage/OCR run independently - we just generate URL references.
         """
-        # Generate URLs dynamically - no waiting, storage/OCR are independent
+        # Generate image URLs dynamically - storage runs independently
         image_urls = []
-        ocr_urls = []
 
         for idx, (page_id, meta) in enumerate(zip(embedded_batch.image_ids, embedded_batch.metadata)):
             page_number = meta.get("page_number", embedded_batch.page_start + idx)
 
             image_urls.append(
                 self._generate_image_url(embedded_batch.document_id, page_number, page_id)
-            )
-            ocr_urls.append(
-                self._generate_ocr_url(embedded_batch.document_id, page_number)
             )
 
         # Build image records
@@ -91,10 +74,7 @@ class UpsertStage:
             for url, image_id in zip(image_urls, embedded_batch.image_ids)
         ]
 
-        # Build OCR references
-        ocr_results = [{"ocr_url": url} for url in ocr_urls]
-
-        # Build Qdrant points
+        # Build Qdrant points (OCR data added separately by OCR stage)
         points = self.point_factory.build(
             batch_start=embedded_batch.page_start,
             original_batch=embedded_batch.original_embeddings,
@@ -103,7 +83,6 @@ class UpsertStage:
             image_ids=embedded_batch.image_ids,
             image_records=image_records,
             meta_batch=embedded_batch.metadata,
-            ocr_results=ocr_results,
         )
 
         # Upsert to Qdrant

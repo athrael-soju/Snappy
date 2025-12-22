@@ -173,10 +173,9 @@ async def search_documents(
             payload = it.get("payload", {})
             label = it["label"]
             image_url = payload.get("image_url")
-            json_url = None
 
             if include_ocr:
-                # OCR data is already in Qdrant payload
+                # OCR data is stored inline in Qdrant payload
                 ocr_data = payload.get("ocr")
 
                 if ocr_data:
@@ -209,11 +208,6 @@ async def search_documents(
                             # Keep original OCR data if filtering fails
 
                     ocr_success_count += 1
-                else:
-                    # No OCR data in payload - check for ocr_url fallback
-                    json_url = payload.get("ocr_url")
-                    if json_url:
-                        ocr_success_count += 1
 
             results.append(
                 SearchItem(
@@ -221,7 +215,6 @@ async def search_documents(
                     label=label,
                     payload=payload,
                     score=it.get("score"),
-                    json_url=json_url,
                 )
             )
 

@@ -94,15 +94,15 @@ class OCRStage:
             "image_storage": "local",
         }
 
-        # Store OCR results
-        storage_result = self.ocr_service.storage.store_ocr_result(
+        # Process extracted images and update ocr_result with image URLs
+        self.ocr_service.storage.store_ocr_result(
             ocr_result=ocr_result,
             document_id=document_id,
             page_number=page_num,
             metadata=ocr_metadata,
         )
 
-        # Update Qdrant with the real OCR URL if qdrant_service is available
+        # Update Qdrant with OCR data (text, markdown, regions with image URLs)
         if self.qdrant_service and self.collection_name:
             try:
                 from qdrant_client import models
@@ -134,9 +134,8 @@ class OCRStage:
                 if points:
                     point_ids = [point.id for point in points]
 
-                    # Build OCR payload with full content
+                    # Build OCR payload with full content (inline only, no URL reference)
                     ocr_payload = {
-                        "ocr_url": storage_result["ocr_url"],
                         "ocr": {
                             "text": ocr_result.get("text", ""),
                             "markdown": ocr_result.get("markdown", ""),
@@ -162,8 +161,6 @@ class OCRStage:
                 )
 
         return {
-            "ocr_url": storage_result["ocr_url"],
-            "ocr_regions": storage_result.get("ocr_regions", []),
             "text_preview": ocr_result.get("text", "")[:200],
             "region_count": len(ocr_result.get("regions", [])),
         }

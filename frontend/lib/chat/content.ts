@@ -3,33 +3,9 @@ import { logger } from '@/lib/utils/logger';
 
 type DataUrl = { mime: string; base64: string };
 
-// Cache for OCR JSON data to avoid duplicate fetches
-const ocrDataCache = new Map<string, any>();
-
-async function fetchOcrData(result: SearchItem): Promise<any> {
-    // Check if OCR data is inline in payload
-    const ocrData = result.payload?.ocr;
-    if (ocrData) {
-        return ocrData;
-    }
-
-    // Storage mode: fetch from json_url
-    if (result.json_url) {
-        // Check cache first
-        if (ocrDataCache.has(result.json_url)) {
-            return ocrDataCache.get(result.json_url);
-        }
-
-        // Fetch and cache
-        const jsonResponse = await fetch(result.json_url);
-        if (jsonResponse.ok) {
-            const jsonData = await jsonResponse.json();
-            ocrDataCache.set(result.json_url, jsonData);
-            return jsonData;
-        }
-    }
-
-    return null;
+function getOcrData(result: SearchItem): any {
+    // OCR data is stored inline in Qdrant payload
+    return result.payload?.ocr ?? null;
 }
 
 async function fetchImageAsDataUrl(url: string): Promise<DataUrl> {
@@ -182,10 +158,10 @@ export async function buildMarkdownContent(results: SearchItem[], query: string)
     const pageContents: string[] = [];
     const IMAGE_REGION_LABELS = ['figure', 'diagram', 'image', 'chart', 'graph'];
 
-    // Parallelize OCR data fetches
+    // Process OCR data from inline payloads
     const fetchTasks = (results || []).map(async (result) => {
         try {
-            const ocrData = await fetchOcrData(result);
+            const ocrData = getOcrData(result);
             if (!ocrData) return null;
 
             let pageText: string | null = null;
@@ -316,8 +292,7 @@ export async function buildRegionImagesContent(results: SearchItem[], query: str
 
     for (const result of results || []) {
         try {
-            // Use cached OCR data from fetchOcrData
-            const ocrData = await fetchOcrData(result);
+            const ocrData = getOcrData(result);
             if (!ocrData?.regions) continue;
 
             // Filter regions that are images (figures, diagrams, etc.)
