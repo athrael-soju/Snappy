@@ -1,5 +1,5 @@
 import logging
-from typing import List, Optional
+from typing import List
 
 import config  # Import module for dynamic config access
 from api.models import SearchItem
@@ -15,11 +15,10 @@ router = APIRouter(prefix="", tags=["retrieval"])
 @router.get("/search", response_model=List[SearchItem])
 async def search(
     q: str = Query(..., description="User query"),
-    k: Optional[int] = Query(None, ge=1, le=50),
+    k: int = Query(default=10, ge=1, le=50, description="Number of results to return"),
     include_ocr: bool = Query(False, description="Include OCR results if available"),
 ):
-    # Use config default if not provided
-    top_k: int = int(k) if k is not None else int(getattr(config, "DEFAULT_TOP_K", 10))
+    top_k: int = k if k else int(getattr(config, "DEFAULT_TOP_K", 10))
 
     logger.info(
         "Search request received",

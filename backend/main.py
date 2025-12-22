@@ -5,10 +5,7 @@ import uvicorn
 from api.app import create_app
 from config.logging import setup_logging
 
-try:  # pragma: no cover - tooling support
-    from config import LOG_LEVEL, UVICORN_RELOAD  # type: ignore
-except ModuleNotFoundError:  # pragma: no cover
-    from backend.config import LOG_LEVEL, UVICORN_RELOAD  # type: ignore
+from config import LOG_LEVEL, UVICORN_RELOAD
 
 
 def _configure_logging() -> None:

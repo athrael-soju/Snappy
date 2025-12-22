@@ -97,7 +97,7 @@ services:
       - QDRANT_URL=http://qdrant:6333
       # Local storage configuration
       - LOCAL_STORAGE_PATH=/app/storage
-      - LOCAL_STORAGE_PUBLIC_URL=http://localhost:8000/files
+      - LOCAL_STORAGE_PUBLIC_URL=${LOCAL_STORAGE_PUBLIC_URL:-http://localhost:8000/files}
       # Profile-specific feature flags
       - DEEPSEEK_OCR_ENABLED=${DEEPSEEK_OCR_ENABLED:-true}
     volumes:

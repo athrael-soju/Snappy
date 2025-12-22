@@ -150,25 +150,22 @@ def get_qdrant_service() -> Optional[QdrantClient]:
         return None
 
 
+_invalidation_lock = Lock()
+
+
 def invalidate_services():
     """Invalidate cached services so they are recreated on next access."""
     logger.debug("Invalidating cached services to apply new configuration")
 
-    # Close existing service instances before clearing caches to prevent resource leaks
-    try:
-        # No additional cleanup needed for current services
-        pass
-    except Exception as e:
-        logger.warning(f"Error accessing cached services for cleanup: {e}")
+    with _invalidation_lock:
+        # Clear error states
+        colpali_init_error.clear()
+        qdrant_init_error.clear()
+        storage_init_error.clear()
+        ocr_init_error.clear()
 
-    # Clear error states
-    colpali_init_error.clear()
-    qdrant_init_error.clear()
-    storage_init_error.clear()
-    ocr_init_error.clear()
-
-    # Clear caches
-    _get_qdrant_service_cached.cache_clear()
-    _get_storage_service_cached.cache_clear()
-    _get_colpali_client_cached.cache_clear()
-    _get_ocr_service_cached.cache_clear()
+        # Clear caches
+        _get_qdrant_service_cached.cache_clear()
+        _get_storage_service_cached.cache_clear()
+        _get_colpali_client_cached.cache_clear()
+        _get_ocr_service_cached.cache_clear()
