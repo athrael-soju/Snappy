@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.4.2](https://github.com/athrael-soju/Snappy/compare/v0.4.1...v0.4.2) (2025-12-22)
+
+
+### Code Refactoring
+
+* clean up configuration files and improve service invalidation logic ([4c61e86](https://github.com/athrael-soju/Snappy/commit/4c61e864d8f966968c74b01858ae547f067002ea))
+* enhance image loading and configuration syncing across components ([9b17970](https://github.com/athrael-soju/Snappy/commit/9b17970b58d92abf4064c60e1eac75ee75df1700))
+* enhance Qdrant integration with improved logging and error handling ([5e1f336](https://github.com/athrael-soju/Snappy/commit/5e1f3360f27025870ded6da98fd02e7bdc348879))
+* implement local storage methods and enhance OCR processing with Qdrant integration ([3f3d667](https://github.com/athrael-soju/Snappy/commit/3f3d6671acc9993bd56817a86dd04fca0d379139))
+* implement local storage utilities for path resolution and error handling ([b6582d9](https://github.com/athrael-soju/Snappy/commit/b6582d92eea2f7d2870c3216f49f87baabd7105e))
+* Remove DuckDB analytics service implementation and related components ([7e54beb](https://github.com/athrael-soju/Snappy/commit/7e54beba43a3a4c6b11e46403ccbcc273324ece6))
+* remove DuckDB integration and related components ([d0dba02](https://github.com/athrael-soju/Snappy/commit/d0dba027f2cc75ac7998ffc5b8a3fbd0776e150b))
+* remove json_url references and streamline OCR data handling in payloads ([42838e6](https://github.com/athrael-soju/Snappy/commit/42838e67cbcdfea3dd84d0b710c3322ebcff1c71))
+* remove Makefile and related profile configurations; update … ([0b24c67](https://github.com/athrael-soju/Snappy/commit/0b24c679ea525d8e5d597ebb8dc9d41f6aafae17))
+* remove Makefile and related profile configurations; update README for direct Docker Compose usage ([a004daf](https://github.com/athrael-soju/Snappy/commit/a004daf7cf934dd9e2f50ed1ed68849461d86ccd))
+* remove MinIO logo asset from the project ([c9e9675](https://github.com/athrael-soju/Snappy/commit/c9e9675ec53ea3e0b829323c3a391c953b6d238f))
+* remove MinIO references and replace with local storage ([8f71f85](https://github.com/athrael-soju/Snappy/commit/8f71f8545d4a33abb92b4e01ff43ba025168f84b))
+* remove monitor_requests.py and update docker-compose.yml to eliminate unused feature flags ([60eb7aa](https://github.com/athrael-soju/Snappy/commit/60eb7aaff7cdc6f615dbef2683548a9ff0abba08))
+* reorganize imports and enhance logging in image content processing ([d5f82a2](https://github.com/athrael-soju/Snappy/commit/d5f82a2f841c05051b1bd2969714e408867d2ce0))
+* replace MinIO references with local storage integration across the codebase ([49950a7](https://github.com/athrael-soju/Snappy/commit/49950a704dadc393fed7145137c6edb22c073cf2))
+* replace MinIO with local storage integration and update related services ([4095dfb](https://github.com/athrael-soju/Snappy/commit/4095dfb827fb9d5c1102cdf2b56d5fb4e0a7deb7))
+* simplify Docker commands and remove unused profiles from configuration ([6e846a7](https://github.com/athrael-soju/Snappy/commit/6e846a7bd6a8a0da773480854bdd1b0473345f27))
+* streamline guidelines in CLAUDE.md for clarity and conciseness ([b17e84b](https://github.com/athrael-soju/Snappy/commit/b17e84b4f9c9c8ff30e4db7b9def587801db87bb))
+* streamline Qdrant update logging in OCR processing ([faa9678](https://github.com/athrael-soju/Snappy/commit/faa967848c2d7bcdf63a4528c643f37e5fa80397))
+* update .gitignore to include .DS_Store and clean up imports in jobs.py ([8d7bcf5](https://github.com/athrael-soju/Snappy/commit/8d7bcf5df7979533be0193ec43637567fe57dd17))
+* update documentation and improve local storage handling in various components ([0ec8207](https://github.com/athrael-soju/Snappy/commit/0ec8207373d79cbb40cae8ae2912410338d7710c))
+* update region relevance scoring to use IoU-weighted aggregation method and enhance documentation ([01ff93d](https://github.com/athrael-soju/Snappy/commit/01ff93dc4ad2e883983ed199790a2e4de03e3213))
+* update research paper links and adjust supported version details in documentation ([56ff5a4](https://github.com/athrael-soju/Snappy/commit/56ff5a4d98a4ff8eecb91f5a748b081a01cf42fc))
+
 ## [0.4.1](https://github.com/athrael-soju/Snappy/compare/v0.4.0...v0.4.1) (2025-12-15)
 
 
