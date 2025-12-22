@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """Monitor OCR request rate."""
 
-import time
-import requests
 from collections import deque
 
 url = "http://localhost:8200/health"

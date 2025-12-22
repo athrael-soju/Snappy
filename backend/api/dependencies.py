@@ -102,8 +102,6 @@ def get_ocr_service() -> Optional[OcrClient]:
         return None
 
 
-
-
 @lru_cache(maxsize=1)
 def _get_storage_service_cached() -> LocalStorageClient:
     return LocalStorageClient()
@@ -120,8 +118,6 @@ def get_storage_service() -> LocalStorageClient:
         storage_init_error.set(str(exc))
         _get_storage_service_cached.cache_clear()
         raise
-
-
 
 
 @lru_cache(maxsize=1)

@@ -4,6 +4,7 @@ import logging
 from typing import Dict, List, Tuple
 
 from PIL import Image
+
 from .image_processor import ImageProcessor, ProcessedImage
 
 logger = logging.getLogger(__name__)

@@ -17,7 +17,9 @@ logger = logging.getLogger(__name__)
 class OCRStage:
     """Processes OCR independently and stores results."""
 
-    def __init__(self, ocr_service, image_processor, qdrant_service=None, collection_name=None):
+    def __init__(
+        self, ocr_service, image_processor, qdrant_service=None, collection_name=None
+    ):
         self.ocr_service = ocr_service
         self.image_processor = image_processor
         self.qdrant_service = qdrant_service
@@ -90,7 +92,9 @@ class OCRStage:
             "total_pages": meta.get("total_pages"),
             "page_width_px": processed_image.width,
             "page_height_px": processed_image.height,
-            "image_url": processed_image.url if hasattr(processed_image, "url") else None,
+            "image_url": (
+                processed_image.url if hasattr(processed_image, "url") else None
+            ),
             "image_storage": "local",
         }
 
@@ -164,7 +168,6 @@ class OCRStage:
             "text_preview": ocr_result.get("text", "")[:200],
             "region_count": len(ocr_result.get("regions", [])),
         }
-
 
     def run(
         self,

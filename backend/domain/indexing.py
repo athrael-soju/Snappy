@@ -205,8 +205,8 @@ def run_indexing_job(
             raise RuntimeError(error_msg)
 
         # Create image storage handler for streaming pipeline
-        from domain.pipeline.storage import ImageStorageHandler
         from domain.pipeline.image_processor import ImageProcessor
+        from domain.pipeline.storage import ImageStorageHandler
 
         image_processor = ImageProcessor(
             default_format=config.IMAGE_FORMAT,
@@ -263,7 +263,9 @@ def run_indexing_job(
         from domain.pipeline.console import get_pipeline_console
 
         console = get_pipeline_console()
-        console.start_job(doc_filenames, total_pages_all, total_size_bytes / 1024 / 1024)
+        console.start_job(
+            doc_filenames, total_pages_all, total_size_bytes / 1024 / 1024
+        )
 
         # Update progress manager with total
         if progress_manager.get(job_id):
@@ -310,7 +312,9 @@ def run_indexing_job(
                 )
 
                 logger.debug(
-                    "Streaming ingestion complete for %s: %d pages", filename, pages_in_doc
+                    "Streaming ingestion complete for %s: %d pages",
+                    filename,
+                    pages_in_doc,
                 )
 
             except CancellationError:

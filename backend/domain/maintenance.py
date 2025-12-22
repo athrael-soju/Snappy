@@ -1,6 +1,7 @@
 """
 Maintenance utilities for Qdrant and local storage.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Optional
@@ -149,7 +150,6 @@ def get_vector_total_dim(collection_info: Any) -> int:
 def clear_all_sync(
     svc: Optional["QdrantClient"],
     storage_svc: Optional["LocalStorageClient"],
-    dsvc: Optional[Any] = None,  # Deprecated parameter, kept for compatibility
 ) -> dict:
     results = {
         "collection": {"status": "pending", "message": ""},
@@ -198,7 +198,6 @@ def clear_all_sync(
 def initialize_sync(
     svc: Optional["QdrantClient"],
     storage_svc: Optional["LocalStorageClient"],
-    dsvc: Optional[Any] = None,  # Deprecated parameter, kept for compatibility
 ) -> dict:
     results = {
         "collection": {"status": "pending", "message": ""},
@@ -240,7 +239,6 @@ def initialize_sync(
 def delete_sync(
     svc: Optional["QdrantClient"],
     storage_svc: Optional["LocalStorageClient"],
-    dsvc: Optional[Any] = None,  # Deprecated parameter, kept for compatibility
 ) -> dict:
     results = {
         "collection": {"status": "pending", "message": ""},

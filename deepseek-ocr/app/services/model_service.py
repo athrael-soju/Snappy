@@ -87,6 +87,7 @@ class ModelService:
                 self.model = self.model.cuda()
             elif settings.DEVICE == "mps":
                 import torch
+
                 self.model = self.model.to(torch.device("mps")).to(settings.TORCH_DTYPE)
 
             self._initialized = True

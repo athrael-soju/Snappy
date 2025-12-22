@@ -4,10 +4,13 @@ import logging
 from typing import Any, List, cast
 
 import torch
-from PIL import Image
-
-from app.models.schemas import ImageEmbeddingItem, InterpretabilityResponse, TokenSimilarityMap
+from app.models.schemas import (
+    ImageEmbeddingItem,
+    InterpretabilityResponse,
+    TokenSimilarityMap,
+)
 from app.services.model_service import model_service
+from PIL import Image
 
 logger = logging.getLogger(__name__)
 
@@ -75,9 +78,7 @@ class EmbeddingProcessor:
                 indices = torch.nonzero(mask, as_tuple=True)[
                     0
                 ]  # [num_image_tokens] or []
-                indices_list = (
-                    indices.view(-1).tolist() if indices.numel() > 0 else []
-                )
+                indices_list = indices.view(-1).tolist() if indices.numel() > 0 else []
 
                 if not indices_list:
                     # No image tokens found; return sentinel values
@@ -146,7 +147,9 @@ class EmbeddingProcessor:
             )  # [1, query_length, n_patches_x, n_patches_y]
 
             # Get the similarity map for our input (unbatch)
-            similarity_maps = similarity_maps_batch[0]  # [query_length, n_patches_x, n_patches_y]
+            similarity_maps = similarity_maps_batch[
+                0
+            ]  # [query_length, n_patches_x, n_patches_y]
 
             # Extract query tokens (filtering out special tokens)
             input_ids = batch_query.input_ids[0].tolist()

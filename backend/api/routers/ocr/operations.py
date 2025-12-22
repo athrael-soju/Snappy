@@ -5,9 +5,10 @@ import uuid
 
 from api.dependencies import get_ocr_service, get_qdrant_service
 from api.progress import progress_manager
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from clients.ocr import OcrClient
 from clients.qdrant import QdrantClient
+from domain.ocr import get_document_pages, process_document_background
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from utils.timing import PerformanceTimer
 
 from .models import (
@@ -17,7 +18,6 @@ from .models import (
     OcrPageRequest,
     OcrResponse,
 )
-from domain.ocr import get_document_pages, process_document_background
 
 logger = logging.getLogger(__name__)
 

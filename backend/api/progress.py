@@ -1,8 +1,8 @@
 import logging
 import threading
 import time
-from typing import Dict, Optional
 from concurrent.futures import ThreadPoolExecutor
+from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
 

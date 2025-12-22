@@ -3,10 +3,11 @@ Generate comparative benchmark charts for the paper.
 Extensible for adding new models (e.g., ColQwen3-8B).
 """
 
+from pathlib import Path
+
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
-from pathlib import Path
 
 # Configuration
 BENCHMARKS_DIR = Path(__file__).parent.parent / "benchmarks"
@@ -94,10 +95,23 @@ def parse_progress_file(model_dir: Path) -> dict:
     # Parse per-category results from table rows
     from collections import defaultdict
 
-    categories = defaultdict(lambda: {"n": 0, "iou_sum": 0, "hit25": 0, "hit50": 0, "hit70": 0, "iou_values": []})
+    categories = defaultdict(
+        lambda: {
+            "n": 0,
+            "iou_sum": 0,
+            "hit25": 0,
+            "hit50": 0,
+            "hit70": 0,
+            "iou_values": [],
+        }
+    )
 
     for line in content.split("\n"):
-        if line.startswith("|") and not line.startswith("| #") and not line.startswith("| **"):
+        if (
+            line.startswith("|")
+            and not line.startswith("| #")
+            and not line.startswith("| **")
+        ):
             parts = [p.strip() for p in line.split("|")]
             if len(parts) > 7 and parts[3] in CATEGORY_ORDER:
                 cat = parts[3]
@@ -142,7 +156,11 @@ def load_all_models() -> dict:
     return all_results
 
 
-def plot_category_comparison(results: dict, metric: str = "mean_iou", output_name: str = "category_comparison.png"):
+def plot_category_comparison(
+    results: dict,
+    metric: str = "mean_iou",
+    output_name: str = "category_comparison.png",
+):
     """Generate grouped bar chart comparing models across categories."""
     fig, ax = plt.subplots(figsize=(12, 6))
 
@@ -158,8 +176,17 @@ def plot_category_comparison(results: dict, metric: str = "mean_iou", output_nam
     }
 
     for i, (model_id, data) in enumerate(results.items()):
-        values = [data["categories"].get(cat, {}).get(metric, 0) for cat in CATEGORY_ORDER]
-        bars = ax.bar(x + offsets[i], values, width, label=data["label"], color=data["color"], edgecolor="white")
+        values = [
+            data["categories"].get(cat, {}).get(metric, 0) for cat in CATEGORY_ORDER
+        ]
+        bars = ax.bar(
+            x + offsets[i],
+            values,
+            width,
+            label=data["label"],
+            color=data["color"],
+            edgecolor="white",
+        )
 
     ax.set_xlabel("Document Category", fontsize=12)
     ax.set_ylabel(metric_labels.get(metric, metric), fontsize=12)
@@ -179,7 +206,9 @@ def plot_category_comparison(results: dict, metric: str = "mean_iou", output_nam
     print(f"Saved {output_name}")
 
 
-def plot_accuracy_efficiency_tradeoff(results: dict, output_name: str = "accuracy_efficiency_tradeoff.png"):
+def plot_accuracy_efficiency_tradeoff(
+    results: dict, output_name: str = "accuracy_efficiency_tradeoff.png"
+):
     """Scatter plot showing accuracy vs token efficiency tradeoff."""
     fig, ax = plt.subplots(figsize=(8, 6))
 
@@ -216,7 +245,9 @@ def plot_accuracy_efficiency_tradeoff(results: dict, output_name: str = "accurac
     print(f"Saved {output_name}")
 
 
-def plot_iou_thresholds_comparison(results: dict, output_name: str = "iou_thresholds_comparison.png"):
+def plot_iou_thresholds_comparison(
+    results: dict, output_name: str = "iou_thresholds_comparison.png"
+):
     """Bar chart comparing hit rates across IoU thresholds."""
     fig, ax = plt.subplots(figsize=(10, 6))
 
@@ -227,7 +258,14 @@ def plot_iou_thresholds_comparison(results: dict, output_name: str = "iou_thresh
 
     for i, (model_id, data) in enumerate(results.items()):
         values = [data["iou_25"], data["iou_50"], data["iou_70"]]
-        bars = ax.bar(x + offsets[i], values, width, label=data["label"], color=data["color"], edgecolor="white")
+        bars = ax.bar(
+            x + offsets[i],
+            values,
+            width,
+            label=data["label"],
+            color=data["color"],
+            edgecolor="white",
+        )
         # Add value labels on bars
         for bar, val in zip(bars, values):
             ax.text(
@@ -258,7 +296,7 @@ def plot_token_comparison(results: dict, output_name: str = "token_comparison.pn
     fig, ax = plt.subplots(figsize=(10, 6))
 
     # Add baselines
-    models = ["Full Image", "All OCR"] + list(results.keys())
+    ["Full Image", "All OCR"] + list(results.keys())
     first_model = list(results.values())[0]
 
     values = [
@@ -298,7 +336,9 @@ def plot_token_comparison(results: dict, output_name: str = "token_comparison.pn
     print(f"Saved {output_name}")
 
 
-def plot_iou_by_category_box(results: dict, output_name: str = "iou_by_category_box.png"):
+def plot_iou_by_category_box(
+    results: dict, output_name: str = "iou_by_category_box.png"
+):
     """Box plot showing IoU distribution by category for each model."""
     fig, ax = plt.subplots(figsize=(14, 6))
 
@@ -392,7 +432,9 @@ def plot_radar_comparison(results: dict, output_name: str = "radar_comparison.pn
         ]
         values += values[:1]
 
-        ax.plot(angles, values, "o-", linewidth=2, label=data["label"], color=data["color"])
+        ax.plot(
+            angles, values, "o-", linewidth=2, label=data["label"], color=data["color"]
+        )
         ax.fill(angles, values, alpha=0.25, color=data["color"])
 
     ax.set_xticks(angles[:-1])

@@ -140,10 +140,11 @@ export async function runChatService(options: NormalizedChatRequest): Promise<Ch
                 await attachSearchResults(results);
             }
         } catch (error) {
-            console.error('Search failed:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            logger.error('Search failed:', { error: errorMessage });
             searchResult = {
                 success: false,
-                error: error instanceof Error ? error.message : 'Unknown error occurred',
+                error: errorMessage,
                 query: options.message
             };
         }

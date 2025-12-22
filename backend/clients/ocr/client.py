@@ -6,7 +6,7 @@ import io
 import logging
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 import config
 import requests
@@ -266,8 +266,6 @@ class OcrClient:
         )
 
     # Public orchestration methods
-
-
 
     def health_check(self) -> bool:
         """Check if OCR service is healthy and accessible."""

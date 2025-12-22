@@ -1,7 +1,7 @@
 """Main Qdrant service that orchestrates all operations."""
 
 import logging
-from typing import TYPE_CHECKING, Callable, Iterable, Optional
+from typing import TYPE_CHECKING, Optional
 
 from PIL import Image
 
@@ -75,7 +75,6 @@ class QdrantClient:
     def health_check(self) -> bool:
         """Check if Qdrant service is healthy and accessible."""
         return self.collection_manager.health_check()
-
 
     # Search methods
     def search_with_metadata(

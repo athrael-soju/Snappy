@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import asyncio
 
-from api.dependencies import get_storage_service, get_qdrant_service
-from fastapi import APIRouter, HTTPException
-
+from api.dependencies import get_qdrant_service, get_storage_service
 from domain.maintenance import (
     collect_bucket_status,
     collect_collection_status,
 )
+from fastapi import APIRouter, HTTPException
 
 router = APIRouter(prefix="", tags=["maintenance"])
 

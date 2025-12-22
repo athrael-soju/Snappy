@@ -23,7 +23,9 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
-def _compute_iou(box1: Tuple[float, float, float, float], box2: Tuple[float, float, float, float]) -> float:
+def _compute_iou(
+    box1: Tuple[float, float, float, float], box2: Tuple[float, float, float, float]
+) -> float:
     """
     Compute Intersection over Union between two bounding boxes.
 
@@ -108,7 +110,9 @@ def compute_region_relevance_scores(
 
         # Stack token maps and compute per-patch score: score_patch(j) = max_i S[i,j]
         # This gives the maximum relevance of each patch to any query token
-        stacked_maps = np.stack(token_maps, axis=0)  # Shape: (n_tokens, n_patches_y, n_patches_x)
+        stacked_maps = np.stack(
+            token_maps, axis=0
+        )  # Shape: (n_tokens, n_patches_y, n_patches_x)
         patch_scores = np.max(stacked_maps, axis=0)  # Shape: (n_patches_y, n_patches_x)
 
         # Compute patch dimensions in pixels
@@ -125,7 +129,12 @@ def compute_region_relevance_scores(
 
             # Get region coordinates (in pixels)
             # bbox is stored as [x1, y1, x2, y2]
-            region_x1, region_y1, region_x2, region_y2 = bbox[0], bbox[1], bbox[2], bbox[3]
+            region_x1, region_y1, region_x2, region_y2 = (
+                bbox[0],
+                bbox[1],
+                bbox[2],
+                bbox[3],
+            )
             region_bbox = (region_x1, region_y1, region_x2, region_y2)
 
             # Find patches that could overlap with this region
@@ -163,7 +172,9 @@ def compute_region_relevance_scores(
 
             elif aggregation == "max":
                 # Max aggregation: rel_max(q, r) = max_{j in covered(r)} score_patch(j)
-                region_patch_values = patch_scores[patch_y1_idx:patch_y2_idx, patch_x1_idx:patch_x2_idx]
+                region_patch_values = patch_scores[
+                    patch_y1_idx:patch_y2_idx, patch_x1_idx:patch_x2_idx
+                ]
                 if region_patch_values.size > 0:
                     relevance_score = float(np.max(region_patch_values))
                 else:
@@ -171,14 +182,18 @@ def compute_region_relevance_scores(
 
             elif aggregation == "mean":
                 # Mean aggregation: rel_mean(q, r) = mean_{j in covered(r)} score_patch(j)
-                region_patch_values = patch_scores[patch_y1_idx:patch_y2_idx, patch_x1_idx:patch_x2_idx]
+                region_patch_values = patch_scores[
+                    patch_y1_idx:patch_y2_idx, patch_x1_idx:patch_x2_idx
+                ]
                 if region_patch_values.size > 0:
                     relevance_score = float(np.mean(region_patch_values))
                 else:
                     relevance_score = 0.0
 
             else:
-                logger.warning(f"Unknown aggregation method: {aggregation}, using iou_weighted")
+                logger.warning(
+                    f"Unknown aggregation method: {aggregation}, using iou_weighted"
+                )
                 # Fall back to IoU-weighted
                 weighted_sum = 0.0
                 iou_sum = 0.0

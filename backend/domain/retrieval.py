@@ -189,11 +189,13 @@ async def search_documents(
                     if enable_region_filtering and ocr_data.get("regions"):
                         # Apply interpretability-based region filtering
                         try:
-                            filtered_regions = await _filter_regions_by_interpretability(
-                                regions=ocr_data["regions"],
-                                query=q,
-                                image_url=image_url,
-                                payload=payload,
+                            filtered_regions = (
+                                await _filter_regions_by_interpretability(
+                                    regions=ocr_data["regions"],
+                                    query=q,
+                                    image_url=image_url,
+                                    payload=payload,
+                                )
                             )
                             # Update payload with filtered regions
                             payload["ocr"] = {

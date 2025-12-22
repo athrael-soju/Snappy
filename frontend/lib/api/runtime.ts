@@ -48,7 +48,7 @@ export function parseSearchResults(data: unknown): SearchItem[] {
     });
   }
 
-  console.warn("Invalid search response payload", parsed.error);
+  logger.warn("Invalid search response payload", { error: parsed.error.message });
   return [];
 }
 

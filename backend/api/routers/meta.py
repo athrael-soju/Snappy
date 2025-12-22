@@ -4,9 +4,9 @@ from __version__ import __version__
 from api.dependencies import (
     colpali_init_error,
     get_colpali_client,
-    get_storage_service,
     get_ocr_service,
     get_qdrant_service,
+    get_storage_service,
     ocr_init_error,
     qdrant_init_error,
     storage_init_error,

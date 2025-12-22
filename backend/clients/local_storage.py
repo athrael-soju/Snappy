@@ -15,7 +15,7 @@ import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Iterable, Iterator, List, Optional, Protocol, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Protocol
 from urllib.parse import urlparse
 
 from config import (
@@ -25,7 +25,6 @@ from config import (
     STORAGE_FAIL_FAST,
     STORAGE_RETRIES,
     STORAGE_WORKERS,
-    get_pipeline_max_concurrency,
 )
 from PIL import Image
 from utils.timing import log_execution_time
@@ -33,9 +32,11 @@ from utils.timing import log_execution_time
 
 class ImageContainer(Protocol):
     """Protocol for image containers to avoid circular dependencies."""
+
     size: int
     format: str
     content_type: str
+
     def to_buffer(self) -> io.BytesIO: ...
 
 
@@ -44,6 +45,7 @@ logger = logging.getLogger(__name__)
 
 class _ObjectInfo:
     """Object info for compatibility with maintenance.py."""
+
     def __init__(self, object_name: str, size: int):
         self.object_name = object_name
         self.size = size
@@ -72,10 +74,7 @@ class _ServiceShim:
         bucket_path.mkdir(parents=True, exist_ok=True)
 
     def list_objects(
-        self,
-        bucket_name: str,
-        prefix: Optional[str] = None,
-        recursive: bool = True
+        self, bucket_name: str, prefix: Optional[str] = None, recursive: bool = True
     ) -> Iterator[_ObjectInfo]:
         """List objects in the bucket, yielding ObjectInfo-like objects."""
         bucket_path = self._storage_path / bucket_name
@@ -100,9 +99,7 @@ class _ServiceShim:
                         yield _ObjectInfo(object_name, size)
 
     def remove_objects(
-        self,
-        bucket_name: str,
-        delete_objects: List[Any]
+        self, bucket_name: str, delete_objects: List[Any]
     ) -> Iterator[Any]:
         """Remove objects from the bucket. Yields errors for failed deletions."""
         bucket_path = self._storage_path / bucket_name
@@ -118,6 +115,7 @@ class _ServiceShim:
                     def __init__(self, name: str, error: str):
                         self.object_name = name
                         self.error = error
+
                 yield DeleteError(object_name, str(e))
 
     def remove_bucket(self, bucket_name: str) -> None:
@@ -138,7 +136,7 @@ class _ServiceShim:
         object_name: str,
         data: Any,
         length: Optional[int] = None,
-        content_type: Optional[str] = None
+        content_type: Optional[str] = None,
     ) -> None:
         """Write an object to the bucket."""
         bucket_path = self._storage_path / bucket_name
@@ -148,13 +146,13 @@ class _ServiceShim:
         file_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Write data
-        if hasattr(data, 'read'):
+        if hasattr(data, "read"):
             # File-like object
-            with open(file_path, 'wb') as f:
+            with open(file_path, "wb") as f:
                 f.write(data.read())
         else:
             # Bytes or string
-            mode = 'wb' if isinstance(data, bytes) else 'w'
+            mode = "wb" if isinstance(data, bytes) else "w"
             with open(file_path, mode) as f:
                 f.write(data)
 
@@ -173,11 +171,11 @@ class _ServiceShim:
                 self._file = None
 
             def read(self) -> bytes:
-                with open(self._path, 'rb') as f:
+                with open(self._path, "rb") as f:
                     return f.read()
 
             def __enter__(self):
-                self._file = open(self._path, 'rb')
+                self._file = open(self._path, "rb")
                 return self._file
 
             def __exit__(self, *args):
@@ -261,7 +259,7 @@ class LocalStorageClient:
         if b_idx == len(components) - 1:
             raise ValueError(f"Invalid URL format (no object): {url}")
 
-        object_name = "/".join(components[b_idx + 1:])
+        object_name = "/".join(components[b_idx + 1 :])
         return object_name
 
     def get_image(self, image_url: str) -> Image.Image:
@@ -277,22 +275,10 @@ class LocalStorageClient:
         except Exception as e:
             raise Exception(f"Error retrieving image from {image_url}: {e}") from e
 
-    def get_json(self, json_url: str) -> Dict[str, Any]:
-        """Retrieve a JSON file from storage by its public URL."""
-        try:
-            object_name = self._extract_object_name_from_url(json_url)
-            file_path = self._object_name_to_path(object_name)
-
-            if not file_path.exists():
-                raise FileNotFoundError(f"JSON file not found: {file_path}")
-
-            with open(file_path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception as e:
-            raise Exception(f"Error retrieving JSON from {json_url}: {e}") from e
-
     @log_execution_time(
-        "upload images to local storage", log_level=logging.DEBUG, warn_threshold_ms=3000
+        "upload images to local storage",
+        log_level=logging.DEBUG,
+        warn_threshold_ms=3000,
     )
     def store_processed_images_batch(
         self,
@@ -334,7 +320,9 @@ class LocalStorageClient:
         if image_ids is None:
             image_ids = [str(uuid.uuid4()) for _ in range(n)]
         if len(image_ids) != n:
-            raise ValueError("Number of processed images must match number of image IDs")
+            raise ValueError(
+                "Number of processed images must match number of image IDs"
+            )
 
         if document_ids is None or len(document_ids) != n:
             raise ValueError("document_ids is required and must match number of images")
@@ -457,8 +445,11 @@ class LocalStorageClient:
             # Write atomically using temp file
             data = json.dumps(payload, ensure_ascii=False)
             with tempfile.NamedTemporaryFile(
-                dir=file_path.parent, delete=False, mode="w",
-                encoding="utf-8", suffix=".json"
+                dir=file_path.parent,
+                delete=False,
+                mode="w",
+                encoding="utf-8",
+                suffix=".json",
             ) as tmp:
                 tmp.write(data)
                 temp_path = tmp.name
@@ -555,7 +546,7 @@ class LocalStorageClient:
 
     def _cleanup_empty_dirs(self, path: Path) -> None:
         """Remove empty directories recursively up to bucket root."""
-        bucket_path = self.storage_path / self.bucket_name
+        self.storage_path / self.bucket_name
         try:
             for dirpath in sorted(path.rglob("*"), reverse=True):
                 if dirpath.is_dir() and not any(dirpath.iterdir()):

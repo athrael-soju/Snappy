@@ -26,9 +26,7 @@ class Settings:
         self.device: Literal["cuda:0", "mps", "cpu"] = (
             "cuda:0"
             if torch.cuda.is_available()
-            else "mps"
-            if torch.backends.mps.is_available()
-            else "cpu"
+            else "mps" if torch.backends.mps.is_available() else "cpu"
         )
 
         # Configure CPU threading for better performance

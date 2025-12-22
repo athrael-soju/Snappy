@@ -5,7 +5,6 @@ from typing import Callable
 
 from .console import get_pipeline_console
 
-
 # Map stage names to console stage keys
 _STAGE_KEY_MAP = {
     "Embedding": "embedding",

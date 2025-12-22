@@ -24,7 +24,7 @@ load_dotenv(BACKEND_DIR / ".env")
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-from benchmarks.dataset_runner import BenchmarkConfig, BBoxDocVQARunner
+from benchmarks.dataset_runner import BBoxDocVQARunner, BenchmarkConfig
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +105,9 @@ def run_sweep(
 
     total_runs = len(combinations)
     logger.info(f"Starting parameter sweep: {total_runs} configurations")
-    logger.info(f"Samples per category: {samples_per_category}, Total: {total_samples}, Model: {embedding_model}")
+    logger.info(
+        f"Samples per category: {samples_per_category}, Total: {total_samples}, Model: {embedding_model}"
+    )
 
     results = []
     sweep_start = datetime.now()
@@ -192,12 +194,16 @@ def run_sweep(
     }
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    summary_path = output_dir / f"sweep_summary_{sweep_start.strftime('%Y%m%d_%H%M%S')}.json"
+    summary_path = (
+        output_dir / f"sweep_summary_{sweep_start.strftime('%Y%m%d_%H%M%S')}.json"
+    )
     with open(summary_path, "w") as f:
         json.dump(sweep_summary, f, indent=2)
 
     logger.info(f"\n{'='*60}")
-    logger.info(f"Sweep complete: {sweep_summary['successful_runs']}/{total_runs} successful")
+    logger.info(
+        f"Sweep complete: {sweep_summary['successful_runs']}/{total_runs} successful"
+    )
     logger.info(f"Duration: {sweep_duration:.1f}s")
     logger.info(f"Summary saved to: {summary_path}")
 

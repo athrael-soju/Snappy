@@ -114,19 +114,25 @@ class PDFRasterizer:
                     metadata = []
                     for offset, img in enumerate(images):
                         page_num = page + offset
-                        width, height = img.size if hasattr(img, "size") else (None, None)
+                        width, height = (
+                            img.size if hasattr(img, "size") else (None, None)
+                        )
 
-                        metadata.append({
-                            "document_id": document_id,
-                            "page_id": image_ids[offset],  # Match page_id to image_id
-                            "filename": filename,
-                            "page_number": page_num,
-                            "pdf_page_index": page_num,
-                            "total_pages": total_pages,
-                            "page_width_px": width,
-                            "page_height_px": height,
-                            "file_size_bytes": file_size_bytes,
-                        })
+                        metadata.append(
+                            {
+                                "document_id": document_id,
+                                "page_id": image_ids[
+                                    offset
+                                ],  # Match page_id to image_id
+                                "filename": filename,
+                                "page_number": page_num,
+                                "pdf_page_index": page_num,
+                                "total_pages": total_pages,
+                                "page_width_px": width,
+                                "page_height_px": height,
+                                "file_size_bytes": file_size_bytes,
+                            }
+                        )
 
                     # Broadcast to all output queues with independent copies
                     # Each consumer gets its own copy of the images to avoid PIL threading issues
@@ -136,11 +142,13 @@ class PDFRasterizer:
                     console.start_batch(
                         batch_id, page, last_page, batch_size, document_id, filename
                     )
-                    
+
                     for i, q in enumerate(output_queues):
                         # Create deep copy of images for thread safety
                         # PIL Image objects are not thread-safe when shared
-                        images_copy = [img.copy() for img in images] if i > 0 else images
+                        images_copy = (
+                            [img.copy() for img in images] if i > 0 else images
+                        )
 
                         batch = PageBatch(
                             document_id=document_id,
