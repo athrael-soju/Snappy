@@ -258,30 +258,28 @@ export async function buildRegionImagesContent(results: SearchItem[], query: str
                 .replace("127.0.0.1", "backend");
         }
 
-        if (isLocal) {
-            try {
-                const imageResponse = await fetch(resolvedUrl);
-                if (!imageResponse.ok && resolvedUrl !== imageUrl) {
-                    // Fallback to original URL
-                    const fallbackResponse = await fetch(imageUrl);
-                    if (!fallbackResponse.ok) {
-                        return null;
-                    }
-                    const imageBuffer = await fallbackResponse.arrayBuffer();
-                    const base64 = Buffer.from(imageBuffer).toString("base64");
-                    const mimeType = fallbackResponse.headers.get("content-type") || "image/png";
-                    return { type: "input_image", image_url: `data:${mimeType};base64,${base64}` } as const;
-                } else if (imageResponse.ok) {
-                    const imageBuffer = await imageResponse.arrayBuffer();
-                    const base64 = Buffer.from(imageBuffer).toString("base64");
-                    const mimeType = imageResponse.headers.get("content-type") || "image/png";
-                    return { type: "input_image", image_url: `data:${mimeType};base64,${base64}` } as const;
+        // Always fetch and convert to base64 - OpenAI cannot access internal/local URLs
+        try {
+            const imageResponse = await fetch(resolvedUrl);
+            if (!imageResponse.ok && resolvedUrl !== imageUrl) {
+                // Fallback to original URL
+                const fallbackResponse = await fetch(imageUrl);
+                if (!fallbackResponse.ok) {
+                    return null;
                 }
-            } catch {
-                return null;
+                const imageBuffer = await fallbackResponse.arrayBuffer();
+                const base64 = Buffer.from(imageBuffer).toString("base64");
+                const mimeType = fallbackResponse.headers.get("content-type") || "image/png";
+                return { type: "input_image", image_url: `data:${mimeType};base64,${base64}` } as const;
+            } else if (imageResponse.ok) {
+                const imageBuffer = await imageResponse.arrayBuffer();
+                const base64 = Buffer.from(imageBuffer).toString("base64");
+                const mimeType = imageResponse.headers.get("content-type") || "image/png";
+                return { type: "input_image", image_url: `data:${mimeType};base64,${base64}` } as const;
             }
-        } else {
-            return { type: "input_image", image_url: imageUrl } as const;
+        } catch (error) {
+            logger.error(`[fetchRegionImage] Failed to fetch image: ${imageUrl}`, { error });
+            return null;
         }
 
         return null;

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { loadConfigFromStorage } from "@/lib/config/config-store";
 
 const RUNTIME_CONFIG_EVENT = "runtimeConfigUpdated";
+const RUNTIME_CONFIG_SYNCED_EVENT = "runtimeConfigSynced";
 
 /**
  * Hook to check if mean pooling (reranking) is enabled in the configuration.
@@ -22,15 +23,17 @@ export function useMeanPoolingEnabled(): boolean {
     // Check on mount
     checkConfig();
 
-    // Listen for runtime config updates
+    // Listen for runtime config updates and sync events
     const handleConfigUpdate = () => {
       checkConfig();
     };
 
     window.addEventListener(RUNTIME_CONFIG_EVENT, handleConfigUpdate);
+    window.addEventListener(RUNTIME_CONFIG_SYNCED_EVENT, handleConfigUpdate);
 
     return () => {
       window.removeEventListener(RUNTIME_CONFIG_EVENT, handleConfigUpdate);
+      window.removeEventListener(RUNTIME_CONFIG_SYNCED_EVENT, handleConfigUpdate);
     };
   }, []);
 

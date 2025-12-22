@@ -9,6 +9,7 @@ from api.dependencies import (
     qdrant_init_error,
 )
 from api.models import SearchItem
+from clients.local_storage_utils import parse_files_url, resolve_storage_path
 from domain.errors import SearchError, ServiceUnavailableError
 from domain.region_relevance import filter_regions_by_relevance
 
@@ -64,16 +65,16 @@ async def _filter_regions_by_interpretability(
     if not image_url:
         raise SearchError("Image URL not found - required for region filtering")
 
-    # Fetch and load the image
-    from io import BytesIO
-
-    import requests
+    # Load image directly from filesystem (avoid HTTP self-call which causes timeouts)
     from PIL import Image
 
-    logger.debug(f"Fetching image from {image_url} for region filtering")
-    response = requests.get(image_url, timeout=10)
-    response.raise_for_status()
-    image = Image.open(BytesIO(response.content))
+    try:
+        bucket, relative_path = parse_files_url(image_url)
+        file_path = resolve_storage_path(bucket, relative_path)
+        logger.debug(f"Loading image from filesystem: {file_path}")
+        image = Image.open(file_path)
+    except Exception as e:
+        raise SearchError(f"Failed to load image from storage: {e}")
 
     # Generate interpretability maps
     logger.debug("Generating interpretability maps for region filtering")
