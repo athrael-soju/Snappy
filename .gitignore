@@ -211,6 +211,9 @@ qdrant_storage/
 deepseek-ocr/models/
 .claude/
 
+# macOS
+.DS_Store
+
 # LaTeX auxiliary files
 paper/paper.aux
 paper/paper.fls

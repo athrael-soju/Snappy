@@ -546,7 +546,6 @@ class LocalStorageClient:
 
     def _cleanup_empty_dirs(self, path: Path) -> None:
         """Remove empty directories recursively up to bucket root."""
-        self.storage_path / self.bucket_name
         try:
             for dirpath in sorted(path.rglob("*"), reverse=True):
                 if dirpath.is_dir() and not any(dirpath.iterdir()):
