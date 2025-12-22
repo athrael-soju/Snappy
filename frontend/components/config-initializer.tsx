@@ -23,7 +23,11 @@ export function ConfigInitializer() {
     if (hasInitialized.current) return;
     hasInitialized.current = true;
 
+    // Track if component is still mounted
+    let isMounted = true;
+
     const syncConfigToBackend = async (attempt: number = 1): Promise<boolean> => {
+      if (!isMounted) return false;
       try {
         logger.debug(`ConfigInitializer: Starting config sync (attempt ${attempt}/${MAX_RETRIES})`);
 
@@ -104,6 +108,10 @@ export function ConfigInitializer() {
     };
 
     syncWithRetry();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return null; // This component renders nothing
