@@ -47,7 +47,8 @@ def resolve_storage_path(bucket: str, relative_path: str) -> Path:
         PathTraversalError: If path attempts to escape storage directory
         FileNotFoundInStorageError: If file doesn't exist
     """
-    storage_base = Path(config.LOCAL_STORAGE_PATH)
+    # Resolve the storage base to an absolute path to avoid ambiguity
+    storage_base = Path(config.LOCAL_STORAGE_PATH).resolve()
     bucket_name = config.LOCAL_STORAGE_BUCKET_NAME
 
     # Validate bucket name
@@ -59,7 +60,9 @@ def resolve_storage_path(bucket: str, relative_path: str) -> Path:
     bucket_resolved = bucket_base.resolve()
 
     # Ensure the provided path is relative and cannot override the bucket root
-    relative_path_obj = Path(relative_path)
+    # Strip any leading slashes to avoid accidental absolute interpretations
+    sanitized_relative = relative_path.lstrip("/\\")
+    relative_path_obj = Path(sanitized_relative)
     if relative_path_obj.is_absolute():
         logger.warning(f"Absolute path not allowed in storage path: {relative_path}")
         raise PathTraversalError("Absolute paths are not allowed")
@@ -93,20 +96,26 @@ def parse_files_url(image_url: str) -> Tuple[str, str]:
     Raises:
         ValueError: If URL format is invalid
     """
+    image_url = image_url.strip()
     if "/files/" not in image_url:
         raise ValueError(f"URL does not contain /files/: {image_url}")
 
     parts = image_url.split("/files/")
-    if len(parts) < 2:
+    if len(parts) < 2 or not parts[1]:
         raise ValueError("Invalid /files/ URL format")
 
-    file_path_part = parts[1]  # e.g., "documents/doc-id/page/image.jpg"
+    file_path_part = parts[1].lstrip("/")  # e.g., "documents/doc-id/page/image.jpg"
     path_components = file_path_part.split("/", 1)
 
     if len(path_components) < 2:
         raise ValueError("Missing path in /files/ URL")
 
-    bucket = path_components[0]
-    relative_path = path_components[1]
+    bucket = path_components[0].strip()
+    relative_path = path_components[1].lstrip("/")
+
+    if not bucket:
+        raise ValueError("Missing bucket in /files/ URL")
+    if not relative_path:
+        raise ValueError("Missing path in /files/ URL")
 
     return bucket, relative_path
