@@ -213,9 +213,3 @@ deepseek-ocr/models/
 
 # macOS
 .DS_Store
-
-# LaTeX auxiliary files
-paper/paper.aux
-paper/paper.fls
-paper/paper.fdb_latexmk
-paper/paper.out
