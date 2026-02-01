@@ -231,15 +231,160 @@ class OcrClient:
         custom_prompt: Optional[str] = None,
         include_images: Optional[bool] = None,
     ) -> Dict[str, Any]:
-        """Call the PaddleOCR vLLM OpenAI-compatible API.
+        """Call the PaddleOCR vLLM API.
 
-        The vLLM server exposes an OpenAI-compatible chat completions endpoint.
-        We send the image as a base64 data URL in the message content.
+        Uses /v1/infer endpoint for structured output with labels and bounding boxes,
+        falling back to /v1/chat/completions if infer endpoint is unavailable.
         """
         prompt = self._build_prompt(task=task, custom_prompt=custom_prompt)
         image_url = self._encode_image_base64(image_bytes)
 
-        # Build OpenAI-compatible chat completion request
+        # Determine if we should extract image crops
+        should_include_images = (
+            include_images
+            if include_images is not None
+            else self.default_include_images
+        )
+
+        # Try /v1/infer endpoint first (returns structured data with labels)
+        try:
+            return self._call_infer_endpoint(
+                image_url, prompt, image_bytes if should_include_images else None
+            )
+        except Exception as infer_exc:
+            logger.debug(f"Infer endpoint failed, falling back to chat: {infer_exc}")
+
+        # Fallback to /v1/chat/completions (text only)
+        return self._call_chat_endpoint(
+            image_url, prompt, image_bytes if should_include_images else None
+        )
+
+    def _call_infer_endpoint(
+        self,
+        image_url: str,
+        prompt: str,
+        image_bytes: Optional[bytes] = None,
+    ) -> Dict[str, Any]:
+        """Call the /v1/infer endpoint for structured output with labels.
+
+        Returns structured data including labeled bounding boxes and text.
+        """
+        payload = {
+            "input": [
+                {
+                    "type": "image_url",
+                    "url": image_url,
+                }
+            ],
+            "task": prompt.rstrip(":"),  # Remove trailing colon for task name
+        }
+
+        response = self.session.post(
+            f"{self.base_url}/v1/infer",
+            json=payload,
+            timeout=self.timeout,
+        )
+        response.raise_for_status()
+        result = response.json()
+
+        return self._parse_infer_response(result, image_bytes)
+
+    def _parse_infer_response(
+        self,
+        result: Dict[str, Any],
+        image_bytes: Optional[bytes] = None,
+    ) -> Dict[str, Any]:
+        """Parse /v1/infer response into standard format.
+
+        The infer endpoint returns structured data with labels and bounding boxes.
+        """
+        bounding_boxes = []
+        text_parts = []
+        figure_boxes = []
+
+        # Parse detections from response
+        detections = result.get("data", result.get("detections", []))
+        if isinstance(detections, dict):
+            detections = detections.get("detections", [])
+
+        for detection in detections:
+            # Extract bounding box
+            bbox = detection.get("bbox", detection.get("bounding_box", []))
+            if len(bbox) >= 4:
+                box = {
+                    "x1": int(bbox[0]),
+                    "y1": int(bbox[1]),
+                    "x2": int(bbox[2]),
+                    "y2": int(bbox[3]),
+                    "label": detection.get("label", detection.get("class", "text")),
+                    "confidence": detection.get("confidence", detection.get("score", 1.0)),
+                }
+                bounding_boxes.append(box)
+
+                # Collect figure regions for cropping
+                if box["label"] in ("image", "figure", "chart", "diagram", "photo"):
+                    figure_boxes.append(box)
+
+            # Extract text content
+            text = detection.get("text", detection.get("content", ""))
+            if text:
+                text_parts.append(text)
+
+        # Build markdown from detections
+        markdown = self._build_markdown_from_detections(detections)
+        full_text = "\n".join(text_parts) if text_parts else markdown
+
+        # Extract image crops from figure regions
+        crops = []
+        if image_bytes and figure_boxes:
+            crops = self._extract_figure_crops(image_bytes, figure_boxes)
+
+        return {
+            "text": full_text,
+            "markdown": markdown,
+            "raw": str(result),
+            "bounding_boxes": bounding_boxes,
+            "crops": crops,
+        }
+
+    def _build_markdown_from_detections(
+        self,
+        detections: List[Dict[str, Any]],
+    ) -> str:
+        """Build markdown from structured detections with labels."""
+        parts = []
+
+        for detection in detections:
+            label = detection.get("label", detection.get("class", "text"))
+            text = detection.get("text", detection.get("content", ""))
+
+            if label in ("doc_title", "title"):
+                parts.append(f"# {text}")
+            elif label in ("paragraph_title", "section_title", "header"):
+                parts.append(f"## {text}")
+            elif label in ("image", "figure", "chart", "diagram"):
+                # Add figure placeholder
+                idx = len([p for p in parts if p.startswith("![")]) + 1
+                parts.append(f"![Figure {idx}]")
+            elif label == "table":
+                parts.append(f"\n{text}\n")
+            elif label == "formula":
+                parts.append(f"$${text}$$")
+            else:
+                parts.append(text)
+
+        return "\n\n".join(parts)
+
+    def _call_chat_endpoint(
+        self,
+        image_url: str,
+        prompt: str,
+        image_bytes: Optional[bytes] = None,
+    ) -> Dict[str, Any]:
+        """Call the /v1/chat/completions endpoint (fallback).
+
+        Returns text only, uses heuristics for figure detection.
+        """
         payload = {
             "model": "PaddleOCR-VL-1.5-0.9B",
             "messages": [
@@ -275,35 +420,24 @@ class OcrClient:
             message = result["choices"][0].get("message", {})
             generated_text = message.get("content", "")
 
-        # Determine if we should extract image crops
-        should_include_images = (
-            include_images
-            if include_images is not None
-            else self.default_include_images
-        )
-
         # Parse the response into our standard format
         return self._parse_ocr_response(
             generated_text,
-            task=task,
-            image_bytes=image_bytes if should_include_images else None,
+            image_bytes=image_bytes,
         )
 
     def _parse_ocr_response(
         self,
         generated_text: str,
-        task: Optional[str] = None,
         image_bytes: Optional[bytes] = None,
     ) -> Dict[str, Any]:
-        """Parse PaddleOCR vLLM response into standard format.
+        """Parse chat completions response into standard format (fallback).
 
-        PaddleOCR-VL outputs markdown-formatted text with optional bounding boxes.
-        The format varies by task type. If image_bytes is provided, figure regions
-        are cropped and returned as base64-encoded images.
+        Used when /v1/infer is unavailable. Uses heuristics for figure detection
+        since the chat endpoint doesn't return structured labels.
         """
         import re
 
-        task = task or self.default_task
         text = generated_text.strip()
 
         # Extract bounding boxes if present (format: [[x1,y1],[x2,y2],[x3,y3],[x4,y4]])
