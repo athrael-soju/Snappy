@@ -5,7 +5,6 @@ from __future__ import annotations
 import base64
 import io
 import logging
-import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
@@ -231,10 +230,10 @@ class OcrClient:
         custom_prompt: Optional[str] = None,
         include_images: Optional[bool] = None,
     ) -> Dict[str, Any]:
-        """Call the PaddleOCR vLLM API.
+        """Call the PaddleOCR pipeline API.
 
-        Uses /v1/infer endpoint for structured output with labels and bounding boxes,
-        falling back to /v1/chat/completions if infer endpoint is unavailable.
+        Uses /v1/infer endpoint which returns structured output with labels
+        and bounding boxes from PP-DocLayoutV3 layout detection.
         """
         prompt = self._build_prompt(task=task, custom_prompt=custom_prompt)
         image_url = self._encode_image_base64(image_bytes)
@@ -246,16 +245,7 @@ class OcrClient:
             else self.default_include_images
         )
 
-        # Try /v1/infer endpoint first (returns structured data with labels)
-        try:
-            return self._call_infer_endpoint(
-                image_url, prompt, image_bytes if should_include_images else None
-            )
-        except Exception as infer_exc:
-            logger.debug(f"Infer endpoint failed, falling back to chat: {infer_exc}")
-
-        # Fallback to /v1/chat/completions (text only)
-        return self._call_chat_endpoint(
+        return self._call_infer_endpoint(
             image_url, prompt, image_bytes if should_include_images else None
         )
 
@@ -296,43 +286,49 @@ class OcrClient:
     ) -> Dict[str, Any]:
         """Parse /v1/infer response into standard format.
 
-        The infer endpoint returns structured data with labels and bounding boxes.
+        The pipeline service returns structured data with labeled bounding boxes
+        from PP-DocLayoutV3 layout detection.
         """
         bounding_boxes = []
-        text_parts = []
         figure_boxes = []
 
-        # Parse detections from response
-        detections = result.get("data", result.get("detections", []))
-        if isinstance(detections, dict):
-            detections = detections.get("detections", [])
+        # Parse layout detection results (from PP-DocLayoutV3)
+        layout_det_res = result.get("layout_det_res", {})
+        boxes = layout_det_res.get("boxes", [])
 
-        for detection in detections:
-            # Extract bounding box
-            bbox = detection.get("bbox", detection.get("bounding_box", []))
-            if len(bbox) >= 4:
-                box = {
-                    "x1": int(bbox[0]),
-                    "y1": int(bbox[1]),
-                    "x2": int(bbox[2]),
-                    "y2": int(bbox[3]),
-                    "label": detection.get("label", detection.get("class", "text")),
-                    "confidence": detection.get("confidence", detection.get("score", 1.0)),
+        for box in boxes:
+            coord = box.get("coordinate", [])
+            if len(coord) >= 4:
+                bbox = {
+                    "x1": int(coord[0]),
+                    "y1": int(coord[1]),
+                    "x2": int(coord[2]),
+                    "y2": int(coord[3]),
+                    "label": box.get("label", "text"),
+                    "confidence": float(box.get("score", 1.0)),
                 }
-                bounding_boxes.append(box)
+                bounding_boxes.append(bbox)
 
-                # Collect figure regions for cropping
-                if box["label"] in ("image", "figure", "chart", "diagram", "photo"):
-                    figure_boxes.append(box)
+                # Collect figure regions for cropping based on label
+                if bbox["label"] in ("image", "figure", "chart", "diagram", "photo"):
+                    figure_boxes.append(bbox)
 
-            # Extract text content
-            text = detection.get("text", detection.get("content", ""))
-            if text:
-                text_parts.append(text)
+        # Get text and markdown directly from response
+        text = result.get("text", "")
+        markdown = result.get("markdown", "")
 
-        # Build markdown from detections
-        markdown = self._build_markdown_from_detections(detections)
-        full_text = "\n".join(text_parts) if text_parts else markdown
+        # Build regions from parsing results
+        regions = []
+        for block in result.get("parsing_res_list", []):
+            region = {
+                "label": block.get("block_label", "text"),
+                "content": block.get("block_content", ""),
+                "bbox": block.get("block_bbox", []),
+            }
+            # Add image_index for figure regions so crops can be linked
+            if region["label"] in ("image", "figure", "chart", "diagram", "photo"):
+                region["image_index"] = len([r for r in regions if r.get("image_index") is not None])
+            regions.append(region)
 
         # Extract image crops from figure regions
         crops = []
@@ -340,182 +336,13 @@ class OcrClient:
             crops = self._extract_figure_crops(image_bytes, figure_boxes)
 
         return {
-            "text": full_text,
+            "text": text,
             "markdown": markdown,
             "raw": str(result),
             "bounding_boxes": bounding_boxes,
+            "regions": regions,
             "crops": crops,
         }
-
-    def _build_markdown_from_detections(
-        self,
-        detections: List[Dict[str, Any]],
-    ) -> str:
-        """Build markdown from structured detections with labels."""
-        parts = []
-
-        for detection in detections:
-            label = detection.get("label", detection.get("class", "text"))
-            text = detection.get("text", detection.get("content", ""))
-
-            if label in ("doc_title", "title"):
-                parts.append(f"# {text}")
-            elif label in ("paragraph_title", "section_title", "header"):
-                parts.append(f"## {text}")
-            elif label in ("image", "figure", "chart", "diagram"):
-                # Add figure placeholder
-                idx = len([p for p in parts if p.startswith("![")]) + 1
-                parts.append(f"![Figure {idx}]")
-            elif label == "table":
-                parts.append(f"\n{text}\n")
-            elif label == "formula":
-                parts.append(f"$${text}$$")
-            else:
-                parts.append(text)
-
-        return "\n\n".join(parts)
-
-    def _call_chat_endpoint(
-        self,
-        image_url: str,
-        prompt: str,
-        image_bytes: Optional[bytes] = None,
-    ) -> Dict[str, Any]:
-        """Call the /v1/chat/completions endpoint (fallback).
-
-        Returns text only, uses heuristics for figure detection.
-        """
-        payload = {
-            "model": "PaddleOCR-VL-1.5-0.9B",
-            "messages": [
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": image_url},
-                        },
-                        {
-                            "type": "text",
-                            "text": prompt,
-                        },
-                    ],
-                }
-            ],
-            "max_tokens": 4096,
-            "temperature": 0.0,
-        }
-
-        response = self.session.post(
-            f"{self.base_url}/v1/chat/completions",
-            json=payload,
-            timeout=self.timeout,
-        )
-        response.raise_for_status()
-        result = response.json()
-
-        # Extract the generated text from OpenAI response format
-        generated_text = ""
-        if "choices" in result and len(result["choices"]) > 0:
-            message = result["choices"][0].get("message", {})
-            generated_text = message.get("content", "")
-
-        # Parse the response into our standard format
-        return self._parse_ocr_response(
-            generated_text,
-            image_bytes=image_bytes,
-        )
-
-    def _parse_ocr_response(
-        self,
-        generated_text: str,
-        image_bytes: Optional[bytes] = None,
-    ) -> Dict[str, Any]:
-        """Parse chat completions response into standard format (fallback).
-
-        Used when /v1/infer is unavailable. Uses heuristics for figure detection
-        since the chat endpoint doesn't return structured labels.
-        """
-        import re
-
-        text = generated_text.strip()
-
-        # Extract bounding boxes if present (format: [[x1,y1],[x2,y2],[x3,y3],[x4,y4]])
-        bounding_boxes = []
-
-        # Pattern for 4-point bounding boxes in PaddleOCR format
-        bbox_pattern = r'\[\[(\d+),(\d+)\],\[(\d+),(\d+)\],\[(\d+),(\d+)\],\[(\d+),(\d+)\]\]'
-        matches = re.findall(bbox_pattern, text)
-
-        for match in matches:
-            coords = [int(c) for c in match]
-            # Convert 4-point polygon to rectangular bbox (x1, y1, x2, y2)
-            x_coords = [coords[0], coords[2], coords[4], coords[6]]
-            y_coords = [coords[1], coords[3], coords[5], coords[7]]
-            bounding_boxes.append({
-                "x1": min(x_coords),
-                "y1": min(y_coords),
-                "x2": max(x_coords),
-                "y2": max(y_coords),
-                "label": "text",
-            })
-
-        # Clean text by removing bbox coordinates for markdown output
-        clean_text = re.sub(bbox_pattern, '', text).strip()
-
-        # Detect figure references in markdown (e.g., ![Figure 1], ![Image], etc.)
-        figure_boxes = self._detect_figure_regions(clean_text, bounding_boxes)
-
-        # Extract image crops if we have figure regions and original image
-        crops = []
-        if image_bytes and figure_boxes:
-            crops = self._extract_figure_crops(image_bytes, figure_boxes)
-
-        return {
-            "text": clean_text,
-            "markdown": clean_text,
-            "raw": text,
-            "bounding_boxes": bounding_boxes,
-            "crops": crops,
-        }
-
-    def _detect_figure_regions(
-        self,
-        markdown_text: str,
-        bounding_boxes: List[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
-        """Detect figure/image regions from markdown content and bounding boxes.
-
-        Looks for figure references in markdown and marks corresponding regions.
-        Also identifies large regions that are likely figures based on aspect ratio.
-        """
-        import re
-
-        figure_boxes = []
-
-        # Pattern for figure references: ![Figure N], ![Image], ![Diagram], etc.
-        figure_pattern = r'!\[(Figure|Image|Diagram|Chart|Graph|Photo|Picture)\s*\d*\]'
-        figure_matches = re.findall(figure_pattern, markdown_text, re.IGNORECASE)
-
-        # If we have figure references but no explicit figure bounding boxes,
-        # try to identify figure regions by their characteristics
-        if figure_matches and bounding_boxes:
-            # Heuristic: figures tend to be larger, more square regions
-            for bbox in bounding_boxes:
-                width = bbox["x2"] - bbox["x1"]
-                height = bbox["y2"] - bbox["y1"]
-                area = width * height
-                aspect_ratio = width / max(height, 1)
-
-                # Mark as figure if:
-                # - Large area (> 10000 sq px)
-                # - Relatively square aspect ratio (0.5 to 2.0)
-                if area > 10000 and 0.3 <= aspect_ratio <= 3.0:
-                    figure_box = bbox.copy()
-                    figure_box["label"] = "figure"
-                    figure_boxes.append(figure_box)
-
-        return figure_boxes
 
     def _extract_figure_crops(
         self,

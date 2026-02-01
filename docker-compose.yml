@@ -49,12 +49,13 @@ services:
               count: all
               capabilities: [gpu]
 
-  paddle-ocr:
-    container_name: paddle-ocr
+  # vLLM server for PaddleOCR-VL model inference
+  paddle-ocr-vllm:
+    container_name: paddle-ocr-vllm
     image: ccr-2vdh3abv-pub.cnc.bj.baidubce.com/paddlepaddle/paddleocr-genai-vllm-server:latest-nvidia-gpu
-    command: paddleocr genai_server --model_name PaddleOCR-VL-1.5-0.9B --host 0.0.0.0 --port 8200 --backend vllm
+    command: paddleocr genai_server --model_name PaddleOCR-VL-1.5-0.9B --host 0.0.0.0 --port 8080 --backend vllm
     ports:
-      - "8200:8200"
+      - "8080:8080"
     environment:
       - HF_HOME=/data/hf-cache
     volumes:
@@ -63,7 +64,7 @@ services:
       - snappy-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8200/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -75,6 +76,30 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+
+  # PaddleOCR pipeline with PP-DocLayoutV3 for layout detection
+  paddle-ocr:
+    container_name: paddle-ocr
+    build:
+      context: ./paddle-ocr
+      dockerfile: Dockerfile
+    image: paddle-ocr-pipeline:latest
+    ports:
+      - "8200:8200"
+    environment:
+      - VLLM_SERVER_URL=http://paddle-ocr-vllm:8080/v1
+    networks:
+      - snappy-network
+    depends_on:
+      paddle-ocr-vllm:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8200/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   backend:
     container_name: backend
