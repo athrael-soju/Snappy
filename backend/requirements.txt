@@ -13,6 +13,11 @@ fastembed
 psutil
 python-json-logger
 
+# PaddleOCR with PP-DocLayoutV3 for layout detection
+paddlepaddle==3.2.1
+paddleocr[doc-parser]>=3.4.0
+safetensors
+
 autoflake
 black
 isort
