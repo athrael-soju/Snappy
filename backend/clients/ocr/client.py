@@ -1,7 +1,8 @@
-"""Main OCR service that orchestrates all operations."""
+"""Main OCR service that orchestrates all operations using PaddleOCR vLLM."""
 
 from __future__ import annotations
 
+import base64
 import io
 import logging
 import tempfile
@@ -23,7 +24,17 @@ logger = logging.getLogger(__name__)
 
 
 class OcrClient:
-    """Main service class for OCR operations."""
+    """Main service class for OCR operations using PaddleOCR vLLM."""
+
+    # Task prompt prefixes for PaddleOCR-VL
+    TASK_PROMPTS = {
+        "OCR": "OCR:",
+        "Table Recognition": "Table Recognition:",
+        "Formula Recognition": "Formula Recognition:",
+        "Chart Recognition": "Chart Recognition:",
+        "Spotting": "Spotting:",
+        "Seal Recognition": "Seal Recognition:",
+    }
 
     def __init__(
         self,
@@ -32,61 +43,46 @@ class OcrClient:
         timeout: Optional[int] = None,
         enabled: Optional[bool] = None,
         pool_size: Optional[int] = None,
-        default_mode: Optional[str] = None,
         default_task: Optional[str] = None,
-        include_grounding: Optional[bool] = None,
         include_images: Optional[bool] = None,
     ):
         """Initialize OCR service with all subcomponents.
 
         Args:
             storage_service: Storage service for image storage
-            base_url: DeepSeek OCR service URL
+            base_url: PaddleOCR vLLM service URL
             timeout: Request timeout in seconds
             enabled: Enable/disable OCR service
             pool_size: HTTP connection pool size
-            default_mode: Default OCR processing mode
             default_task: Default OCR task type
-            include_grounding: Default grounding inclusion
             include_images: Default image extraction
         """
         try:
             if storage_service is None:
                 raise ValueError("Storage service is required for OcrClient")
 
-            # Initialize HTTP client for DeepSeek OCR
+            # Initialize HTTP client for PaddleOCR vLLM
             self.enabled = (
-                enabled if enabled is not None else bool(config.DEEPSEEK_OCR_ENABLED)
+                enabled if enabled is not None else bool(config.PADDLE_OCR_ENABLED)
             )
-            default_base = config.DEEPSEEK_OCR_URL or "http://localhost:8200"
+            default_base = config.PADDLE_OCR_URL or "http://localhost:8200"
             self.base_url = (base_url or default_base).rstrip("/")
-            self.timeout = timeout or int(config.DEEPSEEK_OCR_API_TIMEOUT)
+            self.timeout = timeout or int(config.PADDLE_OCR_API_TIMEOUT)
 
             # Get configuration values with fallbacks
             if pool_size is None:
-                pool_size = getattr(config, "DEEPSEEK_OCR_POOL_SIZE", 20)
+                pool_size = getattr(config, "PADDLE_OCR_POOL_SIZE", 20)
             pool_size = max(5, min(100, int(pool_size or 20)))
 
             # Default processing options
-            self.default_mode = default_mode or getattr(
-                config, "DEEPSEEK_OCR_MODE", "Gundam"
-            )
             self.default_task = default_task or getattr(
-                config, "DEEPSEEK_OCR_TASK", "markdown"
+                config, "PADDLE_OCR_TASK", "OCR"
             )
-            self.default_locate_text = getattr(config, "DEEPSEEK_OCR_LOCATE_TEXT", "")
-            self.default_custom_prompt = getattr(
-                config, "DEEPSEEK_OCR_CUSTOM_PROMPT", ""
-            )
-            self.default_include_grounding = (
-                include_grounding
-                if include_grounding is not None
-                else getattr(config, "DEEPSEEK_OCR_INCLUDE_GROUNDING", True)
-            )
+            self.default_custom_prompt = getattr(config, "PADDLE_OCR_CUSTOM_PROMPT", "")
             self.default_include_images = (
                 include_images
                 if include_images is not None
-                else getattr(config, "DEEPSEEK_OCR_INCLUDE_IMAGES", True)
+                else getattr(config, "PADDLE_OCR_INCLUDE_IMAGES", True)
             )
 
             # Setup HTTP session with retry logic
@@ -141,109 +137,67 @@ class OcrClient:
         """Return True when runtime configuration permits OCR usage."""
         return self.enabled
 
-    def _prepare_payload(
+    def _encode_image_base64(self, image_bytes: bytes) -> str:
+        """Encode image bytes to base64 data URL."""
+        b64 = base64.b64encode(image_bytes).decode("utf-8")
+        return f"data:image/png;base64,{b64}"
+
+    def _build_prompt(
         self,
-        image_path: Path,
-        *,
-        mode: Optional[str] = None,
         task: Optional[str] = None,
         custom_prompt: Optional[str] = None,
-        include_grounding: Optional[bool] = None,
-        include_images: Optional[bool] = None,
-    ) -> Dict[str, Any]:
-        """Build multipart payload for the /api/ocr endpoint."""
-        mode = mode or self.default_mode
+    ) -> str:
+        """Build the prompt for PaddleOCR-VL based on task type."""
         task = task or self.default_task
-        include_grounding = (
-            include_grounding
-            if include_grounding is not None
-            else self.default_include_grounding
-        )
-        include_images = (
-            include_images
-            if include_images is not None
-            else self.default_include_images
-        )
 
-        if custom_prompt is None:
-            if task == "locate" and self.default_locate_text:
-                custom_prompt = self.default_locate_text
-            elif task == "custom" and self.default_custom_prompt:
-                custom_prompt = self.default_custom_prompt
+        if custom_prompt:
+            return custom_prompt
 
-        files = {
-            "image": (
-                image_path.name,
-                image_path.read_bytes(),
-                "image/png",
-            )
-        }
-        data = {
-            "mode": mode,
-            "task": task,
-            "include_grounding": str(include_grounding).lower(),
-            "include_images": str(include_images).lower(),
-        }
-
-        if custom_prompt is not None:
-            data["custom_prompt"] = custom_prompt
-
-        return {"files": files, "data": data}
+        # Get task-specific prompt prefix
+        prompt = self.TASK_PROMPTS.get(task, "OCR:")
+        return prompt
 
     def run_ocr(
         self,
         image_path: Path,
         *,
-        mode: Optional[str] = None,
         task: Optional[str] = None,
         custom_prompt: Optional[str] = None,
-        include_grounding: Optional[bool] = None,
         include_images: Optional[bool] = None,
+        **kwargs: Any,
     ) -> Dict[str, Any]:
-        """Execute OCR request against the DeepSeek OCR API."""
+        """Execute OCR request against the PaddleOCR vLLM API."""
         if not self.enabled:
-            raise RuntimeError("DeepSeek OCR service is disabled by configuration.")
+            raise RuntimeError("PaddleOCR service is disabled by configuration.")
 
-        payload = self._prepare_payload(
-            image_path,
-            mode=mode,
+        image_bytes = image_path.read_bytes()
+        return self._call_vllm_api(
+            image_bytes,
             task=task,
             custom_prompt=custom_prompt,
-            include_grounding=include_grounding,
             include_images=include_images,
         )
-
-        response = self.session.post(
-            f"{self.base_url}/api/ocr",
-            files=payload["files"],
-            data=payload["data"],
-            timeout=self.timeout,
-        )
-        response.raise_for_status()
-        return response.json()
 
     def run_ocr_bytes(
         self,
         image_bytes: bytes,
         *,
         filename: str = "page.png",
+        task: Optional[str] = None,
+        custom_prompt: Optional[str] = None,
+        include_images: Optional[bool] = None,
         **kwargs: Any,
     ) -> Dict[str, Any]:
-        """Execute OCR given raw image bytes by spilling to a temporary file."""
+        """Execute OCR given raw image bytes."""
         if not self.enabled:
-            raise RuntimeError("DeepSeek OCR service is disabled by configuration.")
+            raise RuntimeError("PaddleOCR service is disabled by configuration.")
 
-        suffix = Path(filename).suffix or ".png"
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-            tmp.write(image_bytes)
-            tmp_path = Path(tmp.name)
-        try:
-            return self.run_ocr(tmp_path, **kwargs)
-        finally:
-            try:
-                tmp_path.unlink()
-            except OSError:
-                pass
+        return self._call_vllm_api(
+            image_bytes,
+            task=task,
+            custom_prompt=custom_prompt,
+            include_images=include_images,
+        )
 
     def run_ocr_image(
         self,
@@ -251,82 +205,151 @@ class OcrClient:
         *,
         filename: Optional[str] = None,
         format: str = "PNG",
+        task: Optional[str] = None,
+        custom_prompt: Optional[str] = None,
+        include_images: Optional[bool] = None,
         **kwargs: Any,
     ) -> Dict[str, Any]:
         """Execute OCR directly from a PIL image instance."""
         if not self.enabled:
-            raise RuntimeError("DeepSeek OCR service is disabled by configuration.")
+            raise RuntimeError("PaddleOCR service is disabled by configuration.")
 
         buffer = io.BytesIO()
         image.save(buffer, format=format)
-        return self.run_ocr_bytes(
+        return self._call_vllm_api(
             buffer.getvalue(),
-            filename=filename or f"page.{format.lower()}",
-            **kwargs,
+            task=task,
+            custom_prompt=custom_prompt,
+            include_images=include_images,
         )
+
+    def _call_vllm_api(
+        self,
+        image_bytes: bytes,
+        *,
+        task: Optional[str] = None,
+        custom_prompt: Optional[str] = None,
+        include_images: Optional[bool] = None,
+    ) -> Dict[str, Any]:
+        """Call the PaddleOCR vLLM OpenAI-compatible API.
+
+        The vLLM server exposes an OpenAI-compatible chat completions endpoint.
+        We send the image as a base64 data URL in the message content.
+        """
+        prompt = self._build_prompt(task=task, custom_prompt=custom_prompt)
+        image_url = self._encode_image_base64(image_bytes)
+
+        # Build OpenAI-compatible chat completion request
+        payload = {
+            "model": "PaddleOCR-VL-1.5-0.9B",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": image_url},
+                        },
+                        {
+                            "type": "text",
+                            "text": prompt,
+                        },
+                    ],
+                }
+            ],
+            "max_tokens": 4096,
+            "temperature": 0.0,
+        }
+
+        response = self.session.post(
+            f"{self.base_url}/v1/chat/completions",
+            json=payload,
+            timeout=self.timeout,
+        )
+        response.raise_for_status()
+        result = response.json()
+
+        # Extract the generated text from OpenAI response format
+        generated_text = ""
+        if "choices" in result and len(result["choices"]) > 0:
+            message = result["choices"][0].get("message", {})
+            generated_text = message.get("content", "")
+
+        # Parse the response into our standard format
+        return self._parse_ocr_response(generated_text, task=task)
+
+    def _parse_ocr_response(
+        self,
+        generated_text: str,
+        task: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Parse PaddleOCR vLLM response into standard format.
+
+        PaddleOCR-VL outputs markdown-formatted text with optional bounding boxes.
+        The format varies by task type.
+        """
+        task = task or self.default_task
+        text = generated_text.strip()
+
+        # Extract bounding boxes if present (format: [[x1,y1],[x2,y2],[x3,y3],[x4,y4]])
+        bounding_boxes = []
+        import re
+
+        # Pattern for 4-point bounding boxes in PaddleOCR format
+        bbox_pattern = r'\[\[(\d+),(\d+)\],\[(\d+),(\d+)\],\[(\d+),(\d+)\],\[(\d+),(\d+)\]\]'
+        matches = re.findall(bbox_pattern, text)
+
+        for idx, match in enumerate(matches):
+            coords = [int(c) for c in match]
+            # Convert 4-point polygon to rectangular bbox (x1, y1, x2, y2)
+            x_coords = [coords[0], coords[2], coords[4], coords[6]]
+            y_coords = [coords[1], coords[3], coords[5], coords[7]]
+            bounding_boxes.append({
+                "x1": min(x_coords),
+                "y1": min(y_coords),
+                "x2": max(x_coords),
+                "y2": max(y_coords),
+                "label": "text",
+            })
+
+        # Clean text by removing bbox coordinates for markdown output
+        clean_text = re.sub(bbox_pattern, '', text).strip()
+
+        return {
+            "text": clean_text,
+            "markdown": clean_text,
+            "raw": text,
+            "bounding_boxes": bounding_boxes,
+            "crops": [],  # PaddleOCR vLLM doesn't return crops directly
+        }
 
     # Public orchestration methods
 
     def health_check(self) -> bool:
         """Check if OCR service is healthy and accessible."""
         if not self.enabled:
-            logger.debug("Skipping DeepSeek health check: service disabled")
+            logger.debug("Skipping PaddleOCR health check: service disabled")
             return False
         try:
             response = self.session.get(f"{self.base_url}/health", timeout=self.timeout)
             response.raise_for_status()
-            payload = response.json()
-            return bool(payload.get("status") == "healthy")
+            return True
         except Exception as exc:
-            logger.warning("DeepSeek OCR health check failed: %s", exc)
+            logger.warning("PaddleOCR health check failed: %s", exc)
             return False
 
     def restart(self) -> bool:
         """Request service restart to stop any ongoing processing.
 
-        Sends a restart request to the DeepSeek OCR service to forcefully stop
-        any ongoing batch processing and reset the service state. The service
-        will exit and automatically restart if configured with a restart policy.
-
-        Returns:
-            True if restart request was accepted, False otherwise
+        Note: The PaddleOCR vLLM container may not support restart endpoint.
+        Returns False as restart is typically handled by Docker.
         """
         if not self.enabled:
-            logger.debug("Skipping DeepSeek OCR restart: service disabled")
+            logger.debug("Skipping PaddleOCR restart: service disabled")
             return False
-        try:
-            # Create a new session WITHOUT retry logic for restart
-            # We expect connection errors/timeouts when service restarts
-            import requests
 
-            restart_session = requests.Session()
-
-            response = restart_session.post(
-                f"{self.base_url}/restart",
-                timeout=2,  # Very short timeout - service will exit immediately
-            )
-            restart_session.close()
-
-            if response.status_code == 200:
-                logger.info("DeepSeek OCR service restart requested")
-                return True
-            else:
-                logger.warning(
-                    f"DeepSeek OCR restart request failed: {response.status_code}"
-                )
-                return False
-        except Exception as e:
-            # Connection errors are EXPECTED during restart - treat as success
-            error_msg = str(e).lower()
-            if any(
-                keyword in error_msg for keyword in ["connection", "timeout", "read"]
-            ):
-                logger.info(
-                    "DeepSeek OCR service restart initiated (connection closed)"
-                )
-                return True
-            logger.warning(f"DeepSeek OCR restart request failed: {e}")
-            return False
+        logger.info("PaddleOCR restart requested - container restart needed")
+        return False
 
     def close(self):
         """Close the HTTP session and release connections."""

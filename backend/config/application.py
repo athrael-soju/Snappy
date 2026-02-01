@@ -178,11 +178,10 @@ STORAGE_FAIL_FAST = False  # Resilient by default
 IMAGE_FORMAT = "JPEG"  # Best compression/quality balance
 IMAGE_QUALITY = 75  # Good quality/size balance
 
-# Hard-coded DeepSeek OCR settings (auto-sized or optimized defaults)
-DEEPSEEK_OCR_API_TIMEOUT = 600  # 10 minutes - long operations
-DEEPSEEK_OCR_POOL_SIZE = 20  # Sufficient for retry handling
-DEEPSEEK_OCR_LOCATE_TEXT = ""  # Empty by default
-DEEPSEEK_OCR_CUSTOM_PROMPT = ""  # Empty by default
+# Hard-coded PaddleOCR settings (auto-sized or optimized defaults)
+PADDLE_OCR_API_TIMEOUT = 600  # 10 minutes - long operations
+PADDLE_OCR_POOL_SIZE = 20  # Sufficient for retry handling
+PADDLE_OCR_CUSTOM_PROMPT = ""  # Empty by default
 
 # Hard-coded upload settings (optimized defaults)
 UPLOAD_CHUNK_SIZE_MBYTES = 2.0  # 2MB chunks balance throughput and memory

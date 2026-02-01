@@ -1,4 +1,4 @@
-"""OCR processing logic - extracted from qdrant/indexing/ocr.py."""
+"""OCR processing logic using PaddleOCR vLLM."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 class OcrProcessor:
     """
-    Processes images with DeepSeek OCR and formats results.
+    Processes images with PaddleOCR vLLM and formats results.
 
     Responsibilities:
     - Execute OCR on image bytes
@@ -47,7 +47,7 @@ class OcrProcessor:
             image_processor: Image processing service
         """
         if not ocr_service or not ocr_service.is_enabled():
-            raise ValueError("DeepSeek OCR service must be enabled")
+            raise ValueError("PaddleOCR service must be enabled")
 
         self._ocr_service = ocr_service
         self._image_processor = image_processor
@@ -57,43 +57,37 @@ class OcrProcessor:
         image_bytes: bytes,
         filename: str,
         *,
-        mode: Optional[str] = None,
         task: Optional[str] = None,
         custom_prompt: Optional[str] = None,
-        include_grounding: Optional[bool] = None,
         include_images: Optional[bool] = None,
+        **kwargs: Any,
     ) -> Dict[str, Any]:
         """
-        Process a single image through DeepSeek OCR.
+        Process a single image through PaddleOCR vLLM.
 
         Args:
             image_bytes: Raw image bytes
             filename: Filename for OCR service
-            mode: OCR processing mode (Gundam, Tiny, etc.)
-            task: OCR task type (markdown, plain_ocr, etc.)
+            task: OCR task type (OCR, Table Recognition, etc.)
             custom_prompt: Custom prompt for custom tasks
-            include_grounding: Whether to extract bounding boxes
             include_images: Whether to extract embedded images
 
         Returns:
             Structured OCR result with text, regions, and extracted images
         """
-        # Determine effective mode and task
-        effective_mode = mode or self._ocr_service.default_mode
+        # Determine effective task
         effective_task = task or self._ocr_service.default_task
 
         logger.debug(
-            f"Processing OCR for {filename} with mode={effective_mode}, task={effective_task}"
+            f"Processing OCR for {filename} with task={effective_task}"
         )
 
-        # Call DeepSeek OCR
+        # Call PaddleOCR vLLM
         response = self._ocr_service.run_ocr_bytes(
             image_bytes,
             filename=filename,
-            mode=mode,
             task=task,
             custom_prompt=custom_prompt,
-            include_grounding=include_grounding,
             include_images=include_images,
         )
 
@@ -141,9 +135,9 @@ class OcrProcessor:
         storage_service: "LocalStorageClient",
         storage_handler: "OcrStorageHandler",
         *,
-        mode: Optional[str] = None,
         task: Optional[str] = None,
         max_workers: Optional[int] = None,
+        **kwargs: Any,
     ) -> List[Optional[Dict[str, Any]]]:
         """
         Process multiple pages in parallel.
@@ -153,7 +147,6 @@ class OcrProcessor:
             page_numbers: List of page numbers to process
             storage_service: Storage service for fetching images
             storage_handler: OCR storage handler
-            mode: OCR processing mode
             task: OCR task type
             max_workers: Concurrent processing workers
 
@@ -167,7 +160,7 @@ class OcrProcessor:
         if max_workers is None:
             import config
 
-            max_workers_config = getattr(config, "DEEPSEEK_OCR_MAX_WORKERS", None)
+            max_workers_config = getattr(config, "PADDLE_OCR_MAX_WORKERS", None)
             if max_workers_config:
                 max_workers = max(1, min(16, int(max_workers_config)))
             else:
@@ -185,7 +178,6 @@ class OcrProcessor:
                     page_num,
                     storage_service,
                     storage_handler,
-                    mode,
                     task,
                 ): idx
                 for idx, page_num in enumerate(page_numbers)
@@ -212,14 +204,16 @@ class OcrProcessor:
     def _process_page_with_storage(
         self,
         document_id: str,
-        filename: str,
         page_number: int,
         storage_service: "LocalStorageClient",
         storage_handler: "OcrStorageHandler",
-        mode: Optional[str],
         task: Optional[str],
+        filename: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Process a single page and store results."""
+        # Use document_id as filename if not provided
+        filename = filename or document_id
+
         # Fetch image
         image_bytes = self._fetch_page_image(storage_service, document_id, page_number)
 
@@ -227,7 +221,6 @@ class OcrProcessor:
         ocr_result = self.process_single(
             image_bytes=image_bytes,
             filename=f"{filename}/page_{page_number}.png",
-            mode=mode,
             task=task,
         )
 

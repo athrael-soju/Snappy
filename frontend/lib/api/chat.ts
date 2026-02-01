@@ -30,8 +30,8 @@ export async function chatRequest(req: ChatRequest): Promise<Response> {
   // (Server doesn't have access to browser localStorage)
   if (typeof window !== 'undefined') {
     const config = loadConfigFromStorage();
-    payload.ocrEnabled = config?.DEEPSEEK_OCR_ENABLED === 'True';
-    payload.ocrIncludeImages = config?.DEEPSEEK_OCR_INCLUDE_IMAGES === 'True';
+    payload.ocrEnabled = config?.PADDLE_OCR_ENABLED === 'True';
+    payload.ocrIncludeImages = config?.PADDLE_OCR_INCLUDE_IMAGES === 'True';
   }
 
   return fetch('/api/chat', {

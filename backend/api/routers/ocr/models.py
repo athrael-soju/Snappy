@@ -10,9 +10,8 @@ class OcrPageRequest(BaseModel):
 
     filename: str = Field(..., description="Document filename in storage")
     page_number: int = Field(..., ge=0, description="Page number to process")
-    mode: Optional[str] = Field(None, description="OCR mode (Gundam, Tiny, etc.)")
     task: Optional[str] = Field(
-        None, description="Task type (markdown, plain_ocr, etc.)"
+        None, description="Task type (OCR, Table Recognition, etc.)"
     )
     custom_prompt: Optional[str] = Field(
         None, description="Custom prompt for custom tasks"
@@ -24,7 +23,6 @@ class OcrBatchRequest(BaseModel):
 
     filename: str = Field(..., description="Document filename in storage")
     page_numbers: List[int] = Field(..., description="Page numbers to process")
-    mode: Optional[str] = None
     task: Optional[str] = None
     max_workers: Optional[int] = Field(None, ge=1, le=16)
 
@@ -33,7 +31,6 @@ class OcrDocumentRequest(BaseModel):
     """Request to OCR all pages of an indexed document."""
 
     filename: str = Field(..., description="Document filename")
-    mode: Optional[str] = None
     task: Optional[str] = None
 
 

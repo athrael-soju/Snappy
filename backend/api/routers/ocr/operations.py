@@ -29,7 +29,7 @@ async def process_page(
     request: OcrPageRequest,
     ocr_service: OcrClient = Depends(get_ocr_service),
 ):
-    """Process a single document page with DeepSeek OCR."""
+    """Process a single document page with PaddleOCR."""
     if not ocr_service:
         logger.error(
             "OCR service unavailable",
@@ -46,7 +46,6 @@ async def process_page(
             "operation": "process_page",
             "filename": request.filename,
             "page_number": request.page_number,
-            "mode": request.mode,
             "task": request.task,
         },
     )
@@ -56,7 +55,6 @@ async def process_page(
             result = ocr_service.process_document_page(
                 filename=request.filename,
                 page_number=request.page_number,
-                mode=request.mode,
                 task=request.task,
                 custom_prompt=request.custom_prompt,
             )
@@ -108,7 +106,6 @@ async def process_batch(
             "operation": "process_batch",
             "filename": request.filename,
             "page_count": len(request.page_numbers),
-            "mode": request.mode,
             "task": request.task,
             "max_workers": request.max_workers,
         },
@@ -119,7 +116,6 @@ async def process_batch(
             results = ocr_service.process_document_batch(
                 filename=request.filename,
                 page_numbers=request.page_numbers,
-                mode=request.mode,
                 task=request.task,
                 max_workers=request.max_workers,
             )
@@ -188,7 +184,6 @@ async def process_document(
         extra={
             "operation": "process_document",
             "filename": request.filename,
-            "mode": request.mode,
             "task": request.task,
         },
     )
@@ -217,7 +212,6 @@ async def process_document(
         ocr_service,
         request.filename,
         page_numbers,
-        request.mode,
         request.task,
     )
 

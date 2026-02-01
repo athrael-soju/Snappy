@@ -82,7 +82,6 @@ def process_document_page(
     filename: str,
     page_number: int,
     *,
-    mode: Optional[str] = None,
     task: Optional[str] = None,
     custom_prompt: Optional[str] = None,
     metadata: Optional[Dict[str, Any]] = None,
@@ -93,10 +92,8 @@ def process_document_page(
     ocr_result = ocr_service.processor.process_single(
         image_bytes=image_bytes,
         filename=f"{filename}/page_{page_number}.png",
-        mode=mode,
         task=task,
         custom_prompt=custom_prompt,
-        include_grounding=ocr_service.default_include_grounding,
         include_images=ocr_service.default_include_images,
     )
 
@@ -134,7 +131,6 @@ def process_document_batch(
     filename: str,
     page_numbers: List[int],
     *,
-    mode: Optional[str] = None,
     task: Optional[str] = None,
     max_workers: Optional[int] = None,
 ) -> List[Optional[Dict[str, Any]]]:
@@ -150,7 +146,6 @@ def process_document_batch(
         page_numbers=page_numbers,
         storage_service=ocr_service.storage_service,
         storage_handler=storage,
-        mode=mode,
         task=task,
         max_workers=max_workers,
     )
@@ -161,7 +156,6 @@ def process_document_background(
     ocr_service: OcrClient,
     filename: str,
     page_numbers: List[int],
-    mode: Optional[str],
     task: Optional[str],
 ) -> None:
     """Background task for processing entire document with parallel batch processing."""
@@ -169,7 +163,7 @@ def process_document_background(
         total = len(page_numbers)
         logger.info("Starting OCR job %s for %s: %s pages", job_id, filename, total)
 
-        max_workers = getattr(config, "DEEPSEEK_OCR_MAX_WORKERS", 4)
+        max_workers = getattr(config, "PADDLE_OCR_MAX_WORKERS", 4)
         max_workers = max(1, int(max_workers))
 
         # Process pages in batches for better progress tracking and cancellation support
@@ -209,7 +203,6 @@ def process_document_background(
                     ocr_service=ocr_service,
                     filename=filename,
                     page_numbers=batch_pages,
-                    mode=mode,
                     task=task,
                     max_workers=max_workers,
                 )

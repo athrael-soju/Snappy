@@ -6,7 +6,7 @@
 #   docker compose logs -f  - View logs
 #   docker compose down     - Stop services
 #
-# Note: ColPali and DeepSeek OCR are disabled by default.
+# Note: ColPali and PaddleOCR are disabled by default.
 # Enable them in .env if needed for testing.
 
 services:
@@ -44,7 +44,7 @@ services:
       - LOCAL_STORAGE_PATH=/app/storage
       - LOCAL_STORAGE_PUBLIC_URL=http://localhost:8000/files
       # Disable ML services by default for faster startup
-      - DEEPSEEK_OCR_ENABLED=false
+      - PADDLE_OCR_ENABLED=false
     volumes:
       - backend_data:/home/user/app/data
       - snappy_storage:/app/storage

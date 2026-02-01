@@ -162,7 +162,7 @@ export function useConfigurationPanel() {
       enabledFeatures: [
         values.QDRANT_USE_BINARY_QUANTIZATION === "True" ? "Binary Quantization" : null,
         values.QDRANT_MEAN_POOLING_ENABLED === "True" ? "Mean Pooling Re-ranking" : null,
-        values.DEEPSEEK_OCR_ENABLED === "True" ? "DeepSeek OCR" : null,
+        values.PADDLE_OCR_ENABLED === "True" ? "PaddleOCR" : null,
       ].filter(Boolean) as string[],
     }),
     [values, originalValues]

@@ -75,8 +75,8 @@ api_client = _ColPaliClientProxy()
 @lru_cache(maxsize=1)
 def _get_ocr_service_cached() -> OcrClient:
     """Create and cache OcrClient instance."""
-    if not config.DEEPSEEK_OCR_ENABLED:
-        raise RuntimeError("DeepSeek OCR service is disabled in configuration")
+    if not config.PADDLE_OCR_ENABLED:
+        raise RuntimeError("PaddleOCR service is disabled in configuration")
 
     storage_service = get_storage_service()
 
@@ -87,7 +87,7 @@ def _get_ocr_service_cached() -> OcrClient:
 
 def get_ocr_service() -> Optional[OcrClient]:
     """Return the cached OCR service if enabled."""
-    if not config.DEEPSEEK_OCR_ENABLED:
+    if not config.PADDLE_OCR_ENABLED:
         ocr_init_error.set("OCR service disabled in configuration")
         return None
 
@@ -125,7 +125,7 @@ def _get_qdrant_service_cached() -> QdrantClient:
     storage_service = get_storage_service()
 
     ocr_service = None
-    if config.DEEPSEEK_OCR_ENABLED:
+    if config.PADDLE_OCR_ENABLED:
         ocr_service = get_ocr_service()
         if ocr_service is None:
             logger.warning("OCR is enabled but service failed to initialize")

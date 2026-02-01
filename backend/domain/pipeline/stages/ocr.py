@@ -34,7 +34,7 @@ class OCRStage:
 
         Parallelism is controlled by batch size - all pages in batch are processed concurrently.
         """
-        if not self.ocr_service or not config.DEEPSEEK_OCR_ENABLED:
+        if not self.ocr_service or not config.PADDLE_OCR_ENABLED:
             logger.debug("OCR skipped for batch %d (OCR disabled)", batch.batch_id)
             return
 
@@ -79,7 +79,6 @@ class OCRStage:
         ocr_result = self.ocr_service.processor.process_single(
             image_bytes=processed_image.data,
             filename=f"{filename}/page_{page_num}.{extension}",
-            include_grounding=self.ocr_service.default_include_grounding,
             include_images=self.ocr_service.default_include_images,
         )
 
