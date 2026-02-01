@@ -15,10 +15,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install PaddlePaddle and PaddleOCR
+# Install PaddlePaddle CPU and PaddleOCR with doc-parser
+# PP-DocLayoutV3 runs on CPU here; heavy VLM inference is done by vLLM server
 RUN pip install --no-cache-dir \
     paddlepaddle==3.2.1 \
     "paddleocr[doc-parser]>=3.4.0" \
+    safetensors \
     fastapi \
     uvicorn \
     python-multipart \
