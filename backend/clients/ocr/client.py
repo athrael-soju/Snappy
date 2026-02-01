@@ -7,7 +7,7 @@ import io
 import logging
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import config
 import requests
@@ -275,31 +275,45 @@ class OcrClient:
             message = result["choices"][0].get("message", {})
             generated_text = message.get("content", "")
 
+        # Determine if we should extract image crops
+        should_include_images = (
+            include_images
+            if include_images is not None
+            else self.default_include_images
+        )
+
         # Parse the response into our standard format
-        return self._parse_ocr_response(generated_text, task=task)
+        return self._parse_ocr_response(
+            generated_text,
+            task=task,
+            image_bytes=image_bytes if should_include_images else None,
+        )
 
     def _parse_ocr_response(
         self,
         generated_text: str,
         task: Optional[str] = None,
+        image_bytes: Optional[bytes] = None,
     ) -> Dict[str, Any]:
         """Parse PaddleOCR vLLM response into standard format.
 
         PaddleOCR-VL outputs markdown-formatted text with optional bounding boxes.
-        The format varies by task type.
+        The format varies by task type. If image_bytes is provided, figure regions
+        are cropped and returned as base64-encoded images.
         """
+        import re
+
         task = task or self.default_task
         text = generated_text.strip()
 
         # Extract bounding boxes if present (format: [[x1,y1],[x2,y2],[x3,y3],[x4,y4]])
         bounding_boxes = []
-        import re
 
         # Pattern for 4-point bounding boxes in PaddleOCR format
         bbox_pattern = r'\[\[(\d+),(\d+)\],\[(\d+),(\d+)\],\[(\d+),(\d+)\],\[(\d+),(\d+)\]\]'
         matches = re.findall(bbox_pattern, text)
 
-        for idx, match in enumerate(matches):
+        for match in matches:
             coords = [int(c) for c in match]
             # Convert 4-point polygon to rectangular bbox (x1, y1, x2, y2)
             x_coords = [coords[0], coords[2], coords[4], coords[6]]
@@ -315,13 +329,110 @@ class OcrClient:
         # Clean text by removing bbox coordinates for markdown output
         clean_text = re.sub(bbox_pattern, '', text).strip()
 
+        # Detect figure references in markdown (e.g., ![Figure 1], ![Image], etc.)
+        figure_boxes = self._detect_figure_regions(clean_text, bounding_boxes)
+
+        # Extract image crops if we have figure regions and original image
+        crops = []
+        if image_bytes and figure_boxes:
+            crops = self._extract_figure_crops(image_bytes, figure_boxes)
+
         return {
             "text": clean_text,
             "markdown": clean_text,
             "raw": text,
             "bounding_boxes": bounding_boxes,
-            "crops": [],  # PaddleOCR vLLM doesn't return crops directly
+            "crops": crops,
         }
+
+    def _detect_figure_regions(
+        self,
+        markdown_text: str,
+        bounding_boxes: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """Detect figure/image regions from markdown content and bounding boxes.
+
+        Looks for figure references in markdown and marks corresponding regions.
+        Also identifies large regions that are likely figures based on aspect ratio.
+        """
+        import re
+
+        figure_boxes = []
+
+        # Pattern for figure references: ![Figure N], ![Image], ![Diagram], etc.
+        figure_pattern = r'!\[(Figure|Image|Diagram|Chart|Graph|Photo|Picture)\s*\d*\]'
+        figure_matches = re.findall(figure_pattern, markdown_text, re.IGNORECASE)
+
+        # If we have figure references but no explicit figure bounding boxes,
+        # try to identify figure regions by their characteristics
+        if figure_matches and bounding_boxes:
+            # Heuristic: figures tend to be larger, more square regions
+            for bbox in bounding_boxes:
+                width = bbox["x2"] - bbox["x1"]
+                height = bbox["y2"] - bbox["y1"]
+                area = width * height
+                aspect_ratio = width / max(height, 1)
+
+                # Mark as figure if:
+                # - Large area (> 10000 sq px)
+                # - Relatively square aspect ratio (0.5 to 2.0)
+                if area > 10000 and 0.3 <= aspect_ratio <= 3.0:
+                    figure_box = bbox.copy()
+                    figure_box["label"] = "figure"
+                    figure_boxes.append(figure_box)
+
+        return figure_boxes
+
+    def _extract_figure_crops(
+        self,
+        image_bytes: bytes,
+        figure_boxes: List[Dict[str, Any]],
+    ) -> List[str]:
+        """Extract figure regions from the original image as base64 crops.
+
+        Args:
+            image_bytes: Original image bytes
+            figure_boxes: List of bounding boxes for figure regions
+
+        Returns:
+            List of base64-encoded cropped images
+        """
+        crops = []
+
+        try:
+            # Load the original image
+            original_image = Image.open(io.BytesIO(image_bytes))
+            img_width, img_height = original_image.size
+
+            for bbox in figure_boxes:
+                try:
+                    # Ensure coordinates are within image bounds
+                    x1 = max(0, min(bbox["x1"], img_width))
+                    y1 = max(0, min(bbox["y1"], img_height))
+                    x2 = max(0, min(bbox["x2"], img_width))
+                    y2 = max(0, min(bbox["y2"], img_height))
+
+                    # Skip if region is too small
+                    if (x2 - x1) < 10 or (y2 - y1) < 10:
+                        continue
+
+                    # Crop the region
+                    cropped = original_image.crop((x1, y1, x2, y2))
+
+                    # Convert to base64
+                    buffer = io.BytesIO()
+                    cropped.save(buffer, format="PNG")
+                    crop_b64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+                    crops.append(crop_b64)
+
+                except Exception as crop_exc:
+                    logger.warning(f"Failed to crop figure region: {crop_exc}")
+                    continue
+
+        except Exception as exc:
+            logger.warning(f"Failed to extract figure crops: {exc}")
+
+        return crops
 
     # Public orchestration methods
 
