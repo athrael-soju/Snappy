@@ -131,7 +131,7 @@ Runtime updates via `/config/*` API take effect immediately but don't persist ac
 
 ---
 
-### DeepSeek OCR (Optional)
+### DeepSeek OCR-2
 
 | Variable | Default | Description |
 |----------|---------|-------------|
