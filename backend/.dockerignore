@@ -12,3 +12,4 @@ __pycache__/
 qdrant_data/
 backend_data/
 data/
+benchmarks/
