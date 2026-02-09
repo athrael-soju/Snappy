@@ -1,6 +1,8 @@
 # DeepSeek OCR Service
 
-FastAPI microservice for DeepSeek-OCR. **Requires an NVIDIA GPU with CUDA.**
+FastAPI microservice for [DeepSeek-OCR-2](https://huggingface.co/deepseek-ai/DeepSeek-OCR-2) (3.3B params, bfloat16). **Requires an NVIDIA GPU with CUDA.**
+
+Upgraded from DeepSeek-OCR v1 to v2 for improved text extraction, bounding box accuracy, and Gundam mode support at higher resolution (base_size=1024, image_size=768).
 
 ## Quick start (Docker)
 ```bash
@@ -12,7 +14,7 @@ Runs at `http://localhost:8200`. Included in the default `docker compose up -d`.
 ## Local run
 ```bash
 pip install -r requirements.txt
-export MODEL_NAME=deepseek-ai/DeepSeek-OCR
+export MODEL_NAME=deepseek-ai/DeepSeek-OCR-2
 export API_HOST=0.0.0.0
 export API_PORT=8200
 export HF_HOME=/models  # cache

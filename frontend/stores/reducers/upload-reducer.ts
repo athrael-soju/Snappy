@@ -31,12 +31,6 @@ export function uploadReducer(state: AppState, action: AppAction): AppState | nu
       return { ...state, upload: { ...state.upload, uploadedFilenames: action.payload } };
 
     // OCR actions
-    case 'UPLOAD_SET_OCR_JOB_ID':
-      return { ...state, upload: { ...state.upload, ocrJobId: action.payload } };
-
-    case 'UPLOAD_SET_OCR_PROGRESS':
-      return { ...state, upload: { ...state.upload, ocrProgress: action.payload } };
-
     case 'UPLOAD_SET_OCR_STATUS_TEXT':
       return { ...state, upload: { ...state.upload, ocrStatusText: action.payload } };
 

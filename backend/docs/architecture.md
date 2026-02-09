@@ -80,7 +80,7 @@ Unlike RegionRAG (which requires hybrid training with bounding box annotations) 
 - **FastAPI backend**: routers for indexing, search, OCR, interpretability, configuration, maintenance, and health.
 - **Streaming pipeline**: parallel stages for rasterize, embed, store images, optional OCR, and Qdrant upserts.
 - **ColPali service**: query and image embeddings (multivectors with pooled variants), interpretability map generation.
-- **DeepSeek OCR service (optional)**: text, markdown, and region extraction with bounding boxes.
+- **DeepSeek OCR-2 service**: text, markdown, and region extraction with bounding boxes (3.3B params, bfloat16).
 - **Qdrant**: vector store for image/page embeddings (multi-vector with pooling); payload carries metadata, OCR data (text, markdown, regions), and image URLs.
 - **Local Storage**: page images and OCR JSON storage with hierarchical paths; OCR JSON serves as backup.
 - **Next.js frontend**: upload, search, chat, and interpretability visualization; streams responses via SSE.

@@ -28,6 +28,10 @@ RUN pip install --no-cache-dir -U pip setuptools wheel packaging
 COPY --chown=1000 ./requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir --upgrade -r /tmp/requirements.txt
 COPY --chown=1000 . ${HOME}/app
+
+# Ensure storage directory exists with correct ownership for volume mounts
+RUN mkdir -p ${HOME}/app/storage && chown 1000:1000 ${HOME}/app/storage
+
 ENV PYTHONPATH=${HOME}/app \
     PYTHONUNBUFFERED=1 \
     SYSTEM=spaces

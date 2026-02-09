@@ -38,8 +38,6 @@ export interface UploadState {
   jobId: string | null;
   statusText: string | null;
   // OCR state (separate from indexing)
-  ocrJobId: string | null;
-  ocrProgress: number;
   ocrStatusText: string | null;
   ocrError: string | null;
   uploadedFilenames: string[] | null; // Track filenames for OCR processing
@@ -73,11 +71,6 @@ export interface AppState {
   chat: ChatState;
   upload: UploadState;
   systemStatus: SystemStatus | null;
-  lastVisited: {
-    search: number | null;
-    chat: number | null;
-    upload: number | null;
-  };
 }
 
 // Action Types
@@ -115,8 +108,6 @@ export type AppAction =
   | { type: 'UPLOAD_SET_STATUS_TEXT'; payload: string | null }
   | { type: 'UPLOAD_SET_UPLOADED_FILENAMES'; payload: string[] | null }
   // OCR actions
-  | { type: 'UPLOAD_SET_OCR_JOB_ID'; payload: string | null }
-  | { type: 'UPLOAD_SET_OCR_PROGRESS'; payload: number }
   | { type: 'UPLOAD_SET_OCR_STATUS_TEXT'; payload: string | null }
   | { type: 'UPLOAD_SET_OCR_ERROR'; payload: string | null }
   | { type: 'UPLOAD_RESET' }
@@ -126,8 +117,7 @@ export type AppAction =
   | { type: 'SYSTEM_CLEAR_STATUS' }
 
   // Global actions
-  | { type: 'HYDRATE_FROM_STORAGE'; payload: Partial<AppState> }
-  | { type: 'SET_PAGE_VISITED'; payload: { page: 'search' | 'chat' | 'upload'; timestamp: number } };
+  | { type: 'HYDRATE_FROM_STORAGE'; payload: Partial<AppState> };
 
 // Initial State
 export const initialState: AppState = {
@@ -157,16 +147,9 @@ export const initialState: AppState = {
     error: null,
     jobId: null,
     statusText: null,
-    ocrJobId: null,
-    ocrProgress: 0,
     ocrStatusText: null,
     ocrError: null,
     uploadedFilenames: null,
   },
   systemStatus: null,
-  lastVisited: {
-    search: null,
-    chat: null,
-    upload: null,
-  },
 };

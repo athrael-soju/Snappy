@@ -80,7 +80,7 @@ docker compose up -d
 
 | Feature | When to enable | How |
 |---------|----------------|-----|
-| DeepSeek OCR | Need extracted text, markdown, or bounding boxes alongside visual retrieval; have an NVIDIA GPU. OCR data is stored in Qdrant payloads (~8-9 KB per page). | Set `DEEPSEEK_OCR_ENABLED=true` in `.env`. |
+| DeepSeek OCR-2 | Need extracted text, markdown, or bounding boxes alongside visual retrieval; have an NVIDIA GPU. Uses [DeepSeek-OCR-2](https://huggingface.co/deepseek-ai/DeepSeek-OCR-2) (3.3B params). OCR data is stored in Qdrant payloads (~8-9 KB per page). | Set `DEEPSEEK_OCR_ENABLED=true` in `.env`. |
 | Mean pooling re-ranking | Improve search accuracy with two-stage retrieval (prefetch + re-rank). More accurate but requires more compute. | Set `QDRANT_MEAN_POOLING_ENABLED=true` in `.env`. Requires ColPali model with `/patches` support (enabled in `colmodernvbert`). |
 | Interpretability maps | Visualize which document regions contribute to query matches. Useful for understanding and debugging retrieval behavior. | Available in the lightbox after search. Upload a document image and query to see token-level similarity heatmaps at `/api/interpretability`. |
 | Region-level retrieval | Filter OCR regions by query relevance, reducing noise and improving precision. Uses interpretability maps to return only relevant regions. | Set `ENABLE_REGION_LEVEL_RETRIEVAL=true` in Configuration UI or `.env`. Adjust `REGION_RELEVANCE_THRESHOLD` (default 0.3) to control filtering sensitivity. |
