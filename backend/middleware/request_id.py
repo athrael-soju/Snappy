@@ -48,12 +48,3 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         finally:
             # Restore original factory
             logging.setLogRecordFactory(old_factory)
-
-
-def get_request_id() -> str:
-    """Get the current request ID from context.
-
-    Returns:
-        Current request ID or "-" if not in request context
-    """
-    return request_id_var.get()

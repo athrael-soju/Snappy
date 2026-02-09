@@ -34,21 +34,8 @@ export function globalReducer(state: AppState, action: AppAction): AppState | nu
         nextState.systemStatus = payload.systemStatus ?? null;
       }
 
-      if (payload.lastVisited) {
-        nextState.lastVisited = { ...state.lastVisited, ...payload.lastVisited };
-      }
-
       return nextState;
     }
-
-    case 'SET_PAGE_VISITED':
-      return {
-        ...state,
-        lastVisited: {
-          ...state.lastVisited,
-          [action.payload.page]: action.payload.timestamp,
-        },
-      };
 
     default:
       return null;

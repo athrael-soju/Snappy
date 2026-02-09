@@ -89,35 +89,3 @@ export function normalizeValues(
     }
   }
 }
-
-/**
- * Get display name for normalization strategy
- */
-export function getNormalizationStrategyLabel(
-  strategy: NormalizationStrategy
-): string {
-  const labels: Record<NormalizationStrategy, string> = {
-    percentile: "Percentile (2-98%)",
-    minmax: "Min-Max",
-    robust: "Robust (IQR)",
-    zscore: "Z-Score",
-    mad: "MAD (Median)",
-  };
-  return labels[strategy];
-}
-
-/**
- * Get description for normalization strategy
- */
-export function getNormalizationStrategyDescription(
-  strategy: NormalizationStrategy
-): string {
-  const descriptions: Record<NormalizationStrategy, string> = {
-    percentile: "Robust to outliers, good general purpose default",
-    minmax: "Full range, preserves all information but may be noisy",
-    robust: "IQR-based, very resistant to outliers",
-    zscore: "Mean-centered with standard deviation scaling",
-    mad: "Most robust to outliers, excellent for similarity maps",
-  };
-  return descriptions[strategy];
-}

@@ -9,24 +9,8 @@ class DomainError(Exception):
     """Base exception for all domain layer errors."""
 
 
-class DocumentNotFoundError(DomainError):
-    """Raised when a requested document does not exist."""
-
-
-class PageNotFoundError(DomainError):
-    """Raised when a requested page does not exist."""
-
-
-class QueryExecutionError(DomainError):
-    """Raised when a database query fails to execute."""
-
-
 class SearchError(DomainError):
     """Raised when a search operation fails."""
-
-
-class StatisticsError(DomainError):
-    """Raised when retrieving statistics fails."""
 
 
 class ServiceUnavailableError(DomainError):
