@@ -16,7 +16,7 @@ class Settings:
     API_PORT: int = env_config("API_PORT", default=8200, cast=int)
 
     # Model Configuration
-    MODEL_NAME: str = env_config("MODEL_NAME", default="deepseek-ai/DeepSeek-OCR")
+    MODEL_NAME: str = env_config("MODEL_NAME", default="deepseek-ai/DeepSeek-OCR-2")
 
     # Device detection with MPS support
     _auto_device: Literal["cuda", "mps", "cpu"] = (
@@ -26,15 +26,19 @@ class Settings:
     )
     DEVICE: str = env_config("DEVICE", default=_auto_device)
 
-    # Use float16 for MPS and CUDA, float32 for CPU
-    TORCH_DTYPE = torch.float16 if DEVICE in ["cuda", "mps"] else torch.float32
+    # Use bfloat16 for CUDA (recommended for OCR-2), float16 for MPS, float32 for CPU
+    TORCH_DTYPE = (
+        torch.bfloat16
+        if DEVICE == "cuda"
+        else torch.float16 if DEVICE == "mps" else torch.float32
+    )
 
     # CORS Configuration
     ALLOWED_ORIGINS: str = env_config("ALLOWED_ORIGINS", default="*")
 
     # Model Processing Configurations
     MODEL_CONFIGS: Dict[str, Dict[str, Any]] = {
-        "Gundam": {"base_size": 1024, "image_size": 640, "crop_mode": True},
+        "Gundam": {"base_size": 1024, "image_size": 768, "crop_mode": True},
         "Tiny": {"base_size": 512, "image_size": 512, "crop_mode": False},
         "Small": {"base_size": 640, "image_size": 640, "crop_mode": False},
         "Base": {"base_size": 1024, "image_size": 1024, "crop_mode": False},

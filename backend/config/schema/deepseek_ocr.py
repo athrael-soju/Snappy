@@ -10,9 +10,9 @@ from typing import Any, Dict
 SCHEMA: Dict[str, Any] = {
     "deepseek_ocr": {
         "description": "Optical character recognition service for advanced text "
-        "extraction.",
+        "extraction using DeepSeek OCR-2 Visual Causal Flow.",
         "icon": "scan-text",
-        "name": "DeepSeek OCR",
+        "name": "DeepSeek OCR-2",
         "order": 3,
         "settings": [
             {
@@ -20,9 +20,9 @@ SCHEMA: Dict[str, Any] = {
                 "description": "Toggle DeepSeek OCR integration for downstream "
                 "workflows.",
                 "help_text": "When enabled the backend initializes the DeepSeek "
-                "OCR HTTP client for advanced text extraction. "
+                "OCR-2 HTTP client for advanced text extraction. "
                 "**Requires NVIDIA GPU** - disable if you don't have GPU "
-                "or aren't running the DeepSeek OCR microservice.",
+                "or aren't running the DeepSeek OCR-2 microservice.",
                 "key": "DEEPSEEK_OCR_ENABLED",
                 "label": "Enable DeepSeek OCR",
                 "type": "bool",
@@ -47,7 +47,9 @@ SCHEMA: Dict[str, Any] = {
                 "description": "Default OCR processing mode for quality/speed "
                 "tradeoff.",
                 "help_text": "Controls image resolution and processing strategy. "
-                "Gundam (1024+640 tiles, cropped): best balance. Tiny "
+                "OCR-2 uses Visual Causal Flow with dynamic resolution "
+                "(0-6)×768×768 + 1×1024×1024. "
+                "Gundam (1024+768 tiles, cropped): best balance. Tiny "
                 "(512×512): fastest. Small (640×640): quick. Base "
                 "(1024×1024): standard. Large (1280×1280): highest "
                 "quality. Larger modes need more GPU memory and time.",

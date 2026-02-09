@@ -38,7 +38,7 @@ class ModelService:
             return
 
         logger.info("=" * 60)
-        logger.info("DeepSeek OCR Model Loading")
+        logger.info("DeepSeek OCR-2 Model Loading")
         logger.info("=" * 60)
         logger.info(f"Model: {settings.MODEL_NAME}")
         logger.info(f"Device: {settings.DEVICE.upper()}")
@@ -82,9 +82,9 @@ class ModelService:
             self.model = AutoModel.from_pretrained(settings.MODEL_NAME, **model_kwargs)
             self.model = self.model.eval()
 
-            # Move model to appropriate device
+            # Move model to appropriate device and dtype
             if settings.DEVICE == "cuda":
-                self.model = self.model.cuda()
+                self.model = self.model.cuda().to(settings.TORCH_DTYPE)
             elif settings.DEVICE == "mps":
                 import torch
 
@@ -143,8 +143,8 @@ class ModelService:
             sys.stdout = StringIO()
 
             # Prepare inference kwargs
-            import torch
-
+            # OCR-2 model is already on the correct device/dtype from load_model(),
+            # so we don't pass device/dtype to infer()
             infer_kwargs = {
                 "tokenizer": self.tokenizer,
                 "prompt": prompt,
@@ -154,11 +154,6 @@ class ModelService:
                 "image_size": image_size,
                 "crop_mode": crop_mode,
             }
-
-            # Add device and dtype for MPS/CUDA
-            if settings.DEVICE in ["cuda", "mps"]:
-                infer_kwargs["device"] = torch.device(settings.DEVICE)
-                infer_kwargs["dtype"] = settings.TORCH_DTYPE
 
             # Run inference
             self.model.infer(**infer_kwargs)

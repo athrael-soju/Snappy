@@ -20,7 +20,7 @@ async def lifespan(app: FastAPI):
     """Load model on startup, cleanup on shutdown."""
     logger.info("")
     logger.info("╔" + "═" * 58 + "╗")
-    logger.info("║" + " " * 12 + "DeepSeek OCR Service Starting" + " " * 16 + "║")
+    logger.info("║" + " " * 12 + "DeepSeek OCR-2 Service Starting" + " " * 15 + "║")
     logger.info("╚" + "═" * 58 + "╝")
     logger.info("")
 
@@ -66,15 +66,15 @@ async def lifespan(app: FastAPI):
 
     # Cleanup on shutdown
     logger.info("")
-    logger.info("Shutting down DeepSeek OCR service")
+    logger.info("Shutting down DeepSeek OCR-2 service")
     logger.info("")
 
 
 def create_app() -> FastAPI:
     """Create and configure FastAPI application."""
     app = FastAPI(
-        title="DeepSeek OCR Service",
-        description="FastAPI service for DeepSeek-OCR document analysis",
+        title="DeepSeek OCR-2 Service",
+        description="FastAPI service for DeepSeek-OCR-2 document analysis",
         version="1.0.0",
         lifespan=lifespan,
     )
